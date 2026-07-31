@@ -1,0 +1,522 @@
+[
+  {
+    "id": "E-POS-ASK-1",
+    "title": "The Only Question",
+    "category": "MKT",
+    "text": "Someone who buys for a living looked at {company} today and asked the only question that matters: what are you?",
+    "reskins": {
+      "FOOD": "A food writer eats, pays cash, and asks you straight: crowd-pleaser or destination? A menu that tracks what the street sells and competes on price and speed — or one thing nobody else makes, that people cross town for.",
+      "ECOM": "A veteran buyer scrolls your storefront twice and asks: everything store or the one thing? Stock what's trending and race on price and shipping — or own a niche so hard the niche means you.",
+      "TECH": "An analyst sits through the demo and asks the roadmap question: feature parity or opinionated product? Match the market leader's checklist — or refuse features on purpose, because the product has a point of view.",
+      "CONTENT": "A talent manager watches your last ten uploads and asks: trend-surfer or format-owner? Ride what the algorithm rewards this month — or invent a format people name after you.",
+      "FASHION": "A boutique buyer flips through the rack and asks: on-trend or house style? Read the season, ship it fast, price it under — or a recognisable look that ignores the season.",
+      "GAMING": "A publisher scout plays twenty minutes and asks: genre-plus or genre-defining? The proven genre with one twist, shipped fast — or the weird one that becomes its own genre or dies.",
+      "FITNESS": "A member who has tried every gym in town asks at the front desk: full-service gym or the method? Every class everyone else has — or a named method that exists only here.",
+      "BEAUTY": "A stockist smells the tester and asks: dupe culture or original formulation? The $12 version of the $60 product — or the formulation others dupe.",
+      "EDTECH": "A district administrator reads your outcomes page and asks: curriculum coverage or outcomes brand? Teach everything the syllabus lists — or be famous for one outcome, provably.",
+      "SUSTAIN": "A certifier tours the line and asks: green option or the standard-setter? The sustainable version of the normal thing — or redefine what the category must be.",
+      "TOYS": "A retail buyer at the fair asks across the table: licensed safety or original IP? Ride licensed characters — or build IP worth licensing out.",
+      "PET": "A rep who sells into every clinic in the county asks: shelf brand or vet brand? Win the retail shelf on price and packaging — or win the vet's recommendation and never discount."
+    },
+    "stages": [1, 2, 3],
+    "industries": ["FOOD", "ECOM", "TECH", "CONTENT", "FASHION", "GAMING", "FITNESS", "BEAUTY", "EDTECH", "SUSTAIN", "TOYS", "PET"],
+    "weight": 8,
+    "once": true,
+    "minYear": 2,
+    "excludesFlags": ["positioning_set"],
+    "choices": [
+      {
+        "label": "Track what works. Do it cheaper and faster.",
+        "outcome": {
+          "setFlags": ["stance_imitate", "positioning_set"],
+          "narration": "You said it without flinching. Proven demand, tighter execution — the follower who arrives first."
+        }
+      },
+      {
+        "label": "Don't answer yet. Keep every option open.",
+        "outcome": {
+          "setFlags": ["stance_balance", "positioning_set"],
+          "narration": "No bet placed. Sensible today. The market will keep asking."
+        }
+      },
+      {
+        "label": "Name the one thing only you do.",
+        "outcome": {
+          "setFlags": ["stance_differentiate", "positioning_set"],
+          "narration": "Now it's a promise, and everything you ship either keeps it or breaks it."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-POS-ASK-2",
+    "title": "The Rival Answers First",
+    "category": "RIV",
+    "text": "{rival} planted a flag this week, loudly. The market will file {company} somewhere next to it — pick the drawer or it gets picked for you.",
+    "reskins": {
+      "FOOD": "{rival} opened two blocks over selling exactly what already sells. Your regulars are asking what you are now: crowd-pleaser or destination?",
+      "ECOM": "{rival} just expanded into every category you touch. The question lands in your inbox: everything store or the one thing?",
+      "TECH": "{rival} shipped the checklist — every feature the market leader has. So which is {company}: feature parity or opinionated product?",
+      "CONTENT": "{rival} posts daily and rides every trend that moves. The comments compare you now: trend-surfer or format-owner?",
+      "FASHION": "{rival} shipped the season three weeks early and priced it under everyone. So which are you: on-trend or house style?",
+      "GAMING": "{rival} announced the safe version of your genre with a bigger budget. So which is this: genre-plus or genre-defining?",
+      "FITNESS": "{rival} opened a bigger floor with every class in town on the schedule. The question walks in with the new members: full-service gym or the method?",
+      "BEAUTY": "{rival} launched the cheap version of the category hero and it's selling. So which side are you on: dupe culture or original formulation?",
+      "EDTECH": "{rival} now covers the whole syllabus and says so everywhere. So which is {company}: curriculum coverage or outcomes brand?",
+      "SUSTAIN": "{rival} put a green label on the normal thing and shelved it everywhere. So which are you: green option or the standard-setter?",
+      "TOYS": "{rival} signed a license every parent recognises. So which is {company}: licensed safety or original IP?",
+      "PET": "{rival} bought the end-cap in every store that stocks you. So which are you: shelf brand or vet brand?"
+    },
+    "stages": [1, 2, 3],
+    "industries": ["FOOD", "ECOM", "TECH", "CONTENT", "FASHION", "GAMING", "FITNESS", "BEAUTY", "EDTECH", "SUSTAIN", "TOYS", "PET"],
+    "weight": 8,
+    "once": true,
+    "minYear": 2,
+    "excludesFlags": ["positioning_set"],
+    "choices": [
+      {
+        "label": "Track what works. Do it cheaper and faster.",
+        "outcome": {
+          "setFlags": ["stance_imitate", "positioning_set"],
+          "narration": "You said it without flinching. Proven demand, tighter execution — the follower who arrives first."
+        }
+      },
+      {
+        "label": "Don't answer yet. Keep every option open.",
+        "outcome": {
+          "setFlags": ["stance_balance", "positioning_set"],
+          "narration": "No bet placed. Sensible today. The market will keep asking."
+        }
+      },
+      {
+        "label": "Name the one thing only you do.",
+        "outcome": {
+          "setFlags": ["stance_differentiate", "positioning_set"],
+          "narration": "Now it's a promise, and everything you ship either keeps it or breaks it."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-POS-COPY-1",
+    "title": "Copy It",
+    "category": "RIV",
+    "text": "Everyone has seen {rival}'s new thing — your customers, your team, the group chat. Now they are all watching you to see what it means.",
+    "stages": [2, 3, 4, 5],
+    "industries": ["FOOD", "ECOM", "TECH", "CONTENT", "FASHION", "GAMING", "FITNESS", "BEAUTY", "EDTECH", "SUSTAIN", "TOYS", "PET"],
+    "weight": 6,
+    "cooldownYears": 3,
+    "requiresFlags": ["positioning_set"],
+    "choices": [
+      {
+        "label": "Copy it fast. Your version ships in a quarter.",
+        "branches": [
+          {
+            "weight": 65,
+            "outcome": {
+              "effects": [
+                { "stat": "rev_pct", "amount": 8, "durationQ": 4 },
+                { "stat": "cwp_pt", "amount": -2 },
+                { "stat": "qual", "amount": -2 }
+              ],
+              "setFlags": ["pos_move_imitate", "derivative_shipped"],
+              "narration": "It sells on arrival — proven demand does that. It also ages fast, and everyone knows whose idea it was."
+            }
+          },
+          {
+            "weight": 35,
+            "outcome": {
+              "effects": [
+                { "stat": "rev_pct", "amount": 8, "durationQ": 4 },
+                { "stat": "cwp_pt", "amount": -2 },
+                { "stat": "qual", "amount": -2 }
+              ],
+              "setFlags": ["pos_move_imitate", "derivative_shipped"],
+              "narration": "It sells. It also gets noticed.",
+              "followupId": "E-POS-COPY-NOTICED",
+              "followupDelayYears": 0
+            }
+          }
+        ]
+      },
+      {
+        "label": "Copy it better. Three quarters, out-execute it.",
+        "branches": [
+          {
+            "cond": { "stat": { "key": "qual", "gte": 55 } },
+            "outcome": {
+              "effects": [
+                { "stat": "cash_S", "amount": -3 },
+                { "stat": "rev_pct", "amount": 6, "afterQ": 2, "durationQ": 4 },
+                { "stat": "brand", "amount": 2 }
+              ],
+              "setFlags": ["pos_move_imitate"],
+              "narration": "Slower and dearer — and when it lands, nobody calls it a copy. They call it the good one."
+            }
+          },
+          {
+            "fallback": true,
+            "outcome": {
+              "effects": [
+                { "stat": "cash_S", "amount": -3 },
+                { "stat": "rev_pct", "amount": 5, "durationQ": 3 },
+                { "stat": "cwp_pt", "amount": -2 },
+                { "stat": "qual", "amount": -2 }
+              ],
+              "setFlags": ["pos_move_imitate", "derivative_shipped"],
+              "narration": "You paid for excellence and shipped an imitation. The market can tell, even when you can't."
+            }
+          }
+        ]
+      },
+      {
+        "label": "Counter it. Launch your own bet against it.",
+        "branches": [
+          {
+            "weight": 45,
+            "outcome": {
+              "effects": [
+                { "stat": "rev_pct", "amount": 10, "durationQ": 4 },
+                { "stat": "brand", "amount": 3 }
+              ],
+              "setFlags": ["pos_move_differentiate"],
+              "narration": "Your bet lands. Now there are two answers on the market, and one of them is yours alone.",
+              "followupId": "E-POS-COPY-DUEL",
+              "followupDelayYears": 1
+            }
+          },
+          {
+            "weight": 55,
+            "outcome": {
+              "effects": [
+                { "stat": "cash_S", "amount": -2 },
+                { "stat": "rev_pct", "amount": -4, "durationQ": 2 },
+                { "stat": "morale", "amount": -3 }
+              ],
+              "setFlags": ["pos_move_differentiate"],
+              "narration": "Unproven demand proves itself the hard way. The team watches you eat it.",
+              "followupId": "E-POS-COPY-DUEL",
+              "followupDelayYears": 1
+            }
+          }
+        ]
+      },
+      {
+        "label": "Ignore it. Your lane is your lane.",
+        "branches": [
+          {
+            "weight": 55,
+            "outcome": {
+              "setFlags": ["pos_move_differentiate"],
+              "narration": "You don't blink. The people who chose you notice that you didn't."
+            }
+          },
+          {
+            "weight": 45,
+            "outcome": {
+              "effects": [{ "stat": "share_pt", "amount": -1 }],
+              "setFlags": ["pos_move_differentiate"],
+              "narration": "The hit was real. A slice of the market went to find out, and some of it is not coming back."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "E-POS-COPY-NOTICED",
+    "title": "They Noticed",
+    "category": "RIV",
+    "text": "{rival} posted your version next to the original. Side by side, no caption. It didn't need one.",
+    "stages": [2, 3, 4, 5],
+    "industries": ["FOOD", "ECOM", "TECH", "CONTENT", "FASHION", "GAMING", "FITNESS", "BEAUTY", "EDTECH", "SUSTAIN", "TOYS", "PET"],
+    "weight": 1,
+    "chain": { "id": "POS-COPY", "step": 2 },
+    "choices": [
+      {
+        "label": "Say nothing. Ship the next thing.",
+        "branches": [
+          {
+            "cond": { "flag": "clarity_high" },
+            "outcome": {
+              "effects": [{ "stat": "brand", "amount": -1 }],
+              "narration": "Your people shrug. They know what you are, even on a bad week."
+            }
+          },
+          {
+            "fallback": true,
+            "outcome": {
+              "effects": [
+                { "stat": "brand", "amount": -3 },
+                { "stat": "csat", "amount": -1 }
+              ],
+              "narration": "The screenshot travels further than your product did."
+            }
+          }
+        ]
+      },
+      {
+        "label": "Answer it on camera.",
+        "perform": {
+          "type": "media",
+          "passScore": 6,
+          "pass": {
+            "effects": [
+              { "stat": "brand", "amount": 2 },
+              { "stat": "respect", "amount": 1 }
+            ],
+            "narration": "You own it with a straight face, and the story becomes how you handled it."
+          },
+          "fail": {
+            "effects": [{ "stat": "brand", "amount": -4 }],
+            "narration": "You blink on camera. Now there are two clips."
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-POS-COPY-DUEL",
+    "title": "The Comparison",
+    "category": "RIV",
+    "text": "A trade writer put {topItem} and {rival}'s answer in the same review. The winner is in the headline.",
+    "stages": [2, 3, 4, 5],
+    "industries": ["FOOD", "ECOM", "TECH", "CONTENT", "FASHION", "GAMING", "FITNESS", "BEAUTY", "EDTECH", "SUSTAIN", "TOYS", "PET"],
+    "weight": 1,
+    "chain": { "id": "POS-COPY", "step": 3 },
+    "choices": [
+      {
+        "label": "Let the work speak.",
+        "branches": [
+          {
+            "cond": { "stat": { "key": "qual", "gte": 60 } },
+            "outcome": {
+              "effects": [
+                { "stat": "brand", "amount": 3 },
+                { "stat": "cwp_pt", "amount": 1 }
+              ],
+              "narration": "You win on the merits, in print. Clip it."
+            }
+          },
+          {
+            "fallback": true,
+            "outcome": {
+              "effects": [{ "stat": "brand", "amount": -2 }],
+              "narration": "Second place, with your name spelled right."
+            }
+          }
+        ]
+      },
+      {
+        "label": "Work the writer before it prints.",
+        "branches": [
+          {
+            "weight": 50,
+            "outcome": {
+              "effects": [
+                { "stat": "brand", "amount": 2 },
+                { "stat": "risk", "amount": 1 }
+              ],
+              "narration": "The framing lands your way. Nobody asks how."
+            }
+          },
+          {
+            "weight": 50,
+            "outcome": {
+              "effects": [
+                { "stat": "brand", "amount": -3 },
+                { "stat": "risk", "amount": 1 }
+              ],
+              "narration": "The writer prints the phone call too."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "E-POS-REPO-1",
+    "title": "The Walk-Back",
+    "category": "MKT",
+    "text": "Word got around that {company} changed its answer. Longtime customers want to know which version they signed up for. New ones want to know which version is true.",
+    "stages": [2, 3, 4, 5],
+    "industries": ["FOOD", "ECOM", "TECH", "CONTENT", "FASHION", "GAMING", "FITNESS", "BEAUTY", "EDTECH", "SUSTAIN", "TOYS", "PET"],
+    "weight": 8,
+    "cooldownYears": 2,
+    "requiresFlags": ["repositioned_recent"],
+    "choices": [
+      {
+        "label": "Say it once, everywhere, loudly.",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -1 },
+            { "stat": "brand", "amount": 2 }
+          ],
+          "clearFlags": ["repositioned_recent"],
+          "narration": "One statement, no hedge. The ones who leave were already gone."
+        }
+      },
+      {
+        "label": "Let the product make the argument.",
+        "outcome": {
+          "effects": [{ "stat": "rev_pct", "amount": -4, "durationQ": 2 }],
+          "clearFlags": ["repositioned_recent"],
+          "narration": "Quieter and cheaper. For a while nobody is sure what you are — including two people on payroll."
+        }
+      },
+      {
+        "label": "Discount the old crowd into staying.",
+        "outcome": {
+          "effects": [
+            { "stat": "gm_pt", "amount": -2 },
+            { "stat": "cwp_pt", "amount": -2 }
+          ],
+          "clearFlags": ["repositioned_recent"],
+          "narration": "They stay for the price. That is not the same as staying for you."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-POS-MID-1",
+    "title": "Outflanked Twice",
+    "category": "RIV",
+    "text": "The cheap one undercut you this quarter. The special one raised prices and got away with it. {company} sits in the middle, and the middle is where margins go to be split.",
+    "stages": [3, 4, 5],
+    "industries": ["FOOD", "ECOM", "TECH", "CONTENT", "FASHION", "GAMING", "FITNESS", "BEAUTY", "EDTECH", "SUSTAIN", "TOYS", "PET"],
+    "weight": 7,
+    "cooldownYears": 2,
+    "requiresFlags": ["stance_balance"],
+    "choices": [
+      {
+        "label": "Pick the lane: cheaper, faster, everywhere.",
+        "outcome": {
+          "setFlags": ["stance_imitate"],
+          "narration": "Late, but a bet is finally a bet."
+        }
+      },
+      {
+        "label": "Pick the lane: the one thing only you do.",
+        "outcome": {
+          "setFlags": ["stance_differentiate"],
+          "narration": "Late, but a bet is finally a bet. Now keep it."
+        }
+      },
+      {
+        "label": "Hold the middle. Flexibility is the strategy.",
+        "outcome": {
+          "effects": [{ "stat": "churn_pt", "amount": 1 }],
+          "narration": "Maybe. But nobody crosses town for flexible."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-POS-SENT-1",
+    "title": "The One-Sentence Test",
+    "category": "MKT",
+    "text": "A reviewer tried to describe {company} in one sentence and couldn't. The piece ran anyway — three qualifiers, two hedges, no verdict. Readers felt the way they already felt: unsure.",
+    "stages": [2, 3, 4, 5],
+    "industries": ["FOOD", "ECOM", "TECH", "CONTENT", "FASHION", "GAMING", "FITNESS", "BEAUTY", "EDTECH", "SUSTAIN", "TOYS", "PET"],
+    "weight": 8,
+    "cooldownYears": 2,
+    "requiresFlags": ["clarity_low"],
+    "choices": [
+      {
+        "label": "Write the sentence yourself. Make everything match it.",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -1 },
+            { "stat": "brand", "amount": 1 }
+          ],
+          "setFlags": ["pos_recommit"],
+          "narration": "It costs you a launch's worth of attention. Now the sentence exists, and it's yours."
+        }
+      },
+      {
+        "label": "Cut whatever doesn't fit the sentence.",
+        "outcome": {
+          "effects": [
+            { "stat": "rev_pct", "amount": -5, "durationQ": 2 },
+            { "stat": "qual", "amount": 3 }
+          ],
+          "setFlags": ["pos_recommit"],
+          "narration": "You kill two things you liked. What's left explains itself."
+        }
+      },
+      {
+        "label": "That's the reviewer's problem.",
+        "outcome": {
+          "effects": [{ "stat": "churn_pt", "amount": 1 }],
+          "narration": "It isn't. The sentence exists now, and it reads: hard to say."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-POS-HIGH-DIF",
+    "title": "The Ones Who Cross Town",
+    "category": "OPP",
+    "text": "Strangers now describe {company} the way you would, word for word, unprompted. The invitation on your desk exists because of that — the kind that only goes to people who mean one thing.",
+    "stages": [2, 3, 4, 5],
+    "industries": ["FOOD", "ECOM", "TECH", "CONTENT", "FASHION", "GAMING", "FITNESS", "BEAUTY", "EDTECH", "SUSTAIN", "TOYS", "PET"],
+    "weight": 5,
+    "cooldownYears": 3,
+    "requiresFlags": ["clarity_high", "stance_differentiate"],
+    "choices": [
+      {
+        "label": "Take the stage. Say the sentence.",
+        "outcome": {
+          "effects": [
+            { "stat": "brand", "amount": 3 },
+            { "stat": "cwp_pt", "amount": 1 },
+            { "stat": "energy", "amount": -4 }
+          ],
+          "setFlags": ["pos_move_differentiate"],
+          "narration": "You say it in one line and sit down. The room repeats it for you."
+        }
+      },
+      {
+        "label": "Send the work instead of the founder.",
+        "outcome": {
+          "effects": [{ "stat": "brand", "amount": 1 }],
+          "narration": "The work travels. You sleep."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-POS-HIGH-IMI",
+    "title": "Called First",
+    "category": "OPP",
+    "text": "Nobody calls {company} original. They call you first. A big-box buyer wants the operator who ships the proven thing faster than the people who proved it.",
+    "stages": [2, 3, 4, 5],
+    "industries": ["FOOD", "ECOM", "TECH", "CONTENT", "FASHION", "GAMING", "FITNESS", "BEAUTY", "EDTECH", "SUSTAIN", "TOYS", "PET"],
+    "weight": 5,
+    "cooldownYears": 3,
+    "requiresFlags": ["clarity_high", "stance_imitate"],
+    "choices": [
+      {
+        "label": "Take the volume deal.",
+        "outcome": {
+          "effects": [
+            { "stat": "rev_pct", "amount": 8, "durationQ": 4 },
+            { "stat": "gm_pt", "amount": -1 }
+          ],
+          "setFlags": ["pos_move_imitate"],
+          "narration": "More units, thinner slices. The machine likes being fed."
+        }
+      },
+      {
+        "label": "Hold your terms. Speed is the product.",
+        "outcome": {
+          "effects": [
+            { "stat": "brand", "amount": 2 },
+            { "stat": "suploy", "amount": 1 }
+          ],
+          "narration": "You quote the same number twice, slower the second time. They sign."
+        }
+      }
+    ]
+  }
+]

@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "skills": {
+    "animate": {
+      "source": "delphi-ai/animate-skill",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "ffe5d0020ae97e7af2eeab79a3cdb2d13da004cc998dff6817b071308923b71f"
+    },
+    "canvas-design": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "skillPath": "skills/canvas-design/SKILL.md",
+      "computedHash": "3fa7ea60170023ad8268bf9fd734ea75dd404279a2ef8ddf5abaa1102ad8e5f4"
+    },
+    "constraint-specification": {
+      "source": "Owl-Listener/ai-design-skills",
+      "sourceType": "github",
+      "skillPath": "skills/prompt-architecture/constraint-specification/SKILL.md",
+      "computedHash": "6b19ca10ba930465a6af2d552b74426f1552fcab4f6e574a86de44c3ed7f44fe"
+    },
+    "conversation-patterns": {
+      "source": "Owl-Listener/ai-design-skills",
+      "sourceType": "github",
+      "skillPath": "skills/model-interaction-design/conversation-patterns/SKILL.md",
+      "computedHash": "79d8ae9eeab78f8a774cf9b62fc2cee378e6493092d999397d25b4e4a422c1b2"
+    },
+    "mixed-initiative-flow": {
+      "source": "Owl-Listener/ai-design-skills",
+      "sourceType": "github",
+      "skillPath": "skills/model-interaction-design/mixed-initiative-flow/SKILL.md",
+      "computedHash": "8389a76abfd9ed416fb1f3410e99044e4edb3e20bdb5b55b199d07c58b6f7b90"
+    },
+    "persona-architecture": {
+      "source": "Owl-Listener/ai-design-skills",
+      "sourceType": "github",
+      "skillPath": "skills/system-behavior-shaping/persona-architecture/SKILL.md",
+      "computedHash": "3eb420af1df192c607da1080a7ea66b3a9c671f8e15bb7a9529b4c0279cb1516"
+    },
+    "theme-factory": {
+      "source": "ComposioHQ/awesome-codex-skills",
+      "sourceType": "github",
+      "skillPath": "theme-factory/SKILL.md",
+      "computedHash": "93e78aa44f8fa00bb2c0608f400de1e1dcd6494611dd8ea27c867654240c7bcd"
+    }
+  }
+}

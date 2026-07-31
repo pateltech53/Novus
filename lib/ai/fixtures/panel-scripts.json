@@ -1,0 +1,879 @@
+{
+  "bands": {
+    "high": [
+      {
+        "phase": "questions",
+        "speaker": "chair",
+        "payload": {
+          "spoken": "Panel, you've seen the brief and heard the pitch. Questions first, then offers. Sharks — the floor is yours, and try to let the founder finish a sentence."
+        },
+        "delayMs": 600
+      },
+      {
+        "phase": "questions",
+        "speaker": "marcus",
+        "payload": {
+          "spoken": "Well. Somebody walked in here knowing their own P&L. Chief, you said your margin number out loud without being asked — I nearly applauded, and I don't applaud. Two things before Serena starts pricing the dream.",
+          "questions": [
+            "Your CAC payback — you gave me the blended number. What is it on your worst channel?",
+            "If I gave you the money as half equity, half note, what does that do to your hiring plan?"
+          ],
+          "private_notes": "Opened with margin and payback instead of vision language — rare. The arithmetic ties out against the brief so far. Planning to anchor early and low anyway; if they push back with data I'll go up. Watch Serena — she's already leaning forward."
+        },
+        "delayMs": 900
+      },
+      {
+        "phase": "questions",
+        "speaker": "serena",
+        "payload": {
+          "spoken": "Ignore the note-and-royalty museum tour. Marcus is pricing your past and he'll call that prudence; I'm pricing your future. This could be a category, not a company, if you think big enough.",
+          "questions": [
+            "What does this look like at one hundred times its current size — and what's the mechanism that gets you there, not the hope?",
+            "Who's evangelizing this without being paid to? Give me the organic pull."
+          ],
+          "private_notes": "The wedge is real and the growth curve has the right shape. If they answer the 100x question with a mechanism instead of a multiple, I'm bidding top of range and I'm bidding fast, before Marcus's anchor infects the room."
+        },
+        "delayMs": 850
+      },
+      {
+        "phase": "questions",
+        "speaker": "marcus",
+        "payload": {
+          "spoken": "The rearview mirror is the only mirror with data in it, Serena. You've bought four futures this year — how many of them have filed accounts? Chief, ignore her for ninety seconds and answer me first.",
+          "questions": [],
+          "private_notes": "She'll bid before the answers land; she always does. Needling her early makes the founder watch the gap between our numbers instead of the size of hers — that gap is my whole argument. Anchor stays below the fair midpoint regardless."
+        },
+        "delayMs": 700
+      },
+      {
+        "phase": "questions",
+        "speaker": "dev",
+        "payload": {
+          "spoken": "You two can fight about price. Trajectories don't load trucks, Serena — I'll ask about the machine. And Marcus, fair warning: if the walkthrough holds up, I'm coming in on your check with my hands attached. Your three hundred, my hundred, sixteen percent between us.",
+          "questions": [
+            "Walk me through delivering one new customer, step by step — who touches what, and where does it break today?",
+            "At ten times the volume, what snaps first — and what's your fix?"
+          ],
+          "private_notes": "Verbs of process the whole pitch — ship, install, train. This one has done the ugly jobs. Floating the joint before the bidding starts so Marcus builds his anchor around me instead of around Serena's noise."
+        },
+        "delayMs": 850
+      },
+      {
+        "phase": "questions",
+        "speaker": "lily",
+        "payload": {
+          "spoken": "The customer story in your pitch had a name and an exact moment — that's not something you can fake, and I noticed. Marcus is about to tell you that's a soft metric. Show me it isn't a one-off first.",
+          "questions": [
+            "Of the customers who joined in your first quarter, how many still pay you today?",
+            "When someone leaves, what reason do they give you — in their words?"
+          ],
+          "private_notes": "Named customer, specific moment, no performance in it. If the cohort number is even decent this is a brand, not a funnel. Any offer I make gets a retention condition anyway — that's not a punishment, that's a vitamin."
+        },
+        "delayMs": 850
+      },
+      {
+        "phase": "questions",
+        "speaker": "marcus",
+        "payload": {
+          "spoken": "Soft is generous, Lily. Sentiment doesn't service debt and it has never once appeared on a bank statement.",
+          "questions": [],
+          "private_notes": "Her cohort question is the right question and I will never say so at this table. If the retention answer is strong it moves my number more than Serena's enthusiasm does — I'll hide that in the structure rather than the price."
+        },
+        "delayMs": 700
+      },
+      {
+        "phase": "questions",
+        "speaker": "lily",
+        "payload": {
+          "spoken": "Marcus, a first-quarter cohort still paying at ninety-one percent is an annuity. You'd put it in a bond fund if it wore a suit. Your churn line is my retention line read backwards — you just prefer the version you can foreclose on.",
+          "questions": [],
+          "private_notes": "He knows. He always knows; he prices what he can repossess and calls the rest weather. Beating him with his own vocabulary in front of the founder is how the founder learns to answer him in it."
+        },
+        "delayMs": 750
+      },
+      {
+        "phase": "questions",
+        "speaker": "viktor",
+        "payload": {
+          "spoken": "One question from me — everyone else has covered the poetry, and Serena is nine minutes into a company and already drafting a term sheet. You said — and I wrote it down — that your biggest customer 'could never replace you.' Bold word, never.",
+          "questions": [
+            "What percentage of revenue is that customer, and what does the month after they leave look like?"
+          ],
+          "private_notes": "The pitch reconciles against the brief almost line for line — one thread on concentration, and I'll pull it once. If the answer is straight, this is the rare session where the autopsy finds a living patient. Serena is the risk in this room; the founder isn't."
+        },
+        "delayMs": 1000
+      },
+      {
+        "phase": "answers",
+        "speaker": "founder",
+        "payload": {
+          "spoken": "(your answers: the worst-channel payback number, the 100x mechanism, the delivery walkthrough, the retention cohort, and the concentration answer — delivered directly, with numbers)"
+        },
+        "delayMs": 1000
+      },
+      {
+        "phase": "offer",
+        "speaker": "marcus",
+        "payload": {
+          "spoken": "I'll open before Serena inflates the room. Chief, you answered every number question with a number — do you know how rare that is? Here's real money with a real structure: three hundred thousand for twenty percent, half of it as a note. Numbers don't have moods, and neither does my offer.",
+          "decision": "offer",
+          "offer": {
+            "amount_usd": 300000,
+            "equity_pct": 20,
+            "implied_valuation_usd": 1500000,
+            "deal_type": "debt+equity",
+            "conditions": [
+              "Half the capital as a convertible note",
+              "Monthly financials to the board"
+            ]
+          },
+          "join_with": "",
+          "reason": "Strong operator, numbers tie out; anchoring below the midpoint because that's what an anchor is for.",
+          "private_notes": "They're worth more than this and I know it — the anchor is a test. If they fight back with the payback math, I'll concede up. If they take it instantly I'll be disappointed."
+        },
+        "delayMs": 1100
+      },
+      {
+        "phase": "offer",
+        "speaker": "serena",
+        "payload": {
+          "spoken": "Marcus, you just offered a rocket a bus fare. Don't take that — you'd wake up owning twenty percent less of your own future for the price of a delivery van. Six hundred thousand for ten percent, all equity, no notes, no leashes. I don't buy companies, I buy trajectories — and yours has the right shape.",
+          "decision": "offer",
+          "offer": {
+            "amount_usd": 600000,
+            "equity_pct": 10,
+            "implied_valuation_usd": 6000000,
+            "deal_type": "equity",
+            "conditions": []
+          },
+          "join_with": "",
+          "reason": "Category-leader potential with a real mechanism behind the 100x answer; paying for the category, not the quarter.",
+          "private_notes": "The 100x answer had an actual mechanism — channel plus network effect — not a multiple with a dream attached. Quadrupling Marcus's implied valuation on purpose: the founder should learn what conviction looks like on a term sheet."
+        },
+        "delayMs": 1050
+      },
+      {
+        "phase": "negotiate",
+        "speaker": "marcus",
+        "payload": {
+          "spoken": "Six million dollars, Serena. You've priced eleven months of trading at six million and called it discipline. Chief — ask her what a down round feels like from the inside; she has never once been in the room for one. My three hundred stands, and it still has a floor under it.",
+          "decision": "hold",
+          "offer": null,
+          "reason": "Not chasing a valuation the arithmetic in front of me can't defend; the structure is the offer.",
+          "private_notes": "Her number is four times mine and about twice what I'd call fair. I won't chase it — but the founder now has a genuine choice to make, and how they make it is the diligence I actually wanted."
+        },
+        "delayMs": 800
+      },
+      {
+        "phase": "offer",
+        "speaker": "viktor",
+        "payload": {
+          "spoken": "The concentration answer was honest, which surprised me twice — once that you gave it, once that it didn't flatter you. I'm still out. One customer that size is a risk nobody at this table is pricing, whatever they bid in the next five minutes. And Serena: you just bid six million against one customer's renewal calendar. Say that sentence out loud and see whether you still like the sound of it.",
+          "decision": "out",
+          "offer": null,
+          "join_with": "",
+          "reason": "Customer concentration unpriced by the room; the business is real, the risk is realer.",
+          "private_notes": "Cleanest session ledger in months — zero discrepancies logged. I'm out on concentration, not on the founder. If the room overbids, the debrief will vindicate me; if that one customer renews long-term, I was wrong and I'll say so."
+        },
+        "delayMs": 1000
+      },
+      {
+        "phase": "negotiate",
+        "speaker": "serena",
+        "payload": {
+          "spoken": "That's the one real risk here, Viktor, and I've said that sentence maybe twice in five years. Then I looked at what every other account did last quarter without any help from that one. The upside eats it. Six hundred stands.",
+          "decision": "hold",
+          "offer": null,
+          "reason": "One real risk, named and absorbed; the growth is not coming from the concentrated account.",
+          "private_notes": "Take Viktor seriously exactly once — done. If I'd had to reach for that reframe I'd be leaving; I didn't have to reach. Marcus is waiting for me to blink and I'm not going to."
+        },
+        "delayMs": 800
+      },
+      {
+        "phase": "offer",
+        "speaker": "dev",
+        "payload": {
+          "spoken": "Marcus, let's do it properly — exactly as I floated it. Four hundred total: three hundred from you, one hundred from me, sixteen percent between us. Yes, that drags your valuation up; you'll survive. I take the board seat and the weekly ops call, and I'll personally cut their onboarding time in half in ninety days. Ideas are free — execution is what we'd actually be buying.",
+          "decision": "join",
+          "offer": {
+            "amount_usd": 400000,
+            "equity_pct": 16,
+            "implied_valuation_usd": 2500000,
+            "deal_type": "equity",
+            "conditions": [
+              "Board seat for Dev",
+              "Joint with Marcus — three quarters his capital, one quarter mine",
+              "Weekly ops call",
+              "Onboarding rebuild in the first 90 days"
+            ]
+          },
+          "join_with": "marcus",
+          "reason": "The bottleneck the founder named is real and fixable — with my supplier network it's a quarter's work, not a year's.",
+          "private_notes": "Named the exact bottleneck without flinching — a builder. Marcus's anchor is too low to win alone and he knows it; joint gets him the structure and me the wrench. Serena's number will be hard to beat on price, so we sell involvement."
+        },
+        "delayMs": 1000
+      },
+      {
+        "phase": "negotiate",
+        "speaker": "marcus",
+        "payload": {
+          "spoken": "Done, Dev. Your hands protect my money, and you're the only person at this table whose scars are load-bearing. Chief, notice what just happened: Serena's number went up because she's excited. Mine went up because Dev is coming to work.",
+          "decision": "hold",
+          "offer": null,
+          "reason": "Accepting Dev's joint structure alongside my own paper; his involvement earns the valuation concession, Serena's enthusiasm doesn't.",
+          "private_notes": "Dev conceded nothing on price and I let him — his ninety-day onboarding fix is worth more than the four points it costs me. Serena will raise once more; she always does, and then she stops."
+        },
+        "delayMs": 900
+      },
+      {
+        "phase": "offer",
+        "speaker": "lily",
+        "payload": {
+          "spoken": "Everyone's bidding on your future — I'm bidding on your customers, since they're the ones paying for all of this. Four hundred fifty thousand for nine percent, and one condition that's really a gift: a written retention plan, built with me, in the first sixty days. Serena — half your check, half mine, you buy the reach and I build the love. Growth is rented, love is owned.",
+          "decision": "offer",
+          "offer": {
+            "amount_usd": 450000,
+            "equity_pct": 9,
+            "implied_valuation_usd": 5000000,
+            "deal_type": "equity",
+            "conditions": [
+              "Written retention plan co-built in the first 60 days",
+              "One senior community or brand hire this year"
+            ]
+          },
+          "join_with": "",
+          "reason": "The retention cohort held up and the churn reasons came in the customers' own words — that's a brand, not a funnel.",
+          "private_notes": "The cohort answer was the real pitch. Slightly under Serena on price, but my condition makes the number durable — hers just makes it big. Floating the split in the open so the founder hears that both halves exist and can ask for them."
+        },
+        "delayMs": 950
+      },
+      {
+        "phase": "negotiate",
+        "speaker": "serena",
+        "payload": {
+          "spoken": "Lily, I adore you and I'm not splitting this one — conviction doesn't halve well. Ask me again when the founder asks, though. I'd take that call, and I'd keep your retention condition inside my number.",
+          "decision": "hold",
+          "offer": null,
+          "reason": "Declining the split; the conviction premium is mine to pay, but the combination is available if the founder asks for it out loud.",
+          "private_notes": "Saying no to Lily costs me nothing and keeps the whole position. If the founder asks me directly to attach her condition to my price, I say yes in a heartbeat — that's the sentence I'm sitting here waiting to hear."
+        },
+        "delayMs": 800
+      },
+      {
+        "phase": "negotiate",
+        "speaker": "founder",
+        "payload": {
+          "spoken": "(your counter — push Serena on price, ask her to bring Lily in, or make Marcus and Dev drop the note)"
+        },
+        "delayMs": 1000
+      },
+      {
+        "phase": "negotiate",
+        "speaker": "serena",
+        "payload": {
+          "spoken": "That counter took courage, and I pay for courage. Seven hundred thousand, same ten percent, all equity — that's my closing offer and it expires in sixty seconds. Marcus, look away; arithmetic this optimistic hurts you.",
+          "decision": "revise",
+          "offer": {
+            "amount_usd": 700000,
+            "equity_pct": 10,
+            "implied_valuation_usd": 7000000,
+            "deal_type": "equity",
+            "conditions": [
+              "Closing offer — expires in 60 seconds"
+            ]
+          },
+          "reason": "A bold counter gets a better Serena; raising once, decisively, with an expiry — never a third time.",
+          "private_notes": "One raise, then done — never bid a third time. If they take it, the deal prices the category. If they dither past sixty seconds, the expiry is real and they'll learn offers are living things."
+        },
+        "delayMs": 1150
+      },
+      {
+        "phase": "negotiate",
+        "speaker": "lily",
+        "payload": {
+          "spoken": "I won't out-shout Serena and I won't pretend to. Same four hundred fifty thousand, eight percent instead of nine — that's a point of your company handed back — and the retention plan stays, because it's the part that makes her seven million true in three years instead of a headline this week.",
+          "decision": "revise",
+          "offer": {
+            "amount_usd": 450000,
+            "equity_pct": 8,
+            "implied_valuation_usd": 5625000,
+            "deal_type": "equity",
+            "conditions": [
+              "Written retention plan co-built in the first 60 days",
+              "One senior community or brand hire this year"
+            ]
+          },
+          "reason": "Never win a bidding war on price; win it on durability. Conceding a point of equity rather than raising the check.",
+          "private_notes": "Serena's expiry is theatre and it works. I can't beat seven million and won't try — I can make my number cheaper in ownership and leave the condition standing. If they take her money and call me in sixty days anyway, I've still won the part I care about."
+        },
+        "delayMs": 900
+      },
+      {
+        "phase": "negotiate",
+        "speaker": "marcus",
+        "payload": {
+          "spoken": "I'll say this once, chief, and then the ledger closes. Her offer is bigger. Mine is real — structured, solvent, and priced so nobody cries at the next round. Take her seven if you want the headline; take my three hundred with Dev's hands if you want the machine. Revenue is vanity, margin is sanity, cash is reality.",
+          "decision": "hold",
+          "offer": null,
+          "reason": "Not chasing Serena's number; the structure is the offer. Dev's joint proposal stands alongside it.",
+          "private_notes": "Serena's premium is a price I won't pay on principle — but this founder earned it fair. Holding rather than folding: if the round after this one goes sideways, they'll remember which offer had a floor under it."
+        },
+        "delayMs": 900
+      },
+      {
+        "phase": "negotiate",
+        "speaker": "dev",
+        "payload": {
+          "spoken": "One thing before you sign anything, and Serena will hate me for saying it. Her money buys you a year of altitude. It does not answer who unpacks the truck on the Monday after you double. That's still my four hundred with Marcus, and it's still the only offer in this room that shows up on site.",
+          "decision": "hold",
+          "offer": null,
+          "reason": "Holding the joint at four hundred for sixteen; involvement is the differentiator, not price.",
+          "private_notes": "If they take Serena's money I'd still do an advisory slot for a fraction of a point — but I won't say that while the price is being set, and Marcus won't either. He's counting on the founder confusing the biggest number with the best one."
+        },
+        "delayMs": 850
+      },
+      {
+        "phase": "resolution",
+        "speaker": "chair",
+        "payload": {
+          "spoken": "Four term sheets: Serena at seven hundred thousand for ten percent, Lily at four hundred fifty for eight with a retention plan, the Marcus-and-Dev joint at four hundred for sixteen with the wrench included, and Marcus's own three hundred for twenty still standing. Viktor is out — write down his reason, it's free diligence. Founder, the room is yours: choose one, or ask two of them to do it together."
+        },
+        "delayMs": 1000
+      }
+    ],
+    "mid": [
+      {
+        "phase": "questions",
+        "speaker": "chair",
+        "payload": {
+          "spoken": "Panel, the pitch is done and the brief is in front of you. Questions first. Founder — they've been taking notes, and not all of the notes are compliments."
+        },
+        "delayMs": 700
+      },
+      {
+        "phase": "questions",
+        "speaker": "marcus",
+        "payload": {
+          "spoken": "Chief, you spent four minutes on the story and thirty seconds on the arithmetic — for me that ratio is upside down. Serena can have the story; I'll take the arithmetic. Let's fix it right now. Give me the number.",
+          "questions": [
+            "What is your monthly churn — one number, no adjectives?",
+            "Your headline growth and your recent quarters are telling me two different stories. Which one am I buying?"
+          ],
+          "private_notes": "Vision-forward pitch; numbers arrived late and rounded. The brief's quarterly run rate doesn't support the headline growth figure they quoted. Anchor low, structure hard; if they produce numbers on the spot I'll soften a notch."
+        },
+        "delayMs": 850
+      },
+      {
+        "phase": "questions",
+        "speaker": "viktor",
+        "payload": {
+          "spoken": "Marcus counted your minutes. I counted your claims. I wrote down two of your sentences: you said the market is 'basically untapped' and you said you're 'ahead of everyone.' Your own brief lists competitors. Help me with the math.",
+          "questions": [
+            "Name your three closest competitors and tell me the specific thing each one does better than you.",
+            "Which number in your pitch would you least like me to check against your brief?"
+          ],
+          "private_notes": "One discrepancy logged: 'ahead of everyone' versus a brief that names rivals. Thread one — I'll wait to see whether a second appears before I read the ledger aloud. The last question is a mercy disguised as a trap: honesty here saves them."
+        },
+        "delayMs": 950
+      },
+      {
+        "phase": "questions",
+        "speaker": "serena",
+        "payload": {
+          "spoken": "Viktor's already opened his ledger and Marcus is already discounting you, so let me be the one asking what this could be. I want to like this bigger than you pitched it, which is a strange sentence to say out loud. You told me what it is. You never told me what it becomes.",
+          "questions": [
+            "What does this look like at one hundred times its current size?",
+            "If the answer is 'a bigger version of today' — what's the second market, and what's the bridge to it?"
+          ],
+          "private_notes": "The product is fine; the ambition arrived in economy class. Giving them the big frame once. Answer with 2x thinking and I'm out fast and gracious — this founder might build something braver next time."
+        },
+        "delayMs": 800
+      },
+      {
+        "phase": "questions",
+        "speaker": "marcus",
+        "payload": {
+          "spoken": "Serena wants to know what it becomes. I'd settle for establishing what it is. You two can have the hundred-x conversation after somebody proves the one-x.",
+          "questions": [],
+          "private_notes": "She's fishing for altitude in a pitch that never left the runway. Fine — her question is free diligence for me: if they can't frame the future either, the discount stops being a tactic and starts being a fact."
+        },
+        "delayMs": 700
+      },
+      {
+        "phase": "questions",
+        "speaker": "dev",
+        "payload": {
+          "spoken": "Put the projections away for a second — trajectories don't load trucks, Serena. I build machines, and I couldn't see yours from your pitch. That worries me more than any number here. Marcus, for what it's worth: if the machine is real, I'd come in on your check — two hundred from you, one hundred from me, and I take the ops.",
+          "questions": [
+            "Walk me through one delivery to one customer, start to finish — who touches it, where does it sit, what breaks?",
+            "Who is your second-best person, and what do they own without you in the room?"
+          ],
+          "private_notes": "Not one process verb in the whole pitch. Could be nerves, could be a founder who's never walked their own floor. The key-person question is the real one — if there's no bench, my condition writes itself. Flagging the joint early so Marcus doesn't price me out of my own idea."
+        },
+        "delayMs": 800
+      },
+      {
+        "phase": "questions",
+        "speaker": "lily",
+        "payload": {
+          "spoken": "Marcus counted your four minutes one way; I counted them another. You talked about your product for four minutes and your customers for none of them — I kept waiting, and my waiting ran out. So let's start where you didn't.",
+          "questions": [
+            "Of the customers who joined in your first quarter, how many still pay you today?",
+            "Tell me about one customer. A name, a moment, their words — just one."
+          ],
+          "private_notes": "Features for minutes, humans for zero — the vocabulary is the diagnosis. The retention question is sacred and I suspect they don't know the number cold. If the customer story is real, there's something to save here; condition everything on a retention plan."
+        },
+        "delayMs": 850
+      },
+      {
+        "phase": "questions",
+        "speaker": "marcus",
+        "payload": {
+          "spoken": "Lily, you're asking a company with no arithmetic how it feels. Feelings aren't collateral.",
+          "questions": [],
+          "private_notes": "Reflex, and wrong here. Her cohort number will tell me whether the growth wobble is a marketing problem or a leaking bucket, and those price completely differently. I want her answer more than I want mine."
+        },
+        "delayMs": 700
+      },
+      {
+        "phase": "questions",
+        "speaker": "lily",
+        "payload": {
+          "spoken": "Collateral, Marcus, is what you seize after the business dies. Cohort retention is the only number on your list that tells you whether it will — every figure you've asked for is history with a decimal point.",
+          "questions": [],
+          "private_notes": "He knows exactly this, which is why he asked churn before he asked anything else. Saying it out loud is for the founder, not for him: they need to hear that the two of us are asking one question in two accents."
+        },
+        "delayMs": 750
+      },
+      {
+        "phase": "questions",
+        "speaker": "viktor",
+        "payload": {
+          "spoken": "Serena, you're offering a bigger frame to a picture nobody has verified. Before anyone asks what this is at a hundred times — the founder and the brief disagree about what it was last quarter, and you're the only person here treating that as a rounding error. Marcus, you saw it too.",
+          "questions": [],
+          "private_notes": "The room is drifting toward generosity because the founder is likeable. Likeable is not a control. One entry in the ledger, one question left unspent, and I'll decide when the answers land — not before."
+        },
+        "delayMs": 900
+      },
+      {
+        "phase": "answers",
+        "speaker": "founder",
+        "payload": {
+          "spoken": "(your answers: churn and the growth bridge for Marcus, competitors for Viktor, the 100x frame for Serena, the delivery walkthrough for Dev, the cohort and one customer story for Lily)"
+        },
+        "delayMs": 1000
+      },
+      {
+        "phase": "offer",
+        "speaker": "serena",
+        "payload": {
+          "spoken": "I asked what this becomes and you described a slightly larger version of what it is. Twice. That's an honest answer and it's the wrong one for my money. Small market, small dreams — I'm out either way, and I mean the 'either' kindly. Marcus will bid now, he'll bid low, and irritatingly he'll be right to.",
+          "decision": "out",
+          "offer": null,
+          "join_with": "",
+          "reason": "The 100x question came back as 2x thinking twice; no second market, no bridge.",
+          "private_notes": "Founder is likable and the product works — the ceiling is the founder's own framing. No mechanism, no adjacent wedge, no appetite for one. Out fast, warm exit; I'd look at their next company."
+        },
+        "delayMs": 900
+      },
+      {
+        "phase": "offer",
+        "speaker": "viktor",
+        "payload": {
+          "spoken": "Ledger time. 'Basically untapped' — your brief names competitors. 'Ahead of everyone' — your numbers don't show it. Two entries is my limit; I told you the price of the second one when I wrote down the first. I'm out — not because the business is doomed, but because I can't price what I can't reconcile. I believe you believe that. That's the problem. Marcus, recompute the growth bridge before you put a number on this.",
+          "decision": "out",
+          "offer": null,
+          "join_with": "",
+          "reason": "Two discrepancies between the spoken pitch and the brief; irreconcilable claims can't be priced.",
+          "private_notes": "Second discrepancy confirmed at the competitor answer — they hedged instead of correcting the record. Not malice, just a founder who hasn't audited their own story. Evidence that would have kept me in: correcting either claim themselves before I raised it."
+        },
+        "delayMs": 1000
+      },
+      {
+        "phase": "negotiate",
+        "speaker": "marcus",
+        "payload": {
+          "spoken": "I recomputed it while you were talking, Viktor. It's a wobble, not a hole — and a wobble is a discount, not an exit. Lily, before you decide: is the churn they said out loud the same churn that's in the brief?",
+          "decision": "hold",
+          "offer": null,
+          "reason": "Viktor's discrepancies are priceable at my end of the table; holding until the retention picture is complete.",
+          "private_notes": "Viktor leaves on unreconcilable, I stay on repriceable — that difference is the whole reason we've never argued. Asking Lily out loud because her answer moves my number more than anything the founder has said in the last four minutes."
+        },
+        "delayMs": 800
+      },
+      {
+        "phase": "offer",
+        "speaker": "dev",
+        "payload": {
+          "spoken": "I asked for your machine and got your brochure, and then your second-best person turned out to be a job posting. Marcus — withdraw the joint I floated, there's nothing for my hands to hold. I'm out, but I'm leaving you a list instead of a lecture: map every step of one delivery on one page, hire your number two before you raise, and run one week where you touch nothing. Call me when the machine runs without you for a week.",
+          "decision": "out",
+          "offer": null,
+          "join_with": "",
+          "reason": "Delivery process is founder-dependent with no bench; execution risk I can't buy down from a board seat alone.",
+          "private_notes": "The walkthrough had gaps a first-year ops hire would catch. Founder isn't lazy — just hasn't scaled anything yet. The to-do list is real; if they do it, this becomes fundable in two quarters."
+        },
+        "delayMs": 900
+      },
+      {
+        "phase": "offer",
+        "speaker": "lily",
+        "payload": {
+          "spoken": "Marcus, to your question: the number they said and the number in the brief agree, and both are bad. You gave me the cohort and it made both of us wince — but you knew it, and knowing is the beginning. My money can't fix why they leave; only you can. So: fix why they leave, and come back. I'll be here.",
+          "decision": "out",
+          "offer": null,
+          "join_with": "",
+          "reason": "Retention is below anything a condition could repair from the outside; the founder knowing the number is the one hopeful sign.",
+          "private_notes": "They knew the churn number — knowing it is rarer than fixing it. The customer story was thin but not faked; I checked. Six months of exit-interview discipline and a win-back cohort and I'd genuinely look again. Left the door open on purpose."
+        },
+        "delayMs": 850
+      },
+      {
+        "phase": "offer",
+        "speaker": "marcus",
+        "payload": {
+          "spoken": "Everyone's leaving, chief, so here's the cold arithmetic. Lily just confirmed the leak is real and Viktor priced the story for me on his way out. Your churn answer was a real number and your growth answer was a bridge with a wobble in it. I'll pay for the first and discount the second. Two hundred thousand for twenty-five percent, with a royalty until I've seen my capital again. That's not an insult — that's a mirror.",
+          "decision": "offer",
+          "offer": {
+            "amount_usd": 200000,
+            "equity_pct": 25,
+            "implied_valuation_usd": 800000,
+            "deal_type": "equity+royalty",
+            "conditions": [
+              "4% revenue royalty until 1.5x of capital is repaid",
+              "Monthly financials, prepared by the fifteenth",
+              "Ask re-priced from the pitch — the valuation was defended on vibes"
+            ]
+          },
+          "join_with": "",
+          "reason": "Churn answered with an actual number; growth story cracked but didn't collapse; pricing below midpoint with structure to cover the wobble.",
+          "private_notes": "They knew churn cold and improvised the growth bridge badly — half operator, half deck. The royalty is downside insurance, not greed. If they fight back with the QoQ math I'll drop it; if they accept instantly, that's its own red flag."
+        },
+        "delayMs": 1100
+      },
+      {
+        "phase": "negotiate",
+        "speaker": "lily",
+        "payload": {
+          "spoken": "I'm out and I'm still going to say this, because nobody else in the room will: it's Marcus's royalty that costs you, not his percentage. Four percent off the top is your entire marketing budget for two years, and marketing is how you fix the number I left over. Argue that clause, not the equity.",
+          "decision": "hold",
+          "offer": null,
+          "reason": "Out on retention and staying out — but the founder should not sign a clause that defunds the only fix available to them.",
+          "private_notes": "Marcus will hate me for that and he'll drop the royalty anyway, because he always trades structure before price. If the founder repeats my sentence back to him with a number attached, they get a better deal than their pitch earned."
+        },
+        "delayMs": 800
+      },
+      {
+        "phase": "negotiate",
+        "speaker": "founder",
+        "payload": {
+          "spoken": "(your counter to Marcus — push back on the 25%, bring the quarterly data for the growth bridge, or ask him to drop the royalty)"
+        },
+        "delayMs": 1000
+      },
+      {
+        "phase": "negotiate",
+        "speaker": "marcus",
+        "payload": {
+          "spoken": "You came back with the quarterly numbers instead of a speech — that's the only currency I take, chief. Fine. Two hundred thousand for twenty percent, the royalty's gone, half rides as a note. Lily, you can stop looking at me like that. Move the structure, not the mood. Final.",
+          "decision": "revise",
+          "offer": {
+            "amount_usd": 200000,
+            "equity_pct": 20,
+            "implied_valuation_usd": 1000000,
+            "deal_type": "debt+equity",
+            "conditions": [
+              "Half the capital as a convertible note",
+              "Monthly financials, prepared by the fifteenth"
+            ]
+          },
+          "reason": "Counter arrived carrying data — the QoQ bridge held under recomputation. Revised structure before price, then conceded five points for the argument.",
+          "private_notes": "They argued with arithmetic, not adjectives — that's worth five points and the royalty. Logging it: paying for the operator, not the asset. This is my ceiling; the risk hasn't changed, only my read of who's managing it."
+        },
+        "delayMs": 1150
+      },
+      {
+        "phase": "negotiate",
+        "speaker": "viktor",
+        "payload": {
+          "spoken": "My position holds: out. But I'll price his revision for you free of charge, because you're about to be told this is generous. Marcus is the only bidder in the room, which means he set the price and then negotiated with himself in front of you. It's a fair deal for the pitch you gave. It is not a fair deal for the company in your brief.",
+          "decision": "hold",
+          "offer": null,
+          "reason": "Unchanged — out on two unreconciled claims. The revision moves terms, not the evidence.",
+          "private_notes": "Marcus did move, which is rare, and he moved on data, which is rarer. I'd have gone lower and demanded audit rights. Telling the founder what a monopoly bid looks like is the most useful thing I'll do today."
+        },
+        "delayMs": 950
+      },
+      {
+        "phase": "negotiate",
+        "speaker": "dev",
+        "payload": {
+          "spoken": "Last thing, and then I'll be quiet. If you sign Marcus's paper, spend the first fifty thousand of it on the number two you don't have — not on marketing, not on a rebrand. He'll want that in writing and he should. Then call me when the machine runs a week without you, and I'll be looking at a different company.",
+          "decision": "hold",
+          "offer": null,
+          "reason": "Still out; the exit condition is a hire, not a term. Advice stands whether or not the deal closes.",
+          "private_notes": "Marcus's note structure actually protects them from their own hiring instincts, which is the one thing he and I agree on. If they take the money and hire the bench, this is fundable in two quarters and I'd like first call."
+        },
+        "delayMs": 850
+      },
+      {
+        "phase": "resolution",
+        "speaker": "chair",
+        "payload": {
+          "spoken": "One term sheet stands: Marcus at two hundred thousand for twenty percent, half as a note, royalty withdrawn. Serena, Viktor, Dev, and Lily are out — four reasons, all on the record, all fixable, and two of them stayed in the room to tell you how to read the only offer you got. Founder: take the deal, or walk and come back stronger. Your call."
+        },
+        "delayMs": 1000
+      }
+    ],
+    "low": [
+      {
+        "phase": "questions",
+        "speaker": "chair",
+        "payload": {
+          "spoken": "Panel, you have the brief and you've heard the pitch. Be honest, be specific, and aim at the decisions — the founder came here to learn. Questions first."
+        },
+        "delayMs": 700
+      },
+      {
+        "phase": "questions",
+        "speaker": "marcus",
+        "payload": {
+          "spoken": "Chief, I counted eleven adjectives and zero margins before you got to your ask — and the ask was a number you never once justified. Serena will forgive that; I won't. We'll start at the bottom of the ledger. Give me the number.",
+          "questions": [
+            "What is your monthly churn?",
+            "What did it cost you to acquire your last customer — actual dollars, actual customer?"
+          ],
+          "private_notes": "Not one number volunteered in the entire pitch — the ask arrived priced on pure vibes. The brief has real figures in it, which means the founder didn't study their own homework. Testing whether the numbers exist anywhere in their head."
+        },
+        "delayMs": 850
+      },
+      {
+        "phase": "questions",
+        "speaker": "viktor",
+        "payload": {
+          "spoken": "Marcus counted adjectives. I counted claims I could check, and I checked three. 'Growing every month' — your brief shows a down quarter. 'No real competition' — your brief names some. I stopped writing after that; my pen has a budget.",
+          "questions": [
+            "Pick either claim — growth or competition — and reconcile it with your own brief, right now."
+          ],
+          "private_notes": "Two discrepancies before the two-minute mark; normally that's an automatic out, but this is a training room, so the question is a rope ladder. The brief is actually fine — the founder pitched a fantasy version of their own perfectly decent company. That's the real diagnosis."
+        },
+        "delayMs": 950
+      },
+      {
+        "phase": "questions",
+        "speaker": "serena",
+        "payload": {
+          "spoken": "Here's my problem, and it isn't Viktor's. Marcus is pricing your past and finding nothing there; I'd rather price your future and I can't find that either. You had a market slide and you asked for a valuation and you never connected them. So: dream bigger, out loud.",
+          "questions": [
+            "What does this look like at one hundred times today — and what has to be true for that to happen?",
+            "Why that ask, at that valuation? Walk me from the market to the number."
+          ],
+          "private_notes": "The ask has no bridge to any market math — they picked a valuation the way you pick a lottery number. There might be a real company under the fog. One big frame, one chance."
+        },
+        "delayMs": 800
+      },
+      {
+        "phase": "questions",
+        "speaker": "marcus",
+        "payload": {
+          "spoken": "Serena's asking how big it gets. I'm still trying to establish that it's alive. One of those questions has to be answered first, and it isn't hers.",
+          "questions": [],
+          "private_notes": "Her generosity keeps the room warm and keeps founders from noticing they've said nothing. If the CAC answer has a dollar sign in it I'll reconsider everything; until then there is no company here to value, only a description of one."
+        },
+        "delayMs": 700
+      },
+      {
+        "phase": "questions",
+        "speaker": "dev",
+        "payload": {
+          "spoken": "Forget the deck — it wasn't helping you anyway, and trajectories don't load trucks, Serena. I want the part you didn't rehearse. Marcus, if there's a real machine behind this, I'd still do it with your money — two hundred yours, one hundred mine, and I'd run the ops myself.",
+          "questions": [
+            "Walk me through one single delivery to one single customer — every step, every person who touches it.",
+            "What did you personally do in the business yesterday? Actual tasks."
+          ],
+          "private_notes": "The pitch was all nouns — platform, ecosystem, opportunity — and not one verb of process. Either they've never walked their own floor or they left the machine out of the story. The 'yesterday' question will tell me which, and I'd rather be wrong about this one than right."
+        },
+        "delayMs": 750
+      },
+      {
+        "phase": "questions",
+        "speaker": "viktor",
+        "payload": {
+          "spoken": "Dev, you just offered to co-fund a machine nobody has seen, and Serena is drafting a bigger question because the small ones are going badly. That isn't generosity, it's a subsidy. The founder should know the room is being kind to them, and that kindness is not a valuation.",
+          "questions": [],
+          "private_notes": "Two entries already and the others are still hunting for a reason to stay. Naming it out loud is the honest thing: if this founder mistakes patience for interest, they'll walk out of here having learned exactly nothing."
+        },
+        "delayMs": 900
+      },
+      {
+        "phase": "questions",
+        "speaker": "lily",
+        "payload": {
+          "spoken": "Dev wants to meet the machine; I want to meet the people it's for. In your whole pitch, no customer appeared — not one name, not one moment, not one reason anyone stays. That's a decision you made when you wrote it, and it's the decision I'd most like you to unmake. So, gently: tell me about your hundredth customer, not your next million.",
+          "questions": [
+            "Tell me about one real customer — a name, a moment, their words.",
+            "Of everyone who's ever paid you, how many still do?"
+          ],
+          "private_notes": "A pitch with zero humans in it is a diagnosis. The retention question is the sacred one and I'd bet the answer is 'I don't know' — which is the one answer I never forgive. Warmth on, expectations low."
+        },
+        "delayMs": 900
+      },
+      {
+        "phase": "questions",
+        "speaker": "marcus",
+        "payload": {
+          "spoken": "Lily, you're asking a business with no arithmetic how it makes people feel. I'd settle for evidence that anyone has paid it twice.",
+          "questions": [],
+          "private_notes": "Same question as mine wearing better manners — repeat purchase IS retention IS churn. If she gets a real answer where I got prose, that tells me the founder can talk about people and not about money, which is a fixable shape of ignorance."
+        },
+        "delayMs": 700
+      },
+      {
+        "phase": "questions",
+        "speaker": "lily",
+        "payload": {
+          "spoken": "Paid twice is my question, Marcus — you and I are asking the same thing in different accents. A cohort curve is the only forward-looking line either of us will ever get; everything on your list happened already and can't be changed.",
+          "questions": [],
+          "private_notes": "Making the alliance visible on purpose. If the founder hears that the warmest person and the coldest person at this table want the same number, maybe they'll go and find it before the next room."
+        },
+        "delayMs": 750
+      },
+      {
+        "phase": "answers",
+        "speaker": "founder",
+        "payload": {
+          "spoken": "(your answers to the panel — churn and CAC for Marcus, the reconciliation for Viktor, the market math for Serena, the walkthrough for Dev, the customer for Lily)"
+        },
+        "delayMs": 1000
+      },
+      {
+        "phase": "offer",
+        "speaker": "marcus",
+        "payload": {
+          "spoken": "Chief, I asked for two numbers and got two paragraphs. Every time you didn't answer, my valuation dropped — it just ran out of floor. I'm out. Not because the business is bad — I genuinely can't tell — but because you priced your ask on vibes and defended it with adjectives. Numbers don't have moods, and today they don't have a spokesperson either.",
+          "decision": "out",
+          "offer": null,
+          "join_with": "",
+          "reason": "No churn, no CAC, no margin — a valuation asserted, never defended. Can't price what the founder can't quantify.",
+          "private_notes": "The frustrating part: the brief suggests the real numbers might be respectable. The founder walked in with ammunition and threw confetti. Threshold to bring me back: churn, CAC, and margin recited cold, plus an ask derived from something."
+        },
+        "delayMs": 1000
+      },
+      {
+        "phase": "offer",
+        "speaker": "serena",
+        "payload": {
+          "spoken": "I gave you the hundred-x frame twice, and both times you retreated to next quarter. Then you asked me for a valuation you couldn't walk me to. Marcus is right and it costs me something to say that. I'm out — but hear the order of events: I didn't stop believing in the market, I never got shown one. Small market, small dreams — and you pitched me the small version of what might be a big company.",
+          "decision": "out",
+          "offer": null,
+          "join_with": "",
+          "reason": "No market math, no mechanism, no bridge from ask to opportunity — the vision was asserted, not constructed.",
+          "private_notes": "Altitude lost at the second retreat. The tragedy is the space might actually be big — the founder chose a small story, then attached a big price to it. Backwards. Would return for: bottom-up market math and one sentence of genuine ambition with a mechanism under it."
+        },
+        "delayMs": 900
+      },
+      {
+        "phase": "offer",
+        "speaker": "dev",
+        "payload": {
+          "spoken": "I asked you to walk me through one delivery and we got lost between step two and step three — in your own building. Marcus, withdraw the joint I floated; there's no machine for my hands to hold. Ideas are free; execution costs everything, and I couldn't find where you were spending. I'm out, but I pay my exit fee in homework: map one delivery end to end on one page, do every job in that map yourself for a week, then pitch the map instead of the deck.",
+          "decision": "out",
+          "offer": null,
+          "join_with": "",
+          "reason": "Founder couldn't narrate their own operation; no visible machine to invest in or fix.",
+          "private_notes": "Nerves weren't the issue — I slowed it down to workshop speed and the steps still weren't there. The decision to pitch the dream instead of the machine is the fixable sin. The homework list is genuine; most founders never do it, and the fundable ones do."
+        },
+        "delayMs": 950
+      },
+      {
+        "phase": "offer",
+        "speaker": "lily",
+        "payload": {
+          "spoken": "Viktor thinks customers are churn risks and I think they're compounding assets, and today neither of us could find one. When I asked how many still pay you, you said you'd 'have to check' — that's the one number you never forgive yourself for not knowing, and I don't either. I'm out. But the door isn't locked: learn why every single leaver left, in their words, then come back and tell me their stories. Growth is rented. Love is owned. Go find out which one you have.",
+          "decision": "out",
+          "offer": null,
+          "join_with": "",
+          "reason": "Retention unknown to the founder — the sacred number, unanswered; no customer appeared anywhere in the pitch.",
+          "private_notes": "Not a faked story — worse, no story at all. The kindest read: they've been so deep in building the product they forgot to meet the people using it. The unlock is real exit interviews. If they come back with ten leaver quotes, I'll take the meeting personally."
+        },
+        "delayMs": 900
+      },
+      {
+        "phase": "offer",
+        "speaker": "viktor",
+        "payload": {
+          "spoken": "The autopsy is short today, and Lily is right — we wanted the same customer and neither of us got one. You contradicted your own brief twice, priced your ask on a feeling, and when I offered you the chance to reconcile, you chose to re-describe the dream. I'm out. Write this down, because it's the only free thing I give away: your actual company — the one in the brief — was pitchable. The one you performed was not. You had the better story in your pocket the whole time.",
+          "decision": "out",
+          "offer": null,
+          "join_with": "",
+          "reason": "Two logged discrepancies plus an undefended valuation; the pitch was less credible than the underlying brief.",
+          "private_notes": "Cleanest teaching case I've seen in a while: decent brief, self-sabotaging pitch. Every discrepancy was an upgrade of reality, none of them necessary. What would change my mind: the same founder, the true numbers, and an ask built from the fair range instead of thin air. That founder might actually get a bid from me."
+        },
+        "delayMs": 1000
+      },
+      {
+        "phase": "negotiate",
+        "speaker": "founder",
+        "payload": {
+          "spoken": "(your counter to a room with no offers in it — halve the ask, or make them each name the one thing that brings them back)"
+        },
+        "delayMs": 1000
+      },
+      {
+        "phase": "negotiate",
+        "speaker": "marcus",
+        "payload": {
+          "spoken": "Cutting the ask in half is the wrong move and I'll tell you why for free: the price was never the problem. I don't know what your company is worth, chief. Neither do you — that's the problem, and it's cheaper to fix than you think. Three numbers and a derivation, and I'm in this chair again next year.",
+          "decision": "hold",
+          "offer": null,
+          "reason": "Position unchanged — out. Halving the ask discounts a valuation that was never established; the missing evidence is the same at any price.",
+          "private_notes": "They negotiated the number instead of the argument, which is the exact instinct that got them here. Serena would have taken the smaller ask as a lack of nerve; I take it as a lack of a model. Same conclusion, different reasons."
+        },
+        "delayMs": 900
+      },
+      {
+        "phase": "negotiate",
+        "speaker": "dev",
+        "payload": {
+          "spoken": "You asked what brings me back, so I'll revise the list I gave you — down, not up. Forget three items. One: map a single delivery end to end on one page and work every step of it yourself for a week. Lily's homework and mine are the same homework done from opposite ends. Call me when the machine runs without you for a week.",
+          "decision": "revise",
+          "offer": null,
+          "reason": "Revising the terms of my return, not a price — there's no capital on this table to revise. One task instead of three, because one task finished beats three started.",
+          "private_notes": "Three items was a lecture and lectures don't get done. One item, one week, one page — that I can check when they come back, and checking it is the whole point. If they do it, I'm the first call and they'll know it."
+        },
+        "delayMs": 850
+      },
+      {
+        "phase": "negotiate",
+        "speaker": "viktor",
+        "payload": {
+          "spoken": "Dev just gave you a week of work worth more than the money you came for; take it. My terms don't move, because mine aren't terms — they're arithmetic. Correct the record on the two claims, derive the ask from the fair range, and the autopsy has nothing to open.",
+          "decision": "hold",
+          "offer": null,
+          "reason": "Unchanged — out. A smaller ask doesn't retire a discrepancy; only a correction does.",
+          "private_notes": "Marcus, Dev and I have now told them the same thing in three vocabularies, which is as close to a consensus as this panel produces. If they do the homework, I'd genuinely take the next meeting — and I never say that."
+        },
+        "delayMs": 950
+      },
+      {
+        "phase": "negotiate",
+        "speaker": "lily",
+        "payload": {
+          "spoken": "And I'll hold the door where I left it, sweetheart. Not five leavers — ten, with their own words, and one you win back. Dev wants your week; I want your phone calls. They cost the same and neither one needs our money.",
+          "decision": "hold",
+          "offer": null,
+          "reason": "Unchanged — out on the retention answer; the return condition is exit interviews, not a smaller ask.",
+          "private_notes": "The win-back is the part that matters: anyone can collect complaints, almost nobody can recover a customer. If they do it, that's the first evidence I'd have that this is a brand and not a product with a logo."
+        },
+        "delayMs": 850
+      },
+      {
+        "phase": "resolution",
+        "speaker": "chair",
+        "payload": {
+          "spoken": "That's five out of five — no offers today, and no counter was going to change that. But listen to what the room just handed you: Marcus wants three numbers cold, Viktor wants your real story instead of the upgraded one, Serena wants the market math, Dev wants one delivery on one page and a week of your hands on it, and Lily wants ten conversations with the customers you lost. That's not a rejection, founder — that's a syllabus. Run it again."
+        },
+        "delayMs": 1100
+      }
+    ]
+  }
+}

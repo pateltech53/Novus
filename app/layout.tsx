@@ -1,0 +1,114 @@
+import type { Metadata, Viewport } from "next";
+import { Urbanist, IBM_Plex_Mono, Instrument_Serif, Baloo_2 } from "next/font/google";
+import "./globals.css";
+import { Motion } from "@/components/ui/Motion";
+import { Sound } from "@/components/ui/Sound";
+import { THEME_COLOR_DARK } from "@/lib/brand";
+import { THEME_INIT_SCRIPT } from "@/lib/theme";
+
+const urbanist = Urbanist({
+  subsets: ["latin"],
+  variable: "--font-urbanist",
+  weight: ["400", "500", "600", "700", "800"],
+});
+
+/**
+ * The ledger face. OFL, so it self-hosts through next/font with no external
+ * request — which matters for the installable PWA and for the no-third-party
+ * stance in the privacy rules. True tabular figures, a real 700, and narrower
+ * than Roboto Mono so long currency strings hold without wrapping.
+ */
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  variable: "--font-plex-mono",
+  weight: ["400", "500", "600", "700"],
+});
+
+/**
+ * The display face — headlines and, above all, the name field.
+ *
+ * Urbanist is a fine UI face and a forgettable display one: "What should the
+ * shark call you?" set in it looked like a form label, so the answer felt like
+ * filling in a form. A serif at a large size makes the name read as a
+ * signature. Used sparingly — headlines and the name, nowhere else.
+ */
+const instrument = Instrument_Serif({
+  subsets: ["latin"],
+  variable: "--font-display-serif",
+  weight: "400",
+});
+
+/**
+ * The lock-screen clock, and nothing else.
+ *
+ * A phone lock screen is the one surface in this app that is not Novus chrome —
+ * it is the player's own device, and it should feel like it. Baloo 2 at 800 is
+ * round and soft in a way the UI grotesk deliberately is not, which is what
+ * makes the phone read as a separate object you picked up rather than another
+ * panel of the game.
+ *
+ * Scoped to the clock on purpose. It must never leak into a financial figure.
+ */
+const baloo = Baloo_2({
+  subsets: ["latin"],
+  variable: "--font-bubble",
+  weight: ["600", "700", "800"],
+});
+
+export const metadata: Metadata = {
+  // Resolves every relative OG/twitter image URL against the real origin —
+  // without it, crawlers see a broken relative path and drop the card.
+  metadataBase: new URL("https://novuspitch.com"),
+  title: "Novus",
+  description:
+    "A life sim for a company. Tap through months for free. The year costs you a pitch.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    title: "Novus",
+    // Lets the stage run under the status bar instead of below a white band.
+    statusBarStyle: "black-translucent",
+  },
+  icons: {
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+  },
+};
+
+export const viewport: Viewport = {
+  // Matches --n-1 in dark, so there is no flash of a different ground.
+  // One theme, so one colour. A light entry here made a light-mode phone
+  // paint light chrome around a dark app.
+  themeColor: THEME_COLOR_DARK,
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  // The keyboard resizes the layout instead of scrolling the page under it.
+  interactiveWidget: "resizes-content",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
+  return (
+    <html
+      lang="en"
+      // Dark is the default world. A player choice writes data-theme; without
+      // one, the OS preference decides (see globals.css).
+      className={`${urbanist.variable} ${plexMono.variable} ${instrument.variable} ${baloo.variable}`}
+      suppressHydrationWarning
+    >
+      <head>
+        {/* Blocking on purpose. Without it the page paints light and swaps to
+            dark a frame later — the flash every themed app gets wrong once. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
+      {/* Themed via utilities rather than a raw `body` rule: utilities
+          re-resolve the custom property on theme change, so overscroll never
+          flashes the previous theme's colour. */}
+      <body className="min-h-dvh bg-[var(--bg)] text-[var(--text-primary)] antialiased">
+        <Sound />
+        <Motion>{children}</Motion>
+      </body>
+    </html>
+  );
+}

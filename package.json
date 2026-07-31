@@ -1,0 +1,35 @@
+{
+  "name": "novus",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "npm run events && next build",
+    "start": "next start",
+    "lint": "next lint",
+    "events": "node scripts/parse-events.mjs && node scripts/validate-events.mjs && node scripts/validate-activities.mjs && node scripts/validate-tokens.mjs",
+    "sim": "node scripts/simulate.mjs",
+    "check": "npm run events && tsc --noEmit && npm run sim 30 8",
+    "capture": "node scripts/capture.mjs"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "^0.10.17",
+    "@react-three/drei": "^10.0.0",
+    "@react-three/fiber": "^9.0.0",
+    "framer-motion": "^12.0.0",
+    "next": "^15.3.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "three": "^0.177.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/three": "^0.177.0",
+    "playwright": "^1.62.0",
+    "tailwindcss": "^4.1.0",
+    "typescript": "^5.8.0"
+  }
+}

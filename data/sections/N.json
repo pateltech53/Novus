@@ -1,0 +1,388 @@
+[
+  {
+    "id": "E-WLD-001",
+    "title": "The Time Capsule",
+    "category": "WILD",
+    "text": "Year 1 you left a note in the books: \"If we made it this far, do the thing we were scared of.\" You remember exactly what it was.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 1,
+    "once": true,
+    "auto": {
+      "special": ["reoffer_biggest_declined_once"]
+    }
+  },
+  {
+    "id": "E-WLD-002",
+    "title": "Wrong Send",
+    "category": "WILD",
+    "text": "Your unfiltered internal rant just went to the all-customers list.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 2,
+    "choices": [
+      {
+        "label": "Own it with humor in 1 hour",
+        "branches": [
+          {
+            "weight": 60,
+            "outcome": {
+              "effects": [{ "stat": "brand", "amount": 5 }],
+              "narration": "legendary"
+            }
+          },
+          {
+            "weight": 40,
+            "outcome": {
+              "effects": [{ "stat": "brand", "amount": -3 }]
+            }
+          }
+        ]
+      },
+      {
+        "label": "\"We were hacked\"",
+        "branches": [
+          {
+            "weight": 30,
+            "outcome": {
+              "effects": [
+                { "stat": "risk", "amount": 2 },
+                { "stat": "brand", "amount": -10 }
+              ],
+              "narration": "caught lying"
+            }
+          },
+          {
+            "weight": 70,
+            "outcome": {
+              "effects": [{ "stat": "risk", "amount": 2 }]
+            }
+          }
+        ]
+      },
+      {
+        "label": "Formal apology",
+        "known": "Brand −1",
+        "outcome": {
+          "effects": [{ "stat": "brand", "amount": -1 }],
+          "narration": "forgettable, safe"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-WLD-003",
+    "title": "The Look-alike",
+    "category": "WILD",
+    "text": "A company in another country has your exact name and a worse reputation. Confused reviews are landing on you.",
+    "stages": [2, 3, 4, 5],
+    "industries": "all",
+    "weight": 2,
+    "choices": [
+      {
+        "label": "Buy their name/domain",
+        "known": "Cash −1S",
+        "outcome": {
+          "effects": [{ "stat": "cash_S", "amount": -1 }],
+          "narration": "cleaned"
+        }
+      },
+      {
+        "label": "Public \"we are not them\" campaign",
+        "known": "Brand +2",
+        "outcome": {
+          "effects": [{ "stat": "brand", "amount": 2 }],
+          "special": ["streisand_risk:20"]
+        }
+      },
+      {
+        "label": "Outrank them with content",
+        "outcome": {
+          "narration": "slow, free, mostly works"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-WLD-004",
+    "title": "Weather Event",
+    "category": "WILD",
+    "text": "A storm/heatwave hits your region.",
+    "reskins": {
+      "FOOD": "kitchen floods",
+      "ECOM": "delivery freeze",
+      "TECH": "server AC failure",
+      "CONTENT": "event canceled"
+    },
+    "stages": [1, 2, 3, 4],
+    "industries": "all",
+    "weight": 2,
+    "choices": [
+      {
+        "label": "Close + pay staff anyway",
+        "known": "Cash −1S · Mor +8",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -1 },
+            { "stat": "morale", "amount": 8 }
+          ],
+          "setFlags": ["treated_team_well"]
+        }
+      },
+      {
+        "label": "Stay open heroically",
+        "known": "Rev protected",
+        "branches": [
+          {
+            "weight": 15,
+            "outcome": {
+              "effects": [{ "stat": "risk", "amount": 2 }],
+              "narration": "safety incident"
+            }
+          },
+          {
+            "weight": 85,
+            "outcome": {}
+          }
+        ]
+      },
+      {
+        "label": "Turn it into content",
+        "known": "Brand +3",
+        "outcome": {
+          "effects": [{ "stat": "brand", "amount": 3 }],
+          "narration": "mild cringe risk"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-WLD-005",
+    "title": "The Superstition",
+    "category": "WILD",
+    "text": "The team credits a lucky object for the recent win streak. It has a name now.",
+    "stages": [1, 2, 3],
+    "industries": "all",
+    "weight": 2,
+    "choices": [
+      {
+        "label": "Embrace the bit",
+        "known": "Mor +4",
+        "outcome": {
+          "effects": [{ "stat": "morale", "amount": 4 }],
+          "special": ["cosmetic_unlock:merch_idea"]
+        }
+      },
+      {
+        "label": "Ban it, we are professionals",
+        "known": "Mor −3",
+        "outcome": {
+          "effects": [{ "stat": "morale", "amount": -3 }],
+          "narration": "the shark judges YOU for once"
+        }
+      },
+      {
+        "label": "Sell replicas",
+        "known": "Cash +0.3S · Brand +2",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": 0.3 },
+            { "stat": "brand", "amount": 2 }
+          ],
+          "narration": "absurd"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-WLD-006",
+    "title": "Mystery Benefactor",
+    "category": "WILD",
+    "text": "An envelope: 2S cash, a note: \"Don't sell out. — A fan.\"",
+    "stages": [2, 3],
+    "industries": "all",
+    "weight": 1,
+    "once": true,
+    "choices": [
+      {
+        "label": "Bank it, honor it",
+        "known": "Cash +2S",
+        "outcome": {
+          "effects": [{ "stat": "cash_S", "amount": 2 }],
+          "setFlags": ["mystery_promise"],
+          "special": ["conscience_prompt:sellout"]
+        }
+      },
+      {
+        "label": "Donate it",
+        "outcome": {
+          "effects": [{ "stat": "brand", "amount": 4, "delayed": true }],
+          "narration": "karma"
+        }
+      },
+      {
+        "label": "Investigate",
+        "branches": [
+          {
+            "weight": 50,
+            "outcome": {
+              "effects": [{ "stat": "brand", "amount": 3 }],
+              "narration": "sweet story"
+            }
+          },
+          {
+            "weight": 50,
+            "outcome": {
+              "setFlags": ["marco_feud"],
+              "narration": "it's Marco testing you"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "E-WLD-007",
+    "title": "The Documentary About Marco",
+    "category": "WILD",
+    "text": "A film about your rivalry is happening with or without you.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 2,
+    "requiresFlags": ["marco_feud"],
+    "choices": [
+      {
+        "label": "Participate, gracious cut",
+        "known": "Brand +5",
+        "outcome": {
+          "effects": [{ "stat": "brand", "amount": 5 }],
+          "special": ["feud:-1"]
+        }
+      },
+      {
+        "label": "Refuse",
+        "known": "Brand −2",
+        "outcome": {
+          "effects": [{ "stat": "brand", "amount": -2 }],
+          "special": ["mystique:+1"],
+          "narration": "portrayed by an empty chair"
+        }
+      },
+      {
+        "label": "Counter-program your own film",
+        "known": "Cash −2S",
+        "branches": [
+          {
+            "weight": 50,
+            "outcome": {
+              "effects": [
+                { "stat": "cash_S", "amount": -2 },
+                { "stat": "brand", "amount": 8 }
+              ]
+            }
+          },
+          {
+            "weight": 50,
+            "outcome": {
+              "effects": [
+                { "stat": "cash_S", "amount": -2 },
+                { "stat": "brand", "amount": -3 }
+              ],
+              "narration": "trying too hard"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "E-WLD-008",
+    "title": "Lottery Logic",
+    "category": "WILD",
+    "text": "A customer suggests you two split a lottery ticket \"for the story.\"",
+    "stages": [1, 2],
+    "industries": "all",
+    "weight": 2,
+    "rookieTerms": ["ROI"],
+    "choices": [
+      {
+        "label": "Buy it",
+        "known": "Cash −0.001S · Resp +1",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -0.001 },
+            { "stat": "respect", "amount": 1 }
+          ],
+          "narration": "1-in-a-zillion: nothing happens, but the shark's EV lecture plays"
+        }
+      },
+      {
+        "label": "Decline with the math",
+        "known": "Resp +2",
+        "outcome": {
+          "effects": [{ "stat": "respect", "amount": 2 }]
+        }
+      },
+      {
+        "label": "Buy 100 \"for marketing\"",
+        "known": "Brand +1",
+        "outcome": {
+          "effects": [{ "stat": "brand", "amount": 1 }],
+          "narration": "the lecture is longer"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-WLD-009",
+    "title": "The Old Rival Returns",
+    "category": "WILD",
+    "text": "The friend you turned down in Year 1 built something adjacent. It's good. They want to talk — merger, revenge, or closure; even they don't know.",
+    "stages": [4, 5],
+    "industries": "all",
+    "weight": 1,
+    "once": true,
+    "requiresFlags": ["rival_seed"],
+    "performOnly": {
+      "type": "nego",
+      "pass": {
+        "effects": [
+          { "stat": "rev_pct", "amount": 6, "perYear": true },
+          { "stat": "brand", "amount": 5 }
+        ],
+        "setFlags": ["full_circle"],
+        "special": ["rubric:emotional"],
+        "narration": "alliance"
+      },
+      "fail": {
+        "narration": "cordial nothing; the ache is content"
+      }
+    }
+  },
+  {
+    "id": "E-WLD-010",
+    "title": "The Shark's Question",
+    "category": "WILD",
+    "text": "No crisis today. The shark just asks, on camera: \"Why are you doing this? Really.\"",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 1,
+    "once": true,
+    "requiresCond": [{ "stat": { "key": "respect", "gte": 70 } }],
+    "performOnly": {
+      "type": "media",
+      "optional": true,
+      "pass": {
+        "effects": [
+          { "stat": "respect", "amount": 3 },
+          { "stat": "energy", "amount": 8 }
+        ],
+        "special": ["rubric:honesty", "echo_endgame_line"]
+      },
+      "fail": {
+        "special": ["rearm_years:2"],
+        "narration": "the shark nods. \"Later, then.\""
+      }
+    }
+  }
+]

@@ -1,0 +1,304 @@
+{
+  "tiers": {
+    "good": {
+      "scores": {
+        "clarity": {
+          "score": 8,
+          "rationale": "Every sentence lands on first hearing and the images are concrete — \"a spreadsheet, a group chat, and a lot of hoping\" does more work than any adjective would, and \"it breaks the moment they get busy\" is the customer's own voice. It stops short of nine because your evidence points instead of speaks: \"There are three numbers on the screen behind me\" and \"the amount on the slide\" ask the panel to look rather than listen, and \"that's the number I check like every Monday morning\" softens your single best discipline claim."
+        },
+        "fluency": {
+          "score": 8,
+          "rationale": "3 fillers in 86 seconds is 2.1 per minute, and 150 wpm sits in the middle of the 130–170 comfortable band with no false starts anywhere in the take. What keeps this out of the top band is placement, not volume: both of the fillers that matter land on high-stakes words — \"our growth rate, um, year over year\" sits on your evidence, and \"and, uh, the first real salesperson\" sits inside your ask."
+        },
+        "logic": {
+          "score": 8,
+          "rationale": "The arc is complete and in the right order: problem, solution, three-metric evidence, credibility (\"I built the first version myself over one summer\"), ask, use of funds. One link is weak — the ask arrives with an amount and an equity figure that are never spoken aloud and no sentence explaining why that price is fair, so the panel has to price you themselves before they can answer you."
+        },
+        "grammar": {
+          "score": 9,
+          "rationale": "No genuine errors. Sentence length is varied and controlled, the contractions are natural spoken forms rather than slips, and the parallel \"The first is... The second is... The third is...\" is a deliberate structure that a listener can follow without effort. Machine-added punctuation and casing were ignored in this score."
+        },
+        "overall": {
+          "score": 8,
+          "summary": "This is a real pitch. The problem is concrete, the arc is complete, and \"a spreadsheet, a group chat, and a lot of hoping\" is a line the panel will repeat back to you. What holds it at eight is that both your evidence and your ask live on the slide instead of in your mouth — a listener with their eyes closed would not learn a single number about your company. Say the three numbers, speak the ask as a full sentence with its rationale, and this is a nine."
+        }
+      },
+      "delivery_metrics": {
+        "word_count": 215,
+        "wpm": 150,
+        "filler_count": 3,
+        "fillers_per_minute": 2.1,
+        "top_fillers": ["um", "like", "uh"]
+      },
+      "structure_map": {
+        "detected_sections": [
+          "opening — self-introduction (age and tenure), not the problem",
+          "problem — how customers cope today, in their own words",
+          "solution — what the product does, one sentence, no jargon",
+          "evidence — three named metrics, pointed at rather than spoken",
+          "proof of pull — biggest customers all arrived by referral, none paid for",
+          "credibility — built the first version solo, ships every two weeks",
+          "ask — amount and equity referred to on the slide",
+          "use of funds — engineering and a first salesperson",
+          "close — \"That's it. Thank you.\""
+        ],
+        "missing_or_misplaced": [
+          "The numbers themselves: growth, margin, and churn are named but never said out loud.",
+          "A valuation rationale — one sentence on why the price you are asking is the right price.",
+          "The age lands in sentence one, where it reads as a disclaimer; it belongs next to the credibility beat, where it reads as a weapon.",
+          "A close that hands the panel their next move instead of ending the take."
+        ]
+      },
+      "line_edits": [
+        {
+          "quote": "Hi. I'm sixteen, and I've been running this company for eleven months.",
+          "category": "structure",
+          "issue": "Opens with biography. Being sixteen is an asset, but in sentence one it sounds like an excuse; after the problem it sounds like proof.",
+          "better_version": "Our customers are solving this with a spreadsheet, a group chat, and a lot of hoping. I'm sixteen, and I've spent eleven months fixing that.",
+          "confidence_note": ""
+        },
+        {
+          "quote": "There are three numbers on the screen behind me.",
+          "category": "evidence",
+          "issue": "Deictic evidence. A panel remembers numbers it heard, not numbers it read, and half of them are looking at you, not the slide.",
+          "better_version": "Three numbers, out loud: we grew [growth rate] percent year over year, we keep [gross margin] cents of every dollar, and [monthly churn] percent of customers leave in a month.",
+          "confidence_note": "Bracketed slots are your own figures from the brief — say them, do not point at them."
+        },
+        {
+          "quote": "our growth rate, um, year over year, not month over month",
+          "category": "fluency",
+          "issue": "The one filler in your evidence section lands directly on your strongest claim, and the clarification is phrased defensively, as though you expect to be doubted.",
+          "better_version": "That growth is year over year, not month over month.",
+          "confidence_note": ""
+        },
+        {
+          "quote": "that's the number I check like every Monday morning",
+          "category": "clarity",
+          "issue": "\"like\" hedges the exact sentence that proves you run this company on data rather than vibes.",
+          "better_version": "That's the number I check every Monday morning.",
+          "confidence_note": ""
+        },
+        {
+          "quote": "We're raising the amount on the slide for the equity next to it",
+          "category": "ask",
+          "issue": "The ask is the one sentence you are guaranteed to be judged on, and right now it is the quietest thing in the pitch — no figure is spoken and no reason is given for the price.",
+          "better_version": "We're raising [amount] for [equity] percent. That prices us at [valuation], and at our current growth we grow into that number this year.",
+          "confidence_note": "Rehearse this until it survives nerves verbatim — this is the sentence to over-practise."
+        },
+        {
+          "quote": "That's it. Thank you.",
+          "category": "close",
+          "issue": "The pitch stops rather than lands. After a strong ask you want the panel leaning in, not politely waiting.",
+          "better_version": "That's the ask. Now ask me your hardest question about it.",
+          "confidence_note": ""
+        }
+      ],
+      "top_3_priorities": [
+        "Say your three numbers out loud instead of gesturing at the slide — growth, then margin, then churn, one breath each, in that order.",
+        "Speak the ask as a complete sentence: amount, equity, and one line on why that price is fair. Rehearse it until no filler can get inside it.",
+        "Move \"I'm sixteen\" out of the opening and put it beside \"I built the first version myself over one summer,\" then open on the spreadsheet-and-group-chat line."
+      ]
+    },
+    "mid": {
+      "scores": {
+        "clarity": {
+          "score": 6,
+          "rationale": "The main points are recoverable, but the listener has to work for them: \"kind of helps\", \"a thing that\", \"pretty good\", \"honestly, it's okay\". The first concrete fact — that customers found you on their own — does not arrive until the thirty-seventh second, halfway through the take, and no figure is spoken anywhere: \"a lot\" stands in for growth, \"pretty good\" for margin, and \"okay\" for retention."
+        },
+        "fluency": {
+          "score": 6,
+          "rationale": "7 fillers in 75 seconds is 5.6 per minute, at the top edge of the 2–5 band, plus two restarts — \"what we do is, we, our product\" in the opening and the repair chain in \"Retention is, honestly, it's okay.\" Pace is not the problem: 164 wpm is inside the comfortable band. The pattern is that fillers cluster exactly where you are least confident — growth, margin, and retention — so the hesitation reads as doubt about your own numbers."
+        },
+        "logic": {
+          "score": 5,
+          "rationale": "The frame exists — problem, solution, traction, founder story, team — but the ask is missing in everything but name: \"some funding to grow faster and hire and do marketing and stuff\" gives a panel nothing to say yes or no to. Evidence is asserted rather than shown (\"people seem to really like it\"), and your strongest credibility beat — you hit the problem yourself, then taught yourself to code — arrives after the traction, where it can no longer set anything up."
+        },
+        "grammar": {
+          "score": 7,
+          "rationale": "Two genuine slips, both common and both quickly fixable: the past participle in \"we have grew a lot\" and countable agreement in \"there's less steps\". Neither obscures meaning, and there is no wider pattern behind them. \"there time is expensive\" is excluded from this score as a transcription artifact."
+        },
+        "overall": {
+          "score": 6,
+          "summary": "The business underneath this is sound and your founder line — you ran into the problem yourself, then taught yourself to code so you could fix it — is the most persuasive thing you say. What is costing you is language: \"kind of\", \"pretty good\", \"it's okay\", and an ask with no number in it, which a panel hears as someone who has not done the arithmetic. You are one focused rehearsal from a much stronger take: same content, every hedge swapped for a figure, and a real ask at the end."
+        }
+      },
+      "delivery_metrics": {
+        "word_count": 205,
+        "wpm": 164,
+        "filler_count": 7,
+        "fillers_per_minute": 5.6,
+        "top_fillers": ["um", "like", "uh"]
+      },
+      "structure_map": {
+        "detected_sections": [
+          "greeting and thanks",
+          "problem — hedged, and framed as inefficiency rather than cost",
+          "solution — \"a thing that, like, does most of it for them automatically\"",
+          "traction — \"a lot\", no figure",
+          "margin — \"pretty good\", no figure",
+          "customer acquisition — customers found us on their own",
+          "retention — volunteered as a weakness, no figure",
+          "founder story — hit the problem, taught yourself to code",
+          "team — three people, everyone does everything",
+          "ask — unquantified"
+        ],
+        "missing_or_misplaced": [
+          "A hook. The pitch opens on logistics (\"thanks for having me\") instead of on the problem.",
+          "Every number: growth, margin, churn, price, customer count — none is spoken.",
+          "Use of funds. \"grow faster and hire and do marketing and stuff\" is not a plan a panel can fund.",
+          "The founder story is your best credibility and it sits in the last third; move it up so it explains why you are the one solving this.",
+          "Retention is introduced as an apology before any strength has been established."
+        ]
+      },
+      "line_edits": [
+        {
+          "quote": "So basically what we do is, we, our product kind of helps our customers with a problem that they all have",
+          "category": "clarity",
+          "issue": "Hedged and restarted. Twenty words in and the listener still does not know what the product does or who it is for.",
+          "better_version": "Our product does the job our customers do by hand today — all of it, in one place.",
+          "confidence_note": ""
+        },
+        {
+          "quote": "and there time is expensive",
+          "category": "transcription artifact",
+          "issue": "Homophone in the transcript (\"there\" for \"their\"). This is the machine's error, not yours.",
+          "better_version": "and their time is expensive",
+          "confidence_note": "Almost certainly a speech-to-text artifact — you very likely said this correctly. Not counted against your grammar score."
+        },
+        {
+          "quote": "we have grew a lot since then, like a lot",
+          "category": "grammar",
+          "issue": "Past participle after \"have\" (grown, not grew) — and \"a lot\" twice where your brief has an exact percentage.",
+          "better_version": "We've grown [growth rate] percent since launch.",
+          "confidence_note": "Bracketed slot is your own figure from the brief."
+        },
+        {
+          "quote": "there's less steps for them now than before",
+          "category": "grammar",
+          "issue": "Countable nouns take \"fewer\", and \"there's\" needs to agree with a plural subject.",
+          "better_version": "There are fewer steps for them now.",
+          "confidence_note": ""
+        },
+        {
+          "quote": "Retention is, honestly, it's okay. It's something we're working on.",
+          "category": "evidence",
+          "issue": "You volunteer a weakness with no number and no plan attached. A panel hears \"okay\" as \"bad\", and now they will ask about it on your terms instead of yours.",
+          "better_version": "Our monthly churn is [churn] percent. Here's the one change we shipped last quarter to bring it down, and here's what it did.",
+          "confidence_note": "Own the number before the panel finds it — the fix is naming it, not hiding it."
+        },
+        {
+          "quote": "We're looking for some funding to grow faster and hire and do marketing and stuff.",
+          "category": "ask",
+          "issue": "No amount, no equity, no use of funds. \"and stuff\" tells the panel the plan has not been costed.",
+          "better_version": "We're raising [amount] for [equity] percent: two engineers and our first salesperson.",
+          "confidence_note": "Bracketed slots are the ask from your brief. Say the figures, then stop talking."
+        }
+      ],
+      "top_3_priorities": [
+        "Replace every hedge with a figure: \"a lot\" becomes your growth rate, \"pretty good\" becomes your margin, \"it's okay\" becomes your churn. Write those three numbers on your hand and make yourself say all three.",
+        "Rebuild the last fifteen seconds around a real ask — amount, equity, and exactly what the money buys — then stop talking instead of trailing off on \"So, yeah.\"",
+        "Cut \"Hey, um, thanks for having me.\" and open on the problem in your customer's words, then move your founder story up right behind it."
+      ]
+    },
+    "rough": {
+      "scores": {
+        "clarity": {
+          "score": 4,
+          "rationale": "The listener loses the thread repeatedly because nothing is ever named. The product is described only as something that \"handles that whole thing for you\", and every strong claim stays unmeasurable: \"took off\", \"a ton\", \"A lot of customers\", \"a huge market here, like a really huge market\". Hedges (\"basically\", \"kind of\", \"honestly\") are counted here rather than in fluency, and they appear in almost every sentence. Someone hearing this once could not say what you sell or who buys it."
+        },
+        "fluency": {
+          "score": 4,
+          "rationale": "12 fillers in 74 seconds is 9.7 per minute — roughly one every six seconds — with two audible restarts (\"So we, we built our product\" and \"that's, that's kind of where we're at\") and a pace of 180 wpm, above the comfortable 130–170 band. The placement is the tell: the fillers arrive immediately before every number-shaped claim, so the hesitation lands exactly where a panel most wants confidence."
+        },
+        "logic": {
+          "score": 3,
+          "rationale": "This is a list of impressions rather than an argument, and it ends without an ask at all: \"That's basically the idea. So, um, yeah. Thanks for listening.\" Problem and solution are stated in the same abstract terms, so the second never resolves the first; retention trails off mid-thought (\"people stick around mostly, some don't, but mostly\"); and the single most persuasive fact in the whole pitch — that you spent nothing on marketing — arrives at the sixty-fourth second and is never connected to anything."
+        },
+        "grammar": {
+          "score": 6,
+          "rationale": "One recurring pattern: agreement with plural subjects — \"a lot of people who has it\" and \"we're the only ones who's doing it this way\". Alongside it, \"we didn't spent anything\" (base form after \"did\") and \"since last year we are doing it after school\" (present continuous where the perfect is needed). Meaning survives every one of these; they are audible rather than confusing, which is why this sits at six and not lower."
+        },
+        "overall": {
+          "score": 4,
+          "summary": "There is a real business in here and you obviously know it from the inside — you built it after school with a friend, spent nothing on marketing, and customers still came. Almost none of that reaches the listener right now: at 180 words a minute with a filler every six seconds, the specifics get buried under \"a ton\", \"huge\", and \"basically\", and the pitch ends without ever asking for money. None of this is a talent problem, it is a preparation problem. Write the pitch out, mark three pauses, put your numbers and your ask on the page, and the next take will be a different pitch entirely."
+        }
+      },
+      "delivery_metrics": {
+        "word_count": 222,
+        "wpm": 180,
+        "filler_count": 12,
+        "fillers_per_minute": 9.7,
+        "top_fillers": ["um", "like", "uh"]
+      },
+      "structure_map": {
+        "detected_sections": [
+          "announcement of intent — \"I'm going to talk about my company\"",
+          "problem — abstract, never named",
+          "solution — abstract, described as \"that whole thing\"",
+          "traction — adjectives only (\"took off\", \"a ton\", \"A lot of customers\")",
+          "margin — restarted, asserted as \"good\" and \"high\"",
+          "retention — trails off mid-sentence",
+          "market claim — \"a huge market here, like a really huge market\"",
+          "founder story — after school, with a friend, no marketing spend",
+          "sign-off — \"Thanks for listening\""
+        ],
+        "missing_or_misplaced": [
+          "No ask anywhere: no amount, no equity, no use of funds. The panel is never told what you want.",
+          "No numbers at all — every metric in your brief is spoken as an adjective.",
+          "No hook. The first sentence announces that you will speak instead of speaking.",
+          "Your credibility (self-funded, built after school, zero marketing spend) is buried in the final ten seconds.",
+          "The market claim sits where evidence should be and does no work, because nothing sizes it."
+        ]
+      },
+      "line_edits": [
+        {
+          "quote": "Okay so, hi, um, I'm going to talk about my company.",
+          "category": "hook",
+          "issue": "You announce that a pitch is coming instead of starting it. The opening ten seconds are the only ones you are guaranteed to have their full attention for.",
+          "better_version": "Our customers lose hours every week to a job nobody should still be doing by hand. We took that job away.",
+          "confidence_note": ""
+        },
+        {
+          "quote": "there's a lot of people who has it",
+          "category": "grammar",
+          "issue": "Agreement in both halves of the sentence — this is the same pattern as \"the only ones who's doing it this way\" later on.",
+          "better_version": "There are a lot of people who have it.",
+          "confidence_note": "Recurring pattern, worth drilling once: plural subject, plural verb."
+        },
+        {
+          "quote": "it, like, just kind of took off, um, way more than we expected",
+          "category": "evidence",
+          "issue": "Your best fact is delivered as a feeling. The words \"took off\" cannot be checked, compared, or valued, and a panel discounts what it cannot check.",
+          "better_version": "In our first year we grew [growth rate] percent.",
+          "confidence_note": "Bracketed slot is your own figure from the brief."
+        },
+        {
+          "quote": "And our margin is, uh, our margin is good, it's high, because of how the product works.",
+          "category": "fluency",
+          "issue": "A restart plus three vague adjectives where one number would settle the question outright.",
+          "better_version": "Our gross margin is [gross margin] percent, and it stays there because our costs don't grow when our customer count does.",
+          "confidence_note": ""
+        },
+        {
+          "quote": "so I think there's a huge market here, like a really huge market",
+          "category": "clarity",
+          "issue": "Saying \"huge\" twice does not size a market, and \"I think\" hands the panel your own doubt before they have to find it.",
+          "better_version": "I won't tell you the market is huge. I'll show you the slice we already serve, what they pay us, and how fast that slice is growing.",
+          "confidence_note": ""
+        },
+        {
+          "quote": "we didn't spent anything on marketing",
+          "category": "grammar",
+          "issue": "After \"didn't\" the verb stays in its base form — and this is the strongest fact in your pitch, thrown away in a subordinate clause in the last fifteen seconds.",
+          "better_version": "We haven't spent a dollar on marketing. Every customer we have came looking for us.",
+          "confidence_note": "Move this line into your evidence section, right after the growth number."
+        }
+      ],
+      "top_3_priorities": [
+        "Write an ask and rehearse it word for word: the amount, the percentage, and where the money goes. Ending on \"Thanks for listening.\" forfeits the whole pitch — a panel cannot invest in an idea it was never asked to fund.",
+        "Slow from 180 to about 150 words a minute and put a full stop where the \"um\" currently goes. Mark three pauses in your script — after the problem, after the numbers, before the ask — and hold each one for a full second.",
+        "Turn your three vaguest claims into three spoken numbers: your growth rate instead of \"a ton\", your margin instead of \"good\", your churn instead of \"mostly\"."
+      ]
+    }
+  }
+}

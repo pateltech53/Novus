@@ -1,0 +1,142 @@
+{
+  "_meta": {
+    "voice": "Voice v2 — second person, present tense, short lines, dry needle. The chair needles the choice, never the kid.",
+    "chair": "The suited shark mascot. Chairs the panel, narrates the run, owns the Shark Respect meter.",
+    "placeholders": "{rev} {burn} {runway} {cash} {valuation} {year} {company} {n}. Shark reaction lines are deliberately placeholder-free — they are spoken in-scene.",
+    "rule": "score_low and react_low roast the pitch's logic and decisions only — never voice, accent, energy, or the founder."
+  },
+  "chair": {
+    "welcome": [
+      "Five sharks. One camera. Sixty seconds of you. Start when the light turns.",
+      "The panel already read your brief. They already decided what to doubt. Change their minds.",
+      "This is where a company stops being a company and becomes an argument. Make yours.",
+      "{company} walks in worth {valuation}. What it walks out with is the next four minutes' problem."
+    ],
+    "listening": [
+      "The room is quiet. That isn't agreement. That's note-taking.",
+      "Marcus is running your arithmetic while you talk. He is faster than you.",
+      "Keep going. Every sentence without a number costs you something."
+    ],
+    "deliberating": [
+      "They're talking about you in the third person now. That's the job.",
+      "Offers get built in silence. Yours is being priced right now.",
+      "Nobody has said no. Nobody has said yes. Hold still."
+    ],
+    "score_high": [
+      "You answered the question they actually asked. You would be surprised how rare that is.",
+      "Structure, numbers, a clear ask. The panel wants in, and the panel hates wanting things.",
+      "That pitch had a spine. Respect moves up, and Respect does not move often.",
+      "You made {valuation} sound like a discount. That is the entire trick."
+    ],
+    "score_mid": [
+      "A real business, argued halfway. You left money on the table and they picked it up.",
+      "Half your numbers landed. The other half you rounded and hoped nobody checked.",
+      "You got an offer. You also got the terms people get when they hesitate.",
+      "Fundable, and priced for the doubt. Both of those happened in the same four minutes."
+    ],
+    "score_low": [
+      "No market size, no unit economics, no ask. Three holes, and you walked through all of them.",
+      "Your growth plan was more customers. That is a wish with a budget attached.",
+      "You priced the company on hope. They price on cash flow. Nobody met in the middle.",
+      "You asked for money and never said what it buys. That is why every one of them passed."
+    ],
+    "year_survived": [
+      "Year {year} closes and you're still solvent. The bar is on the floor. You cleared it.",
+      "Another year on the books. Runway: {runway}. The calendar resets. The math doesn't.",
+      "You end at {valuation}. The panel will want to know exactly what changed and why.",
+      "Year {year}, survived. Most companies that started when you did are already footnotes."
+    ],
+    "respect_up": [
+      "Respect: up {n}. The shark does not hand those out for showing up.",
+      "{n} points of Respect. It carries between runs, and so does the record of how you earned it.",
+      "The meter moves {n}. You argued a number and won it. Do that again."
+    ]
+  },
+  "sharks": {
+    "marcus": {
+      "react_high": [
+        "You answered a numeric question with a number, chief. Inside two seconds. That buys you my attention.",
+        "Your payback period ties out against the brief. I checked it twice while you were still talking.",
+        "Revenue is vanity, margin is sanity, cash is reality. You led with the third one. Good."
+      ],
+      "react_mid": [
+        "Top line's fine. The unit economics are a rumor. Fix one of those before the next quarter, chief.",
+        "You know your revenue cold and your CAC not at all. That's half a founder.",
+        "Numbers don't have moods. Yours went vague at exactly the place where the cash leaks."
+      ],
+      "react_low": [
+        "You're buying revenue for more than it returns. That isn't growth, chief. That's a subsidy with a logo.",
+        "Four minutes. No gross margin, no churn, no payback period. I priced what you didn't say.",
+        "Your ask rests on a multiple you heard somewhere. That isn't a valuation. That's a guess wearing a dollar sign."
+      ]
+    },
+    "serena": {
+      "react_high": [
+        "You didn't hand me a product, you handed me a wedge. I can see the second market from here.",
+        "That's a trajectory, not a company. I'm already doing the ten-year math and I like the shape of it.",
+        "I asked what this looks like at a hundred times, and you gave me a mechanism instead of a hope. Keep going."
+      ],
+      "react_mid": [
+        "The story is real. The ceiling is low. Show me the room above this one.",
+        "You defended the market with the market's own numbers and then stopped. Stopping is the whole problem.",
+        "I believe the curve. I don't yet believe the size of the field you drew it on."
+      ],
+      "react_low": [
+        "Your entire plan is a slightly bigger slice of a shrinking pie. Small market, small dreams. I'm out either way.",
+        "You just pitched me a beautiful version of the last five years. I only buy the next five.",
+        "Every growth number in there was bought with a discount. Kill the coupon and the curve dies with it."
+      ]
+    },
+    "dev": {
+      "react_high": [
+        "You walked me through the whole line without notes. That tells me you've actually stood on it.",
+        "You named the bottleneck before I asked, and then you named the fix. That's rare and I'm saying so.",
+        "Show me the machine, not the dream. You opened with the machine. That's the right order."
+      ],
+      "react_mid": [
+        "The product ships. The process behind it is one person, and that person is you.",
+        "Good hands, no bench. Your number two hire happens before any other hire happens.",
+        "You've built something real and tied it to yourself with a knot. At triple the volume, you're the bottleneck."
+      ],
+      "react_low": [
+        "You outsourced the one part of this you should own. Ideas are free. Execution costs everything, and you rented yours.",
+        "I asked what snaps first at ten times the volume and you told me it scales smoothly. Nothing scales smoothly.",
+        "You can't tell me how the thing gets made or who touches it on the way out. If you can't walk the floor, I can't fund the factory."
+      ]
+    },
+    "lily": {
+      "react_high": [
+        "You told me why they leave, in their words, not yours. That's the answer I almost never get.",
+        "A named customer, a real moment, and a cohort number underneath it. Now I'm listening properly.",
+        "Growth is rented. Love is owned. You've quietly been buying the second one for two years."
+      ],
+      "react_mid": [
+        "You have a story and no cohort. Bring me January's buyers and tell me who's still paying in June.",
+        "Lovely brand, leaky bucket. Fix the drain before you turn the tap up any further.",
+        "Four minutes on features, one on customers. Flip that ratio and the pitch changes completely."
+      ],
+      "react_low": [
+        "Everything you called growth was new customers replacing the ones you lost. That's a treadmill with a marketing budget.",
+        "You don't know your repeat rate. That's the one number I never forgive, and it isn't a small thing to be missing.",
+        "Take the coupon away and there's nothing underneath. You've built a discount with a logo on it."
+      ]
+    },
+    "viktor": {
+      "react_high": [
+        "You led with your worst number and its cause. You just saved us both twenty minutes.",
+        "I attacked it three ways and it held. I withdraw the objection, and I don't withdraw things.",
+        "You corrected my arithmetic with evidence. Noted, out loud, on the record."
+      ],
+      "react_mid": [
+        "One figure in that pitch disagrees with your own brief. I'll let it sit and see whether a second one arrives.",
+        "Your largest customer is a fifth of revenue on a month-to-month contract. Help me with the math on the day they leave.",
+        "You answered the question next to the one I asked. Precision costs nothing. Try some."
+      ],
+      "react_low": [
+        "Two of your claims contradict your own brief. I can read the ledger out loud, or you can.",
+        "You called the regulatory risk manageable and then managed to say nothing about it. I believe you believe that.",
+        "The moat you described is a head start. Head starts expire, and yours already has a date on it."
+      ]
+    }
+  }
+}

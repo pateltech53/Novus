@@ -1,0 +1,48 @@
+# dependencies
+node_modules/
+
+# next.js build output
+.next/
+out/
+next-env.d.ts
+
+# typescript incremental cache
+*.tsbuildinfo
+
+# generated content — rebuilt by `npm run events` from data/sections/*.json
+# (data/events.json IS committed: the sim harness and the app read it directly,
+#  and committing it keeps a clone runnable without a build step)
+
+# env
+.env
+.env.local
+.env*.local
+
+# os
+.DS_Store
+
+# editor
+.idea/
+*.swp
+
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# agent skills — vendored third-party, restored from skills-lock.json.
+# skills-lock.json IS committed (it pins all 7 by content hash); the 5.8 MB of
+# skill bodies are not, same reasoning as package-lock.json vs node_modules.
+# Restore with:  npx skills experimental_install
+.claude/skills/
+
+# Tier unlock clips — ~38 MB of source video, kept out of git history.
+# Regenerate/reinstall from the raw renders; see scripts/make-characters.mjs.
+public/founder/*.mp4
+.assets-staging/
+dist/
+build/
+*.log
+.vercel
+panel.tmp.mjs

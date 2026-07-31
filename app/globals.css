@@ -1,0 +1,420 @@
+/* Novus — the locked design system. See design.md; it overrides improvisation.
+ *
+ * Dark is the default world (Brand Identity v2). Light is a full parallel token
+ * set, not an inversion — its shadows are lighter and tighter, its hairlines
+ * darker, and its accent is deepened to hold contrast on white.
+ *
+ * Rules encoded here rather than hoped for:
+ *   · every colour is a named token; components never write a raw value
+ *   · the neutral ramp is 12 OKLCH steps at hue 250, chroma ≤ 0.022, so the
+ *     ground reads as graphite-navy and the orange sits ON it instead of
+ *     fighting a saturated blue
+ *   · exactly three gradients exist in the whole app (ledger below)
+ *   · nothing is smaller than 12px
+ */
+@import "tailwindcss";
+
+@theme {
+  /* ── Brand constants · locked by Brand Identity v2 ─────────────────────── */
+  --color-action: #ff6b00; /* THE only colour that asks you to do something */
+  --color-solvency: #3ddc97; /* financial upside ONLY — never a CTA */
+  --color-prestige: #ffc24b; /* IPO gold + the year gate. Rare by design. */
+  --color-alert: #ff3333; /* filler words + financial damage */
+  --color-navy: #0b1e36; /* the brand anchor */
+
+  --font-sans: var(--font-urbanist), system-ui, sans-serif;
+  /* The money's own voice. Tabular figures so a runway of 14mo → 3mo does not
+     shift a single pixel — the number just changes underneath you. */
+  --font-ledger: var(--font-plex-mono), ui-monospace, "SFMono-Regular", monospace;
+  /* Display. Headlines and the name field only — never body, never UI. */
+  --font-display: var(--font-display-serif), Georgia, "Times New Roman", serif;
+
+  /* ── Type scale · 12px floor, no exceptions ───────────────────────────── */
+  --text-2xs: 0.75rem; /* 12px — the floor. Was 11px; nothing goes below. */
+  --text-xs: 0.8125rem; /* 13px */
+  --text-sm: 0.875rem; /* 14px */
+  --text-base: 1rem; /* 16px */
+  --text-lg: 1.125rem; /* 18px */
+  --text-xl: 1.375rem; /* 22px */
+  --text-2xl: 1.75rem; /* 28px */
+  --text-3xl: 2.25rem; /* 36px */
+
+  --spacing: 0.25rem;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* Exits are faster than entrances (~0.66×). */
+  --dur-enter: 280ms;
+  --dur-exit: 180ms;
+
+  --radius-row: 1rem;
+  --radius-card: 1.125rem;
+  --radius-pill: 999px;
+}
+
+/* ══ DARK · the chosen alternative ══════════════════════════════════════════
+   Declared first so light can override it, and so :root always has a complete
+   set — a half-defined theme is how you get one unstyled surface. */
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --n-0: oklch(0.145 0.004 260); /* deepest ground — the stage */
+  --n-1: oklch(0.180 0.005 260); /* app background */
+  --n-2: oklch(0.215 0.005 260); /* raised surface */
+  --n-3: oklch(0.255 0.005 260); /* card */
+  --n-4: oklch(0.300 0.005 260); /* card, elevated */
+  --n-5: oklch(0.360 0.005 260); /* hairline / divider */
+  --n-6: oklch(0.450 0.004 260);
+  --n-7: oklch(0.580 0.004 260); /* tertiary text */
+  --n-8: oklch(0.700 0.003 260); /* secondary text */
+  --n-9: oklch(0.820 0.002 260);
+  --n-10: oklch(0.925 0.002 260); /* primary text */
+  --n-11: oklch(0.980 0.001 260); /* pure emphasis */
+
+  /* ── Semantic aliases · components reference THESE, never the ramp ────── */
+  --bg: var(--n-1);
+  --surface: var(--n-2);
+  --surface-elevated: var(--n-3);
+  --surface-overlay: var(--n-4);
+  --hairline: var(--n-5);
+  --text-primary: var(--n-10);
+  --text-secondary: var(--n-8);
+  --text-tertiary: var(--n-7);
+
+  /* The action orange, and the only two derived steps it is allowed. */
+  --action: var(--color-action);
+  --action-hover: oklch(0.72 0.19 45);
+  --action-press: oklch(0.6 0.17 45);
+  --on-action: oklch(0.99 0 0);
+  /* Ink for text sitting on prestige gold. */
+  --on-prestige: oklch(0.24 0.04 75);
+
+  /* Solvency / alert, tuned to read on a dark ground rather than a light one.
+     Replaces the second darker pair (#0d8f5e / #d92020) that components were
+     hard-coding because the brand values were too bright for light surfaces. */
+  --solvency: oklch(0.76 0.17 162);
+  --alert: oklch(0.68 0.21 25);
+
+  /* ── Elevation · two shadows each, a tight contact + a wide ambient ───── */
+  --e0: none;
+  --e1: 0 1px 2px oklch(0 0 0 / 0.24), 0 1px 3px oklch(0 0 0 / 0.12);
+  --e2: 0 2px 4px oklch(0 0 0 / 0.22), 0 4px 12px oklch(0 0 0 / 0.16);
+  --e3: 0 4px 8px oklch(0 0 0 / 0.24), 0 12px 32px oklch(0 0 0 / 0.2);
+  --e4: 0 8px 16px oklch(0 0 0 / 0.26), 0 24px 56px oklch(0 0 0 / 0.26);
+
+  --scrim: oklch(0.10 0.004 260 / 0.72);
+
+  /* The studio sweep behind the mascot. */
+  --stage-key: oklch(0.30 0.012 260);
+  --stage-wall: oklch(0.165 0.006 260);
+  --stage-floor: oklch(0.125 0.005 260);
+
+  /* ── Glass · consumed only by components/ui/Glass.tsx ─────────────────── */
+  --glass-tint: oklch(0.215 0.005 260 / 0.7);
+  --glass-ring: oklch(1 0 0 / 0.06);
+  --glass-specular: oklch(1 0 0 / 0.14);
+
+  /* ── In-fiction phone app tints ───────────────────────────────────────────
+     Deliberately OUTSIDE the Novus palette — these are other companies' brands
+     inside the game world, and they should not match ours. Named, not inline. */
+  --app-robinghood: oklch(0.66 0.16 155);
+  --app-beemail: oklch(0.68 0.13 75);
+  --app-linkedout: oklch(0.55 0.14 250);
+
+  /* ── Legacy aliases ───────────────────────────────────────────────────────
+     The eight ad-hoc rgb(11 30 54 / 0.xx) values collapsed onto the ramp, so
+     all 28 components pick up the new world without a plumbing rewrite. New
+     code uses the semantic names above; these exist so the migration is safe
+     rather than a 28-file flag day. */
+  --sheet: var(--n-2);
+  --card: var(--n-3);
+  --text: var(--text-primary);
+  --sub: var(--text-secondary);
+  --faint: var(--text-tertiary);
+  --line: var(--hairline);
+  --chip: var(--n-3);
+  --rowsh: var(--e1);
+  --cardsh: var(--e2);
+  --tabsh: var(--e3);
+}
+
+/* ══ LIGHT · the default world ══════════════════════════════════════════════
+   A correction, stated plainly: the problem was never the light theme. It was
+   a DARK radial vignette painted on near-white behind the mascot — a grey halo
+   hanging in mid-air. That vignette is gone; the theme stays.
+
+   This is a real parallel set, not an inversion. Warm neutrals rather than
+   blue-grey, shadows lighter AND tighter than their dark counterparts (a lit
+   room casts shorter shadows), hairlines that darken instead of lightening,
+   and a deeper orange that actually holds AA on white.
+
+   Light is the default. Dark is a setting, and both are shipped surfaces. */
+:root[data-theme="light"],
+:root:not([data-theme="dark"]) {
+  color-scheme: light;
+
+  /* Tinted, not white. A fully white ground has nothing for a white card to
+     sit ON, so the whole screen flattens and reads unfinished. These carry a
+     little warmth (hue 85) and just enough chroma to be a colour rather than
+     an absence of one. */
+  --n-0: oklch(0.955 0.006 85); /* the stage */
+  --n-1: oklch(0.940 0.007 85); /* app background — the tint you see around cards */
+  --n-2: oklch(0.965 0.005 85); /* raised surface */
+  --n-3: oklch(1 0 0); /* card — the one true white */
+  --n-4: oklch(0.99 0.002 85); /* card, elevated */
+  --n-5: oklch(0.885 0.005 85); /* hairline */
+  --n-6: oklch(0.74 0.006 85);
+  --n-7: oklch(0.60 0.008 85); /* tertiary text */
+  --n-8: oklch(0.475 0.01 85); /* secondary text */
+  --n-9: oklch(0.35 0.012 85);
+  --n-10: oklch(0.245 0.014 85); /* primary text */
+  --n-11: oklch(0.16 0.014 85); /* pure emphasis */
+
+  /* #FF6B00 does not hold AA on white. This does. */
+  --action: #e35f00;
+  --action-hover: oklch(0.60 0.19 45);
+  --action-press: oklch(0.52 0.17 45);
+  --on-action: oklch(0.99 0 0);
+  --on-prestige: oklch(0.24 0.04 75);
+
+  --solvency: oklch(0.52 0.14 162);
+  --alert: oklch(0.52 0.20 25);
+
+  /* Lighter AND tighter. A lit room casts shorter shadows. */
+  --e1: 0 1px 2px oklch(0.2 0.01 85 / 0.07), 0 1px 3px oklch(0.2 0.01 85 / 0.05);
+  --e2: 0 1px 3px oklch(0.2 0.01 85 / 0.07), 0 3px 8px oklch(0.2 0.01 85 / 0.06);
+  --e3: 0 3px 6px oklch(0.2 0.01 85 / 0.08), 0 8px 18px oklch(0.2 0.01 85 / 0.08);
+  --e4: 0 6px 12px oklch(0.2 0.01 85 / 0.09), 0 16px 32px oklch(0.2 0.01 85 / 0.1);
+
+  /* Warm and gentle: the light lands, it does not spotlight. */
+  --stage-key: oklch(1 0 0);
+  --stage-wall: oklch(0.955 0.006 85);
+  --stage-floor: oklch(0.905 0.010 85);
+
+  --scrim: oklch(0.28 0.01 85 / 0.42);
+  --glass-tint: oklch(0.98 0.003 85 / 0.72);
+  --glass-ring: oklch(0.2 0.01 85 / 0.08);
+  --glass-specular: oklch(1 0 0 / 0.65);
+}
+
+/* ══ Base ══════════════════════════════════════════════════════════════════ */
+
+html,
+body {
+  overflow-x: clip; /* never `hidden` — it breaks position: sticky */
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  /* No colour transition here. Only transform and opacity animate; a
+     background-color transition on <body> repaints the whole document. */
+}
+
+/* The body never scrolls — an inner container does. This is what stops iOS
+   rubber-banding the entire page behind a fixed tab bar. */
+body {
+  overscroll-behavior-y: none;
+}
+
+/* Interactive elements only. Applying these globally breaks text selection. */
+button,
+a,
+[role="button"],
+[role="tab"],
+input,
+textarea,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a,
+[role="button"],
+[role="tab"] {
+  -webkit-touch-callout: none;
+  touch-action: manipulation; /* kills the 300ms double-tap-zoom wait */
+}
+
+/* Every financial figure. Fixed optical width so digits never shift. */
+.tnum {
+  font-family: var(--font-ledger);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "ss01" 1;
+  letter-spacing: 0;
+}
+
+input,
+textarea {
+  caret-color: var(--action);
+}
+
+::selection {
+  background: color-mix(in oklch, var(--action) 26%, transparent);
+}
+
+/* Never animated — a focus ring must appear instantly.
+   Deliberately NOT the action orange: a focused text field would otherwise
+   put a second accent on screen, and the accent belongs to the CTA. High
+   contrast against both themes is what a focus ring actually needs. */
+:focus-visible {
+  outline: 2px solid var(--n-11);
+  outline-offset: 2px;
+}
+
+/* ── Surfaces ─────────────────────────────────────────────────────────────── */
+
+.nv-card {
+  background: var(--card);
+  box-shadow: var(--e1);
+  border-radius: var(--radius-row);
+}
+
+/*
+ * The mascot stage — a photographer's sweep, not a vignette.
+ *
+ * The version before this was a hard radial: a grey blob hanging in mid-air
+ * behind the character with a visible edge. What replaces it is how a subject
+ * is actually lit in a studio — a soft pool of light landing behind and just
+ * above them, falling off toward the floor, with no edge anywhere.
+ *
+ * Two stops, both anchored to the ramp so it re-points with the theme:
+ *   · a wide, very soft key behind the head
+ *   · a floor that sits a step deeper than the walls
+ *
+ * GRADIENT #3 OF 3.
+ */
+.nv-stage {
+  background:
+    radial-gradient(
+      120% 78% at 50% 24%,
+      var(--stage-key) 0%,
+      transparent 68%
+    ),
+    linear-gradient(to bottom, var(--stage-wall) 0%, var(--stage-floor) 100%);
+}
+
+/* ── Glass · consumed only by components/ui/Glass.tsx ─────────────────────
+   Four layers: blur+saturate, a tint fill, a specular top edge, a hairline
+   ring. Never on content, never over the WebGL canvas. */
+.nv-glass {
+  position: relative;
+  background: var(--glass-tint);
+  box-shadow: inset 0 0 0 1px var(--glass-ring);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+}
+
+/* Layer 3 — the specular top edge. GRADIENT #1 OF 3. */
+.nv-glass::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--glass-specular),
+    transparent
+  );
+}
+
+/* Over the canvas, and on engines without backdrop-filter, go opaque. */
+.nv-glass[data-glass="solid"] {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: var(--surface-overlay);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .nv-glass {
+    background: var(--surface-overlay);
+  }
+}
+
+/*
+ * Bottom fade on scrollable sheets, so content dissolves rather than being
+ * guillotined by the edge. GRADIENT #3 OF 3.
+ */
+.nv-sheet-fade::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 3rem;
+  pointer-events: none;
+  background: linear-gradient(to top, var(--surface), transparent);
+}
+
+/* Press state — touch's primary feedback. Hover is desktop-only, below. */
+.nv-press {
+  transition: transform 120ms var(--ease-out);
+}
+.nv-press:active {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) {
+  .nv-hover:hover {
+    background: var(--action-hover);
+  }
+}
+
+/* ── Motion ───────────────────────────────────────────────────────────────── */
+
+@keyframes nvBar {
+  0%,
+  100% {
+    transform: scaleY(0.3);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes nvFloat {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-52px);
+    opacity: 0;
+  }
+}
+
+/* Replaces nvPulse, which animated box-shadow. Transform + opacity only. */
+@keyframes nvRing {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  70% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+/* Replaced with a cut, not merely shortened, where motion carries no meaning.
+   Framer Motion is JS and does not read this — it is handled in the app via
+   MotionConfig; see components/ui/Motion.tsx. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,439 @@
+{
+  "bands": {
+    "high": {
+      "headline": "Serena's $7.0M close beat the fair range — the only thing your pitch cost you was Viktor, and it cost him over one word: 'never'.",
+      "outcome_summary": "Five sharks, four term sheets, and a room that argued with itself before it argued with you. You volunteered your margin before anyone asked, which put Marcus in bidding posture instead of interrogation posture; he anchored at $300k for 20% and admitted in his own notes the anchor was a test. Serena's 100x question was the fulcrum — a mechanism answer moved her to $600k for 10%, four times Marcus's implied valuation, and he told her so to her face. Dev pre-announced his joint during questions and closed it at $400k for 16% — $300k of Marcus's money, $100k of his own — to get his hands on the onboarding rebuild. Lily bid $450k for 9% off the cohort number, asked Serena on the record to split it, was refused, and re-cut her own offer to 8%. Viktor went out alone, on customer concentration. Your counter earned Serena's one raise — $700k, same 10%, sixty-second expiry — and you took it.",
+      "deal_analysis": {
+        "final_result": "deal",
+        "accepted_offer_summary": "Serena: $700,000 for 10% ($7.0M implied), all equity — no note, no board seat, no operating conditions. Her revised closing offer, accepted inside the sixty-second expiry.",
+        "vs_fair_range": "Above the top of the evaluator's fair range, and roughly 4.7x the $1.5M Marcus opened at — a valuation he described in his own reason as 'anchoring below the midpoint because that's what an anchor is for.' Serena was not paying for the quarter; her reason says it plainly: 'paying for the category, not the quarter.' This price was earned by one answer, and her private note names it: 'The 100x answer had an actual mechanism — channel plus network effect — not a multiple with a dream attached.'",
+        "decision_verdict": "Taking the money was right. It was the highest price in the room, the cleanest structure, and her private note — 'One raise, then done — never bid a third time' — confirms there was nothing left to extract on price. The miss was in what you did not ask for, and this time the room said it out loud in front of you. Lily proposed the split — 'half your check, half mine, you buy the reach and I build the love' — and Serena refused her while leaving the door open to you specifically: 'Ask me again when the founder asks, though. I'd take that call, and I'd keep your retention condition inside my number.' Her private note is unambiguous: 'that's the sentence I'm sitting here waiting to hear.' Serena's price with Lily's retention condition attached was available for the cost of one sentence from your side of the table, and you accepted before spending it."
+      },
+      "turning_points": [
+        {
+          "moment": "You priced yourself before anyone made you",
+          "founder_quote": "(your opening — the margin number, stated unprompted)",
+          "consequence": "Marcus spent his questions on structure rather than credibility, and became the first shark to bid.",
+          "evidence": "Marcus, spoken: 'you said your margin number out loud without being asked — I nearly applauded, and I don't applaud.' Private note: 'Opened with margin and payback instead of vision language — rare. The arithmetic ties out against the brief so far.'"
+        },
+        {
+          "moment": "The 100x answer had a mechanism in it",
+          "founder_quote": "channel plus network effect",
+          "consequence": "Serena bid $600k for 10% — quadrupling Marcus's implied valuation on purpose — and later raised to $700k.",
+          "evidence": "Serena's private note: 'The 100x answer had an actual mechanism — channel plus network effect — not a multiple with a dream attached. Quadrupling Marcus's implied valuation on purpose.' Her pre-answer note had already set the trigger: 'If they answer the 100x question with a mechanism instead of a multiple, I'm bidding top of range and I'm bidding fast.'"
+        },
+        {
+          "moment": "'Never' — the one word that cost you a shark",
+          "founder_quote": "could never replace you",
+          "consequence": "Viktor pulled the concentration thread and went out — the only exit of the session.",
+          "evidence": "Viktor, spoken: 'You said — and I wrote it down — that your biggest customer could never replace you. Bold word, never.' Private note before your answer: 'one thread on concentration, and I'll pull it once.' His exit reason: 'Customer concentration unpriced by the room; the business is real, the risk is realer.'"
+        },
+        {
+          "moment": "You named your own bottleneck",
+          "founder_quote": "(the delivery walkthrough — where it breaks today, and what snaps at ten times the volume)",
+          "consequence": "Dev converted from evaluator to partner: $400k for 16% joint with Marcus, plus a personal commitment to halve onboarding time in 90 days.",
+          "evidence": "Dev's private note: 'Named the exact bottleneck without flinching — a builder.' His offer reason: 'The bottleneck the founder named is real and fixable — with my supplier network it's a quarter's work, not a year's.'"
+        },
+        {
+          "moment": "The combination was offered in front of you, by them",
+          "founder_quote": "(nothing — you did not speak during this exchange)",
+          "consequence": "Lily put a Serena-plus-Lily split on the record, Serena declined her and re-opened it to you, and nobody picked it up.",
+          "evidence": "Lily, spoken: 'Serena — half your check, half mine, you buy the reach and I build the love.' Serena, spoken: 'Lily, I adore you and I'm not splitting this one — conviction doesn't halve well. Ask me again when the founder asks, though.' Her private note: 'If the founder asks me directly to attach her condition to my price, I say yes in a heartbeat.'"
+        },
+        {
+          "moment": "The counter that was worth $100,000",
+          "founder_quote": "(your counter — same ten percent, more money)",
+          "consequence": "Serena revised from $600k to $700k at the same 10%, moving implied valuation from $6.0M to $7.0M.",
+          "evidence": "Serena, spoken: 'That counter took courage, and I pay for courage.' Private note: 'One raise, then done — never bid a third time.' The log shows she never bid again, so the counter captured everything that was on the table."
+        }
+      ],
+      "shark_reads": [
+        {
+          "shark": "marcus",
+          "public_stance": "First bid: $300k for 20% ($1.5M implied), half as a convertible note, monthly financials to the board. Held there when Serena went to $700k rather than chase her.",
+          "private_read": "He rated you above his own offer from the start: 'They're worth more than this and I know it — the anchor is a test. If they fight back with the payback math, I'll concede up. If they take it instantly I'll be disappointed.' After Serena's raise: 'Serena's premium is a price I won't pay on principle — but this founder earned it fair.'",
+          "what_would_have_won_them": "He wrote the unlock down: push back on the anchor with the payback arithmetic. You spent your only counter on Serena and never made him honour 'I'll concede up' — one round of 'here is the worst-channel payback, so here is why $1.5M is wrong' and his number moves."
+        },
+        {
+          "shark": "serena",
+          "public_stance": "$600k for 10% ($6.0M), then $700k for 10% ($7.0M) as a closing offer with a sixty-second expiry. All equity, no conditions.",
+          "private_read": "She priced you as a category before you finished answering: 'If they answer the 100x question with a mechanism instead of a multiple, I'm bidding top of range and I'm bidding fast, before Marcus's anchor infects the room.' Her raise was pre-decided in shape: 'One raise, then done.'",
+          "what_would_have_won_them": "Already won — what would have lost her was answering 100x with a multiple. Worth carrying forward: her speed is a weapon against low anchors, so give her the mechanism early, before anyone else prices the room."
+        },
+        {
+          "shark": "dev",
+          "public_stance": "Joined Marcus: $400k total for 16% ($2.5M implied), board seat, weekly ops call, onboarding rebuilt inside 90 days.",
+          "private_read": "'Verbs of process the whole pitch — ship, install, train. This one has done the ugly jobs.' On the joint structure: 'Marcus's anchor is too low to win alone and he knows it; joint gets him the structure and me the wrench. Serena's number will be hard to beat on price, so we sell involvement.'",
+          "what_would_have_won_them": "Nothing more on substance — he was sold. He knew he could not win on price, so the only way to keep him was to buy him: ask Serena to leave room for a small operating check or an advisory slot with his onboarding commitment attached."
+        },
+        {
+          "shark": "lily",
+          "public_stance": "$450k for 9% ($5.0M), then re-cut to $450k for 8% ($5.6M) after Serena's raise — a point of your company handed back rather than a bigger check. Conditional throughout on a written retention plan co-built in the first 60 days and one senior community or brand hire this year.",
+          "private_read": "'The cohort answer was the real pitch.' Then the line to read twice: 'Slightly under Serena on price, but my condition makes the number durable — hers just makes it big.' And on losing the war she never intended to win: 'I can't beat seven million and won't try — I can make my number cheaper in ownership and leave the condition standing.'",
+          "what_would_have_won_them": "Nothing on substance — she was in from the cohort answer. What you left on the table was the pairing she proposed and Serena bounced back to you: 'Serena, will you do this with Lily?' is the sentence, and it costs nothing to say."
+        },
+        {
+          "shark": "viktor",
+          "public_stance": "Out. 'One customer that size is a risk nobody at this table is pricing, whatever they bid in the next five minutes.'",
+          "private_read": "He is part of why the rest of the room bid so freely: 'Cleanest session ledger in months — zero discrepancies logged. I'm out on concentration, not on the founder.' He also pre-committed to being wrong: 'if that one customer renews long-term, I was wrong and I'll say so.'",
+          "what_would_have_won_them": "The renewal, in writing — a multi-year contract with that account, or a named second customer at comparable size. And retiring the word 'never': he quoted it back because absolutes are the only claims his method can test."
+        }
+      ],
+      "attack_points_scorecard": [
+        {
+          "attack_point": "Revenue concentration — one customer large enough to move the whole P&L",
+          "status": "exposed",
+          "detail": "Viktor took it straight to the number ('What percentage of revenue is that customer, and what does the month after they leave look like?') and left on the answer. He credited the honesty — 'honest, which surprised me twice' — but honest is not de-risked, and it cost you the one shark whose exit reason travels with you."
+        },
+        {
+          "attack_point": "Retention behind the growth headline — monthly churn and cohort survival",
+          "status": "defended",
+          "detail": "The first-quarter cohort held and the leave reasons came in the customers' own words. Lily's offer reason is the receipt: 'The retention cohort held up and the churn reasons came in the customers' own words — that's a brand, not a funnel.' It turned a watcher into a $450k bidder."
+        },
+        {
+          "attack_point": "Operational fragility — founder-dependent delivery that breaks at 10x volume",
+          "status": "defended",
+          "detail": "You named the break point yourself instead of waiting for Dev to find it, which is why his response was an offer to fix it rather than an exit. Preempting this attack point converted it into a partner with a 90-day commitment."
+        },
+        {
+          "attack_point": "The ask priced at or above the top of the fair range",
+          "status": "untouched",
+          "detail": "Nobody made you defend the valuation, because Serena bid past it before the question could be asked. That was luck, not skill: had she passed, the only floor left in the room was Marcus's self-described below-midpoint anchor, and nothing in the log shows you had a derivation of your ask rehearsed."
+        }
+      ],
+      "qa_review": [
+        {
+          "question": "Your CAC payback — you gave me the blended number. What is it on your worst channel?",
+          "asked_by": "marcus",
+          "answer_quality": "strong",
+          "note": "Giving the worst-channel number instead of re-quoting the blended one is what made his anchor a test he expected to lose: 'If they fight back with the payback math, I'll concede up.' You won that argument and then never spent it."
+        },
+        {
+          "question": "What does this look like at one hundred times its current size — and what's the mechanism that gets you there, not the hope?",
+          "asked_by": "serena",
+          "answer_quality": "strong",
+          "note": "The highest-leverage sixty seconds of the session. The spread between Marcus's $1.5M anchor and Serena's $7.0M close — $5.5M of implied valuation — hangs off this one answer."
+        },
+        {
+          "question": "Of the customers who joined in your first quarter, how many still pay you today?",
+          "asked_by": "lily",
+          "answer_quality": "strong",
+          "note": "Her pre-answer note was conditional — 'If the cohort number is even decent this is a brand, not a funnel.' The number cleared the bar and produced a $450k bid with a condition she called 'not a punishment, a vitamin'."
+        },
+        {
+          "question": "At ten times the volume, what snaps first — and what's your fix?",
+          "asked_by": "dev",
+          "answer_quality": "strong",
+          "note": "Answering with a real bottleneck instead of a reassurance is what made Dev join the Marcus check rather than sit out. 'Ideas are free — execution is what we'd actually be buying' was him pricing his own labour onto your cap table."
+        },
+        {
+          "question": "What percentage of revenue is that customer, and what does the month after they leave look like?",
+          "asked_by": "viktor",
+          "answer_quality": "strong",
+          "note": "A straight answer that still lost the shark — not a failure of answering, but a business fact you cannot talk past. It contained the damage to one exit instead of a repricing across the room: Marcus, Serena, Dev and Lily all bid after hearing it."
+        }
+      ],
+      "language_link": "The coach's report and the panel's reactions point at the same stretch from opposite sides of the table: your most concrete delivery was the numbers section, and that is exactly where Marcus decided to bid — 'you answered every number question with a number — do you know how rare that is?' The one place language worked against you was a single absolute, 'never', which is a claim-precision problem rather than a fluency one: Viktor quoted it back verbatim and built his exit on it. In this session precision of claim, not polish, is what moved money.",
+      "next_run_playbook": [
+        "Retire absolutes and pre-empt concentration: walk in with top-customer share of revenue, contract length, and the named second account you are growing to halve it. Viktor's exit reason is a checklist, not a verdict.",
+        "When two sharks propose a combination in front of you, close it yourself. Lily offered Serena the split out loud and Serena bounced it to you — one sentence pairs the $7.0M price with the retention condition that makes it durable, and it was never spoken.",
+        "Keep the answer order that worked — worst-channel payback, mechanism, bottleneck, cohort — and rehearse a 60-second decision script for expiring offers so an expiry never makes the choice for you."
+      ],
+      "grades": {
+        "deal_outcome": 9,
+        "pitch_performance": 8,
+        "overall_grade": "A-"
+      }
+    },
+    "mid": {
+      "headline": "You closed the only term sheet left — $200k for 20% at $1.0M — after two sentences from your own pitch emptied the room.",
+      "outcome_summary": "Five sharks, one term sheet — and the term sheet was the last thing to arrive. Serena went out when the 100x question came back as 2x thinking twice. Viktor went out at two logged contradictions between your spoken pitch and your own brief, telling Marcus to recompute the growth bridge on his way. Dev had floated a joint during questions — $200k of Marcus's money, $100k of his, ops his — and withdrew it out loud when your second-best person turned out to be a job posting. Lily went out on the retention level, though she credited you for knowing the number cold, and answered Marcus's question about your churn on her way out. Marcus bid last and alone — $200k for 25% with a 4% royalty — and your counter, which arrived carrying quarterly data instead of adjectives, moved him to $200k for 20% with the royalty withdrawn and half the capital as a note. You took it.",
+      "deal_analysis": {
+        "final_result": "deal",
+        "accepted_offer_summary": "Marcus: $200,000 for 20% ($1.0M implied), half the capital as a convertible note, monthly financials prepared by the fifteenth; the 4% revenue royalty from his first offer withdrawn.",
+        "vs_fair_range": "Bottom-of-range money — the price of a room with one bidder in it. Marcus's own offer reason describes the posture: 'pricing below midpoint with structure to cover the wobble.' Note what never moved: not one dollar of capital. The entire negotiation moved five equity points and the royalty, and his note after revising — 'This is my ceiling; the risk hasn't changed, only my read of who's managing it' — means the log contains no evidence a better version of this deal existed once the other four were out.",
+        "decision_verdict": "Accepting was defensible; the mistake sits upstream. With four sharks out, no second bidder, and Marcus at a stated ceiling, walking buys you nothing but the same pitch again — and you had already stripped the most expensive term on the page, a royalty that would have taken 1.5x of his capital off the top before you saw a dollar. Two people who had nothing to gain told you how to read it: Lily, already out, pointed at the clause instead of the percentage — 'it's Marcus's royalty that costs you, not his percentage' — and Viktor priced the whole situation for free: 'Marcus is the only bidder in the room, which means he set the price and then negotiated with himself in front of you. It's a fair deal for the pitch you gave. It is not a fair deal for the company in your brief.' Judge this run at the questions phase, not the signature: the price is low because Serena, Viktor, Dev and Lily each left for a reason that was fixable before you walked in."
+      },
+      "turning_points": [
+        {
+          "moment": "Two sentences Viktor could check",
+          "founder_quote": "basically untapped",
+          "consequence": "Discrepancy one, logged before a single number was in dispute — and a pre-announced price for the second.",
+          "evidence": "Viktor, spoken: 'You said the market is basically untapped and you said you're ahead of everyone. Your own brief lists competitors.' Private note: 'One discrepancy logged... Thread one — I'll wait to see whether a second appears before I read the ledger aloud.'"
+        },
+        {
+          "moment": "The mercy question you did not take",
+          "founder_quote": "(your competitor answer — a hedge rather than a correction)",
+          "consequence": "Viktor's second entry, and his exit: 'I can't price what I can't reconcile.'",
+          "evidence": "His question was built as an exit ramp — private note: 'The last question is a mercy disguised as a trap: honesty here saves them.' After your answer: 'Second discrepancy confirmed at the competitor answer — they hedged instead of correcting the record.'"
+        },
+        {
+          "moment": "The 100x question, answered at 2x — twice",
+          "founder_quote": "(your 100x answer — a larger version of today, then the same answer again)",
+          "consequence": "Serena out fast and warm; the room lost its only high bidder before any number reached the table.",
+          "evidence": "Serena's pre-answer note set the trigger: 'Answer with 2x thinking and I'm out fast and gracious.' Her exit, spoken: 'I asked what this becomes and you described a slightly larger version of what it is. Twice.' Private: 'the ceiling is the founder's own framing.'"
+        },
+        {
+          "moment": "The second bidder that existed for four minutes",
+          "founder_quote": "(your answer on your number two — a role, not a person)",
+          "consequence": "Dev withdrew the joint he had floated with Marcus, and the room went from two possible checks to one.",
+          "evidence": "Dev, during questions: 'Marcus, for what it's worth: if the machine is real, I'd come in on your check — two hundred from you, one hundred from me, and I take the ops.' After your answers: 'Marcus — withdraw the joint I floated, there's nothing for my hands to hold.' His note had set the trigger in advance: 'The key-person question is the real one — if there's no bench, my condition writes itself.'"
+        },
+        {
+          "moment": "You knew your churn cold",
+          "founder_quote": "(churn — one number, no adjectives, on the first ask)",
+          "consequence": "The single reason an offer existed at all, and the reason Lily's exit came with the door held open.",
+          "evidence": "Marcus's offer reason opens with it: 'Churn answered with an actual number.' Private: 'They knew churn cold and improvised the growth bridge badly — half operator, half deck.' Lily, spoken: 'you knew it, and knowing is the beginning'; private: 'They knew the churn number — knowing it is rarer than fixing it.'"
+        },
+        {
+          "moment": "The counter that arrived with arithmetic",
+          "founder_quote": "(your counter — the quarterly numbers, not a speech)",
+          "consequence": "25% down to 20% and the 4% royalty withdrawn; implied valuation $800k up to $1.0M.",
+          "evidence": "Marcus, spoken: 'You came back with the quarterly numbers instead of a speech — that's the only currency I take.' Private: 'They argued with arithmetic, not adjectives — that's worth five points and the royalty... paying for the operator, not the asset.' He had pre-committed before the offer: 'If they fight back with the QoQ math I'll drop it.'"
+        }
+      ],
+      "shark_reads": [
+        {
+          "shark": "marcus",
+          "public_stance": "The only bidder. Opened $200k for 25% ($800k implied) as equity plus a 4% royalty, with the ask explicitly re-priced; revised to $200k for 20% ($1.0M), half as a note, royalty gone. 'Final.'",
+          "private_read": "'Vision-forward pitch; numbers arrived late and rounded. The brief's quarterly run rate doesn't support the headline growth figure they quoted. Anchor low, structure hard.' After the counter: 'half operator, half deck'... 'This is my ceiling; the risk hasn't changed, only my read of who's managing it.'",
+          "what_would_have_won_them": "The quarterly bridge in the pitch instead of the rebuttal. His pre-question note is explicit — 'if they produce numbers on the spot I'll soften a notch.' The same data was worth five points as a counter; delivered unasked it shapes his opening offer, which is the number everything else anchored to."
+        },
+        {
+          "shark": "serena",
+          "public_stance": "Out before any offer. 'Small market, small dreams — I'm out either way, and I mean the either kindly.'",
+          "private_read": "'The product is fine; the ambition arrived in economy class... No mechanism, no adjacent wedge, no appetite for one. Out fast, warm exit; I'd look at their next company.'",
+          "what_would_have_won_them": "A named second market and the bridge to it — a mechanism, not a multiple. She gave you the frame twice and told you the failure mode in advance; the second identical answer is what she read as your ceiling."
+        },
+        {
+          "shark": "viktor",
+          "public_stance": "Out. 'Two entries is my limit; I told you the price of the second one when I wrote down the first.' Stayed to warn Marcus to recompute the growth bridge, and then to price Marcus's revision for you: 'It's a fair deal for the pitch you gave. It is not a fair deal for the company in your brief.'",
+          "private_read": "'Not malice, just a founder who hasn't audited their own story.' And the line that matters most: 'Evidence that would have kept me in: correcting either claim themselves before I raised it.'",
+          "what_would_have_won_them": "Self-correction, out loud, before he raised it — he literally wrote the answer down. 'Ahead of everyone' traded for 'here is the one thing each competitor does better than us' closes his ledger at zero entries and he stays in the room."
+        },
+        {
+          "shark": "dev",
+          "public_stance": "Floated a joint with Marcus before you answered anything — his hundred against Marcus's two hundred, ops his — then withdrew it on the record: 'Marcus, withdraw the joint I floated, there's nothing for my hands to hold.' Out, with a list instead of a lecture: map one delivery on one page, hire your number two before you raise, run a week where you touch nothing. Stayed in the room afterwards to tell you to spend Marcus's first $50k on the hire you don't have.",
+          "private_read": "'The walkthrough had gaps a first-year ops hire would catch. Founder isn't lazy — just hasn't scaled anything yet. The to-do list is real; if they do it, this becomes fundable in two quarters.'",
+          "what_would_have_won_them": "A named number two who owns something without you in the room. His pre-answer note: 'The key-person question is the real one — if there's no bench, my condition writes itself.' A real bench turns his exit into a conditional offer."
+        },
+        {
+          "shark": "lily",
+          "public_stance": "Out, door explicitly unlocked: 'fix why they leave, and come back. I'll be here.' Answered Marcus's cross-table question about your churn honestly on the way out — 'the number they said and the number in the brief agree, and both are bad' — and then, with nothing to gain, told you which of his clauses to fight: 'Argue that clause, not the equity.'",
+          "private_read": "'They knew the churn number — knowing it is rarer than fixing it. The customer story was thin but not faked; I checked. Six months of exit-interview discipline and a win-back cohort and I'd genuinely look again. Left the door open on purpose.'",
+          "what_would_have_won_them": "Not a better answer — a better number. She said outright her money cannot fix why customers leave; what changes her mind is exit-interview discipline and a win-back cohort, which is two quarters of work, not a pitch edit."
+        }
+      ],
+      "attack_points_scorecard": [
+        {
+          "attack_point": "The ask priced above the fair range and defended on narrative rather than math",
+          "status": "exposed",
+          "detail": "Marcus wrote the re-pricing into his term sheet as a condition: 'Ask re-priced from the pitch — the valuation was defended on vibes.' You never got to argue valuation; you got to argue growth data, which is a different and much smaller fight."
+        },
+        {
+          "attack_point": "Headline growth against the recent quarterly run rate",
+          "status": "exposed",
+          "detail": "Marcus flagged the gap in his first breath — 'Your headline growth and your recent quarters are telling me two different stories' — and priced the wobble into his opening offer. You repaired it in the counter and his reason concedes 'the QoQ bridge held under recomputation', but repair after pricing only recovers part of what the crack costs."
+        },
+        {
+          "attack_point": "Monthly churn and the retention economics under it",
+          "status": "exposed",
+          "detail": "You knew the number, which is why Marcus paid at all — but the level itself ended Lily's interest. Her reason: 'Retention is below anything a condition could repair from the outside.' Knowing a bad number defends your credibility, not your business."
+        },
+        {
+          "attack_point": "Founder-dependent operations with no bench behind the founder",
+          "status": "exposed",
+          "detail": "Dev asked who owns something without you in the room and got a job posting. He left on 'execution risk I can't buy down from a board seat alone' — the one attack point here whose fix is a hire, not a slide."
+        }
+      ],
+      "qa_review": [
+        {
+          "question": "What is your monthly churn — one number, no adjectives?",
+          "asked_by": "marcus",
+          "answer_quality": "strong",
+          "note": "The only answer in the session that earned money. It is why the run ended with a term sheet instead of five exits."
+        },
+        {
+          "question": "Your headline growth and your recent quarters are telling me two different stories. Which one am I buying?",
+          "asked_by": "marcus",
+          "answer_quality": "adequate",
+          "note": "Improvised at the table, then answered properly in the counter. Marcus's word for the first version was 'a bridge with a wobble in it' — and he priced the wobble into 25% before you fixed it."
+        },
+        {
+          "question": "Which number in your pitch would you least like me to check against your brief?",
+          "asked_by": "viktor",
+          "answer_quality": "dodged",
+          "note": "The most expensive dodge of the session, and it was built to be survivable — his note calls it 'a mercy disguised as a trap: honesty here saves them.'"
+        },
+        {
+          "question": "What does this look like at one hundred times its current size?",
+          "asked_by": "serena",
+          "answer_quality": "dodged",
+          "note": "Not a dodge of honesty — a dodge of altitude. She asked twice and got the same-size answer both times, and treated the repeat as your ceiling rather than the company's."
+        },
+        {
+          "question": "Who is your second-best person, and what do they own without you in the room?",
+          "asked_by": "dev",
+          "answer_quality": "dodged",
+          "note": "Answered with a hire you have not made. Dev reads it as a two-quarter fix rather than a disqualification: 'if they do it, this becomes fundable in two quarters.'"
+        }
+      ],
+      "language_link": "Three sharks diagnosed you from vocabulary alone, before a single number was in dispute. Marcus counted the ratio — 'four minutes on the story and thirty seconds on the arithmetic.' Lily counted the same minutes from the other end — 'you talked about your product for four minutes and your customers for none of them.' Dev found 'not one process verb in the whole pitch.' That is the coach's structure map showing up as money: the sections the coach flags as late or missing are exactly the sections each shark's opening question had to retrieve by force. Delivery was not what cost you here — running order and content weighting were.",
+      "next_run_playbook": [
+        "Put the quarterly bridge in the pitch, not the rebuttal: headline growth number, the recent quarter beside it, then why it re-accelerates. The same data was worth five equity points as a counter; delivered unasked it shapes the opening offer instead.",
+        "Audit your script against your own brief and correct the record out loud before anyone checks. Viktor's whole exit was two sentences — 'basically untapped' and 'ahead of everyone' — and he wrote that self-correction ahead of him raising it would have kept him in.",
+        "Answer the 100x question with a mechanism: one named adjacent market, the wedge into it, and what has to be true. Serena asked twice and read the identical second answer as a ceiling."
+      ],
+      "grades": {
+        "deal_outcome": 5,
+        "pitch_performance": 6,
+        "overall_grade": "B-"
+      }
+    },
+    "low": {
+      "headline": "Five outs in a row — and every one was about the pitch, not the company: the brief in your hand was more fundable than the story you told from it.",
+      "outcome_summary": "No offers. Marcus asked for churn and CAC, got paragraphs, and marked you down until his valuation 'ran out of floor.' Viktor checked three claims against your own brief, found two that would not reconcile, handed you one question to repair either — and you re-described the dream. Serena gave the 100x frame twice and you retreated to next quarter twice, then asked her for a valuation you could not walk her to. Dev asked for one delivery walkthrough and you got lost between step two and step three. Lily asked how many customers still pay you and you said you would have to check. Five exits, five different questions, one diagnosis: almost everything the room wanted was already in your brief, and none of it was in your mouth. Then you countered a room with no offers in it by halving your ask, and Marcus answered that in one line: 'the price was never the problem.'",
+      "deal_analysis": {
+        "final_result": "no_deal",
+        "accepted_offer_summary": "No offer was made by any of the five sharks — there was nothing to accept, counter, or walk away from.",
+        "vs_fair_range": "There is no deal to judge against the fair range, but your ask is judgeable and it failed on its own terms: you asked at a valuation you never derived from anything. Marcus: 'you priced your ask on vibes and defended it with adjectives.' Serena: 'you asked me for a valuation you couldn't walk me to.' Viktor's private note names the repair exactly — 'an ask built from the fair range instead of thin air.' An ask inside the range with three numbers under it gets believed; an ask above it with nothing under it was the first thing this room stopped believing.",
+        "decision_verdict": "You never got a decision to make, and that is itself the finding: the accept/reject skill was never tested because the session ended in the credibility phase. Nothing was decided during offers — all five exits were determined during questions, and every one of the five published the specific threshold that brings them back. The one decision you did make was the counter, and it aimed at the wrong variable: cutting the ask in half discounts a valuation you had never established. Marcus said it plainly — 'I don't know what your company is worth, chief. Neither do you — that's the problem, and it's cheaper to fix than you think.' Discounting an undefended number does not defend it."
+      },
+      "turning_points": [
+        {
+          "moment": "The claim your own brief disproves",
+          "founder_quote": "Growing every month",
+          "consequence": "Viktor's first ledger entry, before the two-minute mark; from there his single question was a test of whether you would correct yourself.",
+          "evidence": "Viktor, spoken: 'Growing every month — your brief shows a down quarter. No real competition — your brief names some.' Private: 'Two discrepancies before the two-minute mark; normally that's an automatic out, but this is a training room, so the question is a rope ladder.'"
+        },
+        {
+          "moment": "The rope ladder you did not climb",
+          "founder_quote": "(your reconciliation answer — the dream, described again)",
+          "consequence": "Viktor out, and the closest thing to a free pass in the session went unused.",
+          "evidence": "His question was one sentence: 'Pick either claim — growth or competition — and reconcile it with your own brief, right now.' His exit: 'when I offered you the chance to reconcile, you chose to re-describe the dream.' Private: 'Every discrepancy was an upgrade of reality, none of them necessary.'"
+        },
+        {
+          "moment": "Two numbers, two paragraphs",
+          "founder_quote": "(your churn and CAC answers — no figure in either)",
+          "consequence": "Marcus's valuation fell with each non-answer until there was none left: 'Every time you didn't answer, my valuation dropped — it just ran out of floor.'",
+          "evidence": "Marcus, spoken: 'I asked for two numbers and got two paragraphs.' Private: 'The frustrating part: the brief suggests the real numbers might be respectable. The founder walked in with ammunition and threw confetti.'"
+        },
+        {
+          "moment": "Lost in your own building",
+          "founder_quote": "(the delivery walkthrough — it stopped between step two and step three)",
+          "consequence": "Dev out on execution — and he removed nerves as an explanation before he decided.",
+          "evidence": "Dev, spoken: 'I asked you to walk me through one delivery and we got lost between step two and step three — in your own building.' Private: 'Nerves weren't the issue — I slowed it down to workshop speed and the steps still weren't there. The decision to pitch the dream instead of the machine is the fixable sin.'"
+        },
+        {
+          "moment": "The counter that discounted the wrong thing",
+          "founder_quote": "(your counter — half the ask, same everything else)",
+          "consequence": "Marcus held, Viktor held, Lily held, and Dev revised his homework down from three items to one — the only terms that moved all session were terms of return.",
+          "evidence": "Marcus, spoken: 'Cutting the ask in half is the wrong move and I'll tell you why for free: the price was never the problem.' Viktor: 'A smaller ask doesn't retire a discrepancy; only a correction does.' Dev: 'Forget three items. One: map a single delivery end to end on one page and work every step of it yourself for a week.'"
+        },
+        {
+          "moment": "You did not invent a retention number",
+          "founder_quote": "have to check",
+          "consequence": "It cost you Lily's interest and kept her relationship — hers is the only exit in the session that came with a personal invitation attached.",
+          "evidence": "Lily, spoken: 'When I asked how many customers still pay you, you said you'd have to check... But the door isn't locked.' Private: 'Not a faked story — worse, no story at all... If they come back with ten leaver quotes, I'll take the meeting personally.' Labelled as inference: in a session where Viktor was checking every claim against the brief, a fabricated number would likely have become discrepancy three — the admission was cheap by comparison."
+        }
+      ],
+      "shark_reads": [
+        {
+          "shark": "marcus",
+          "public_stance": "Out. 'You priced your ask on vibes and defended it with adjectives. Numbers don't have moods, and today they don't have a spokesperson either.'",
+          "private_read": "'Not one number volunteered in the entire pitch — the ask arrived priced on pure vibes. The brief has real figures in it, which means the founder didn't study their own homework.' And afterwards: 'the brief suggests the real numbers might be respectable.'",
+          "what_would_have_won_them": "He published the threshold verbatim: 'churn, CAC, and margin recited cold, plus an ask derived from something.' Three numbers and one derivation is the entire entry fee — and all three exist in the brief you were handed."
+        },
+        {
+          "shark": "viktor",
+          "public_stance": "Out. 'Your actual company — the one in the brief — was pitchable. The one you performed was not. You had the better story in your pocket the whole time.'",
+          "private_read": "'The brief is actually fine — the founder pitched a fantasy version of their own perfectly decent company. That's the real diagnosis.' And: 'Every discrepancy was an upgrade of reality, none of them necessary.'",
+          "what_would_have_won_them": "Telling the true version. He is the one shark who said on the record he might bid on this same business pitched accurately: 'the same founder, the true numbers, and an ask built from the fair range instead of thin air. That founder might actually get a bid from me.'"
+        },
+        {
+          "shark": "serena",
+          "public_stance": "Out. 'I didn't stop believing in the market, I never got shown one.'",
+          "private_read": "'Altitude lost at the second retreat. The tragedy is the space might actually be big — the founder chose a small story, then attached a big price to it. Backwards.'",
+          "what_would_have_won_them": "Her words: 'bottom-up market math and one sentence of genuine ambition with a mechanism under it.' Note the order she requires — market first, then the number that falls out of it, never the number first."
+        },
+        {
+          "shark": "dev",
+          "public_stance": "Out, paying his exit fee in homework: map one delivery end to end on one page, do every job on that map yourself for a week, then pitch the map instead of the deck.",
+          "private_read": "'Nerves weren't the issue — I slowed it down to workshop speed and the steps still weren't there... The homework list is genuine; most founders never do it, and the fundable ones do.'",
+          "what_would_have_won_them": "The map, and having personally worked it. He then cut his own price of re-entry after your counter — three items down to one — because 'one task finished beats three started', and named the return ticket out loud: 'Call me when the machine runs without you for a week.'"
+        },
+        {
+          "shark": "lily",
+          "public_stance": "Out on the retention answer — 'that's the one number you never forgive yourself for not knowing, and I don't either' — but with the door left unlocked.",
+          "private_read": "'A pitch with zero humans in it is a diagnosis.' After the answers: 'Not a faked story — worse, no story at all. The kindest read: they've been so deep in building the product they forgot to meet the people using it. The unlock is real exit interviews.'",
+          "what_would_have_won_them": "The retention number known cold, plus one real customer with a name, a moment and their own words. She asked for exactly one and nobody appeared in the entire pitch. Her return condition is now stated precisely and it went up, not down, after your counter: ten leavers in their own words, plus one you win back — 'anyone can collect complaints, almost nobody can recover a customer.'"
+        }
+      ],
+      "attack_points_scorecard": [
+        {
+          "attack_point": "The ask priced above the fair range with no derivation behind it",
+          "status": "exposed",
+          "detail": "Three sharks landed the same point independently: Marcus ('a valuation asserted, never defended'), Serena ('you asked me for a valuation you couldn't walk me to'), Viktor ('priced your ask on a feeling'). It is the only attack point this panel hit three times."
+        },
+        {
+          "attack_point": "Monthly churn and retention",
+          "status": "exposed",
+          "detail": "'Have to check' is the one answer Lily says she never forgives, and she went out on it. The number exists in your brief; not knowing it read as never having looked."
+        },
+        {
+          "attack_point": "Customer acquisition cost and the unit economics under growth",
+          "status": "exposed",
+          "detail": "Marcus scoped the question down to a single real customer so it could not be answered with a range, and still got prose. Without CAC there is no payback period, and without payback there is no valuation to argue about at any price."
+        },
+        {
+          "attack_point": "The business-level risks in the evaluator notes — concentration, platform and channel dependence, and a market that may be cooling",
+          "status": "untouched",
+          "detail": "Nobody raised them, and that is not good news: the panel never reached your business risks because the session stalled on your own numbers. Viktor's method was already checking claims against the brief and would have arrived here next; nothing in the log suggests a prepared answer, so the real risks in this business remain untested rather than survived."
+        }
+      ],
+      "qa_review": [
+        {
+          "question": "What did it cost you to acquire your last customer — actual dollars, actual customer?",
+          "asked_by": "marcus",
+          "answer_quality": "dodged",
+          "note": "The most concrete question of the session, deliberately narrowed to one customer so a range could not substitute for a number. A paragraph came back, and this is where his valuation 'ran out of floor.'"
+        },
+        {
+          "question": "Pick either claim — growth or competition — and reconcile it with your own brief, right now.",
+          "asked_by": "viktor",
+          "answer_quality": "dodged",
+          "note": "The single most expensive answer of the run, and it was designed to be survivable — 'this is a training room, so the question is a rope ladder.' Picking one claim and correcting it out loud was enough; re-describing the dream was not."
+        },
+        {
+          "question": "Why that ask, at that valuation? Walk me from the market to the number.",
+          "asked_by": "serena",
+          "answer_quality": "dodged",
+          "note": "You had a market slide and you had a valuation and never connected them — her diagnosis, and the reason her exit is about construction rather than belief."
+        },
+        {
+          "question": "Of everyone who's ever paid you, how many still do?",
+          "asked_by": "lily",
+          "answer_quality": "adequate",
+          "note": "Marked adequate for conduct rather than content: as an answer it was a non-answer, but 'I'd have to check' under pressure is honest, and it is why her door closed unlocked. Do not repeat the not-knowing; do repeat the not-inventing."
+        },
+        {
+          "question": "Walk me through one single delivery to one single customer — every step, every person who touches it.",
+          "asked_by": "dev",
+          "answer_quality": "dodged",
+          "note": "The one question with no wrong answer available — you cannot fail it by describing your own operation accurately. Getting lost inside it told Dev more than any financial answer could have."
+        }
+      ],
+      "language_link": "Marcus counted your pitch before he questioned it: 'eleven adjectives and zero margins before you got to your ask.' That is the coach's finding — claims carried by modifiers instead of figures — arriving at the table as a pricing decision rather than a style note. Lily's count was the same measurement on another axis (no customer, no name, no moment, anywhere in the pitch) and Dev's was a third ('all nouns — platform, ecosystem, opportunity — and not one verb of process'). Three sharks reached the same conclusion from word choice alone, before you answered anything. The fix is not smoother delivery — fluency is not what lost this room. The fix is swapping adjectives for the figures already sitting in your brief.",
+      "next_run_playbook": [
+        "Memorise your own brief's numbers — churn, CAC, gross margin and the last quarter as it actually was — and lead with them before the ask. Marcus named the threshold: 'churn, CAC, and margin recited cold, plus an ask derived from something.'",
+        "Pitch the company in the brief, not an upgraded version of it: read the brief aloud beforehand and delete any sentence you cannot source from it, then derive the ask from the fair range out loud. Viktor logged two entries and his note on them is one sentence: 'Every discrepancy was an upgrade of reality, none of them necessary.'",
+        "Do the two pieces of homework the room paid you in — map one delivery end to end on one page and work every step of it yourself for a week (Dev), and run ten exit interviews and bring the leavers' own words (Lily, who committed to taking that meeting personally)."
+      ],
+      "grades": {
+        "deal_outcome": 1,
+        "pitch_performance": 3,
+        "overall_grade": "D"
+      }
+    }
+  }
+}

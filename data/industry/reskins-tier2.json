@@ -1,0 +1,423 @@
+{
+  "_readme": [
+    "Tier-2 GROUPED reskins (Addendum B §3.1) — the FIN, PPL, OPP, LIF, K and LGL",
+    "events the Tier-1 passes skipped. Same contract as reskins.json: keyed by",
+    "event id, then industry code, each string replacing GameEvent.text wholesale.",
+    "Every rule in that file's _readme binds here unchanged.",
+    "",
+    "THE GROUPED MODEL: these events don't need twelve versions — industries",
+    "cluster. Each event carries FOUR variants, mapped onto all twelve codes:",
+    "  PHYSICAL  FOOD ECOM FASHION BEAUTY TOYS PET SUSTAIN — inventory, shipping,",
+    "            shelf, unit vocabulary",
+    "  DIGITAL   TECH GAMING EDTECH — users, uptime, platform, launch vocabulary",
+    "  AUDIENCE  CONTENT — views, sponsors, algorithm",
+    "  SERVICE   FITNESS — members, floor, schedule",
+    "Duplicated strings inside a group are BY DESIGN — the schema stays",
+    "per-industry so any single code can later graduate to its own line without",
+    "touching the others.",
+    "",
+    "SELECTION: the ~25 highest-weight industries:\"all\" events in these",
+    "categories with no reskin in the other three files. Figures the choices lean",
+    "on survive verbatim in every variant: E-FIN-001's 8S/12%, E-FIN-006's",
+    "10S/20% cap, E-PPL-009's 20%, E-PPL-013's 30%, E-PPL-015's 10%, K-CASH-1's",
+    "6 weeks, K-MKT-1's 60%/−70%, K-SUP-1's 10 days, E-FIN-011's 92 cents,",
+    "E-OPP-008's 2S, E-FIN-002's 5S, E-FIN-012's and E-LGL-003's 3S.",
+    "",
+    "DELIBERATELY ABSENT:",
+    "  E-FIN-003 — top weight, but reskins.json's _readme already rules it out:",
+    "  the 6S invoice is the event, and the choices lean on it. Same call here.",
+    "  E-WLD-* — nothing skipped for numbers; all WILD events weigh 1–2 and sit",
+    "  below the cut. K-*-2/3 steps likewise (weight 1, scheduled not drawn) —",
+    "  the chain STARTERS carry the reskin and the steps inherit the situation."
+  ],
+
+  "E-FIN-001": {
+    "FOOD": "The bank offers 8S at 12% interest — enough to stock the season properly and replace the equipment you've been nursing. Runway says yes. Pride says no.",
+    "ECOM": "The bank offers 8S at 12% interest — enough to stock the season properly and replace the equipment you've been nursing. Runway says yes. Pride says no.",
+    "TECH": "The bank offers 8S at 12% interest — a year of servers and salaries before the next launch. Runway says yes. Pride says no.",
+    "CONTENT": "The bank offers 8S at 12% interest. The loan officer asks, politely, what the channel is worth if you stop posting. Runway says yes. Pride says no.",
+    "FASHION": "The bank offers 8S at 12% interest — enough to stock the season properly and replace the equipment you've been nursing. Runway says yes. Pride says no.",
+    "GAMING": "The bank offers 8S at 12% interest — a year of servers and salaries before the next launch. Runway says yes. Pride says no.",
+    "FITNESS": "The bank offers 8S at 12% interest. They lend against racks and treadmills all day; the rate is the rate. Runway says yes. Pride says no.",
+    "BEAUTY": "The bank offers 8S at 12% interest — enough to stock the season properly and replace the equipment you've been nursing. Runway says yes. Pride says no.",
+    "EDTECH": "The bank offers 8S at 12% interest — a year of servers and salaries before the next launch. Runway says yes. Pride says no.",
+    "SUSTAIN": "The bank offers 8S at 12% interest — enough to stock the season properly and replace the equipment you've been nursing. Runway says yes. Pride says no.",
+    "TOYS": "The bank offers 8S at 12% interest — enough to stock the season properly and replace the equipment you've been nursing. Runway says yes. Pride says no.",
+    "PET": "The bank offers 8S at 12% interest — enough to stock the season properly and replace the equipment you've been nursing. Runway says yes. Pride says no."
+  },
+
+  "E-PPL-009": {
+    "FOOD": "The person who lands your biggest accounts — the chains, the bulk orders — brings 20% of revenue and makes two people cry a month.",
+    "ECOM": "The person who lands your biggest accounts — the chains, the bulk orders — brings 20% of revenue and makes two people cry a month.",
+    "TECH": "The person who closes your biggest deals — the ones with logos attached — brings 20% of revenue and makes two people cry a month.",
+    "CONTENT": "The person who lands your sponsors brings 20% of revenue and makes two people cry a month. Charming on calls, vicious in the group chat.",
+    "FASHION": "The person who lands your biggest accounts — the chains, the bulk orders — brings 20% of revenue and makes two people cry a month.",
+    "GAMING": "The person who closes your biggest deals — the ones with logos attached — brings 20% of revenue and makes two people cry a month.",
+    "FITNESS": "Your most-booked coach fills the timetable — 20% of revenue comes in through their classes — and makes two people cry a month. Never members. Staff.",
+    "BEAUTY": "The person who lands your biggest accounts — the chains, the bulk orders — brings 20% of revenue and makes two people cry a month.",
+    "EDTECH": "The person who closes your biggest deals — the ones with logos attached — brings 20% of revenue and makes two people cry a month.",
+    "SUSTAIN": "The person who lands your biggest accounts — the chains, the bulk orders — brings 20% of revenue and makes two people cry a month.",
+    "TOYS": "The person who lands your biggest accounts — the chains, the bulk orders — brings 20% of revenue and makes two people cry a month.",
+    "PET": "The person who lands your biggest accounts — the chains, the bulk orders — brings 20% of revenue and makes two people cry a month."
+  },
+
+  "E-FIN-002": {
+    "FOOD": "A relative offers 5S \"no strings.\" They already tell everyone at work to buy from you. There are always strings.",
+    "ECOM": "A relative offers 5S \"no strings.\" They already tell everyone at work to buy from you. There are always strings.",
+    "TECH": "A relative offers 5S \"no strings.\" They can't explain what {company} does, but they liked the graph you showed them. There are always strings.",
+    "CONTENT": "A relative offers 5S \"no strings.\" They watch every upload twice and read the comments out loud at dinner. There are always strings.",
+    "FASHION": "A relative offers 5S \"no strings.\" They already tell everyone at work to buy from you. There are always strings.",
+    "GAMING": "A relative offers 5S \"no strings.\" They can't explain what {company} does, but they liked the graph you showed them. There are always strings.",
+    "FITNESS": "A relative offers 5S \"no strings.\" They come to the Saturday class and insist on paying full price. There are always strings.",
+    "BEAUTY": "A relative offers 5S \"no strings.\" They already tell everyone at work to buy from you. There are always strings.",
+    "EDTECH": "A relative offers 5S \"no strings.\" They can't explain what {company} does, but they liked the graph you showed them. There are always strings.",
+    "SUSTAIN": "A relative offers 5S \"no strings.\" They already tell everyone at work to buy from you. There are always strings.",
+    "TOYS": "A relative offers 5S \"no strings.\" They already tell everyone at work to buy from you. There are always strings.",
+    "PET": "A relative offers 5S \"no strings.\" They already tell everyone at work to buy from you. There are always strings."
+  },
+
+  "E-FIN-006": {
+    "FOOD": "An angel who made her money in consumer goods offers 10S on a convertible note, 20% discount cap. Founders around you pretend to understand it.",
+    "ECOM": "An angel who made her money in consumer goods offers 10S on a convertible note, 20% discount cap. Founders around you pretend to understand it.",
+    "TECH": "An angel who exited a software company offers 10S on a convertible note, 20% discount cap. Founders around you pretend to understand it.",
+    "CONTENT": "An angel who \"believes in the creator economy\" offers 10S on a convertible note, 20% discount cap. Founders around you pretend to understand it.",
+    "FASHION": "An angel who made her money in consumer goods offers 10S on a convertible note, 20% discount cap. Founders around you pretend to understand it.",
+    "GAMING": "An angel who exited a software company offers 10S on a convertible note, 20% discount cap. Founders around you pretend to understand it.",
+    "FITNESS": "An angel who owns three gyms across town offers 10S on a convertible note, 20% discount cap. Founders around you pretend to understand it.",
+    "BEAUTY": "An angel who made her money in consumer goods offers 10S on a convertible note, 20% discount cap. Founders around you pretend to understand it.",
+    "EDTECH": "An angel who exited a software company offers 10S on a convertible note, 20% discount cap. Founders around you pretend to understand it.",
+    "SUSTAIN": "An angel who made her money in consumer goods offers 10S on a convertible note, 20% discount cap. Founders around you pretend to understand it.",
+    "TOYS": "An angel who made her money in consumer goods offers 10S on a convertible note, 20% discount cap. Founders around you pretend to understand it.",
+    "PET": "An angel who made her money in consumer goods offers 10S on a convertible note, 20% discount cap. Founders around you pretend to understand it."
+  },
+
+  "E-FIN-012": {
+    "FOOD": "A small-business grant for local producers exists: 3S, forty pages of forms, and an equipment inventory you have never once written down.",
+    "ECOM": "A small-business grant for local producers exists: 3S, forty pages of forms, and an equipment inventory you have never once written down.",
+    "TECH": "An innovation grant exists: 3S, forty pages of forms, one of which asks you to describe the platform to a reader who has never used one.",
+    "CONTENT": "An arts-and-media fund exists: 3S, forty pages of forms, none of which have a box for what you actually do.",
+    "FASHION": "A small-business grant for local producers exists: 3S, forty pages of forms, and an equipment inventory you have never once written down.",
+    "GAMING": "An innovation grant exists: 3S, forty pages of forms, one of which asks you to describe the platform to a reader who has never used one.",
+    "FITNESS": "A community-health grant exists: 3S, forty pages of forms, and a site visit on a morning of their choosing.",
+    "BEAUTY": "A small-business grant for local producers exists: 3S, forty pages of forms, and an equipment inventory you have never once written down.",
+    "EDTECH": "An innovation grant exists: 3S, forty pages of forms, one of which asks you to describe the platform to a reader who has never used one.",
+    "SUSTAIN": "A small-business grant for local producers exists: 3S, forty pages of forms, and an equipment inventory you have never once written down.",
+    "TOYS": "A small-business grant for local producers exists: 3S, forty pages of forms, and an equipment inventory you have never once written down.",
+    "PET": "A small-business grant for local producers exists: 3S, forty pages of forms, and an equipment inventory you have never once written down."
+  },
+
+  "E-LGL-003": {
+    "FOOD": "New labelling rules hit your category — every unit, every package, reprinted. Compliance costs 3S; enforcement starts next year.",
+    "ECOM": "New labelling rules hit your category — every unit, every package, reprinted. Compliance costs 3S; enforcement starts next year.",
+    "TECH": "New data and safety rules hit your category — age checks, audit logs, a named compliance officer. Compliance costs 3S; enforcement starts next year.",
+    "CONTENT": "New disclosure rules hit sponsored content — every ad read on every video, labelled. Compliance costs 3S; enforcement starts next year.",
+    "FASHION": "New labelling rules hit your category — every unit, every package, reprinted. Compliance costs 3S; enforcement starts next year.",
+    "GAMING": "New data and safety rules hit your category — age checks, audit logs, a named compliance officer. Compliance costs 3S; enforcement starts next year.",
+    "FITNESS": "New safety rules hit your category — certified instructors, logged equipment checks. Compliance costs 3S; enforcement starts next year.",
+    "BEAUTY": "New labelling rules hit your category — every unit, every package, reprinted. Compliance costs 3S; enforcement starts next year.",
+    "EDTECH": "New data and safety rules hit your category — age checks, audit logs, a named compliance officer. Compliance costs 3S; enforcement starts next year.",
+    "SUSTAIN": "New labelling rules hit your category — every unit, every package, reprinted. Compliance costs 3S; enforcement starts next year.",
+    "TOYS": "New labelling rules hit your category — every unit, every package, reprinted. Compliance costs 3S; enforcement starts next year.",
+    "PET": "New labelling rules hit your category — every unit, every package, reprinted. Compliance costs 3S; enforcement starts next year."
+  },
+
+  "E-LIF-002": {
+    "FOOD": "Real life collides: the biggest school/personal commitment of your year lands the same week the launch stock arrives.",
+    "ECOM": "Real life collides: the biggest school/personal commitment of your year lands the same week the launch stock arrives.",
+    "TECH": "Real life collides: the biggest school/personal commitment of your year lands on release week, and the release date is already public.",
+    "CONTENT": "Real life collides: the biggest school/personal commitment of your year lands on premiere week, and the audience has been given a date.",
+    "FASHION": "Real life collides: the biggest school/personal commitment of your year lands the same week the launch stock arrives.",
+    "GAMING": "Real life collides: the biggest school/personal commitment of your year lands on release week, and the release date is already public.",
+    "FITNESS": "Real life collides: the biggest school/personal commitment of your year lands the week the new timetable goes live.",
+    "BEAUTY": "Real life collides: the biggest school/personal commitment of your year lands the same week the launch stock arrives.",
+    "EDTECH": "Real life collides: the biggest school/personal commitment of your year lands on release week, and the release date is already public.",
+    "SUSTAIN": "Real life collides: the biggest school/personal commitment of your year lands the same week the launch stock arrives.",
+    "TOYS": "Real life collides: the biggest school/personal commitment of your year lands the same week the launch stock arrives.",
+    "PET": "Real life collides: the biggest school/personal commitment of your year lands the same week the launch stock arrives."
+  },
+
+  "E-LIF-003": {
+    "FOOD": "You snapped at someone who didn't deserve it — over a supplier invoice, of all things. Your body is sending invoices too.",
+    "ECOM": "You snapped at someone who didn't deserve it — over a supplier invoice, of all things. Your body is sending invoices too.",
+    "TECH": "You snapped at someone who didn't deserve it — in a ticket thread, in writing, permanently. Your body is sending invoices.",
+    "CONTENT": "You snapped at someone who didn't deserve it — on camera, in a take you had to cut. Your body is sending invoices.",
+    "FASHION": "You snapped at someone who didn't deserve it — over a supplier invoice, of all things. Your body is sending invoices too.",
+    "GAMING": "You snapped at someone who didn't deserve it — in a ticket thread, in writing, permanently. Your body is sending invoices.",
+    "FITNESS": "You snapped at someone who didn't deserve it — mid-class, in front of the six a.m. regulars. Your body is sending invoices.",
+    "BEAUTY": "You snapped at someone who didn't deserve it — over a supplier invoice, of all things. Your body is sending invoices too.",
+    "EDTECH": "You snapped at someone who didn't deserve it — in a ticket thread, in writing, permanently. Your body is sending invoices.",
+    "SUSTAIN": "You snapped at someone who didn't deserve it — over a supplier invoice, of all things. Your body is sending invoices too.",
+    "TOYS": "You snapped at someone who didn't deserve it — over a supplier invoice, of all things. Your body is sending invoices too.",
+    "PET": "You snapped at someone who didn't deserve it — over a supplier invoice, of all things. Your body is sending invoices too."
+  },
+
+  "E-LIF-008": {
+    "FOOD": "A podcast lists \"founders who actually deserve it.\" You're not on it, and two of them move less product than you. It's 1am and you're rereading it.",
+    "ECOM": "A podcast lists \"founders who actually deserve it.\" You're not on it, and two of them move less product than you. It's 1am and you're rereading it.",
+    "TECH": "A podcast lists \"founders who actually deserve it.\" You're not on it. Every name that is has raised more and shipped less. It's 1am and you're rereading it.",
+    "CONTENT": "A podcast lists \"creators who actually deserve it.\" You're not on it. Half your collab list is. It's 1am and you're rereading it.",
+    "FASHION": "A podcast lists \"founders who actually deserve it.\" You're not on it, and two of them move less product than you. It's 1am and you're rereading it.",
+    "GAMING": "A podcast lists \"founders who actually deserve it.\" You're not on it. Every name that is has raised more and shipped less. It's 1am and you're rereading it.",
+    "FITNESS": "A podcast lists \"founders who actually deserve it.\" You're not on it, and the chain that opened across town is. It's 1am and you're rereading it.",
+    "BEAUTY": "A podcast lists \"founders who actually deserve it.\" You're not on it, and two of them move less product than you. It's 1am and you're rereading it.",
+    "EDTECH": "A podcast lists \"founders who actually deserve it.\" You're not on it. Every name that is has raised more and shipped less. It's 1am and you're rereading it.",
+    "SUSTAIN": "A podcast lists \"founders who actually deserve it.\" You're not on it, and two of them move less product than you. It's 1am and you're rereading it.",
+    "TOYS": "A podcast lists \"founders who actually deserve it.\" You're not on it, and two of them move less product than you. It's 1am and you're rereading it.",
+    "PET": "A podcast lists \"founders who actually deserve it.\" You're not on it, and two of them move less product than you. It's 1am and you're rereading it."
+  },
+
+  "E-PPL-002": {
+    "FOOD": "Your friend-employee is underperforming and everyone sees it. The mispacked orders all trace back to one station.",
+    "ECOM": "Your friend-employee is underperforming and everyone sees it. The mispacked orders all trace back to one station.",
+    "TECH": "Your friend-employee is underperforming and everyone sees it. Work gets assigned around them now, quietly.",
+    "CONTENT": "Your friend-employee is underperforming and everyone sees it. Their cuts are the ones you redo at midnight.",
+    "FASHION": "Your friend-employee is underperforming and everyone sees it. The mispacked orders all trace back to one station.",
+    "GAMING": "Your friend-employee is underperforming and everyone sees it. Work gets assigned around them now, quietly.",
+    "FITNESS": "Your friend-employee is underperforming and everyone sees it. Members check who's coaching before they book.",
+    "BEAUTY": "Your friend-employee is underperforming and everyone sees it. The mispacked orders all trace back to one station.",
+    "EDTECH": "Your friend-employee is underperforming and everyone sees it. Work gets assigned around them now, quietly.",
+    "SUSTAIN": "Your friend-employee is underperforming and everyone sees it. The mispacked orders all trace back to one station.",
+    "TOYS": "Your friend-employee is underperforming and everyone sees it. The mispacked orders all trace back to one station.",
+    "PET": "Your friend-employee is underperforming and everyone sees it. The mispacked orders all trace back to one station."
+  },
+
+  "E-PPL-005": {
+    "FOOD": "A bad batch went out with your name on it, publicly. A name is wanted inside too. The intern touched it last.",
+    "ECOM": "A bad batch went out with your name on it, publicly. A name is wanted inside too. The intern touched it last.",
+    "TECH": "A bad deploy broke things in front of everyone, and a name is wanted. The intern's commit is at the top of the log.",
+    "CONTENT": "The wrong cut went live for six hours and the clips are circulating. A name is wanted. The intern hit upload.",
+    "FASHION": "A bad batch went out with your name on it, publicly. A name is wanted inside too. The intern touched it last.",
+    "GAMING": "A bad deploy broke things in front of everyone, and a name is wanted. The intern's commit is at the top of the log.",
+    "FITNESS": "A double-booked studio left thirty members at a locked door, and the photos are online. A name is wanted. The intern set the schedule.",
+    "BEAUTY": "A bad batch went out with your name on it, publicly. A name is wanted inside too. The intern touched it last.",
+    "EDTECH": "A bad deploy broke things in front of everyone, and a name is wanted. The intern's commit is at the top of the log.",
+    "SUSTAIN": "A bad batch went out with your name on it, publicly. A name is wanted inside too. The intern touched it last.",
+    "TOYS": "A bad batch went out with your name on it, publicly. A name is wanted inside too. The intern touched it last.",
+    "PET": "A bad batch went out with your name on it, publicly. A name is wanted inside too. The intern touched it last."
+  },
+
+  "E-PPL-010": {
+    "FOOD": "You need a marketing head who has moved real product before. Poach a rival's (fast, pricey) or promote from within (slow, loyal)?",
+    "ECOM": "You need a marketing head who has moved real product before. Poach a rival's (fast, pricey) or promote from within (slow, loyal)?",
+    "TECH": "You need a marketing head who understands launches, not just logos. Poach a rival's (fast, pricey) or promote from within (slow, loyal)?",
+    "CONTENT": "You need a head of growth for the channel. Poach one from a bigger channel (fast, pricey) or promote from within (slow, loyal)?",
+    "FASHION": "You need a marketing head who has moved real product before. Poach a rival's (fast, pricey) or promote from within (slow, loyal)?",
+    "GAMING": "You need a marketing head who understands launches, not just logos. Poach a rival's (fast, pricey) or promote from within (slow, loyal)?",
+    "FITNESS": "You need a marketing head who can fill a timetable, not just a feed. Poach a rival chain's (fast, pricey) or promote from within (slow, loyal)?",
+    "BEAUTY": "You need a marketing head who has moved real product before. Poach a rival's (fast, pricey) or promote from within (slow, loyal)?",
+    "EDTECH": "You need a marketing head who understands launches, not just logos. Poach a rival's (fast, pricey) or promote from within (slow, loyal)?",
+    "SUSTAIN": "You need a marketing head who has moved real product before. Poach a rival's (fast, pricey) or promote from within (slow, loyal)?",
+    "TOYS": "You need a marketing head who has moved real product before. Poach a rival's (fast, pricey) or promote from within (slow, loyal)?",
+    "PET": "You need a marketing head who has moved real product before. Poach a rival's (fast, pricey) or promote from within (slow, loyal)?"
+  },
+
+  "E-PPL-013": {
+    "FOOD": "A talented friend — the one who helped you pack the first hundred orders — wants in as co-founder for 30% equity.",
+    "ECOM": "A talented friend — the one who helped you pack the first hundred orders — wants in as co-founder for 30% equity.",
+    "TECH": "A talented friend — the one who reviews your code at midnight for free — wants in as co-founder for 30% equity.",
+    "CONTENT": "A talented friend — the one behind the camera on your three best videos — wants in as co-founder for 30% equity.",
+    "FASHION": "A talented friend — the one who helped you pack the first hundred orders — wants in as co-founder for 30% equity.",
+    "GAMING": "A talented friend — the one who reviews your code at midnight for free — wants in as co-founder for 30% equity.",
+    "FITNESS": "A talented friend — the one who covers your classes every time you're sick — wants in as co-founder for 30% equity.",
+    "BEAUTY": "A talented friend — the one who helped you pack the first hundred orders — wants in as co-founder for 30% equity.",
+    "EDTECH": "A talented friend — the one who reviews your code at midnight for free — wants in as co-founder for 30% equity.",
+    "SUSTAIN": "A talented friend — the one who helped you pack the first hundred orders — wants in as co-founder for 30% equity.",
+    "TOYS": "A talented friend — the one who helped you pack the first hundred orders — wants in as co-founder for 30% equity.",
+    "PET": "A talented friend — the one who helped you pack the first hundred orders — wants in as co-founder for 30% equity."
+  },
+
+  "E-PPL-014": {
+    "FOOD": "Your co-founder wants to pivot: stop making {topItem}, chase the bigger market. You don't. The team is picking sides.",
+    "ECOM": "Your co-founder wants to pivot: stop making {topItem}, chase the bigger market. You don't. The team is picking sides.",
+    "TECH": "Your co-founder wants to pivot: sunset {topItem}, rebuild for a different customer. You don't. The team is picking sides.",
+    "CONTENT": "Your co-founder wants to relaunch the channel in a different niche while the numbers still allow it. You don't. The team is picking sides.",
+    "FASHION": "Your co-founder wants to pivot: stop making {topItem}, chase the bigger market. You don't. The team is picking sides.",
+    "GAMING": "Your co-founder wants to pivot: sunset {topItem}, rebuild for a different customer. You don't. The team is picking sides.",
+    "FITNESS": "Your co-founder wants to scrap the method and run the franchise playbook every other gym runs. You don't. The team is picking sides.",
+    "BEAUTY": "Your co-founder wants to pivot: stop making {topItem}, chase the bigger market. You don't. The team is picking sides.",
+    "EDTECH": "Your co-founder wants to pivot: sunset {topItem}, rebuild for a different customer. You don't. The team is picking sides.",
+    "SUSTAIN": "Your co-founder wants to pivot: stop making {topItem}, chase the bigger market. You don't. The team is picking sides.",
+    "TOYS": "Your co-founder wants to pivot: stop making {topItem}, chase the bigger market. You don't. The team is picking sides.",
+    "PET": "Your co-founder wants to pivot: stop making {topItem}, chase the bigger market. You don't. The team is picking sides."
+  },
+
+  "E-PPL-015": {
+    "FOOD": "Materials and freight are up, margin is down. Finance says cut payroll 10% — by freeze, layoff, or across-the-board pay cuts.",
+    "ECOM": "Materials and freight are up, margin is down. Finance says cut payroll 10% — by freeze, layoff, or across-the-board pay cuts.",
+    "TECH": "Infrastructure costs are up and growth is flat. Finance says cut payroll 10% — by freeze, layoff, or across-the-board pay cuts.",
+    "CONTENT": "Ad rates are down and two sponsors didn't renew. Finance says cut payroll 10% — by freeze, layoff, or across-the-board pay cuts.",
+    "FASHION": "Materials and freight are up, margin is down. Finance says cut payroll 10% — by freeze, layoff, or across-the-board pay cuts.",
+    "GAMING": "Infrastructure costs are up and growth is flat. Finance says cut payroll 10% — by freeze, layoff, or across-the-board pay cuts.",
+    "FITNESS": "Rent is up and the January intake didn't stick. Finance says cut payroll 10% — by freeze, layoff, or across-the-board pay cuts.",
+    "BEAUTY": "Materials and freight are up, margin is down. Finance says cut payroll 10% — by freeze, layoff, or across-the-board pay cuts.",
+    "EDTECH": "Infrastructure costs are up and growth is flat. Finance says cut payroll 10% — by freeze, layoff, or across-the-board pay cuts.",
+    "SUSTAIN": "Materials and freight are up, margin is down. Finance says cut payroll 10% — by freeze, layoff, or across-the-board pay cuts.",
+    "TOYS": "Materials and freight are up, margin is down. Finance says cut payroll 10% — by freeze, layoff, or across-the-board pay cuts.",
+    "PET": "Materials and freight are up, margin is down. Finance says cut payroll 10% — by freeze, layoff, or across-the-board pay cuts."
+  },
+
+  "E-PPL-017": {
+    "FOOD": "Numbers are ugly, and a full stockroom is not a secret you can keep. The team knows. Rumors are worse than reality.",
+    "ECOM": "Numbers are ugly, and a full stockroom is not a secret you can keep. The team knows. Rumors are worse than reality.",
+    "TECH": "Numbers are ugly, and the team can read a dashboard. Rumors are worse than reality.",
+    "CONTENT": "Numbers are ugly, and view counts are public. The team knows. Rumors are worse than reality.",
+    "FASHION": "Numbers are ugly, and a full stockroom is not a secret you can keep. The team knows. Rumors are worse than reality.",
+    "GAMING": "Numbers are ugly, and the team can read a dashboard. Rumors are worse than reality.",
+    "FITNESS": "Numbers are ugly, and everyone can see the empty floor at seven. The team knows. Rumors are worse than reality.",
+    "BEAUTY": "Numbers are ugly, and a full stockroom is not a secret you can keep. The team knows. Rumors are worse than reality.",
+    "EDTECH": "Numbers are ugly, and the team can read a dashboard. Rumors are worse than reality.",
+    "SUSTAIN": "Numbers are ugly, and a full stockroom is not a secret you can keep. The team knows. Rumors are worse than reality.",
+    "TOYS": "Numbers are ugly, and a full stockroom is not a secret you can keep. The team knows. Rumors are worse than reality.",
+    "PET": "Numbers are ugly, and a full stockroom is not a secret you can keep. The team knows. Rumors are worse than reality."
+  },
+
+  "K-CASH-1": {
+    "FOOD": "Payroll is in 6 weeks and the cash is sitting in the stockroom, shaped like inventory. The bank line is maxed. Nobody outside knows yet.",
+    "ECOM": "Payroll is in 6 weeks and the cash is sitting in the stockroom, shaped like inventory. The bank line is maxed. Nobody outside knows yet.",
+    "TECH": "Payroll is in 6 weeks. The bank line is maxed, and the money you're owed lands later than the money you owe. Nobody outside knows yet.",
+    "CONTENT": "Payroll is in 6 weeks. The bank line is maxed and two sponsors are sitting on their invoices. Nobody outside knows yet.",
+    "FASHION": "Payroll is in 6 weeks and the cash is sitting in the stockroom, shaped like inventory. The bank line is maxed. Nobody outside knows yet.",
+    "GAMING": "Payroll is in 6 weeks. The bank line is maxed, and the money you're owed lands later than the money you owe. Nobody outside knows yet.",
+    "FITNESS": "Payroll is in 6 weeks. The bank line is maxed and this month's dues are already spent. Nobody outside knows yet.",
+    "BEAUTY": "Payroll is in 6 weeks and the cash is sitting in the stockroom, shaped like inventory. The bank line is maxed. Nobody outside knows yet.",
+    "EDTECH": "Payroll is in 6 weeks. The bank line is maxed, and the money you're owed lands later than the money you owe. Nobody outside knows yet.",
+    "SUSTAIN": "Payroll is in 6 weeks and the cash is sitting in the stockroom, shaped like inventory. The bank line is maxed. Nobody outside knows yet.",
+    "TOYS": "Payroll is in 6 weeks and the cash is sitting in the stockroom, shaped like inventory. The bank line is maxed. Nobody outside knows yet.",
+    "PET": "Payroll is in 6 weeks and the cash is sitting in the stockroom, shaped like inventory. The bank line is maxed. Nobody outside knows yet."
+  },
+
+  "K-MKT-1": {
+    "FOOD": "Overnight, the platform that drives 60% of your orders changes its algorithm. Reach −70%, and the stock was bought for the old number.",
+    "ECOM": "Overnight, the platform that drives 60% of your orders changes its algorithm. Reach −70%, and the stock was bought for the old number.",
+    "TECH": "Overnight, the platform that drives 60% of your signups reshuffles its rankings. Reach −70%.",
+    "CONTENT": "Overnight, the algorithm changes. The algorithm was 60% of your traffic. Reach −70%.",
+    "FASHION": "Overnight, the platform that drives 60% of your orders changes its algorithm. Reach −70%, and the stock was bought for the old number.",
+    "GAMING": "Overnight, the platform that drives 60% of your signups reshuffles its rankings. Reach −70%.",
+    "FITNESS": "Overnight, the app that sends you 60% of your trial bookings changes its algorithm. Reach −70%.",
+    "BEAUTY": "Overnight, the platform that drives 60% of your orders changes its algorithm. Reach −70%, and the stock was bought for the old number.",
+    "EDTECH": "Overnight, the platform that drives 60% of your signups reshuffles its rankings. Reach −70%.",
+    "SUSTAIN": "Overnight, the platform that drives 60% of your orders changes its algorithm. Reach −70%, and the stock was bought for the old number.",
+    "TOYS": "Overnight, the platform that drives 60% of your orders changes its algorithm. Reach −70%, and the stock was bought for the old number.",
+    "PET": "Overnight, the platform that drives 60% of your orders changes its algorithm. Reach −70%, and the stock was bought for the old number."
+  },
+
+  "K-PR-1": {
+    "FOOD": "An old post of an employee (or young you) surfaces. It's bad. {company} is tagged, and two of your biggest accounts have already emailed.",
+    "ECOM": "An old post of an employee (or young you) surfaces. It's bad. {company} is tagged, and two of your biggest accounts have already emailed.",
+    "TECH": "An old post of an employee (or young you) surfaces. It's bad. {company} is tagged, and the thread is pinned on the forum your users live on.",
+    "CONTENT": "An old post of your editor (or young you) surfaces. It's bad. The drama channels have it already.",
+    "FASHION": "An old post of an employee (or young you) surfaces. It's bad. {company} is tagged, and two of your biggest accounts have already emailed.",
+    "GAMING": "An old post of an employee (or young you) surfaces. It's bad. {company} is tagged, and the thread is pinned on the forum your users live on.",
+    "FITNESS": "An old post of a coach (or young you) surfaces. It's bad. The members' group chat has it before you do.",
+    "BEAUTY": "An old post of an employee (or young you) surfaces. It's bad. {company} is tagged, and two of your biggest accounts have already emailed.",
+    "EDTECH": "An old post of an employee (or young you) surfaces. It's bad. {company} is tagged, and the thread is pinned on the forum your users live on.",
+    "SUSTAIN": "An old post of an employee (or young you) surfaces. It's bad. {company} is tagged, and two of your biggest accounts have already emailed.",
+    "TOYS": "An old post of an employee (or young you) surfaces. It's bad. {company} is tagged, and two of your biggest accounts have already emailed.",
+    "PET": "An old post of an employee (or young you) surfaces. It's bad. {company} is tagged, and two of your biggest accounts have already emailed."
+  },
+
+  "K-SUP-1": {
+    "FOOD": "Your key supplier stops answering — no calls, no emails, no trucks. Orders due in 10 days.",
+    "ECOM": "Your key supplier stops answering — no calls, no emails, no trucks. Orders due in 10 days.",
+    "TECH": "The contract studio that builds half the product stops answering. Deliverables due in 10 days.",
+    "CONTENT": "The production house that handles your post stops answering. Three episodes due in 10 days.",
+    "FASHION": "Your key supplier stops answering — no calls, no emails, no trucks. Orders due in 10 days.",
+    "GAMING": "The contract studio that builds half the product stops answering. Deliverables due in 10 days.",
+    "FITNESS": "The supplier fitting out your floor stops answering, deposit in hand. Install due in 10 days.",
+    "BEAUTY": "Your key supplier stops answering — no calls, no emails, no trucks. Orders due in 10 days.",
+    "EDTECH": "The contract studio that builds half the product stops answering. Deliverables due in 10 days.",
+    "SUSTAIN": "Your key supplier stops answering — no calls, no emails, no trucks. Orders due in 10 days.",
+    "TOYS": "Your key supplier stops answering — no calls, no emails, no trucks. Orders due in 10 days.",
+    "PET": "Your key supplier stops answering — no calls, no emails, no trucks. Orders due in 10 days."
+  },
+
+  "K-TEC-1": {
+    "FOOD": "The site, the ordering system and the payment terminal all go down on the biggest sales day of your year.",
+    "ECOM": "The site, the ordering system and the payment terminal all go down on the biggest sales day of your year.",
+    "TECH": "Everything is down — app, API, status page — on the biggest day of your year.",
+    "CONTENT": "Your channel's biggest day of the year, and the site, the store and the stream are all down.",
+    "FASHION": "The site, the ordering system and the payment terminal all go down on the biggest sales day of your year.",
+    "GAMING": "Everything is down — app, API, status page — on the biggest day of your year.",
+    "FITNESS": "Check-in, bookings and the door system all go down on the busiest day of the year.",
+    "BEAUTY": "The site, the ordering system and the payment terminal all go down on the biggest sales day of your year.",
+    "EDTECH": "Everything is down — app, API, status page — on the biggest day of your year.",
+    "SUSTAIN": "The site, the ordering system and the payment terminal all go down on the biggest sales day of your year.",
+    "TOYS": "The site, the ordering system and the payment terminal all go down on the biggest sales day of your year.",
+    "PET": "The site, the ordering system and the payment terminal all go down on the biggest sales day of your year."
+  },
+
+  "E-LGL-006": {
+    "FOOD": "A data-protection authority asks how you store customer addresses and order history. You ask the freelancer who built the webshop. The freelancer goes quiet.",
+    "ECOM": "A data-protection authority asks how you store customer addresses and order history. You ask the freelancer who built the webshop. The freelancer goes quiet.",
+    "TECH": "A data-protection authority asks where user data lives and who can read it. You ask your engineer. Your engineer opens the schema and goes quiet.",
+    "CONTENT": "A data-protection authority asks how you store subscriber emails and giveaway entries. The answer is a spreadsheet, and the sharing setting is \"anyone with the link.\"",
+    "FASHION": "A data-protection authority asks how you store customer addresses and order history. You ask the freelancer who built the webshop. The freelancer goes quiet.",
+    "GAMING": "A data-protection authority asks where user data lives and who can read it. You ask your engineer. Your engineer opens the schema and goes quiet.",
+    "FITNESS": "A data-protection authority asks how you store member health data. The front desk points at a filing cabinet, and a tablet nobody logs out of.",
+    "BEAUTY": "A data-protection authority asks how you store customer addresses and order history. You ask the freelancer who built the webshop. The freelancer goes quiet.",
+    "EDTECH": "A data-protection authority asks where user data lives and who can read it. You ask your engineer. Your engineer opens the schema and goes quiet.",
+    "SUSTAIN": "A data-protection authority asks how you store customer addresses and order history. You ask the freelancer who built the webshop. The freelancer goes quiet.",
+    "TOYS": "A data-protection authority asks how you store customer addresses and order history. You ask the freelancer who built the webshop. The freelancer goes quiet.",
+    "PET": "A data-protection authority asks how you store customer addresses and order history. You ask the freelancer who built the webshop. The freelancer goes quiet."
+  },
+
+  "E-LIF-009": {
+    "FOOD": "A retired operator from your world — thirty years of suppliers, freight and thin margins — offers monthly coffee. No equity, no agenda. Probably.",
+    "ECOM": "A retired operator from your world — thirty years of suppliers, freight and thin margins — offers monthly coffee. No equity, no agenda. Probably.",
+    "TECH": "A retired founder who shipped through two platform shifts offers monthly coffee. No equity, no agenda. Probably.",
+    "CONTENT": "A retired broadcaster who survived every format change since cable offers monthly coffee. No equity, no agenda. Probably.",
+    "FASHION": "A retired operator from your world — thirty years of suppliers, freight and thin margins — offers monthly coffee. No equity, no agenda. Probably.",
+    "GAMING": "A retired founder who shipped through two platform shifts offers monthly coffee. No equity, no agenda. Probably.",
+    "FITNESS": "The woman who ran the city's best gym for twenty years offers monthly coffee. No equity, no agenda. Probably.",
+    "BEAUTY": "A retired operator from your world — thirty years of suppliers, freight and thin margins — offers monthly coffee. No equity, no agenda. Probably.",
+    "EDTECH": "A retired founder who shipped through two platform shifts offers monthly coffee. No equity, no agenda. Probably.",
+    "SUSTAIN": "A retired operator from your world — thirty years of suppliers, freight and thin margins — offers monthly coffee. No equity, no agenda. Probably.",
+    "TOYS": "A retired operator from your world — thirty years of suppliers, freight and thin margins — offers monthly coffee. No equity, no agenda. Probably.",
+    "PET": "A retired operator from your world — thirty years of suppliers, freight and thin margins — offers monthly coffee. No equity, no agenda. Probably."
+  },
+
+  "E-FIN-011": {
+    "FOOD": "A firm will buy your unpaid trade invoices at 92 cents on the dollar. Net-60 becomes cash on Friday, margin gone.",
+    "ECOM": "A firm will buy your unpaid trade invoices at 92 cents on the dollar. Net-60 becomes cash on Friday, margin gone.",
+    "TECH": "A firm will buy your receivables — the big contracts, the platform payouts — at 92 cents on the dollar. Cash today, margin gone.",
+    "CONTENT": "A firm will buy your unpaid sponsor invoices at 92 cents on the dollar. Sponsors pay when they pay; this pays Friday. Margin gone.",
+    "FASHION": "A firm will buy your unpaid trade invoices at 92 cents on the dollar. Net-60 becomes cash on Friday, margin gone.",
+    "GAMING": "A firm will buy your receivables — the big contracts, the platform payouts — at 92 cents on the dollar. Cash today, margin gone.",
+    "FITNESS": "A firm will buy your unpaid corporate-wellness invoices at 92 cents on the dollar. Cash today, margin gone.",
+    "BEAUTY": "A firm will buy your unpaid trade invoices at 92 cents on the dollar. Net-60 becomes cash on Friday, margin gone.",
+    "EDTECH": "A firm will buy your receivables — the big contracts, the platform payouts — at 92 cents on the dollar. Cash today, margin gone.",
+    "SUSTAIN": "A firm will buy your unpaid trade invoices at 92 cents on the dollar. Net-60 becomes cash on Friday, margin gone.",
+    "TOYS": "A firm will buy your unpaid trade invoices at 92 cents on the dollar. Net-60 becomes cash on Friday, margin gone.",
+    "PET": "A firm will buy your unpaid trade invoices at 92 cents on the dollar. Net-60 becomes cash on Friday, margin gone."
+  },
+
+  "E-OPP-008": {
+    "FOOD": "{topItem} almost works for the trade market — bulk sizes, plain labels, different margins. \"Almost\" costs 2S.",
+    "ECOM": "{topItem} almost works for the trade market — bulk sizes, plain labels, different margins. \"Almost\" costs 2S.",
+    "TECH": "{topItem} almost works for the market next door — same platform, different customer, different onboarding. \"Almost\" costs 2S.",
+    "CONTENT": "The format almost works for a second audience — same show, different platform, different cut. \"Almost\" costs 2S.",
+    "FASHION": "{topItem} almost works for the trade market — bulk sizes, plain labels, different margins. \"Almost\" costs 2S.",
+    "GAMING": "{topItem} almost works for the market next door — same platform, different customer, different onboarding. \"Almost\" costs 2S.",
+    "FITNESS": "The programme almost works for corporate clients — lunchtime sessions, invoices instead of memberships. \"Almost\" costs 2S.",
+    "BEAUTY": "{topItem} almost works for the trade market — bulk sizes, plain labels, different margins. \"Almost\" costs 2S.",
+    "EDTECH": "{topItem} almost works for the market next door — same platform, different customer, different onboarding. \"Almost\" costs 2S.",
+    "SUSTAIN": "{topItem} almost works for the trade market — bulk sizes, plain labels, different margins. \"Almost\" costs 2S.",
+    "TOYS": "{topItem} almost works for the trade market — bulk sizes, plain labels, different margins. \"Almost\" costs 2S.",
+    "PET": "{topItem} almost works for the trade market — bulk sizes, plain labels, different margins. \"Almost\" costs 2S."
+  },
+
+  "E-LIF-006": {
+    "FOOD": "Family dinner. Someone asks — with love and knives — \"so when does this make real money, or is it all still sitting in stock?\"",
+    "ECOM": "Family dinner. Someone asks — with love and knives — \"so when does this make real money, or is it all still sitting in stock?\"",
+    "TECH": "Family dinner. Someone asks — with love and knives — \"so when does the app make real money? Your cousin says they're all free.\"",
+    "CONTENT": "Family dinner. Someone asks — with love and knives — \"so the videos… is that the job? When does it make real money?\"",
+    "FASHION": "Family dinner. Someone asks — with love and knives — \"so when does this make real money, or is it all still sitting in stock?\"",
+    "GAMING": "Family dinner. Someone asks — with love and knives — \"so when does the app make real money? Your cousin says they're all free.\"",
+    "FITNESS": "Family dinner. Someone asks — with love and knives — \"so when does the gym make real money? You're always there.\"",
+    "BEAUTY": "Family dinner. Someone asks — with love and knives — \"so when does this make real money, or is it all still sitting in stock?\"",
+    "EDTECH": "Family dinner. Someone asks — with love and knives — \"so when does the app make real money? Your cousin says they're all free.\"",
+    "SUSTAIN": "Family dinner. Someone asks — with love and knives — \"so when does this make real money, or is it all still sitting in stock?\"",
+    "TOYS": "Family dinner. Someone asks — with love and knives — \"so when does this make real money, or is it all still sitting in stock?\"",
+    "PET": "Family dinner. Someone asks — with love and knives — \"so when does this make real money, or is it all still sitting in stock?\""
+  }
+}

@@ -1,0 +1,680 @@
+[
+  {
+    "id": "E-MKT-001",
+    "title": "The Viral Accident",
+    "category": "MKT",
+    "text": "Someone posts your product doing something unintended. 2M views overnight.",
+    "stages": [1, 2, 3],
+    "industries": "all",
+    "weight": 5,
+    "once": true,
+    "choices": [
+      {
+        "label": "Lean in, remix it",
+        "known": "Brand +10 · Rev +12% (1Q)",
+        "outcome": {
+          "effects": [
+            { "stat": "brand", "amount": 10 },
+            { "stat": "rev_pct", "amount": 12, "durationQ": 1 }
+          ],
+          "setFlags": ["viral_fame"]
+        }
+      },
+      {
+        "label": "Correct the record",
+        "known": "Brand +2",
+        "outcome": {
+          "effects": [{ "stat": "brand", "amount": 2 }],
+          "narration": "dignity intact"
+        }
+      },
+      {
+        "label": "Stay silent",
+        "known": "Brand +4",
+        "outcome": {
+          "effects": [{ "stat": "brand", "amount": 4 }],
+          "narration": "moment passes"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-MKT-002",
+    "title": "Influencer Roulette",
+    "category": "MKT",
+    "text": "Same budget, three doors: one big influencer (2S), twenty micro-creators (2S), or performance ads (2S).",
+    "stages": [1, 2, 3, 4],
+    "industries": "all",
+    "weight": 8,
+    "rookieTerms": ["CTR", "CAC"],
+    "choices": [
+      {
+        "label": "Big name",
+        "branches": [
+          {
+            "weight": 60,
+            "outcome": {
+              "effects": [
+                { "stat": "brand", "amount": 8 },
+                { "stat": "ctr_pt", "amount": 2 }
+              ]
+            }
+          },
+          {
+            "weight": 40,
+            "outcome": { "setFlags": ["influencer_burn"], "narration": "A dud." }
+          }
+        ]
+      },
+      {
+        "label": "Micro army",
+        "known": "Brand +4 · CSAT +2",
+        "outcome": {
+          "effects": [
+            { "stat": "brand", "amount": 4 },
+            { "stat": "csat", "amount": 2 }
+          ]
+        }
+      },
+      {
+        "label": "Performance ads",
+        "known": "CTR +3 · CAC −",
+        "outcome": {
+          "effects": [
+            { "stat": "ctr_pt", "amount": 3 },
+            { "stat": "cac_pt", "amount": 1 }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-MKT-003",
+    "title": "The Edgy Ad",
+    "category": "MKT",
+    "text": "The new ad is genuinely funny and definitely risky.",
+    "stages": [2, 3, 4, 5],
+    "industries": "all",
+    "weight": 7,
+    "choices": [
+      {
+        "label": "Run it",
+        "branches": [
+          {
+            "weight": 65,
+            "outcome": {
+              "effects": [{ "stat": "brand", "amount": 9 }],
+              "setFlags": ["edgy_brand"]
+            }
+          },
+          {
+            "weight": 35,
+            "outcome": {
+              "effects": [{ "stat": "brand", "amount": -7 }],
+              "narration": "backlash"
+            }
+          }
+        ]
+      },
+      {
+        "label": "Focus-group it",
+        "known": "Cash −0.5S · Brand +3",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -0.5 },
+            { "stat": "brand", "amount": 3 }
+          ],
+          "narration": "sanded safe"
+        }
+      },
+      {
+        "label": "Kill it",
+        "known": "Mor −3",
+        "outcome": {
+          "effects": [{ "stat": "morale", "amount": -3 }],
+          "narration": "creatives sulk, nothing risked"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-MKT-004",
+    "title": "Apology Tour",
+    "category": "MKT",
+    "text": "The follow-up ad went too far. Screenshots everywhere. No tap-out — you're the face.",
+    "stages": [2, 3, 4, 5],
+    "industries": "all",
+    "weight": 5,
+    "requiresFlags": ["edgy_brand"],
+    "performOnly": {
+      "type": "media",
+      "pass": {
+        "effects": [{ "stat": "brand", "amount": -2 }],
+        "setFlags": ["crisis_vet"],
+        "narration": "handled"
+      },
+      "fail": {
+        "effects": [
+          { "stat": "brand", "amount": -9 },
+          { "stat": "rev_pct", "amount": -6, "durationQ": 1 }
+        ],
+        "narration": "boycott hashtags"
+      }
+    }
+  },
+  {
+    "id": "E-MKT-005",
+    "title": "Sponsor the Local Team",
+    "category": "MKT",
+    "text": "The local youth league wants 0.5S for jersey space.",
+    "stages": [1, 2, 3],
+    "industries": "all",
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Yes",
+        "known": "Cash −0.5S · Brand +4",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -0.5 },
+            { "stat": "brand", "amount": 4 }
+          ],
+          "setFlags": ["community"]
+        }
+      },
+      {
+        "label": "Yes + show up personally",
+        "known": "Cash −0.5S · En −4 · Brand +6",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -0.5 },
+            { "stat": "energy", "amount": -4 },
+            { "stat": "brand", "amount": 6 }
+          ],
+          "setFlags": ["community"]
+        }
+      },
+      {
+        "label": "No",
+        "known": "0.5S saved",
+        "outcome": {}
+      }
+    ]
+  },
+  {
+    "id": "E-MKT-006",
+    "title": "Discount Spiral Warning",
+    "category": "MKT",
+    "text": "Customers now wait for your sales. Full-price weeks are dead.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 7,
+    "requiresFlags": ["discounter"],
+    "choices": [
+      {
+        "label": "Cold turkey, no sales 2Q",
+        "known": "Rev −8% (1Q)",
+        "outcome": {
+          "effects": [
+            { "stat": "rev_pct", "amount": -8, "durationQ": 1 },
+            { "stat": "gm_pt", "amount": 2, "afterQ": 1 }
+          ]
+        }
+      },
+      {
+        "label": "Loyalty program instead",
+        "known": "Cash −1S · Churn −2",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -1 },
+            { "stat": "churn_pt", "amount": -2 }
+          ]
+        }
+      },
+      {
+        "label": "Keep discounting",
+        "known": "GM −1/yr",
+        "outcome": {
+          "effects": [{ "stat": "gm_pt", "amount": -1, "perYear": true }],
+          "special": ["autopsy_magnet"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-MKT-007",
+    "title": "The Rebrand Itch",
+    "category": "MKT",
+    "text": "Your logo looks tired next to competitors. Agency quote: 3S.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Full rebrand",
+        "known": "Cash −3S · Brand −3 (1Q)",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -3 },
+            { "stat": "brand", "amount": -3, "durationQ": 1 },
+            { "stat": "brand", "amount": 8, "afterQ": 1 }
+          ]
+        }
+      },
+      {
+        "label": "Refresh only",
+        "known": "Cash −1S · Brand +3",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -1 },
+            { "stat": "brand", "amount": 3 }
+          ]
+        }
+      },
+      {
+        "label": "\"The logo isn't the problem\"",
+        "known": "Qual +2",
+        "outcome": {
+          "effects": [{ "stat": "qual", "amount": 2 }]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-MKT-008",
+    "title": "Billboard vs Search",
+    "category": "MKT",
+    "text": "Same budget: one glorious downtown billboard, or a quarter of search ads.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Billboard",
+        "known": "Brand +6 · Mor +2",
+        "outcome": {
+          "effects": [
+            { "stat": "brand", "amount": 6 },
+            { "stat": "morale", "amount": 2 }
+          ],
+          "narration": "unmeasurable"
+        }
+      },
+      {
+        "label": "Search",
+        "known": "CTR +2 · Rev +3%",
+        "outcome": {
+          "effects": [
+            { "stat": "ctr_pt", "amount": 2 },
+            { "stat": "cac_pt", "amount": 1 },
+            { "stat": "rev_pct", "amount": 3, "durationQ": 2 }
+          ]
+        }
+      },
+      {
+        "label": "Split",
+        "known": "Brand +3 · Rev +1%",
+        "outcome": {
+          "effects": [
+            { "stat": "brand", "amount": 3 },
+            { "stat": "rev_pct", "amount": 1, "durationQ": 2 }
+          ],
+          "narration": "everyone mildly satisfied"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-MKT-009",
+    "title": "The Comparison Ad",
+    "category": "MKT",
+    "text": "Legal says naming your rival in ads is technically allowed.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Name them, show benchmarks",
+        "known": "Share +2",
+        "outcome": {
+          "effects": [
+            { "stat": "share_pt", "amount": 2 },
+            { "stat": "risk", "amount": 1 }
+          ],
+          "setFlags": ["marco_feud"]
+        }
+      },
+      {
+        "label": "\"The leading brand…\"",
+        "known": "Share +1",
+        "outcome": {
+          "effects": [{ "stat": "share_pt", "amount": 1 }],
+          "narration": "coward's discount"
+        }
+      },
+      {
+        "label": "Ignore rivals",
+        "known": "Brand +2",
+        "outcome": {
+          "effects": [{ "stat": "brand", "amount": 2 }]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-MKT-010",
+    "title": "Door to Door",
+    "category": "MKT",
+    "text": "Old school: you, a bag of product, every business on Main Street.",
+    "stages": [1],
+    "industries": "all",
+    "weight": 7,
+    "choices": [
+      {
+        "label": "A full week",
+        "known": "En −12 · Rev +8% · Resp +2",
+        "outcome": {
+          "effects": [
+            { "stat": "energy", "amount": -12 },
+            { "stat": "rev_pct", "amount": 8, "durationQ": 2 },
+            { "stat": "respect", "amount": 2 }
+          ],
+          "setFlags": ["street_cred"],
+          "narration": "3 real relationships"
+        }
+      },
+      {
+        "label": "One afternoon",
+        "known": "En −4 · Rev +2%",
+        "outcome": {
+          "effects": [
+            { "stat": "energy", "amount": -4 },
+            { "stat": "rev_pct", "amount": 2, "durationQ": 2 }
+          ]
+        }
+      },
+      {
+        "label": "Hire students to do it",
+        "known": "Cash −0.5S · Rev +4%",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -0.5 },
+            { "stat": "rev_pct", "amount": 4, "durationQ": 2 }
+          ],
+          "narration": "no relationships"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-MKT-011",
+    "title": "The Newsletter Nobody Reads",
+    "category": "MKT",
+    "text": "Email list: 12,000 addresses, 4% open rate.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Cut to the engaged 2,000, write like a human",
+        "known": "CTR +3 · CSAT +2",
+        "outcome": {
+          "effects": [
+            { "stat": "ctr_pt", "amount": 3 },
+            { "stat": "csat", "amount": 2 }
+          ]
+        }
+      },
+      {
+        "label": "Blast harder",
+        "known": "Churn +1",
+        "outcome": {
+          "effects": [{ "stat": "churn_pt", "amount": 1 }],
+          "narration": "spam-folder purgatory"
+        }
+      },
+      {
+        "label": "Kill it",
+        "known": "En +2",
+        "outcome": {
+          "effects": [{ "stat": "energy", "amount": 2 }],
+          "narration": "one channel fewer"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-MKT-012",
+    "title": "Buy the Competitor's Keyword",
+    "category": "MKT",
+    "text": "Bidding on your rival's brand name in search: effective, petty, or both?",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 4,
+    "choices": [
+      {
+        "label": "Bid",
+        "known": "Share +1",
+        "outcome": {
+          "effects": [
+            { "stat": "share_pt", "amount": 1 },
+            { "stat": "cac_pt", "amount": -1, "afterQ": 1, "durationQ": 1 }
+          ],
+          "setFlags": ["marco_feud"],
+          "narration": "they bid back"
+        }
+      },
+      {
+        "label": "Don't",
+        "outcome": {
+          "narration": "peace dividend"
+        }
+      },
+      {
+        "label": "Propose a truce",
+        "perform": {
+          "type": "nego",
+          "pass": {
+            "effects": [{ "stat": "cac_pt", "amount": 1 }],
+            "narration": "both stop"
+          },
+          "fail": {
+            "narration": "they screenshot your offer; mild embarrassment"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-MKT-013",
+    "title": "The Documentary Request",
+    "category": "MKT",
+    "text": "A streaming crew wants to film your company for a season. Warts and all.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 4,
+    "once": true,
+    "choices": [
+      {
+        "label": "Full access",
+        "branches": [
+          {
+            "cond": { "flag": "cut_corners" },
+            "outcome": {
+              "effects": [{ "stat": "brand", "amount": -8 }],
+              "narration": "the edit finds everything"
+            }
+          },
+          {
+            "cond": { "flag": "bad_boss" },
+            "outcome": {
+              "effects": [{ "stat": "brand", "amount": -8 }],
+              "narration": "the edit finds everything"
+            }
+          },
+          {
+            "weight": 60,
+            "outcome": {
+              "effects": [{ "stat": "brand", "amount": 12 }],
+              "setFlags": ["famous"]
+            }
+          },
+          {
+            "weight": 40,
+            "outcome": {
+              "effects": [{ "stat": "brand", "amount": -8 }],
+              "narration": "they find the warts"
+            }
+          }
+        ]
+      },
+      {
+        "label": "Controlled access",
+        "known": "Brand +4",
+        "outcome": {
+          "effects": [{ "stat": "brand", "amount": 4 }],
+          "narration": "\"authenticity\" reviews mixed"
+        }
+      },
+      {
+        "label": "Decline",
+        "outcome": {
+          "special": ["mystique:1"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-MKT-014",
+    "title": "Cause Marketing Fork",
+    "category": "MKT",
+    "text": "Marketing wants the brand attached to a social cause this quarter.",
+    "stages": [2, 3, 4, 5],
+    "industries": "all",
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Pick one you actually act on",
+        "branches": [
+          {
+            "cond": { "flag": "charity" },
+            "outcome": {
+              "effects": [{ "stat": "brand", "amount": 5 }]
+            }
+          },
+          {
+            "cond": { "flag": "green_cred" },
+            "outcome": {
+              "effects": [{ "stat": "brand", "amount": 5 }]
+            }
+          },
+          {
+            "fallback": true,
+            "outcome": {
+              "effects": [{ "stat": "brand", "amount": 1 }],
+              "narration": "\"performative\" comments"
+            }
+          }
+        ]
+      },
+      {
+        "label": "Donate quietly, no campaign",
+        "known": "CSAT +2",
+        "outcome": {
+          "effects": [{ "stat": "csat", "amount": 2 }],
+          "setFlags": ["charity"]
+        }
+      },
+      {
+        "label": "Stay out of causes",
+        "outcome": {
+          "special": ["immunity:controversy"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-MKT-015",
+    "title": "The Mascot Decision",
+    "category": "MKT",
+    "text": "An agency pitches a company mascot. Narrator: \"Careful. Mascots judge you back.\"",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 4,
+    "choices": [
+      {
+        "label": "Commission it",
+        "known": "Cash −1S · Brand +5",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -1 },
+            { "stat": "brand", "amount": 5 }
+          ],
+          "special": ["cosmetic_unlock:mascot_line"]
+        }
+      },
+      {
+        "label": "Internal design contest",
+        "known": "Mor +5 · Brand +2",
+        "outcome": {
+          "effects": [
+            { "stat": "morale", "amount": 5 },
+            { "stat": "brand", "amount": 2 }
+          ],
+          "special": ["jank:1"]
+        }
+      },
+      {
+        "label": "No mascot",
+        "outcome": {
+          "narration": "seriousness preserved"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-MKT-016",
+    "title": "Data-Driven or Gut",
+    "category": "MKT",
+    "text": "Your CMO's data says one thing. Your gut — and three loyal customers — say another.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Follow the data",
+        "known": "Rev +3%",
+        "outcome": {
+          "effects": [{ "stat": "rev_pct", "amount": 3, "durationQ": 2 }]
+        }
+      },
+      {
+        "label": "Follow the gut",
+        "branches": [
+          {
+            "weight": 45,
+            "outcome": {
+              "effects": [{ "stat": "rev_pct", "amount": 7, "durationQ": 2 }],
+              "setFlags": ["founder_instinct"]
+            }
+          },
+          {
+            "weight": 55,
+            "outcome": {
+              "effects": [{ "stat": "rev_pct", "amount": -4, "durationQ": 2 }]
+            }
+          }
+        ]
+      },
+      {
+        "label": "Test both small",
+        "known": "Resp +1",
+        "outcome": {
+          "effects": [{ "stat": "respect", "amount": 1 }],
+          "special": ["truth_next_q"],
+          "narration": "the shark loves tests"
+        }
+      }
+    ]
+  }
+]

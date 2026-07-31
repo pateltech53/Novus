@@ -1,0 +1,1531 @@
+[
+ {
+  "id": "E-SEED-001",
+  "title": "The Garage Decision",
+  "category": "MILE",
+  "text": "Where does this company live for now?",
+  "stages": [
+   1
+  ],
+  "industries": "all",
+  "weight": 10,
+  "once": true,
+  "special": [
+   "tutorial_forced_draw"
+  ],
+  "choices": [
+   {
+    "label": "Your room/garage",
+    "known": "Burn 0 · En −2",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "energy",
+       "amount": -2
+      }
+     ],
+     "narration": "no separation"
+    }
+   },
+   {
+    "label": "Shared workspace",
+    "known": "Burn +0.1S/mo",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "burn_S_mo",
+       "amount": 0.1
+      }
+     ],
+     "special": [
+      "bonus_events_yr:OPP:1"
+     ],
+     "narration": "network"
+    }
+   },
+   {
+    "label": "Tiny shopfront/online storefront",
+    "known": "Burn +0.2S/mo · Rev +2%",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "burn_S_mo",
+       "amount": 0.2
+      },
+      {
+       "stat": "rev_pct",
+       "amount": 2,
+       "durationQ": 2
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "id": "E-SEED-002",
+  "title": "First Sale Ritual",
+  "category": "MILE",
+  "text": "Your first real stranger-customer. They paid actual money.",
+  "stages": [
+   1
+  ],
+  "industries": "all",
+  "weight": 10,
+  "once": true,
+  "choices": [
+   {
+    "label": "Frame the receipt",
+    "known": "Mor +3",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "morale",
+       "amount": 3
+      }
+     ],
+     "setFlags": [
+      "first_dollar"
+     ],
+     "special": [
+      "brand_seed"
+     ]
+    }
+   },
+   {
+    "label": "Refund them and ask for brutal feedback",
+    "known": "Qual +3",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "qual",
+       "amount": 3
+      }
+     ],
+     "narration": "CSAT insight"
+    }
+   },
+   {
+    "label": "Post it everywhere",
+    "branches": [
+     {
+      "weight": 90,
+      "outcome": {
+       "effects": [
+        {
+         "stat": "brand",
+         "amount": 2
+        }
+       ]
+      }
+     },
+     {
+      "weight": 10,
+      "outcome": {
+       "effects": [
+        {
+         "stat": "brand",
+         "amount": -2
+        }
+       ],
+       "narration": "cringe"
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "E-SEED-003",
+  "title": "The Logo Night",
+  "category": "MILE",
+  "text": "It's 2am. You're choosing between three logos you made yourself.",
+  "stages": [
+   1
+  ],
+  "industries": "all",
+  "weight": 10,
+  "once": true,
+  "choices": [
+   {
+    "label": "The safe one",
+    "known": "Brand +1",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "brand",
+       "amount": 1
+      }
+     ]
+    }
+   },
+   {
+    "label": "The weird one",
+    "branches": [
+     {
+      "weight": 50,
+      "outcome": {
+       "effects": [
+        {
+         "stat": "brand",
+         "amount": 4
+        }
+       ],
+       "narration": "distinctive"
+      }
+     },
+     {
+      "weight": 50,
+      "outcome": {
+       "effects": [
+        {
+         "stat": "brand",
+         "amount": -1
+        }
+       ],
+       "narration": "confusing"
+      }
+     }
+    ]
+   },
+   {
+    "label": "Pay a student designer",
+    "known": "Cash −0.1S · Brand +2",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "cash_S",
+       "amount": -0.1
+      },
+      {
+       "stat": "brand",
+       "amount": 2
+      }
+     ],
+     "setFlags": [
+      "ally_creative"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "id": "E-SEED-004",
+  "title": "Price Tag Panic",
+  "category": "MILE",
+  "text": "You have to write a price on the thing. Out loud. Forever. (Not forever.)",
+  "stages": [
+   1
+  ],
+  "industries": "all",
+  "weight": 10,
+  "once": true,
+  "choices": [
+   {
+    "label": "Cost-plus safe",
+    "outcome": {
+     "special": [
+      "gm_baseline",
+      "cwp_unexplored"
+     ]
+    }
+   },
+   {
+    "label": "Premium and proud",
+    "known": "GM +4 · Rev −2%",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "gm_pt",
+       "amount": 4
+      },
+      {
+       "stat": "rev_pct",
+       "amount": -2,
+       "durationQ": 2
+      }
+     ],
+     "setFlags": [
+      "premium_position"
+     ]
+    }
+   },
+   {
+    "label": "Underprice to enter",
+    "known": "Rev +2% · GM −3",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "rev_pct",
+       "amount": 2,
+       "durationQ": 2
+      },
+      {
+       "stat": "gm_pt",
+       "amount": -3
+      }
+     ],
+     "setFlags": [
+      "discounter"
+     ]
+    }
+   }
+  ],
+  "rookieTerms": [
+   "COGS",
+   "CWP"
+  ]
+ },
+ {
+  "id": "E-SEED-005",
+  "title": "The First Pitch Gate",
+  "category": "MILE",
+  "text": "Revenue exists. The shark clears its throat.",
+  "stages": [
+   1
+  ],
+  "industries": "all",
+  "weight": 10,
+  "once": true,
+  "special": [
+   "scripted:T6",
+   "tutorial_floor:run1"
+  ],
+  "performOnly": {
+   "type": "pitch",
+   "pass": {
+    "special": [
+     "term_sheet:V08"
+    ]
+   },
+   "fail": {
+    "special": [
+     "tutorial_floor:small_check_painful_terms"
+    ]
+   }
+  }
+ },
+ {
+  "id": "E-SEED-006",
+  "title": "Quit-Your-Other-Life Question",
+  "category": "MILE",
+  "text": "The company needs more of you than your spare hours contain.",
+  "stages": [
+   1
+  ],
+  "industries": "all",
+  "weight": 10,
+  "once": true,
+  "choices": [
+   {
+    "label": "Go part-time on everything else",
+    "known": "En +5 · Rev +4%",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "energy",
+       "amount": 5
+      },
+      {
+       "stat": "rev_pct",
+       "amount": 4,
+       "durationQ": 2
+      }
+     ],
+     "special": [
+      "personal_cash:-"
+     ]
+    }
+   },
+   {
+    "label": "Keep both, hire help",
+    "known": "Burn +0.2S/mo",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "burn_S_mo",
+       "amount": 0.2
+      }
+     ],
+     "setFlags": [
+      "delegator"
+     ]
+    }
+   },
+   {
+    "label": "Stay safe, grow slow",
+    "outcome": {
+     "special": [
+      "growth_cap:-2_yr",
+      "no_regret_events"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "id": "E-GRW-001",
+  "title": "Welcome to Growth",
+  "category": "MILE",
+  "text": "pick the year's doctrine.",
+  "stages": [
+   3
+  ],
+  "industries": "all",
+  "weight": 10,
+  "once": true,
+  "choices": [
+   {
+    "label": "Blitz (growth over margin)",
+    "known": "Rev +8%/yr · GM −3 · Burn +0.5S/mo",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "rev_pct",
+       "amount": 8,
+       "perYear": true
+      },
+      {
+       "stat": "gm_pt",
+       "amount": -3
+      },
+      {
+       "stat": "burn_S_mo",
+       "amount": 0.5
+      }
+     ]
+    }
+   },
+   {
+    "label": "Fortress (profit first)",
+    "known": "GM +3 · Rev +2%/yr",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "gm_pt",
+       "amount": 3
+      },
+      {
+       "stat": "rev_pct",
+       "amount": 2,
+       "perYear": true
+      },
+      {
+       "stat": "invsent",
+       "amount": -1
+      }
+     ],
+     "narration": "boring"
+    }
+   },
+   {
+    "label": "Product (quality compounding)",
+    "known": "Qual +4/yr",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "qual",
+       "amount": 4,
+       "perYear": true
+      },
+      {
+       "stat": "rev_pct",
+       "amount": 4,
+       "perYear": true,
+       "delayed": true
+      }
+     ],
+     "narration": "slow"
+    }
+   }
+  ]
+ },
+ {
+  "id": "E-GRW-002",
+  "title": "The First Real Office",
+  "category": "MILE",
+  "text": "The team doesn't fit anymore.",
+  "stages": [
+   3
+  ],
+  "industries": "all",
+  "weight": 10,
+  "once": true,
+  "choices": [
+   {
+    "label": "Cool loft, slight overreach",
+    "known": "Burn +0.5S/mo · Mor +6 · Brand +2",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "burn_S_mo",
+       "amount": 0.5
+      },
+      {
+       "stat": "morale",
+       "amount": 6
+      },
+      {
+       "stat": "brand",
+       "amount": 2
+      }
+     ]
+    }
+   },
+   {
+    "label": "Boring and cheap",
+    "known": "Burn +0.2S/mo · Mor −1",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "burn_S_mo",
+       "amount": 0.2
+      },
+      {
+       "stat": "morale",
+       "amount": -1
+      }
+     ]
+    }
+   },
+   {
+    "label": "Hybrid/remote-first",
+    "known": "Burn +0.1S/mo · Qual +2",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "burn_S_mo",
+       "amount": 0.1
+      },
+      {
+       "stat": "qual",
+       "amount": 2
+      }
+     ],
+     "special": [
+      "talent_radius:up",
+      "culture_drift_risk"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "id": "E-GRW-003",
+  "title": "The Org Chart Day",
+  "category": "MILE",
+  "text": "Twenty people can't all report to you. (They currently all report to you.)",
+  "stages": [
+   3
+  ],
+  "industries": "all",
+  "weight": 10,
+  "once": true,
+  "choices": [
+   {
+    "label": "Hire managers externally",
+    "known": "Cash −1S · Mor −3",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "cash_S",
+       "amount": -1
+      },
+      {
+       "stat": "morale",
+       "amount": -3
+      }
+     ],
+     "special": [
+      "structure_fast"
+     ],
+     "narration": "\"who are these people\""
+    }
+   },
+   {
+    "label": "Promote from within + training",
+    "known": "Mor +6",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "morale",
+       "amount": 6
+      },
+      {
+       "stat": "teamloy",
+       "amount": 1
+      }
+     ],
+     "special": [
+      "slower"
+     ]
+    }
+   },
+   {
+    "label": "Flat forever",
+    "known": "Mor +2",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "morale",
+       "amount": 2
+      }
+     ],
+     "special": [
+      "chaos_events_weight:St4"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "id": "E-GRW-004",
+  "title": "First Board Meeting",
+  "category": "MILE",
+  "text": "Your investors want quarterly board meetings now.",
+  "stages": [
+   3
+  ],
+  "industries": "all",
+  "weight": 10,
+  "once": true,
+  "requiresFlags": [
+   "accelerated",
+   "down_round",
+   "family_money"
+  ],
+  "reqAnyOf": true,
+  "performOnly": {
+   "type": "board",
+   "pass": {
+    "effects": [
+     {
+      "stat": "invsent",
+      "amount": 1
+     }
+    ],
+    "special": [
+     "bonus_option:FIN:yearly"
+    ],
+    "narration": "guidance"
+   },
+   "fail": {
+    "effects": [
+     {
+      "stat": "invsent",
+      "amount": -1
+     }
+    ],
+    "special": [
+     "arm_events:micromanagement"
+    ]
+   }
+  }
+ },
+ {
+  "id": "E-GRW-005",
+  "title": "The Process Religion",
+  "category": "MILE",
+  "text": "Someone says the word \"OKRs\" in a meeting and people nod.",
+  "stages": [
+   3
+  ],
+  "industries": "all",
+  "weight": 10,
+  "once": true,
+  "choices": [
+   {
+    "label": "Adopt lightweight process",
+    "known": "Qual +2 · Mor −1",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "qual",
+       "amount": 2
+      },
+      {
+       "stat": "morale",
+       "amount": -1
+      }
+     ],
+     "special": [
+      "scaling_smoother"
+     ],
+     "narration": "meetings"
+    }
+   },
+   {
+    "label": "Full framework religion",
+    "known": "Qual +3 · Mor −4",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "qual",
+       "amount": 3
+      },
+      {
+       "stat": "morale",
+       "amount": -4
+      }
+     ],
+     "setFlags": [
+      "process_heavy"
+     ]
+    }
+   },
+   {
+    "label": "Vibes and heroes",
+    "known": "Mor +3",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "morale",
+       "amount": 3
+      }
+     ],
+     "special": [
+      "chain_odds:K-TEC:2"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "id": "E-GRW-006",
+  "title": "National or Deep",
+  "category": "MILE",
+  "text": "Expand to the whole country, or dominate your region completely first?",
+  "stages": [
+   3
+  ],
+  "industries": "all",
+  "weight": 10,
+  "once": true,
+  "choices": [
+   {
+    "label": "National",
+    "known": "Rev +10%/yr · CSAT −3 · Burn +1S/mo",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "rev_pct",
+       "amount": 10,
+       "perYear": true
+      },
+      {
+       "stat": "csat",
+       "amount": -3
+      },
+      {
+       "stat": "burn_S_mo",
+       "amount": 1
+      }
+     ],
+     "narration": "thin everywhere"
+    }
+   },
+   {
+    "label": "Regional fortress",
+    "known": "Share +4 · Brand +5",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "share_pt",
+       "amount": 4
+      },
+      {
+       "stat": "brand",
+       "amount": 5
+      }
+     ],
+     "special": [
+      "brand_scope:local",
+      "slower"
+     ]
+    }
+   },
+   {
+    "label": "Follow the data city-by-city",
+    "known": "Rev +6%/yr · En −3",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "rev_pct",
+       "amount": 6,
+       "perYear": true
+      },
+      {
+       "stat": "energy",
+       "amount": -3
+      }
+     ],
+     "narration": "constant analysis"
+    }
+   }
+  ]
+ },
+ {
+  "id": "E-SCL-001",
+  "title": "Welcome to Scale",
+  "category": "MILE",
+  "text": "\"You employ more people than your school year. Act like it.\"",
+  "stages": [
+   4
+  ],
+  "industries": "all",
+  "weight": 10,
+  "once": true,
+  "choices": [
+   {
+    "label": "Professional CFO hire",
+    "known": "Burn +0.5S/mo",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "burn_S_mo",
+       "amount": 0.5
+      }
+     ],
+     "setFlags": [
+      "grown_up"
+     ],
+     "special": [
+      "bonus_option:FIN"
+     ]
+    }
+   },
+   {
+    "label": "Keep the scrappy machine",
+    "known": "Mor +3",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "morale",
+       "amount": 3
+      }
+     ],
+     "special": [
+      "audit_risk_events:up"
+     ]
+    }
+   },
+   {
+    "label": "COO to run inside, you run outside",
+    "known": "En +10 · Qual −1",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "energy",
+       "amount": 10
+      },
+      {
+       "stat": "qual",
+       "amount": -1
+      }
+     ],
+     "narration": "translation loss"
+    }
+   }
+  ]
+ },
+ {
+  "id": "E-SCL-002",
+  "title": "The Culture Fork",
+  "category": "MILE",
+  "text": "New hires outnumber the old guard 5:1. The founding culture is diluting.",
+  "stages": [
+   4
+  ],
+  "industries": "all",
+  "weight": 10,
+  "once": true,
+  "choices": [
+   {
+    "label": "Codify values, live them visibly",
+    "known": "Mor +5 · Qual +2",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "morale",
+       "amount": 5
+      },
+      {
+       "stat": "qual",
+       "amount": 2
+      }
+     ],
+     "special": [
+      "hiring_filter"
+     ]
+    }
+   },
+   {
+    "label": "Let culture evolve",
+    "known": "Mor −2",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "morale",
+       "amount": -2
+      }
+     ],
+     "special": [
+      "friction_events",
+      "occasional_pleasant_surprise"
+     ]
+    }
+   },
+   {
+    "label": "Old-guard privileges",
+    "known": "Mor +6 veterans · Mor −5 newcomers",
+    "outcome": {
+     "setFlags": [
+      "two_tier"
+     ],
+     "special": [
+      "cohort_morale:veterans+6:newcomers-5"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "id": "E-SCL-003",
+  "title": "International Door",
+  "category": "MILE",
+  "text": "A foreign distributor offers to take you abroad.",
+  "stages": [
+   4
+  ],
+  "industries": "all",
+  "weight": 10,
+  "once": true,
+  "choices": [
+   {
+    "label": "Partner-led entry",
+    "known": "Rev +8%/yr · GM −2",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "rev_pct",
+       "amount": 8,
+       "perYear": true
+      },
+      {
+       "stat": "gm_pt",
+       "amount": -2
+      }
+     ],
+     "setFlags": [
+      "intl_partner"
+     ]
+    }
+   },
+   {
+    "label": "Own subsidiary",
+    "known": "Cash −6S",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "cash_S",
+       "amount": -6
+      },
+      {
+       "stat": "rev_pct",
+       "amount": 12,
+       "perYear": true,
+       "delayed": true
+      }
+     ],
+     "special": [
+      "management_strain"
+     ]
+    }
+   },
+   {
+    "label": "Not yet",
+    "outcome": {
+     "special": [
+      "arm_event:intl_door_smaller:2yr"
+     ],
+     "narration": "focus"
+    }
+   }
+  ]
+ },
+ {
+  "id": "E-SCL-004",
+  "title": "The Platform Decision",
+  "category": "MILE",
+  "text": "Open your product as a platform others build on?",
+  "stages": [
+   4
+  ],
+  "industries": "all",
+  "weight": 10,
+  "weightMods": [
+   {
+    "industries": [
+     "TECH",
+     "ECOM",
+     "GAMING"
+    ],
+    "mult": 2
+   }
+  ],
+  "once": true,
+  "choices": [
+   {
+    "label": "Open it",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "rev_pct",
+       "amount": 6,
+       "perYear": true,
+       "delayed": true
+      }
+     ],
+     "setFlags": [
+      "platform"
+     ],
+     "special": [
+      "support_burden"
+     ],
+     "narration": "ecosystem"
+    }
+   },
+   {
+    "label": "Stay closed",
+    "outcome": {
+     "special": [
+      "growth_cap"
+     ],
+     "narration": "control, ceiling"
+    }
+   },
+   {
+    "label": "Selective partners",
+    "outcome": {
+     "special": [
+      "politics_events"
+     ],
+     "narration": "middle path"
+    }
+   }
+  ]
+ },
+ {
+  "id": "E-SCL-005",
+  "title": "Acquire or Build",
+  "category": "MILE",
+  "text": "A capability you need exists inside a small company you could buy for 8S.",
+  "stages": [
+   4
+  ],
+  "industries": "all",
+  "weight": 10,
+  "once": true,
+  "choices": [
+   {
+    "label": "Acquire",
+    "perform": {
+     "type": "nego",
+     "pass": {
+      "effects": [
+       {
+        "stat": "cash_S",
+        "amount": -6
+       }
+      ],
+      "special": [
+       "capability_gained"
+      ],
+      "narration": "capability now"
+     },
+     "fail": {
+      "effects": [
+       {
+        "stat": "cash_S",
+        "amount": -8
+       }
+      ],
+      "special": [
+       "capability_gained",
+       "or_walk"
+      ]
+     }
+    }
+   },
+   {
+    "label": "Build it",
+    "known": "Cash −4S",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "cash_S",
+       "amount": -4
+      }
+     ],
+     "special": [
+      "spread:18mo"
+     ],
+     "narration": "culture intact"
+    }
+   },
+   {
+    "label": "Acqui-hire just the team",
+    "known": "Cash −3S",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "cash_S",
+       "amount": -3
+      }
+     ],
+     "special": [
+      "karma:-1"
+     ],
+     "narration": "product dies, talent lands"
+    }
+   }
+  ]
+ },
+ {
+  "id": "E-SCL-006",
+  "title": "The Founder's Role",
+  "category": "MILE",
+  "text": "Honestly: are you still the right CEO for this stage?",
+  "stages": [
+   4
+  ],
+  "industries": "all",
+  "weight": 10,
+  "once": true,
+  "choices": [
+   {
+    "label": "Yes — and get a coach",
+    "known": "Cash −0.3S · Resp +3",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "cash_S",
+       "amount": -0.3
+      },
+      {
+       "stat": "respect",
+       "amount": 3
+      }
+     ],
+     "special": [
+      "blindspot_damage:-50"
+     ]
+    }
+   },
+   {
+    "label": "Hire a CEO, become Chairman/Product",
+    "known": "En +15 · Qual +2",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "energy",
+       "amount": 15
+      },
+      {
+       "stat": "qual",
+       "amount": 2
+      }
+     ],
+     "special": [
+      "unlock:identity_events"
+     ]
+    }
+   },
+   {
+    "label": "Yes, and prove it alone",
+    "outcome": {
+     "special": [
+      "year_end_swing:2"
+     ],
+     "narration": "high variance"
+    }
+   }
+  ]
+ },
+ {
+  "id": "E-IPO-001",
+  "title": "The Bankers Call",
+  "category": "MILE",
+  "text": "IPO window is open. Begin the gauntlet?",
+  "stages": [
+   4,
+   5
+  ],
+  "industries": "all",
+  "weight": 10,
+  "once": true,
+  "chain": {
+   "id": "IPO",
+   "step": 1
+  },
+  "auto": {
+   "setFlags": [
+    "ipo_arc"
+   ],
+   "special": [
+    "arm_chain:IPO"
+   ],
+   "followupId": "E-IPO-002",
+   "followupDelayYears": 0
+  }
+ },
+ {
+  "id": "E-IPO-002",
+  "title": "The S-1 Board Review",
+  "category": "MILE",
+  "text": "defend your risk-factors section honestly",
+  "stages": [
+   4,
+   5
+  ],
+  "industries": "all",
+  "weight": 1,
+  "once": true,
+  "requiresFlags": [
+   "ipo_arc"
+  ],
+  "chain": {
+   "id": "IPO",
+   "step": 2
+  },
+  "performOnly": {
+   "type": "board",
+   "pass": {
+    "narration": "proceed",
+    "followupId": "E-IPO-003",
+    "followupDelayYears": 0
+   },
+   "fail": {
+    "effects": [
+     {
+      "stat": "invsent",
+      "amount": -1
+     }
+    ],
+    "special": [
+     "ipo_delay:1yr"
+    ],
+    "narration": "delayed a year",
+    "followupId": "E-IPO-003",
+    "followupDelayYears": 1
+   }
+  }
+ },
+ {
+  "id": "E-IPO-003",
+  "title": "The Roadshow",
+  "category": "MILE",
+  "text": "The Roadshow",
+  "stages": [
+   4,
+   5
+  ],
+  "industries": "all",
+  "weight": 1,
+  "once": true,
+  "requiresFlags": [
+   "ipo_arc"
+  ],
+  "chain": {
+   "id": "IPO",
+   "step": 3
+  },
+  "performOnly": {
+   "type": "pitch",
+   "pass": {
+    "special": [
+     "rubric:institutional_numbers_2x",
+     "price_at_top_of_range"
+    ],
+    "narration": "demand strong",
+    "followupId": "E-IPO-004",
+    "followupDelayYears": 0
+   },
+   "fail": {
+    "special": [
+     "rubric:institutional_numbers_2x",
+     "price_cut:20",
+     "or_pull"
+    ],
+    "followupId": "E-IPO-004",
+    "followupDelayYears": 0
+   }
+  }
+ },
+ {
+  "id": "E-IPO-004",
+  "title": "Pricing Night",
+  "category": "MILE",
+  "text": "Pricing Night",
+  "stages": [
+   4,
+   5
+  ],
+  "industries": "all",
+  "weight": 1,
+  "once": true,
+  "requiresFlags": [
+   "ipo_arc"
+  ],
+  "chain": {
+   "id": "IPO",
+   "step": 4
+  },
+  "performOnly": {
+   "type": "nego",
+   "pass": {
+    "effects": [
+     {
+      "stat": "val_pct",
+      "amount": 15
+     }
+    ],
+    "special": [
+     "ipo_pop:15"
+    ],
+    "narration": "sized right",
+    "followupId": "E-IPO-005",
+    "followupDelayYears": 0
+   },
+   "fail": {
+    "special": [
+     "coin_flip:brand-3|money_left_on_table"
+    ],
+    "narration": "mispriced",
+    "followupId": "E-IPO-005",
+    "followupDelayYears": 0
+   }
+  }
+ },
+ {
+  "id": "E-IPO-005",
+  "title": "The Bell",
+  "category": "MILE",
+  "text": "The Bell",
+  "stages": [
+   4,
+   5
+  ],
+  "industries": "all",
+  "weight": 1,
+  "once": true,
+  "requiresFlags": [
+   "ipo_arc"
+  ],
+  "chain": {
+   "id": "IPO",
+   "step": 5
+  },
+  "auto": {
+   "effects": [
+    {
+     "stat": "respect",
+     "amount": 5
+    }
+   ],
+   "special": [
+    "ceremony:ipo_bell",
+    "cosmetic:ipo_gold",
+    "v10_variant:gold",
+    "legacy_badge:ipo",
+    "archive_tier:LEGEND",
+    "run_end:ipo"
+   ]
+  }
+ },
+ {
+  "id": "E-PUB-001",
+  "title": "First Earnings Miss",
+  "category": "MILE",
+  "text": "you missed guidance by 2%.",
+  "stages": [
+   5
+  ],
+  "industries": "all",
+  "weight": 6,
+  "choices": [
+   {
+    "label": "Own it plainly",
+    "perform": {
+     "type": "media",
+     "pass": {
+      "effects": [
+       {
+        "stat": "val_pct",
+        "amount": -4
+       }
+      ]
+     },
+     "fail": {
+      "effects": [
+       {
+        "stat": "val_pct",
+        "amount": -12
+       }
+      ]
+     }
+    }
+   },
+   {
+    "label": "Blame macro",
+    "known": "Val −8%",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "val_pct",
+       "amount": -8
+      },
+      {
+       "stat": "invsent",
+       "amount": -1
+      }
+     ]
+    }
+   },
+   {
+    "label": "your credibility cushions it",
+    "requiresFlag": "truth_teller",
+    "known": "Val −3%",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "val_pct",
+       "amount": -3
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "id": "E-PUB-002",
+  "title": "The Activist Investor",
+  "category": "MILE",
+  "text": "a fund takes 6% and publishes a letter demanding changes.",
+  "stages": [
+   5
+  ],
+  "industries": "all",
+  "weight": 4,
+  "once": true,
+  "special": [
+   "perform_combo:media+board"
+  ],
+  "choices": [
+   {
+    "label": "Fight",
+    "perform": {
+     "type": "media",
+     "pass": {
+      "effects": [
+       {
+        "stat": "respect",
+        "amount": 3
+       }
+      ],
+      "narration": "they retreat"
+     },
+     "fail": {
+      "effects": [
+       {
+        "stat": "energy",
+        "amount": -15
+       }
+      ],
+      "special": [
+       "coin_flip:control"
+      ],
+      "narration": "proxy fight"
+     }
+    }
+   },
+   {
+    "label": "Negotiate a board seat",
+    "outcome": {
+     "special": [
+      "strategy_friction_events"
+     ],
+     "narration": "peace"
+    }
+   },
+   {
+    "label": "Adopt the good 30% of their ideas",
+    "known": "Val +3%",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "val_pct",
+       "amount": 3
+      }
+     ],
+     "narration": "letter defanged"
+    }
+   }
+  ]
+ },
+ {
+  "id": "E-PUB-003",
+  "title": "Go Private Again?",
+  "category": "MILE",
+  "text": "a PE firm offers to take you private at +25%.",
+  "stages": [
+   5
+  ],
+  "industries": "all",
+  "weight": 3,
+  "once": true,
+  "choices": [
+   {
+    "label": "Take it",
+    "outcome": {
+     "special": [
+      "run_end:acquired",
+      "victory_tier:Full Circle",
+      "legacy_badge:cash"
+     ]
+    }
+   },
+   {
+    "label": "Stay public",
+    "outcome": {
+     "narration": "the long game continues"
+    }
+   },
+   {
+    "label": "Counter +40%",
+    "perform": {
+     "type": "nego",
+     "pass": {
+      "special": [
+       "run_end:acquired",
+       "victory_tier:legendary_exit"
+      ],
+      "narration": "legendary exit"
+     },
+     "fail": {
+      "effects": [
+       {
+        "stat": "val_pct",
+        "amount": -5
+       }
+      ],
+      "special": [
+       "offer_withdrawn"
+      ],
+      "narration": "market saw you shopping"
+     }
+    }
+   }
+  ]
+ }
+]

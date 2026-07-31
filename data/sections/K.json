@@ -1,0 +1,1162 @@
+[
+ {
+  "id": "K-SUP-1",
+  "title": "The Silence",
+  "category": "K",
+  "text": "Your key supplier stops answering. Orders due in 10 days.",
+  "stages": [
+   2,
+   3,
+   4
+  ],
+  "industries": "all",
+  "weight": 6,
+  "weightMods": [
+   {
+    "flag": "redundant",
+    "mult": 0.5
+   }
+  ],
+  "chain": {
+   "id": "K-SUP",
+   "step": 1
+  },
+  "choices": [
+   {
+    "label": "Fly there / show up",
+    "known": "En −6",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "energy",
+       "amount": -6
+      }
+     ],
+     "setFlags": [
+      "showed_up"
+     ],
+     "followupId": "K-SUP-2",
+     "followupDelayYears": 0
+    }
+   },
+   {
+    "label": "Email harder",
+    "outcome": {
+     "setFlags": [
+      "truth_late"
+     ],
+     "special": [
+      "chain_harder:K-SUP:2"
+     ],
+     "narration": "truth arrives late",
+     "followupId": "K-SUP-2",
+     "followupDelayYears": 0
+    }
+   },
+   {
+    "label": "Activate backup",
+    "requiresFlag": "redundant",
+    "known": "Rev −1%",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "rev_pct",
+       "amount": -1,
+       "durationQ": 2
+      }
+     ],
+     "special": [
+      "chain_end:K-SUP",
+      "narration_flex"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "id": "K-SUP-2",
+  "title": "The Truth",
+  "category": "K",
+  "text": "They're insolvent. Your deposits (2S) are inside.",
+  "stages": [
+   2,
+   3,
+   4
+  ],
+  "industries": "all",
+  "weight": 1,
+  "chain": {
+   "id": "K-SUP",
+   "step": 2
+  },
+  "choices": [
+   {
+    "label": "negotiate salvage on-site",
+    "requiresFlag": "showed_up",
+    "perform": {
+     "type": "nego",
+     "pass": {
+      "effects": [
+       {
+        "stat": "cash_S",
+        "amount": 1
+       }
+      ],
+      "special": [
+       "recover_stock"
+      ],
+      "followupId": "K-SUP-3",
+      "followupDelayYears": 0
+     },
+     "fail": {
+      "special": [
+       "recover_stock"
+      ],
+      "followupId": "K-SUP-3",
+      "followupDelayYears": 0
+     }
+    }
+   },
+   {
+    "label": "Join creditor queue",
+    "branches": [
+     {
+      "weight": 20,
+      "outcome": {
+       "effects": [
+        {
+         "stat": "cash_S",
+         "amount": 2,
+         "delayed": true
+        }
+       ],
+       "followupId": "K-SUP-3",
+       "followupDelayYears": 0
+      }
+     },
+     {
+      "weight": 80,
+      "outcome": {
+       "followupId": "K-SUP-3",
+       "followupDelayYears": 0
+      }
+     }
+    ]
+   },
+   {
+    "label": "Write it off, secure a new supplier today at premium",
+    "known": "GM −3 (2Q)",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "gm_pt",
+       "amount": -3,
+       "durationQ": 2
+      }
+     ],
+     "narration": "delivery saved",
+     "followupId": "K-SUP-3",
+     "followupDelayYears": 0
+    }
+   }
+  ]
+ },
+ {
+  "id": "K-SUP-3",
+  "title": "The Aftermath",
+  "category": "K",
+  "text": "Customers heard. Two rivals are whispering \"supply problems\" to your accounts.",
+  "stages": [
+   2,
+   3,
+   4
+  ],
+  "industries": "all",
+  "weight": 1,
+  "chain": {
+   "id": "K-SUP",
+   "step": 3
+  },
+  "choices": [
+   {
+    "label": "Publish the honest post-mortem",
+    "known": "Brand +5 · CSAT +3",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "brand",
+       "amount": 5
+      },
+      {
+       "stat": "csat",
+       "amount": 3
+      }
+     ],
+     "setFlags": [
+      "crisis_vet"
+     ]
+    }
+   },
+   {
+    "label": "Quiet outreach to top accounts only",
+    "known": "Churn +1",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "churn_pt",
+       "amount": 1
+      }
+     ]
+    }
+   },
+   {
+    "label": "Announce a resilience program (dual-sourcing)",
+    "known": "Cash −1S",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "cash_S",
+       "amount": -1
+      },
+      {
+       "stat": "invsent",
+       "amount": 1
+      }
+     ],
+     "setFlags": [
+      "redundant"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "id": "K-PR-1",
+  "title": "The Screenshot",
+  "category": "K",
+  "text": "An old post of an employee (or young you) surfaces. It's bad. Your brand is tagged.",
+  "stages": [
+   2,
+   3,
+   4,
+   5
+  ],
+  "industries": "all",
+  "weight": 6,
+  "chain": {
+   "id": "K-PR",
+   "step": 1
+  },
+  "choices": [
+   {
+    "label": "Statement within 24h",
+    "outcome": {
+     "setFlags": [
+      "fast_statement"
+     ],
+     "special": [
+      "controls_step2_tone:K-PR-2"
+     ],
+     "followupId": "K-PR-2",
+     "followupDelayYears": 0
+    }
+   },
+   {
+    "label": "Investigate first, 72h silence",
+    "known": "Brand −3",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "brand",
+       "amount": -3
+      }
+     ],
+     "setFlags": [
+      "has_facts"
+     ],
+     "narration": "outrage compounds",
+     "followupId": "K-PR-2",
+     "followupDelayYears": 0
+    }
+   },
+   {
+    "label": "Joke about it",
+    "branches": [
+     {
+      "weight": 20,
+      "outcome": {
+       "narration": "legend",
+       "followupId": "K-PR-2",
+       "followupDelayYears": 0
+      }
+     },
+     {
+      "weight": 80,
+      "outcome": {
+       "effects": [
+        {
+         "stat": "brand",
+         "amount": -6
+        }
+       ],
+       "narration": "gasoline",
+       "followupId": "K-PR-2",
+       "followupDelayYears": 0
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "K-PR-2",
+  "title": "The Pile-On",
+  "category": "K",
+  "text": "A big account demands you fire the person. The internet has voted.",
+  "stages": [
+   2,
+   3,
+   4,
+   5
+  ],
+  "industries": "all",
+  "weight": 1,
+  "chain": {
+   "id": "K-PR",
+   "step": 2
+  },
+  "choices": [
+   {
+    "label": "Due process, publicly explained",
+    "known": "Brand −2 (2Q) · Mor +8",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "brand",
+       "amount": -2,
+       "durationQ": 2
+      },
+      {
+       "stat": "morale",
+       "amount": 8
+      }
+     ],
+     "setFlags": [
+      "clean_hands"
+     ],
+     "followupId": "K-PR-3",
+     "followupDelayYears": 0
+    }
+   },
+   {
+    "label": "Fire immediately",
+    "known": "Mor −8",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "morale",
+       "amount": -8
+      },
+      {
+       "stat": "teamloy",
+       "amount": -1
+      }
+     ],
+     "special": [
+      "flag_risk:bad_boss"
+     ],
+     "narration": "outrage ends",
+     "followupId": "K-PR-3",
+     "followupDelayYears": 0
+    }
+   },
+   {
+    "label": "Defend unconditionally",
+    "known": "CSAT +3 · Brand −4",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "csat",
+       "amount": 3
+      },
+      {
+       "stat": "brand",
+       "amount": -4
+      }
+     ],
+     "followupId": "K-PR-3",
+     "followupDelayYears": 0
+    }
+   }
+  ]
+ },
+ {
+  "id": "K-PR-3",
+  "title": "The Interview",
+  "category": "K",
+  "text": "A major outlet offers one interview to close the story.",
+  "stages": [
+   2,
+   3,
+   4,
+   5
+  ],
+  "industries": "all",
+  "weight": 1,
+  "chain": {
+   "id": "K-PR",
+   "step": 3
+  },
+  "special": [
+   "decline_outcome:brand-2"
+  ],
+  "performOnly": {
+   "type": "media",
+   "optional": true,
+   "pass": {
+    "effects": [
+     {
+      "stat": "brand",
+      "amount": 4
+     },
+     {
+      "stat": "respect",
+      "amount": 2
+     }
+    ],
+    "setFlags": [
+     "crisis_vet"
+    ],
+    "narration": "story closed"
+   },
+   "fail": {
+    "effects": [
+     {
+      "stat": "brand",
+      "amount": -5
+     }
+    ],
+    "narration": "new clip fuels week two"
+   }
+  }
+ },
+ {
+  "id": "K-TEC-1",
+  "title": "The Outage",
+  "category": "K",
+  "text": "Everything is down on your biggest day of the year.",
+  "stages": [
+   3,
+   4,
+   5
+  ],
+  "industries": "all",
+  "weight": 6,
+  "weightMods": [
+   {
+    "flag": "tdebt_high",
+    "mult": 2
+   }
+  ],
+  "chain": {
+   "id": "K-TEC",
+   "step": 1
+  },
+  "choices": [
+   {
+    "label": "All-hands war room, you visible",
+    "known": "En −8 · Mor +4",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "energy",
+       "amount": -8
+      },
+      {
+       "stat": "morale",
+       "amount": 4
+      }
+     ],
+     "narration": "fix in hours",
+     "followupId": "K-TEC-2",
+     "followupDelayYears": 0
+    }
+   },
+   {
+    "label": "Vendor blame + wait",
+    "known": "Rev −6% · CSAT −6",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "rev_pct",
+       "amount": -6,
+       "durationQ": 2
+      },
+      {
+       "stat": "csat",
+       "amount": -6
+      }
+     ],
+     "narration": "fix tomorrow",
+     "followupId": "K-TEC-2",
+     "followupDelayYears": 0
+    }
+   },
+   {
+    "label": "Manual workaround heroics",
+    "known": "Rev −2% · Mor +6",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "rev_pct",
+       "amount": -2,
+       "durationQ": 2
+      },
+      {
+       "stat": "morale",
+       "amount": 6
+      }
+     ],
+     "setFlags": [
+      "duct_tape_masters"
+     ],
+     "narration": "team legend",
+     "followupId": "K-TEC-2",
+     "followupDelayYears": 0
+    }
+   }
+  ]
+ },
+ {
+  "id": "K-TEC-2",
+  "title": "The Cause",
+  "category": "K",
+  "text": "Post-mortem: the shortcut from Year {y}. Everyone in the room knows who approved it. You did.",
+  "stages": [
+   3,
+   4,
+   5
+  ],
+  "industries": "all",
+  "weight": 1,
+  "chain": {
+   "id": "K-TEC",
+   "step": 2
+  },
+  "choices": [
+   {
+    "label": "Own it to the team",
+    "known": "Mor +6 · Resp +3",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "morale",
+       "amount": 6
+      },
+      {
+       "stat": "respect",
+       "amount": 3
+      }
+     ],
+     "setFlags": [
+      "accountable"
+     ],
+     "followupId": "K-TEC-3",
+     "followupDelayYears": 0
+    }
+   },
+   {
+    "label": "\"Process failure\" framing",
+    "known": "Mor −4",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "morale",
+       "amount": -4
+      },
+      {
+       "stat": "teamloy",
+       "amount": -1
+      }
+     ],
+     "followupId": "K-TEC-3",
+     "followupDelayYears": 0
+    }
+   },
+   {
+    "label": "Fund the fix on the spot",
+    "known": "Cash −2S · Qual +4",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "cash_S",
+       "amount": -2
+      },
+      {
+       "stat": "qual",
+       "amount": 4
+      }
+     ],
+     "special": [
+      "tdebt_clear"
+     ],
+     "followupId": "K-TEC-3",
+     "followupDelayYears": 0
+    }
+   }
+  ]
+ },
+ {
+  "id": "K-TEC-3",
+  "title": "The Customer Letter",
+  "category": "K",
+  "text": "Enterprise customers want an SLA and credits, or they walk.",
+  "stages": [
+   3,
+   4,
+   5
+  ],
+  "industries": "all",
+  "weight": 1,
+  "chain": {
+   "id": "K-TEC",
+   "step": 3
+  },
+  "choices": [
+   {
+    "label": "Credits + real SLA",
+    "perform": {
+     "type": "nego",
+     "pass": {
+      "effects": [
+       {
+        "stat": "burn_S_mo",
+        "amount": 0.1
+       }
+      ]
+     },
+     "fail": {
+      "effects": [
+       {
+        "stat": "churn_pt",
+        "amount": 3
+       }
+      ]
+     }
+    }
+   },
+   {
+    "label": "Credits only",
+    "known": "Churn +1",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "churn_pt",
+       "amount": 1
+      }
+     ]
+    }
+   },
+   {
+    "label": "your honesty bought grace",
+    "requiresFlag": "accountable",
+    "outcome": {
+     "special": [
+      "narration_flex"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "id": "K-CASH-1",
+  "title": "The Squeeze",
+  "category": "K",
+  "text": "Payroll is in 6 weeks. The bank line is maxed. Nobody outside knows yet.",
+  "stages": [
+   2,
+   3,
+   4
+  ],
+  "industries": "all",
+  "weight": 6,
+  "requiresFlags": [
+   "runway_low"
+  ],
+  "chain": {
+   "id": "K-CASH",
+   "step": 1
+  },
+  "choices": [
+   {
+    "label": "Tell the team the truth",
+    "perform": {
+     "type": "allhands",
+     "pass": {
+      "effects": [
+       {
+        "stat": "morale",
+        "amount": -2
+       }
+      ],
+      "special": [
+       "burn_pct:-20:1q"
+      ],
+      "setFlags": [
+       "truth_teller"
+      ],
+      "narration": "volunteers defer pay",
+      "followupId": "K-CASH-2",
+      "followupDelayYears": 0
+     },
+     "fail": {
+      "effects": [
+       {
+        "stat": "emp",
+        "amount": -2
+       }
+      ],
+      "narration": "two resign",
+      "followupId": "K-CASH-2",
+      "followupDelayYears": 0
+     }
+    }
+   },
+   {
+    "label": "Silence + scramble",
+    "outcome": {
+     "setFlags": [
+      "silent_squeeze"
+     ],
+     "special": [
+      "chain_harder:K-CASH:2"
+     ],
+     "followupId": "K-CASH-2",
+     "followupDelayYears": 0
+    }
+   },
+   {
+    "label": "Founder injects personal savings",
+    "known": "Cash +1S · En −6",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "cash_S",
+       "amount": 1
+      },
+      {
+       "stat": "energy",
+       "amount": -6
+      }
+     ],
+     "setFlags": [
+      "all_in"
+     ],
+     "followupId": "K-CASH-2",
+     "followupDelayYears": 0
+    }
+   }
+  ]
+ },
+ {
+  "id": "K-CASH-2",
+  "title": "The Lifelines",
+  "category": "K",
+  "text": "Three doors: an angel wants 25% for 6S; a revenue-based lender wants 8% of revenue for 2 years; a big customer will prepay a year at 20% discount.",
+  "stages": [
+   2,
+   3,
+   4
+  ],
+  "industries": "all",
+  "weight": 1,
+  "chain": {
+   "id": "K-CASH",
+   "step": 2
+  },
+  "choices": [
+   {
+    "label": "Angel",
+    "known": "Cash +6S · dilution 25%",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "cash_S",
+       "amount": 6
+      },
+      {
+       "stat": "dilution_pct",
+       "amount": 25
+      },
+      {
+       "stat": "invsent",
+       "amount": 1
+      }
+     ],
+     "special": [
+      "unlock:board_seat_events"
+     ],
+     "followupId": "K-CASH-3",
+     "followupDelayYears": 0
+    }
+   },
+   {
+    "label": "RBF loan",
+    "known": "GM −8 (2yr)",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "gm_pt",
+       "amount": -8,
+       "durationQ": 8
+      }
+     ],
+     "special": [
+      "rbf_loan:8pct_rev:2y"
+     ],
+     "followupId": "K-CASH-3",
+     "followupDelayYears": 0
+    }
+   },
+   {
+    "label": "Prepay deal",
+    "known": "Cash +4S · GM −2",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "cash_S",
+       "amount": 4
+      },
+      {
+       "stat": "gm_pt",
+       "amount": -2
+      }
+     ],
+     "setFlags": [
+      "whale_dependency"
+     ],
+     "followupId": "K-CASH-3",
+     "followupDelayYears": 0
+    }
+   }
+  ],
+  "rookieTerms": [
+   "dilution"
+  ]
+ },
+ {
+  "id": "K-CASH-3",
+  "title": "The Other Side",
+  "category": "K",
+  "text": "You made payroll. The team knows how close it was (or doesn't — per step 1).",
+  "stages": [
+   2,
+   3,
+   4
+  ],
+  "industries": "all",
+  "weight": 1,
+  "chain": {
+   "id": "K-CASH",
+   "step": 3
+  },
+  "choices": [
+   {
+    "label": "pay back deferred + bonus",
+    "requiresFlag": "truth_teller",
+    "known": "Cash −1.5S · Mor +10",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "cash_S",
+       "amount": -1.5
+      },
+      {
+       "stat": "morale",
+       "amount": 10
+      }
+     ],
+     "special": [
+      "teamloy_max"
+     ]
+    }
+   },
+   {
+    "label": "Celebrate, say nothing more",
+    "known": "Mor +3",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "morale",
+       "amount": 3
+      }
+     ]
+    }
+   },
+   {
+    "label": "Post-crisis austerity plan",
+    "known": "Burn −15% · Mor −4 · Runway +3mo",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "morale",
+       "amount": -4
+      }
+     ],
+     "special": [
+      "burn_pct:-15",
+      "runway_plus:3mo"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "id": "K-MKT-1",
+  "title": "The Algorithm Change",
+  "category": "K",
+  "text": "Overnight, the platform that drives 60% of your traffic changes its algorithm. Reach −70%.",
+  "stages": [
+   2,
+   3,
+   4
+  ],
+  "industries": "all",
+  "weight": 6,
+  "weightMods": [
+   {
+    "industries": [
+     "ECOM",
+     "CONTENT"
+    ],
+    "mult": 2
+   }
+  ],
+  "chain": {
+   "id": "K-MKT",
+   "step": 1
+  },
+  "choices": [
+   {
+    "label": "Emergency budget into paid",
+    "known": "Cash −2S · Rev −3%",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "cash_S",
+       "amount": -2
+      },
+      {
+       "stat": "rev_pct",
+       "amount": -3,
+       "durationQ": 2
+      }
+     ],
+     "followupId": "K-MKT-2",
+     "followupDelayYears": 0
+    }
+   },
+   {
+    "label": "Sprint to owned channels (email/community)",
+    "known": "Rev −8% (1Q)",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "rev_pct",
+       "amount": -8,
+       "durationQ": 1
+      }
+     ],
+     "setFlags": [
+      "own_audience"
+     ],
+     "followupId": "K-MKT-2",
+     "followupDelayYears": 0
+    }
+   },
+   {
+    "label": "Chase the new meta",
+    "branches": [
+     {
+      "weight": 50,
+      "outcome": {
+       "effects": [
+        {
+         "stat": "rev_pct",
+         "amount": -1,
+         "durationQ": 2
+        }
+       ],
+       "followupId": "K-MKT-2",
+       "followupDelayYears": 0
+      }
+     },
+     {
+      "weight": 50,
+      "outcome": {
+       "effects": [
+        {
+         "stat": "brand",
+         "amount": -3
+        }
+       ],
+       "narration": "cringe",
+       "followupId": "K-MKT-2",
+       "followupDelayYears": 0
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "K-MKT-2",
+  "title": "The Consultant",
+  "category": "K",
+  "text": "A \"platform whisperer\" guarantees recovery for 1S. Reviews are… curated.",
+  "stages": [
+   2,
+   3,
+   4
+  ],
+  "industries": "all",
+  "weight": 1,
+  "chain": {
+   "id": "K-MKT",
+   "step": 2
+  },
+  "choices": [
+   {
+    "label": "Pay",
+    "known": "Cash −1S",
+    "branches": [
+     {
+      "weight": 30,
+      "outcome": {
+       "effects": [
+        {
+         "stat": "cash_S",
+         "amount": -1
+        }
+       ],
+       "special": [
+        "reach_recover"
+       ],
+       "followupId": "K-MKT-3",
+       "followupDelayYears": 0
+      }
+     },
+     {
+      "weight": 70,
+      "outcome": {
+       "effects": [
+        {
+         "stat": "cash_S",
+         "amount": -1
+        }
+       ],
+       "narration": "snake oil",
+       "followupId": "K-MKT-3",
+       "followupDelayYears": 0
+      }
+     }
+    ]
+   },
+   {
+    "label": "DIY with the team",
+    "known": "En −6",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "energy",
+       "amount": -6
+      }
+     ],
+     "special": [
+      "reach_recover:half"
+     ],
+     "followupId": "K-MKT-3",
+     "followupDelayYears": 0
+    }
+   },
+   {
+    "label": "you don't need them",
+    "requiresFlag": "own_audience",
+    "known": "Resp +2",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "respect",
+       "amount": 2
+      }
+     ],
+     "special": [
+      "narration_flex"
+     ],
+     "followupId": "K-MKT-3",
+     "followupDelayYears": 0
+    }
+   }
+  ]
+ },
+ {
+  "id": "K-MKT-3",
+  "title": "The Lesson",
+  "category": "K",
+  "text": "Traffic stabilizes lower. The board (or your gut) asks: what did we learn?",
+  "stages": [
+   2,
+   3,
+   4
+  ],
+  "industries": "all",
+  "weight": 1,
+  "chain": {
+   "id": "K-MKT",
+   "step": 3
+  },
+  "choices": [
+   {
+    "label": "Institutionalize: no channel >30% of traffic",
+    "outcome": {
+     "special": [
+      "resilience_rule:algorithm_events:-50"
+     ]
+    }
+   },
+   {
+    "label": "Ride the next platform hard",
+    "known": "Rev +4%",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "rev_pct",
+       "amount": 4,
+       "durationQ": 2
+      }
+     ],
+     "special": [
+      "arm_chain:K-MKT"
+     ]
+    }
+   },
+   {
+    "label": "Blame the platform publicly",
+    "known": "Brand −1",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "brand",
+       "amount": -1
+      }
+     ],
+     "special": [
+      "platform_relations_minus",
+      "lose_event:feature_access"
+     ],
+     "narration": "catharsis"
+    }
+   }
+  ]
+ }
+]

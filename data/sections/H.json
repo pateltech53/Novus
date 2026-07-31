@@ -1,0 +1,563 @@
+[
+  {
+    "id": "E-LGL-001",
+    "title": "The Cease & Desist",
+    "category": "LGL",
+    "text": "A big company claims your name is too close to theirs. It isn't, really.",
+    "stages": [1, 2, 3],
+    "industries": "all",
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Fight it",
+        "known": "Cash −1.5S",
+        "branches": [
+          {
+            "weight": 75,
+            "outcome": {
+              "effects": [
+                { "stat": "cash_S", "amount": -1.5 },
+                { "stat": "brand", "amount": 3 }
+              ],
+              "narration": "David story"
+            }
+          },
+          {
+            "weight": 25,
+            "outcome": {
+              "effects": [{ "stat": "cash_S", "amount": -1.5 }],
+              "special": ["forced_rename"],
+              "narration": "forced rename"
+            }
+          }
+        ]
+      },
+      {
+        "label": "Rename preemptively",
+        "known": "Cash −0.5S · Brand −3 (1Q)",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -0.5 },
+            { "stat": "brand", "amount": -3, "durationQ": 1 }
+          ],
+          "narration": "fresh start"
+        }
+      },
+      {
+        "label": "Settle: tiny tweak to logo",
+        "known": "Cash −0.2S",
+        "outcome": {
+          "effects": [{ "stat": "cash_S", "amount": -0.2 }],
+          "narration": "nobody notices"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-LGL-002",
+    "title": "The Patent Troll",
+    "category": "LGL",
+    "text": "A shell company with a vague patent demands 2S \"licensing.\"",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Pay the toll",
+        "known": "Cash −2S",
+        "outcome": {
+          "effects": [{ "stat": "cash_S", "amount": -2 }],
+          "setFlags": ["troll_marked"],
+          "special": ["troll_returns:d"],
+          "narration": "they return bigger"
+        }
+      },
+      {
+        "label": "Fight",
+        "known": "Cash −3S",
+        "branches": [
+          {
+            "weight": 80,
+            "outcome": {
+              "effects": [
+                { "stat": "cash_S", "amount": -3 },
+                { "stat": "respect", "amount": 2 }
+              ],
+              "special": ["immunity:patent_troll"]
+            }
+          },
+          {
+            "weight": 20,
+            "outcome": {
+              "effects": [{ "stat": "cash_S", "amount": -3 }]
+            }
+          }
+        ]
+      },
+      {
+        "label": "Rally the industry, share defense costs",
+        "known": "Cash −1S · Brand +3",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -1 },
+            { "stat": "brand", "amount": 3 }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-LGL-003",
+    "title": "Regulation Drops",
+    "category": "LGL",
+    "text": "New rules hit your category. Compliance costs 3S; enforcement starts next year.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Comply early, market it",
+        "known": "Cash −3S · Brand +4",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -3 },
+            { "stat": "brand", "amount": 4 }
+          ],
+          "setFlags": ["compliant"],
+          "special": ["autopass:inspection"]
+        }
+      },
+      {
+        "label": "Comply at deadline",
+        "outcome": {
+          "effects": [{ "stat": "cash_S", "amount": -3, "delayed": true }],
+          "narration": "no glow"
+        }
+      },
+      {
+        "label": "Lobby + delay",
+        "known": "Cash −1S",
+        "branches": [
+          {
+            "weight": 40,
+            "outcome": {
+              "effects": [{ "stat": "cash_S", "amount": -1 }],
+              "special": ["rules_soften"],
+              "narration": "rules soften"
+            }
+          },
+          {
+            "weight": 60,
+            "outcome": {
+              "effects": [
+                { "stat": "cash_S", "amount": -1 },
+                { "stat": "risk", "amount": 1 }
+              ],
+              "narration": "wasted"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "E-LGL-004",
+    "title": "The Handshake Deal",
+    "category": "LGL",
+    "text": "A partner wants to skip contracts. \"We're friends.\"",
+    "stages": [1, 2],
+    "industries": "all",
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Insist on paper",
+        "outcome": {
+          "special": ["immunity:betrayal"],
+          "narration": "friction now"
+        }
+      },
+      {
+        "label": "Handshake",
+        "outcome": {
+          "setFlags": ["handshake_deal"],
+          "special": ["event_odds:E-LGL-005:30"],
+          "narration": "speed"
+        }
+      },
+      {
+        "label": "Simple one-pager compromise",
+        "outcome": {
+          "narration": "mostly safe, still friendly"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-LGL-005",
+    "title": "Betrayed",
+    "category": "LGL",
+    "text": "The handshake partner \"remembers the terms differently.\" Their memory favors them by 3S.",
+    "stages": [2, 3],
+    "industries": "all",
+    "weight": 5,
+    "requiresFlags": ["handshake_deal"],
+    "choices": [
+      {
+        "label": "Sue",
+        "known": "Cash −1S",
+        "branches": [
+          {
+            "weight": 50,
+            "outcome": {
+              "effects": [{ "stat": "cash_S", "amount": -1 }],
+              "narration": "relationship dead"
+            }
+          },
+          {
+            "weight": 50,
+            "outcome": {
+              "effects": [
+                { "stat": "cash_S", "amount": -1 },
+                { "stat": "cash_S", "amount": -3 }
+              ],
+              "narration": "relationship dead"
+            }
+          }
+        ]
+      },
+      {
+        "label": "Renegotiate",
+        "perform": {
+          "type": "nego",
+          "pass": {
+            "effects": [{ "stat": "cash_S", "amount": -1 }],
+            "narration": "keep partner"
+          },
+          "fail": {
+            "effects": [{ "stat": "cash_S", "amount": -3 }],
+            "narration": "keep dignity"
+          }
+        }
+      },
+      {
+        "label": "Eat it, cut ties, tell the story",
+        "known": "Cash −3S · Brand +2",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -3 },
+            { "stat": "brand", "amount": 2 }
+          ],
+          "setFlags": ["hard_calls"],
+          "narration": "warning others"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-LGL-006",
+    "title": "GDPR-ish Letter",
+    "category": "LGL",
+    "text": "A data-protection authority asks how you store customer data. You ask your engineer. Your engineer goes quiet.",
+    "stages": [2, 3, 4, 5],
+    "industries": "all",
+    "weight": 5,
+    "weightMods": [{ "industries": ["TECH", "ECOM", "EDTECH"], "mult": 2 }],
+    "choices": [
+      {
+        "label": "Full audit + fix",
+        "known": "Cash −1.5S",
+        "outcome": {
+          "effects": [{ "stat": "cash_S", "amount": -1.5 }],
+          "setFlags": ["privacy_first"]
+        }
+      },
+      {
+        "label": "Answer optimistically",
+        "branches": [
+          {
+            "weight": 65,
+            "outcome": {}
+          },
+          {
+            "weight": 35,
+            "outcome": {
+              "effects": [
+                { "stat": "cash_S", "amount": -4 },
+                { "stat": "brand", "amount": -5 }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "label": "the letter is about the data you sold",
+        "requiresFlag": "data_loose",
+        "known": "Cash −5S · Brand −8",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -5 },
+            { "stat": "brand", "amount": -8 }
+          ],
+          "clearFlags": ["data_loose"],
+          "special": ["clear_flag_hard:data_loose"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-LGL-007",
+    "title": "The NDA Job Interview",
+    "category": "LGL",
+    "text": "A candidate from a rival offers \"everything I know\" in the interview.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 4,
+    "choices": [
+      {
+        "label": "Stop them, hire on merit only",
+        "known": "Resp +3",
+        "outcome": {
+          "effects": [{ "stat": "respect", "amount": 3 }],
+          "setFlags": ["clean_hands"]
+        }
+      },
+      {
+        "label": "Listen, don't hire",
+        "outcome": {
+          "effects": [{ "stat": "risk", "amount": 1 }],
+          "special": ["rival_intel:1", "karma:-1"]
+        }
+      },
+      {
+        "label": "Hire them AND use it",
+        "known": "Qual +3",
+        "outcome": {
+          "effects": [
+            { "stat": "qual", "amount": 3 },
+            { "stat": "risk", "amount": 3 }
+          ],
+          "special": ["event_odds:lawsuit:40"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-LGL-008",
+    "title": "Insurance Reckoning",
+    "category": "LGL",
+    "text": "Your broker upsells: full coverage costs 0.4S/yr more.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Full coverage",
+        "known": "Cash −0.4S/yr",
+        "outcome": {
+          "effects": [{ "stat": "cash_S", "amount": -0.4, "perYear": true }],
+          "setFlags": ["insured"],
+          "special": ["insurance_halves_damage"]
+        }
+      },
+      {
+        "label": "Basic only",
+        "outcome": {
+          "narration": "cheaper, pray"
+        }
+      },
+      {
+        "label": "they investigated your old claim",
+        "requiresFlag": "insurance_fraud",
+        "outcome": {
+          "effects": [{ "stat": "risk", "amount": 2 }],
+          "clearFlags": ["insured"],
+          "special": ["uninsurable:2"],
+          "narration": "policy canceled"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-LGL-009",
+    "title": "The Age Rating Fight",
+    "category": "LGL",
+    "text": "A ratings board challenges your product's age classification.",
+    "stages": [2, 3, 4],
+    "industries": ["GAMING", "CONTENT", "TOYS"],
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Comply, soften content",
+        "known": "Rev +3% · CSAT −2",
+        "outcome": {
+          "effects": [
+            { "stat": "rev_pct", "amount": 3, "durationQ": 2 },
+            { "stat": "csat", "amount": -2 }
+          ]
+        }
+      },
+      {
+        "label": "Fight with lawyers",
+        "known": "Cash −1S",
+        "branches": [
+          {
+            "weight": 60,
+            "outcome": {
+              "effects": [
+                { "stat": "cash_S", "amount": -1 },
+                { "stat": "brand", "amount": 3 }
+              ],
+              "narration": "edge intact"
+            }
+          },
+          {
+            "weight": 40,
+            "outcome": {
+              "effects": [{ "stat": "cash_S", "amount": -1 }]
+            }
+          }
+        ]
+      },
+      {
+        "label": "Two versions",
+        "outcome": {
+          "effects": [{ "stat": "burn_S_mo", "amount": 0.1 }],
+          "narration": "both markets"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-LGL-010",
+    "title": "Whistleblower Email",
+    "category": "LGL",
+    "text": "An employee emails you directly: a manager has been falsifying safety/quality reports.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 4,
+    "once": true,
+    "choices": [
+      {
+        "label": "Investigate openly, protect the whistleblower",
+        "known": "Mor +6 · Qual −2 (2Q) · Resp +3",
+        "outcome": {
+          "effects": [
+            { "stat": "morale", "amount": 6 },
+            { "stat": "qual", "amount": -2, "durationQ": 2 },
+            { "stat": "respect", "amount": 3 }
+          ],
+          "setFlags": ["clean_hands"],
+          "narration": "truth surfaces"
+        }
+      },
+      {
+        "label": "Quietly fix, quietly bury",
+        "outcome": {
+          "effects": [{ "stat": "risk", "amount": 2 }],
+          "setFlags": ["coverup"],
+          "special": ["autopsy_magnet"]
+        }
+      },
+      {
+        "label": "Shoot the messenger",
+        "known": "Mor −12",
+        "outcome": {
+          "effects": [{ "stat": "morale", "amount": -12 }],
+          "setFlags": ["bad_boss"],
+          "special": ["event_odds:expose:50"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-LGL-011",
+    "title": "Import Papers",
+    "category": "LGL",
+    "text": "Customs holds your shipment over a paperwork technicality. A \"broker\" offers to make it disappear for 0.3S.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Pay the broker",
+        "known": "Cash −0.3S",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -0.3 },
+            { "stat": "risk", "amount": 1 }
+          ],
+          "setFlags": ["grey_customs"],
+          "special": ["repeat_demands:d"],
+          "narration": "shipment freed"
+        }
+      },
+      {
+        "label": "Do it properly, 3 weeks",
+        "known": "Rev −4% (1Q)",
+        "outcome": {
+          "effects": [{ "stat": "rev_pct", "amount": -4, "durationQ": 1 }],
+          "narration": "clean"
+        }
+      },
+      {
+        "label": "Restructure supply to avoid the route",
+        "known": "Cash −1S",
+        "outcome": {
+          "effects": [{ "stat": "cash_S", "amount": -1 }],
+          "special": ["immunity:customs"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-LGL-012",
+    "title": "Terms of Service Nobody Read",
+    "category": "LGL",
+    "text": "A lawyer flags that your own ToS accidentally promises lifetime free support.",
+    "stages": [2, 3, 4, 5],
+    "industries": "all",
+    "weight": 4,
+    "choices": [
+      {
+        "label": "Honor it for existing users, fix for new",
+        "known": "Burn +0.1S/mo · Brand +4",
+        "outcome": {
+          "effects": [
+            { "stat": "burn_S_mo", "amount": 0.1 },
+            { "stat": "brand", "amount": 4 }
+          ],
+          "setFlags": ["generous"]
+        }
+      },
+      {
+        "label": "Silent retroactive edit",
+        "branches": [
+          {
+            "weight": 25,
+            "outcome": {
+              "effects": [
+                { "stat": "brand", "amount": -7 },
+                { "stat": "risk", "amount": 1 }
+              ]
+            }
+          },
+          {
+            "weight": 75,
+            "outcome": {}
+          }
+        ]
+      },
+      {
+        "label": "Public oops + gift to affected users",
+        "known": "Cash −0.5S · Brand +3 · CSAT +3",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -0.5 },
+            { "stat": "brand", "amount": 3 },
+            { "stat": "csat", "amount": 3 }
+          ]
+        }
+      }
+    ]
+  }
+]

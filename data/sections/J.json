@@ -1,0 +1,523 @@
+[
+  {
+    "id": "E-OPP-001",
+    "title": "The Pop-Up Slot",
+    "category": "OPP",
+    "text": "A prime location offers a 2-week pop-up, half price, starting Friday.",
+    "stages": [1, 2],
+    "industries": "all",
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Scramble and take it",
+        "known": "En −8 · Cash −1S · Rev +7% · Brand +4",
+        "outcome": {
+          "effects": [
+            { "stat": "energy", "amount": -8 },
+            { "stat": "cash_S", "amount": -1 },
+            { "stat": "rev_pct", "amount": 7, "durationQ": 2 },
+            { "stat": "brand", "amount": 4 }
+          ],
+          "special": ["brand_scope:local"]
+        }
+      },
+      {
+        "label": "Pass, not ready",
+        "outcome": {}
+      },
+      {
+        "label": "Split it with a friendly brand",
+        "known": "Cash −0.5S · Rev +4%",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -0.5 },
+            { "stat": "rev_pct", "amount": 4, "durationQ": 2 }
+          ],
+          "setFlags": ["ally_brand"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-OPP-002",
+    "title": "Celebrity Sighting",
+    "category": "OPP",
+    "text": "A celebrity is photographed using your product. Unpaid. Unaware.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 4,
+    "once": true,
+    "choices": [
+      {
+        "label": "Repost respectfully, no claims",
+        "known": "Brand +7",
+        "outcome": {
+          "effects": [{ "stat": "brand", "amount": 7 }]
+        }
+      },
+      {
+        "label": "Rush an ad implying endorsement",
+        "known": "Brand +10",
+        "outcome": {
+          "effects": [
+            { "stat": "brand", "amount": 10 },
+            { "stat": "cash_S", "amount": -2, "afterQ": 2 },
+            { "stat": "brand", "amount": -6, "afterQ": 2 },
+            { "stat": "risk", "amount": 1, "afterQ": 2 }
+          ],
+          "narration": "legal letter"
+        }
+      },
+      {
+        "label": "Send a thank-you package",
+        "branches": [
+          {
+            "weight": 30,
+            "outcome": {
+              "effects": [{ "stat": "brand", "amount": 12 }],
+              "narration": "they post it"
+            }
+          },
+          {
+            "weight": 70,
+            "outcome": {
+              "narration": "nothing, class kept"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "E-OPP-003",
+    "title": "The Accelerator Letter",
+    "category": "OPP",
+    "text": "A famous accelerator accepts you: 7% equity for 6S + network.",
+    "stages": [1, 2],
+    "industries": "all",
+    "weight": 5,
+    "once": true,
+    "choices": [
+      {
+        "label": "Take it",
+        "known": "Cash +6S · dilution 7%",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": 6 },
+            { "stat": "dilution_pct", "amount": 7 },
+            { "stat": "invsent", "amount": 1 }
+          ],
+          "setFlags": ["accelerated"],
+          "special": ["bonus_events_yr:OPP:2"]
+        }
+      },
+      {
+        "label": "Decline, cite terms",
+        "known": "Resp +2",
+        "outcome": {
+          "effects": [{ "stat": "respect", "amount": 2 }],
+          "narration": "independence"
+        }
+      },
+      {
+        "label": "Negotiate to 5%",
+        "perform": {
+          "type": "nego",
+          "pass": {
+            "effects": [
+              { "stat": "cash_S", "amount": 6 },
+              { "stat": "dilution_pct", "amount": 5 },
+              { "stat": "invsent", "amount": 1 }
+            ],
+            "setFlags": ["accelerated"],
+            "special": ["bonus_events_yr:OPP:2"],
+            "narration": "better deal"
+          },
+          "fail": {
+            "narration": "offer rescinded (they hate hagglers this early)"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-OPP-004",
+    "title": "The TV Pitch Show Call",
+    "category": "OPP",
+    "text": "A real pitch show wants you on air. Millions watching. Editors control the cut.",
+    "stages": [2, 3],
+    "industries": "all",
+    "weight": 4,
+    "once": true,
+    "performOnly": {
+      "type": "pitch",
+      "optional": true,
+      "pass": {
+        "effects": [
+          { "stat": "brand", "amount": 12 },
+          { "stat": "rev_pct", "amount": 15, "durationQ": 1 }
+        ],
+        "setFlags": ["famous"],
+        "special": ["rubric:televised_presence_2x"]
+      },
+      "fail": {
+        "effects": [
+          { "stat": "brand", "amount": -5 },
+          { "stat": "morale", "amount": -2 },
+          { "stat": "respect", "amount": 1 }
+        ],
+        "narration": "the edit is unkind"
+      }
+    }
+  },
+  {
+    "id": "E-OPP-005",
+    "title": "Government Contract Maze",
+    "category": "OPP",
+    "text": "A public tender fits you perfectly. Paperwork is a part-time job; payment terms are 120 days.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Bid properly",
+        "known": "En −6",
+        "branches": [
+          {
+            "weight": 40,
+            "outcome": {
+              "effects": [
+                { "stat": "energy", "amount": -6 },
+                { "stat": "rev_pct", "amount": 20, "perYear": true }
+              ],
+              "setFlags": ["gov_contract"]
+            }
+          },
+          {
+            "weight": 60,
+            "outcome": {
+              "effects": [{ "stat": "energy", "amount": -6 }]
+            }
+          }
+        ]
+      },
+      {
+        "label": "Partner with an incumbent who knows the maze",
+        "branches": [
+          {
+            "weight": 70,
+            "outcome": {
+              "effects": [
+                { "stat": "rev_pct", "amount": 10, "durationQ": 2 },
+                { "stat": "gm_pt", "amount": -2 }
+              ]
+            }
+          },
+          {
+            "weight": 30,
+            "outcome": {}
+          }
+        ]
+      },
+      {
+        "label": "Skip",
+        "outcome": {
+          "narration": "private-sector purity"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-OPP-006",
+    "title": "The Franchise Inquiry",
+    "category": "OPP",
+    "text": "Strangers keep asking to open \"your\" store/product line in their city.",
+    "stages": [3, 4],
+    "industries": "all",
+    "weight": 5,
+    "rookieTerms": ["franchise"],
+    "choices": [
+      {
+        "label": "Build a real franchise program",
+        "known": "Cash −3S",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -3 },
+            { "stat": "rev_pct", "amount": 6, "perYear": true, "afterQ": 2 }
+          ],
+          "special": ["rev_scaling:per_region", "unlock:management_events"]
+        }
+      },
+      {
+        "label": "One pilot partner first",
+        "outcome": {
+          "narration": "slow, clean data"
+        }
+      },
+      {
+        "label": "Never franchise",
+        "outcome": {
+          "setFlags": ["quality_first"],
+          "narration": "quality control absolute"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-OPP-007",
+    "title": "Conference Keynote Slot",
+    "category": "OPP",
+    "text": "The biggest industry conference offers you a keynote — in three weeks.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 4,
+    "choices": [
+      {
+        "label": "Take the keynote",
+        "perform": {
+          "type": "pitch",
+          "pass": {
+            "effects": [
+              { "stat": "brand", "amount": 8 },
+              { "stat": "respect", "amount": 2 }
+            ],
+            "special": ["arm_events:partnership:2", "rubric:thought_leadership"]
+          },
+          "fail": {
+            "effects": [{ "stat": "brand", "amount": -3 }],
+            "narration": "clip lives forever"
+          }
+        }
+      },
+      {
+        "label": "Send the CMO",
+        "known": "Brand +3",
+        "outcome": {
+          "effects": [
+            { "stat": "brand", "amount": 3 },
+            { "stat": "teamloy", "amount": 1 }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-OPP-008",
+    "title": "The Adjacent Market Door",
+    "category": "OPP",
+    "text": "Your product almost works for a neighboring market. \"Almost\" costs 2S.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Enter",
+        "known": "Cash −2S",
+        "branches": [
+          {
+            "weight": 55,
+            "outcome": {
+              "effects": [
+                { "stat": "cash_S", "amount": -2 },
+                { "stat": "rev_pct", "amount": 12, "perYear": true }
+              ]
+            }
+          },
+          {
+            "weight": 45,
+            "outcome": {
+              "effects": [
+                { "stat": "cash_S", "amount": -2 },
+                { "stat": "qual", "amount": -3 }
+              ],
+              "narration": "distraction"
+            }
+          }
+        ]
+      },
+      {
+        "label": "License a local player to try it",
+        "known": "Rev +3%",
+        "outcome": {
+          "effects": [{ "stat": "rev_pct", "amount": 3, "durationQ": 2 }],
+          "narration": "no risk, less upside"
+        }
+      },
+      {
+        "label": "Focus",
+        "known": "Resp +1",
+        "outcome": {
+          "effects": [{ "stat": "respect", "amount": 1 }],
+          "narration": "the shark respects \"no\""
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-OPP-009",
+    "title": "Collab Drop Offer",
+    "category": "OPP",
+    "text": "A beloved brand proposes a limited collab drop.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 5,
+    "requiresFlags": ["ally_brand", "viral_fame"],
+    "reqAnyOf": true,
+    "choices": [
+      {
+        "label": "Yes, split 50/50",
+        "known": "Rev +8% (1Q) · Brand +5",
+        "outcome": {
+          "effects": [
+            { "stat": "rev_pct", "amount": 8, "durationQ": 1 },
+            { "stat": "brand", "amount": 5 }
+          ],
+          "special": ["event_odds:sellout_risk:20"]
+        }
+      },
+      {
+        "label": "Yes, but your terms",
+        "perform": {
+          "type": "nego",
+          "pass": {
+            "effects": [
+              { "stat": "rev_pct", "amount": 10, "durationQ": 2 },
+              { "stat": "brand", "amount": 5 }
+            ]
+          },
+          "fail": {
+            "narration": "collab dies, mild public sulk"
+          }
+        }
+      },
+      {
+        "label": "Decline",
+        "outcome": {
+          "narration": "brand purity"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-OPP-010",
+    "title": "The University Lab Call",
+    "category": "OPP",
+    "text": "A university lab wants to co-develop next-gen tech with you. Slow, cheap, credible.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 4,
+    "choices": [
+      {
+        "label": "Fund the lab",
+        "known": "Cash −1S/yr · Qual +2/yr",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -1, "perYear": true },
+            { "stat": "qual", "amount": 2, "perYear": true }
+          ],
+          "setFlags": ["research_ties"],
+          "special": ["compounding:qual", "talent_pipeline"]
+        }
+      },
+      {
+        "label": "One-off project",
+        "known": "Qual +3",
+        "outcome": {
+          "effects": [{ "stat": "qual", "amount": 3 }]
+        }
+      },
+      {
+        "label": "Pass",
+        "outcome": {
+          "narration": "speed over depth"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-OPP-011",
+    "title": "Buy the Building",
+    "category": "OPP",
+    "text": "Your landlord is selling. You could own your HQ.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 4,
+    "excludesFlags": ["rent_locked"],
+    "choices": [
+      {
+        "label": "Buy",
+        "known": "Cash −8S · Val +3%",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -8 },
+            { "stat": "val_pct", "amount": 3 }
+          ],
+          "setFlags": ["own_building"],
+          "special": [
+            "alt_funding:debt_taken",
+            "burn_minus_rent",
+            "unlock:property_events"
+          ]
+        }
+      },
+      {
+        "label": "Negotiate purchase option, decide next yr",
+        "perform": {
+          "type": "nego",
+          "pass": {
+            "special": ["purchase_option_locked"],
+            "narration": "locked price"
+          },
+          "fail": {
+            "narration": "sold to someone with plans"
+          }
+        }
+      },
+      {
+        "label": "Let it go",
+        "outcome": {
+          "special": ["arm_event:new_landlord:1yr"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-OPP-012",
+    "title": "The Second Product Temptation",
+    "category": "OPP",
+    "text": "The team has a full concept for product #2. The first one isn't finished winning.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Greenlight",
+        "known": "Qual −2",
+        "outcome": {
+          "effects": [
+            { "stat": "rev_pct", "amount": 6, "durationQ": 2, "delayed": true },
+            { "stat": "qual", "amount": -2 }
+          ],
+          "setFlags": ["portfolio"],
+          "narration": "focus tax"
+        }
+      },
+      {
+        "label": "Kill it kindly, bank the idea",
+        "known": "Mor −2",
+        "outcome": {
+          "effects": [{ "stat": "morale", "amount": -2 }],
+          "setFlags": ["focus"],
+          "special": ["arm_event:idea_bank"]
+        }
+      },
+      {
+        "label": "10% time skunkworks",
+        "outcome": {
+          "special": ["event_odds:breakthrough:25:d"],
+          "narration": "slow burn"
+        }
+      }
+    ]
+  }
+]
