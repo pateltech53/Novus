@@ -1,9 +1,23 @@
 import type { LegacyState, RunState } from "./types";
 import { DEFAULT_AVATAR } from "./avatar";
+import { queueLegacy, queuePrefs, queueRun } from "@/lib/cloud/sync";
 
 /**
- * Persistence adapter. localStorage now; the same surface maps to Supabase
- * tables in P5 (runs, legacy, profiles) without touching callers.
+ * Persistence adapter. localStorage AND Supabase, in that order.
+ *
+ * The six functions below kept their synchronous signatures through the
+ * Supabase migration, exactly as this file promised they would. That is not
+ * cosmetic: callers read them during render (AccountGate's `destination()`,
+ * ClosetScreen's lazy `useState`), and there is no synchronous fetch.
+ *
+ * So localStorage stays the cache the game reads, and every write is mirrored
+ * to the server on a debounce by lib/cloud/sync.ts. If Supabase is not
+ * configured, or the network is gone, the queue calls are no-ops and this file
+ * behaves precisely as it did before — a cloud backup may fail; a save may not.
+ *
+ * One field is deliberately never mirrored: `Profile.playerAge`. It is local
+ * age-gating, and shipping it would turn a device preference into stored data
+ * about a child (docs/LEADERBOARD.md §9.4).
  */
 
 const KEYS = {
@@ -59,11 +73,15 @@ export function loadRun(): RunState | null {
 }
 
 export function saveRun(state: RunState) {
+  queueRun(state);
   if (!canStore()) return;
   localStorage.setItem(KEYS.run, JSON.stringify(state));
 }
 
 export function clearRun() {
+  // null is an instruction, not an absence: it deletes the cloud row too.
+  // Without this a buried company would resurrect on the next device.
+  queueRun(null);
   if (!canStore()) return;
   localStorage.removeItem(KEYS.run);
 }
@@ -95,6 +113,7 @@ export function loadLegacy(): LegacyState {
 }
 
 export function saveLegacy(legacy: LegacyState) {
+  queueLegacy(legacy);
   if (!canStore()) return;
   localStorage.setItem(KEYS.legacy, JSON.stringify(legacy));
 }
@@ -110,6 +129,43 @@ export function loadProfile(): Profile | null {
 }
 
 export function saveProfile(profile: Profile) {
+  // playerAge is not in this payload, and must not be added to it.
+  queuePrefs({
+    rookieMode: profile.rookieMode,
+    onboarded: profile.onboarded,
+    micCalibration: profile.micCalibration,
+    founderName: profile.founderName,
+  });
   if (!canStore()) return;
   localStorage.setItem(KEYS.profile, JSON.stringify(profile));
+}
+
+/**
+ * Writes a cloud copy into localStorage without echoing it straight back to
+ * the server. Used once on boot by the hydration in GameProvider; going
+ * through saveRun/saveLegacy/saveProfile instead would queue a push of the
+ * very bytes we just pulled.
+ */
+export function adoptFromCloud(data: {
+  run?: RunState | null;
+  legacy?: LegacyState | null;
+  prefs?: {
+    rookieMode: boolean;
+    onboarded: boolean;
+    micCalibration: number | null;
+    founderName: string;
+  } | null;
+}) {
+  if (!canStore()) return;
+  if (data.run) localStorage.setItem(KEYS.run, JSON.stringify(migrate(data.run)));
+  if (data.legacy) localStorage.setItem(KEYS.legacy, JSON.stringify(data.legacy));
+  if (data.prefs) {
+    // playerAge never left this device, so it is restored from whatever is
+    // already here rather than from the server, which has never seen it.
+    const local = loadProfile();
+    localStorage.setItem(
+      KEYS.profile,
+      JSON.stringify({ ...data.prefs, playerAge: local?.playerAge ?? null } satisfies Profile),
+    );
+  }
 }
