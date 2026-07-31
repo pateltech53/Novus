@@ -1,0 +1,203 @@
+{
+  "_readme": [
+    "Tier-1 reskins for the highest-weight MKT, OPS and RIV events that ship as",
+    "industries: \"all\" and carried no rewrite in industry/reskins.json.",
+    "",
+    "Same contract as that file: keyed by event id, then by industry code, and each",
+    "string replaces GameEvent.text wholesale. Every rule in reskins.json's _readme",
+    "binds here unchanged — the situation means the same thing in all twelve, the",
+    "choices are shared and untouched, and every figure the choices lean on survives",
+    "verbatim (E-RIV-002's 20%, E-RIV-003's 40%, E-OPS-014's −30% and nine humans,",
+    "E-MKT-001's 2M views, E-OPS-013's half price).",
+    "",
+    "DELIBERATELY ABSENT, though they outweigh two events that are here:",
+    "  E-MKT-002 — the budget is three 2S doors and the choice labels are the doors.",
+    "  E-MKT-005 — the 0.5S ask is repeated in all three known chips.",
+    "Reskinning either means restating its number in twelve sentences that then can",
+    "never be revised independently of the choices. Same call the base file made.",
+    "",
+    "WHAT EACH SET IS FOR: the mechanic is fixed, so the reskin is the whole lesson.",
+    "E-OPS-013's counterfeits teach ingredient safety in PET, chargebacks in GAMING",
+    "and certification fraud in SUSTAIN off one identical set of three choices."
+  ],
+
+  "E-MKT-001": {
+    "FOOD": "A customer films themselves putting your sauce on ice cream. It works. 2M views overnight.",
+    "ECOM": "Someone posts your packaging rebuilt into a cat bed. 2M views overnight, and none of them mention the product.",
+    "TECH": "A customer posts your scheduling tool running a wedding. You did not build it for that. 2M views overnight.",
+    "CONTENT": "Ninety seconds of yours, cut out of context, is on every feed. 2M views overnight.",
+    "FASHION": "Someone wears your jacket backwards on purpose. 2M views overnight, and the comments agree it is better that way.",
+    "GAMING": "A player finds a way to break your physics and posts it. 2M views overnight, all of them laughing.",
+    "FITNESS": "A member posts themselves using your rig for something it was not designed for. 2M views overnight, and nobody in the video is warmed up.",
+    "BEAUTY": "Someone uses your primer as a nail base and posts the result. 2M views overnight, and it is a better ad than your ads.",
+    "EDTECH": "A class films themselves using your app to run a mock trial you never wrote. 2M views overnight.",
+    "SUSTAIN": "Someone posts your refill pouch surviving a week of camping as a water carrier. 2M views overnight.",
+    "TOYS": "A video of adults playing your children's game, competitively, at 1am. 2M views overnight.",
+    "PET": "A video of a dog opening your tub by itself. 2M views overnight, and half the comments call it a design flaw."
+  },
+
+  "E-MKT-006": {
+    "FOOD": "Nobody walks in without a voucher anymore. Tuesday at full price is empty.",
+    "ECOM": "Carts sit loaded until the next promo code drops. Full-price weeks are dead.",
+    "TECH": "Every deal now closes in the last week of the quarter, discounted. Full-price renewals are dead.",
+    "CONTENT": "Nobody joins the membership except during a launch sale. The weeks between are dead.",
+    "FASHION": "The season sells through at markdown or it does not sell through. Full-price weeks are dead.",
+    "GAMING": "Nobody buys at launch price anymore. They add it to a wishlist and wait for the sale.",
+    "FITNESS": "Nobody signs up outside January and the free-month offer. Full-price months are dead.",
+    "BEAUTY": "Customers stockpile during the sale and buy nothing between. Full-price weeks are dead.",
+    "EDTECH": "Districts have learned to sign at the end of the budget year, at a discount. Full-price terms are dead.",
+    "SUSTAIN": "Customers wait for the promo, then buy three at once and store them. Full-price weeks are dead.",
+    "TOYS": "Stockists only reorder on promotional terms now. Full-price weeks are dead.",
+    "PET": "Subscribers cancel, take the win-back offer, and cancel again. Full-price months are dead."
+  },
+
+  "E-OPS-002": {
+    "FOOD": "Your grower calls you first: the best of the harvest, at last year's price — \"for sticking with us.\"",
+    "ECOM": "Your wholesaler holds back the good half of the container for you, at last year's price — \"for sticking with us.\"",
+    "TECH": "Your vendor reserves you capacity on the new hardware at the old committed rate — \"for sticking with us.\"",
+    "CONTENT": "The rental house holds the good camera package for your shoot at last year's rate — \"for sticking with us.\"",
+    "FASHION": "The mill offers you first cut of the good wool at last season's price — \"for sticking with us.\"",
+    "GAMING": "Your outsourcing partner offers their senior team's next window at the old rate — \"for sticking with us.\"",
+    "FITNESS": "Your supplier offers the commercial-grade rig at the light-use price — \"for sticking with us.\"",
+    "BEAUTY": "Your lab offers the high-grade active at last year's price, before anyone else is shown it — \"for sticking with us.\"",
+    "EDTECH": "Your licensor offers the premium library at the old per-seat rate — \"for sticking with us.\"",
+    "SUSTAIN": "Your supplier holds back the cleanest feedstock for you at last year's price — \"for sticking with us.\"",
+    "TOYS": "Your factory offers the better resin at the old per-unit price — \"for sticking with us.\"",
+    "PET": "Your ingredient supplier holds the human-grade protein for you at last year's price — \"for sticking with us.\""
+  },
+
+  "E-OPS-006": {
+    "FOOD": "A journalist publishes the conditions inside the factory that packs for you. Your name is in paragraph two, next to the phrase \"family recipe.\"",
+    "ECOM": "A journalist publishes the conditions inside the factory behind your bestseller. Your name is in paragraph two, with your star rating.",
+    "TECH": "A journalist publishes the conditions inside the factory that assembles your hardware. Your name is in paragraph two, under a line about your keynote.",
+    "CONTENT": "A journalist publishes the conditions inside the factory printing your merch. Your name is in paragraph two, and your face is on the merch.",
+    "FASHION": "A journalist publishes the conditions inside the factory sewing your collection. Your name is in paragraph two, next to the words \"small-batch.\"",
+    "GAMING": "A journalist publishes the conditions inside the factory pressing your physical editions. Your name is in paragraph two. The collector's edition ships Friday.",
+    "FITNESS": "A journalist publishes the conditions inside the factory welding your equipment. Your name is in paragraph two, and the rig is in every photo you post.",
+    "BEAUTY": "A journalist publishes the conditions inside the factory filling your jars. Your name is in paragraph two, under the word \"clean.\"",
+    "EDTECH": "A journalist publishes the conditions inside the factory printing your workbooks. Your name is in paragraph two, and half your customers are schools.",
+    "SUSTAIN": "A journalist publishes the conditions inside the factory that makes your recycled line. Your name is in paragraph two, under the word \"ethical.\"",
+    "TOYS": "A journalist publishes the conditions inside the factory moulding your toys. Your name is in paragraph two, above a photograph of the finishing bench.",
+    "PET": "A journalist publishes the conditions inside the factory that cans your food. Your name is in paragraph two, under the phrase \"we treat them like family.\""
+  },
+
+  "E-OPS-012": {
+    "FOOD": "You over-ordered. The dry store is full and the dated stock is at the front.",
+    "ECOM": "You over-ordered. Your fulfilment center bills by the pallet-month and is happy to keep billing.",
+    "TECH": "You over-ordered the hardware. It sits in a rented unit depreciating exactly on schedule.",
+    "CONTENT": "You over-ordered merch on the strength of one good month. The garage is full of it.",
+    "FASHION": "You over-cut the season. The stockroom is full and the next drop needs the space.",
+    "GAMING": "You over-printed the physical edition. The warehouse bills monthly and the game is a year old.",
+    "FITNESS": "You over-ordered equipment for a second floor you never opened. It is in storage, insured, idle.",
+    "BEAUTY": "You over-produced. Half the batch expires before the sell-through curve reaches it.",
+    "EDTECH": "You over-printed the workbooks. The syllabus changes next term.",
+    "SUSTAIN": "You over-ordered. Storage is eating margin, and writing it off is the exact waste you sell against.",
+    "TOYS": "You over-ordered for a holiday that is now over. Storage is eating margin until the next one.",
+    "PET": "You over-ordered. The best-before dates are closer than the sell-through curve."
+  },
+
+  "E-OPS-013": {
+    "FOOD": "Jars carrying your label are in corner shops at half price. You did not make them.",
+    "ECOM": "Fakes of your bestseller sit beside your own listing, at half price, on the same page.",
+    "TECH": "Counterfeit licence keys for your product are on marketplaces, at half price.",
+    "CONTENT": "Your paid course is being resold on three sites at half price, watermark and all.",
+    "FASHION": "Fakes of your piece are on marketplaces at half price, with your logo very slightly wrong.",
+    "GAMING": "Grey-market keys for your game are everywhere at half price, most of them bought with stolen cards.",
+    "FITNESS": "Someone is selling your programme as a PDF at half price, under a name that is not yours.",
+    "BEAUTY": "Fakes of your hero product are on marketplaces at half price, and nobody knows what is in them.",
+    "EDTECH": "Copies of your course are on file-sharing sites, and a reseller is charging half price for a shared login.",
+    "SUSTAIN": "Fakes of your product are on marketplaces at half price, certification mark copied straight off your box.",
+    "TOYS": "Fakes of your bestseller are on marketplaces at half price, without the safety testing.",
+    "PET": "Fakes of your formula are on marketplaces at half price, and the ingredient panel is a photocopy of yours."
+  },
+
+  "E-OPS-014": {
+    "FOOD": "A kitchen-automation vendor promises −30% labor cost. It would replace nine humans, and three of them trained the rest.",
+    "ECOM": "A warehouse-robotics vendor promises −30% labor cost. It would replace nine humans on the pick line.",
+    "TECH": "A vendor promises −30% support cost with an automated first tier. It would replace nine humans who currently answer customers.",
+    "CONTENT": "An automated post-production vendor promises −30% cost. It would replace nine humans, and the look everyone praises is theirs.",
+    "FASHION": "An automated cutting system promises −30% labor cost. It would replace nine humans on the cutting floor.",
+    "GAMING": "A tooling vendor promises −30% art cost through generated assets. It would replace nine humans.",
+    "FITNESS": "A self-service model — app check-in, screen-led sessions — promises −30% labor cost. It would replace nine coaches.",
+    "BEAUTY": "An automated filling line promises −30% labor cost. It would replace nine humans in the fill room.",
+    "EDTECH": "An auto-marking system promises −30% labor cost. It would replace nine humans who currently read the work.",
+    "SUSTAIN": "A sorting-robotics vendor promises −30% labor cost. It would replace nine humans, and local hiring is half your story.",
+    "TOYS": "A moulding-automation vendor promises −30% labor cost. It would replace nine humans on the finishing bench.",
+    "PET": "An automated packing line promises −30% labor cost. It would replace nine humans."
+  },
+
+  "E-RIV-002": {
+    "FOOD": "Marco cuts prices 20% and puts it on a board outside, facing your door.",
+    "ECOM": "Marco cuts prices 20%, and the marketplace sorts by price.",
+    "TECH": "Marco cuts his list price 20% and offers to buy out your customers' remaining terms.",
+    "CONTENT": "Marco drops his membership price 20% and mentions it in every video.",
+    "FASHION": "Marco cuts prices 20% mid-season, before either of you has sold through.",
+    "GAMING": "Marco cuts his price 20% permanently, three weeks after your launch.",
+    "FITNESS": "Marco cuts membership 20% and waives the joining fee on top.",
+    "BEAUTY": "Marco cuts prices 20% and calls it accessibility.",
+    "EDTECH": "Marco cuts his per-seat price 20% a week before the district's budget vote.",
+    "SUSTAIN": "Marco cuts prices 20% and drops the certification that made you both expensive.",
+    "TOYS": "Marco cuts prices 20% eight weeks before the holidays.",
+    "PET": "Marco cuts prices 20% and the retailer moves him to eye level."
+  },
+
+  "E-RIV-003": {
+    "FOOD": "Marco offers your head chef a title and a 40% raise. He has been counting your covers.",
+    "ECOM": "Marco offers your ops lead a director title and a 40% raise. She knows your margin on every line.",
+    "TECH": "Marco offers your lead engineer a title bump and a 40% raise. She wrote the part nobody else understands.",
+    "CONTENT": "Marco offers your editor a producer credit and a 40% raise. The pacing everyone compliments is hers.",
+    "FASHION": "Marco offers your pattern cutter a head-of-production title and a 40% raise.",
+    "GAMING": "Marco offers your lead designer a creative-director title, a 40% raise, and a budget that ships.",
+    "FITNESS": "Marco offers your head coach a 40% raise and her name on the timetable. Half your members book by coach.",
+    "BEAUTY": "Marco offers your formulator a 40% raise and a lab of her own. She knows the hero formula by heart.",
+    "EDTECH": "Marco offers your curriculum lead a 40% raise and a bigger district to build for.",
+    "SUSTAIN": "Marco offers your materials engineer a 40% raise and a research budget she has never had here.",
+    "TOYS": "Marco offers your product designer a title and a 40% raise, six weeks before tooling locks.",
+    "PET": "Marco offers your ops lead a 40% raise and the retail relationships that come with him."
+  },
+
+  "E-RIV-005": {
+    "FOOD": "Marco fails an inspection publicly. His regulars are looking for somewhere to eat.",
+    "ECOM": "Marco's bestseller ships broken for a month. His reviews say so, and his customers are shopping.",
+    "TECH": "Marco is down two days behind a status page nobody believed. His customers are shopping.",
+    "CONTENT": "Marco is caught running a sponsor read for a product he had already returned. His audience is looking around.",
+    "FASHION": "Marco's whole drop comes apart in the wash, publicly, in photographs. His customers are shopping.",
+    "GAMING": "Marco ships a patch that eats saves. His players are refunding and looking around.",
+    "FITNESS": "Marco's chain is exposed for making cancellation nearly impossible. His members are shopping.",
+    "BEAUTY": "Marco's hero product fails its own claims in third-party testing. His customers are shopping.",
+    "EDTECH": "Marco's platform loses a term of student work. The district is taking calls again.",
+    "SUSTAIN": "Marco's green claims fail an audit in public. His customers are shopping, and embarrassed.",
+    "TOYS": "Marco recalls his bestseller over a small part. Parents are shopping and reading labels.",
+    "PET": "Marco recalls a batch that made animals ill. His owners are shopping and reading ingredient panels."
+  },
+
+  "E-RIV-007": {
+    "FOOD": "Marco's new dish is objectively good. Recipes are not protected, and copying is shameless.",
+    "ECOM": "Marco's bundle is objectively good. Copying a bundle is legal and shameless.",
+    "TECH": "Marco's new feature is objectively good. Copying it is legal and shameless.",
+    "CONTENT": "Marco's new format is objectively good. Formats are not protected, and copying is shameless.",
+    "FASHION": "Marco's silhouette is objectively good. Silhouettes are not protected, and copying is shameless.",
+    "GAMING": "Marco's new mechanic is objectively good. Mechanics are not protected, and copying is shameless.",
+    "FITNESS": "Marco's new class format is objectively good. Copying a class is legal and shameless.",
+    "BEAUTY": "Marco's new texture is objectively good. Duping it is legal and shameless.",
+    "EDTECH": "Marco's assessment model is objectively good. Copying a method is legal and shameless.",
+    "SUSTAIN": "Marco's refill system is objectively good. Copying it is legal, shameless, and better for the problem.",
+    "TOYS": "Marco's play pattern is objectively good. Play patterns are not protected, and copying is shameless.",
+    "PET": "Marco's resealable pack is objectively good. Copying packaging is legal and shameless."
+  },
+
+  "E-RIV-009": {
+    "FOOD": "On a popular podcast, Marco calls your place \"a queue for a sandwich.\"",
+    "ECOM": "On a popular podcast, Marco calls your company \"a catalogue of other people's products.\"",
+    "TECH": "On a popular podcast, Marco calls your product \"a wrapper with a pricing page.\"",
+    "CONTENT": "On a popular podcast, Marco calls your channel \"a hobby with an invoice.\"",
+    "FASHION": "On a popular podcast, Marco calls your label \"a mood board with a price tag.\"",
+    "GAMING": "On a popular podcast, Marco calls your studio \"a demo that shipped.\"",
+    "FITNESS": "On a popular podcast, Marco calls your gym \"a room with mirrors and a subscription.\"",
+    "BEAUTY": "On a popular podcast, Marco calls your range \"packaging with a serum in it.\"",
+    "EDTECH": "On a popular podcast, Marco calls your platform \"worksheets with a login.\"",
+    "SUSTAIN": "On a popular podcast, Marco calls your company \"a normal product with a leaf on it.\"",
+    "TOYS": "On a popular podcast, Marco calls your line \"a moulding sample with a story.\"",
+    "PET": "On a popular podcast, Marco calls your brand \"a dog on a bag.\""
+  }
+}

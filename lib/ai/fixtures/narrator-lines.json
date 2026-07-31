@@ -1,0 +1,116 @@
+{
+  "_meta": {
+    "voice": "Voice v2 — second person, present tense, short declarative lines, dry needle. Needles the choice, never the kid. No corporate softener.",
+    "scope": "Activity screens and milestones only. The monthly finance / quiet / runway / year-open / stage-up banks live in lib/engine/log.ts — do not duplicate them here.",
+    "placeholders": {
+      "{rev}": "monthly revenue, formatted",
+      "{burn}": "monthly burn, formatted",
+      "{runway}": "runway in months, formatted",
+      "{cash}": "cash on hand after the action, formatted",
+      "{valuation}": "company valuation, formatted",
+      "{year}": "fiscal year number",
+      "{company}": "company name (post-rename where applicable)",
+      "{n}": "the number belonging to this action — headcount hired/fired, amount spent, milestone count"
+    }
+  },
+  "activityIntro": {
+    "company": [
+      "The company screen. Everything in here changes what {company} is, not just what it earns.",
+      "This is where you edit the thing itself. Cheap to tap. Expensive to be wrong about.",
+      "Direction, name, product. Choose carefully — the market keeps receipts."
+    ],
+    "team": [
+      "Four executive seats. Each one you fill costs payroll and buys judgment you don't have yet.",
+      "People are the biggest line in your burn and the only line that can quit.",
+      "Hire, fire, promote. Morale is watching all three."
+    ],
+    "assets": [
+      "Property and holdings. Things you own that sit still and cost money while they sit.",
+      "Cash turned into stuff. Stuff turns back into cash slower than you want it to.",
+      "Assets appreciate on the market's schedule, not yours. Runway: {runway}."
+    ],
+    "market": [
+      "The market screen. Everyone else is here too, spending more than you.",
+      "This is where you rent attention. The rent goes up every year.",
+      "Channels, spend, share. You can move CAC or you can move Brand. Rarely both at once."
+    ],
+    "closet": [
+      "The closet. None of this touches your books. All of it changes how you walk in.",
+      "Clothes don't move a valuation. They move the room, slightly, for about ten seconds.",
+      "Pick a look. The panel notices, then goes straight back to your margins."
+    ]
+  },
+  "hire": [
+    "You add a salary to the burn before you add the revenue. Every founder makes that bet.",
+    "{n} more on payroll. Burn: {burn}. They cost you on day one and pay back on a day you can't name.",
+    "Headcount up. Runway down to {runway}. Make them worth the months.",
+    "One more person who needs you to be right. That's what a team actually is."
+  ],
+  "fire": [
+    "You cut a salary out of the burn. Everyone left does the arithmetic on themselves tonight.",
+    "The seat is empty. The work isn't. Somebody absorbs it, and it's usually you.",
+    "Burn falls to {burn}. Morale falls too. You traded one for the other on purpose.",
+    "{n} fewer people. Cheaper company, smaller company. Both true at the same time."
+  ],
+  "rndSpend": [
+    "You put {n} into a product that doesn't exist yet. Later is where the good outcomes live.",
+    "R&D. The only line item that pays you back in a year you might not reach.",
+    "Quality climbs, cash drops to {cash}. The tech debt goes quiet for a while.",
+    "You're buying a better version of the thing on credit. Runway: {runway}."
+  ],
+  "marketingPush": [
+    "You spend {n} getting strangers to notice. Some will. Fewer will pay.",
+    "The push goes out. CAC tells you in a month whether that was marketing or just spending.",
+    "Attention costs {n} and expires. Brand is the part that doesn't.",
+    "You bought reach. Now find out whether the product deserved it."
+  ],
+  "propertyBuy": [
+    "Cash becomes a building. Buildings are patient. Your runway is not.",
+    "{n} of square footage. It appreciates slowly and charges rent on your attention.",
+    "Cash: {cash}. Part of your company is made of concrete now.",
+    "An asset on the books, a hole in the bank. On the right day those are the same sentence."
+  ],
+  "rename": [
+    "{company} it is. The leaderboard remembers what you used to be called.",
+    "New name, same numbers. The market recognizes you again in about a year.",
+    "You rebrand. Nothing on the books moves. That's what vanity costs."
+  ],
+  "yearEnd": {
+    "good": [
+      "Year {year} closes up. Revenue {rev}, valuation {valuation}. Now do it again, larger.",
+      "A good year. The books finally agree with the story you've been telling.",
+      "You end at {valuation} with {runway} of runway. The panel will expect more, out loud.",
+      "Green year. Green years are when founders get careless. Don't."
+    ],
+    "flat": [
+      "Year {year} ends about where it started. The market moved. You didn't.",
+      "Revenue {rev} against burn {burn}. Nothing broke. Nothing got built either.",
+      "You held the line for twelve months. Holding is a pause, not a strategy.",
+      "Same valuation, one less year of patience from everyone who funded you."
+    ],
+    "bad": [
+      "Year {year} ends down. Valuation {valuation}, runway {runway}. The math is not asking your opinion.",
+      "A bad year. Name the three decisions that did it. The autopsy will, eventually.",
+      "Revenue {rev} against burn {burn}. You spent twelve months paying for last year's optimism.",
+      "The books shrank. Companies don't die of one year like this. They die of two."
+    ]
+  },
+  "chapter7": [
+    "{company} is out of money. Chapter 7: the court sells what's left and pays whoever it can.",
+    "Runway hit zero in year {year}. It was visible from a long way back.",
+    "You didn't lose to the market. You lost to a burn rate you kept calling temporary.",
+    "The doors close at {valuation}. Everything you built gets sorted into piles and priced.",
+    "This is the part that teaches. Read the autopsy — three decisions did most of the damage, and all three are learnable."
+  ],
+  "ipo": [
+    "{company} goes public at {valuation}. Strangers own you now, and strangers vote.",
+    "Year {year}, from nothing to a ticker. The shark has stopped comparing you to a lemonade stand.",
+    "You're public. Every quarter is a pitch from here, and the audience never leaves."
+  ],
+  "milestone": [
+    "Milestone logged. The ones you missed are on the same record.",
+    "Badge earned in year {year}. Legacy keeps it after this run ends.",
+    "You crossed a line most runs never reach. The next line sits further out.",
+    "That's {n} on the board. {company} has a history now, and history is what the panel reads first."
+  ]
+}

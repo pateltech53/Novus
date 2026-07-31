@@ -1,0 +1,699 @@
+[
+  {
+    "id": "E-OPS-001",
+    "title": "Supplier Price Hike",
+    "category": "OPS",
+    "text": "Your main supplier raises prices 18%, effective now.",
+    "stages": [1, 2, 3, 4],
+    "industries": "all",
+    "weight": 8,
+    "choices": [
+      {
+        "label": "Absorb it",
+        "known": "GM −3",
+        "outcome": {
+          "effects": [
+            { "stat": "gm_pt", "amount": -3 },
+            { "stat": "suploy", "amount": 1 }
+          ],
+          "setFlags": ["supplier_loyal"]
+        }
+      },
+      {
+        "label": "Renegotiate",
+        "perform": {
+          "type": "nego",
+          "pass": {
+            "effects": [
+              { "stat": "gm_pt", "amount": -1 },
+              { "stat": "brand", "amount": 2 }
+            ]
+          },
+          "fail": {
+            "effects": [{ "stat": "rev_pct", "amount": -10, "durationQ": 2 }],
+            "narration": "They drop you mid-call."
+          }
+        }
+      },
+      {
+        "label": "Switch suppliers",
+        "known": "Cash −1S · Qual −5 (2Q)",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -1 },
+            { "stat": "qual", "amount": -5, "durationQ": 2 },
+            { "stat": "gm_pt", "amount": 2, "afterQ": 2 }
+          ]
+        }
+      },
+      {
+        "label": "Raise your prices",
+        "branches": [
+          {
+            "cond": { "stat": { "key": "brand", "gte": 60 } },
+            "outcome": { "effects": [{ "stat": "rev_pct", "amount": -2, "durationQ": 2 }] }
+          },
+          {
+            "fallback": true,
+            "outcome": { "effects": [{ "stat": "rev_pct", "amount": -9, "durationQ": 2 }] }
+          }
+        ]
+      }
+    ],
+    "rookieTerms": ["gross margin"]
+  },
+  {
+    "id": "E-OPS-002",
+    "title": "The Golden Batch",
+    "category": "OPS",
+    "text": "Your loyal supplier slips you first pick of premium stock at old prices — \"for sticking with us.\"",
+    "stages": [1, 2, 3],
+    "industries": "all",
+    "weight": 6,
+    "requiresFlags": ["supplier_loyal"],
+    "choices": [
+      {
+        "label": "Take it, market it",
+        "known": "Qual +6 · GM +2 · Brand +3",
+        "outcome": {
+          "effects": [
+            { "stat": "qual", "amount": 6 },
+            { "stat": "gm_pt", "amount": 2 },
+            { "stat": "brand", "amount": 3 }
+          ]
+        }
+      },
+      {
+        "label": "Take it quietly",
+        "known": "Qual +6",
+        "outcome": { "effects": [{ "stat": "qual", "amount": 6 }] }
+      },
+      {
+        "label": "Decline, ask for cash discount instead",
+        "known": "GM +3",
+        "outcome": {
+          "effects": [
+            { "stat": "gm_pt", "amount": 3 },
+            { "stat": "suploy", "amount": -1 }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-OPS-003",
+    "title": "Shipment Vanishes",
+    "category": "OPS",
+    "text": "A full shipment is lost in transit. Insurance says 6–8 weeks.",
+    "stages": [1, 2, 3, 4],
+    "industries": "all",
+    "weight": 7,
+    "choices": [
+      {
+        "label": "Air-freight replacements",
+        "known": "Cash −3S",
+        "outcome": {
+          "effects": [{ "stat": "cash_S", "amount": -3 }],
+          "narration": "customers never notice"
+        }
+      },
+      {
+        "label": "Wait it out",
+        "known": "Rev −8% (1Q) · CSAT −6",
+        "outcome": {
+          "effects": [
+            { "stat": "rev_pct", "amount": -8, "durationQ": 1 },
+            { "stat": "csat", "amount": -6 }
+          ]
+        }
+      },
+      {
+        "label": "Sell what's left as \"limited stock\"",
+        "known": "Rev −3% · Brand +2",
+        "outcome": {
+          "effects": [
+            { "stat": "rev_pct", "amount": -3, "durationQ": 2 },
+            { "stat": "brand", "amount": 2 }
+          ],
+          "setFlags": ["scarcity_play"]
+        }
+      },
+      {
+        "label": "Blame the courier publicly",
+        "known": "CSAT −2",
+        "outcome": {
+          "effects": [
+            { "stat": "csat", "amount": -2 },
+            { "stat": "risk", "amount": 1 }
+          ],
+          "setFlags": ["courier_feud"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-OPS-004",
+    "title": "Warehouse Flood",
+    "category": "OPS",
+    "text": "Burst pipe. A third of inventory is soggy.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Write it off",
+        "known": "Cash −4S",
+        "outcome": { "effects": [{ "stat": "cash_S", "amount": -4 }] }
+      },
+      {
+        "label": "Liquidation flash sale",
+        "known": "Cash +1S · Brand −4 · GM −1",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": 1 },
+            { "stat": "brand", "amount": -4 },
+            { "stat": "cwp_pt", "amount": -2 },
+            { "stat": "gm_pt", "amount": -1 }
+          ]
+        }
+      },
+      {
+        "label": "File inflated insurance claim",
+        "known": "Cash +5S",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": 5 },
+            { "stat": "risk", "amount": 2 }
+          ],
+          "setFlags": ["insurance_fraud"],
+          "special": ["autopsy_magnet"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-OPS-005",
+    "title": "The Cheap Factory",
+    "category": "OPS",
+    "text": "A factory abroad offers 40% lower unit costs. Their labor record is… unlisted.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 7,
+    "choices": [
+      {
+        "label": "Sign",
+        "known": "GM +6",
+        "outcome": {
+          "effects": [
+            { "stat": "gm_pt", "amount": 6 },
+            { "stat": "risk", "amount": 1 }
+          ],
+          "setFlags": ["cheap_labor"]
+        }
+      },
+      {
+        "label": "Audit first (slow)",
+        "known": "Cash −1S",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -1 },
+            { "stat": "gm_pt", "amount": 4, "afterQ": 2 }
+          ],
+          "setFlags": ["audited_supply"]
+        }
+      },
+      {
+        "label": "Decline, market \"made responsibly\"",
+        "known": "Brand +4",
+        "outcome": {
+          "effects": [{ "stat": "brand", "amount": 4 }],
+          "setFlags": ["green_cred"]
+        }
+      }
+    ],
+    "rookieTerms": ["COGS"]
+  },
+  {
+    "id": "E-OPS-006",
+    "title": "Sweatshop Exposé",
+    "category": "OPS",
+    "text": "A journalist publishes your factory's conditions. Your name is in paragraph two.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 6,
+    "requiresFlags": ["cheap_labor"],
+    "once": true,
+    "choices": [
+      {
+        "label": "Cut ties on camera",
+        "perform": {
+          "type": "media",
+          "pass": {
+            "effects": [{ "stat": "brand", "amount": -3 }],
+            "setFlags": ["reformed"]
+          },
+          "fail": {
+            "effects": [
+              { "stat": "brand", "amount": -12 },
+              { "stat": "csat", "amount": -8 }
+            ]
+          }
+        }
+      },
+      {
+        "label": "Deny",
+        "outcome": {
+          "effects": [
+            { "stat": "brand", "amount": -15, "delayed": true },
+            { "stat": "risk", "amount": 2 }
+          ],
+          "setFlags": ["press_enemy"]
+        }
+      },
+      {
+        "label": "Fund factory reform",
+        "known": "Cash −6S · Brand +5 (2Q)",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -6 },
+            { "stat": "brand", "amount": 5, "durationQ": 2 }
+          ],
+          "setFlags": ["green_cred"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-OPS-007",
+    "title": "Single Point of Failure",
+    "category": "OPS",
+    "text": "You realize 80% of output depends on one machine/vendor/tool.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Add a backup now",
+        "known": "Cash −2S",
+        "outcome": {
+          "effects": [{ "stat": "cash_S", "amount": -2 }],
+          "setFlags": ["redundant"],
+          "special": ["immunity:supply_crisis"]
+        }
+      },
+      {
+        "label": "Risk it",
+        "outcome": { "special": ["chain_odds:K-SUP:2"] }
+      },
+      {
+        "label": "Lease instead of buy",
+        "known": "Cash −0.5S/yr",
+        "outcome": {
+          "effects": [{ "stat": "cash_S", "amount": -0.5, "perYear": true }],
+          "setFlags": ["leasing"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-OPS-008",
+    "title": "Quality Shortcut",
+    "category": "OPS",
+    "text": "Ops proposes a cheaper material. Customers \"probably won't notice.\"",
+    "stages": [1, 2, 3, 4],
+    "industries": "all",
+    "weight": 8,
+    "choices": [
+      {
+        "label": "Take it",
+        "known": "GM +4 · Qual −7",
+        "outcome": {
+          "effects": [
+            { "stat": "gm_pt", "amount": 4 },
+            { "stat": "qual", "amount": -7 }
+          ],
+          "setFlags": ["cut_corners"]
+        }
+      },
+      {
+        "label": "Refuse",
+        "known": "Mor +2",
+        "outcome": {
+          "effects": [{ "stat": "morale", "amount": 2 }],
+          "setFlags": ["quality_first"]
+        }
+      },
+      {
+        "label": "Test on 10% of stock",
+        "known": "GM +1",
+        "outcome": {
+          "effects": [{ "stat": "gm_pt", "amount": 1 }],
+          "special": ["csat_risk:small", "data_for_later"]
+        }
+      }
+    ],
+    "rookieTerms": ["gross margin"]
+  },
+  {
+    "id": "E-OPS-009",
+    "title": "The Recall Question",
+    "category": "OPS",
+    "text": "A defect traced to the cheap material surfaces in the field.",
+    "stages": [2, 3, 4, 5],
+    "industries": "all",
+    "weight": 5,
+    "requiresFlags": ["cut_corners"],
+    "choices": [
+      {
+        "label": "Voluntary recall",
+        "known": "Cash −5S · Brand +6",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -5 },
+            { "stat": "brand", "amount": 6 }
+          ],
+          "clearFlags": ["cut_corners"],
+          "narration": "they remember honesty"
+        }
+      },
+      {
+        "label": "Quiet replacements only for complainers",
+        "known": "Cash −1S · CSAT −4",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -1 },
+            { "stat": "risk", "amount": 2 },
+            { "stat": "csat", "amount": -4 }
+          ]
+        }
+      },
+      {
+        "label": "Ignore",
+        "known": "Churn +3",
+        "outcome": {
+          "effects": [
+            { "stat": "churn_pt", "amount": 3 },
+            { "stat": "risk", "amount": 3 }
+          ],
+          "special": ["arm_chain:K-LEGAL"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-OPS-010",
+    "title": "Port Strike",
+    "category": "OPS",
+    "text": "Every import is stuck offshore for three weeks.",
+    "stages": [2, 3, 4, 5],
+    "industries": "all",
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Buy local at 2× cost",
+        "known": "GM −5 (1Q)",
+        "outcome": { "effects": [{ "stat": "gm_pt", "amount": -5, "durationQ": 1 }] }
+      },
+      {
+        "label": "Pause sales, be honest",
+        "known": "Rev −12% (1Q) · Brand +3",
+        "outcome": {
+          "effects": [
+            { "stat": "rev_pct", "amount": -12, "durationQ": 1 },
+            { "stat": "brand", "amount": 3 }
+          ]
+        }
+      },
+      {
+        "label": "Presell \"delayed batch\" at discount",
+        "known": "Cash +2S",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": 2 },
+            { "stat": "csat", "amount": -5, "afterQ": 1 }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-OPS-011",
+    "title": "The Landlord's Squeeze",
+    "category": "OPS",
+    "text": "Lease renewal: rent +35%.",
+    "stages": [1, 2, 3],
+    "industries": "all",
+    "weight": 7,
+    "choices": [
+      {
+        "label": "Pay",
+        "known": "Burn +0.5S/mo",
+        "outcome": { "effects": [{ "stat": "burn_S_mo", "amount": 0.5 }] }
+      },
+      {
+        "label": "Negotiate multi-year lock",
+        "perform": {
+          "type": "nego",
+          "pass": {
+            "effects": [{ "stat": "burn_S_mo", "amount": 0.15 }],
+            "setFlags": ["rent_locked"]
+          },
+          "fail": {
+            "effects": [{ "stat": "burn_S_mo", "amount": 0.5 }],
+            "setFlags": ["landlord_feud"],
+            "narration": "a bruised relationship"
+          }
+        }
+      },
+      {
+        "label": "Relocate cheaper",
+        "known": "Cash −2S · Brand −2 · Burn −0.3S/mo",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -2 },
+            { "stat": "brand", "amount": -2 },
+            { "stat": "burn_S_mo", "amount": -0.3 }
+          ],
+          "narration": "customers lose you"
+        }
+      },
+      {
+        "label": "Go remote/dark kitchen/online-only",
+        "known": "Burn −0.6S/mo · Mor −5",
+        "outcome": {
+          "effects": [
+            { "stat": "burn_S_mo", "amount": -0.6 },
+            { "stat": "morale", "amount": -5 }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-OPS-012",
+    "title": "Inventory Glut",
+    "category": "OPS",
+    "text": "You over-ordered. Storage is eating margin.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Deep discount blowout",
+        "known": "Cash +2S · Brand −3 · GM −1",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": 2 },
+            { "stat": "brand", "amount": -3 },
+            { "stat": "cwp_pt", "amount": -2 },
+            { "stat": "gm_pt", "amount": -1 }
+          ],
+          "narration": "trains customers to wait for sales"
+        }
+      },
+      {
+        "label": "Bundle into gift sets",
+        "known": "Rev +4% (1Q) · En −5",
+        "outcome": {
+          "effects": [
+            { "stat": "rev_pct", "amount": 4, "durationQ": 1 },
+            { "stat": "energy", "amount": -5 }
+          ],
+          "narration": "you build them"
+        }
+      },
+      {
+        "label": "Donate for the write-off",
+        "known": "Cash +0.5S · Brand +4",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": 0.5 },
+            { "stat": "brand", "amount": 4 }
+          ],
+          "setFlags": ["charity"]
+        }
+      }
+    ],
+    "rookieTerms": ["cash flow"]
+  },
+  {
+    "id": "E-OPS-013",
+    "title": "The Counterfeits",
+    "category": "OPS",
+    "text": "Fakes of your product are on marketplaces, at half price.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Legal takedowns",
+        "known": "Cash −2S · Share +1",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -2 },
+            { "stat": "share_pt", "amount": 1 }
+          ]
+        }
+      },
+      {
+        "label": "Ignore (\"free marketing\")",
+        "known": "Share −2",
+        "branches": [
+          {
+            "cond": { "stat": { "key": "qual", "gte": 70 } },
+            "outcome": {
+              "effects": [
+                { "stat": "share_pt", "amount": -2 },
+                { "stat": "brand", "amount": 1 }
+              ],
+              "narration": "fakes flatter"
+            }
+          },
+          {
+            "fallback": true,
+            "outcome": { "effects": [{ "stat": "share_pt", "amount": -2 }] }
+          }
+        ]
+      },
+      {
+        "label": "Launch verified-authentic program",
+        "known": "Cash −1S · GM +1",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -1 },
+            { "stat": "cwp_pt", "amount": 2 },
+            { "stat": "gm_pt", "amount": 1 }
+          ],
+          "setFlags": ["authenticity"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-OPS-014",
+    "title": "Automation Offer",
+    "category": "OPS",
+    "text": "A robotics/software vendor promises −30% labor cost. It would replace nine humans.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Automate, lay off",
+        "known": "Burn −1S/mo · Mor −12",
+        "outcome": {
+          "effects": [
+            { "stat": "burn_S_mo", "amount": -1 },
+            { "stat": "morale", "amount": -12 }
+          ],
+          "special": ["flag_risk:bad_boss", "leak_risk:brand-2"]
+        }
+      },
+      {
+        "label": "Automate, retrain & redeploy",
+        "known": "Cash −3S · Burn −0.5S/mo · Mor +6",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -3 },
+            { "stat": "burn_S_mo", "amount": -0.5 },
+            { "stat": "morale", "amount": 6 }
+          ],
+          "setFlags": ["treated_team_well"]
+        }
+      },
+      {
+        "label": "Decline",
+        "known": "Mor +3",
+        "outcome": { "effects": [{ "stat": "morale", "amount": 3 }] }
+      }
+    ]
+  },
+  {
+    "id": "E-OPS-015",
+    "title": "The Perfect Storm Forecast",
+    "category": "OPS",
+    "text": "Forecasts say demand doubles next quarter. Ordering ahead is a gamble.",
+    "stages": [2, 3, 4, 5],
+    "industries": "all",
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Double the order",
+        "outcome": { "special": ["market_bet:rev+18:cash-4S"] }
+      },
+      {
+        "label": "Order +25% safe",
+        "known": "Rev +6%",
+        "outcome": { "effects": [{ "stat": "rev_pct", "amount": 6, "durationQ": 2 }] }
+      },
+      {
+        "label": "Hold steady",
+        "outcome": { "special": ["stockout_if_spike:csat-6"] }
+      }
+    ],
+    "rookieTerms": ["cash flow"]
+  },
+  {
+    "id": "E-OPS-016",
+    "title": "Courier Revenge",
+    "category": "OPS",
+    "text": "Remember blaming the courier publicly? Their whole network now handles your parcels \"carefully.\"",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 4,
+    "requiresFlags": ["courier_feud"],
+    "choices": [
+      {
+        "label": "Apologize publicly",
+        "known": "Brand −1",
+        "outcome": {
+          "effects": [{ "stat": "brand", "amount": -1 }],
+          "clearFlags": ["courier_feud"]
+        }
+      },
+      {
+        "label": "Switch couriers",
+        "known": "Cash −0.5S · CSAT −3",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -0.5 },
+            { "stat": "csat", "amount": -3 }
+          ],
+          "narration": "+1 week delivery"
+        }
+      },
+      {
+        "label": "Build in-house delivery",
+        "known": "Cash −3S · Burn +0.3S/mo · CSAT +5",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -3 },
+            { "stat": "burn_S_mo", "amount": 0.3 },
+            { "stat": "csat", "amount": 5 }
+          ],
+          "setFlags": ["own_fleet"]
+        }
+      }
+    ]
+  }
+]

@@ -1,0 +1,518 @@
+[
+  {
+    "id": "E-LIF-001",
+    "title": "The 3AM Idea",
+    "category": "LIF",
+    "text": "You wake up with a \"brilliant\" idea and the urge to rebuild everything.",
+    "stages": [1, 2, 3],
+    "industries": "all",
+    "weight": 7,
+    "choices": [
+      {
+        "label": "Sleep on it 48h",
+        "branches": [
+          {
+            "weight": 70,
+            "outcome": {
+              "effects": [{ "stat": "energy", "amount": 2 }],
+              "narration": "it evaporates"
+            }
+          },
+          {
+            "weight": 30,
+            "outcome": {
+              "special": ["unlock:pivot_lite"],
+              "narration": "it's real"
+            }
+          }
+        ]
+      },
+      {
+        "label": "Act tonight",
+        "known": "En −8",
+        "branches": [
+          {
+            "weight": 25,
+            "outcome": {
+              "effects": [
+                { "stat": "energy", "amount": -8 },
+                { "stat": "qual", "amount": 4 }
+              ],
+              "narration": "genius"
+            }
+          },
+          {
+            "weight": 75,
+            "outcome": {
+              "effects": [
+                { "stat": "energy", "amount": -8 },
+                { "stat": "tdebt", "amount": 1 }
+              ],
+              "narration": "mess"
+            }
+          }
+        ]
+      },
+      {
+        "label": "Write it down, park it",
+        "outcome": {
+          "special": ["idea_bank:qual"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-LIF-002",
+    "title": "Exam Season vs Launch Week",
+    "category": "LIF",
+    "text": "Real life collides: the biggest school/personal commitment of your year lands on launch week.",
+    "stages": [1, 2],
+    "industries": "all",
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Delegate the launch",
+        "known": "Mor +5",
+        "branches": [
+          {
+            "weight": 80,
+            "outcome": {
+              "effects": [{ "stat": "morale", "amount": 5 }]
+            }
+          },
+          {
+            "weight": 20,
+            "outcome": {
+              "effects": [{ "stat": "morale", "amount": 5 }],
+              "narration": "minor launch stumble"
+            }
+          }
+        ]
+      },
+      {
+        "label": "Do both, sleep never",
+        "known": "En −15",
+        "outcome": {
+          "effects": [{ "stat": "energy", "amount": -15 }],
+          "setFlags": ["burnout_risk"],
+          "narration": "both slightly worse"
+        }
+      },
+      {
+        "label": "Move the launch",
+        "known": "Resp +1",
+        "outcome": {
+          "effects": [{ "stat": "respect", "amount": 1 }],
+          "special": ["rev_delay:1Q"],
+          "narration": "knowing your limits is strategy"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-LIF-003",
+    "title": "The Burnout Wall",
+    "category": "LIF",
+    "text": "You snapped at someone who didn't deserve it. Your body is sending invoices.",
+    "stages": [2, 3, 4, 5],
+    "industries": "all",
+    "weight": 6,
+    "requiresFlags": ["burnout_risk"],
+    "requiresCond": [{ "stat": { "key": "energy", "lt": 25 } }],
+    "reqAnyOf": true,
+    "choices": [
+      {
+        "label": "Two real weeks off",
+        "known": "En +30 · Rev −2% (1Q) · Mor +3",
+        "outcome": {
+          "effects": [
+            { "stat": "energy", "amount": 30 },
+            { "stat": "rev_pct", "amount": -2, "durationQ": 1 },
+            { "stat": "morale", "amount": 3 }
+          ],
+          "setFlags": ["balanced"],
+          "narration": "you apologized"
+        }
+      },
+      {
+        "label": "Push through",
+        "outcome": {
+          "special": ["en_floor", "impair_choices:3"]
+        }
+      },
+      {
+        "label": "Therapy/coach + boundaries",
+        "known": "Cash −0.2S · En +15",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -0.2 },
+            { "stat": "energy", "amount": 15 }
+          ],
+          "setFlags": ["balanced"],
+          "special": ["en_sustained"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-LIF-004",
+    "title": "Old Friends, New Distance",
+    "category": "LIF",
+    "text": "Your friends planned a trip. You \"can't.\" You always \"can't\" now.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Go",
+        "known": "En +12 · Cash −0.3S · Rev −1%",
+        "outcome": {
+          "effects": [
+            { "stat": "energy", "amount": 12 },
+            { "stat": "cash_S", "amount": -0.3 },
+            { "stat": "rev_pct", "amount": -1, "durationQ": 2 }
+          ],
+          "narration": "one random small fire unattended"
+        }
+      },
+      {
+        "label": "Skip again",
+        "known": "En −5",
+        "outcome": {
+          "effects": [{ "stat": "energy", "amount": -5 }],
+          "setFlags": ["isolating"],
+          "special": ["morale_events_harder"]
+        }
+      },
+      {
+        "label": "Invite them into your world for a day",
+        "known": "En +6",
+        "branches": [
+          {
+            "weight": 30,
+            "outcome": {
+              "effects": [{ "stat": "energy", "amount": 6 }],
+              "setFlags": ["friend_hire"],
+              "narration": "one becomes a collaborator"
+            }
+          },
+          {
+            "weight": 70,
+            "outcome": {
+              "effects": [{ "stat": "energy", "amount": 6 }]
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "E-LIF-005",
+    "title": "The Health Scare Wakeup",
+    "category": "LIF",
+    "text": "A routine checkup flags stress markers. Nothing serious — yet. The doctor uses the word \"trajectory.\"",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 4,
+    "once": true,
+    "choices": [
+      {
+        "label": "Restructure your life",
+        "known": "En cap +10 · Rev −1% (1Q)",
+        "outcome": {
+          "effects": [{ "stat": "rev_pct", "amount": -1, "durationQ": 1 }],
+          "setFlags": ["balanced"],
+          "special": ["en_cap:+10"]
+        }
+      },
+      {
+        "label": "\"After this quarter\"",
+        "outcome": {
+          "special": ["refire_harder:2yr"],
+          "narration": "nothing changes"
+        }
+      },
+      {
+        "label": "Hire a COO to share load",
+        "known": "Burn +0.4S/mo · En +10",
+        "outcome": {
+          "effects": [
+            { "stat": "burn_S_mo", "amount": 0.4 },
+            { "stat": "energy", "amount": 10 }
+          ],
+          "setFlags": ["delegator"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-LIF-006",
+    "title": "Family Dinner Interrogation",
+    "category": "LIF",
+    "text": "Family dinner. Someone asks — with love and knives — \"so when does this make real money?\"",
+    "stages": [1, 2, 3],
+    "industries": "all",
+    "weight": 5,
+    "weightMods": [{ "flag": "family_money", "mult": 2 }],
+    "choices": [
+      {
+        "label": "Answer with the real numbers",
+        "perform": {
+          "type": "pitch",
+          "pass": {
+            "effects": [{ "stat": "energy", "amount": 6 }],
+            "special": ["perform_voice_only", "offer_more_if:family_money"],
+            "narration": "family respect"
+          },
+          "fail": {
+            "effects": [{ "stat": "energy", "amount": -3 }],
+            "special": ["perform_voice_only"],
+            "narration": "awkward pasta"
+          }
+        }
+      },
+      {
+        "label": "Deflect with jokes",
+        "outcome": {
+          "special": ["refire_yearly"]
+        }
+      },
+      {
+        "label": "\"I'll show you next year\"",
+        "outcome": {
+          "special": ["year_end_en_swing"],
+          "narration": "self-imposed target"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-LIF-007",
+    "title": "The Award Invitation",
+    "category": "LIF",
+    "text": "You're shortlisted for a \"Founders Under 25\" award. The gala costs a weekend and 0.2S.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 4,
+    "choices": [
+      {
+        "label": "Go, network hard",
+        "known": "En −5 · Brand +2 · Cash −0.2S",
+        "outcome": {
+          "effects": [
+            { "stat": "energy", "amount": -5 },
+            { "stat": "brand", "amount": 2 },
+            { "stat": "cash_S", "amount": -0.2 }
+          ],
+          "special": ["contact_cards:2:opp_weight_up"]
+        }
+      },
+      {
+        "label": "Go, enjoy it",
+        "known": "En +5 · Brand +2 · Cash −0.2S",
+        "outcome": {
+          "effects": [
+            { "stat": "energy", "amount": 5 },
+            { "stat": "brand", "amount": 2 },
+            { "stat": "cash_S", "amount": -0.2 }
+          ]
+        }
+      },
+      {
+        "label": "Skip, work",
+        "known": "Resp −1",
+        "outcome": {
+          "effects": [{ "stat": "respect", "amount": -1 }],
+          "narration": "Even I take a bow sometimes"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-LIF-008",
+    "title": "Imposter Hour",
+    "category": "LIF",
+    "text": "A podcast lists \"founders who actually deserve it.\" You're not on it. It's 1am and you're rereading it.",
+    "stages": [1, 2, 3, 4],
+    "industries": "all",
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Close the phone, list 3 real things you built",
+        "known": "En +6 · Resp +1",
+        "outcome": {
+          "effects": [
+            { "stat": "energy", "amount": 6 },
+            { "stat": "respect", "amount": 1 }
+          ]
+        }
+      },
+      {
+        "label": "Spiral productively: audit your weaknesses",
+        "known": "En −4",
+        "outcome": {
+          "effects": [{ "stat": "energy", "amount": -4 }],
+          "special": ["targeted_stat:+2:next_q"]
+        }
+      },
+      {
+        "label": "Post something bitter",
+        "known": "Brand −2 · En −2",
+        "outcome": {
+          "effects": [
+            { "stat": "brand", "amount": -2 },
+            { "stat": "energy", "amount": -2 }
+          ],
+          "special": ["arm_event:delete_it_later"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-LIF-009",
+    "title": "The Mentor Appears",
+    "category": "LIF",
+    "text": "A retired operator from your industry offers monthly coffee. No equity, no agenda. Probably.",
+    "stages": [1, 2, 3],
+    "industries": "all",
+    "weight": 5,
+    "once": true,
+    "choices": [
+      {
+        "label": "Accept",
+        "outcome": {
+          "setFlags": ["mentor"],
+          "special": ["mentor_halves_damage:once_yr"],
+          "narration": "she warned you"
+        }
+      },
+      {
+        "label": "Accept but verify",
+        "outcome": {
+          "special": ["set_flag_delayed:mentor:1y", "mentor_halves_damage:once_yr"]
+        }
+      },
+      {
+        "label": "Too busy",
+        "outcome": {
+          "narration": "the coffee shop closes eventually; option gone"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-LIF-010",
+    "title": "Side Quest Money",
+    "category": "LIF",
+    "text": "A quick freelance gig pays 1S personally — but eats a month of evenings.",
+    "stages": [1, 2],
+    "industries": "all",
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Take it",
+        "known": "Cash +1S · En −8",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": 1 },
+            { "stat": "energy", "amount": -8 }
+          ]
+        }
+      },
+      {
+        "label": "Decline",
+        "outcome": {
+          "narration": "focus, poverty, principle"
+        }
+      },
+      {
+        "label": "Take it and outsource half",
+        "known": "Cash +0.5S · En −3",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": 0.5 },
+            { "stat": "energy", "amount": -3 }
+          ],
+          "setFlags": ["delegator"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-LIF-011",
+    "title": "The Comparison Trap",
+    "category": "LIF",
+    "text": "A same-age founder just raised a round 10× yours. Your feed won't stop.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Mute, run your race",
+        "known": "En +4 · Resp +2",
+        "outcome": {
+          "effects": [
+            { "stat": "energy", "amount": 4 },
+            { "stat": "respect", "amount": 2 }
+          ],
+          "narration": "their runway isn't your race"
+        }
+      },
+      {
+        "label": "Study their playbook coldly",
+        "outcome": {
+          "special": ["bonus_option:MKT_FIN:next_q"]
+        }
+      },
+      {
+        "label": "Chase their strategy",
+        "known": "Qual −3",
+        "outcome": {
+          "effects": [{ "stat": "qual", "amount": -3 }],
+          "setFlags": ["pivot"],
+          "special": ["pivot_no_upside"],
+          "narration": "strategy whiplash"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-LIF-012",
+    "title": "Give Back Day",
+    "category": "LIF",
+    "text": "The local school asks you to speak to students about starting up.",
+    "stages": [2, 3, 4, 5],
+    "industries": "all",
+    "weight": 4,
+    "requiresFlags": ["street_cred", "community"],
+    "reqAnyOf": true,
+    "choices": [
+      {
+        "label": "Do it, tell the truth (failures included)",
+        "known": "Brand +4 · En +8",
+        "outcome": {
+          "effects": [
+            { "stat": "brand", "amount": 4 },
+            { "stat": "energy", "amount": 8 }
+          ],
+          "setFlags": ["mentor"],
+          "special": ["intern_events_improve"],
+          "narration": "it feels good"
+        }
+      },
+      {
+        "label": "Send a polished video",
+        "known": "Brand +1",
+        "outcome": {
+          "effects": [{ "stat": "brand", "amount": 1 }]
+        }
+      },
+      {
+        "label": "Decline",
+        "outcome": {
+          "narration": "the shark says nothing, loudly"
+        }
+      }
+    ]
+  }
+]

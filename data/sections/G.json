@@ -1,0 +1,438 @@
+[
+  {
+    "id": "E-RIV-001",
+    "title": "Marco Launches First",
+    "category": "RIV",
+    "text": "Marco ships the exact thing on your roadmap, two months early.",
+    "stages": [1, 2, 3],
+    "industries": "all",
+    "weight": 7,
+    "choices": [
+      {
+        "label": "Ship yours anyway, better",
+        "known": "Qual −2",
+        "outcome": {
+          "effects": [{ "stat": "qual", "amount": -2 }],
+          "special": ["or_wait"],
+          "narration": "delay pressure"
+        }
+      },
+      {
+        "label": "Reposition against his flaws",
+        "perform": {
+          "type": "pitch",
+          "pass": { "effects": [{ "stat": "share_pt", "amount": 2 }] },
+          "fail": {
+            "effects": [{ "stat": "brand", "amount": -2 }],
+            "narration": "\"salty\" headlines"
+          }
+        }
+      },
+      {
+        "label": "Do nothing loudly, keep building",
+        "known": "Resp +1",
+        "outcome": { "effects": [{ "stat": "respect", "amount": 1 }] }
+      }
+    ]
+  },
+  {
+    "id": "E-RIV-002",
+    "title": "The Price War Bell",
+    "category": "RIV",
+    "text": "Marco cuts prices 20%.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 7,
+    "rookieTerms": ["gross margin"],
+    "choices": [
+      {
+        "label": "Match",
+        "known": "GM −5",
+        "outcome": {
+          "effects": [{ "stat": "gm_pt", "amount": -5 }],
+          "special": ["share_holds"]
+        }
+      },
+      {
+        "label": "Hold price, add value",
+        "known": "Share −2 (1Q)",
+        "branches": [
+          {
+            "cond": { "stat": { "key": "qual", "gte": 65 } },
+            "outcome": {
+              "effects": [
+                { "stat": "share_pt", "amount": -2, "durationQ": 1 },
+                { "stat": "cwp_pt", "amount": 2, "afterQ": 1 }
+              ]
+            }
+          },
+          {
+            "fallback": true,
+            "outcome": {
+              "effects": [{ "stat": "share_pt", "amount": -2, "durationQ": 1 }]
+            }
+          }
+        ]
+      },
+      {
+        "label": "Segment: cheap line + premium line",
+        "known": "En −4 · Share +1",
+        "outcome": {
+          "effects": [
+            { "stat": "energy", "amount": -4 },
+            { "stat": "share_pt", "amount": 1 }
+          ],
+          "narration": "complexity"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-RIV-003",
+    "title": "Poach Attempt Incoming",
+    "category": "RIV",
+    "text": "Marco offers your #2 a title bump and 40% raise.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Counter (money)",
+        "known": "Burn +0.3S/mo",
+        "outcome": { "effects": [{ "stat": "burn_S_mo", "amount": 0.3 }] }
+      },
+      {
+        "label": "Counter (scope + equity)",
+        "known": "dilution tiny",
+        "outcome": {
+          "effects": [
+            { "stat": "teamloy", "amount": 2 },
+            { "stat": "dilution_pct", "amount": 1 }
+          ]
+        }
+      },
+      {
+        "label": "Let them go gracefully",
+        "known": "Qual −4",
+        "outcome": {
+          "effects": [{ "stat": "qual", "amount": -4 }],
+          "setFlags": ["alumni_network"],
+          "narration": "alumni goodwill"
+        }
+      },
+      {
+        "label": "they decline him unprompted",
+        "requiresFlag": "treated_team_well",
+        "known": "Mor +5",
+        "outcome": {
+          "effects": [{ "stat": "morale", "amount": 5 }],
+          "special": ["narration_flex"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-RIV-004",
+    "title": "The Leak",
+    "category": "RIV",
+    "text": "Your unannounced product appears on a rumor account. Only five people knew.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Internal hunt",
+        "known": "Mor −6",
+        "branches": [
+          {
+            "weight": 60,
+            "outcome": {
+              "effects": [{ "stat": "morale", "amount": -6 }],
+              "narration": "find them"
+            }
+          },
+          {
+            "weight": 40,
+            "outcome": {
+              "effects": [{ "stat": "morale", "amount": -6 }],
+              "narration": "paranoia only"
+            }
+          }
+        ]
+      },
+      {
+        "label": "Shrug publicly, ship sooner",
+        "known": "Qual −2",
+        "outcome": {
+          "effects": [{ "stat": "qual", "amount": -2 }],
+          "special": ["rev_pull_forward"]
+        }
+      },
+      {
+        "label": "Feed a fake next time",
+        "known": "Resp +2",
+        "outcome": {
+          "effects": [{ "stat": "respect", "amount": 2 }],
+          "setFlags": ["counterintel"],
+          "special": ["auto_win_next:leak"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-RIV-005",
+    "title": "Marco Stumbles",
+    "category": "RIV",
+    "text": "Marco has a public quality scandal. His customers are shopping.",
+    "stages": [2, 3, 4, 5],
+    "industries": "all",
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Attack ads now",
+        "known": "Share +3 · Brand −2",
+        "outcome": {
+          "effects": [
+            { "stat": "share_pt", "amount": 3 },
+            { "stat": "brand", "amount": -2 }
+          ],
+          "setFlags": ["marco_feud"],
+          "narration": "kicking a man down"
+        }
+      },
+      {
+        "label": "Welcome offer, classy tone",
+        "known": "Share +2 · Brand +2",
+        "outcome": {
+          "effects": [
+            { "stat": "share_pt", "amount": 2 },
+            { "stat": "brand", "amount": 2 }
+          ]
+        }
+      },
+      {
+        "label": "Silence + capacity prep",
+        "known": "Share +1",
+        "outcome": {
+          "effects": [{ "stat": "share_pt", "amount": 1 }],
+          "special": ["slower"],
+          "narration": "operationally safe"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-RIV-006",
+    "title": "The Standards Cartel",
+    "category": "RIV",
+    "text": "Three rivals invite you to \"align on industry standards.\" Half-noble, half-cartel.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 4,
+    "choices": [
+      {
+        "label": "Join",
+        "outcome": {
+          "effects": [{ "stat": "risk", "amount": 1 }],
+          "special": ["market_volatility:-1", "antitrust_if_st5"],
+          "narration": "stability"
+        }
+      },
+      {
+        "label": "Decline, publicize your own open standard",
+        "known": "Brand +4",
+        "outcome": {
+          "effects": [{ "stat": "brand", "amount": 4 }],
+          "setFlags": ["kingmaker"]
+        }
+      },
+      {
+        "label": "Attend, commit nothing",
+        "outcome": {
+          "special": ["info_plus", "free_event:rival_intel"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-RIV-007",
+    "title": "Copy His Homework",
+    "category": "RIV",
+    "text": "Marco's new feature is objectively good. Copying is legal and shameless.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Copy fast",
+        "known": "Brand −1",
+        "outcome": {
+          "effects": [{ "stat": "brand", "amount": -1 }],
+          "special": ["share_holds", "arm_event:marco_taunt"],
+          "narration": "\"follower\""
+        }
+      },
+      {
+        "label": "Copy + improve visibly",
+        "known": "Qual +3 · Share +1",
+        "outcome": {
+          "effects": [
+            { "stat": "qual", "amount": 3 },
+            { "stat": "share_pt", "amount": 1 }
+          ],
+          "special": ["slower"]
+        }
+      },
+      {
+        "label": "Refuse on principle",
+        "known": "CWP +2 · Share −1 (2Q)",
+        "outcome": {
+          "effects": [
+            { "stat": "cwp_pt", "amount": 2 },
+            { "stat": "share_pt", "amount": -1, "durationQ": 2 }
+          ],
+          "narration": "differentiation deepens"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-RIV-008",
+    "title": "The Merger Whisper",
+    "category": "RIV",
+    "text": "A banker floats it: you + Marco, merged, would dominate.",
+    "stages": [4, 5],
+    "industries": "all",
+    "weight": 4,
+    "once": true,
+    "choices": [
+      {
+        "label": "Explore",
+        "perform": {
+          "type": "nego",
+          "pass": { "special": ["merger_arc"] },
+          "fail": {
+            "effects": [{ "stat": "brand", "amount": -3 }],
+            "special": ["rival_brand:-3", "feud_max"],
+            "narration": "leak"
+          }
+        }
+      },
+      {
+        "label": "Never",
+        "known": "Resp +2",
+        "outcome": {
+          "effects": [{ "stat": "respect", "amount": 2 }],
+          "narration": "rivalry eternal"
+        }
+      },
+      {
+        "label": "Leak it yourself to spook him",
+        "branches": [
+          {
+            "weight": 50,
+            "outcome": {
+              "special": ["rival_stumble"],
+              "narration": "he stumbles"
+            }
+          },
+          {
+            "weight": 50,
+            "outcome": { "narration": "you look desperate" }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "E-RIV-009",
+    "title": "Marco's Podcast Jab",
+    "category": "RIV",
+    "text": "On a popular podcast, Marco calls your company \"a rounding error with a logo.\"",
+    "stages": [2, 3, 4, 5],
+    "industries": "all",
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Reply with numbers, one post",
+        "branches": [
+          {
+            "cond": { "flag": "rev_grew_last_yr" },
+            "outcome": { "effects": [{ "stat": "brand", "amount": 3 }] }
+          },
+          {
+            "fallback": true,
+            "outcome": { "effects": [{ "stat": "brand", "amount": -2 }] }
+          }
+        ]
+      },
+      {
+        "label": "Invite him to a public debate",
+        "perform": {
+          "type": "media",
+          "pass": {
+            "effects": [
+              { "stat": "brand", "amount": 6 },
+              { "stat": "respect", "amount": 2 }
+            ]
+          },
+          "fail": {
+            "effects": [{ "stat": "brand", "amount": -4 }],
+            "narration": "clipped and memed"
+          }
+        }
+      },
+      {
+        "label": "Silence",
+        "known": "Resp +1",
+        "outcome": {
+          "effects": [{ "stat": "respect", "amount": 1 }],
+          "narration": "fans want blood"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-RIV-010",
+    "title": "New Kid Undercuts Everyone",
+    "category": "RIV",
+    "text": "A tiny new startup does one thing you do — 10× cheaper, kind of broken.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Ignore (they're broken)",
+        "branches": [
+          {
+            "weight": 30,
+            "outcome": {
+              "effects": [{ "stat": "share_pt", "amount": -3, "delayed": true }],
+              "narration": "they fix it"
+            }
+          },
+          { "weight": 70, "outcome": {} }
+        ]
+      },
+      {
+        "label": "Acquire them cheap",
+        "known": "Cash −4S · Qual −2 (1Q)",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -4 },
+            { "stat": "qual", "amount": -2, "durationQ": 1 }
+          ],
+          "narration": "talent + moat, integration drag"
+        }
+      },
+      {
+        "label": "Partner: their edge, your scale",
+        "known": "Rev +4%",
+        "outcome": {
+          "effects": [{ "stat": "rev_pct", "amount": 4, "durationQ": 2 }],
+          "setFlags": ["partner_dependency"]
+        }
+      }
+    ]
+  }
+]

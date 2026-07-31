@@ -1,0 +1,1699 @@
+[
+  {
+    "id": "E-IND-FOOD-1",
+    "title": "Health Inspector Tuesday",
+    "category": "IND",
+    "text": "Surprise inspection during the lunch rush.",
+    "stages": [1, 2, 3],
+    "industries": ["FOOD"],
+    "weight": 7,
+    "choices": [
+      {
+        "label": "pass with praise",
+        "requiresFlag": "quality_first",
+        "known": "Brand +4",
+        "outcome": { "effects": [{ "stat": "brand", "amount": 4 }] }
+      },
+      {
+        "label": "Pass, minor notes",
+        "known": "Cash −0.2S",
+        "outcome": { "effects": [{ "stat": "cash_S", "amount": -0.2 }] }
+      },
+      {
+        "label": "violations posted on the door",
+        "requiresFlag": "cut_corners",
+        "known": "CSAT −8 · Brand −6 · Cash −1S",
+        "outcome": {
+          "effects": [
+            { "stat": "csat", "amount": -8 },
+            { "stat": "brand", "amount": -6 },
+            { "stat": "cash_S", "amount": -1 }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-FOOD-2",
+    "title": "The Food Critic",
+    "category": "IND",
+    "text": "A feared critic booked a table under a fake name. Staff spotted them.",
+    "stages": [2, 3, 4],
+    "industries": ["FOOD"],
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Treat like anyone",
+        "branches": [
+          { "weight": 60, "outcome": { "effects": [{ "stat": "brand", "amount": 6 }], "narration": "Good review." } },
+          { "weight": 40, "outcome": { "effects": [{ "stat": "brand", "amount": 1 }], "narration": "Mixed." } }
+        ]
+      },
+      {
+        "label": "Secret VIP treatment",
+        "branches": [
+          { "weight": 50, "outcome": { "effects": [{ "stat": "brand", "amount": 8 }], "narration": "Glowing." } },
+          { "weight": 50, "outcome": { "effects": [{ "stat": "brand", "amount": -5 }], "narration": "They noticed the act." } }
+        ]
+      },
+      {
+        "label": "Comp everything",
+        "outcome": { "narration": "They must disclose it; review void, mild embarrassment." }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-FOOD-3",
+    "title": "Recipe Walkout",
+    "category": "IND",
+    "text": "Your head chef quits… for Marco. The signature dish walks with them.",
+    "stages": [2, 3, 4],
+    "industries": ["FOOD"],
+    "weight": 5,
+    "choices": [
+      {
+        "label": "documented recipes",
+        "requiresFlag": "patent",
+        "outcome": { "narration": "Dish stays, they get sued if used." }
+      },
+      {
+        "label": "New signature, publicity stunt tasting",
+        "known": "Cash −0.5S",
+        "branches": [
+          {
+            "weight": 55,
+            "outcome": { "effects": [{ "stat": "cash_S", "amount": -0.5 }, { "stat": "brand", "amount": 5 }] }
+          },
+          { "weight": 45, "outcome": { "effects": [{ "stat": "cash_S", "amount": -0.5 }] } }
+        ]
+      },
+      {
+        "label": "Buy the recipe rights back",
+        "perform": {
+          "type": "nego",
+          "pass": { "effects": [{ "stat": "cash_S", "amount": -1 }], "narration": "Dish stays." },
+          "fail": { "effects": [{ "stat": "rev_pct", "amount": -5, "durationQ": 1 }], "narration": "Menu gap." }
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-FOOD-4",
+    "title": "Cold Chain Gamble",
+    "category": "IND",
+    "text": "The freezer truck died overnight. The stock is… probably fine.",
+    "stages": [2, 3, 4],
+    "industries": ["FOOD"],
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Destroy it all",
+        "known": "Cash −2S",
+        "outcome": { "effects": [{ "stat": "cash_S", "amount": -2 }], "setFlags": ["quality_first"] }
+      },
+      {
+        "label": "Sell it fast",
+        "known": "Cash saved",
+        "branches": [
+          {
+            "weight": 25,
+            "outcome": {
+              "effects": [{ "stat": "brand", "amount": -12 }, { "stat": "risk", "amount": 2 }],
+              "narration": "Illness scandal."
+            }
+          },
+          { "weight": 75, "outcome": {} }
+        ]
+      },
+      {
+        "label": "Donate it TODAY with disclosure",
+        "known": "Cash −1S · Brand +3",
+        "outcome": {
+          "effects": [{ "stat": "cash_S", "amount": -1 }, { "stat": "brand", "amount": 3 }],
+          "narration": "Karma."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-ECOM-1",
+    "title": "Cart Abandon Mystery",
+    "category": "IND",
+    "text": "70% abandon at checkout. Something in the flow is broken or scary.",
+    "stages": [2, 3, 4],
+    "industries": ["ECOM"],
+    "weight": 6,
+    "choices": [
+      {
+        "label": "UX audit + fix",
+        "known": "Cash −0.5S · Rev +6%",
+        "outcome": {
+          "effects": [{ "stat": "cash_S", "amount": -0.5 }, { "stat": "rev_pct", "amount": 6, "durationQ": 2 }]
+        }
+      },
+      {
+        "label": "Retargeting ads at abandoners",
+        "known": "Rev +3% · Brand −1",
+        "outcome": {
+          "effects": [{ "stat": "rev_pct", "amount": 3, "durationQ": 2 }, { "stat": "brand", "amount": -1 }],
+          "narration": "\"Stalker ad\" complaints."
+        }
+      },
+      {
+        "label": "Exit-discount popup",
+        "known": "Rev +4%",
+        "outcome": {
+          "effects": [{ "stat": "rev_pct", "amount": 4, "durationQ": 2 }],
+          "setFlags": ["discounter"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-ECOM-2",
+    "title": "Marketplace Squeeze",
+    "category": "IND",
+    "text": "The big marketplace raises its take rate to 25%.",
+    "stages": [2, 3, 4],
+    "industries": ["ECOM"],
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Stay",
+        "known": "GM −4",
+        "outcome": { "effects": [{ "stat": "gm_pt", "amount": -4 }] }
+      },
+      {
+        "label": "Push your own site hard",
+        "known": "Rev −6% (2Q)",
+        "outcome": {
+          "effects": [
+            { "stat": "rev_pct", "amount": -6, "durationQ": 2 },
+            { "stat": "gm_pt", "amount": 5, "afterQ": 2 }
+          ],
+          "setFlags": ["own_audience"]
+        }
+      },
+      {
+        "label": "Both + raise prices on marketplace only",
+        "known": "GM −1",
+        "outcome": {
+          "effects": [{ "stat": "gm_pt", "amount": -1 }],
+          "special": ["channel_conflict_events"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-ECOM-3",
+    "title": "The Returns Tsunami",
+    "category": "IND",
+    "text": "Serial returners are bleeding you; one influencer teaches \"the trick.\"",
+    "stages": [2, 3, 4],
+    "industries": ["ECOM"],
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Tighten policy",
+        "known": "Cash saved · CSAT −3",
+        "outcome": { "effects": [{ "stat": "csat", "amount": -3 }] }
+      },
+      {
+        "label": "Free returns as brand promise",
+        "known": "Cash −1S/yr · CSAT +5",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -1, "perYear": true },
+            { "stat": "csat", "amount": 5 }
+          ],
+          "special": ["ltv_plus"]
+        }
+      },
+      {
+        "label": "AI-flag abusers only",
+        "known": "Cash −0.3S",
+        "outcome": {
+          "effects": [{ "stat": "cash_S", "amount": -0.3 }],
+          "special": ["event_odds:false_positive_drama:10"],
+          "narration": "Fair."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-ECOM-4",
+    "title": "Packaging Identity",
+    "category": "IND",
+    "text": "Unboxing videos are free ads — if the box deserves it.",
+    "stages": [1, 2, 3],
+    "industries": ["ECOM"],
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Premium unboxing",
+        "known": "COGS +2% · Brand +5",
+        "outcome": {
+          "effects": [{ "stat": "gm_pt", "amount": -2 }, { "stat": "brand", "amount": 5 }],
+          "special": ["eligibility:viral_fame"]
+        }
+      },
+      {
+        "label": "Minimal eco-pack",
+        "known": "COGS −1%",
+        "outcome": { "effects": [{ "stat": "gm_pt", "amount": 1 }], "setFlags": ["green_cred"] }
+      },
+      {
+        "label": "Plain brown honesty",
+        "outcome": { "narration": "Cheapest, forgettable." }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-TECH-1",
+    "title": "Store Rejection",
+    "category": "IND",
+    "text": "The app store rejects your update over a vague guideline.",
+    "stages": [1, 2, 3],
+    "industries": ["TECH"],
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Comply quickly",
+        "known": "Qual −2",
+        "outcome": {
+          "effects": [{ "stat": "qual", "amount": -2 }],
+          "narration": "Feature diluted, ship on time."
+        }
+      },
+      {
+        "label": "Appeal with precedent",
+        "branches": [
+          { "weight": 55, "outcome": { "special": ["delay:2w"], "narration": "Win." } },
+          { "weight": 45, "outcome": { "special": ["delay:2w"] } }
+        ]
+      },
+      {
+        "label": "Public thread about it",
+        "branches": [
+          {
+            "weight": 30,
+            "outcome": { "effects": [{ "stat": "brand", "amount": 4 }], "narration": "Policy exception." }
+          },
+          {
+            "weight": 70,
+            "outcome": { "special": ["platform_relations_minus"], "narration": "Future reviews slower." }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "E-IND-TECH-2",
+    "title": "The Churn Cliff",
+    "category": "IND",
+    "text": "Day-30 retention is a cliff. Investors will ask.",
+    "stages": [2, 3, 4],
+    "industries": ["TECH"],
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Fix onboarding (boring, right)",
+        "outcome": { "effects": [{ "stat": "churn_pt", "amount": -3, "delayed": true }] }
+      },
+      {
+        "label": "Notification blitz",
+        "outcome": {
+          "effects": [{ "stat": "churn_pt", "amount": 1, "delayed": true }],
+          "special": ["dau_up"]
+        }
+      },
+      {
+        "label": "Add streaks/gamification",
+        "known": "Churn −2 · Brand −1",
+        "outcome": {
+          "effects": [{ "stat": "churn_pt", "amount": -2 }, { "stat": "brand", "amount": -1 }],
+          "narration": "\"Dark pattern\" think-pieces."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-TECH-3",
+    "title": "Open Source Fork",
+    "category": "IND",
+    "text": "Your free tier just got cloned as an open-source project. It's popular.",
+    "stages": [3, 4, 5],
+    "industries": ["TECH"],
+    "weight": 4,
+    "choices": [
+      {
+        "label": "Embrace: hire top contributors",
+        "known": "Qual +4 · Brand +5 with devs",
+        "outcome": { "effects": [{ "stat": "qual", "amount": 4 }, { "stat": "brand", "amount": 5 }] }
+      },
+      {
+        "label": "Lawyer letters",
+        "known": "Brand −6",
+        "branches": [
+          { "weight": 40, "outcome": { "effects": [{ "stat": "brand", "amount": -6 }], "narration": "Effective." } },
+          { "weight": 60, "outcome": { "effects": [{ "stat": "brand", "amount": -6 }] } }
+        ]
+      },
+      {
+        "label": "Out-feature the fork",
+        "known": "Cash −1S · Qual +3",
+        "outcome": { "effects": [{ "stat": "cash_S", "amount": -1 }, { "stat": "qual", "amount": 3 }] }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-TECH-4",
+    "title": "The Data Center Bill",
+    "category": "IND",
+    "text": "Cloud costs doubled with usage. Success is expensive.",
+    "stages": [3, 4, 5],
+    "industries": ["TECH"],
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Optimize sprint",
+        "known": "Burn −0.6S/mo",
+        "outcome": {
+          "effects": [{ "stat": "burn_S_mo", "amount": -0.6 }],
+          "special": ["features_pause:1q"]
+        }
+      },
+      {
+        "label": "Pass to enterprise tier pricing",
+        "known": "Rev +4% · Churn +1",
+        "outcome": {
+          "effects": [{ "stat": "rev_pct", "amount": 4, "durationQ": 2 }, { "stat": "churn_pt", "amount": 1 }]
+        }
+      },
+      {
+        "label": "Own hardware",
+        "known": "Cash −5S",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -5 },
+            { "stat": "burn_S_mo", "amount": -1, "delayed": true }
+          ],
+          "setFlags": ["own_infra"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-CONT-1",
+    "title": "The Algorithm Favors You",
+    "category": "IND",
+    "text": "One video prints. A million new eyes. They expect this weekly now.",
+    "stages": [1, 2, 3],
+    "industries": ["CONTENT"],
+    "weight": 5,
+    "once": true,
+    "choices": [
+      {
+        "label": "Chase the format",
+        "known": "Rev +8%",
+        "outcome": {
+          "effects": [{ "stat": "rev_pct", "amount": 8, "durationQ": 2 }],
+          "special": ["qual_decay_if_repeated:2"]
+        }
+      },
+      {
+        "label": "Use the spike to funnel owned channels",
+        "known": "Rev +4%",
+        "outcome": {
+          "effects": [{ "stat": "rev_pct", "amount": 4, "durationQ": 2 }],
+          "setFlags": ["own_audience"]
+        }
+      },
+      {
+        "label": "Post what you love anyway",
+        "known": "±Brand 4",
+        "branches": [
+          { "weight": 50, "outcome": { "effects": [{ "stat": "brand", "amount": 4 }] } },
+          { "weight": 50, "outcome": { "effects": [{ "stat": "brand", "amount": -4 }] } }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "E-IND-CONT-2",
+    "title": "Brand Deal Dilemma",
+    "category": "IND",
+    "text": "A big sponsor pays 3S. Their product is… not good.",
+    "stages": [2, 3, 4],
+    "industries": ["CONTENT"],
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Take it, disclose hard",
+        "known": "Cash +3S · CSAT −4",
+        "outcome": {
+          "effects": [{ "stat": "cash_S", "amount": 3 }, { "stat": "csat", "amount": -4 }],
+          "setFlags": ["sellout_whispers"]
+        }
+      },
+      {
+        "label": "Decline publicly",
+        "known": "Brand +5",
+        "outcome": {
+          "effects": [{ "stat": "brand", "amount": 5 }],
+          "special": ["deal_flow_minus:1y"],
+          "narration": "Sponsors wary."
+        }
+      },
+      {
+        "label": "Negotiate approval rights",
+        "perform": {
+          "type": "nego",
+          "pass": { "effects": [{ "stat": "cash_S", "amount": 2 }], "narration": "Integrity." },
+          "fail": { "narration": "Deal dies." }
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-CONT-3",
+    "title": "Copyright Strike",
+    "category": "IND",
+    "text": "A strike lands on your best-performing piece. Fair use is a gray zone.",
+    "stages": [1, 2, 3, 4],
+    "industries": ["CONTENT"],
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Dispute",
+        "branches": [
+          { "weight": 60, "outcome": { "narration": "Win." } },
+          {
+            "weight": 40,
+            "outcome": { "effects": [{ "stat": "risk", "amount": 1 }], "narration": "Escalation risk." }
+          }
+        ]
+      },
+      {
+        "label": "Edit + repost",
+        "outcome": { "special": ["reach_reset"], "narration": "Safe." }
+      },
+      {
+        "label": "License properly going forward",
+        "known": "Cash −0.3S/yr",
+        "outcome": {
+          "effects": [{ "stat": "cash_S", "amount": -0.3, "perYear": true }],
+          "setFlags": ["clean_hands"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-CONT-4",
+    "title": "The Ghostwriter Question",
+    "category": "IND",
+    "text": "You can't make everything yourself anymore.",
+    "stages": [2, 3, 4],
+    "industries": ["CONTENT"],
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Build a writers' room, credit them",
+        "known": "Qual +3 · Mor +4 · Brand −1",
+        "outcome": {
+          "effects": [
+            { "stat": "qual", "amount": 3 },
+            { "stat": "morale", "amount": 4 },
+            { "stat": "brand", "amount": -1 }
+          ],
+          "narration": "\"It's a team?\" discourse."
+        }
+      },
+      {
+        "label": "Ghost quietly",
+        "branches": [
+          { "weight": 80, "outcome": { "special": ["output_up"] } },
+          {
+            "weight": 20,
+            "outcome": { "effects": [{ "stat": "brand", "amount": -6 }], "special": ["output_up"] }
+          }
+        ]
+      },
+      {
+        "label": "Slow down, stay solo",
+        "known": "Brand +2",
+        "outcome": { "effects": [{ "stat": "brand", "amount": 2 }], "special": ["growth_cap"] }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-FASH-1",
+    "title": "Drop Day Chaos",
+    "category": "IND",
+    "text": "Bots bought 60% of the drop in 90 seconds. Real fans got nothing.",
+    "stages": [2, 3, 4],
+    "industries": ["FASHION"],
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Anti-bot systems",
+        "known": "Cash −0.5S · CSAT +5",
+        "outcome": { "effects": [{ "stat": "cash_S", "amount": -0.5 }, { "stat": "csat", "amount": 5 }] }
+      },
+      {
+        "label": "Ignore (sold out is sold out)",
+        "known": "Rev safe · Churn +2",
+        "outcome": {
+          "effects": [{ "stat": "churn_pt", "amount": 2 }],
+          "narration": "Community sours."
+        }
+      },
+      {
+        "label": "Raffle system next drop",
+        "known": "CSAT +3",
+        "outcome": { "effects": [{ "stat": "csat", "amount": 3 }], "special": ["hype_minus:1"] }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-FASH-2",
+    "title": "The Knockoff Haul Video",
+    "category": "IND",
+    "text": "A viral video says the fake \"is basically the same.\"",
+    "stages": [2, 3, 4],
+    "industries": ["FASHION"],
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Side-by-side teardown content",
+        "known": "Brand +5",
+        "outcome": { "effects": [{ "stat": "brand", "amount": 5 }], "setFlags": ["authenticity"] }
+      },
+      {
+        "label": "Ignore",
+        "known": "CWP −2",
+        "outcome": { "effects": [{ "stat": "cwp_pt", "amount": -2 }] }
+      },
+      {
+        "label": "Release a budget line yourself",
+        "known": "Rev +5% · CWP −1",
+        "outcome": {
+          "effects": [{ "stat": "rev_pct", "amount": 5, "durationQ": 2 }, { "stat": "cwp_pt", "amount": -1 }],
+          "narration": "Brand dilution."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-FASH-3",
+    "title": "Celebrity Stylist DM",
+    "category": "IND",
+    "text": "A stylist wants free pieces for an A-lister. No promises.",
+    "stages": [2, 3, 4],
+    "industries": ["FASHION"],
+    "weight": 4,
+    "choices": [
+      {
+        "label": "Send the good stuff",
+        "branches": [
+          { "weight": 40, "outcome": { "effects": [{ "stat": "brand", "amount": 10 }], "narration": "Worn in public." } },
+          { "weight": 60, "outcome": { "narration": "Silence." } }
+        ]
+      },
+      {
+        "label": "Ask for guarantees",
+        "outcome": { "narration": "Stylist ghosts (they always do)." }
+      },
+      {
+        "label": "Decline",
+        "outcome": { "narration": "Nothing, discipline." }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-FASH-4",
+    "title": "Season vs Seasonless",
+    "category": "IND",
+    "text": "Fashion calendar says 4 collections/yr. Your team says 2 good ones.",
+    "stages": [3, 4, 5],
+    "industries": ["FASHION"],
+    "weight": 4,
+    "choices": [
+      {
+        "label": "4 collections",
+        "known": "Rev +4% · Qual −2 · En −5",
+        "outcome": {
+          "effects": [
+            { "stat": "rev_pct", "amount": 4, "durationQ": 2 },
+            { "stat": "qual", "amount": -2 },
+            { "stat": "energy", "amount": -5 }
+          ]
+        }
+      },
+      {
+        "label": "2 strong drops",
+        "known": "Qual +4",
+        "outcome": {
+          "effects": [{ "stat": "qual", "amount": 4 }],
+          "setFlags": ["scarcity_play"],
+          "narration": "Hype concentration."
+        }
+      },
+      {
+        "label": "Continuous capsule model",
+        "known": "Rev +2%",
+        "outcome": {
+          "effects": [{ "stat": "rev_pct", "amount": 2, "durationQ": 2 }],
+          "narration": "No \"moments\"."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-GAME-1",
+    "title": "Crunch Decision",
+    "category": "IND",
+    "text": "Launch is close. The industry's ugly word is in the room: crunch.",
+    "stages": [2, 3, 4],
+    "industries": ["GAMING"],
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Delay instead",
+        "known": "Brand −1 · Mor +6 · Qual +4",
+        "outcome": {
+          "effects": [
+            { "stat": "brand", "amount": -1 },
+            { "stat": "morale", "amount": 6 },
+            { "stat": "qual", "amount": 4 }
+          ],
+          "narration": "\"Delayed again.\""
+        }
+      },
+      {
+        "label": "Paid overtime, capped",
+        "known": "Cash −1S · Mor −2",
+        "outcome": {
+          "effects": [{ "stat": "cash_S", "amount": -1 }, { "stat": "morale", "amount": -2 }],
+          "narration": "On time."
+        }
+      },
+      {
+        "label": "Uncapped crunch",
+        "known": "Mor −10",
+        "outcome": {
+          "effects": [{ "stat": "morale", "amount": -10 }],
+          "setFlags": ["bad_boss"],
+          "special": ["event_odds:expose:25"],
+          "narration": "On time."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-GAME-2",
+    "title": "Monetization Fork",
+    "category": "IND",
+    "text": "Publisher pressure: add aggressive microtransactions?",
+    "stages": [2, 3, 4],
+    "industries": ["GAMING"],
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Cosmetics only",
+        "known": "Rev +3% · CSAT +4",
+        "outcome": {
+          "effects": [{ "stat": "rev_pct", "amount": 3, "durationQ": 2 }, { "stat": "csat", "amount": 4 }],
+          "narration": "Familiar."
+        }
+      },
+      {
+        "label": "Pay-to-win",
+        "known": "Rev +8% (1yr)",
+        "outcome": {
+          "effects": [
+            { "stat": "rev_pct", "amount": 8, "durationQ": 4 },
+            { "stat": "churn_pt", "amount": 4, "afterQ": 4 },
+            { "stat": "brand", "amount": -6, "afterQ": 4 }
+          ]
+        }
+      },
+      {
+        "label": "Premium price, no IAP",
+        "known": "Rev +2% · Brand +4",
+        "outcome": {
+          "effects": [{ "stat": "rev_pct", "amount": 2, "durationQ": 2 }, { "stat": "brand", "amount": 4 }]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-GAME-3",
+    "title": "The Streamer Effect",
+    "category": "IND",
+    "text": "A giant streamer plays your game unprompted. Servers are melting.",
+    "stages": [1, 2, 3],
+    "industries": ["GAMING"],
+    "weight": 5,
+    "once": true,
+    "choices": [
+      {
+        "label": "Emergency scale-up",
+        "known": "Cash −1S · Rev +12% (1Q)",
+        "outcome": {
+          "effects": [{ "stat": "cash_S", "amount": -1 }, { "stat": "rev_pct", "amount": 12, "durationQ": 1 }],
+          "narration": "Ride it."
+        }
+      },
+      {
+        "label": "Queue + apologize with charm",
+        "known": "Rev +6%",
+        "outcome": {
+          "effects": [{ "stat": "rev_pct", "amount": 6, "durationQ": 2 }],
+          "narration": "Memes both ways."
+        }
+      },
+      {
+        "label": "Do nothing",
+        "known": "CSAT −5",
+        "outcome": {
+          "effects": [{ "stat": "csat", "amount": -5 }],
+          "narration": "Crash clips, \"dead game\" jokes."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-GAME-4",
+    "title": "Patch or Content",
+    "category": "IND",
+    "text": "Players demand bug fixes; the roadmap promises new content. Team does one.",
+    "stages": [3, 4, 5],
+    "industries": ["GAMING"],
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Fix first",
+        "known": "CSAT +5",
+        "outcome": {
+          "effects": [{ "stat": "csat", "amount": 5 }],
+          "narration": "\"No content\" grumbles."
+        }
+      },
+      {
+        "label": "Content first",
+        "known": "Qual −3",
+        "outcome": {
+          "effects": [{ "stat": "qual", "amount": -3 }],
+          "special": ["hype_plus:1"],
+          "narration": "Bug compilation videos."
+        }
+      },
+      {
+        "label": "Split team",
+        "outcome": { "narration": "Both mediocre this Q, then fine." }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-FIT-1",
+    "title": "Injury Claim",
+    "category": "IND",
+    "text": "A member says your equipment/program injured them.",
+    "stages": [2, 3, 4],
+    "industries": ["FITNESS"],
+    "weight": 5,
+    "choices": [
+      {
+        "label": "process cleanly",
+        "requiresFlag": "insured",
+        "known": "Cash −0.2S",
+        "outcome": { "effects": [{ "stat": "cash_S", "amount": -0.2 }] }
+      },
+      {
+        "label": "Settle quietly",
+        "known": "Cash −1S",
+        "outcome": { "effects": [{ "stat": "cash_S", "amount": -1 }, { "stat": "risk", "amount": 1 }] }
+      },
+      {
+        "label": "Fight with evidence",
+        "known": "Brand −1",
+        "branches": [
+          { "weight": 70, "outcome": { "effects": [{ "stat": "brand", "amount": -1 }], "narration": "Win." } },
+          { "weight": 30, "outcome": { "effects": [{ "stat": "brand", "amount": -1 }] } }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "E-IND-FIT-2",
+    "title": "The Transformation Post",
+    "category": "IND",
+    "text": "A member's before/after goes viral, crediting you.",
+    "stages": [1, 2, 3],
+    "industries": ["FITNESS"],
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Amplify with consent",
+        "known": "Brand +7",
+        "outcome": {
+          "effects": [{ "stat": "brand", "amount": 7 }],
+          "setFlags": ["community"],
+          "narration": "Member becomes ambassador."
+        }
+      },
+      {
+        "label": "Amplify without asking",
+        "known": "Brand +4",
+        "outcome": {
+          "effects": [
+            { "stat": "brand", "amount": 4 },
+            { "stat": "brand", "amount": -6, "afterQ": 1 },
+            { "stat": "risk", "amount": 1, "afterQ": 1 }
+          ],
+          "narration": "Consent backlash."
+        }
+      },
+      {
+        "label": "Congratulate privately",
+        "known": "CSAT +3",
+        "outcome": { "effects": [{ "stat": "csat", "amount": 3 }], "narration": "Quiet class." }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-FIT-3",
+    "title": "Supplement Money",
+    "category": "IND",
+    "text": "A supplement brand offers 2S/yr for exclusive promotion. Ingredients: mostly hope.",
+    "stages": [2, 3, 4],
+    "industries": ["FITNESS"],
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Take it",
+        "known": "Cash +2S/yr · CSAT −3",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": 2, "perYear": true },
+            { "stat": "csat", "amount": -3 }
+          ],
+          "setFlags": ["sellout_whispers"]
+        }
+      },
+      {
+        "label": "Take it with third-party testing demand",
+        "perform": {
+          "type": "nego",
+          "pass": {
+            "effects": [{ "stat": "cash_S", "amount": 1.5, "perYear": true }],
+            "narration": "Clean."
+          },
+          "fail": { "narration": "They walk." }
+        }
+      },
+      {
+        "label": "Decline, sell your own tested line",
+        "known": "Cash −1S",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -1 },
+            { "stat": "gm_pt", "amount": 3, "delayed": true }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-FIT-4",
+    "title": "January Tsunami",
+    "category": "IND",
+    "text": "Resolution season triples signups. February will triple cancellations.",
+    "stages": [1, 2, 3, 4],
+    "industries": ["FITNESS"],
+    "weight": 6,
+    "special": ["fires_q:1"],
+    "choices": [
+      {
+        "label": "Onboard hard: coaching for newbies",
+        "known": "Cash −0.5S · Churn −4",
+        "outcome": {
+          "effects": [{ "stat": "cash_S", "amount": -0.5 }, { "stat": "churn_pt", "amount": -4 }],
+          "narration": "They stay!"
+        }
+      },
+      {
+        "label": "Ride the wave, oversell",
+        "known": "Rev +8% (1Q) · CSAT −5",
+        "outcome": {
+          "effects": [
+            { "stat": "rev_pct", "amount": 8, "durationQ": 1 },
+            { "stat": "csat", "amount": -5 },
+            { "stat": "churn_pt", "amount": 5, "afterQ": 1 }
+          ]
+        }
+      },
+      {
+        "label": "Cap intake, waitlist",
+        "known": "Brand +3 · Rev +3%",
+        "outcome": {
+          "effects": [{ "stat": "brand", "amount": 3 }, { "stat": "rev_pct", "amount": 3, "durationQ": 2 }]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-BEA-1",
+    "title": "The Reaction Reports",
+    "category": "IND",
+    "text": "A small % of customers report skin reactions to a bestseller.",
+    "stages": [2, 3, 4],
+    "industries": ["BEAUTY"],
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Pull + reformulate",
+        "known": "Cash −3S",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -3 },
+            { "stat": "brand", "amount": 5, "delayed": true }
+          ],
+          "setFlags": ["quality_first"]
+        }
+      },
+      {
+        "label": "Warning label only",
+        "known": "Cash −0.2S",
+        "outcome": {
+          "effects": [{ "stat": "cash_S", "amount": -0.2 }, { "stat": "risk", "amount": 2 }],
+          "narration": "Slow drip of bad posts."
+        }
+      },
+      {
+        "label": "it's the cheap ingredient",
+        "requiresFlag": "cut_corners",
+        "known": "Cash −5S · Brand −8",
+        "outcome": {
+          "effects": [{ "stat": "cash_S", "amount": -5 }, { "stat": "brand", "amount": -8 }],
+          "narration": "Recall forced."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-BEA-2",
+    "title": "Shade Range Callout",
+    "category": "IND",
+    "text": "A viral post: your range excludes deeper skin tones.",
+    "stages": [1, 2, 3],
+    "industries": ["BEAUTY"],
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Expand the range properly",
+        "known": "Cash −1S · Rev +4% · Brand +5",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -1 },
+            { "stat": "rev_pct", "amount": 4, "durationQ": 2 },
+            { "stat": "brand", "amount": 5 }
+          ],
+          "setFlags": ["inclusive"]
+        }
+      },
+      {
+        "label": "Promise \"coming soon\"",
+        "outcome": { "special": ["promise_clock:2q:brand-6"], "narration": "Clock starts." }
+      },
+      {
+        "label": "Ignore",
+        "known": "Brand −5",
+        "outcome": { "effects": [{ "stat": "brand", "amount": -5 }], "setFlags": ["press_enemy"] }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-BEA-3",
+    "title": "Dupe Culture Hit",
+    "category": "IND",
+    "text": "A drugstore dupe of your hero product trends.",
+    "stages": [2, 3, 4],
+    "industries": ["BEAUTY"],
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Ingredient-transparency campaign",
+        "known": "CWP + · Brand +4",
+        "outcome": { "effects": [{ "stat": "cwp_pt", "amount": 2 }, { "stat": "brand", "amount": 4 }] }
+      },
+      {
+        "label": "Lower your price",
+        "known": "GM −3",
+        "outcome": { "effects": [{ "stat": "gm_pt", "amount": -3 }, { "stat": "cwp_pt", "amount": -1 }] }
+      },
+      {
+        "label": "Launch your own budget sister brand",
+        "known": "Rev +5%",
+        "outcome": {
+          "effects": [{ "stat": "rev_pct", "amount": 5, "durationQ": 2 }],
+          "setFlags": ["portfolio"],
+          "narration": "Complexity."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-BEA-4",
+    "title": "The Clean Beauty Audit",
+    "category": "IND",
+    "text": "A watchdog grades brands on ingredient claims. Yours are… enthusiastic.",
+    "stages": [2, 3, 4],
+    "industries": ["BEAUTY"],
+    "weight": 4,
+    "choices": [
+      {
+        "label": "Reformulate + re-certify",
+        "known": "Cash −2S",
+        "outcome": { "effects": [{ "stat": "cash_S", "amount": -2 }], "setFlags": ["green_cred"] }
+      },
+      {
+        "label": "Soften the marketing claims",
+        "known": "Brand −1",
+        "outcome": { "effects": [{ "stat": "brand", "amount": -1 }], "special": ["risk_clear"] }
+      },
+      {
+        "label": "Double down on the claims",
+        "branches": [
+          { "weight": 35, "outcome": { "narration": "Nothing." } },
+          {
+            "weight": 65,
+            "outcome": {
+              "effects": [{ "stat": "brand", "amount": -7 }, { "stat": "risk", "amount": 2 }],
+              "narration": "Exposé."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "E-IND-EDU-1",
+    "title": "The School District Pilot",
+    "category": "IND",
+    "text": "A district offers a pilot: 10 schools, brutal procurement, slow pay.",
+    "stages": [2, 3, 4],
+    "industries": ["EDTECH"],
+    "weight": 6,
+    "choices": [
+      {
+        "label": "All in",
+        "known": "En −6",
+        "branches": [
+          {
+            "weight": 50,
+            "outcome": {
+              "effects": [
+                { "stat": "energy", "amount": -6 },
+                { "stat": "rev_pct", "amount": 15, "perYear": true }
+              ],
+              "setFlags": ["gov_contract"],
+              "narration": "Win."
+            }
+          },
+          { "weight": 50, "outcome": { "effects": [{ "stat": "energy", "amount": -6 }] } }
+        ]
+      },
+      {
+        "label": "One school first",
+        "outcome": { "narration": "Clean data, slower." }
+      },
+      {
+        "label": "Stay direct-to-consumer",
+        "outcome": { "narration": "Freedom, smaller checks." }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-EDU-2",
+    "title": "Cheating Headline",
+    "category": "IND",
+    "text": "A news story: students use tools like yours to cheat.",
+    "stages": [2, 3, 4],
+    "industries": ["EDTECH"],
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Ship academic-integrity features, join the panel discussion",
+        "perform": {
+          "type": "media",
+          "pass": { "effects": [{ "stat": "brand", "amount": 5 }], "narration": "Districts reassured." },
+          "fail": { "effects": [{ "stat": "brand", "amount": -3 }], "narration": "Soundbite backfires." }
+        }
+      },
+      {
+        "label": "Quiet lobbying",
+        "outcome": { "effects": [{ "stat": "risk", "amount": -1 }], "narration": "No glow." }
+      },
+      {
+        "label": "\"Not our problem\"",
+        "known": "Rev −6%",
+        "outcome": {
+          "effects": [{ "stat": "rev_pct", "amount": -6, "durationQ": 2 }],
+          "narration": "Districts freeze."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-EDU-3",
+    "title": "Efficacy Study Ask",
+    "category": "IND",
+    "text": "Districts want proof your product improves outcomes. A real study costs 2S and might say \"meh.\"",
+    "stages": [3, 4, 5],
+    "industries": ["EDTECH"],
+    "weight": 4,
+    "choices": [
+      {
+        "label": "Fund independent study",
+        "known": "Cash −2S",
+        "branches": [
+          {
+            "weight": 60,
+            "outcome": {
+              "effects": [
+                { "stat": "cash_S", "amount": -2 },
+                { "stat": "rev_pct", "amount": 8, "perYear": true }
+              ],
+              "setFlags": ["evidence"],
+              "narration": "Positive."
+            }
+          },
+          {
+            "weight": 40,
+            "outcome": {
+              "effects": [{ "stat": "cash_S", "amount": -2 }],
+              "narration": "Mixed: honest marketing required."
+            }
+          }
+        ]
+      },
+      {
+        "label": "Cherry-pick internal data",
+        "outcome": {
+          "special": ["event_odds:credibility_bomb:30"],
+          "narration": "Sales now."
+        }
+      },
+      {
+        "label": "Partner with the university lab",
+        "requiresFlag": "research_ties",
+        "known": "Cash −1S",
+        "outcome": {
+          "effects": [{ "stat": "cash_S", "amount": -1 }],
+          "special": ["credibility_plus"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-EDU-4",
+    "title": "Summer Cliff",
+    "category": "IND",
+    "text": "School's out. Usage falls off a cliff every summer.",
+    "stages": [1, 2, 3, 4],
+    "industries": ["EDTECH"],
+    "weight": 6,
+    "special": ["fires_q:2"],
+    "choices": [
+      {
+        "label": "Summer-camp/parent mode",
+        "known": "Rev −5%",
+        "outcome": {
+          "effects": [{ "stat": "rev_pct", "amount": -5, "durationQ": 2 }],
+          "setFlags": ["portfolio"]
+        }
+      },
+      {
+        "label": "Accept seasonality, cut costs in summer",
+        "known": "Burn −20% (Q3) · Mor −2",
+        "outcome": {
+          "effects": [{ "stat": "morale", "amount": -2 }],
+          "special": ["burn_pct:-20:q3"],
+          "narration": "Furlough feel."
+        }
+      },
+      {
+        "label": "International counter-seasonal push",
+        "known": "Rev −2%",
+        "outcome": {
+          "effects": [{ "stat": "rev_pct", "amount": -2, "durationQ": 2 }],
+          "setFlags": ["intl_partner"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-GRN-1",
+    "title": "Greenwash Accusation",
+    "category": "IND",
+    "text": "An activist thread audits your claims. Two of seven don't hold up.",
+    "stages": [2, 3, 4],
+    "industries": ["SUSTAIN"],
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Concede the two, fix publicly",
+        "known": "Brand −2",
+        "outcome": {
+          "effects": [
+            { "stat": "brand", "amount": -2 },
+            { "stat": "brand", "amount": 5, "afterQ": 1 }
+          ],
+          "setFlags": ["green_cred"]
+        }
+      },
+      {
+        "label": "Fight all seven",
+        "branches": [
+          { "weight": 20, "outcome": { "narration": "Vindicated." } },
+          { "weight": 80, "outcome": { "effects": [{ "stat": "brand", "amount": -8 }], "narration": "Pile-on." } }
+        ]
+      },
+      {
+        "label": "Go quiet, fix silently",
+        "outcome": {
+          "effects": [
+            { "stat": "brand", "amount": -1 },
+            { "stat": "brand", "amount": -1, "afterQ": 1 }
+          ],
+          "narration": "Slow leak."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-GRN-2",
+    "title": "The Cheaper Gray Option",
+    "category": "IND",
+    "text": "A supplier offers non-certified materials at −30%. Nobody would know. (You would.)",
+    "stages": [2, 3, 4],
+    "industries": ["SUSTAIN"],
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Decline",
+        "known": "GM −0 · Resp +2",
+        "outcome": { "effects": [{ "stat": "respect", "amount": 2 }], "setFlags": ["green_cred"] }
+      },
+      {
+        "label": "Accept",
+        "known": "GM +5",
+        "branches": [
+          {
+            "weight": 40,
+            "outcome": { "effects": [{ "stat": "gm_pt", "amount": 5 }], "setFlags": ["greenwash_bomb"] }
+          },
+          { "weight": 60, "outcome": { "effects": [{ "stat": "gm_pt", "amount": 5 }] } }
+        ]
+      },
+      {
+        "label": "Blend + disclose % honestly",
+        "known": "GM +2 · CSAT −2",
+        "outcome": {
+          "effects": [{ "stat": "gm_pt", "amount": 2 }, { "stat": "csat", "amount": -2 }],
+          "narration": "Purists −, pragmatists +."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-GRN-3",
+    "title": "Certification Maze",
+    "category": "IND",
+    "text": "The credible eco-label costs 1S and a year of audits.",
+    "stages": [1, 2, 3],
+    "industries": ["SUSTAIN"],
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Get certified",
+        "known": "Cash −1S · CWP +",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -1 },
+            { "stat": "cwp_pt", "amount": 2 },
+            { "stat": "rev_pct", "amount": 5, "durationQ": 2, "delayed": true }
+          ],
+          "narration": "B2B doors open."
+        }
+      },
+      {
+        "label": "Self-declared standards page",
+        "outcome": { "narration": "Cheap, skeptics unimpressed." }
+      },
+      {
+        "label": "fast-tracked",
+        "requiresFlag": "audited_supply",
+        "known": "Cash −0.5S",
+        "outcome": {
+          "effects": [{ "stat": "cash_S", "amount": -0.5 }],
+          "narration": "Flex."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-GRN-4",
+    "title": "The Oil Money Offer",
+    "category": "IND",
+    "text": "A fossil-fuel giant's venture arm offers 10S. The optics write themselves.",
+    "stages": [3, 4, 5],
+    "industries": ["SUSTAIN"],
+    "weight": 4,
+    "once": true,
+    "choices": [
+      {
+        "label": "Take it, spend it loudly on mission",
+        "known": "Cash +10S · Brand −6 · Rev +5%",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": 10 },
+            { "stat": "brand", "amount": -6 },
+            { "stat": "rev_pct", "amount": 5, "durationQ": 2 }
+          ]
+        }
+      },
+      {
+        "label": "Decline publicly",
+        "known": "Brand +7 · Resp +2",
+        "outcome": { "effects": [{ "stat": "brand", "amount": 7 }, { "stat": "respect", "amount": 2 }] }
+      },
+      {
+        "label": "Take it silently",
+        "known": "Cash +10S",
+        "branches": [
+          {
+            "weight": 50,
+            "outcome": {
+              "effects": [{ "stat": "cash_S", "amount": 10 }, { "stat": "brand", "amount": -10 }],
+              "narration": "Leak."
+            }
+          },
+          { "weight": 50, "outcome": { "effects": [{ "stat": "cash_S", "amount": 10 }] } }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "E-IND-TOY-1",
+    "title": "Safety Test Surprise",
+    "category": "IND",
+    "text": "A component fails a choking-hazard test margin. Barely.",
+    "stages": [2, 3, 4],
+    "industries": ["TOYS"],
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Redesign before ship",
+        "outcome": { "special": ["delay:1q"], "setFlags": ["quality_first"] }
+      },
+      {
+        "label": "Ship with age-label change",
+        "branches": [
+          { "weight": 80, "outcome": { "narration": "Legal." } },
+          { "weight": 20, "outcome": { "narration": "Retailer pushback." } }
+        ]
+      },
+      {
+        "label": "ship as is",
+        "requiresFlag": "cut_corners",
+        "outcome": { "special": ["event_odds:recall:45", "autopsy_magnet"] }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-TOY-2",
+    "title": "Scalper Economy",
+    "category": "IND",
+    "text": "Your limited figure resells at 5×. Kids can't get it; flippers can.",
+    "stages": [2, 3, 4],
+    "industries": ["TOYS"],
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Reprint openly",
+        "known": "CSAT −4 · Brand +4",
+        "outcome": {
+          "effects": [{ "stat": "csat", "amount": -4 }, { "stat": "brand", "amount": 4 }],
+          "narration": "Collectors furious, kids happy."
+        }
+      },
+      {
+        "label": "Keep it rare",
+        "known": "CWP +",
+        "outcome": {
+          "effects": [{ "stat": "cwp_pt", "amount": 2 }],
+          "setFlags": ["scarcity_play"],
+          "narration": "Resale mythology."
+        }
+      },
+      {
+        "label": "Ticketed fair-purchase system",
+        "known": "Cash −0.3S · CSAT +4",
+        "outcome": { "effects": [{ "stat": "cash_S", "amount": -0.3 }, { "stat": "csat", "amount": 4 }] }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-TOY-3",
+    "title": "The License Temptation",
+    "category": "IND",
+    "text": "A giant franchise offers a license: guaranteed sales, 18% royalty, creative shackles.",
+    "stages": [3, 4, 5],
+    "industries": ["TOYS"],
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Take it",
+        "known": "Rev +12%/yr · GM −4",
+        "outcome": {
+          "effects": [
+            { "stat": "rev_pct", "amount": 12, "perYear": true },
+            { "stat": "gm_pt", "amount": -4 }
+          ],
+          "setFlags": ["licensed"],
+          "special": ["restrict_creative_events"]
+        }
+      },
+      {
+        "label": "Decline, build own IP",
+        "outcome": {
+          "setFlags": ["ip_owner"],
+          "special": ["unlock:media_deal_events:d"],
+          "narration": "Slower."
+        }
+      },
+      {
+        "label": "One limited collab",
+        "known": "Rev +5% (1Q)",
+        "outcome": {
+          "effects": [{ "stat": "rev_pct", "amount": 5, "durationQ": 1 }],
+          "narration": "Test data."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-TOY-4",
+    "title": "Holiday Bet",
+    "category": "IND",
+    "text": "Retailers want holiday orders NOW: how much do you commit to produce?",
+    "stages": [2, 3, 4],
+    "industries": ["TOYS"],
+    "weight": 6,
+    "special": ["fires_q:3"],
+    "choices": [
+      {
+        "label": "Aggressive",
+        "branches": [
+          {
+            "cond": { "flag": "season_strong" },
+            "outcome": { "effects": [{ "stat": "rev_pct", "amount": 18, "durationQ": 2 }] }
+          },
+          {
+            "fallback": true,
+            "outcome": { "effects": [{ "stat": "cash_S", "amount": -4 }], "narration": "Stuck." }
+          }
+        ]
+      },
+      {
+        "label": "Conservative",
+        "known": "Rev +6%",
+        "branches": [
+          {
+            "cond": { "flag": "season_strong" },
+            "outcome": {
+              "effects": [
+                { "stat": "rev_pct", "amount": 6, "durationQ": 2 },
+                { "stat": "csat", "amount": -3 }
+              ],
+              "narration": "Stockout risk."
+            }
+          },
+          {
+            "fallback": true,
+            "outcome": { "effects": [{ "stat": "rev_pct", "amount": 6, "durationQ": 2 }] }
+          }
+        ]
+      },
+      {
+        "label": "Preorder-driven",
+        "known": "Rev +9%",
+        "outcome": {
+          "effects": [{ "stat": "rev_pct", "amount": 9, "durationQ": 2 }],
+          "narration": "Data-safe, hype tax."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-PET-1",
+    "title": "The Recall Scare",
+    "category": "IND",
+    "text": "A competitor's recall makes owners paranoid about the whole category.",
+    "stages": [2, 3, 4],
+    "industries": ["PET"],
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Publish your testing openly",
+        "known": "Brand +5",
+        "outcome": { "effects": [{ "stat": "brand", "amount": 5 }], "setFlags": ["quality_first"] }
+      },
+      {
+        "label": "Attack ads on the competitor",
+        "known": "Share +2 · Brand −2",
+        "outcome": {
+          "effects": [{ "stat": "share_pt", "amount": 2 }, { "stat": "brand", "amount": -2 }],
+          "narration": "Ambulance chasing."
+        }
+      },
+      {
+        "label": "Say nothing",
+        "known": "Rev −4%",
+        "outcome": { "effects": [{ "stat": "rev_pct", "amount": -4, "durationQ": 2 }] }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-PET-2",
+    "title": "Vet Endorsement Path",
+    "category": "IND",
+    "text": "Clinical credibility costs: a vet advisory board wants 0.5S/yr.",
+    "stages": [2, 3, 4],
+    "industries": ["PET"],
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Build the board",
+        "known": "Cash −0.5S/yr · CWP +",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -0.5, "perYear": true },
+            { "stat": "cwp_pt", "amount": 2 },
+            { "stat": "rev_pct", "amount": 6, "durationQ": 2, "delayed": true }
+          ],
+          "narration": "B2B vet channel."
+        }
+      },
+      {
+        "label": "One celebrity vet influencer",
+        "known": "Brand +4",
+        "outcome": {
+          "effects": [{ "stat": "brand", "amount": 4 }],
+          "narration": "Credibility thin."
+        }
+      },
+      {
+        "label": "Skip",
+        "outcome": { "narration": "Price-shopper positioning." }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-PET-3",
+    "title": "The Emotional Support Story",
+    "category": "IND",
+    "text": "A customer credits your product in a tearjerker story about their elderly dog. It's spreading.",
+    "stages": [1, 2, 3],
+    "industries": ["PET"],
+    "weight": 4,
+    "once": true,
+    "choices": [
+      {
+        "label": "Amplify with their consent, donate to shelters",
+        "known": "Brand +8",
+        "outcome": {
+          "effects": [{ "stat": "brand", "amount": 8 }],
+          "setFlags": ["charity", "community"]
+        }
+      },
+      {
+        "label": "Amplify without asking",
+        "known": "Brand +5",
+        "outcome": {
+          "effects": [
+            { "stat": "brand", "amount": 5 },
+            { "stat": "brand", "amount": -4, "afterQ": 1 }
+          ],
+          "narration": "Consent backlash."
+        }
+      },
+      {
+        "label": "Private thank-you only",
+        "known": "CSAT +3",
+        "outcome": { "effects": [{ "stat": "csat", "amount": 3 }], "narration": "Class." }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-PET-4",
+    "title": "Subscription Fatigue",
+    "category": "IND",
+    "text": "Your subscription boxes churn as pets (and owners) get bored.",
+    "stages": [2, 3, 4],
+    "industries": ["PET"],
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Personalization engine",
+        "known": "Cash −1S · Churn −3",
+        "outcome": { "effects": [{ "stat": "cash_S", "amount": -1 }, { "stat": "churn_pt", "amount": -3 }] }
+      },
+      {
+        "label": "Skip-a-month flexibility",
+        "known": "Churn −2 · Rev −3%",
+        "outcome": {
+          "effects": [
+            { "stat": "churn_pt", "amount": -2 },
+            { "stat": "rev_pct", "amount": -3, "durationQ": 2 }
+          ],
+          "narration": "Breathing room beats cancellation."
+        }
+      },
+      {
+        "label": "Lock-in annual discounts",
+        "known": "Cash +now",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": 1 },
+            { "stat": "churn_pt", "amount": 2, "delayed": true }
+          ],
+          "narration": "Resentment churn later."
+        }
+      }
+    ]
+  }
+]

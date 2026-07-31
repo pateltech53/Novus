@@ -1,0 +1,826 @@
+[
+  {
+    "id": "E-PPL-001",
+    "title": "The First Hire",
+    "category": "PPL",
+    "text": "You can’t do everything anymore. Two candidates: a versatile friend, or a stranger with the exact skills.",
+    "stages": [1],
+    "industries": "all",
+    "weight": 9,
+    "once": true,
+    "choices": [
+      {
+        "label": "The friend",
+        "known": "Mor +6 · Qual −3",
+        "outcome": {
+          "effects": [
+            { "stat": "morale", "amount": 6 },
+            { "stat": "qual", "amount": -3 }
+          ],
+          "setFlags": ["friend_hire"]
+        }
+      },
+      {
+        "label": "The stranger",
+        "known": "Qual +5 · Mor −0 · Burn +0.2S/mo",
+        "outcome": {
+          "effects": [
+            { "stat": "qual", "amount": 5 },
+            { "stat": "burn_S_mo", "amount": 0.2 }
+          ]
+        }
+      },
+      {
+        "label": "Nobody yet",
+        "known": "En −8",
+        "outcome": {
+          "effects": [{ "stat": "energy", "amount": -8 }],
+          "narration": "everything stays yours"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-PPL-002",
+    "title": "Friend vs Founder",
+    "category": "PPL",
+    "text": "Your friend-employee is underperforming and everyone sees it.",
+    "stages": [1, 2],
+    "industries": "all",
+    "weight": 6,
+    "requiresFlags": ["friend_hire"],
+    "choices": [
+      {
+        "label": "Fire them yourself",
+        "perform": {
+          "type": "allhands",
+          "pass": {
+            "effects": [
+              { "stat": "morale", "amount": -3 },
+              { "stat": "respect", "amount": 2 }
+            ],
+            "setFlags": ["hard_calls"]
+          },
+          "fail": {
+            "effects": [{ "stat": "morale", "amount": -9 }],
+            "narration": "friendship over"
+          }
+        }
+      },
+      {
+        "label": "Move them to a role they fit",
+        "known": "Mor +4 · Burn +0.1S/mo",
+        "outcome": {
+          "effects": [
+            { "stat": "morale", "amount": 4 },
+            { "stat": "burn_S_mo", "amount": 0.1 }
+          ]
+        }
+      },
+      {
+        "label": "Ignore it",
+        "known": "Qual −4",
+        "outcome": {
+          "effects": [
+            { "stat": "qual", "amount": -4 },
+            { "stat": "teamloy", "amount": -1 }
+          ],
+          "narration": "top performer notices…"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-PPL-003",
+    "title": "The Star Asks Double",
+    "category": "PPL",
+    "text": "Your best employee has a competing offer at 2× salary.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 8,
+    "choices": [
+      {
+        "label": "Match it",
+        "known": "Burn +0.3S/mo",
+        "branches": [
+          {
+            "cond": { "flag": "treated_team_well" },
+            "outcome": {
+              "effects": [
+                { "stat": "burn_S_mo", "amount": 0.3 },
+                { "stat": "morale", "amount": 3 }
+              ]
+            }
+          },
+          {
+            "fallback": true,
+            "outcome": {
+              "effects": [
+                { "stat": "burn_S_mo", "amount": 0.3 },
+                { "stat": "morale", "amount": -3 }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "label": "Counter with equity",
+        "known": "dilution tiny",
+        "outcome": {
+          "effects": [
+            { "stat": "dilution_pct", "amount": 1 },
+            { "stat": "teamloy", "amount": 2 }
+          ],
+          "setFlags": ["equity_culture"]
+        }
+      },
+      {
+        "label": "Let them walk",
+        "known": "Qual −6",
+        "outcome": {
+          "effects": [{ "stat": "qual", "amount": -6 }],
+          "setFlags": ["star_left"],
+          "narration": "they may resurface at a rival"
+        }
+      },
+      {
+        "label": "Persuade with vision",
+        "perform": {
+          "type": "allhands",
+          "pass": {
+            "special": ["salary_raise_pct:20"],
+            "narration": "they stay for +20% only"
+          },
+          "fail": {
+            "effects": [{ "stat": "qual", "amount": -6 }],
+            "setFlags": ["star_left"],
+            "narration": "they walk AND tell people why"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-PPL-004",
+    "title": "Intern Season",
+    "category": "PPL",
+    "text": "Applications from local students. Free-ish labor, real responsibility.",
+    "stages": [1, 2, 3],
+    "industries": "all",
+    "weight": 7,
+    "choices": [
+      {
+        "label": "Hire 2, mentor properly",
+        "known": "En −5 · Qual +2 · Brand +2",
+        "outcome": {
+          "effects": [
+            { "stat": "energy", "amount": -5 },
+            { "stat": "qual", "amount": 2 },
+            { "stat": "brand", "amount": 2 }
+          ],
+          "setFlags": ["mentor"]
+        }
+      },
+      {
+        "label": "Hire 5, throw them in",
+        "known": "Mor −2",
+        "outcome": {
+          "effects": [
+            { "stat": "risk", "amount": 1 },
+            { "stat": "morale", "amount": -2 }
+          ],
+          "special": ["output_plus"]
+        }
+      },
+      {
+        "label": "Skip",
+        "outcome": {}
+      }
+    ]
+  },
+  {
+    "id": "E-PPL-005",
+    "title": "The Scapegoat",
+    "category": "PPL",
+    "text": "A public mistake needs a name attached. The intern touched it last.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Take the blame yourself",
+        "known": "Brand −3 · Mor +8 · Resp +3",
+        "outcome": {
+          "effects": [
+            { "stat": "brand", "amount": -3 },
+            { "stat": "morale", "amount": 8 },
+            { "stat": "teamloy", "amount": 2 },
+            { "stat": "respect", "amount": 3 }
+          ]
+        }
+      },
+      {
+        "label": "Blame the intern",
+        "known": "Brand +0 · Mor −10",
+        "outcome": {
+          "effects": [{ "stat": "morale", "amount": -10 }],
+          "setFlags": ["intern_blamed"]
+        }
+      },
+      {
+        "label": "Blame \"process,\" fix it visibly",
+        "known": "Brand −1 · Qual +2",
+        "outcome": {
+          "effects": [
+            { "stat": "brand", "amount": -1 },
+            { "stat": "qual", "amount": 2 }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-PPL-006",
+    "title": "The Return",
+    "category": "PPL",
+    "text": "The intern you threw under the bus in Year {y}? She runs marketing at your biggest rival now. Their new campaign targets your weakest point precisely.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 5,
+    "once": true,
+    "requiresFlags": ["intern_blamed"],
+    "choices": [
+      {
+        "label": "Apologize privately",
+        "branches": [
+          {
+            "weight": 50,
+            "outcome": {
+              "clearFlags": ["intern_blamed"],
+              "narration": "neutralized"
+            }
+          },
+          {
+            "weight": 50,
+            "outcome": {
+              "effects": [{ "stat": "brand", "amount": -5 }],
+              "narration": "screenshot leaked"
+            }
+          }
+        ]
+      },
+      {
+        "label": "Counter-campaign",
+        "known": "Cash −3S",
+        "branches": [
+          {
+            "weight": 50,
+            "outcome": {
+              "effects": [
+                { "stat": "cash_S", "amount": -3 },
+                { "stat": "share_pt", "amount": 2 }
+              ]
+            }
+          },
+          {
+            "weight": 50,
+            "outcome": {
+              "effects": [
+                { "stat": "cash_S", "amount": -3 },
+                { "stat": "share_pt", "amount": -2 }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "label": "Try to hire her back at a big number",
+        "perform": {
+          "type": "nego",
+          "pass": {
+            "effects": [
+              { "stat": "qual", "amount": 6 },
+              { "stat": "brand", "amount": 4 }
+            ],
+            "narration": "story goes viral"
+          },
+          "fail": {
+            "effects": [{ "stat": "brand", "amount": -3 }],
+            "narration": "everyone learns why she left"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-PPL-007",
+    "title": "Burnout Watch",
+    "category": "PPL",
+    "text": "Your ops lead is answering emails at 3am and snapping at people.",
+    "stages": [2, 3, 4, 5],
+    "industries": "all",
+    "weight": 7,
+    "choices": [
+      {
+        "label": "Force 2 weeks off, cover it",
+        "known": "En −4 · Mor +5",
+        "outcome": {
+          "effects": [
+            { "stat": "energy", "amount": -4 },
+            { "stat": "teamloy", "amount": 2 },
+            { "stat": "morale", "amount": 5 }
+          ]
+        }
+      },
+      {
+        "label": "Bonus instead of rest",
+        "known": "Cash −1S",
+        "outcome": {
+          "effects": [{ "stat": "cash_S", "amount": -1 }],
+          "setFlags": ["burnout_risk"],
+          "narration": "works 1Q, then worse"
+        }
+      },
+      {
+        "label": "\"We’re a family, push through\"",
+        "known": "Mor −6",
+        "outcome": {
+          "effects": [{ "stat": "morale", "amount": -6 }],
+          "setFlags": ["bad_boss"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-PPL-008",
+    "title": "Union Whispers",
+    "category": "PPL",
+    "text": "Employees are discussing organizing.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Meet them openly, negotiate",
+        "perform": {
+          "type": "nego",
+          "pass": {
+            "effects": [
+              { "stat": "morale", "amount": 8 },
+              { "stat": "burn_S_mo", "amount": 0.4 }
+            ],
+            "setFlags": ["union_deal"]
+          },
+          "fail": {
+            "effects": [{ "stat": "morale", "amount": -5 }],
+            "narration": "talks continue"
+          }
+        }
+      },
+      {
+        "label": "Improve pay preemptively",
+        "known": "Burn +0.5S/mo · Mor +6",
+        "outcome": {
+          "effects": [
+            { "stat": "burn_S_mo", "amount": 0.5 },
+            { "stat": "morale", "amount": 6 }
+          ]
+        }
+      },
+      {
+        "label": "Quietly discourage it",
+        "known": "Mor −8",
+        "outcome": {
+          "effects": [
+            { "stat": "risk", "amount": 3 },
+            { "stat": "morale", "amount": -8 }
+          ],
+          "setFlags": ["union_bust"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-PPL-009",
+    "title": "The Toxic Rainmaker",
+    "category": "PPL",
+    "text": "Your top seller brings 20% of revenue and makes two people cry a month.",
+    "stages": [2, 3, 4, 5],
+    "industries": "all",
+    "weight": 7,
+    "choices": [
+      {
+        "label": "Fire them",
+        "known": "Rev −8% (2Q) · Mor +10 · Resp +2",
+        "outcome": {
+          "effects": [
+            { "stat": "rev_pct", "amount": -8, "durationQ": 2 },
+            { "stat": "morale", "amount": 10 },
+            { "stat": "respect", "amount": 2 }
+          ],
+          "setFlags": ["values_over_revenue"]
+        }
+      },
+      {
+        "label": "Keep, \"manage\" them",
+        "known": "Mor −4/yr",
+        "outcome": {
+          "effects": [{ "stat": "morale", "amount": -4, "perYear": true }],
+          "special": ["staff_churn"]
+        }
+      },
+      {
+        "label": "Final warning + coaching",
+        "branches": [
+          {
+            "weight": 50,
+            "outcome": {
+              "effects": [{ "stat": "morale", "amount": 4 }],
+              "narration": "reform"
+            }
+          },
+          {
+            "weight": 50,
+            "outcome": {
+              "effects": [
+                { "stat": "rev_pct", "amount": -5, "durationQ": 2 },
+                { "stat": "brand", "amount": -2 }
+              ],
+              "narration": "they quit loudly"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "E-PPL-010",
+    "title": "Poach or Grow",
+    "category": "PPL",
+    "text": "You need a marketing head. Poach a rival’s (fast, pricey) or promote from within (slow, loyal)?",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Poach",
+        "known": "Cash −1S · Qual +4",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -1 },
+            { "stat": "qual", "amount": 4 }
+          ],
+          "setFlags": ["poached_star"],
+          "special": ["rival_feud:1"]
+        }
+      },
+      {
+        "label": "Promote",
+        "known": "Mor +8 · Qual +1",
+        "outcome": {
+          "effects": [
+            { "stat": "morale", "amount": 8 },
+            { "stat": "qual", "amount": 1 },
+            { "stat": "qual", "amount": 3, "delayed": true },
+            { "stat": "teamloy", "amount": 2 }
+          ]
+        }
+      },
+      {
+        "label": "Fractional/agency",
+        "known": "Burn +0.2S/mo",
+        "outcome": {
+          "effects": [{ "stat": "burn_S_mo", "amount": 0.2 }],
+          "narration": "flexible, no loyalty"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-PPL-011",
+    "title": "The Résumé Lie",
+    "category": "PPL",
+    "text": "Your poached star’s famous \"campaign they led\"? They were an observer. A rival exec tells you at an event, smiling.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 5,
+    "requiresFlags": ["poached_star"],
+    "choices": [
+      {
+        "label": "Confront & demote",
+        "known": "Mor −2 · Qual −2",
+        "outcome": {
+          "effects": [
+            { "stat": "morale", "amount": -2 },
+            { "stat": "qual", "amount": -2 }
+          ],
+          "narration": "honesty kept"
+        }
+      },
+      {
+        "label": "Quietly verify then fire",
+        "known": "Cash −0.5S",
+        "outcome": {
+          "effects": [{ "stat": "cash_S", "amount": -0.5 }],
+          "setFlags": ["hard_calls"]
+        }
+      },
+      {
+        "label": "It’s working, ignore",
+        "outcome": {
+          "special": ["expose_risk:brand:-6"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-PPL-012",
+    "title": "Pay Transparency Demand",
+    "category": "PPL",
+    "text": "Someone posts an anonymous spreadsheet of everyone’s salaries. It’s accurate. Gaps are visible.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Publish official bands, fix gaps",
+        "known": "Cash −2S · Mor +9 · Brand +3",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -2 },
+            { "stat": "morale", "amount": 9 },
+            { "stat": "brand", "amount": 3 }
+          ],
+          "setFlags": ["transparent_pay"]
+        }
+      },
+      {
+        "label": "Hunt the leaker",
+        "known": "Mor −10",
+        "outcome": {
+          "effects": [{ "stat": "morale", "amount": -10 }],
+          "setFlags": ["bad_boss"]
+        }
+      },
+      {
+        "label": "Acknowledge, fix quietly over a year",
+        "known": "Mor +2",
+        "outcome": {
+          "effects": [{ "stat": "morale", "amount": 2 }],
+          "narration": "slow burn"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-PPL-013",
+    "title": "The Co-founder Question",
+    "category": "PPL",
+    "text": "A talented friend wants in as co-founder for 30% equity.",
+    "stages": [1, 2],
+    "industries": "all",
+    "weight": 6,
+    "once": true,
+    "choices": [
+      {
+        "label": "Yes",
+        "known": "En +10/yr · dilution 30%",
+        "outcome": {
+          "effects": [
+            { "stat": "energy", "amount": 10, "perYear": true },
+            { "stat": "dilution_pct", "amount": 30 }
+          ],
+          "setFlags": ["cofounder"],
+          "narration": "decisions get contested"
+        }
+      },
+      {
+        "label": "No, offer employee #1 + 5%",
+        "branches": [
+          {
+            "weight": 60,
+            "outcome": {
+              "effects": [{ "stat": "dilution_pct", "amount": 5 }],
+              "narration": "they accept"
+            }
+          },
+          {
+            "weight": 40,
+            "outcome": {
+              "setFlags": ["rival_seed"],
+              "narration": "they walk and build something adjacent"
+            }
+          }
+        ]
+      },
+      {
+        "label": "Trial project first",
+        "outcome": {
+          "special": ["delay_help:1q"],
+          "narration": "delays help 1Q, cleaner data"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-PPL-014",
+    "title": "Co-founder Clash",
+    "category": "PPL",
+    "text": "Your co-founder wants to pivot. You don’t. The team is picking sides.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 6,
+    "requiresFlags": ["cofounder"],
+    "choices": [
+      {
+        "label": "Board-style debate, commit to winner",
+        "perform": {
+          "type": "board",
+          "pass": {
+            "effects": [{ "stat": "morale", "amount": 5 }],
+            "narration": "alignment"
+          },
+          "fail": {
+            "effects": [{ "stat": "morale", "amount": -6 }],
+            "narration": "wound festers"
+          }
+        }
+      },
+      {
+        "label": "Split responsibilities (\"you run that, I run this\")",
+        "known": "Qual −2/yr",
+        "outcome": {
+          "effects": [{ "stat": "qual", "amount": -2, "perYear": true }],
+          "narration": "peace now, strategy drift"
+        }
+      },
+      {
+        "label": "Buy them out",
+        "known": "Cash −6S · Mor −4",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -6 },
+            { "stat": "morale", "amount": -4, "durationQ": 2 }
+          ],
+          "setFlags": ["solo_again"],
+          "special": ["or_debt"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-PPL-015",
+    "title": "Hiring Freeze or Slow Fire",
+    "category": "PPL",
+    "text": "Costs are up. Finance says cut payroll 10% — by freeze, layoff, or across-the-board pay cuts.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Layoff 10% cleanly, generous severance",
+        "known": "Cash −2S · Burn −0.8S/mo · Mor −8",
+        "branches": [
+          {
+            "cond": { "flag": "treated_team_well" },
+            "outcome": {
+              "effects": [
+                { "stat": "cash_S", "amount": -2 },
+                { "stat": "burn_S_mo", "amount": -0.8 },
+                { "stat": "morale", "amount": -4 }
+              ]
+            }
+          },
+          {
+            "fallback": true,
+            "outcome": {
+              "effects": [
+                { "stat": "cash_S", "amount": -2 },
+                { "stat": "burn_S_mo", "amount": -0.8 },
+                { "stat": "morale", "amount": -8 }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "label": "Everyone −10% pay incl. you",
+        "known": "Burn −0.6S/mo · Mor −5",
+        "outcome": {
+          "effects": [
+            { "stat": "burn_S_mo", "amount": -0.6 },
+            { "stat": "morale", "amount": -5 },
+            { "stat": "teamloy", "amount": 1 }
+          ]
+        }
+      },
+      {
+        "label": "Freeze & attrition",
+        "known": "Burn −0.3S/mo · Qual −3",
+        "outcome": {
+          "effects": [
+            { "stat": "burn_S_mo", "amount": -0.3 },
+            { "stat": "qual", "amount": -3 }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-PPL-016",
+    "title": "The Nephew",
+    "category": "PPL",
+    "text": "An investor \"suggests\" you hire their nephew. He is… enthusiastic.",
+    "stages": [2, 3, 4, 5],
+    "industries": "all",
+    "weight": 4,
+    "choices": [
+      {
+        "label": "Hire him somewhere harmless",
+        "known": "Burn +0.1S/mo · Mor −2",
+        "outcome": {
+          "effects": [
+            { "stat": "invsent", "amount": 1 },
+            { "stat": "burn_S_mo", "amount": 0.1 },
+            { "stat": "morale", "amount": -2 }
+          ]
+        }
+      },
+      {
+        "label": "Decline politely",
+        "known": "Resp +1",
+        "outcome": {
+          "effects": [
+            { "stat": "invsent", "amount": -1 },
+            { "stat": "respect", "amount": 1 }
+          ]
+        }
+      },
+      {
+        "label": "Trial week, let results decide",
+        "branches": [
+          {
+            "weight": 30,
+            "outcome": {
+              "effects": [{ "stat": "qual", "amount": 3 }],
+              "narration": "he’s secretly great"
+            }
+          },
+          {
+            "weight": 70,
+            "outcome": {
+              "effects": [{ "stat": "invsent", "amount": -1 }],
+              "narration": "awkward exit"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "E-PPL-017",
+    "title": "All-Hands After the Bad Quarter",
+    "category": "PPL",
+    "text": "Numbers are ugly. The team knows. Rumors are worse than reality.",
+    "stages": [2, 3, 4, 5],
+    "industries": "all",
+    "weight": 6,
+    "performOnly": {
+      "type": "allhands",
+      "pass": {
+        "effects": [
+          { "stat": "morale", "amount": 8 },
+          { "stat": "respect", "amount": 1 }
+        ],
+        "special": ["staff_churn_avoided"]
+      },
+      "fail": {
+        "effects": [
+          { "stat": "morale", "amount": -4 },
+          { "stat": "emp", "amount": -2 },
+          { "stat": "qual", "amount": -2 }
+        ],
+        "narration": "two resignations"
+      }
+    }
+  },
+  {
+    "id": "E-PPL-018",
+    "title": "The Loyalty Test",
+    "category": "PPL",
+    "text": "A rival offers your whole senior team a package deal to defect. They show you the offer themselves — and stay.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 4,
+    "once": true,
+    "requiresFlags": ["treated_team_well"],
+    "auto": {
+      "effects": [
+        { "stat": "morale", "amount": 10 },
+        { "stat": "brand", "amount": 3 }
+      ],
+      "special": ["teamloy_max"],
+      "narration": "Can’t buy that. You built it."
+    }
+  }
+]

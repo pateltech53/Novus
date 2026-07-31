@@ -1,0 +1,588 @@
+[
+  {
+    "id": "E-PRD-001",
+    "title": "Launch Now or Polish",
+    "category": "PRD",
+    "text": "The new product is 85% ready. Marketing wants it yesterday.",
+    "stages": [1, 2, 3],
+    "industries": "all",
+    "weight": 8,
+    "choices": [
+      {
+        "label": "Ship now",
+        "known": "Rev +6% · Qual −4",
+        "outcome": {
+          "effects": [
+            { "stat": "rev_pct", "amount": 6, "durationQ": 2 },
+            { "stat": "qual", "amount": -4 },
+            { "stat": "tdebt", "amount": 1 }
+          ],
+          "setFlags": ["ship_fast"]
+        }
+      },
+      {
+        "label": "Six more weeks",
+        "known": "Rev delayed · Qual +5",
+        "outcome": {
+          "effects": [{ "stat": "qual", "amount": 5 }],
+          "special": ["rev_delay:6w", "rival_window_risk"]
+        }
+      },
+      {
+        "label": "Beta to superfans",
+        "known": "Rev +2% · CSAT +4",
+        "outcome": {
+          "effects": [
+            { "stat": "rev_pct", "amount": 2, "durationQ": 2 },
+            { "stat": "csat", "amount": 4 },
+            { "stat": "qual", "amount": 3, "delayed": true }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-PRD-002",
+    "title": "The Big Flaw",
+    "category": "PRD",
+    "text": "A serious defect surfaces post-launch. Refund requests incoming.",
+    "stages": [2, 3, 4, 5],
+    "industries": "all",
+    "weight": 7,
+    "weightMods": [{ "flag": "ship_fast", "mult": 2 }],
+    "choices": [
+      {
+        "label": "Own it loudly, fix fast",
+        "known": "Cash −2S · Brand +4 · CSAT +3",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -2 },
+            { "stat": "brand", "amount": 4 },
+            { "stat": "csat", "amount": 3 }
+          ],
+          "setFlags": ["crisis_vet"]
+        }
+      },
+      {
+        "label": "Patch quietly",
+        "known": "Cash −1S",
+        "branches": [
+          {
+            "weight": 60,
+            "outcome": {
+              "effects": [{ "stat": "cash_S", "amount": -1 }]
+            }
+          },
+          {
+            "weight": 40,
+            "outcome": {
+              "effects": [
+                { "stat": "cash_S", "amount": -1 },
+                { "stat": "brand", "amount": -6 }
+              ],
+              "narration": "It becomes a story."
+            }
+          }
+        ]
+      },
+      {
+        "label": "QA caught it pre-launch",
+        "known": "CSAT +2",
+        "requiresFlag": "quality_first",
+        "outcome": {
+          "effects": [{ "stat": "csat", "amount": 2 }]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-PRD-003",
+    "title": "Feature Creep Council",
+    "category": "PRD",
+    "text": "Every department wants one more feature before launch.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 7,
+    "choices": [
+      {
+        "label": "Cut to core, ship",
+        "known": "Qual +3 · Mor −2",
+        "outcome": {
+          "effects": [
+            { "stat": "qual", "amount": 3 },
+            { "stat": "morale", "amount": -2 }
+          ],
+          "setFlags": ["focus"],
+          "narration": "Pet features die."
+        }
+      },
+      {
+        "label": "Take all requests",
+        "known": "Delay 1Q · Qual −2",
+        "outcome": {
+          "effects": [
+            { "stat": "tdebt", "amount": 2 },
+            { "stat": "qual", "amount": -2 }
+          ],
+          "special": ["launch_delay:1Q"]
+        }
+      },
+      {
+        "label": "Public vote",
+        "known": "Mor +3",
+        "outcome": {
+          "effects": [{ "stat": "morale", "amount": 3 }],
+          "narration": "Mediocre middle."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-PRD-004",
+    "title": "The Pivot Question",
+    "category": "PRD",
+    "text": "Customers keep using your product for something you didn't intend — and paying for it.",
+    "stages": [1, 2, 3],
+    "industries": "all",
+    "weight": 5,
+    "once": true,
+    "choices": [
+      {
+        "label": "Pivot to the real use",
+        "known": "Rev −10% (1Q) · Resp +3",
+        "outcome": {
+          "effects": [
+            { "stat": "rev_pct", "amount": -10, "durationQ": 1 },
+            { "stat": "rev_pct", "amount": 20, "afterQ": 1, "perYear": true },
+            { "stat": "respect", "amount": 3 }
+          ],
+          "setFlags": ["pivot"]
+        }
+      },
+      {
+        "label": "Serve both",
+        "known": "En −5",
+        "outcome": {
+          "effects": [
+            { "stat": "energy", "amount": -5 },
+            { "stat": "tdebt", "amount": 1 }
+          ]
+        }
+      },
+      {
+        "label": "Stay the course",
+        "outcome": {
+          "narration": "Vision intact, market shrugs."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-PRD-005",
+    "title": "Patent or Speed",
+    "category": "PRD",
+    "text": "Your innovation is patentable. Filing costs 1.5S and a quarter of focus.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 5,
+    "choices": [
+      {
+        "label": "File",
+        "known": "Cash −1.5S",
+        "outcome": {
+          "effects": [{ "stat": "cash_S", "amount": -1.5 }],
+          "setFlags": ["patent"],
+          "special": ["license_income", "immunity:copycat"]
+        }
+      },
+      {
+        "label": "Trade-secret it",
+        "outcome": {
+          "setFlags": ["secret_sauce"],
+          "special": ["leak_risk:low_morale"],
+          "narration": "Speed kept."
+        }
+      },
+      {
+        "label": "Publish it openly",
+        "known": "Brand +6",
+        "outcome": {
+          "effects": [{ "stat": "brand", "amount": 6 }],
+          "special": ["moat:down"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-PRD-006",
+    "title": "The Copycat",
+    "category": "PRD",
+    "text": "A rival ships a near-clone of your best feature.",
+    "stages": [2, 3, 4, 5],
+    "industries": "all",
+    "weight": 7,
+    "choices": [
+      {
+        "label": "lawyers feast",
+        "known": "Cash +2S · Resp +1",
+        "requiresFlag": "patent",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": 2 },
+            { "stat": "respect", "amount": 1 }
+          ]
+        }
+      },
+      {
+        "label": "Out-innovate, announce v2",
+        "perform": {
+          "type": "pitch",
+          "pass": {
+            "effects": [{ "stat": "brand", "amount": 5 }],
+            "narration": "Share holds."
+          },
+          "fail": {
+            "effects": [{ "stat": "brand", "amount": -3 }],
+            "narration": "\"Vaporware\" jokes."
+          }
+        }
+      },
+      {
+        "label": "Price-cut response",
+        "known": "Share +1 · GM −2",
+        "outcome": {
+          "effects": [
+            { "stat": "share_pt", "amount": 1 },
+            { "stat": "gm_pt", "amount": -2 }
+          ],
+          "special": ["arm_event:race_to_bottom"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-PRD-007",
+    "title": "Tech Debt Collector",
+    "category": "PRD",
+    "text": "Engineers: stop everything for a quarter and rebuild, or keep duct-taping.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 6,
+    "rookieTerms": ["tech debt"],
+    "choices": [
+      {
+        "label": "The Great Refactor",
+        "known": "Rev flat 1Q · Mor +4",
+        "outcome": {
+          "effects": [
+            { "stat": "qual", "amount": 6, "delayed": true },
+            { "stat": "morale", "amount": 4 }
+          ],
+          "special": ["rev_flat:1Q", "tdebt_cleared"]
+        }
+      },
+      {
+        "label": "Duct tape harder",
+        "outcome": {
+          "special": ["arm_chain:K-TEC", "chain_odds:K-TEC:2"],
+          "narration": "Speed now."
+        }
+      },
+      {
+        "label": "Rebuild in slices",
+        "known": "Rev −2% (2Q)",
+        "outcome": {
+          "effects": [{ "stat": "rev_pct", "amount": -2, "durationQ": 2 }],
+          "narration": "Safe middle."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-PRD-008",
+    "title": "The AI Feature Rush",
+    "category": "PRD",
+    "text": "Everyone's adding AI. Yours would be… fine.",
+    "stages": [2, 3, 4, 5],
+    "industries": "all",
+    "weight": 6,
+    "weightMods": [{ "industries": ["TECH", "EDTECH", "ECOM"], "mult": 2 }],
+    "choices": [
+      {
+        "label": "Ship the fine version",
+        "known": "Brand +3",
+        "outcome": {
+          "effects": [
+            { "stat": "brand", "amount": 3 },
+            { "stat": "csat", "amount": -2, "afterQ": 2 }
+          ]
+        }
+      },
+      {
+        "label": "Wait for a real use case",
+        "known": "Brand −1",
+        "outcome": {
+          "effects": [
+            { "stat": "brand", "amount": -1 },
+            { "stat": "brand", "amount": 5, "delayed": true }
+          ]
+        }
+      },
+      {
+        "label": "Partner with a startup",
+        "known": "Cash −1S",
+        "outcome": {
+          "effects": [{ "stat": "cash_S", "amount": -1 }],
+          "setFlags": ["partner_dependency"],
+          "narration": "Speed + credibility."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-PRD-009",
+    "title": "Accessibility Audit",
+    "category": "PRD",
+    "text": "An audit finds your product excludes users with disabilities.",
+    "stages": [2, 3, 4, 5],
+    "industries": "all",
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Fix comprehensively",
+        "known": "Cash −1.5S · CSAT +4 · Brand +3 · Rev +2%",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -1.5 },
+            { "stat": "csat", "amount": 4 },
+            { "stat": "brand", "amount": 3 },
+            { "stat": "rev_pct", "amount": 2, "durationQ": 2 }
+          ],
+          "setFlags": ["inclusive"],
+          "narration": "Market widens."
+        }
+      },
+      {
+        "label": "Legal minimum",
+        "outcome": {
+          "special": ["risk_cleared"],
+          "narration": "Nothing gained."
+        }
+      },
+      {
+        "label": "Backlog it",
+        "outcome": {
+          "effects": [{ "stat": "risk", "amount": 1 }],
+          "special": ["arm_event:viral_complaint"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-PRD-010",
+    "title": "Good/Better/Best",
+    "category": "PRD",
+    "text": "Product wants three pricing tiers.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 5,
+    "rookieTerms": ["CWP"],
+    "choices": [
+      {
+        "label": "Three tiers",
+        "known": "Rev +5% · CSAT −2 · GM +1",
+        "outcome": {
+          "effects": [
+            { "stat": "rev_pct", "amount": 5, "durationQ": 2 },
+            { "stat": "csat", "amount": -2 },
+            { "stat": "gm_pt", "amount": 1 }
+          ],
+          "narration": "Support complexity."
+        }
+      },
+      {
+        "label": "Two tiers",
+        "known": "Rev +3%",
+        "outcome": {
+          "effects": [{ "stat": "rev_pct", "amount": 3, "durationQ": 2 }],
+          "narration": "Clean."
+        }
+      },
+      {
+        "label": "One perfect thing",
+        "known": "Brand +3",
+        "outcome": {
+          "effects": [{ "stat": "brand", "amount": 3 }],
+          "narration": "Clarity, lower ceiling."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-PRD-011",
+    "title": "The Supplier's New Toy",
+    "category": "PRD",
+    "text": "Your supplier offers first access to a new material/tech before rivals see it.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 5,
+    "requiresFlags": ["supplier_loyal"],
+    "choices": [
+      {
+        "label": "Exclusive deal",
+        "known": "Cash −1S · Qual +5",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -1 },
+            { "stat": "qual", "amount": 5 }
+          ],
+          "setFlags": ["exclusive_supply"],
+          "special": ["moat:2yr"]
+        }
+      },
+      {
+        "label": "Non-exclusive, cheaper",
+        "known": "Qual +3",
+        "outcome": {
+          "effects": [{ "stat": "qual", "amount": 3 }],
+          "special": ["moat:6mo"],
+          "narration": "Rivals get it in 6 months."
+        }
+      },
+      {
+        "label": "Pass",
+        "outcome": {
+          "narration": "Boring, safe."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-PRD-012",
+    "title": "Kill Your Darling",
+    "category": "PRD",
+    "text": "Your original product — the one that started everything — now loses money monthly.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Sunset it with honors",
+        "known": "Burn −0.4S/mo · Brand −2 · Mor −3 (2Q)",
+        "outcome": {
+          "effects": [
+            { "stat": "burn_S_mo", "amount": -0.4 },
+            { "stat": "brand", "amount": -2 },
+            { "stat": "morale", "amount": -3, "durationQ": 2 }
+          ],
+          "setFlags": ["focus"]
+        }
+      },
+      {
+        "label": "Keep as loss-leader",
+        "known": "Burn stays · Brand +2",
+        "outcome": {
+          "effects": [{ "stat": "brand", "amount": 2 }],
+          "narration": "Loyalty story."
+        }
+      },
+      {
+        "label": "License it out",
+        "known": "Cash +1S",
+        "outcome": {
+          "effects": [{ "stat": "cash_S", "amount": 1 }],
+          "setFlags": ["ip_sold"],
+          "narration": "It may compete with you someday."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-PRD-013",
+    "title": "The Standards War",
+    "category": "PRD",
+    "text": "The industry is picking between two standards. You must bet.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 4,
+    "weightMods": [{ "industries": ["TECH", "GAMING"], "mult": 2 }],
+    "choices": [
+      {
+        "label": "Bet the leader",
+        "known": "Share +1",
+        "outcome": {
+          "effects": [{ "stat": "share_pt", "amount": 1 }],
+          "narration": "Safe."
+        }
+      },
+      {
+        "label": "Bet the underdog",
+        "branches": [
+          {
+            "weight": 30,
+            "outcome": {
+              "effects": [{ "stat": "share_pt", "amount": 5 }],
+              "setFlags": ["kingmaker"]
+            }
+          },
+          {
+            "weight": 70,
+            "outcome": {
+              "effects": [{ "stat": "cash_S", "amount": -3, "delayed": true }],
+              "narration": "Costly migration later."
+            }
+          }
+        ]
+      },
+      {
+        "label": "Support both",
+        "known": "Double cost",
+        "outcome": {
+          "special": ["double_cost", "immunity:standards_war"]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-PRD-014",
+    "title": "Customer-Built Feature",
+    "category": "PRD",
+    "text": "A superfan built an unofficial add-on better than your roadmap version.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Hire them",
+        "known": "Cash −0.5S · Qual +5 · Brand +4",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -0.5 },
+            { "stat": "qual", "amount": 5 },
+            { "stat": "brand", "amount": 4 }
+          ],
+          "setFlags": ["mentor"]
+        }
+      },
+      {
+        "label": "License it",
+        "known": "Qual +4",
+        "outcome": {
+          "effects": [{ "stat": "qual", "amount": 4 }],
+          "narration": "They stay independent."
+        }
+      },
+      {
+        "label": "Cease & desist",
+        "known": "Brand −6",
+        "outcome": {
+          "effects": [
+            { "stat": "risk", "amount": -1 },
+            { "stat": "brand", "amount": -6 }
+          ],
+          "narration": "You sued your biggest fan. Bold strategy."
+        }
+      }
+    ]
+  }
+]

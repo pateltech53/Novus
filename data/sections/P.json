@@ -1,0 +1,765 @@
+[
+  {
+    "id": "E-PERF-001",
+    "title": "The Reporter Who Did Homework",
+    "category": "PERF",
+    "text": "A reporter has three years of your filings, two ex-employees on the record, and eleven minutes of your time.",
+    "stages": [2, 3, 4, 5],
+    "industries": "all",
+    "weight": 7,
+    "performOnly": {
+      "type": "media",
+      "pass": {
+        "effects": [
+          { "stat": "brand", "amount": 6 },
+          { "stat": "respect", "amount": 1 }
+        ],
+        "narration": "The quotes she runs are yours, in order, unclipped."
+      },
+      "fail": {
+        "effects": [
+          { "stat": "brand", "amount": -9 },
+          { "stat": "csat", "amount": -3 },
+          { "stat": "risk", "amount": 1 }
+        ],
+        "narration": "She ran the pause. The pause was four seconds long."
+      }
+    }
+  },
+  {
+    "id": "E-PERF-002",
+    "title": "Live in Four Minutes",
+    "category": "PERF",
+    "text": "A business channel has a hole in the hour and your name in the producer's notes. The car is already outside.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Go on live",
+        "perform": {
+          "type": "media",
+          "pass": {
+            "effects": [
+              { "stat": "brand", "amount": 8 },
+              { "stat": "ctr_pt", "amount": 2 }
+            ],
+            "narration": "The clip runs all afternoon."
+          },
+          "fail": {
+            "effects": [
+              { "stat": "brand", "amount": -7 },
+              { "stat": "cwp_pt", "amount": -2 }
+            ],
+            "narration": "The clip also runs all afternoon."
+          }
+        }
+      },
+      {
+        "label": "Send your comms lead",
+        "known": "Cash −1S · Brand +2",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -1 },
+            { "stat": "brand", "amount": 2 }
+          ],
+          "narration": "Safe, forgettable, invoiced."
+        }
+      },
+      {
+        "label": "Pass",
+        "known": "CTR −1",
+        "outcome": {
+          "effects": [{ "stat": "ctr_pt", "amount": -1 }],
+          "narration": "They book your competitor. She is good at this."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-PERF-003",
+    "title": "The Clip Without Context",
+    "category": "PERF",
+    "text": "Nine seconds of you, cropped, captioned wrong. Three million views by lunch.",
+    "stages": [2, 3, 4, 5],
+    "industries": "all",
+    "weight": 6,
+    "requiresFlags": ["edgy_brand"],
+    "choices": [
+      {
+        "label": "Answer it on camera, uncut",
+        "perform": {
+          "type": "media",
+          "pass": {
+            "effects": [
+              { "stat": "brand", "amount": 7 },
+              { "stat": "ctr_pt", "amount": 2 }
+            ],
+            "setFlags": ["crisis_vet"],
+            "narration": "Context travels slower than the clip. It still travels."
+          },
+          "fail": {
+            "effects": [
+              { "stat": "brand", "amount": -10 },
+              { "stat": "churn_pt", "amount": 2 }
+            ],
+            "narration": "Now there are two clips."
+          }
+        }
+      },
+      {
+        "label": "Post a written statement",
+        "known": "Brand −3",
+        "outcome": {
+          "effects": [{ "stat": "brand", "amount": -3 }],
+          "narration": "Nobody screenshots a paragraph. Nobody reads one either."
+        }
+      },
+      {
+        "label": "Say nothing, ship product",
+        "known": "Brand −6 · Qual +2",
+        "outcome": {
+          "effects": [
+            { "stat": "brand", "amount": -6 },
+            { "stat": "qual", "amount": 2 }
+          ],
+          "narration": "Most of it burns out in a week. Not all of it."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-PERF-004",
+    "title": "Two Hours, No Edits",
+    "category": "PERF",
+    "text": "A founder podcast wants you for the long one. The host has your reviews page open in tab two.",
+    "stages": [2, 3, 4, 5],
+    "industries": "all",
+    "weight": 5,
+    "requiresFlags": ["bad_boss", "star_left"],
+    "reqAnyOf": true,
+    "performOnly": {
+      "type": "media",
+      "optional": true,
+      "pass": {
+        "effects": [
+          { "stat": "brand", "amount": 5 },
+          { "stat": "morale", "amount": 4 },
+          { "stat": "respect", "amount": 1 }
+        ],
+        "clearFlags": ["bad_boss"],
+        "narration": "You name the thing before he does. It costs him the segment."
+      },
+      "fail": {
+        "effects": [
+          { "stat": "brand", "amount": -8 },
+          { "stat": "morale", "amount": -5 },
+          { "stat": "teamloy", "amount": -1 }
+        ],
+        "narration": "Two hours is a long time to be asked the same question."
+      }
+    }
+  },
+  {
+    "id": "E-PERF-005",
+    "title": "Defend the Roadmap",
+    "category": "PERF",
+    "text": "Three board members, one slide, and the strategy you picked over the one they wanted.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 6,
+    "performOnly": {
+      "type": "board",
+      "pass": {
+        "effects": [
+          { "stat": "invsent", "amount": 1 },
+          { "stat": "val_pct", "amount": 4 },
+          { "stat": "respect", "amount": 1 }
+        ],
+        "narration": "The plan survives with your name still on it."
+      },
+      "fail": {
+        "effects": [
+          { "stat": "invsent", "amount": -1 },
+          { "stat": "val_pct", "amount": -6 }
+        ],
+        "special": ["impair_choices:2"],
+        "narration": "They'd like to see options next quarter. Plural."
+      }
+    }
+  },
+  {
+    "id": "E-PERF-006",
+    "title": "The Line Item They Circled",
+    "category": "PERF",
+    "text": "The board printed your budget and circled one number in red. It is the number that keeps the product from breaking.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 6,
+    "weightMods": [{ "flag": "cut_corners", "mult": 2 }],
+    "choices": [
+      {
+        "label": "Defend the spend",
+        "perform": {
+          "type": "board",
+          "pass": {
+            "effects": [
+              { "stat": "qual", "amount": 4 },
+              { "stat": "tdebt", "amount": -1 }
+            ],
+            "narration": "The number stays. Red pen, no change."
+          },
+          "fail": {
+            "effects": [
+              { "stat": "burn_S_mo", "amount": -0.4 },
+              { "stat": "qual", "amount": -6 },
+              { "stat": "tdebt", "amount": 1 }
+            ],
+            "narration": "The number goes. So does the person behind it."
+          }
+        }
+      },
+      {
+        "label": "Cut it yourself first",
+        "known": "Burn −0.4S/mo · Qual −5",
+        "outcome": {
+          "effects": [
+            { "stat": "burn_S_mo", "amount": -0.4 },
+            { "stat": "qual", "amount": -5 },
+            { "stat": "invsent", "amount": 1 }
+          ],
+          "setFlags": ["cut_corners"],
+          "narration": "Volunteering to bleed reads as discipline. It is still bleeding."
+        }
+      },
+      {
+        "label": "Cut somewhere else and don't say where",
+        "known": "Burn −0.3S/mo · Mor −6",
+        "outcome": {
+          "effects": [
+            { "stat": "burn_S_mo", "amount": -0.3 },
+            { "stat": "morale", "amount": -6 },
+            { "stat": "teamloy", "amount": -1 }
+          ],
+          "narration": "Marketing finds out in the standup."
+        }
+      }
+    ],
+    "rookieTerms": ["burn rate"]
+  },
+  {
+    "id": "E-PERF-007",
+    "title": "Two Founders, One Slide",
+    "category": "PERF",
+    "text": "You and your co-founder want different next twelve months. The board finds out during the meeting.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 5,
+    "requiresFlags": ["cofounder"],
+    "choices": [
+      {
+        "label": "Argue your case",
+        "perform": {
+          "type": "board",
+          "pass": {
+            "effects": [
+              { "stat": "invsent", "amount": 1 },
+              { "stat": "val_pct", "amount": 3 },
+              { "stat": "teamloy", "amount": -1 }
+            ],
+            "narration": "You win the room. Dinner is quieter than the meeting."
+          },
+          "fail": {
+            "effects": [
+              { "stat": "invsent", "amount": -1 },
+              { "stat": "morale", "amount": -5 },
+              { "stat": "teamloy", "amount": -1 }
+            ],
+            "narration": "The board now has two founders and one plan it doesn't like."
+          }
+        }
+      },
+      {
+        "label": "Let them present, back them fully",
+        "known": "Mor +5 · Val −3",
+        "outcome": {
+          "effects": [
+            { "stat": "morale", "amount": 5 },
+            { "stat": "teamloy", "amount": 2 },
+            { "stat": "val_pct", "amount": -3 }
+          ],
+          "narration": "Unity reads well. The plan is still theirs."
+        }
+      },
+      {
+        "label": "Merge both plans into one nobody believes",
+        "known": "Val −5 · En −6",
+        "outcome": {
+          "effects": [
+            { "stat": "val_pct", "amount": -5 },
+            { "stat": "energy", "amount": -6 }
+          ],
+          "narration": "Nobody objects. Nobody moves either."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-PERF-008",
+    "title": "The Buy Recommendation",
+    "category": "PERF",
+    "text": "You want to buy a smaller competitor. The board will hear why, in under ten minutes, with numbers.",
+    "stages": [4, 5],
+    "industries": "all",
+    "weight": 5,
+    "performOnly": {
+      "type": "board",
+      "pass": {
+        "effects": [
+          { "stat": "cash_S", "amount": -8 },
+          { "stat": "share_pt", "amount": 2 },
+          { "stat": "rev_pct", "amount": 8, "durationQ": 4 },
+          { "stat": "tdebt", "amount": 1 }
+        ],
+        "narration": "Approved. You now own their codebase and their culture."
+      },
+      "fail": {
+        "effects": [
+          { "stat": "invsent", "amount": -1 },
+          { "stat": "energy", "amount": -5 }
+        ],
+        "narration": "Declined. Somebody else buys them in March."
+      }
+    },
+    "rookieTerms": ["m&a"]
+  },
+  {
+    "id": "E-PERF-009",
+    "title": "The Number You Promised",
+    "category": "PERF",
+    "text": "You said the number out loud in January. It is October. You missed it by a third and the whole room did the math weeks ago.",
+    "stages": [2, 3, 4, 5],
+    "industries": "all",
+    "weight": 6,
+    "performOnly": {
+      "type": "allhands",
+      "pass": {
+        "effects": [
+          { "stat": "morale", "amount": 7 },
+          { "stat": "teamloy", "amount": 1 },
+          { "stat": "respect", "amount": 1 }
+        ],
+        "narration": "Nobody updates a résumé tonight."
+      },
+      "fail": {
+        "effects": [
+          { "stat": "morale", "amount": -6 },
+          { "stat": "qual", "amount": -2 }
+        ],
+        "special": ["emp_pct:-5"],
+        "narration": "The all-hands ends early. The group chat does not."
+      }
+    }
+  },
+  {
+    "id": "E-PERF-010",
+    "title": "The List",
+    "category": "PERF",
+    "text": "Payroll math says the team gets smaller. The list is on your desk. Somebody has to say it out loud.",
+    "stages": [2, 3, 4, 5],
+    "industries": "all",
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Say it yourself, in the room",
+        "perform": {
+          "type": "allhands",
+          "pass": {
+            "effects": [
+              { "stat": "burn_S_mo", "amount": -0.5 },
+              { "stat": "morale", "amount": -3 },
+              { "stat": "respect", "amount": 2 }
+            ],
+            "special": ["emp_pct:-15"],
+            "setFlags": ["hard_calls"],
+            "narration": "You take the questions. All of them."
+          },
+          "fail": {
+            "effects": [
+              { "stat": "burn_S_mo", "amount": -0.5 },
+              { "stat": "morale", "amount": -12 },
+              { "stat": "teamloy", "amount": -2 }
+            ],
+            "special": ["emp_pct:-15"],
+            "setFlags": ["bad_boss"],
+            "narration": "Two more quit by Friday. Neither was on the list."
+          }
+        }
+      },
+      {
+        "label": "Have managers do it one-to-one",
+        "known": "Burn −0.5S/mo · Mor −7",
+        "outcome": {
+          "effects": [
+            { "stat": "burn_S_mo", "amount": -0.5 },
+            { "stat": "morale", "amount": -7 }
+          ],
+          "special": ["emp_pct:-15"],
+          "narration": "Twelve conversations you didn't have."
+        }
+      },
+      {
+        "label": "Email it Friday at five",
+        "known": "Burn −0.5S/mo · Mor −14 · Brand −4",
+        "outcome": {
+          "effects": [
+            { "stat": "burn_S_mo", "amount": -0.5 },
+            { "stat": "morale", "amount": -14 },
+            { "stat": "brand", "amount": -4 }
+          ],
+          "special": ["emp_pct:-15"],
+          "setFlags": ["bad_boss"],
+          "narration": "Someone screenshots it. Of course someone screenshots it."
+        }
+      }
+    ],
+    "rookieTerms": ["payroll", "burn rate"]
+  },
+  {
+    "id": "E-PERF-011",
+    "title": "Everything You Built, Shelved",
+    "category": "PERF",
+    "text": "The pivot is decided. The team spent two years on the thing you are shelving.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 5,
+    "requiresFlags": ["pivot"],
+    "choices": [
+      {
+        "label": "Stand up and explain the why",
+        "perform": {
+          "type": "allhands",
+          "pass": {
+            "effects": [
+              { "stat": "morale", "amount": 6 },
+              { "stat": "qual", "amount": 2 },
+              { "stat": "teamloy", "amount": 1 }
+            ],
+            "narration": "They ship the new thing angry, which is fast."
+          },
+          "fail": {
+            "effects": [{ "stat": "morale", "amount": -8 }],
+            "special": ["emp_pct:-10"],
+            "narration": "Half the room hears \"the last two years were wasted.\" They are not entirely wrong."
+          }
+        }
+      },
+      {
+        "label": "Memo first, questions in small groups",
+        "known": "Mor −3 · En −8",
+        "outcome": {
+          "effects": [
+            { "stat": "morale", "amount": -3 },
+            { "stat": "energy", "amount": -8 }
+          ],
+          "narration": "Thirty conversations. All of them the same one."
+        }
+      },
+      {
+        "label": "Ship the pivot quietly and let them notice",
+        "known": "Mor −10",
+        "outcome": {
+          "effects": [
+            { "stat": "morale", "amount": -10 },
+            { "stat": "teamloy", "amount": -2 }
+          ],
+          "narration": "They notice in week two, from a customer."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-PERF-012",
+    "title": "The Good Quarter",
+    "category": "PERF",
+    "text": "The numbers are genuinely good. The temptation is to make them sound better.",
+    "stages": [2, 3, 4, 5],
+    "industries": "all",
+    "weight": 5,
+    "performOnly": {
+      "type": "allhands",
+      "pass": {
+        "effects": [
+          { "stat": "morale", "amount": 8 },
+          { "stat": "teamloy", "amount": 1 },
+          { "stat": "respect", "amount": 1 }
+        ],
+        "setFlags": ["truth_teller"],
+        "narration": "You show the chart with the ugly axis. They believe the next one."
+      },
+      "fail": {
+        "effects": [
+          { "stat": "morale", "amount": 2 },
+          { "stat": "teamloy", "amount": -1 }
+        ],
+        "narration": "You rounded up. Someone in finance did the math on their phone."
+      }
+    }
+  },
+  {
+    "id": "E-PERF-013",
+    "title": "Somebody Else's Numbers",
+    "category": "PERF",
+    "text": "A founder two years behind you sends her P&L and asks what is killing her. It is not the thing she thinks.",
+    "stages": [2, 3, 4, 5],
+    "industries": "all",
+    "weight": 5,
+    "requiresFlags": ["mentor"],
+    "performOnly": {
+      "type": "consult",
+      "optional": true,
+      "pass": {
+        "effects": [
+          { "stat": "respect", "amount": 2 },
+          { "stat": "brand", "amount": 3 },
+          { "stat": "energy", "amount": -4 }
+        ],
+        "narration": "She fires the wrong-shaped customer. You learn more than she does."
+      },
+      "fail": {
+        "effects": [
+          { "stat": "energy", "amount": -5 },
+          { "stat": "respect", "amount": -1 }
+        ],
+        "narration": "You diagnose the symptom. She thanks you and closes in April."
+      }
+    },
+    "rookieTerms": ["cash flow"]
+  },
+  {
+    "id": "E-PERF-014",
+    "title": "Your Supplier Is Bleeding",
+    "category": "PERF",
+    "text": "Your supplier's lead times doubled. They open their floor to you and ask what you see.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 5,
+    "requiresFlags": ["supplier_loyal"],
+    "performOnly": {
+      "type": "consult",
+      "pass": {
+        "effects": [
+          { "stat": "gm_pt", "amount": 3 },
+          { "stat": "qual", "amount": 2 },
+          { "stat": "suploy", "amount": 1 }
+        ],
+        "narration": "You find it in their changeover times. Your unit cost follows."
+      },
+      "fail": {
+        "effects": [
+          { "stat": "gm_pt", "amount": -2 },
+          { "stat": "energy", "amount": -3 },
+          { "stat": "suploy", "amount": -1 }
+        ],
+        "narration": "You reorganize a floor you don't understand. It takes them a month to undo."
+      }
+    },
+    "rookieTerms": ["gross margin"]
+  },
+  {
+    "id": "E-PERF-015",
+    "title": "The Leaky Bucket",
+    "category": "PERF",
+    "text": "The partner who resells you loses customers faster than they win them. Your revenue lives inside their bucket.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 5,
+    "requiresFlags": ["partner_dependency"],
+    "choices": [
+      {
+        "label": "Run the churn teardown with their team",
+        "perform": {
+          "type": "consult",
+          "pass": {
+            "effects": [
+              { "stat": "churn_pt", "amount": -3 },
+              { "stat": "rev_pct", "amount": 6, "durationQ": 4 },
+              { "stat": "csat", "amount": 2 }
+            ],
+            "narration": "You fix their onboarding. Your renewals stop leaking too."
+          },
+          "fail": {
+            "effects": [
+              { "stat": "churn_pt", "amount": 2 },
+              { "stat": "rev_pct", "amount": -6, "durationQ": 2 }
+            ],
+            "narration": "You tell them their onboarding is bad. They knew. Now they know you know."
+          }
+        }
+      },
+      {
+        "label": "Build your own direct channel",
+        "known": "Cash −4S · Burn +0.3S/mo",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -4 },
+            { "stat": "burn_S_mo", "amount": 0.3 },
+            { "stat": "cac_pt", "amount": -2 },
+            { "stat": "rev_pct", "amount": 8, "afterQ": 4, "durationQ": 4 }
+          ],
+          "clearFlags": ["partner_dependency"],
+          "narration": "Your bucket now. Your holes too."
+        }
+      },
+      {
+        "label": "Wait and ask for a better take rate at renewal",
+        "known": "GM +2 · Churn +1",
+        "outcome": {
+          "effects": [
+            { "stat": "gm_pt", "amount": 2 },
+            { "stat": "churn_pt", "amount": 1 },
+            { "stat": "suploy", "amount": -1 }
+          ],
+          "narration": "A better slice of a smaller bucket."
+        }
+      }
+    ],
+    "rookieTerms": ["churn"]
+  },
+  {
+    "id": "E-PERF-016",
+    "title": "One Angel, One Coffee",
+    "category": "PERF",
+    "text": "An angel with one exit and a short attention span gives you the length of an americano.",
+    "stages": [1, 2, 3],
+    "industries": "all",
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Pitch her",
+        "perform": {
+          "type": "pitch",
+          "pass": {
+            "effects": [
+              { "stat": "cash_S", "amount": 4 },
+              { "stat": "dilution_pct", "amount": 8 },
+              { "stat": "invsent", "amount": 1 }
+            ],
+            "narration": "She writes before the cup is empty."
+          },
+          "fail": {
+            "effects": [
+              { "stat": "energy", "amount": -4 },
+              { "stat": "invsent", "amount": -1 }
+            ],
+            "narration": "She checks her phone at minute three."
+          }
+        }
+      },
+      {
+        "label": "Send the deck, ask for notes instead",
+        "outcome": {
+          "effects": [{ "stat": "invsent", "amount": 1 }],
+          "setFlags": ["shared_deck"],
+          "narration": "Notes in four days. Useful ones. No money."
+        }
+      },
+      {
+        "label": "Skip it and go sell something",
+        "known": "Rev +4% · En −4",
+        "outcome": {
+          "effects": [
+            { "stat": "rev_pct", "amount": 4, "durationQ": 2 },
+            { "stat": "energy", "amount": -4 }
+          ],
+          "narration": "The americano would have been faster."
+        }
+      }
+    ],
+    "rookieTerms": ["dilution"]
+  },
+  {
+    "id": "E-PERF-017",
+    "title": "Their Logo, Your Room",
+    "category": "PERF",
+    "text": "A company forty times your size will hear a partnership pitch. Their legal team is already drafting the no.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 6,
+    "performOnly": {
+      "type": "pitch",
+      "pass": {
+        "effects": [
+          { "stat": "rev_pct", "amount": 10, "durationQ": 4 },
+          { "stat": "brand", "amount": 6 }
+        ],
+        "setFlags": ["partner_dependency"],
+        "narration": "Signed. A slice of your revenue now lives in someone else's roadmap."
+      },
+      "fail": {
+        "effects": [
+          { "stat": "brand", "amount": -2 },
+          { "stat": "energy", "amount": -5 }
+        ],
+        "narration": "Their legal team was right."
+      }
+    }
+  },
+  {
+    "id": "E-PERF-018",
+    "title": "Pitch the Reporter",
+    "category": "PERF",
+    "text": "A trade reporter answers your email with one line: \"Five minutes. Make it a story, not a product.\"",
+    "stages": [1, 2, 3, 4],
+    "industries": "all",
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Pitch the story",
+        "perform": {
+          "type": "pitch",
+          "pass": {
+            "effects": [
+              { "stat": "brand", "amount": 7 },
+              { "stat": "ctr_pt", "amount": 2 },
+              { "stat": "cac_pt", "amount": 1 }
+            ],
+            "narration": "You give her a number and a human. She uses both."
+          },
+          "fail": {
+            "effects": [
+              { "stat": "brand", "amount": -1 },
+              { "stat": "energy", "amount": -3 }
+            ],
+            "narration": "You give her a product. She gives you nothing."
+          }
+        }
+      },
+      {
+        "label": "Hire the PR firm instead",
+        "known": "Cash −2S · Brand +4 · CTR +1",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -2 },
+            { "stat": "brand", "amount": 4 },
+            { "stat": "ctr_pt", "amount": 1 }
+          ],
+          "narration": "Coverage you paid for reads like coverage you paid for."
+        }
+      },
+      {
+        "label": "Skip press, buy ads",
+        "known": "Cash −2S · CTR +3",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -2 },
+            { "stat": "ctr_pt", "amount": 3 },
+            { "stat": "cac_pt", "amount": -1 }
+          ],
+          "narration": "It works right up until you stop paying."
+        }
+      }
+    ],
+    "rookieTerms": ["cac"]
+  }
+]

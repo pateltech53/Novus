@@ -1,0 +1,494 @@
+[
+  {
+    "id": "E-CUS-001",
+    "title": "The One-Star Novelist",
+    "category": "CUS",
+    "text": "A detailed, viral, partly-unfair one-star review.",
+    "stages": [1, 2, 3, 4],
+    "industries": "all",
+    "weight": 8,
+    "choices": [
+      {
+        "label": "Reply publicly, fix the fair parts",
+        "known": "CSAT +4 · Brand +2",
+        "outcome": {
+          "effects": [
+            { "stat": "csat", "amount": 4 },
+            { "stat": "brand", "amount": 2 }
+          ],
+          "setFlags": ["listens"]
+        }
+      },
+      {
+        "label": "Report it",
+        "branches": [
+          {
+            "weight": 40,
+            "outcome": { "narration": "removed" }
+          },
+          {
+            "weight": 60,
+            "outcome": {
+              "effects": [{ "stat": "brand", "amount": -5 }],
+              "narration": "\"company tried to silence critic\""
+            }
+          }
+        ]
+      },
+      {
+        "label": "Ignore",
+        "known": "Churn +1",
+        "outcome": {
+          "effects": [{ "stat": "churn_pt", "amount": 1 }]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-CUS-002",
+    "title": "The Whale",
+    "category": "CUS",
+    "text": "One client wants a custom version — worth 25% of annual revenue, on their terms.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Take it",
+        "known": "Rev +25% this yr · Qual −3",
+        "outcome": {
+          "effects": [
+            { "stat": "rev_pct", "amount": 25, "durationQ": 4 },
+            { "stat": "qual", "amount": -3 }
+          ],
+          "setFlags": ["whale_dependency"],
+          "narration": "roadmap hijacked"
+        }
+      },
+      {
+        "label": "Take it with boundaries",
+        "perform": {
+          "type": "nego",
+          "pass": {
+            "effects": [{ "stat": "rev_pct", "amount": 18, "durationQ": 2 }],
+            "narration": "roadmap safe"
+          },
+          "fail": {
+            "narration": "they walk"
+          }
+        }
+      },
+      {
+        "label": "Decline",
+        "outcome": {
+          "narration": "focus intact, finance quietly weeps."
+        }
+      }
+    ],
+    "rookieTerms": ["LTV"]
+  },
+  {
+    "id": "E-CUS-003",
+    "title": "Whale Overboard",
+    "category": "CUS",
+    "text": "The whale demands exclusivity or they leave.",
+    "stages": [3, 4],
+    "industries": "all",
+    "weight": 5,
+    "requiresFlags": ["whale_dependency"],
+    "choices": [
+      {
+        "label": "Concede exclusivity",
+        "known": "Share frozen 2yr",
+        "outcome": {
+          "special": ["share_freeze:2y"],
+          "narration": "Rev safe, growth capped"
+        }
+      },
+      {
+        "label": "Refuse",
+        "known": "Rev −20% (1Q) · Resp +3",
+        "outcome": {
+          "effects": [
+            { "stat": "rev_pct", "amount": -20, "durationQ": 1 },
+            { "stat": "respect", "amount": 3 }
+          ],
+          "narration": "freedom"
+        }
+      },
+      {
+        "label": "Counter with premium pricing",
+        "perform": {
+          "type": "nego",
+          "pass": {
+            "effects": [{ "stat": "rev_pct", "amount": 5, "durationQ": 2 }],
+            "narration": "terms yours"
+          },
+          "fail": {
+            "effects": [{ "stat": "brand", "amount": -3 }],
+            "narration": "they leave loudly"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-CUS-004",
+    "title": "Refund Storm",
+    "category": "CUS",
+    "text": "A batch problem triggers 200 refund requests in a week.",
+    "stages": [2, 3, 4, 5],
+    "industries": "all",
+    "weight": 6,
+    "choices": [
+      {
+        "label": "No-questions refunds",
+        "known": "Cash −2S · CSAT +6",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -2 },
+            { "stat": "csat", "amount": 6 }
+          ],
+          "setFlags": ["generous"]
+        }
+      },
+      {
+        "label": "Case-by-case",
+        "known": "Cash −1S · CSAT −2 · Mor −3",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -1 },
+            { "stat": "csat", "amount": -2 },
+            { "stat": "morale", "amount": -3 }
+          ],
+          "narration": "support drowning"
+        }
+      },
+      {
+        "label": "Store credit only",
+        "known": "Cash −0.2S · CSAT −5",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -0.2 },
+            { "stat": "csat", "amount": -5 },
+            { "stat": "risk", "amount": 1 }
+          ],
+          "narration": "consumer law"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-CUS-005",
+    "title": "The Superfan Club",
+    "category": "CUS",
+    "text": "Fans want an official community. Communities are wonderful until they aren't.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Build it, staff it",
+        "known": "Burn +0.1S/mo · CSAT +5 · Churn −2",
+        "outcome": {
+          "effects": [
+            { "stat": "burn_S_mo", "amount": 0.1 },
+            { "stat": "csat", "amount": 5 },
+            { "stat": "churn_pt", "amount": -2 }
+          ],
+          "setFlags": ["community"],
+          "narration": "free R&D"
+        }
+      },
+      {
+        "label": "Bless a fan-run one",
+        "known": "free",
+        "outcome": {
+          "special": ["event_odds:drama:15"]
+        }
+      },
+      {
+        "label": "No community",
+        "outcome": {
+          "narration": "quiet"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-CUS-006",
+    "title": "Grandma's Complaint",
+    "category": "CUS",
+    "text": "An elderly customer can't use your product and wrote you a paper letter about it.",
+    "stages": [1, 2, 3],
+    "industries": "all",
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Visit/call personally, fix her case",
+        "known": "En −3 · Brand +5",
+        "outcome": {
+          "effects": [
+            { "stat": "energy", "amount": -3 },
+            { "stat": "brand", "amount": 5 }
+          ],
+          "setFlags": ["community"],
+          "narration": "story spreads"
+        }
+      },
+      {
+        "label": "Ship an easy-mode update",
+        "known": "Cash −0.5S · Rev +2%",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -0.5 },
+            { "stat": "rev_pct", "amount": 2, "durationQ": 2 }
+          ],
+          "narration": "market widens"
+        }
+      },
+      {
+        "label": "Politely template-reply",
+        "outcome": {
+          "narration": "nothing, tiny shame"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-CUS-007",
+    "title": "Data Request",
+    "category": "CUS",
+    "text": "A partner offers 2S/yr for your anonymized customer data.",
+    "stages": [2, 3, 4, 5],
+    "industries": "all",
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Sell it",
+        "known": "Cash +2S/yr",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": 2, "perYear": true },
+            { "stat": "risk", "amount": 1 }
+          ],
+          "setFlags": ["data_loose"],
+          "special": ["arm_event:expose"]
+        }
+      },
+      {
+        "label": "Decline, market privacy",
+        "known": "Brand +4",
+        "outcome": {
+          "effects": [{ "stat": "brand", "amount": 4 }],
+          "setFlags": ["privacy_first"],
+          "narration": "with the paranoid"
+        }
+      },
+      {
+        "label": "Sell aggregated stats only",
+        "known": "Cash +0.5S/yr",
+        "outcome": {
+          "effects": [{ "stat": "cash_S", "amount": 0.5, "perYear": true }],
+          "narration": "defensible"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-CUS-008",
+    "title": "The Loyalty Points Trap",
+    "category": "CUS",
+    "text": "Your points program is popular — and now a 3S liability on the books.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Devalue points quietly",
+        "known": "Cash saved",
+        "branches": [
+          {
+            "weight": 30,
+            "outcome": {
+              "effects": [{ "stat": "brand", "amount": -6 }],
+              "narration": "outrage"
+            }
+          },
+          {
+            "weight": 70,
+            "outcome": {}
+          }
+        ]
+      },
+      {
+        "label": "Honor + sunset with notice",
+        "known": "Cash −1.5S · CSAT +3",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -1.5 },
+            { "stat": "csat", "amount": 3 }
+          ]
+        }
+      },
+      {
+        "label": "Convert to experiences (events, merch)",
+        "known": "Cash −0.5S · Brand +3",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -0.5 },
+            { "stat": "brand", "amount": 3 }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-CUS-009",
+    "title": "B2B Pivot Knock",
+    "category": "CUS",
+    "text": "A chain wants to stock/white-label you for wholesale prices.",
+    "stages": [2, 3, 4],
+    "industries": "all",
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Yes, volume game",
+        "known": "Rev +15% · GM −4",
+        "outcome": {
+          "effects": [
+            { "stat": "rev_pct", "amount": 15, "durationQ": 2 },
+            { "stat": "gm_pt", "amount": -4 }
+          ],
+          "setFlags": ["wholesale"]
+        }
+      },
+      {
+        "label": "No, protect brand & margin",
+        "outcome": {
+          "narration": "GM safe, slower growth"
+        }
+      },
+      {
+        "label": "Limited exclusive line for them",
+        "known": "Rev +8% · GM −1 · En −3",
+        "outcome": {
+          "effects": [
+            { "stat": "rev_pct", "amount": 8, "durationQ": 2 },
+            { "stat": "gm_pt", "amount": -1 },
+            { "stat": "energy", "amount": -3 }
+          ],
+          "narration": "complexity"
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-CUS-010",
+    "title": "Review Bribery Temptation",
+    "category": "CUS",
+    "text": "An agency sells \"guaranteed 5-star reviews.\" Rivals clearly use it.",
+    "stages": [1, 2, 3],
+    "industries": "all",
+    "weight": 5,
+    "choices": [
+      {
+        "label": "Buy",
+        "outcome": {
+          "effects": [{ "stat": "risk", "amount": 2 }],
+          "setFlags": ["fake_reviews"],
+          "special": ["csat_display:2", "arm_event:platform_purge"]
+        }
+      },
+      {
+        "label": "Ask real customers, incentives disclosed",
+        "known": "CSAT +2",
+        "outcome": {
+          "effects": [{ "stat": "csat", "amount": 2 }],
+          "narration": "slow, clean"
+        }
+      },
+      {
+        "label": "Report the agency",
+        "branches": [
+          {
+            "weight": 20,
+            "outcome": {
+              "effects": [{ "stat": "share_pt", "amount": 2 }],
+              "narration": "rivals purged"
+            }
+          },
+          {
+            "weight": 80,
+            "outcome": {
+              "narration": "nothing, petty glow"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "E-CUS-011",
+    "title": "The Accessibility Letter",
+    "category": "CUS",
+    "text": "A disability-advocacy org features you as a model company. Invites you to speak.",
+    "stages": [2, 3, 4, 5],
+    "industries": "all",
+    "weight": 4,
+    "requiresFlags": ["inclusive"],
+    "performOnly": {
+      "type": "media",
+      "optional": true,
+      "pass": {
+        "effects": [
+          { "stat": "brand", "amount": 6 },
+          { "stat": "qual", "amount": 2 }
+        ],
+        "narration": "hiring pipeline improves"
+      },
+      "fail": {
+        "effects": [{ "stat": "brand", "amount": 1 }],
+        "narration": "showing up counted"
+      }
+    }
+  },
+  {
+    "id": "E-CUS-012",
+    "title": "Churn Autopsy",
+    "category": "CUS",
+    "text": "Churn ticked up two quarters straight. Nobody knows why.",
+    "stages": [3, 4, 5],
+    "industries": "all",
+    "weight": 6,
+    "choices": [
+      {
+        "label": "Exit-interview 50 leavers",
+        "known": "Cash −0.3S",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -0.3 },
+            { "stat": "churn_pt", "amount": -3, "delayed": true }
+          ],
+          "narration": "truth revealed: pick a fix next Q"
+        }
+      },
+      {
+        "label": "Win-back discount blast",
+        "known": "Churn −1",
+        "outcome": {
+          "effects": [{ "stat": "churn_pt", "amount": -1 }],
+          "setFlags": ["discounter"],
+          "special": ["churn_return:later"]
+        }
+      },
+      {
+        "label": "Assume it's the market",
+        "outcome": {
+          "special": ["autopsy_magnet"]
+        }
+      }
+    ],
+    "rookieTerms": ["churn"]
+  }
+]

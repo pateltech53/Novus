@@ -1,0 +1,443 @@
+"use client";
+
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { useGame } from "@/lib/state/GameProvider";
+import { FounderPortrait } from "@/components/FounderAvatar";
+import {
+  TIERS,
+  TITLES,
+  unlockedTier,
+  type AvatarConfig,
+  type Gender,
+  type Tier,
+  type TierDef,
+} from "@/lib/engine/avatar";
+import {
+  SKINS,
+  equipSkin,
+  isSkinWearable,
+  loadWardrobe,
+  skinDef,
+  skinProgress,
+  type SkinId,
+} from "@/lib/engine/wardrobe";
+import { STAGE_NAME, STAGE_REVENUE_FLOOR } from "@/lib/engine/constants";
+import { fmtMoney } from "@/lib/engine/format";
+import { loadLegacy } from "@/lib/engine/save";
+import { isPro, loadEntitlements } from "@/lib/monetization";
+import type { StageNum } from "@/lib/engine/types";
+
+/** The panel only has room for so much name before it stops being a name. */
+const NAME_MAX = 18;
+
+/** Distance in stages, spelled out. Index is stages remaining, 1..4. */
+const STAGES_AWAY = ["", "one stage up", "two stages up", "three stages up", "four stages up"];
+
+/**
+ * What a locked tier is actually waiting on.
+ *
+ * Stage is promoted off TRAILING ANNUAL REVENUE (sim.ts `stageCheck`), not
+ * valuation — so the bar is measured against revenue or it would be lying.
+ * The fraction is revenue against the floor that tier's stage requires: a
+ * plain ratio with nothing anchored or rescaled, which is why the caption can
+ * state it in one clause without hedging.
+ *
+ * `measurable` exists because the floors are tunable knobs. If a floor is ever
+ * set to zero there is no fraction to draw, and the row falls back to text
+ * rather than rendering a bar that means nothing.
+ */
+function tierProgress(def: TierDef, stage: StageNum, revenueAnnual: number) {
+  const need = STAGE_REVENUE_FLOOR[def.unlocksAtStage];
+  const measurable = Number.isFinite(need) && need > 0;
+  return {
+    need,
+    measurable,
+    frac: measurable ? Math.max(0, Math.min(1, revenueAnnual / need)) : 0,
+    remaining: Math.max(0, need - revenueAnnual),
+    stagesAway: def.unlocksAtStage - stage,
+  };
+}
+
+/**
+ * The Closet — a wardrobe you earn, not a shop you browse.
+ *
+ * This replaces the mix-and-match customiser. That version offered 29 items
+ * across skin / suit / shirt / accessory, of which effectively none rendered:
+ * the mesh had no separable parts, so every pick collapsed into one flat
+ * repaint, and the avatar was invisible on every screen except this one.
+ *
+ * What replaces it says more with less. Five tiers, unlocked by company stage.
+ * Tier 1 is a hoodie in a garage; tier 5 is a tuxedo and a gold watch. You do
+ * not pick the tuxedo — the company earns it, and the wardrobe becomes a
+ * read-out of the business rather than a storefront.
+ *
+ * Locked tiers render at FULL fidelity, only quieter, so the player can see the
+ * tuxedo from the garage. That reads as something to reach for, which is the
+ * opposite of a paywall. (Brand Law 4: nothing purchasable touches progression.)
+ */
+export function ClosetScreen({
+  onClose,
+  onChange,
+}: {
+  onClose: () => void;
+  /** Fires on every edit so the parent can persist immediately. */
+  onChange: (next: AvatarConfig) => void;
+}) {
+  const { run } = useGame();
+  const [name, setName] = useState(run?.avatar.name ?? "");
+  // Read once on open. This screen only mounts client-side (behind a tap), so
+  // the storage reads are safe, and nothing else writes these while it is up.
+  const [runsFinished] = useState(() => loadLegacy().runsCompleted);
+  const [proActive] = useState(() => isPro(loadEntitlements()));
+  const [equipped, setEquipped] = useState<SkinId | null>(() => loadWardrobe().equipped);
+
+  if (!run) return null;
+
+  const avatar = run.avatar;
+  const maxTier = unlockedTier(run.stage);
+  const revenueAnnual = run.stats.revenueAnnual;
+  const set = (patch: Partial<AvatarConfig>) => onChange({ ...avatar, ...patch });
+
+  // What is actually on the founder's back — storage says equipped, but only
+  // an earned fit on an active Pro renders. Everything else is the tier.
+  const wornSkin =
+    equipped && isSkinWearable(skinDef(equipped), runsFinished, proActive) ? equipped : null;
+
+  const wear = (id: SkinId) => {
+    const next = equipped === id ? null : id; // tap the worn fit to take it off
+    equipSkin(next); // persists + notifies every mounted FounderAvatar
+    setEquipped(next);
+  };
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-40 overflow-y-auto bg-[var(--bg)]"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 12 }}
+      transition={{ type: "spring", stiffness: 380, damping: 34 }}
+    >
+      <div className="mx-auto w-full max-w-md px-5 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))]">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-extrabold tracking-[-0.01em]">The Closet</h1>
+          <button
+            type="button"
+            onClick={onClose}
+            className="nv-press h-10 rounded-[var(--radius-pill)] px-4 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
+          >
+            DONE
+          </button>
+        </div>
+
+        {/* Who you are right now. */}
+        <section className="mt-4 flex flex-col items-center rounded-[var(--radius-card)] bg-[var(--surface)] p-5 shadow-[var(--e2)]">
+          <FounderPortrait
+            gender={avatar.gender}
+            tier={avatar.tier}
+            skin={wornSkin}
+            size={200}
+            priority
+          />
+          <p className="mt-2 text-base font-extrabold">
+            {avatar.name || run.founderName || "Founder"}
+          </p>
+          <p className="text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
+            {TIERS[avatar.tier - 1].label.toUpperCase()} · {STAGE_NAME[run.stage].toUpperCase()}
+          </p>
+        </section>
+
+        {/* Gender is a founder choice, not a stat. Switchable, costs nothing. */}
+        <h2 className="mt-7 text-2xs font-bold tracking-[0.16em] text-[var(--text-tertiary)]">
+          YOUR FOUNDER
+        </h2>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          {(["male", "female"] as Gender[]).map((g) => (
+            <button
+              key={g}
+              type="button"
+              onClick={() => set({ gender: g })}
+              aria-pressed={avatar.gender === g}
+              className={`nv-press flex flex-col items-center rounded-[var(--radius-card)] p-3 ${
+                avatar.gender === g
+                  ? "bg-[var(--surface-elevated)] shadow-[var(--e2)]"
+                  : "bg-[var(--surface)]"
+              }`}
+            >
+              <FounderPortrait gender={g} tier={avatar.tier} size={96} />
+              <span
+                className={`mt-1 text-2xs font-bold tracking-[0.1em] ${
+                  avatar.gender === g
+                    ? "text-[var(--text-primary)]"
+                    : "text-[var(--text-tertiary)]"
+                }`}
+              >
+                {g === "male" ? "HE" : "SHE"}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {/* The ladder. */}
+        <div className="mt-7 flex items-baseline justify-between gap-3">
+          <h2 className="text-2xs font-bold tracking-[0.16em] text-[var(--text-tertiary)]">
+            THE LADDER
+          </h2>
+          <span className="tnum text-2xs text-[var(--text-tertiary)]">
+            {fmtMoney(revenueAnnual)} trailing
+          </span>
+        </div>
+        <p className="mt-1 text-2xs leading-snug text-[var(--text-tertiary)]">
+          Every bar below is trailing annual revenue against the floor that tier needs. The
+          wardrobe is cosmetic: it never touches your score, your survival or the leaderboard,
+          and no tier is for sale at any price.
+        </p>
+
+        <ul className="mt-2 space-y-2">
+          {TIERS.map((t) => {
+            const unlocked = t.tier <= maxTier;
+            const worn = avatar.tier === t.tier;
+            const p = tierProgress(t, run.stage, revenueAnnual);
+            // Stage promotes only at the year-end review, so revenue can clear a
+            // floor while the tier is still locked. Say that rather than showing
+            // a full bar with nothing to explain it.
+            const cleared = p.remaining <= 0;
+            // Rounding a real sliver down to "0%" would read as "you have not
+            // started", which is a different claim. Say "<1%" instead.
+            const pct = Math.round(p.frac * 100);
+            const pctLabel = pct === 0 && p.frac > 0 ? "<1%" : `${pct}%`;
+
+            return (
+              <li key={t.tier}>
+                <button
+                  type="button"
+                  disabled={!unlocked}
+                  onClick={() => set({ tier: t.tier as Tier })}
+                  className={`nv-press flex w-full items-center gap-3 rounded-[var(--radius-card)] p-3 text-left ${
+                    worn ? "bg-[var(--surface-elevated)] shadow-[var(--e2)]" : "bg-[var(--surface)]"
+                  } ${unlocked ? "" : "cursor-default"}`}
+                >
+                  <FounderPortrait
+                    gender={avatar.gender}
+                    tier={t.tier as Tier}
+                    size={64}
+                    dimmed={!unlocked}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-baseline gap-2">
+                      <span className="text-sm font-extrabold">{t.label}</span>
+                      {worn && (
+                        <span className="text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
+                          WORN
+                        </span>
+                      )}
+                    </span>
+
+                    {unlocked ? (
+                      <span className="mt-0.5 block text-2xs leading-snug text-[var(--text-secondary)]">
+                        {t.blurb}
+                      </span>
+                    ) : (
+                      <>
+                        <span className="mt-0.5 block text-2xs leading-snug text-[var(--text-secondary)]">
+                          Opens at {STAGE_NAME[t.unlocksAtStage]} — {STAGES_AWAY[p.stagesAway]}.
+                        </span>
+
+                        {p.measurable ? (
+                          <>
+                            <span
+                              role="meter"
+                              aria-label={`${t.label} unlock progress`}
+                              aria-valuenow={pct}
+                              aria-valuemin={0}
+                              aria-valuemax={100}
+                              aria-valuetext={
+                                cleared
+                                  ? "Revenue floor met, promotes at the year-end review"
+                                  : `${fmtMoney(revenueAnnual)} of the ${fmtMoney(p.need)} trailing revenue this tier needs`
+                              }
+                              className="mt-1.5 block h-1.5 w-full overflow-hidden rounded-full bg-[var(--chip)]"
+                            >
+                              {/* Width is a plain inline style, not a Framer value, so
+                                  the true fraction is in the DOM at first paint and the
+                                  bar cannot read low if rAF is throttled. */}
+                              <span
+                                aria-hidden="true"
+                                className="block h-full rounded-full transition-[width] duration-500"
+                                style={{
+                                  width: `${p.frac * 100}%`,
+                                  // The tier you are actually climbing reads brighter
+                                  // than the ones two stages out. Nothing else changes.
+                                  background: p.stagesAway === 1 ? "var(--n-10)" : "var(--n-7)",
+                                  transitionTimingFunction: "var(--ease-out)",
+                                }}
+                              />
+                            </span>
+                            <span className="mt-1 flex items-baseline justify-between gap-2">
+                              <span className="text-2xs leading-snug text-[var(--text-secondary)]">
+                                {cleared
+                                  ? "Revenue floor met. It opens at the year-end review."
+                                  : `${fmtMoney(p.remaining)} of trailing revenue to go.`}
+                              </span>
+                              <span className="tnum shrink-0 text-2xs text-[var(--text-tertiary)]">
+                                {pctLabel}
+                              </span>
+                            </span>
+                          </>
+                        ) : (
+                          <span className="mt-1 block text-2xs leading-snug text-[var(--text-secondary)]">
+                            Needs {fmtMoney(p.need)} of trailing annual revenue.
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+
+        {/* The wardrobe track — Pro's long cosmetic ladder, earned by finishing runs. */}
+        <div className="mt-7 flex items-baseline justify-between gap-3">
+          <h2 className="text-2xs font-bold tracking-[0.16em] text-[var(--text-tertiary)]">
+            THE WARDROBE TRACK
+          </h2>
+          <span className="tnum text-2xs text-[var(--text-tertiary)]">
+            {runsFinished} {runsFinished === 1 ? "run" : "runs"} finished
+          </span>
+        </div>
+        <p className="mt-1 text-2xs leading-snug text-[var(--text-tertiary)]">
+          Six fits, earned by finishing runs — going under counts, walking away counts. Pro
+          wears them; the tiers above stay free and stay the default. Cosmetics never touch
+          score, survival, or the leaderboard.
+        </p>
+
+        <ul className="mt-2 space-y-2">
+          {SKINS.map((s) => {
+            const p = skinProgress(s, runsFinished);
+            const wearable = proActive && p.earned;
+            const worn = wornSkin === s.id;
+            const pct = Math.round(p.frac * 100);
+
+            return (
+              <li
+                key={s.id}
+                className={`flex items-center gap-3 rounded-[var(--radius-card)] p-3 ${
+                  worn ? "bg-[var(--surface-elevated)] shadow-[var(--e2)]" : "bg-[var(--surface)]"
+                }`}
+              >
+                {/* Locked fits go grey as well as quiet — unlike the ladder,
+                    these CAN be locked forever (no Pro), and full-colour art
+                    next to a lock would read as a broken button. */}
+                <FounderPortrait
+                  gender={avatar.gender}
+                  tier={avatar.tier}
+                  skin={s.id}
+                  size={64}
+                  dimmed={!wearable}
+                  className={wearable ? "" : "grayscale"}
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-baseline gap-2">
+                    <span className="text-sm font-extrabold">{s.label}</span>
+                    {worn && (
+                      <span className="text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
+                        WORN
+                      </span>
+                    )}
+                  </span>
+
+                  {p.earned ? (
+                    <span className="mt-0.5 block text-2xs leading-snug text-[var(--text-secondary)]">
+                      {proActive
+                        ? s.blurb
+                        : "Earned — your finished runs are banked. Pro wears it."}
+                    </span>
+                  ) : (
+                    <>
+                      <span
+                        role="meter"
+                        aria-label={`${s.label} unlock progress`}
+                        aria-valuenow={pct}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-valuetext={`${p.done} of ${p.need} finished runs`}
+                        className="mt-1.5 block h-1.5 w-full overflow-hidden rounded-full bg-[var(--chip)]"
+                      >
+                        {/* Plain inline width, same as the ladder: the true
+                            fraction is in the DOM at first paint. */}
+                        <span
+                          aria-hidden="true"
+                          className="block h-full rounded-full transition-[width] duration-500"
+                          style={{
+                            width: `${p.frac * 100}%`,
+                            background: "var(--n-7)",
+                            transitionTimingFunction: "var(--ease-out)",
+                          }}
+                        />
+                      </span>
+                      <span className="mt-1 block text-2xs leading-snug text-[var(--text-secondary)]">
+                        {p.done} of {p.need} runs
+                      </span>
+                    </>
+                  )}
+                </span>
+
+                {wearable ? (
+                  <button
+                    type="button"
+                    onClick={() => wear(s.id)}
+                    aria-pressed={worn}
+                    className={`nv-press shrink-0 rounded-[var(--radius-pill)] px-3 py-2 text-2xs font-bold tracking-[0.12em] ${
+                      worn
+                        ? "bg-[var(--chip)] text-[var(--text-secondary)]"
+                        : "bg-[var(--surface-elevated)] text-[var(--text-primary)] shadow-[var(--e2)]"
+                    }`}
+                  >
+                    {worn ? "EQUIPPED" : "EQUIP"}
+                  </button>
+                ) : (
+                  <span className="shrink-0 rounded-[var(--radius-pill)] bg-[var(--chip)] px-3 py-2 text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
+                    {p.earned ? "PRO" : "LOCKED"}
+                  </span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+        <p className="mt-1 text-2xs leading-snug text-[var(--text-tertiary)]">
+          Tap EQUIPPED to take a fit off and wear your tier again.
+        </p>
+
+        {/* Name + title. */}
+        <h2 className="mt-7 text-2xs font-bold tracking-[0.16em] text-[var(--text-tertiary)]">
+          WHAT THEY CALL YOU
+        </h2>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value.slice(0, NAME_MAX))}
+          onBlur={() => set({ name: name.trim() })}
+          placeholder={run.founderName || "Founder"}
+          className="mt-2 w-full rounded-[var(--radius-row)] bg-[var(--surface)] px-3 py-3 text-base font-semibold outline-none ring-1 ring-[var(--hairline)] focus:ring-[var(--text-secondary)] placeholder:text-[var(--text-tertiary)]"
+        />
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {TITLES.map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => set({ title: t })}
+              className={`nv-press rounded-[var(--radius-pill)] px-3 py-2 text-2xs font-bold tracking-[0.04em] ${
+                avatar.title === t
+                  ? "bg-[var(--surface-elevated)] text-[var(--text-primary)]"
+                  : "bg-[var(--surface)] text-[var(--text-tertiary)]"
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+      </div>
+    </motion.div>
+  );
+}

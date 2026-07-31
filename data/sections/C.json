@@ -1,0 +1,1186 @@
+[
+ {
+  "id": "E-FIN-001",
+  "title": "The Bank Loan",
+  "category": "FIN",
+  "text": "The bank offers 8S at 12% interest. Runway says yes. Pride says no.",
+  "stages": [
+   1,
+   2,
+   3
+  ],
+  "industries": "all",
+  "weight": 7,
+  "rookieTerms": [
+   "runway"
+  ],
+  "choices": [
+   {
+    "label": "Take it",
+    "known": "Cash +8S · Burn +0.1S/mo",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "cash_S",
+       "amount": 8
+      },
+      {
+       "stat": "burn_S_mo",
+       "amount": 0.1
+      }
+     ],
+     "setFlags": [
+      "debt_taken"
+     ]
+    }
+   },
+   {
+    "label": "Take half",
+    "known": "Cash +4S",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "cash_S",
+       "amount": 4
+      },
+      {
+       "stat": "burn_S_mo",
+       "amount": 0.05
+      }
+     ]
+    }
+   },
+   {
+    "label": "Decline",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "respect",
+       "amount": 1,
+       "delayed": true
+      }
+     ],
+     "special": [
+      "autopsy_magnet"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "id": "E-FIN-002",
+  "title": "The Family Check",
+  "category": "FIN",
+  "text": "A relative offers 5S \"no strings.\" There are always strings.",
+  "stages": [
+   1
+  ],
+  "industries": "all",
+  "weight": 6,
+  "once": true,
+  "choices": [
+   {
+    "label": "Accept",
+    "known": "Cash +5S",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "cash_S",
+       "amount": 5
+      }
+     ],
+     "setFlags": [
+      "family_money"
+     ]
+    }
+   },
+   {
+    "label": "Accept as a formal loan with paper",
+    "known": "Cash +5S",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "cash_S",
+       "amount": 5
+      },
+      {
+       "stat": "burn_S_mo",
+       "amount": 0.05
+      }
+     ]
+    }
+   },
+   {
+    "label": "Decline",
+    "known": "En +2",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "energy",
+       "amount": 2
+      }
+     ],
+     "narration": "Harder year."
+    }
+   }
+  ]
+ },
+ {
+  "id": "E-FIN-003",
+  "title": "Invoice Black Hole",
+  "category": "FIN",
+  "text": "Your biggest client is 90 days late on a 6S invoice. They're 30% of revenue.",
+  "stages": [
+   2,
+   3,
+   4
+  ],
+  "industries": "all",
+  "weight": 8,
+  "rookieTerms": [
+   "cash flow"
+  ],
+  "choices": [
+   {
+    "label": "Demand payment, halt service",
+    "perform": {
+     "type": "nego",
+     "pass": {
+      "effects": [
+       {
+        "stat": "cash_S",
+        "amount": 6
+       }
+      ],
+      "narration": "Paid in full."
+     },
+     "fail": {
+      "effects": [
+       {
+        "stat": "rev_pct",
+        "amount": -12,
+        "durationQ": 2
+       }
+      ],
+      "narration": "They leave."
+     }
+    }
+   },
+   {
+    "label": "Offer 10% discount for cash now",
+    "known": "Cash +5.4S · GM −1",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "cash_S",
+       "amount": 5.4
+      },
+      {
+       "stat": "gm_pt",
+       "amount": -1
+      }
+     ],
+     "setFlags": [
+      "discounter"
+     ]
+    }
+   },
+   {
+    "label": "Wait politely",
+    "branches": [
+     {
+      "weight": 50,
+      "outcome": {
+       "effects": [
+        {
+         "stat": "cash_S",
+         "amount": 6,
+         "afterQ": 1
+        }
+       ]
+      }
+     },
+     {
+      "weight": 50,
+      "outcome": {
+       "effects": [
+        {
+         "stat": "rev_pct",
+         "amount": -30,
+         "durationQ": 2
+        }
+       ],
+       "narration": "They collapse owing you everything."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "E-FIN-004",
+  "title": "The Tax Letter",
+  "category": "FIN",
+  "text": "An audit notice. Your books are… artisanal.",
+  "stages": [
+   2,
+   3,
+   4,
+   5
+  ],
+  "industries": "all",
+  "weight": 6,
+  "choices": [
+   {
+    "label": "Hire a real accountant",
+    "known": "Cash −1S · Burn +0.1S/mo",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "cash_S",
+       "amount": -1
+      },
+      {
+       "stat": "burn_S_mo",
+       "amount": 0.1
+      }
+     ],
+     "setFlags": [
+      "clean_books"
+     ],
+     "narration": "Clean bill."
+    }
+   },
+   {
+    "label": "DIY the response",
+    "known": "En −10",
+    "branches": [
+     {
+      "weight": 60,
+      "outcome": {
+       "effects": [
+        {
+         "stat": "energy",
+         "amount": -10
+        },
+        {
+         "stat": "cash_S",
+         "amount": -1
+        }
+       ]
+      }
+     },
+     {
+      "weight": 40,
+      "outcome": {
+       "effects": [
+        {
+         "stat": "energy",
+         "amount": -10
+        },
+        {
+         "stat": "cash_S",
+         "amount": -4
+        },
+        {
+         "stat": "risk",
+         "amount": 1
+        }
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "label": "sweat",
+    "known": "Cash −6S",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "cash_S",
+       "amount": -6
+      },
+      {
+       "stat": "risk",
+       "amount": 2
+      }
+     ],
+     "special": [
+      "autopsy_magnet"
+     ]
+    },
+    "requiresAnyFlags": [
+     "insurance_fraud",
+     "cut_corners"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "E-FIN-005",
+  "title": "Currency Whiplash",
+  "category": "FIN",
+  "text": "Your import currency jumps 15%.",
+  "stages": [
+   3,
+   4,
+   5
+  ],
+  "industries": "all",
+  "weight": 5,
+  "choices": [
+   {
+    "label": "Hedge going forward",
+    "known": "Cash −0.5S/yr",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "cash_S",
+       "amount": -0.5,
+       "perYear": true
+      }
+     ],
+     "setFlags": [
+      "hedged"
+     ],
+     "special": [
+      "immunity:currency"
+     ]
+    }
+   },
+   {
+    "label": "Eat it",
+    "known": "GM −3 (2Q)",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "gm_pt",
+       "amount": -3,
+       "durationQ": 2
+      }
+     ]
+    }
+   },
+   {
+    "label": "Reprice regionally",
+    "known": "Rev −3%",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "rev_pct",
+       "amount": -3,
+       "durationQ": 2
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "id": "E-FIN-006",
+  "title": "The Convertible Note",
+  "category": "FIN",
+  "text": "An angel offers 10S on a convertible note, 20% discount cap. Founders around you pretend to understand it.",
+  "stages": [
+   2,
+   3
+  ],
+  "industries": "all",
+  "weight": 6,
+  "rookieTerms": [
+   "dilution",
+   "term sheet"
+  ],
+  "choices": [
+   {
+    "label": "Sign after actually reading",
+    "known": "Cash +10S · Resp +1",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "cash_S",
+       "amount": 10
+      },
+      {
+       "stat": "dilution_pct",
+       "amount": 20,
+       "delayed": true
+      },
+      {
+       "stat": "invsent",
+       "amount": 1
+      },
+      {
+       "stat": "respect",
+       "amount": 1
+      }
+     ],
+     "special": [
+      "rookie_explainer"
+     ]
+    }
+   },
+   {
+    "label": "Ask for a priced round instead",
+    "perform": {
+     "type": "pitch",
+     "pass": {
+      "effects": [
+       {
+        "stat": "cash_S",
+        "amount": 10
+       },
+       {
+        "stat": "dilution_pct",
+        "amount": 15
+       }
+      ],
+      "narration": "Better terms, dilution known."
+     },
+     "fail": {
+      "narration": "They walk."
+     }
+    }
+   },
+   {
+    "label": "Decline",
+    "outcome": {
+     "narration": "Independence, tighter year."
+    }
+   }
+  ]
+ },
+ {
+  "id": "E-FIN-007",
+  "title": "Down Round or Die",
+  "category": "FIN",
+  "text": "Runway: 3 months. The only term sheet values you 40% below last round.",
+  "stages": [
+   3,
+   4
+  ],
+  "industries": "all",
+  "weight": 5,
+  "rookieTerms": [
+   "down round"
+  ],
+  "choices": [
+   {
+    "label": "Take it",
+    "known": "Cash +12S · Val −40%",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "cash_S",
+       "amount": 12
+      },
+      {
+       "stat": "val_pct",
+       "amount": -40
+      },
+      {
+       "stat": "invsent",
+       "amount": -1
+      }
+     ],
+     "setFlags": [
+      "down_round"
+     ]
+    }
+   },
+   {
+    "label": "Bridge loan from insiders",
+    "perform": {
+     "type": "board",
+     "pass": {
+      "effects": [
+       {
+        "stat": "cash_S",
+        "amount": 6
+       }
+      ],
+      "narration": "Val intact."
+     },
+     "fail": {
+      "narration": "Nothing, 2 months left."
+     }
+    }
+   },
+   {
+    "label": "Emergency cost surgery",
+    "known": "Burn −40% · Mor −10 · Emp −15%",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "morale",
+       "amount": -10
+      }
+     ],
+     "special": [
+      "burn_pct:-40",
+      "emp_pct:-15"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "id": "E-FIN-008",
+  "title": "The Acquirer's First Kiss",
+  "category": "FIN",
+  "text": "A bigger company \"wants to explore synergies.\" Translation: they might buy you — or just photograph your kitchen.",
+  "stages": [
+   3,
+   4
+  ],
+  "industries": "all",
+  "weight": 5,
+  "once": true,
+  "choices": [
+   {
+    "label": "Take the meeting, share carefully",
+    "branches": [
+     {
+      "weight": 30,
+      "outcome": {
+       "special": [
+        "unlock:acquisition_offer"
+       ]
+      }
+     },
+     {
+      "weight": 70,
+      "outcome": {
+       "setFlags": [
+        "shared_deck"
+       ],
+       "narration": "Nothing."
+      }
+     }
+    ]
+   },
+   {
+    "label": "Decline flat",
+    "known": "Resp +2",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "respect",
+       "amount": 2
+      }
+     ],
+     "narration": "Mystery forever."
+    }
+   },
+   {
+    "label": "NDA first, then talk",
+    "outcome": {
+     "setFlags": [
+      "nda_shield"
+     ],
+     "narration": "Slower, safer."
+    }
+   }
+  ]
+ },
+ {
+  "id": "E-FIN-009",
+  "title": "Dividend or Reinvest",
+  "category": "FIN",
+  "text": "Profit is real this year. Take money off the table?",
+  "stages": [
+   4,
+   5
+  ],
+  "industries": "all",
+  "weight": 6,
+  "rookieTerms": [
+   "profit"
+  ],
+  "choices": [
+   {
+    "label": "Pay yourself/shareholders",
+    "known": "Cash −4S · En +10",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "cash_S",
+       "amount": -4
+      },
+      {
+       "stat": "energy",
+       "amount": 10
+      },
+      {
+       "stat": "rev_pct",
+       "amount": -2,
+       "afterQ": 4,
+       "durationQ": 4
+      }
+     ]
+    }
+   },
+   {
+    "label": "Reinvest all",
+    "known": "En −3",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "rev_pct",
+       "amount": 5,
+       "afterQ": 4,
+       "durationQ": 4
+      },
+      {
+       "stat": "energy",
+       "amount": -3
+      }
+     ]
+    }
+   },
+   {
+    "label": "50/50",
+    "known": "Cash −2S · En +3.5",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "cash_S",
+       "amount": -2
+      },
+      {
+       "stat": "energy",
+       "amount": 3.5
+      },
+      {
+       "stat": "rev_pct",
+       "amount": 1.5,
+       "afterQ": 4,
+       "durationQ": 4
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "id": "E-FIN-010",
+  "title": "The Crypto Treasury Pitch",
+  "category": "FIN",
+  "text": "Your CFO (or a podcast) suggests holding 20% of treasury in crypto.",
+  "stages": [
+   3,
+   4,
+   5
+  ],
+  "industries": "all",
+  "weight": 4,
+  "rookieTerms": [
+   "ROI"
+  ],
+  "choices": [
+   {
+    "label": "Do it",
+    "outcome": {
+     "setFlags": [
+      "crypto_bag"
+     ],
+     "special": [
+      "crypto_swings:25"
+     ]
+    }
+   },
+   {
+    "label": "2% \"learning position\"",
+    "outcome": {
+     "special": [
+      "crypto_swings:2"
+     ]
+    }
+   },
+   {
+    "label": "Absolutely not",
+    "outcome": {
+     "narration": "Viktor the shark nods somewhere."
+    }
+   }
+  ]
+ },
+ {
+  "id": "E-FIN-011",
+  "title": "Factoring Offer",
+  "category": "FIN",
+  "text": "A firm will buy your unpaid invoices at 92 cents on the dollar. Cash today, margin gone.",
+  "stages": [
+   2,
+   3,
+   4
+  ],
+  "industries": "all",
+  "weight": 5,
+  "choices": [
+   {
+    "label": "Factor them",
+    "known": "GM −2 that Q",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "gm_pt",
+       "amount": -2,
+       "durationQ": 1
+      }
+     ],
+     "setFlags": [
+      "factoring"
+     ],
+     "special": [
+      "factor_invoices:92"
+     ]
+    }
+   },
+   {
+    "label": "Only the risky invoices",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "gm_pt",
+       "amount": -1,
+       "durationQ": 1
+      }
+     ],
+     "special": [
+      "factor_invoices:92:partial"
+     ]
+    }
+   },
+   {
+    "label": "Never",
+    "outcome": {
+     "special": [
+      "event_bias:E-FIN-003"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "id": "E-FIN-012",
+  "title": "The Grant Maze",
+  "category": "FIN",
+  "text": "A small-business grant exists: 3S, forty pages of forms.",
+  "stages": [
+   1,
+   2
+  ],
+  "industries": "all",
+  "weight": 6,
+  "choices": [
+   {
+    "label": "Grind the paperwork",
+    "known": "En −8",
+    "branches": [
+     {
+      "weight": 70,
+      "outcome": {
+       "effects": [
+        {
+         "stat": "energy",
+         "amount": -8
+        },
+        {
+         "stat": "cash_S",
+         "amount": 3
+        }
+       ]
+      }
+     },
+     {
+      "weight": 30,
+      "outcome": {
+       "effects": [
+        {
+         "stat": "energy",
+         "amount": -8
+        }
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "label": "Hire a grant writer",
+    "known": "Cash −0.3S",
+    "branches": [
+     {
+      "weight": 85,
+      "outcome": {
+       "effects": [
+        {
+         "stat": "cash_S",
+         "amount": -0.3
+        },
+        {
+         "stat": "cash_S",
+         "amount": 3
+        }
+       ]
+      }
+     },
+     {
+      "weight": 15,
+      "outcome": {
+       "effects": [
+        {
+         "stat": "cash_S",
+         "amount": -0.3
+        }
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "label": "Skip",
+    "known": "Qual +1",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "qual",
+       "amount": 1
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "id": "E-FIN-013",
+  "title": "Pricing Power Test",
+  "category": "FIN",
+  "text": "Data says customers' willingness to pay sits above your price.",
+  "stages": [
+   2,
+   3,
+   4,
+   5
+  ],
+  "industries": "all",
+  "weight": 7,
+  "rookieTerms": [
+   "CWP"
+  ],
+  "choices": [
+   {
+    "label": "Raise prices 10%",
+    "branches": [
+     {
+      "cond": {
+       "stat": {
+        "key": "qual",
+        "gte": 60
+       }
+      },
+      "outcome": {
+       "effects": [
+        {
+         "stat": "rev_pct",
+         "amount": 6,
+         "durationQ": 2
+        },
+        {
+         "stat": "gm_pt",
+         "amount": 3
+        }
+       ]
+      }
+     },
+     {
+      "fallback": true,
+      "outcome": {
+       "effects": [
+        {
+         "stat": "churn_pt",
+         "amount": 2
+        }
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "label": "Add a premium tier",
+    "known": "Rev +4% · En −3",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "rev_pct",
+       "amount": 4,
+       "durationQ": 2
+      },
+      {
+       "stat": "energy",
+       "amount": -3
+      }
+     ]
+    }
+   },
+   {
+    "label": "Keep price, take share",
+    "known": "Share +1",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "share_pt",
+       "amount": 1
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "id": "E-FIN-014",
+  "title": "The Embezzler",
+  "category": "FIN",
+  "text": "Numbers don't reconcile. Someone in finance skimmed 0.5S/quarter for a year.",
+  "stages": [
+   3,
+   4,
+   5
+  ],
+  "industries": "all",
+  "weight": 4,
+  "once": true,
+  "choices": [
+   {
+    "label": "Police + prosecute",
+    "known": "Brand −2",
+    "branches": [
+     {
+      "weight": 50,
+      "outcome": {
+       "effects": [
+        {
+         "stat": "cash_S",
+         "amount": 2
+        },
+        {
+         "stat": "brand",
+         "amount": -2
+        }
+       ],
+       "setFlags": [
+        "hard_calls"
+       ]
+      }
+     },
+     {
+      "weight": 50,
+      "outcome": {
+       "effects": [
+        {
+         "stat": "brand",
+         "amount": -2
+        }
+       ],
+       "setFlags": [
+        "hard_calls"
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "label": "Quiet firing + repayment plan",
+    "branches": [
+     {
+      "weight": 80,
+      "outcome": {
+       "effects": [
+        {
+         "stat": "cash_S",
+         "amount": 2,
+         "delayed": true
+        },
+        {
+         "stat": "risk",
+         "amount": 1
+        }
+       ]
+      }
+     },
+     {
+      "weight": 20,
+      "outcome": {
+       "effects": [
+        {
+         "stat": "risk",
+         "amount": 1
+        }
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "label": "your accountant caught it in month two",
+    "known": "Mor +3",
+    "requiresFlag": "clean_books",
+    "branches": [
+     {
+      "weight": 95,
+      "outcome": {
+       "effects": [
+        {
+         "stat": "cash_S",
+         "amount": 2
+        },
+        {
+         "stat": "morale",
+         "amount": 3
+        }
+       ]
+      }
+     },
+     {
+      "weight": 5,
+      "outcome": {
+       "effects": [
+        {
+         "stat": "morale",
+         "amount": 3
+        }
+       ]
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "E-FIN-015",
+  "title": "Buy vs Rent Everything",
+  "category": "FIN",
+  "text": "Equipment decision: own assets or stay lean?",
+  "stages": [
+   2,
+   3
+  ],
+  "industries": "all",
+  "weight": 5,
+  "choices": [
+   {
+    "label": "Buy",
+    "known": "Cash −4S · Burn −0.2S/mo · Val +2%",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "cash_S",
+       "amount": -4
+      },
+      {
+       "stat": "burn_S_mo",
+       "amount": -0.2
+      },
+      {
+       "stat": "val_pct",
+       "amount": 2
+      }
+     ]
+    }
+   },
+   {
+    "label": "Rent",
+    "known": "Burn +0.3S/mo",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "burn_S_mo",
+       "amount": 0.3
+      }
+     ],
+     "setFlags": [
+      "leasing"
+     ]
+    }
+   },
+   {
+    "label": "Buy used",
+    "known": "Cash −2S",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "cash_S",
+       "amount": -2
+      }
+     ],
+     "special": [
+      "event_odds:breakdown:20"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "id": "E-FIN-016",
+  "title": "The Personal Guarantee",
+  "category": "FIN",
+  "text": "The bank wants YOUR name on the company's debt to extend the line.",
+  "stages": [
+   1,
+   2
+  ],
+  "industries": "all",
+  "weight": 4,
+  "requiresFlags": [
+   "debt_taken"
+  ],
+  "choices": [
+   {
+    "label": "Sign",
+    "known": "Cash +4S",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "cash_S",
+       "amount": 4
+      }
+     ],
+     "special": [
+      "personal_guarantee",
+      "autopsy_magnet"
+     ]
+    }
+   },
+   {
+    "label": "Refuse, smaller line",
+    "known": "Cash +1S",
+    "outcome": {
+     "effects": [
+      {
+       "stat": "cash_S",
+       "amount": 1
+      }
+     ]
+    }
+   },
+   {
+    "label": "Refinance elsewhere",
+    "perform": {
+     "type": "nego",
+     "pass": {
+      "effects": [
+       {
+        "stat": "cash_S",
+        "amount": 4
+       }
+      ],
+      "narration": "Same money, no guarantee."
+     },
+     "fail": {
+      "narration": "Nothing + this bank sulks."
+     }
+    }
+   }
+  ]
+ }
+]

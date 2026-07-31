@@ -1,0 +1,2277 @@
+[
+  {
+    "id": "E-IND-FOOD-5",
+    "title": "The Unannounced Inspection",
+    "category": "IND",
+    "text": "A health inspector walks in at the worst hour of service and asks to see the walk-in.",
+    "stages": [
+      1,
+      2,
+      3
+    ],
+    "industries": [
+      "FOOD"
+    ],
+    "weight": 6,
+    "cooldownYears": 4,
+    "choices": [
+      {
+        "label": "Stop service, walk them through everything",
+        "known": "Rev −8% · Quality +4 · Respect +1",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "rev_pct",
+              "amount": -8,
+              "durationQ": 1
+            },
+            {
+              "stat": "qual",
+              "amount": 4
+            },
+            {
+              "stat": "respect",
+              "amount": 1
+            }
+          ],
+          "narration": "You kill the tickets and open every door. It costs you a night and buys you a clean file."
+        }
+      },
+      {
+        "label": "Keep serving, handle it quietly",
+        "known": "Energy −8",
+        "branches": [
+          {
+            "weight": 55,
+            "outcome": {
+              "effects": [
+                {
+                  "stat": "energy",
+                  "amount": -8
+                }
+              ],
+              "narration": "You run two jobs at once and get away with it."
+            }
+          },
+          {
+            "weight": 45,
+            "outcome": {
+              "effects": [
+                {
+                  "stat": "energy",
+                  "amount": -8
+                },
+                {
+                  "stat": "csat",
+                  "amount": -6
+                },
+                {
+                  "stat": "risk",
+                  "amount": 2
+                }
+              ],
+              "narration": "The inspector notices you are managing them instead of answering them.",
+              "setFlags": [
+                "inspection_flagged"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "label": "Fix the walk-in properly first",
+        "known": "Cash −2S · Quality +6",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": -2
+            },
+            {
+              "stat": "qual",
+              "amount": 6
+            },
+            {
+              "stat": "tdebt",
+              "amount": -1
+            }
+          ],
+          "narration": "You pay for the gasket, the thermometer and the log book. Boring, and it never bites you again."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-FOOD-6",
+    "title": "Table for One, Under Another Name",
+    "category": "IND",
+    "text": "A critic has booked under a name that is not theirs. You recognise the face at the door.",
+    "stages": [
+      2,
+      3,
+      4
+    ],
+    "industries": [
+      "FOOD"
+    ],
+    "weight": 6,
+    "once": true,
+    "choices": [
+      {
+        "label": "Cook your actual menu, say nothing",
+        "known": "Energy −6",
+        "branches": [
+          {
+            "weight": 60,
+            "outcome": {
+              "effects": [
+                {
+                  "stat": "energy",
+                  "amount": -6
+                },
+                {
+                  "stat": "brand",
+                  "amount": 9
+                },
+                {
+                  "stat": "rev_pct",
+                  "amount": 8,
+                  "durationQ": 2
+                }
+              ],
+              "narration": "They write it up as it was. As it was turns out to be good."
+            }
+          },
+          {
+            "weight": 40,
+            "outcome": {
+              "effects": [
+                {
+                  "stat": "energy",
+                  "amount": -6
+                },
+                {
+                  "stat": "brand",
+                  "amount": -4
+                }
+              ],
+              "narration": "An average night, recorded permanently."
+            }
+          }
+        ]
+      },
+      {
+        "label": "Send out the best of everything",
+        "known": "Cash −1S · Brand +5 · Respect −1",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": -1
+            },
+            {
+              "stat": "brand",
+              "amount": 5
+            },
+            {
+              "stat": "respect",
+              "amount": -1
+            }
+          ],
+          "narration": "You cook for one table and everyone else eats second. The review is warm and the kitchen knows why."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-ECOM-5",
+    "title": "The Algorithm Moved",
+    "category": "IND",
+    "text": "The marketplace reshuffles its rankings overnight. You were page one. You are now page four.",
+    "stages": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "industries": [
+      "ECOM"
+    ],
+    "weight": 6,
+    "cooldownYears": 3,
+    "choices": [
+      {
+        "label": "Buy your way back with ads",
+        "known": "Cash −3S · CAC +4 · Rev +10%",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": -3
+            },
+            {
+              "stat": "cac_pt",
+              "amount": 4
+            },
+            {
+              "stat": "rev_pct",
+              "amount": 10,
+              "durationQ": 2
+            }
+          ],
+          "narration": "You rent the position you used to own."
+        }
+      },
+      {
+        "label": "Build your own storefront instead",
+        "known": "Cash −4S · Rev −12% now · GM +5",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": -4
+            },
+            {
+              "stat": "rev_pct",
+              "amount": -12,
+              "durationQ": 2
+            },
+            {
+              "stat": "gm_pt",
+              "amount": 5
+            },
+            {
+              "stat": "brand",
+              "amount": 3
+            }
+          ],
+          "setFlags": [
+            "owns_channel"
+          ],
+          "narration": "It hurts for two quarters. After that the margin is yours and so is the customer list."
+        }
+      },
+      {
+        "label": "Ride it out",
+        "known": "Rev −15%",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "rev_pct",
+              "amount": -15,
+              "durationQ": 2
+            }
+          ],
+          "narration": "You wait. The ranking does not come back on its own."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-ECOM-6",
+    "title": "The Return That Comes Back Empty",
+    "category": "IND",
+    "text": "Dozens of returns, all the same excuse, all from addresses two streets apart. The boxes come back with the wrong thing inside.",
+    "stages": [
+      2,
+      3,
+      4
+    ],
+    "industries": [
+      "ECOM"
+    ],
+    "weight": 6,
+    "cooldownYears": 4,
+    "choices": [
+      {
+        "label": "Tighten the returns policy",
+        "known": "GM +4 · CSAT −7",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "gm_pt",
+              "amount": 4
+            },
+            {
+              "stat": "csat",
+              "amount": -7
+            }
+          ],
+          "narration": "The fraud stops. So do some honest returns, and those customers tell people."
+        }
+      },
+      {
+        "label": "Pay for fraud screening",
+        "known": "Cash −2S · Burn +0.1S/mo · GM +3",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": -2
+            },
+            {
+              "stat": "burn_S_mo",
+              "amount": 0.1
+            },
+            {
+              "stat": "gm_pt",
+              "amount": 3
+            }
+          ],
+          "narration": "A tool catches the pattern you were catching by hand. Honest customers never notice it exists."
+        }
+      },
+      {
+        "label": "Eat it, keep the policy generous",
+        "known": "GM −4 · CSAT +5",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "gm_pt",
+              "amount": -4
+            },
+            {
+              "stat": "csat",
+              "amount": 5
+            },
+            {
+              "stat": "brand",
+              "amount": 2
+            }
+          ],
+          "narration": "You decide the cost of being easy to deal with is a line item you can carry. For now."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-TECH-5",
+    "title": "The Email From The Researcher",
+    "category": "IND",
+    "text": "A stranger emails a working exploit against your login, a 90-day disclosure deadline, and a polite tone.",
+    "stages": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "industries": [
+      "TECH"
+    ],
+    "weight": 6,
+    "once": true,
+    "choices": [
+      {
+        "label": "Fix it, credit them, publish the writeup",
+        "known": "Cash −2S · Brand +6 · Respect +2",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": -2
+            },
+            {
+              "stat": "brand",
+              "amount": 6
+            },
+            {
+              "stat": "respect",
+              "amount": 2
+            },
+            {
+              "stat": "risk",
+              "amount": -2
+            }
+          ],
+          "setFlags": [
+            "security_serious"
+          ],
+          "narration": "You fix it in nine days and say so out loud. Engineers who read that email start applying to work for you."
+        }
+      },
+      {
+        "label": "Fix it quietly",
+        "known": "Cash −2S",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": -2
+            },
+            {
+              "stat": "risk",
+              "amount": -1
+            }
+          ],
+          "narration": "The hole closes. Nobody outside the room learns it was open."
+        }
+      },
+      {
+        "label": "Send it to your lawyers",
+        "known": "Brand −8 · Respect −2",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "brand",
+              "amount": -8
+            },
+            {
+              "stat": "respect",
+              "amount": -2
+            },
+            {
+              "stat": "risk",
+              "amount": 3
+            }
+          ],
+          "setFlags": [
+            "threatened_researcher"
+          ],
+          "narration": "You threaten the person who was helping you. The exploit is still there, and now the deadline is public."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-TECH-6",
+    "title": "The Job That Ran All Weekend",
+    "category": "IND",
+    "text": "Somebody left a job running on Friday. The cloud invoice arrives Monday.",
+    "stages": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "industries": [
+      "TECH"
+    ],
+    "weight": 6,
+    "cooldownYears": 3,
+    "choices": [
+      {
+        "label": "Pay it, add hard spend caps",
+        "known": "Cash −3S · Quality +2",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": -3
+            },
+            {
+              "stat": "qual",
+              "amount": 2
+            },
+            {
+              "stat": "tdebt",
+              "amount": -1
+            }
+          ],
+          "narration": "You pay, then you cap it so the same weekend cannot happen twice."
+        }
+      },
+      {
+        "label": "Beg the provider for a credit",
+        "known": "Energy −6",
+        "branches": [
+          {
+            "weight": 55,
+            "outcome": {
+              "effects": [
+                {
+                  "stat": "energy",
+                  "amount": -6
+                },
+                {
+                  "stat": "cash_S",
+                  "amount": -1
+                }
+              ],
+              "narration": "Two calls and an apology later, most of it is written off."
+            }
+          },
+          {
+            "weight": 45,
+            "outcome": {
+              "effects": [
+                {
+                  "stat": "energy",
+                  "amount": -6
+                },
+                {
+                  "stat": "cash_S",
+                  "amount": -3
+                }
+              ],
+              "narration": "They are sympathetic and they invoice you anyway."
+            }
+          }
+        ]
+      },
+      {
+        "label": "Find whoever did it",
+        "known": "Cash −3S · Morale −8",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": -3
+            },
+            {
+              "stat": "morale",
+              "amount": -8
+            },
+            {
+              "stat": "teamloy",
+              "amount": -1
+            }
+          ],
+          "narration": "You find them. Everyone watches you find them, and learns not to tell you things."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-CONT-5",
+    "title": "The Back Catalogue Goes Dark",
+    "category": "IND",
+    "text": "The platform demonetises three years of uploads over a policy you cannot get a human to explain.",
+    "stages": [
+      2,
+      3,
+      4
+    ],
+    "industries": [
+      "CONTENT"
+    ],
+    "weight": 6,
+    "cooldownYears": 4,
+    "choices": [
+      {
+        "label": "Appeal, and post about the appeal",
+        "known": "Rev −10% · Brand +6",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "rev_pct",
+              "amount": -10,
+              "durationQ": 2
+            },
+            {
+              "stat": "brand",
+              "amount": 6
+            },
+            {
+              "stat": "respect",
+              "amount": 1
+            }
+          ],
+          "narration": "The appeal goes nowhere for six weeks. The video about the appeal does numbers."
+        }
+      },
+      {
+        "label": "Move the audience to something you own",
+        "known": "Cash −2S · Rev −14% now · Churn −4",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": -2
+            },
+            {
+              "stat": "rev_pct",
+              "amount": -14,
+              "durationQ": 2
+            },
+            {
+              "stat": "churn_pt",
+              "amount": -4
+            },
+            {
+              "stat": "gm_pt",
+              "amount": 4
+            }
+          ],
+          "setFlags": [
+            "owns_channel"
+          ],
+          "narration": "A fraction of them follow you. That fraction cannot be demonetised by anybody."
+        }
+      },
+      {
+        "label": "Re-cut everything to fit the policy",
+        "known": "Energy −14 · Rev −5%",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "energy",
+              "amount": -14
+            },
+            {
+              "stat": "rev_pct",
+              "amount": -5,
+              "durationQ": 1
+            },
+            {
+              "stat": "qual",
+              "amount": -3
+            }
+          ],
+          "narration": "Three years of work, sanded down until it complies. It is duller and it earns."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-CONT-6",
+    "title": "The Sponsor With Notes",
+    "category": "IND",
+    "text": "A brand offers more than a year of revenue. They want approval over what you say about the category.",
+    "stages": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "industries": [
+      "CONTENT"
+    ],
+    "weight": 6,
+    "once": true,
+    "choices": [
+      {
+        "label": "Sign it",
+        "known": "Cash +8S · Respect −3 · Churn +3",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": 8
+            },
+            {
+              "stat": "respect",
+              "amount": -3
+            },
+            {
+              "stat": "churn_pt",
+              "amount": 3
+            },
+            {
+              "stat": "brand",
+              "amount": -3
+            }
+          ],
+          "setFlags": [
+            "sold_editorial"
+          ],
+          "narration": "The money lands. The next time you praise something, the audience checks who paid."
+        }
+      },
+      {
+        "label": "Counter: money yes, approval no",
+        "known": "Energy −5",
+        "branches": [
+          {
+            "weight": 50,
+            "outcome": {
+              "effects": [
+                {
+                  "stat": "energy",
+                  "amount": -5
+                },
+                {
+                  "stat": "cash_S",
+                  "amount": 5
+                },
+                {
+                  "stat": "respect",
+                  "amount": 2
+                }
+              ],
+              "narration": "They fold on the notes and keep the budget. It happens more often than people think."
+            }
+          },
+          {
+            "weight": 50,
+            "outcome": {
+              "effects": [
+                {
+                  "stat": "energy",
+                  "amount": -5
+                },
+                {
+                  "stat": "respect",
+                  "amount": 1
+                }
+              ],
+              "narration": "They walk. You keep the thing that made them want you."
+            }
+          }
+        ]
+      },
+      {
+        "label": "Decline, publicly",
+        "known": "Brand +7 · Respect +2",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "brand",
+              "amount": 7
+            },
+            {
+              "stat": "respect",
+              "amount": 2
+            },
+            {
+              "stat": "churn_pt",
+              "amount": -2
+            }
+          ],
+          "narration": "You post the offer with the numbers blacked out. The audience decides you are theirs."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-FASH-5",
+    "title": "Worn Without Asking",
+    "category": "IND",
+    "text": "Someone famous wears your piece to something enormous. You did not send it and they did not credit you.",
+    "stages": [
+      2,
+      3,
+      4
+    ],
+    "industries": [
+      "FASHION"
+    ],
+    "weight": 6,
+    "once": true,
+    "choices": [
+      {
+        "label": "Claim it loudly, restock hard",
+        "known": "Cash −3S · Brand +10 · Rev +18%",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": -3
+            },
+            {
+              "stat": "brand",
+              "amount": 10
+            },
+            {
+              "stat": "rev_pct",
+              "amount": 18,
+              "durationQ": 2
+            }
+          ],
+          "narration": "You name the piece, price it up and put every unit you can finance behind the moment."
+        }
+      },
+      {
+        "label": "Stay quiet and let it build",
+        "known": "Brand +5",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "brand",
+              "amount": 5
+            },
+            {
+              "stat": "rev_pct",
+              "amount": 6,
+              "durationQ": 2
+            },
+            {
+              "stat": "respect",
+              "amount": 1
+            }
+          ],
+          "narration": "You say nothing. The people who find it themselves feel like they found something."
+        }
+      },
+      {
+        "label": "Reach out and ask for a real partnership",
+        "known": "Energy −6",
+        "branches": [
+          {
+            "weight": 35,
+            "outcome": {
+              "effects": [
+                {
+                  "stat": "energy",
+                  "amount": -6
+                },
+                {
+                  "stat": "brand",
+                  "amount": 14
+                },
+                {
+                  "stat": "rev_pct",
+                  "amount": 20,
+                  "durationQ": 3
+                }
+              ],
+              "narration": "They say yes. A year of marketing arrives in one afternoon."
+            }
+          },
+          {
+            "weight": 65,
+            "outcome": {
+              "effects": [
+                {
+                  "stat": "energy",
+                  "amount": -6
+                },
+                {
+                  "stat": "brand",
+                  "amount": 3
+                }
+              ],
+              "narration": "Their team never replies. The photograph still exists."
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "E-IND-FASH-6",
+    "title": "Your Piece, Someone Else's Label",
+    "category": "IND",
+    "text": "A marketplace is full of your best piece at a third of the price, stitched badly, sold under six different names.",
+    "stages": [
+      2,
+      3,
+      4
+    ],
+    "industries": [
+      "FASHION"
+    ],
+    "weight": 6,
+    "cooldownYears": 4,
+    "choices": [
+      {
+        "label": "File takedowns, endlessly",
+        "known": "Cash −2S · Energy −8 · Brand +2",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": -2
+            },
+            {
+              "stat": "energy",
+              "amount": -8
+            },
+            {
+              "stat": "brand",
+              "amount": 2
+            }
+          ],
+          "narration": "You take down forty listings. Sixty go up. You keep doing it because stopping is worse."
+        }
+      },
+      {
+        "label": "Compete on what a fake cannot copy",
+        "known": "Cash −2S · Quality +6 · GM +2",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": -2
+            },
+            {
+              "stat": "qual",
+              "amount": 6
+            },
+            {
+              "stat": "gm_pt",
+              "amount": 2
+            },
+            {
+              "stat": "brand",
+              "amount": 4
+            }
+          ],
+          "narration": "Better fabric, real labels, a repair promise. The counterfeits stay cheap and start looking cheap."
+        }
+      },
+      {
+        "label": "Ignore it — it is free advertising",
+        "known": "Brand −5 · Rev −6%",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "brand",
+              "amount": -5
+            },
+            {
+              "stat": "rev_pct",
+              "amount": -6,
+              "durationQ": 2
+            }
+          ],
+          "narration": "Thousands of people meet your design through a bad copy of it, and judge you on the seams."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-GAME-5",
+    "title": "The Community Reads The Patch Notes",
+    "category": "IND",
+    "text": "You changed how the shop works. The forum has organised, the reviews are moving, and they are not wrong.",
+    "stages": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "industries": [
+      "GAMING"
+    ],
+    "weight": 6,
+    "cooldownYears": 3,
+    "choices": [
+      {
+        "label": "Revert it and post the reasoning",
+        "known": "Rev −10% · Brand +8 · Churn −4",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "rev_pct",
+              "amount": -10,
+              "durationQ": 2
+            },
+            {
+              "stat": "brand",
+              "amount": 8
+            },
+            {
+              "stat": "churn_pt",
+              "amount": -4
+            },
+            {
+              "stat": "respect",
+              "amount": 2
+            }
+          ],
+          "narration": "You roll it back and explain what you were trying to fix. They believe you, this time."
+        }
+      },
+      {
+        "label": "Hold the line",
+        "known": "Rev +12% · Churn +5 · Brand −7",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "rev_pct",
+              "amount": 12,
+              "durationQ": 3
+            },
+            {
+              "stat": "churn_pt",
+              "amount": 5
+            },
+            {
+              "stat": "brand",
+              "amount": -7
+            }
+          ],
+          "narration": "The numbers go up and the loudest thousand players leave. Both of those are permanent."
+        }
+      },
+      {
+        "label": "Split the difference in a dev stream",
+        "known": "Energy −10 · Rev +4% · Brand +3",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "energy",
+              "amount": -10
+            },
+            {
+              "stat": "rev_pct",
+              "amount": 4,
+              "durationQ": 2
+            },
+            {
+              "stat": "brand",
+              "amount": 3
+            },
+            {
+              "stat": "csat",
+              "amount": 3
+            }
+          ],
+          "narration": "Two hours live, answering the hard version of every question. Nobody is thrilled. Everybody stays."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-GAME-6",
+    "title": "Someone Broke It In Four Minutes",
+    "category": "IND",
+    "text": "A speedrunner finishes your game in four minutes using a wall you forgot to close. The clip has a million views.",
+    "stages": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "industries": [
+      "GAMING"
+    ],
+    "weight": 6,
+    "once": true,
+    "choices": [
+      {
+        "label": "Patch it",
+        "known": "Cash −1S · Quality +4 · Brand −3",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": -1
+            },
+            {
+              "stat": "qual",
+              "amount": 4
+            },
+            {
+              "stat": "brand",
+              "amount": -3
+            }
+          ],
+          "narration": "The wall closes. The community mourns the wall."
+        }
+      },
+      {
+        "label": "Leave it in and make it official",
+        "known": "Brand +8 · Rev +8%",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "brand",
+              "amount": 8
+            },
+            {
+              "stat": "rev_pct",
+              "amount": 8,
+              "durationQ": 2
+            },
+            {
+              "stat": "respect",
+              "amount": 1
+            }
+          ],
+          "setFlags": [
+            "community_darling"
+          ],
+          "narration": "You add a leaderboard for it. The bug becomes a mode, and the mode sells copies."
+        }
+      },
+      {
+        "label": "Hire the runner to break the rest of it",
+        "known": "Burn +0.2S/mo · Quality +7",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "burn_S_mo",
+              "amount": 0.2
+            },
+            {
+              "stat": "qual",
+              "amount": 7
+            },
+            {
+              "stat": "tdebt",
+              "amount": -2
+            },
+            {
+              "stat": "brand",
+              "amount": 4
+            }
+          ],
+          "narration": "They find eleven more in a fortnight. It is the best QA money you have ever spent."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-FIT-5",
+    "title": "The Rack Gave Way",
+    "category": "IND",
+    "text": "A member is hurt on your equipment. Not badly. It was your rack and your fault.",
+    "stages": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "industries": [
+      "FITNESS"
+    ],
+    "weight": 6,
+    "cooldownYears": 5,
+    "choices": [
+      {
+        "label": "Own it, pay the bills, replace everything",
+        "known": "Cash −4S · Brand +5 · Respect +2",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": -4
+            },
+            {
+              "stat": "brand",
+              "amount": 5
+            },
+            {
+              "stat": "respect",
+              "amount": 2
+            },
+            {
+              "stat": "risk",
+              "amount": -2
+            }
+          ],
+          "narration": "You call them yourself, cover what insurance will not, and re-kit the floor. It is expensive and it is the answer."
+        }
+      },
+      {
+        "label": "Let insurance handle it",
+        "known": "Cash −1S · CSAT −6",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": -1
+            },
+            {
+              "stat": "csat",
+              "amount": -6
+            },
+            {
+              "stat": "risk",
+              "amount": 1
+            }
+          ],
+          "narration": "The claim is processed correctly by people who have never met them."
+        }
+      },
+      {
+        "label": "Point at the waiver",
+        "known": "Brand −9 · Morale −7",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "brand",
+              "amount": -9
+            },
+            {
+              "stat": "morale",
+              "amount": -7
+            },
+            {
+              "stat": "risk",
+              "amount": 3
+            },
+            {
+              "stat": "respect",
+              "amount": -2
+            }
+          ],
+          "narration": "You are legally fine. Your coaches heard how you talked about a member who got hurt."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-FIT-6",
+    "title": "January",
+    "category": "IND",
+    "text": "Sign-ups triple in three weeks. The floor is full at six, the showers have a queue, and your regulars are quietly furious.",
+    "stages": [
+      1,
+      2,
+      3
+    ],
+    "industries": [
+      "FITNESS"
+    ],
+    "weight": 6,
+    "cooldownYears": 2,
+    "choices": [
+      {
+        "label": "Cap membership and start a waitlist",
+        "known": "Rev +6% · Brand +6 · Churn −5",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "rev_pct",
+              "amount": 6,
+              "durationQ": 2
+            },
+            {
+              "stat": "brand",
+              "amount": 6
+            },
+            {
+              "stat": "churn_pt",
+              "amount": -5
+            }
+          ],
+          "narration": "You stop selling. Scarcity does the marketing and your regulars get their gym back."
+        }
+      },
+      {
+        "label": "Take every sign-up",
+        "known": "Rev +20% · Churn +7 · CSAT −8",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "rev_pct",
+              "amount": 20,
+              "durationQ": 2
+            },
+            {
+              "stat": "churn_pt",
+              "amount": 7
+            },
+            {
+              "stat": "csat",
+              "amount": -8
+            }
+          ],
+          "narration": "A very good quarter. By April the new ones have stopped coming and some of the old ones have too."
+        }
+      },
+      {
+        "label": "Add 6am and 9pm classes",
+        "known": "Burn +0.3S/mo · Rev +14% · Morale −5",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "burn_S_mo",
+              "amount": 0.3
+            },
+            {
+              "stat": "rev_pct",
+              "amount": 14,
+              "durationQ": 3
+            },
+            {
+              "stat": "morale",
+              "amount": -5
+            },
+            {
+              "stat": "csat",
+              "amount": 4
+            }
+          ],
+          "narration": "You buy capacity with hours nobody wants to work. The schedule holds. The coaches are tired."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-BEA-5",
+    "title": "The Dermatologist With A Camera",
+    "category": "IND",
+    "text": "A dermatologist with a large following reads your ingredient list out loud, line by line, on video.",
+    "stages": [
+      2,
+      3,
+      4
+    ],
+    "industries": [
+      "BEAUTY"
+    ],
+    "weight": 6,
+    "cooldownYears": 3,
+    "choices": [
+      {
+        "label": "Send them the full formulation and the data",
+        "known": "Energy −5",
+        "branches": [
+          {
+            "weight": 60,
+            "outcome": {
+              "effects": [
+                {
+                  "stat": "energy",
+                  "amount": -5
+                },
+                {
+                  "stat": "brand",
+                  "amount": 9
+                },
+                {
+                  "stat": "rev_pct",
+                  "amount": 10,
+                  "durationQ": 2
+                },
+                {
+                  "stat": "respect",
+                  "amount": 2
+                }
+              ],
+              "narration": "They post a correction and a recommendation. An expert defending you is worth more than any campaign."
+            }
+          },
+          {
+            "weight": 40,
+            "outcome": {
+              "effects": [
+                {
+                  "stat": "energy",
+                  "amount": -5
+                },
+                {
+                  "stat": "brand",
+                  "amount": -6
+                },
+                {
+                  "stat": "qual",
+                  "amount": -2
+                }
+              ],
+              "narration": "They read the data and stand by the video. They had a point about the fragrance."
+            }
+          }
+        ]
+      },
+      {
+        "label": "Reformulate around the objection",
+        "known": "Cash −3S · Quality +6 · Rev −6%",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": -3
+            },
+            {
+              "stat": "qual",
+              "amount": 6
+            },
+            {
+              "stat": "rev_pct",
+              "amount": -6,
+              "durationQ": 2
+            },
+            {
+              "stat": "brand",
+              "amount": 3
+            }
+          ],
+          "narration": "Six weeks and a new base. The product is better and the old stock is a write-off."
+        }
+      },
+      {
+        "label": "Say nothing",
+        "known": "Brand −6 · Churn +3",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "brand",
+              "amount": -6
+            },
+            {
+              "stat": "churn_pt",
+              "amount": 3
+            }
+          ],
+          "narration": "The video is now the top result for your product name."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-BEA-6",
+    "title": "Prove The Claim",
+    "category": "IND",
+    "text": "A regulator asks you to substantiate the word on the front of the bottle. You have a study. It is small.",
+    "stages": [
+      3,
+      4,
+      5
+    ],
+    "industries": [
+      "BEAUTY"
+    ],
+    "weight": 6,
+    "once": true,
+    "choices": [
+      {
+        "label": "Fund the real trial",
+        "known": "Cash −5S · Brand +7 · Quality +4",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": -5
+            },
+            {
+              "stat": "brand",
+              "amount": 7
+            },
+            {
+              "stat": "qual",
+              "amount": 4
+            },
+            {
+              "stat": "risk",
+              "amount": -3
+            }
+          ],
+          "setFlags": [
+            "claims_substantiated"
+          ],
+          "narration": "It costs a quarter of your cash and it means the word on the bottle is true. Nobody can take it off you now."
+        }
+      },
+      {
+        "label": "Soften the wording",
+        "known": "Rev −8% · GM −2",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "rev_pct",
+              "amount": -8,
+              "durationQ": 2
+            },
+            {
+              "stat": "gm_pt",
+              "amount": -2
+            },
+            {
+              "stat": "risk",
+              "amount": -1
+            }
+          ],
+          "narration": "\"Helps improve\" replaces \"reduces\". The bottle is legal and it sells less."
+        }
+      },
+      {
+        "label": "Submit the small study and hope",
+        "known": "Energy −6",
+        "branches": [
+          {
+            "weight": 45,
+            "outcome": {
+              "effects": [
+                {
+                  "stat": "energy",
+                  "amount": -6
+                }
+              ],
+              "narration": "It is accepted. You get to keep the word and the quiet knowledge of how thin the evidence was."
+            }
+          },
+          {
+            "weight": 55,
+            "outcome": {
+              "effects": [
+                {
+                  "stat": "energy",
+                  "amount": -6
+                },
+                {
+                  "stat": "cash_S",
+                  "amount": -3
+                },
+                {
+                  "stat": "brand",
+                  "amount": -8
+                },
+                {
+                  "stat": "risk",
+                  "amount": 3
+                }
+              ],
+              "narration": "Rejected, with a fine and a public notice. The notice is the expensive part.",
+              "setFlags": [
+                "regulator_watching"
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "E-IND-EDU-5",
+    "title": "The District Pilot",
+    "category": "IND",
+    "text": "A district will pilot you across forty schools. Procurement wants a year of data retention promises and a price that assumes you win.",
+    "stages": [
+      2,
+      3,
+      4
+    ],
+    "industries": [
+      "EDTECH"
+    ],
+    "weight": 6,
+    "once": true,
+    "choices": [
+      {
+        "label": "Take it at their price",
+        "known": "Cash +6S · GM −6 · Burn +0.3S/mo",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": 6
+            },
+            {
+              "stat": "gm_pt",
+              "amount": -6
+            },
+            {
+              "stat": "burn_S_mo",
+              "amount": 0.3
+            },
+            {
+              "stat": "brand",
+              "amount": 6
+            }
+          ],
+          "setFlags": [
+            "district_reference"
+          ],
+          "narration": "Forty schools and a logo you can put on every deck. The margin is thin enough to see through."
+        }
+      },
+      {
+        "label": "Hold your price, offer a smaller pilot",
+        "known": "Cash +2S · GM +2",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": 2
+            },
+            {
+              "stat": "gm_pt",
+              "amount": 2
+            },
+            {
+              "stat": "respect",
+              "amount": 1
+            }
+          ],
+          "narration": "Six schools instead of forty, at a price that works. They come back next year for the rest."
+        }
+      },
+      {
+        "label": "Walk away from the paperwork",
+        "known": "Energy +6 · Brand −3",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "energy",
+              "amount": 6
+            },
+            {
+              "stat": "brand",
+              "amount": -3
+            }
+          ],
+          "narration": "You get your quarter back. Somebody else becomes the district's default."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-EDU-6",
+    "title": "They Are Using It To Cheat",
+    "category": "IND",
+    "text": "Your fastest-growing use case turns out to be students getting answers without learning anything. Engagement has never looked better.",
+    "stages": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "industries": [
+      "EDTECH"
+    ],
+    "weight": 6,
+    "once": true,
+    "choices": [
+      {
+        "label": "Rebuild it to show working, not answers",
+        "known": "Cash −3S · Rev −12% · Quality +8",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": -3
+            },
+            {
+              "stat": "rev_pct",
+              "amount": -12,
+              "durationQ": 3
+            },
+            {
+              "stat": "qual",
+              "amount": 8
+            },
+            {
+              "stat": "respect",
+              "amount": 3
+            }
+          ],
+          "setFlags": [
+            "taught_properly"
+          ],
+          "narration": "Usage halves. The students who stay actually learn, and teachers start recommending you by name."
+        }
+      },
+      {
+        "label": "Leave it and stop looking at that number",
+        "known": "Rev +15% · Respect −3",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "rev_pct",
+              "amount": 15,
+              "durationQ": 3
+            },
+            {
+              "stat": "respect",
+              "amount": -3
+            },
+            {
+              "stat": "risk",
+              "amount": 2
+            }
+          ],
+          "narration": "Growth is excellent. You are running an education company that is measurably bad at education.",
+          "special": [
+            "karma:-2"
+          ]
+        }
+      },
+      {
+        "label": "Ship a teacher dashboard instead",
+        "known": "Cash −2S · Rev +6% · Brand +5",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": -2
+            },
+            {
+              "stat": "rev_pct",
+              "amount": 6,
+              "durationQ": 2
+            },
+            {
+              "stat": "brand",
+              "amount": 5
+            },
+            {
+              "stat": "csat",
+              "amount": 4
+            }
+          ],
+          "narration": "You do not stop the cheating. You make it visible to the one person who can."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-GRN-5",
+    "title": "The Audit Arrives",
+    "category": "IND",
+    "text": "Your certifier wants the full chain of custody for every input. You have paperwork for most of it.",
+    "stages": [
+      2,
+      3,
+      4
+    ],
+    "industries": [
+      "SUSTAIN"
+    ],
+    "weight": 6,
+    "cooldownYears": 4,
+    "choices": [
+      {
+        "label": "Trace all of it properly",
+        "known": "Cash −3S · Energy −10 · Brand +8",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": -3
+            },
+            {
+              "stat": "energy",
+              "amount": -10
+            },
+            {
+              "stat": "brand",
+              "amount": 8
+            },
+            {
+              "stat": "qual",
+              "amount": 3
+            },
+            {
+              "stat": "risk",
+              "amount": -2
+            }
+          ],
+          "setFlags": [
+            "chain_verified"
+          ],
+          "narration": "Eleven suppliers, four countries, six weeks. You pass, and the certificate finally means what customers think it means."
+        }
+      },
+      {
+        "label": "Submit what you have",
+        "known": "Energy −4",
+        "branches": [
+          {
+            "weight": 40,
+            "outcome": {
+              "effects": [
+                {
+                  "stat": "energy",
+                  "amount": -4
+                }
+              ],
+              "narration": "Conditional pass, with a note to do better next cycle."
+            }
+          },
+          {
+            "weight": 60,
+            "outcome": {
+              "effects": [
+                {
+                  "stat": "energy",
+                  "amount": -4
+                },
+                {
+                  "stat": "brand",
+                  "amount": -9
+                },
+                {
+                  "stat": "rev_pct",
+                  "amount": -10,
+                  "durationQ": 2
+                }
+              ],
+              "narration": "Certification suspended pending review. The badge comes off the packaging and the packaging is the pitch.",
+              "setFlags": [
+                "cert_suspended"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "label": "Drop the certification, tell the truth instead",
+        "known": "Rev −8% · Respect +3 · GM +3",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "rev_pct",
+              "amount": -8,
+              "durationQ": 2
+            },
+            {
+              "stat": "respect",
+              "amount": 3
+            },
+            {
+              "stat": "gm_pt",
+              "amount": 3
+            },
+            {
+              "stat": "brand",
+              "amount": 2
+            }
+          ],
+          "narration": "You publish what you actually know and what you do not. It costs shelf space and buys something harder to fake."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-GRN-6",
+    "title": "Margin Or Mission",
+    "category": "IND",
+    "text": "Your biggest investor has run the numbers. Drop the recycled input and the gross margin fixes itself.",
+    "stages": [
+      3,
+      4,
+      5
+    ],
+    "industries": [
+      "SUSTAIN"
+    ],
+    "weight": 6,
+    "once": true,
+    "choices": [
+      {
+        "label": "Refuse, in writing",
+        "known": "GM −3 · Brand +9 · Respect +2",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "gm_pt",
+              "amount": -3
+            },
+            {
+              "stat": "brand",
+              "amount": 9
+            },
+            {
+              "stat": "respect",
+              "amount": 2
+            },
+            {
+              "stat": "invsent",
+              "amount": -2
+            }
+          ],
+          "narration": "You put it in a board memo so it cannot be relitigated quietly. The investor is cold for a year."
+        }
+      },
+      {
+        "label": "Switch the input, keep the marketing",
+        "known": "GM +7 · Brand −4",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "gm_pt",
+              "amount": 7
+            },
+            {
+              "stat": "brand",
+              "amount": -4
+            },
+            {
+              "stat": "risk",
+              "amount": 3
+            }
+          ],
+          "setFlags": [
+            "greenwashing"
+          ],
+          "narration": "The margin arrives immediately. The claim on the box is now a thing you hope nobody checks.",
+          "special": [
+            "karma:-3"
+          ]
+        }
+      },
+      {
+        "label": "Switch it and say so",
+        "known": "GM +6 · Brand −7 · Respect +1",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "gm_pt",
+              "amount": 6
+            },
+            {
+              "stat": "brand",
+              "amount": -7
+            },
+            {
+              "stat": "respect",
+              "amount": 1
+            },
+            {
+              "stat": "churn_pt",
+              "amount": 3
+            }
+          ],
+          "narration": "You explain the tradeoff publicly. Some customers leave, and none of them call you a liar."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-TOY-5",
+    "title": "The Part That Comes Off",
+    "category": "IND",
+    "text": "A component detaches under force a child can generate. Your own test found it. Nobody outside knows yet.",
+    "stages": [
+      2,
+      3,
+      4
+    ],
+    "industries": [
+      "TOYS"
+    ],
+    "weight": 6,
+    "once": true,
+    "choices": [
+      {
+        "label": "Recall it before anyone asks",
+        "known": "Cash −6S · Brand +8 · Respect +3",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": -6
+            },
+            {
+              "stat": "brand",
+              "amount": 8
+            },
+            {
+              "stat": "respect",
+              "amount": 3
+            },
+            {
+              "stat": "risk",
+              "amount": -3
+            }
+          ],
+          "setFlags": [
+            "voluntary_recall"
+          ],
+          "narration": "You pull every unit and pay for the postage both ways. It is the worst quarter and the easiest decision."
+        }
+      },
+      {
+        "label": "Fix it on the next production run",
+        "known": "Cash −1S · Quality +3",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": -1
+            },
+            {
+              "stat": "qual",
+              "amount": 3
+            },
+            {
+              "stat": "risk",
+              "amount": 4
+            }
+          ],
+          "narration": "New tooling for the next run. The units already in bedrooms stay as they are.",
+          "special": [
+            "karma:-2"
+          ]
+        }
+      },
+      {
+        "label": "Add a warning label",
+        "known": "Cash −1S · Brand −5",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": -1
+            },
+            {
+              "stat": "brand",
+              "amount": -5
+            },
+            {
+              "stat": "risk",
+              "amount": 5
+            }
+          ],
+          "narration": "A sticker, on a box, about a part that comes off. You know exactly what you have done.",
+          "special": [
+            "karma:-3"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-TOY-6",
+    "title": "The Licence",
+    "category": "IND",
+    "text": "A franchise everyone's children can name offers you a licence. The minimum guarantee is due whether or not it sells.",
+    "stages": [
+      3,
+      4,
+      5
+    ],
+    "industries": [
+      "TOYS"
+    ],
+    "weight": 6,
+    "once": true,
+    "choices": [
+      {
+        "label": "Sign the licence",
+        "known": "Cash −8S · Rev +25% · GM −5",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": -8
+            },
+            {
+              "stat": "rev_pct",
+              "amount": 25,
+              "durationQ": 3
+            },
+            {
+              "stat": "gm_pt",
+              "amount": -5
+            },
+            {
+              "stat": "brand",
+              "amount": 5
+            }
+          ],
+          "setFlags": [
+            "licensed_product"
+          ],
+          "narration": "The name does the selling. You pay for the name whether or not it does."
+        }
+      },
+      {
+        "label": "Negotiate a lower guarantee, smaller share",
+        "known": "Cash −3S · Rev +10%",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": -3
+            },
+            {
+              "stat": "rev_pct",
+              "amount": 10,
+              "durationQ": 3
+            },
+            {
+              "stat": "gm_pt",
+              "amount": -2
+            }
+          ],
+          "narration": "Less upside, and a downside you could survive. They respect that you asked."
+        }
+      },
+      {
+        "label": "Build your own character instead",
+        "known": "Cash −4S · Brand +7 · Rev +6%",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": -4
+            },
+            {
+              "stat": "brand",
+              "amount": 7
+            },
+            {
+              "stat": "rev_pct",
+              "amount": 6,
+              "durationQ": 3
+            },
+            {
+              "stat": "val_pct",
+              "amount": 5
+            }
+          ],
+          "setFlags": [
+            "owns_ip"
+          ],
+          "narration": "Slower, harder, and at the end of it the character belongs to you."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-PET-5",
+    "title": "The Vets Have Questions",
+    "category": "IND",
+    "text": "A veterinary association publishes a note about one of your ingredients. Clinics start telling owners to switch.",
+    "stages": [
+      2,
+      3,
+      4
+    ],
+    "industries": [
+      "PET"
+    ],
+    "weight": 6,
+    "cooldownYears": 4,
+    "choices": [
+      {
+        "label": "Fund an independent feeding study",
+        "known": "Cash −4S · Brand +8 · Quality +5",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": -4
+            },
+            {
+              "stat": "brand",
+              "amount": 8
+            },
+            {
+              "stat": "qual",
+              "amount": 5
+            },
+            {
+              "stat": "respect",
+              "amount": 2
+            }
+          ],
+          "setFlags": [
+            "vet_endorsed"
+          ],
+          "narration": "Nine months and real data. Clinics stop warning owners off and start stocking you."
+        }
+      },
+      {
+        "label": "Reformulate without it",
+        "known": "Cash −2S · Rev −8% · Quality +3",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": -2
+            },
+            {
+              "stat": "rev_pct",
+              "amount": -8,
+              "durationQ": 2
+            },
+            {
+              "stat": "qual",
+              "amount": 3
+            }
+          ],
+          "narration": "You take it out. Some animals do not like the new version, and their owners tell you so."
+        }
+      },
+      {
+        "label": "Market harder around it",
+        "known": "Cash −2S · Brand −4 · Rev +6%",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": -2
+            },
+            {
+              "stat": "brand",
+              "amount": -4
+            },
+            {
+              "stat": "rev_pct",
+              "amount": 6,
+              "durationQ": 2
+            },
+            {
+              "stat": "risk",
+              "amount": 2
+            }
+          ],
+          "narration": "You outspend the note. It stays up, and so does your revenue, for now."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-IND-PET-6",
+    "title": "Forty Million Views Of One Dog",
+    "category": "IND",
+    "text": "A video of a dog losing its mind over your product goes enormous. You have six weeks of stock.",
+    "stages": [
+      1,
+      2,
+      3
+    ],
+    "industries": [
+      "PET"
+    ],
+    "weight": 6,
+    "once": true,
+    "choices": [
+      {
+        "label": "Borrow and produce everything you can",
+        "known": "Cash −5S · Burn +0.2S/mo · Rev +25%",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "cash_S",
+              "amount": -5
+            },
+            {
+              "stat": "burn_S_mo",
+              "amount": 0.2
+            },
+            {
+              "stat": "rev_pct",
+              "amount": 25,
+              "durationQ": 2
+            },
+            {
+              "stat": "brand",
+              "amount": 6
+            }
+          ],
+          "narration": "You bet the balance sheet on a dog. It is the correct bet and it is still a bet."
+        }
+      },
+      {
+        "label": "Sell out, take the waitlist",
+        "known": "Rev +10% · Brand +7 · Churn −3",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "rev_pct",
+              "amount": 10,
+              "durationQ": 2
+            },
+            {
+              "stat": "brand",
+              "amount": 7
+            },
+            {
+              "stat": "churn_pt",
+              "amount": -3
+            }
+          ],
+          "narration": "You run out in nine days and let the waitlist build. Nobody who signs up forgets you."
+        }
+      },
+      {
+        "label": "Raise the price while demand is there",
+        "known": "GM +6 · Brand −6 · CSAT −5",
+        "outcome": {
+          "effects": [
+            {
+              "stat": "gm_pt",
+              "amount": 6
+            },
+            {
+              "stat": "brand",
+              "amount": -6
+            },
+            {
+              "stat": "csat",
+              "amount": -5
+            }
+          ],
+          "narration": "The margin is superb for one quarter. The comments section has a very long memory."
+        }
+      }
+    ]
+  }
+]

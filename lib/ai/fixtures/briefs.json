@@ -1,0 +1,140 @@
+{
+  "briefs": [
+    {
+      "public_brief": {
+        "company_name": "SoleSignal",
+        "one_liner": "The Bloomberg terminal for sneaker resale — live pricing, drop calendars, and profit analytics for 2,600 resellers.",
+        "industry": "Consumer marketplaces / analytics SaaS",
+        "product": "A web and mobile dashboard that aggregates sale prices across StockX, GOAT, and eBay in real time, flags underpriced listings, predicts resale value of upcoming drops from historical hype signals, and tracks each reseller's inventory cost basis and realized profit.",
+        "customers": "Prosumer sneaker resellers aged 16–28 who flip 5–50 pairs a month; 2,600 paying subscribers at $9.99/month, acquired almost entirely through sneaker TikTok and Discord communities.",
+        "traction": {
+          "revenue_annual_usd": 310000,
+          "growth_yoy_pct": 120,
+          "gross_margin_pct": 82,
+          "churn_monthly_pct": 4.1,
+          "customers_count": 2600
+        },
+        "ask": {
+          "amount_usd": 250000,
+          "equity_pct": 8,
+          "implied_valuation_usd": 3125000,
+          "use_of_funds": "Hire two data engineers to expand coverage to streetwear and collectibles, and build the automated cross-listing tool subscribers keep requesting."
+        }
+      },
+      "evaluator_notes": {
+        "attack_points": [
+          "The ask prices the company at $3.1M — roughly 10x trailing revenue and well above the fair range — for a prosumer tool with no enterprise motion and a $9.99 price point.",
+          "4.1% monthly churn means roughly 40% of the subscriber base turns over every year; growth is refilling a leaking bucket, and CAC via TikTok virality won't stay free forever.",
+          "The entire data pipeline depends on scraping or unofficial access to StockX, GOAT, and eBay — any one of them tightening API access or sending a cease-and-desist breaks the core product overnight.",
+          "The sneaker resale market has cooled sharply since its 2021 peak; the 120% YoY growth is off a small base and the TAM may be shrinking underneath the company."
+        ],
+        "fair_valuation_range": {
+          "low_usd": 1600000,
+          "high_usd": 2600000
+        }
+      }
+    },
+    {
+      "public_brief": {
+        "company_name": "FuelBox Campus",
+        "one_liner": "Macro-tracked meal prep cooked near campus and delivered to your dorm — cheaper than the dining hall, better than ramen.",
+        "industry": "Food & beverage / campus subscription services",
+        "product": "A weekly subscription of chef-prepared, macro-labeled meals cooked in a licensed shared kitchen near campus and delivered to dorm lobbies on Sunday and Wednesday nights. Students pick 6, 8, or 12 meals a week in an app that syncs protein targets with their fitness goals.",
+        "customers": "Students at two state-university campuses, skewing toward athletes, gym-goers, and students who aged out of meal plans; 780 active subscribers averaging $92/month.",
+        "traction": {
+          "revenue_annual_usd": 620000,
+          "growth_yoy_pct": 85,
+          "gross_margin_pct": 31,
+          "churn_monthly_pct": 8.5,
+          "customers_count": 780
+        },
+        "ask": {
+          "amount_usd": 150000,
+          "equity_pct": 15,
+          "implied_valuation_usd": 1000000,
+          "use_of_funds": "Lease a second kitchen to unlock a third campus, buy two refrigerated vans, and hire a part-time operations manager so the founders can stop doing every delivery run themselves."
+        }
+      },
+      "evaluator_notes": {
+        "attack_points": [
+          "31% gross margin is before delivery labor and packaging; fully loaded, each meal may be near breakeven — the model has to prove contribution margin, not just kitchen margin.",
+          "The 8.5% monthly churn hides a semester cliff: cancellations spike above 30% every May and December, so the business effectively re-acquires a third of its base twice a year.",
+          "100% of revenue comes from two campuses in the same metro; one health-code issue, kitchen lease loss, or a university launching a competing flex-meal plan takes out most of the business.",
+          "Expansion is capital-heavy and founder-dependent — every new campus needs a licensed kitchen, vans, and local ops, and today the founders personally cook and deliver, which does not scale."
+        ],
+        "fair_valuation_range": {
+          "low_usd": 700000,
+          "high_usd": 1200000
+        }
+      }
+    },
+    {
+      "public_brief": {
+        "company_name": "MerchPilot",
+        "one_liner": "One click turns a creator's best clip into a live merch drop — designs, storefront, and fulfillment handled end to end.",
+        "industry": "Creator economy / e-commerce tooling",
+        "product": "A platform that watches a creator's channel analytics, suggests merch concepts from their top-performing moments and catchphrases, generates print-ready designs, spins up a branded storefront, and routes orders to print-on-demand partners. Creators approve a drop from their phone; MerchPilot handles everything else and takes a cut of each sale plus a monthly subscription.",
+        "customers": "Mid-tier creators with 50k–2M followers on TikTok and YouTube who are too big to ignore merch and too small for an agency deal; 1,900 active creator accounts.",
+        "traction": {
+          "revenue_annual_usd": 880000,
+          "growth_yoy_pct": 140,
+          "gross_margin_pct": 68,
+          "churn_monthly_pct": 3.2,
+          "customers_count": 1900
+        },
+        "ask": {
+          "amount_usd": 600000,
+          "equity_pct": 10,
+          "implied_valuation_usd": 6000000,
+          "use_of_funds": "Build direct fulfillment integrations to lift take-rate margin, hire a creator-partnerships lead, and launch an EU print network to cut international shipping times in half."
+        }
+      },
+      "evaluator_notes": {
+        "attack_points": [
+          "Revenue concentration: the top 20 creators drive roughly 40% of revenue through the take-rate, and none are under contract beyond month-to-month — two or three defections to a custom agency deal would crater growth.",
+          "The $880k figure blends subscription revenue with the cut of merch sales; the durable SaaS portion is much smaller than the headline, and the 68% margin flatters the blend.",
+          "Platform dependence is double-ended: channel analytics come from TikTok and YouTube APIs, and fulfillment runs entirely through third-party print partners who could launch the same automation themselves.",
+          "The $6M ask sits at the very top of the fair range, priced for the blended revenue as if it were all recurring software — a discount is warranted unless the founder can break out the SaaS line and defend it."
+        ],
+        "fair_valuation_range": {
+          "low_usd": 4000000,
+          "high_usd": 6500000
+        }
+      }
+    },
+    {
+      "public_brief": {
+        "company_name": "StudyLoop",
+        "one_liner": "Match with study partners in your exact course in under a minute — and book a vetted tutor the moment you're stuck.",
+        "industry": "Consumer edtech / marketplace",
+        "product": "A mobile app where students verify their school email, sync their course schedule, and get matched into small study groups for their exact classes. A premium tier adds unlimited matches and shared flashcard decks, and an in-app marketplace lets groups book vetted peer tutors, with StudyLoop taking 20% of each session.",
+        "customers": "College students at 14 universities, with 24,000 registered users and 1,400 paying premium subscribers at $5.99/month; the tutor marketplace launched two semesters ago.",
+        "traction": {
+          "revenue_annual_usd": 95000,
+          "growth_yoy_pct": 210,
+          "gross_margin_pct": 74,
+          "churn_monthly_pct": 6.8,
+          "customers_count": 1400
+        },
+        "ask": {
+          "amount_usd": 180000,
+          "equity_pct": 12,
+          "implied_valuation_usd": 1500000,
+          "use_of_funds": "Launch at 30 more universities ahead of fall midterms, build group video rooms, and stand up a tutor-recruiting pipeline beyond the founding campuses."
+        }
+      },
+      "evaluator_notes": {
+        "attack_points": [
+          "The ask implies $1.5M — about 16x trailing revenue and well above the fair range — on $95k of revenue; the 210% growth is real but it is off a tiny base and does not yet justify the multiple.",
+          "6.8% monthly churn tracks the academic calendar: usage collapses after finals and over summer, so annualized retention is far worse than the monthly number suggests.",
+          "Free-to-paid conversion is 5.8% and has been flat for three semesters — the product spreads but does not monetize, and the premium tier may be priced against features students happily do in a group chat for free.",
+          "Tutor supply is fragile: roughly 60% of marketplace tutors come from one university's honor society, so the take-rate revenue that makes the model work barely exists outside the founding campuses."
+        ],
+        "fair_valuation_range": {
+          "low_usd": 600000,
+          "high_usd": 1100000
+        }
+      }
+    }
+  ]
+}
