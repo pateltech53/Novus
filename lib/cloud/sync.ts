@@ -177,3 +177,71 @@ export function installFlushOnHide() {
     if (document.visibilityState === "hidden") void flush();
   });
 }
+
+// ── Boot ─────────────────────────────────────────────────────────────────────
+
+/** Guards the restore reload below so it can happen at most once per tab. */
+const RESTORED_FLAG = "novus:cloud-restored";
+
+/**
+ * Runs once on boot: install the flush hook, then restore from the cloud if
+ * this device has nothing of its own.
+ *
+ * **The conflict rule is "local always wins".** A run in progress on this
+ * device is never replaced by a server copy — opening a tab must not swap out
+ * the company you are halfway through. Restore only fires on a device that is
+ * genuinely empty, which is the case it exists for: a new phone, a cleared
+ * browser, a second machine.
+ *
+ * **On the reload.** The game reads localStorage synchronously at mount
+ * (`lib/engine/save.ts` explains why it must), and by the time a network
+ * round-trip finishes, that read has already happened. Rather than reach into
+ * GameProvider's state from outside it, an actual restore re-enters the app
+ * once. It costs one reload on the first launch of a new device and nothing
+ * ever again — and a restore that did not happen would be the worse bug.
+ *
+ * The sessionStorage flag makes a reload loop impossible even if the adopt
+ * silently fails: the second pass finds the flag and returns.
+ */
+export async function restoreOnBoot(): Promise<void> {
+  installFlushOnHide();
+
+  if (typeof window === "undefined") return;
+  let alreadyTried = false;
+  try {
+    alreadyTried = window.sessionStorage.getItem(RESTORED_FLAG) === "1";
+  } catch {
+    // Private mode with sessionStorage blocked. Without a loop guard the safe
+    // move is to not reload at all.
+    return;
+  }
+  if (alreadyTried) return;
+
+  // Cheap local check first: a device with a save needs nothing from us, and
+  // this avoids a pointless request on every single boot.
+  const hasLocalRun = !!window.localStorage.getItem("novus:run:v1");
+  const hasLocalLegacy = !!window.localStorage.getItem("novus:legacy:v1");
+  const hasLocalProfile = !!window.localStorage.getItem("novus:profile:v1");
+  if (hasLocalRun && hasLocalLegacy && hasLocalProfile) return;
+
+  const cloud = await pull();
+  if (!cloud) return;
+
+  // Import here rather than at module scope: save.ts imports this file, and a
+  // static cycle between the two would leave one of them half-initialised.
+  const { adoptFromCloud } = await import("@/lib/engine/save");
+
+  const run = hasLocalRun ? undefined : cloud.run;
+  const legacy = hasLocalLegacy ? undefined : cloud.legacy;
+  const prefs = hasLocalProfile ? undefined : cloud.prefs;
+  if (!run && !legacy && !prefs) return;
+
+  adoptFromCloud({ run, legacy, prefs });
+
+  try {
+    window.sessionStorage.setItem(RESTORED_FLAG, "1");
+  } catch {
+    return;
+  }
+  window.location.reload();
+}
