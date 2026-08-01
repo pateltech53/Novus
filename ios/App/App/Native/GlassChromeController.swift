@@ -90,7 +90,16 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
     private let ctaButton = UIButton(type: .system)
     private let leadingControls = PassthroughStackView()
     private let trailingControls = PassthroughStackView()
+    private let topBar = GlassKit.panel(corner: 0, interactive: false, tint: nil)
+    private var scrollToken: NSKeyValueObservation?
 
+    /// The iOS 26 containers the clusters live in, when the OS has them. Held
+    /// because hiding a cluster has to hide its container too — an empty glass
+    /// group is a visible smudge over the mascot.
+    private var leadingGroup: UIVisualEffectView?
+    private var trailingGroup: UIVisualEffectView?
+
+    private var currentToast: Toast?
     private var meterTicks: [UIView] = []
     private var tabIds: [String] = []
     private var controlIds: [Int: String] = [:]
@@ -121,7 +130,7 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
     /// Idempotent: the plugin's `configure` can be called on every launch of
     /// the web layer, including a live reload, and must not stack two decks.
     @discardableResult
-    func install(in parent: UIView) -> ChromeInsets {
+    func install(in parent: UIView, scrollView: UIScrollView? = nil) -> ChromeInsets {
         guard !installed else { return measure() }
         installed = true
 
@@ -138,7 +147,9 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
 
         buildTabBar()
         buildDeck()
+        buildTopBar()
         buildControls()
+        watchScroll(scrollView)
 
         host.onLayout = { [weak self] in
             guard let self else { return }
@@ -238,6 +249,47 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
         ])
     }
 
+    /**
+     The scroll edge.
+
+     iOS has done this for years and it is one of the few pieces of chrome that
+     is glass by right in design.md — "a sheet header once content scrolls
+     under it". Here the content is the whole masthead: as the mascot travels
+     up past the controls, a glass bar arrives behind them so the symbols never
+     end up sitting on a photograph.
+     */
+    private func buildTopBar() {
+        topBar.isUserInteractionEnabled = false
+        topBar.alpha = 0
+        host.addSubview(topBar)
+        NSLayoutConstraint.activate([
+            topBar.leadingAnchor.constraint(equalTo: host.leadingAnchor),
+            topBar.trailingAnchor.constraint(equalTo: host.trailingAnchor),
+            topBar.topAnchor.constraint(equalTo: host.topAnchor),
+            topBar.bottomAnchor.constraint(
+                equalTo: host.safeAreaLayoutGuide.topAnchor,
+                constant: Metric.controlTop * 2 + Metric.controlSize),
+        ])
+    }
+
+    /**
+     Reads the webview's own scroll position.
+
+     Key-value observation rather than the scroll view's delegate: Capacitor
+     owns that delegate, and taking it would break whatever else it does with
+     it. This only ever reads, and costs nothing when nothing is moving.
+     */
+    private func watchScroll(_ scrollView: UIScrollView?) {
+        guard let scrollView else { return }
+        scrollToken = scrollView.observe(\.contentOffset, options: [.new]) { [weak self] view, _ in
+            guard let self else { return }
+            let y = view.contentOffset.y + view.adjustedContentInset.top
+            let next = min(max((y - 12) / 44, 0), 1)
+            guard abs(next - self.topBar.alpha) > 0.01 else { return }
+            self.topBar.alpha = next
+        }
+    }
+
     private func buildControls() {
         for (stack, leading) in [(leadingControls, true), (trailingControls, false)] {
             stack.axis = .horizontal
@@ -245,6 +297,36 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
             stack.alignment = .center
             stack.translatesAutoresizingMaskIntoConstraints = false
             stack.isHidden = true
+
+            /*
+             * A glass container, where the OS has one.
+             *
+             * Without it three glass circles are three unrelated panes that
+             * happen to be near each other. Inside one, iOS 26 merges and
+             * separates them as they move and as they are pressed — the
+             * behaviour that makes a cluster read as one control group rather
+             * than as a row of buttons.
+             */
+            if let group = GlassKit.container(spacing: 8) {
+                host.addSubview(group)
+                group.contentView.addSubview(stack)
+                NSLayoutConstraint.activate([
+                    stack.leadingAnchor.constraint(equalTo: group.contentView.leadingAnchor),
+                    stack.trailingAnchor.constraint(equalTo: group.contentView.trailingAnchor),
+                    stack.topAnchor.constraint(equalTo: group.contentView.topAnchor),
+                    stack.bottomAnchor.constraint(equalTo: group.contentView.bottomAnchor),
+                    group.topAnchor.constraint(
+                        equalTo: host.safeAreaLayoutGuide.topAnchor, constant: Metric.controlTop),
+                    leading
+                        ? group.leadingAnchor.constraint(
+                            equalTo: host.leadingAnchor, constant: Metric.controlInset)
+                        : group.trailingAnchor.constraint(
+                            equalTo: host.trailingAnchor, constant: -Metric.controlInset),
+                ])
+                if leading { leadingGroup = group } else { trailingGroup = group }
+                continue
+            }
+
             host.addSubview(stack)
             NSLayoutConstraint.activate([
                 stack.topAnchor.constraint(
@@ -297,6 +379,9 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
         deck.isHidden = hidden || currentState?.cta == nil
         leadingControls.isHidden = hidden || leadingControls.arrangedSubviews.isEmpty
         trailingControls.isHidden = hidden || trailingControls.arrangedSubviews.isEmpty
+        leadingGroup?.isHidden = leadingControls.isHidden
+        trailingGroup?.isHidden = trailingControls.isHidden
+        topBar.isHidden = hidden
     }
 
     private func applyTabs(_ tabs: [ChromeTab], active: String?) {
@@ -510,9 +595,13 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
         guard height > 0 else { return insets }
 
         if !leadingControls.isHidden || !trailingControls.isHidden {
+            // Measured off the container where there is one: the cluster's
+            // frame is relative to the container, not to the host.
+            let leadingBox = leadingGroup ?? leadingControls
+            let trailingBox = trailingGroup ?? trailingControls
             let controlsBottom = max(
-                leadingControls.isHidden ? 0 : leadingControls.frame.maxY,
-                trailingControls.isHidden ? 0 : trailingControls.frame.maxY)
+                leadingControls.isHidden ? 0 : leadingBox.frame.maxY,
+                trailingControls.isHidden ? 0 : trailingBox.frame.maxY)
             insets.top = controlsBottom + Metric.controlTop
         }
 
@@ -531,44 +620,130 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
 
     // ── Toast ────────────────────────────────────────────────────────────────
 
-    func toast(text: String, tone: String) {
-        let glass = GlassKit.panel(corner: 22, interactive: false, tint: nil)
-        let label = UILabel()
-        label.translatesAutoresizingMaskIntoConstraints = false
-        label.text = text
-        label.font = .systemFont(ofSize: 14, weight: .semibold)
-        label.textColor = tone == "bad" ? .systemRed : .label
-        label.numberOfLines = 2
-        label.textAlignment = .center
-        glass.contentView.addSubview(label)
+    /**
+     A glass note, floated in from the top.
+
+     The last of the five surfaces design.md allows glass on, and the one the
+     app had no use for until now: term-on-first-use. The shark defines a word
+     the moment it first appears, and that definition is chrome — it explains
+     the board, it is not part of it.
+
+     It carries a live number, so it leaves on its own before that number can
+     change, and a tap takes it away sooner. The dwell is proportional to how
+     much there is to read rather than a constant that is wrong at both ends.
+     */
+    func toast(title: String, text: String, tone: String) {
+        currentToast?.dismissNow()
+
+        let glass = GlassKit.panel(corner: 20, interactive: false, tint: nil)
+        let column = UIStackView()
+        column.axis = .vertical
+        column.spacing = 3
+        column.translatesAutoresizingMaskIntoConstraints = false
+
+        if !title.isEmpty {
+            let head = UILabel()
+            head.attributedText = NSAttributedString(
+                string: title.uppercased(),
+                attributes: [
+                    .font: UIFont.systemFont(ofSize: 12, weight: .bold),
+                    .foregroundColor: UIColor.secondaryLabel,
+                    .kern: 1.8,
+                ])
+            column.addArrangedSubview(head)
+        }
+
+        let body = UILabel()
+        body.numberOfLines = 0
+        body.attributedText = NSAttributedString(
+            string: text,
+            attributes: [
+                .font: UIFont.systemFont(ofSize: 14, weight: .medium),
+                .foregroundColor: tone == "bad" ? UIColor.systemRed : UIColor.label,
+            ])
+        column.addArrangedSubview(body)
+
+        glass.contentView.addSubview(column)
         NSLayoutConstraint.activate([
-            label.leadingAnchor.constraint(equalTo: glass.contentView.leadingAnchor, constant: 18),
-            label.trailingAnchor.constraint(equalTo: glass.contentView.trailingAnchor, constant: -18),
-            label.topAnchor.constraint(equalTo: glass.contentView.topAnchor, constant: 11),
-            label.bottomAnchor.constraint(equalTo: glass.contentView.bottomAnchor, constant: -11),
+            column.leadingAnchor.constraint(equalTo: glass.contentView.leadingAnchor, constant: 16),
+            column.trailingAnchor.constraint(
+                equalTo: glass.contentView.trailingAnchor, constant: -16),
+            column.topAnchor.constraint(equalTo: glass.contentView.topAnchor, constant: 12),
+            column.bottomAnchor.constraint(equalTo: glass.contentView.bottomAnchor, constant: -12),
         ])
 
         glass.alpha = 0
-        glass.isUserInteractionEnabled = false
         host.addSubview(glass)
         NSLayoutConstraint.activate([
-            glass.centerXAnchor.constraint(equalTo: host.centerXAnchor),
-            glass.topAnchor.constraint(equalTo: host.safeAreaLayoutGuide.topAnchor, constant: 56),
             glass.leadingAnchor.constraint(
-                greaterThanOrEqualTo: host.leadingAnchor, constant: Metric.sideMargin),
+                equalTo: host.leadingAnchor, constant: Metric.sideMargin),
+            glass.trailingAnchor.constraint(
+                equalTo: host.trailingAnchor, constant: -Metric.sideMargin),
+            glass.topAnchor.constraint(
+                equalTo: host.safeAreaLayoutGuide.topAnchor,
+                constant: Metric.controlTop * 2 + Metric.controlSize + 8),
         ])
         host.layoutIfNeeded()
-        glass.transform = CGAffineTransform(translationX: 0, y: -12)
+        glass.transform = CGAffineTransform(translationX: 0, y: -14)
 
-        UIView.animate(withDuration: 0.28, delay: 0, options: [.curveEaseOut]) {
+        let note = Toast(view: glass)
+        currentToast = note
+        note.onGone = { [weak self, weak note] in
+            if self?.currentToast === note { self?.currentToast = nil }
+        }
+
+        let tap = UITapGestureRecognizer(target: note, action: #selector(Toast.tapped))
+        glass.contentView.addGestureRecognizer(tap)
+        glass.isUserInteractionEnabled = true
+
+        UIView.animate(
+            withDuration: 0.34, delay: 0, usingSpringWithDamping: 0.86, initialSpringVelocity: 0.3,
+            options: [.allowUserInteraction]
+        ) {
             glass.alpha = 1
             glass.transform = .identity
-        } completion: { _ in
-            UIView.animate(withDuration: 0.18, delay: 2.2, options: [.curveEaseIn]) {
-                glass.alpha = 0
-                glass.transform = CGAffineTransform(translationX: 0, y: -12)
+        }
+
+        // Roughly a comfortable reading speed, floored so a short line still
+        // registers and capped so a long one is not a wall you cannot dismiss.
+        let dwell = min(max(2.4, Double(text.count) / 16.0), 9.0)
+        note.schedule(after: dwell)
+    }
+
+    /**
+     One floated note and the timer that takes it away.
+
+     A class rather than a closure so a second note can cancel the first: two
+     definitions stacked on top of each other is worse than the one you missed.
+     */
+    final class Toast: NSObject {
+        private let view: UIView
+        private var work: DispatchWorkItem?
+        var onGone: (() -> Void)?
+
+        init(view: UIView) {
+            self.view = view
+            super.init()
+        }
+
+        func schedule(after seconds: Double) {
+            let item = DispatchWorkItem { [weak self] in self?.dismissNow() }
+            work = item
+            DispatchQueue.main.asyncAfter(deadline: .now() + seconds, execute: item)
+        }
+
+        @objc func tapped() { dismissNow() }
+
+        func dismissNow() {
+            work?.cancel()
+            work = nil
+            guard view.superview != nil else { return }
+            UIView.animate(withDuration: 0.18, delay: 0, options: [.curveEaseIn]) {
+                self.view.alpha = 0
+                self.view.transform = CGAffineTransform(translationX: 0, y: -14)
             } completion: { _ in
-                glass.removeFromSuperview()
+                self.view.removeFromSuperview()
+                self.onGone?()
             }
         }
     }

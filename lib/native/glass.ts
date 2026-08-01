@@ -82,13 +82,66 @@ export interface GlassCapabilities {
   osVersion: number;
 }
 
+/** One option on a decision, as UIKit needs it. */
+export interface NativeSheetChoice {
+  label: string;
+  /** The known half of the tradeoff. A financial figure, so never on glass. */
+  cost?: string;
+  /** This option opens the camera rather than resolving on the spot. */
+  camera?: boolean;
+}
+
+export interface NativeSheetNote {
+  term: string;
+  text: string;
+}
+
+/**
+ * A decision, described for a native sheet.
+ *
+ * `id` is the event id and comes back with every answer, so a reply that
+ * arrives after the card has moved on is discarded rather than applied to
+ * whatever is open now.
+ */
+export interface NativeSheetSpec {
+  id: string;
+  eyebrow: string;
+  eyebrowStyle?: "plain" | "market";
+  eyebrowDetail?: string;
+  title: string;
+  body: string;
+  notes?: NativeSheetNote[];
+  hintTitle?: string;
+  hintText?: string;
+  choices: NativeSheetChoice[];
+  /** Shown instead of choices when an event has none — the camera gate. */
+  actionLabel?: string;
+  actionCamera?: boolean;
+  dismissible?: boolean;
+  theme: "light" | "dark";
+}
+
 export interface NovusGlassPlugin {
   capabilities(): Promise<GlassCapabilities>;
   /** Idempotent. Installs the chrome host over the webview. */
   configure(options: { theme: "light" | "dark"; tint: string }): Promise<ChromeInsets>;
   setChrome(state: NativeChromeState): Promise<ChromeInsets>;
-  /** A glass capsule that floats in and out. Used for confirmations only. */
-  toast(options: { text: string; tone?: "neutral" | "good" | "bad" }): Promise<void>;
+  /**
+   * A glass note floated in from the top. Chrome, not content — it explains
+   * the board rather than being part of it, which is what makes it one of the
+   * surfaces design.md allows glass on. Presenting a second one replaces the
+   * first rather than stacking.
+   */
+  toast(options: {
+    title?: string;
+    text: string;
+    tone?: "neutral" | "good" | "bad";
+  }): Promise<void>;
+
+  /** Puts a decision on screen. Replaces whatever sheet was already up. */
+  presentSheet(spec: NativeSheetSpec): Promise<void>;
+  /** Closes it because the game says so, rather than because the player did. */
+  dismissSheet(): Promise<void>;
 
   addListener(
     event: "tabSelected",
@@ -102,6 +155,18 @@ export interface NovusGlassPlugin {
   addListener(
     event: "insetsChanged",
     fn: (data: ChromeInsets) => void,
+  ): Promise<PluginListenerHandle>;
+  addListener(
+    event: "sheetChoice",
+    fn: (data: { id: string; index: number }) => void,
+  ): Promise<PluginListenerHandle>;
+  addListener(
+    event: "sheetAction",
+    fn: (data: { id: string }) => void,
+  ): Promise<PluginListenerHandle>;
+  addListener(
+    event: "sheetDismissed",
+    fn: (data: { id: string }) => void,
   ): Promise<PluginListenerHandle>;
 }
 
