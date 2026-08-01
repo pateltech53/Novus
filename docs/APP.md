@@ -28,6 +28,34 @@ npm run android               # …and open Android Studio
 `NEXT_PUBLIC_NATIVE=1` is the switch. Everything it changes is in
 `next.config.ts` and `scripts/build-native.mjs`.
 
+### The app's calls are cross-origin, and that has two consequences
+
+The bundle is served from `app.novuspitch.com` — `capacitor://` on iOS,
+`https://` on Android — while the route handlers live at the real origin. Every
+call the app makes is therefore cross-origin, which the web build never is. Two
+things follow, and both were learned the hard way:
+
+**CORS is required.** A JSON POST asking for credentials is preflighted, and a
+preflight with no `Access-Control-Allow-Origin` is refused before the real
+request is ever sent. `middleware.ts` answers it, echoing only the two origins
+in `lib/native/origins.ts` — never `*`, which is invalid with credentials
+anyway. Every other origin gets no CORS headers and stays blocked.
+
+**`NEXT_PUBLIC_API_ORIGIN` must be the canonical host.** Browsers do not follow
+redirects on a preflight, so an origin that 308s (`novuspitch.com` →
+`www.novuspitch.com`) fails every call from the app while working perfectly in
+a browser tab. Point it at the host that answers, not the one that redirects.
+
+Both failures look identical from inside the app — "network error" — and
+neither can reproduce on the web, where the same code is same-origin and no
+preflight happens at all. That asymmetry is why they survived every check that
+ran on the web build.
+
+The same origin list drives the CSRF guard in `lib/supabase/route.ts`: the app
+is first-party and genuinely cross-site, so `Sec-Fetch-Site` says "cross-site"
+and is right. `crossSite()` checks the allow-list first for exactly that
+reason.
+
 ### Two things that build script does, and why
 
 **`app/api` moves aside for the duration.** `output: "export"` refuses to build
