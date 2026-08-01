@@ -160,7 +160,14 @@ const AUDIT = () => {
   // ── Occlusion by the bottom bar ───────────────────────────────────────────
   // With a sheet open, everything under it is meant to be unreachable. Only
   // what is inside the sheet is in scope.
-  const modal = document.querySelector('[role="dialog"]');
+  //
+  // The LAST dialog in document order, not the first: sheets stack now — the
+  // legal reader opens over Settings and over the Pro sheet — and they nest,
+  // so the first match is the one UNDERNEATH. Taking it scoped the audit to
+  // the covered screen and reported its own rows as unreachable, which they
+  // are, and are supposed to be.
+  const dialogs = document.querySelectorAll('[role="dialog"]');
+  const modal = dialogs[dialogs.length - 1] ?? null;
   const inScope = (el) => !modal || modal.contains(el);
 
   const bar = document.querySelector("nav[aria-label='Activities']");
@@ -266,6 +273,210 @@ for (const [name, width, height] of SIZES) {
         await page.waitForTimeout(700);
       }
     }
+  }
+
+  // ── The overlays that are not tabs ────────────────────────────────────────
+  //
+  // Settings, the Pro sheet and the legal reader open from the masthead rather
+  // than the tab bar, so the walk above never touched them — and every control
+  // App Review looks for lives in one of the three: account deletion, restore
+  // purchases, the privacy policy and the terms. They are also the longest
+  // scrolling surfaces in the app, which is exactly where a 320×568 screen
+  // gives way. Each is opened from a fresh /play so one sheet's state cannot
+  // change what the next one is measured in.
+  const overlays = [
+    [
+      "settings",
+      async (p) => {
+        await p.click('button[aria-label="Settings"]');
+      },
+    ],
+    [
+      "settings-signin",
+      async (p) => {
+        await p.click('button[aria-label="Settings"]');
+        await p.waitForTimeout(420);
+        await p.getByRole("button", { name: "Sign in", exact: true }).click();
+      },
+    ],
+    [
+      "settings-legal",
+      async (p) => {
+        await p.click('button[aria-label="Settings"]');
+        await p.waitForTimeout(420);
+        await p.getByRole("button", { name: "Privacy policy" }).click();
+      },
+    ],
+    [
+      "pro",
+      async (p) => {
+        await p.locator("button").filter({ hasText: /^(FREE|PRO)$/ }).first().click();
+      },
+    ],
+  ];
+
+  for (const [tag, open] of overlays) {
+    await page.goto(`http://127.0.0.1:${PORT}/play/`, { waitUntil: "networkidle" });
+    await page.waitForTimeout(800);
+    try {
+      await open(page);
+    } catch (e) {
+      console.log(`  ${name}/${tag}: could not open — ${e.message.split("\n")[0]}`);
+      continue;
+    }
+    await page.waitForTimeout(700);
+
+    const problems = await page.evaluate(AUDIT);
+    await page.screenshot({ path: join(SHOTS, `${name}-${tag}.png`), fullPage: false });
+    if (problems.length) {
+      failures += problems.length;
+      console.log(`\n✗ ${name} (${width}px) · ${tag}`);
+      for (const p of [...new Set(problems)]) console.log(`    ${p}`);
+    } else {
+      console.log(`✓ ${name} (${width}px) · ${tag}`);
+    }
+  }
+
+  await ctx.close();
+}
+
+// ── The store-build rule ────────────────────────────────────────────────────
+//
+// App Store Guideline 3.1.1 and Google Play's Payments policy both say the
+// same thing: digital content used inside the app is sold with the store's own
+// billing or not at all — and 3.1.3(a) forbids linking out to any other
+// purchase mechanism. Novus answers by selling nothing in a store build
+// (lib/commerce.ts); Pro is bought on the web and arrives with the account.
+//
+// That rule is invisible in a browser, which is exactly how it would rot. This
+// pass runs the same bundle three times — as a browser, as the iOS shell, as
+// the Android shell — by setting the globals `@capacitor/core` reads to decide
+// the platform, and asserts the rule in BOTH directions. One-way checks are
+// how a gate that returns false everywhere passes its own test while quietly
+// taking the checkout button off the web.
+const PRICE = /\$\s?\d/;
+
+// The globals @capacitor/core reads to decide the platform (getPlatformId in
+// its dist bundle). addInitScript hands the function its `arg`, never `window`,
+// so these take none and touch the global directly.
+const SHELLS = [
+  ["browser", null],
+  ["ios", () => { window.webkit = { messageHandlers: { bridge: {} } }; }],
+  ["android", () => { window.androidBridge = {}; }],
+];
+
+/**
+ * Click through onboarding until the plans step is on screen.
+ *
+ * The accent-filled pill is the call to action on almost every step, but not
+ * on all of them: the shark's explanation narrates first and offers only Skip
+ * until it finishes, and headless Chromium has no speech synthesis to finish
+ * with. So a step with no accent button falls back to whatever ordinary button
+ * moves forward, and the walk stops only when there is neither.
+ */
+const walkToPlans = async (page) => {
+  for (let i = 0; i < 20; i++) {
+    if (await page.getByText("Free is the whole game").count()) return true;
+
+    const input = page.locator("input:visible").first();
+    if ((await input.count()) && !(await input.inputValue())) {
+      const numeric = (await input.getAttribute("inputmode")) === "numeric";
+      await input.fill(numeric ? "17" : "Zach");
+      await page.waitForTimeout(240);
+    }
+
+    const cta = page.locator('button[class*="bg-[var(--action)]"]:not([disabled])');
+    if (await cta.count()) {
+      await cta.first().click().catch(() => {});
+    } else {
+      const alt = page
+        .locator("button:visible")
+        .filter({ hasText: /skip|next|continue|ready|show me|what is novus/i })
+        .first();
+      if (!(await alt.count())) return false;
+      await alt.click().catch(() => {});
+    }
+    await page.waitForTimeout(560);
+  }
+  return false;
+};
+
+for (const [shell, inject] of SHELLS) {
+  const ctx = await browser.newContext({
+    viewport: { width: 393, height: 852 },
+    deviceScaleFactor: 2,
+    isMobile: true,
+    hasTouch: true,
+  });
+  const page = await ctx.newPage();
+  await page.addInitScript(() => localStorage.setItem("novus:theme:v1", "dark"));
+  if (inject) await page.addInitScript(inject);
+
+  const sells = shell === "browser";
+  const problems = [];
+  const want = (condition, complaint) => { if (!condition) problems.push(complaint); };
+
+  // ── The onboarding plans step: what a first cold start opens on ──────────
+  await page.goto(`http://127.0.0.1:${PORT}/welcome/`, { waitUntil: "networkidle" });
+  await page.waitForTimeout(700);
+
+  if (!(await walkToPlans(page))) {
+    problems.push("could not reach the plans step");
+  } else {
+    await page.waitForTimeout(400);
+    const text = await page.evaluate(() => document.body.innerText);
+    await page.screenshot({ path: join(SHOTS, `shell-${shell}-plans.png`) });
+
+    want(PRICE.test(text) === sells, sells
+      ? "no price on the plans step in a browser"
+      : `a price is on the plans step in the ${shell} build`);
+    want(text.includes("CHOOSE PRO") === sells, sells
+      ? "no CHOOSE PRO in a browser"
+      : `CHOOSE PRO is in the ${shell} build`);
+    want(text.includes("TERMS OF USE") && text.includes("PRIVACY"),
+      "the plans step is missing its terms/privacy links");
+    if (!sells) {
+      want(text.includes("START PLAYING"), `no way past the plans step in the ${shell} build`);
+      want(text.includes("Nothing is sold inside this app"),
+        `the ${shell} build does not say what replaced the prices`);
+    }
+  }
+
+  // ── The in-game Pro sheet ────────────────────────────────────────────────
+  await page.evaluate((s) => {
+    localStorage.setItem("novus:run:v1", JSON.stringify(s.run));
+    localStorage.setItem("novus:profile:v1", JSON.stringify(s.profile));
+  }, seed);
+  await page.goto(`http://127.0.0.1:${PORT}/play/`, { waitUntil: "networkidle" });
+  await page.waitForTimeout(900);
+  await page.locator("button").filter({ hasText: /^(FREE|PRO)$/ }).first().click();
+  await page.waitForTimeout(700);
+
+  const sheet = await page.evaluate(() => {
+    const dialogs = document.querySelectorAll('[role="dialog"]');
+    return dialogs[dialogs.length - 1]?.innerText ?? "";
+  });
+  await page.screenshot({ path: join(SHOTS, `shell-${shell}-pro.png`) });
+
+  want(sheet.length > 0, "the Pro sheet did not open");
+  want(PRICE.test(sheet) === sells, sells
+    ? "no price in the Pro sheet in a browser"
+    : `a price is in the Pro sheet in the ${shell} build`);
+  want(sheet.includes("CHOOSE PRO") === sells, sells
+    ? "no CHOOSE PRO in the Pro sheet in a browser"
+    : `CHOOSE PRO is in the Pro sheet in the ${shell} build`);
+  // Required on every platform: with nothing sold in the app, restoring is the
+  // only way Pro can ever appear on a phone.
+  want(sheet.includes("Restore purchases"), "the Pro sheet has no Restore purchases");
+  want(sheet.includes("TERMS OF USE") && sheet.includes("PRIVACY"),
+    "the Pro sheet is missing its terms/privacy links");
+
+  if (problems.length) {
+    failures += problems.length;
+    console.log(`\n✗ store rule · ${shell}`);
+    for (const p of [...new Set(problems)]) console.log(`    ${p}`);
+  } else {
+    console.log(`✓ store rule · ${shell}${sells ? " (sells)" : " (sells nothing)"}`);
   }
   await ctx.close();
 }

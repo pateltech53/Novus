@@ -21,6 +21,7 @@ import {
   type SubscriptionPlan,
 } from "@/lib/monetization";
 import { goToCheckout } from "@/lib/cloud/billing";
+import { useSellsHere } from "@/lib/commerce";
 import { hasSavedRun, loadProfile } from "@/lib/engine/save";
 import { loadAccount } from "@/lib/account";
 
@@ -255,6 +256,17 @@ export function Landing() {
             >
               team@novuspitch.com
             </a>
+            {/* Both documents, from the front door. App Store Connect asks for
+                these two URLs and a reviewer follows them from here. */}
+            <p className="text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
+              <a className="underline underline-offset-4" href="/privacy">
+                PRIVACY
+              </a>
+              <span className="px-2">·</span>
+              <a className="underline underline-offset-4" href="/terms">
+                TERMS OF USE
+              </a>
+            </p>
             <p className="text-2xs leading-relaxed text-[var(--text-tertiary)]">
               Score, survival and the leaderboard are never for sale.
             </p>
@@ -273,6 +285,18 @@ export function Landing() {
  */
 function PricingSection() {
   const router = useRouter();
+
+  /**
+   * This is a marketing page, and the whole page ships inside the app bundle —
+   * `out/index.html` is the export of this file. Nothing routes here from
+   * inside the app on purpose (native/boot.html opens the game, sign-out lands
+   * on the entry route, and the legal sheets name URLs instead of linking
+   * them), but a price list one stray navigation away from an App Store build
+   * is a rejection waiting for a bug. So the section that carries every price
+   * and both checkout buttons removes itself in a store build — see
+   * lib/commerce.ts. On the web nothing changes.
+   */
+  const sells = useSellsHere();
 
   /** The plan whose checkout is opening, so only that button reads BUSY. */
   const [busy, setBusy] = useState<ProPlanId | null>(null);
@@ -322,6 +346,8 @@ function PricingSection() {
         : "Checkout could not be opened. Nothing was charged.",
     );
   };
+
+  if (sells === false) return null;
 
   return (
     <section
@@ -397,6 +423,24 @@ function PricingSection() {
                 {busy === PRO_YEARLY.id ? "OPENING…" : "YEARLY"}
               </button>
             </div>
+
+            {/* What a subscription owes the person about to start one, said
+                beside the button rather than on a page they have to find:
+                length, price per period, that it renews by itself, and where
+                it is stopped. */}
+            <p className="mt-2.5 text-2xs leading-relaxed text-[var(--text-tertiary)]">
+              Billed by Stripe. Both plans renew automatically —{" "}
+              {formatPrice(PRO_MONTHLY.priceCents)} each month or{" "}
+              {formatPrice(PRO_YEARLY.priceCents)} each year — until you cancel,
+              which you can do at any time from Settings.{" "}
+              <a className="underline underline-offset-4" href="/terms">
+                Terms
+              </a>{" "}
+              ·{" "}
+              <a className="underline underline-offset-4" href="/privacy">
+                Privacy
+              </a>
+            </p>
             {error ? (
               <p role="alert" className="mt-2 text-xs leading-relaxed text-[var(--color-alert)]">
                 {error}

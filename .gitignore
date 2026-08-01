@@ -1,5 +1,7 @@
 # dependencies
 node_modules/
+# the local cache the README suggests when ~/.npm is root-owned
+.npm-cache/
 
 # next.js build output
 .next/
