@@ -28,6 +28,7 @@ export type AuthFailReason =
   | "taken"
   | "invalid"
   | "needs-confirmation"
+  | "captcha"
   | "offline"
   | "error";
 
@@ -45,6 +46,7 @@ interface AuthBody {
   displayName?: string | null;
   error?: string;
   reason?: string;
+  captcha?: string;
 }
 
 async function post(path: string, payload: unknown): Promise<{ res: Response; body: AuthBody } | null> {
@@ -74,8 +76,14 @@ export async function signUp(
   email: string,
   password: string,
   displayName: string,
+  captchaToken?: string | null,
 ): Promise<AuthOutcome> {
-  const out = await post("/api/auth/signup", { email, password, displayName });
+  const out = await post("/api/auth/signup", {
+    email,
+    password,
+    displayName,
+    ...(captchaToken ? { captchaToken } : {}),
+  });
   if (!out) return fail("offline", "Could not reach the server. Check your connection.");
 
   const { res, body } = out;
@@ -96,6 +104,9 @@ export async function signUp(
   }
 
   if (res.status === 409) return fail("taken", body.error ?? "That email already has an account.");
+  // The token was missing, stale or refused. The form resets the widget so the
+  // player gets a fresh one rather than retrying a token Cloudflare has spent.
+  if (body.captcha) return fail("captcha", body.error ?? "Complete the human check and try again.");
   if (!res.ok || !body.signedIn) {
     return fail("error", body.error ?? "Could not create the account. Try again.");
   }

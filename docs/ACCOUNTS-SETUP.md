@@ -239,7 +239,64 @@ retained data.
 
 ---
 
-## 7. What is NOT built
+## 7. The human check on sign-up (Cloudflare Turnstile)
+
+Optional, free, and off until you set two environment variables. Three
+minutes:
+
+1. `dash.cloudflare.com` → **Turnstile** → **Add site**
+2. Add your domain, and `localhost` too if you want it locally
+3. Copy the two keys into your environment:
+
+```sh
+NEXT_PUBLIC_TURNSTILE_SITE_KEY=0x...    # public, goes in the page
+TURNSTILE_SECRET_KEY=0x...              # server only, never NEXT_PUBLIC_
+```
+
+That is the whole setup. Unset either one and the widget does not render and
+the server requires nothing, which is how local development runs.
+
+**Leave Supabase's own Attack Protection OFF.** Turning it on applies a captcha
+requirement to *every* auth endpoint at once — sign-in and password reset would
+each need their own widget or simply stop working. Sign-up is the door worth
+guarding, because creating accounts in bulk is the abuse, so the token is
+verified in `/api/auth/signup` instead.
+
+### Where it sits relative to the rate limiter
+
+They are different defences and both are worth having. The limiter (§6) bounds
+how fast *anything* can happen and works even when Cloudflare is unreachable.
+The captcha raises the cost of each individual attempt. A script that solves
+one still hits five sign-ups per address per fifteen minutes.
+
+Order in the route is deliberate: the limiter runs first, because it is a
+single cheap upsert and the captcha is a round trip to Cloudflare — a flood
+should be stopped by the cheap thing.
+
+### It fails closed
+
+If Cloudflare cannot be reached, sign-up is refused rather than waved through.
+The alternative would mean anyone wanting unlimited accounts need only stop our
+server reaching `challenges.cloudflare.com`, which turns a dependency into the
+bypass. The blast radius of a Cloudflare outage is "new sign-ups pause" —
+playing, signing in and everything else are untouched.
+
+### The third-party script exception
+
+`docs/LEADERBOARD.md` §1.4 and §9.6 rule out third-party scripts on pages shown
+to minors, and the rest of the app holds that line: Supabase and Stripe are both
+reached through our own origin for exactly this reason. This is the one
+exception, kept as narrow as it can be:
+
+- The script loads **only when the sign-up form is opened**. A visitor who reads
+  the landing page, or plays the whole free game without an account, never
+  contacts Cloudflare — the tag does not exist for them.
+- Turnstile sets no cookies and builds no cross-site profile. That is why it,
+  and not reCAPTCHA, is the one that is defensible in front of children.
+
+---
+
+## 8. What is NOT built
 
 - **Changing your email.** There is no route for it. It needs the same
   verification dance as anonymous conversion, and doing it badly means locking
@@ -253,7 +310,7 @@ retained data.
 
 ---
 
-## 8. Minors, honestly
+## 9. Minors, honestly
 
 This is the part to read before launch, not after.
 
