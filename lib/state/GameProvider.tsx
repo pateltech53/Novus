@@ -34,7 +34,13 @@ import { callerById, consumeCall, type CallOutcome } from "@/lib/ai/callers";
 import { specFor, specForRun } from "@/lib/engine/industries/index";
 import { freezeEvent } from "@/lib/engine/interpolate";
 import { positioningYearTick, syncPositioning } from "@/lib/engine/positioning";
-import { loadEntitlements, recordRunStart, runsRemainingToday } from "@/lib/monetization";
+import {
+  isPro,
+  loadEntitlements,
+  onEntitlementsChange,
+  recordRunStart,
+  runsRemainingToday,
+} from "@/lib/monetization";
 import {
   ensurePortfolio,
   launchItem,
@@ -69,13 +75,25 @@ import {
   loadLegacy,
   loadProfile,
   loadRun,
+  loadTable,
   saveLegacy,
   saveProfile,
   saveRun,
+  saveTable,
   type Profile,
 } from "@/lib/engine/save";
 
 const EVENTS = eventsData as unknown as GameEvent[];
+
+/**
+ * The run flag that records that next year's money has been allocated.
+ *
+ * Read by the year-end statement, written by chooseAllocation. Keyed by the
+ * year the money is being spent IN — the one the run has already rolled over
+ * to by the time the statement is on screen — which is also the year
+ * `applyAllocation` seeds its RNG with.
+ */
+export const allocationFlag = (year: number) => `alloc-y${year}`;
 
 /** Which visible stats moved, phrased the way the life log phrases them. */
 function diffStats(
@@ -257,10 +275,59 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setRun(saved);
       if (!saved.alive) setAutopsy(buildAutopsy(saved));
       if (saved.month >= 12) setAtGate(true);
+      /*
+       * The cards the last advance put on the table come back with the run.
+       * Time was already banked when they were drawn, so without this the
+       * player pays a month for a decision they never get to make — and the
+       * followup or market case behind it is spent (lib/engine/save.ts).
+       *
+       * loadTable refuses anything written at a different run/year/month, so a
+       * stale table cannot replay a decision the engine has already settled.
+       */
+      const table = loadTable(saved);
+      if (table) {
+        setQueue(table.cards);
+        setMarketId(table.marketId);
+        setYearEnd(table.yearEnd);
+      }
     }
     setProfile(loadProfile());
     setHydrated(true);
   }, []);
+
+  /**
+   * …and every change to the table goes straight back to disk.
+   *
+   * One effect rather than a save call in advance/choose/dismiss/submit: those
+   * are five places to remember, and forgetting one is exactly the bug this
+   * fixes. The key below is what actually identifies a table — which run, when,
+   * which cards, which statement — so a re-render that changes none of them
+   * (every commit produces a fresh `run` object) does not write.
+   */
+  const tableKey = useRef<string | null>(null);
+  useEffect(() => {
+    if (!hydrated) return;
+    const open = !!run && (queue.length > 0 || !!yearEnd);
+    const key = open
+      ? `${run.id}:${run.year}:${run.month}:${marketId ?? ""}:${yearEnd?.year ?? ""}:${queue
+          .map((e) => e.id)
+          .join(",")}`
+      : null;
+    if (key === tableKey.current) return;
+    tableKey.current = key;
+    saveTable(
+      open
+        ? {
+            runId: run.id,
+            year: run.year,
+            month: run.month,
+            cards: queue,
+            marketId,
+            yearEnd,
+          }
+        : null,
+    );
+  }, [hydrated, run, queue, marketId, yearEnd]);
 
   const startRun: GameContextValue["startRun"] = useCallback(
     (opts) => {
@@ -480,8 +547,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     (pick: Allocation) => {
       const state = runRef.current;
       if (!state) return;
+      // Once a year, and the run itself is what remembers it. The year-end
+      // statement survives a reload now (lib/engine/save.ts), so without a
+      // record on the run "quit and come back" would be a way to spend next
+      // year's money twice.
+      if (state.flags[allocationFlag(state.year)]) return;
       const working: RunState = structuredClone(state);
       applyAllocation(working, pick);
+      working.flags[allocationFlag(working.year)] = true;
       commit(working);
     },
     [commit],
@@ -919,6 +992,35 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     },
     [commit],
   );
+
+  /*
+   * A purchase reaches the company that is already running.
+   *
+   * `startRun` copies device Pro into the run, which covers founding AFTER a
+   * purchase and nothing else. Buying Pro from a gate in month seven left The
+   * Room shut, the Pro industries locked and the paid asset classes greyed out
+   * until the next company — a purchase that visibly did nothing, which is the
+   * one failure mode worse than not selling at all.
+   *
+   * Runs on mount as well as on the event, so resuming a saved company on a new
+   * device picks up the entitlements that arrived while it was closed. The
+   * mount pass is safe because hydrate's effect is declared above this one and
+   * effects run in order, so `runRef.current` is already the restored run.
+   *
+   * Upward only. ProSheet's simulated switch turns `run.pro` off without
+   * touching entitlements, and syncing both directions would turn it straight
+   * back on the moment anything else wrote to the store.
+   */
+  useEffect(() => {
+    const sync = () => {
+      const state = runRef.current;
+      if (!state || state.pro) return;
+      if (!isPro(loadEntitlements())) return;
+      setPro(true);
+    };
+    sync();
+    return onEntitlementsChange(sync);
+  }, [setPro]);
 
   const choicesFor = useCallback(
     (ev: GameEvent) => (run ? visibleChoices(run, ev) : []),

@@ -37,6 +37,46 @@ jobs:
       - name: Web build
         run: npx next build
 
+  database:
+    name: Migrations + RLS suite
+    runs-on: ubuntu-latest
+
+    # Every claim these routes make about who can read what bottoms out in
+    # row-level security, and RLS is only checkable against a real Postgres.
+    # The suites used to be run by hand, which in practice meant not at all.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # The runner shells out to psql. It is on the ubuntu image already, but
+      # which version drifts, and a missing client should fail as a missing
+      # client rather than as a connection error.
+      - name: psql
+        run: psql --version
+
+      # No npm ci: scripts/db-test.mjs has no dependencies, so this job does
+      # not wait on an install it never uses.
+      - name: Migrations and RLS suite
+        run: npm run test:db
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+
   native-bundle:
     name: Static export + Android APK
     runs-on: ubuntu-latest

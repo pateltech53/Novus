@@ -182,11 +182,23 @@ public class NovusGlassPlugin: CAPPlugin, CAPBridgedPlugin {
     // ── Wire format ──────────────────────────────────────────────────────────
 
     private static func payload(_ insets: ChromeInsets) -> [String: Any] {
-        [
+        var out: [String: Any] = [
             "top": Double(insets.top),
             "bottom": Double(insets.bottom),
             "tabBar": Double(insets.tabBar),
         ]
+        // Absent rather than null when nothing is spotlit: the web side reads
+        // this as "no native target for this step" and falls back to looking
+        // for a DOM element, which is the common case.
+        if let rect = insets.coach {
+            out["coach"] = [
+                "top": Double(rect.minY),
+                "left": Double(rect.minX),
+                "width": Double(rect.width),
+                "height": Double(rect.height),
+            ]
+        }
+        return out
     }
 
     private static func str(_ object: JSObject, _ key: String) -> String? {
@@ -237,7 +249,8 @@ public class NovusGlassPlugin: CAPPlugin, CAPBridgedPlugin {
             tabs: tabs,
             activeTab: call.getString("activeTab"),
             cta: cta,
-            controls: controls)
+            controls: controls,
+            coach: call.getString("coach"))
     }
 
     private static func parseSheet(_ call: CAPPluginCall) -> SheetSpec? {

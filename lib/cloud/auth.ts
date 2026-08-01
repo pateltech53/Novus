@@ -195,6 +195,10 @@ export async function signIn(email: string, password: string): Promise<AuthOutco
  */
 const DEVICE_KEYS = [
   "novus:run:v1",
+  // The cards left face-up on that run. loadTable() would refuse them for a
+  // different company anyway, but "the last student's decision is still on the
+  // table" is the same problem this list exists to prevent.
+  "novus:table:v1",
   "novus:legacy:v1",
   "novus:profile:v1",
   "novus:entitlements:v1",
@@ -258,13 +262,25 @@ function wipeDevice(): void {
  *      does not happen, and the session cookie is cleared alone.
  */
 export async function signOut(): Promise<void> {
-  // Land the last decision before anything is destroyed. If this throws or the
-  // request fails, syncedOk stays false and the device is left intact.
+  /*
+   * Land the last decision before anything is destroyed, and believe only what
+   * the server confirmed.
+   *
+   * This used to read `syncState()` after the flush and treat anything that
+   * was not "off" or "error" as a yes. Three states passed that test without
+   * anything having been saved: "idle" on a tab that never synced, and
+   * "synced" after a request the server answered 200 to while telling us in
+   * the body that it had written nothing, or that nobody was signed in. Each
+   * one ended here, in wipeDevice(), deleting the only remaining copy of a
+   * player's companies.
+   *
+   * flush() now returns the verdict rather than leaving it to be inferred from
+   * a status enum that was never designed to carry it.
+   */
   let syncedOk = false;
   try {
-    const { flush, syncState } = await import("@/lib/cloud/sync");
-    await flush();
-    syncedOk = syncState() !== "off" && syncState() !== "error";
+    const { flush } = await import("@/lib/cloud/sync");
+    syncedOk = await flush();
   } catch {
     syncedOk = false;
   }

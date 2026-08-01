@@ -29,12 +29,19 @@ struct ChromeCta {
 }
 
 struct ChromeState {
-    let mode: String  // "full" | "hidden"
+    let mode: String  // "full" | "hidden" | "coach"
     let theme: String  // "light" | "dark"
     let tabs: [ChromeTab]
     let activeTab: String?
     let cta: ChromeCta?
     let controls: [ChromeControl]
+    /**
+     Which surface the guided first play is teaching right now.
+
+     "advance", "tabs", or a control id — or nil when the step is teaching
+     something in the web layer instead. Only read in "coach" mode.
+     */
+    let coach: String?
 }
 
 /// Reserved space, in points, that the web layout must leave empty. One point
@@ -43,6 +50,16 @@ struct ChromeInsets {
     var top: CGFloat = 0
     var bottom: CGFloat = 0
     var tabBar: CGFloat = 0
+    /**
+     Where the spotlit control actually is, for the coachmark card to sit
+     beside.
+
+     The web layer cannot measure a UIKit view — there is no element to call
+     getBoundingClientRect on — so the one thing it needs about it comes back
+     with the insets, on the same layout pass and by the same route. nil
+     whenever nothing is being spotlit.
+     */
+    var coach: CGRect?
 }
 
 /**
@@ -103,6 +120,11 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
     private var meterTicks: [UIView] = []
     private var tabIds: [String] = []
     private var controlIds: [Int: String] = [:]
+    /// The other direction of controlIds: id → the capsule, so a coachmark can
+    /// name a control and have exactly that one stay lit.
+    private var controlViews: [String: UIView] = [:]
+    private var coachSpotlight: String?
+    private var coaching = false
     private var installed = false
     private var lastInsets = ChromeInsets()
     private var currentState: ChromeState?
@@ -123,6 +145,10 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
         static let deckSpacing: CGFloat = 10
         static let deckBottomGap: CGFloat = 10
         static let meterHeight: CGFloat = 3
+        /// What an un-spotlit surface fades to during the guided first play.
+        /// Low enough to read as "not this one", high enough that the glass is
+        /// still visibly glass rather than a grey hole.
+        static let coachDim: CGFloat = 0.22
     }
 
     // ── Install ──────────────────────────────────────────────────────────────
@@ -156,12 +182,16 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
             // Same rule as apply(): a hidden deck measures zero, and zero is
             // not news. Rotation and safe-area changes while a sheet is open
             // are re-measured when it closes.
-            guard self.currentState?.mode == "full" else { return }
+            guard self.currentState?.mode != "hidden" else { return }
             let next = self.measure()
             guard
                 abs(next.top - self.lastInsets.top) > 0.5
                     || abs(next.bottom - self.lastInsets.bottom) > 0.5
                     || abs(next.tabBar - self.lastInsets.tabBar) > 0.5
+                    // The coachmark card is positioned off this rect, so a
+                    // control that moves and does not report has a card
+                    // pointing at where it used to be.
+                    || next.coach != self.lastInsets.coach
             else { return }
             self.lastInsets = next
             self.onInsetsChanged?(next)
@@ -356,7 +386,8 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
         applyCta(state.cta)
         applyControls(state.controls)
 
-        setHidden(state.mode != "full")
+        setHidden(state.mode == "hidden")
+        applyCoach(mode: state.mode, spotlight: state.coach)
         host.layoutIfNeeded()
 
         /*
@@ -368,8 +399,13 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
          * player sees at exactly the moment the sheet gets out of the way.
          * The reservation describes the chrome's footprint, not its visibility.
          */
-        if state.mode == "full" {
+        if state.mode != "hidden" {
             lastInsets = measure()
+        } else {
+            // The reservation stands while a sheet is open, but the spotlight
+            // does not: a stale rect would put the next coachmark card beside
+            // a control that is no longer being taught.
+            lastInsets.coach = nil
         }
         return lastInsets
     }
@@ -474,12 +510,116 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
         leadingControls.arrangedSubviews.forEach { $0.removeFromSuperview() }
         trailingControls.arrangedSubviews.forEach { $0.removeFromSuperview() }
         controlIds.removeAll()
+        controlViews.removeAll()
 
         for (index, control) in controls.enumerated() {
             let view = makeControl(control, tag: index)
             controlIds[index] = control.id
+            controlViews[control.id] = view
             (control.leading ? leadingControls : trailingControls).addArrangedSubview(view)
         }
+    }
+
+    // ── The guided first play ────────────────────────────────────────────────
+
+    /**
+     Teaches one native control without the chrome having to leave.
+
+     ── Why this exists ─────────────────────────────────────────────────────
+
+     The tutorial dims the screen, cuts a hole around one control and refuses
+     every tap outside it. It does that with four DOM panels around a hole,
+     which works perfectly for anything the web layer drew — and not at all for
+     a UIKit view, because a native view composites ABOVE the webview. A web
+     scrim cannot dim it and a web hole cannot expose it.
+
+     So the whole native chrome used to stand down for the duration and the DOM
+     chrome came back. The cost of that was not obvious until you watched
+     someone play: the guided first run is a new player's entire first session,
+     which meant the app's first impression contained no Liquid Glass at all.
+     The one screen most worth showing it on was the one screen that never did.
+
+     ── What it does instead ────────────────────────────────────────────────
+
+     The chrome dims and disables itself. Alpha rather than a scrim view: glass
+     fading toward the dimmed page behind it is what dimming glass looks like,
+     and it needs no geometry kept in step with anything. `spotlight` names the
+     one surface that stays lit and tappable — and tappable matters as much as
+     lit, because a native control left live over a dimmed screen is a player
+     advancing the month in the middle of being told what the month is.
+
+     nil spotlight means the step is teaching something in the web layer: every
+     native surface dims, and none of them respond.
+     */
+    private func applyCoach(mode: String, spotlight: String?) {
+        let wasCoaching = coaching
+        coaching = mode == "coach"
+        coachSpotlight = coaching ? spotlight : nil
+
+        guard coaching else {
+            // Restore on the transition, not on a sampled alpha. Reading one
+            // view's alpha to decide would miss the case where that view was
+            // the spotlight and so never dimmed, leaving every other surface
+            // stuck at a quarter strength for the rest of the run.
+            if wasCoaching { restoreFromCoach() }
+            return
+        }
+
+        func light(_ view: UIView, _ on: Bool) {
+            view.alpha = on ? 1 : Metric.coachDim
+            view.isUserInteractionEnabled = on
+        }
+
+        light(deck, spotlight == "advance")
+        light(tabBar, spotlight == "tabs")
+
+        // A group is lit only when it holds the spotlight, and its unlit
+        // siblings dim inside it — alpha compounds, so a dimmed control in a
+        // lit group lands in the same place as one in a dimmed group.
+        for (id, view) in controlViews { light(view, spotlight == id) }
+        let leadingHasIt = holdsSpotlight(leadingControls, spotlight)
+        let trailingHasIt = holdsSpotlight(trailingControls, spotlight)
+        light(leadingGroup ?? leadingControls, leadingHasIt)
+        light(trailingGroup ?? trailingControls, trailingHasIt)
+        if leadingGroup != nil { light(leadingControls, leadingHasIt) }
+        if trailingGroup != nil { light(trailingControls, trailingHasIt) }
+    }
+
+    private func holdsSpotlight(_ stack: UIStackView, _ spotlight: String?) -> Bool {
+        guard let spotlight, let view = controlViews[spotlight] else { return false }
+        return stack.arrangedSubviews.contains(view)
+    }
+
+    /// Back to full strength. Every surface the dimming can reach, so a chrome
+    /// that goes into coaching always comes back out of it whole.
+    private func restoreFromCoach() {
+        for view in [deck, tabBar, leadingControls, trailingControls] as [UIView] {
+            view.alpha = 1
+            view.isUserInteractionEnabled = true
+        }
+        for view in [leadingGroup, trailingGroup].compactMap({ $0 }) {
+            view.alpha = 1
+            view.isUserInteractionEnabled = true
+        }
+        for view in controlViews.values {
+            view.alpha = 1
+            view.isUserInteractionEnabled = true
+        }
+    }
+
+    /// The spotlit view's box in host coordinates, for the coachmark card to
+    /// sit beside. Points are CSS pixels here, so it crosses unconverted.
+    private func coachRect() -> CGRect? {
+        guard coaching, let spotlight = coachSpotlight else { return nil }
+        let view: UIView?
+        switch spotlight {
+        case "advance": view = deck.isHidden ? nil : deck
+        case "tabs": view = tabBar.isHidden ? nil : tabBar
+        default: view = controlViews[spotlight]
+        }
+        guard let view, view.bounds.height > 0 else { return nil }
+        let rect = view.convert(view.bounds, to: host)
+        return rect.isNull || rect.isInfinite ? nil : rect
     }
 
     /**
@@ -615,6 +755,7 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
             insets.bottom = insets.tabBar
         }
 
+        insets.coach = coachRect()
         return insets
     }
 

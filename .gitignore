@@ -1,6 +1,7 @@
 # dependencies
 node_modules/
-# the local cache the README suggests when ~/.npm is root-owned
+# the local cache the README tells you to install with when ~/.npm is
+# root-owned. Following that advice should not leave 5,000 untracked files.
 .npm-cache/
 
 # next.js build output

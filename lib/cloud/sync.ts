@@ -153,9 +153,10 @@ export async function pull(): Promise<PullResult | null> {
  * second. Debouncing turns that burst into one request carrying the latest
  * state — the game is not collaborative, so only the final value matters.
  */
-let pending: { run?: RunState | null; legacy?: LegacyState; prefs?: Prefs } = {};
+type Payload = { run?: RunState | null; legacy?: LegacyState; prefs?: Prefs };
+
+let pending: Payload = {};
 let timer: ReturnType<typeof setTimeout> | null = null;
-let inFlight = false;
 
 const DEBOUNCE_MS = 1500;
 
@@ -165,16 +166,66 @@ function schedule() {
   timer = setTimeout(() => void flush(), DEBOUNCE_MS);
 }
 
-/** Sends whatever has accumulated. Called by the debounce and on page hide. */
-export async function flush(): Promise<void> {
-  if (disabled || inFlight) return;
-  if (Object.keys(pending).length === 0) return;
-  if (!(await ensureSession())) return;
+let chain: Promise<unknown> = Promise.resolve();
+
+/**
+ * Sends whatever has accumulated, and reports whether the server has it.
+ *
+ * ── The answer is load-bearing ─────────────────────────────────────────────
+ *
+ * signOut() in lib/cloud/auth.ts erases this device's localStorage — the
+ * companies, the legacy, the entitlements — on the strength of "the server has
+ * a copy". This function is where that claim is established, so `true` has to
+ * mean the server said yes, and every other outcome has to be `false`.
+ *
+ * It did not used to. The old version reported success from `res.ok` alone,
+ * which was true of an HTTP 200 the server had marked as failed, and of a 200
+ * saying nobody was signed in. On a shared classroom iPad that read as
+ * permission to delete the only surviving copy of a child's work. The route
+ * now answers 500 for a write it did not do, and this checks the body as well,
+ * because two answers agreeing is the point.
+ *
+ * A failed send also puts its payload BACK, whatever went wrong — the old code
+ * only did that for a thrown fetch, so an HTTP error dropped the batch on the
+ * floor. That mattered most for pushLocalNow(), which fires once, after
+ * sign-up, and is the only thing carrying a player's existing company into
+ * their new account.
+ */
+export function flush(): Promise<boolean> {
+  /*
+   * Serialised rather than skipped.
+   *
+   * The old version returned early when a request was already in flight, so
+   * sign-out could ask "is this device safe to wipe?" while the debounced
+   * write was still on the wire, and be answered about neither. Chaining means
+   * every caller waits for a send that covers their data and gets that send's
+   * verdict — and `pending` is read inside send(), after the wait, so the
+   * later caller carries anything queued in the meantime.
+   */
+  const next = chain.then(send, send);
+  // The chain itself must never reject, or one failed send poisons every
+  // flush after it.
+  chain = next.catch(() => undefined);
+  return next;
+}
+
+async function send(): Promise<boolean> {
+  if (disabled) return false;
+
+  if (Object.keys(pending).length === 0) {
+    // Nothing queued. Every write to localStorage goes through queueRun /
+    // queueLegacy / queuePrefs (lib/engine/save.ts), and a failed send puts
+    // its payload back — so an empty queue on a live session genuinely means
+    // there is nothing here the server has not confirmed.
+    return signedIn;
+  }
+
+  if (!(await ensureSession())) return false;
 
   const body = pending;
   pending = {};
-  inFlight = true;
   setState("syncing");
+
   try {
     const res = await fetch(apiUrl("/api/sync"), {
       method: "PUT",
@@ -182,16 +233,51 @@ export async function flush(): Promise<void> {
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
     });
-    setState(res.ok ? "synced" : "error");
+
+    if (!(await accepted(res))) {
+      requeue(body);
+      setState("error");
+      return false;
+    }
+
+    setState("synced");
+    return true;
   } catch {
-    // Put the work back so the next flush retries it rather than dropping a
-    // player's run on one bad request.
-    pending = { ...body, ...pending };
+    requeue(body);
     setState("error");
-  } finally {
-    inFlight = false;
+    return false;
   }
 }
+
+/**
+ * Did the server actually take it?
+ *
+ * Three ways this can be no, and only the first is visible in `res.ok`:
+ * a transport or server error, a 200 the route marked `{ok: false}` because a
+ * table refused the write, and a 200 saying the session has gone. The last one
+ * is the quiet one — `ensureSession()` caches `signedIn` for the page, so a
+ * cookie that expires mid-session is first noticed here — and it also has to
+ * clear that cache, or every subsequent flush repeats the same doomed request.
+ */
+async function accepted(res: Response): Promise<boolean> {
+  if (!res.ok) return false;
+  try {
+    const body = (await res.json()) as { ok?: boolean; signedIn?: boolean };
+    if (body.signedIn === false) {
+      signedIn = false;
+      return false;
+    }
+    return body.ok !== false;
+  } catch {
+    // An answer we cannot read is not an answer that anything was saved.
+    return false;
+  }
+}
+
+/** Newer queued values win — this is a batch coming back, not arriving. */
+const requeue = (body: Payload) => {
+  pending = { ...body, ...pending };
+};
 
 /**
  * Strips the one field that is never allowed to leave this device.
@@ -236,10 +322,13 @@ export function queueRun(run: RunState | null) {
  * tab. "Made an account to keep my company, lost my company" is not a
  * behaviour to leave to chance.
  *
- * Awaited rather than queued, so the caller can reload knowing it landed.
+ * Awaited rather than queued, so the caller can reload knowing it landed —
+ * and it reports whether it did. A false here is survivable rather than fatal:
+ * the batch stays in `pending`, so the next commit carries it up, and the
+ * device still has it either way.
  */
-export async function pushLocalNow(): Promise<void> {
-  if (disabled) return;
+export async function pushLocalNow(): Promise<boolean> {
+  if (disabled) return false;
   // Dynamic import for the same reason restoreOnBoot uses one: save.ts imports
   // this file, and a static cycle would leave one of them half-initialised.
   const { loadRun, loadLegacy, loadProfile } = await import("@/lib/engine/save");
@@ -269,7 +358,7 @@ export async function pushLocalNow(): Promise<void> {
   };
 
   if (timer) clearTimeout(timer);
-  await flush();
+  return flush();
 }
 
 export function queueLegacy(legacy: LegacyState) {

@@ -19,6 +19,15 @@ export interface CoachStep {
   id: string;
   /** data-coach attribute of the element to spotlight. */
   target: string;
+  /**
+   * The native surface this step teaches, when the chrome is UIKit's.
+   *
+   * `"advance"`, `"tabs"` or a masthead control id. Present on exactly the
+   * steps whose target is a control the native chrome draws instead of the
+   * DOM — those have no element to measure, so the box comes from the plugin.
+   * Absent means the target is web content and is measured the usual way.
+   */
+  native?: string;
   title: string;
   body: string;
   /**
@@ -59,20 +68,42 @@ export function Coachmarks({
   index,
   onAdvance,
   onFinish,
+  nativeChrome = false,
+  nativeRect,
 }: {
   steps: CoachStep[];
   index: number;
   onAdvance: () => void;
   onFinish: () => void;
+  /**
+   * True only while UIKit is drawing the chrome.
+   *
+   * `step.native` says a step COULD be taught natively; this says it is. On
+   * Android and on the web the same steps target real DOM elements and are
+   * measured the ordinary way, so reading `step.native` alone would look for a
+   * box nobody is reporting and strand the tutorial on step two.
+   */
+  nativeChrome?: boolean;
+  /**
+   * The box of the control being taught, when UIKit is the one drawing it.
+   *
+   * Supplied rather than measured because there is no element to measure: the
+   * native chrome reports its own frame on every layout pass. The step is
+   * completed by the native control's own callback for the same reason — the
+   * tap never reaches this overlay, since a native view sits above it.
+   */
+  nativeRect?: Rect | null;
 }) {
   const step = steps[index];
-  const [rect, setRect] = useState<Rect | null>(null);
+  const [domRect, setRect] = useState<Rect | null>(null);
+  const native = !!step?.native && nativeChrome;
+  const rect = native ? nativeRect ?? null : domRect;
 
   // Track the target's box: it moves when the log grows or a sheet opens.
   // Deliberately NOT requestAnimationFrame — rAF is suspended while a tab is
   // hidden, which would leave the hole unmeasured and every tap ignored.
   useLayoutEffect(() => {
-    if (!step) return;
+    if (!step || (step.native && nativeChrome)) return;
 
     const measure = () => {
       const el = document.querySelector<HTMLElement>(`[data-coach="${step.target}"]`);
@@ -107,7 +138,7 @@ export function Coachmarks({
       window.removeEventListener("scroll", measure, true);
       observer?.disconnect();
     };
-  }, [step]);
+  }, [step, nativeChrome]);
 
   // A tap inside the hole counts as completing the step.
   const onOverlayClick = useCallback(
@@ -252,6 +283,7 @@ export const FIRST_RUN_STEPS: CoachStep[] = [
   {
     id: "advance",
     target: "advance",
+    native: "advance",
     title: "This is the only thing that moves time.",
     body: "One tap, one month. Nothing else in the app advances the clock. Press it.",
     mode: "tap",
@@ -276,6 +308,7 @@ export const FIRST_RUN_STEPS: CoachStep[] = [
   {
     id: "tabs",
     target: "tabs",
+    native: "tabs",
     title: "Everything else lives down here.",
     body: "Your company, your team, your assets, the market, your closet. None of it costs you a month — you can look as much as you like.",
     mode: "ack",
@@ -284,6 +317,7 @@ export const FIRST_RUN_STEPS: CoachStep[] = [
   {
     id: "phone",
     target: "phone",
+    native: "phone",
     title: "And this is your phone.",
     body: "RobinGhood for the market, BeeMail for the mail you'd rather not open, LinkedOut for hiring. It runs on real time — the market moves while you're away.",
     mode: "ack",

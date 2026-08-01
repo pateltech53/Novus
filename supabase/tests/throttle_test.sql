@@ -1,4 +1,4 @@
-\set ON_ERROR_STOP 0
+\set ON_ERROR_STOP 1
 \pset pager off
 
 -- Auth throttle (0005). The claims that matter:
@@ -10,55 +10,57 @@
 --      sign-ins cannot lock out anybody's password reset.
 --   4. The window expires.
 --
---   psql -d novus -f _supabase_shim.sql -f ../migrations/0001_novus_core.sql \
---                 -f ../migrations/0002_leaderboard.sql \
---                 -f ../migrations/0003_billing.sql \
---                 -f ../migrations/0004_accounts.sql \
---                 -f ../migrations/0005_auth_throttle.sql \
---                 -f throttle_test.sql
+--   npm run test:db          # all five suites, fresh database each
 
 \echo ''
-\echo '=== 1. a player CANNOT call it (should FAIL 42501 x2) ==='
+\echo '=== 1. a player CANNOT call it ==='
 set role authenticated;
-select public.claim_auth_attempt('signup:ip', 'victim', 5, interval '15 minutes');
-select public.prune_auth_throttle();
+select test.throws('42501', $$
+  select public.claim_auth_attempt('signup:ip', 'victim', 5, interval '15 minutes')
+$$, 'a player cannot spend another player''s throttle budget');
+select test.throws('42501', $$
+  select public.prune_auth_throttle()
+$$, 'a player cannot prune the throttle table');
 
 
 \echo ''
 \echo '=== 2. limit of 3: t,t,t then f,f (the 4th is counted, not waved through) ==='
 set role service_role;
-select
-  public.claim_auth_attempt('signup:ip', 'kA', 3) as a1,
-  public.claim_auth_attempt('signup:ip', 'kA', 3) as a2,
-  public.claim_auth_attempt('signup:ip', 'kA', 3) as a3,
-  public.claim_auth_attempt('signup:ip', 'kA', 3) as a4_expect_f,
-  public.claim_auth_attempt('signup:ip', 'kA', 3) as a5_expect_f;
+select test.ok(public.claim_auth_attempt('signup:ip', 'kA', 3), 'attempt 1 of 3 allowed');
+select test.ok(public.claim_auth_attempt('signup:ip', 'kA', 3), 'attempt 2 of 3 allowed');
+select test.ok(public.claim_auth_attempt('signup:ip', 'kA', 3), 'attempt 3 of 3 allowed');
+select test.ok(not public.claim_auth_attempt('signup:ip', 'kA', 3), 'attempt 4 refused');
+select test.ok(not public.claim_auth_attempt('signup:ip', 'kA', 3), 'attempt 5 refused');
 
-\echo '--- and the counter kept rising past the limit (expect 5) ---'
-select attempts from public.auth_throttle where bucket = 'signup:ip' and key = 'kA';
-
-
-\echo ''
-\echo '=== 3. a different KEY is unaffected (expect t) ==='
-select public.claim_auth_attempt('signup:ip', 'kB', 3) as other_key;
-
-\echo '=== 3b. a different BUCKET is unaffected (expect t) ==='
-select public.claim_auth_attempt('reset:ip', 'kA', 3) as other_bucket;
+-- The refused attempts still cost the flooder their budget. A limiter that
+-- stopped counting once it started saying no would reset the moment the window
+-- rolled, however hard it was being hit.
+select test.eq((select attempts::bigint from public.auth_throttle
+                where bucket = 'signup:ip' and key = 'kA'), 5::bigint,
+               'the counter kept rising past the limit');
 
 
 \echo ''
-\echo '=== 4. the window expires and the budget returns (expect t) ==='
+\echo '=== 3. buckets and keys are independent ==='
+select test.ok(public.claim_auth_attempt('signup:ip', 'kB', 3),
+               'a different key is unaffected');
+select test.ok(public.claim_auth_attempt('reset:ip', 'kA', 3),
+               'a different bucket is unaffected — a NAT full of sign-ups cannot block a reset');
+
+
+\echo ''
+\echo '=== 4. the window expires and the budget returns ==='
 -- Age the row past its window rather than waiting for wall-clock time.
 set role postgres;
 update public.auth_throttle
    set window_start = now() - interval '20 minutes'
  where bucket = 'signup:ip' and key = 'kA';
 set role service_role;
-select public.claim_auth_attempt('signup:ip', 'kA', 3) as after_window_expect_t;
-
-\echo '--- and the count restarted at 1, not continued at 6 ---'
-select attempts as expect_1 from public.auth_throttle
- where bucket = 'signup:ip' and key = 'kA';
+select test.ok(public.claim_auth_attempt('signup:ip', 'kA', 3),
+               'the budget returns once the window closes');
+select test.eq((select attempts::bigint from public.auth_throttle
+                where bucket = 'signup:ip' and key = 'kA'), 1::bigint,
+               'and the count restarted at 1, not continued at 6');
 
 
 \echo ''
@@ -67,11 +69,19 @@ set role postgres;
 update public.auth_throttle set window_start = now() - interval '3 days'
  where key = 'kB';
 set role service_role;
-select public.prune_auth_throttle(interval '1 day') as pruned_expect_1;
-select count(*) as remaining_expect_2 from public.auth_throttle;
+select test.eq(public.prune_auth_throttle(interval '1 day'), 1::bigint,
+               'prune takes the one closed window');
+select test.eq((select count(*) from public.auth_throttle), 2::bigint,
+               'and leaves the two live ones alone');
 
 
 \echo ''
-\echo '=== 6. the table is invisible to players (should FAIL 42501) ==='
+\echo '=== 6. the table is invisible to players ==='
+-- It holds one hashed key per address that has tried to sign in. Readable, it
+-- would be a way to ask "has this address been here" of a database about
+-- children.
 set role authenticated;
-select * from public.auth_throttle;
+select test.throws('42501', $$ select * from public.auth_throttle $$,
+                   'the throttle table is invisible to a player');
+
+\echo '=== throttle_test: all checks passed ==='

@@ -15,6 +15,7 @@ import {
 import { fmtMoney } from "@/lib/engine/format";
 import { S_UNIT } from "@/lib/engine/constants";
 import { LiveTranscriber } from "@/lib/ai/transcribe";
+import { useUpgrade } from "@/components/upgrade/UpgradeProvider";
 
 /**
  * THE ROOM — cold calling, Pro only.
@@ -117,7 +118,14 @@ export function ColdCall() {
 
 // ── Pro gate ────────────────────────────────────────────────────────────────
 
+/**
+ * The whole app opened on this screen — a room described in full, behind a
+ * sentence saying it was Pro, with nothing on it to press. The description was
+ * right and it stays; what it was missing was a door.
+ */
 function ProGate() {
+  const upgrade = useUpgrade();
+
   return (
     <div className="px-5 py-10 text-center">
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[1.1rem] bg-[var(--n-4)]">
@@ -132,6 +140,17 @@ function ProGate() {
         Cold calling requires Pro. Pro opens the door — it does not make anyone
         say yes, and it never buys a bigger cheque.
       </p>
+
+      {/* Prestige, not the action orange: this is drawn inside the in-game
+          phone, which is the player's own device and carries its own chrome —
+          an orange slab in there would read as part of the fiction. */}
+      <button
+        type="button"
+        onClick={() => upgrade.open("the_room")}
+        className="nv-press mx-auto mt-5 h-12 w-full max-w-[19rem] rounded-[var(--radius-pill)] bg-[var(--color-prestige)] text-2xs font-extrabold tracking-[0.14em] text-[var(--on-prestige)]"
+      >
+        SEE WHAT PRO ADDS
+      </button>
     </div>
   );
 }
