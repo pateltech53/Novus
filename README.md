@@ -16,8 +16,17 @@ prototype.
 
 ```bash
 npm install
-npm run dev        # http://localhost:3000
+npm run dev            # http://localhost:3000
+npm run build:native   # the bundle the iOS and Android apps ship
+npm run ios            # …and open Xcode
 ```
+
+**The app:** the same code runs in a Capacitor shell on both stores. On iOS the
+tab bar, the advance button and the masthead controls are withdrawn from the
+DOM and re-drawn by UIKit, so they are the system's own Liquid Glass rather
+than a CSS impression of it — and the height they take is measured after
+layout and handed back as a CSS variable, so nothing is ever occluded by a
+number somebody guessed. See **[docs/APP.md](docs/APP.md)**.
 
 > If `npm install` fails with `EACCES … .npm/_cacache`, the npm cache has
 > root-owned files from an old npm bug. Either run
@@ -33,6 +42,9 @@ npm run dev        # http://localhost:3000
 | `npm run events` | Merge `data/sections/*.json` → `data/events.json`, then validate |
 | `npm run sim [runs] [years]` | Headless balance harness against the real engine |
 | `npm run check` | events + typecheck + a 30×8 simulation |
+| `npm run build:native` | Static export for the apps, then `cap sync` |
+| `npm run audit:phone` | Type, tap targets and occlusion at 320–430px |
+| `npm run ios` / `npm run android` | Build, sync, open the native project |
 
 ## How it fits together
 

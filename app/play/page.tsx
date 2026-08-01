@@ -31,6 +31,8 @@ import { RobinGhood } from "@/components/phone/RobinGhood";
 import { LinkedOut } from "@/components/phone/LinkedOut";
 import { deriveRunwayMonths } from "@/lib/engine/sim";
 import { fmtMonths } from "@/lib/engine/format";
+import { usePlayChrome, type NativeControlId } from "@/components/native/usePlayChrome";
+import { useBackHandler } from "@/lib/native/back";
 
 export default function PlayPage() {
   return (
@@ -59,7 +61,42 @@ function PlayScreen() {
   const [phoneApp, setPhoneApp] = useState<PhoneApp | "home" | null>(null);
   const [showPro, setShowPro] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [dossier, setDossier] = useState(false);
   const [term, setTerm] = useState<{ term: string; detail?: string } | null>(null);
+
+  /*
+   * ── Why the bar is fixed and not sticky ───────────────────────────────────
+   *
+   * It was `sticky bottom-0` inside the right rail, and a sticky element can
+   * never leave its containing block. The rail starts below the masthead — 386
+   * points down on a 320×568 screen — so the best sticky could do was pin the
+   * bar to the rail's own top edge, which on a short phone left the ADVANCE
+   * MONTH button 151 points below the fold on first paint. The one control
+   * that moves time was off screen until you scrolled.
+   *
+   * Fixed to the viewport instead, with a spacer of exactly its measured
+   * height left behind in the flow so the last line of the log still ends
+   * above it. Measured rather than assumed, because the bar changes height:
+   * two rows of tabs under 360px, and again whenever the term coach appears.
+   *
+   * Desktop is untouched — `lg:static` puts it back as the last item of a
+   * column that is already viewport-height, where it was never the problem.
+   */
+  const [footerEl, setFooterEl] = useState<HTMLDivElement | null>(null);
+  const [footerHeight, setFooterHeight] = useState(0);
+
+  useEffect(() => {
+    if (!footerEl) {
+      setFooterHeight(0);
+      return;
+    }
+    const sync = () => setFooterHeight(footerEl.offsetHeight);
+    sync();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(sync);
+    observer.observe(footerEl);
+    return () => observer.disconnect();
+  }, [footerEl]);
   /*
    * The `cold-call` activity cannot open the phone itself — activities are pure
    * engine functions and know nothing about React. It sets a flag; this watches
@@ -108,6 +145,87 @@ function PlayScreen() {
 
   const finishCoaching = useCallback(() => game.advanceTutorial(0), [game]);
 
+  /*
+   * ── The chrome handoff ────────────────────────────────────────────────────
+   *
+   * On iOS the tab bar, the advance button and the masthead controls are real
+   * UIKit Liquid Glass views. Three facts drive everything below.
+   *
+   * A native view always composites above the webview. So the moment anything
+   * is drawn over the play screen — a card, a screen, the phone, the year-end
+   * statement — every piece of native chrome has to go, or it sits on top of
+   * that thing. `overlay` is that single question, asked once.
+   *
+   * The guided first play is the one exception that runs the other way. It
+   * dims the screen and cuts a hole around a DOM element, and it cannot cut a
+   * hole around a UIKit view — so during coaching the DOM chrome comes back
+   * and the native chrome stands down. The alternative is a tutorial that
+   * spotlights a control the player cannot reach.
+   *
+   * And the space the native chrome occupies is never guessed. UIKit measures
+   * itself after layout and reports back; the numbers arrive as
+   * --nv-chrome-top / --nv-chrome-bottom and the layout reserves exactly them.
+   */
+  const coaching =
+    !!run &&
+    run.tutorial &&
+    run.tutorialStep > 0 &&
+    !current &&
+    !yearEnd &&
+    !activity &&
+    !phoneApp &&
+    !showPro &&
+    !showSettings &&
+    !dossier &&
+    run.alive;
+
+  const overlay =
+    !!current ||
+    !!activity ||
+    !!phoneApp ||
+    showPro ||
+    showSettings ||
+    dossier ||
+    !!yearEnd ||
+    !!autopsy ||
+    !!game.tierUnlock ||
+    !!perform;
+
+  const onNativeControl = useCallback((id: NativeControlId) => {
+    if (id === "pro") setShowPro(true);
+    else if (id === "dossier") setDossier(true);
+    else if (id === "settings") setShowSettings(true);
+    else if (id === "phone") setPhoneApp("home");
+  }, []);
+
+  const nativeChromeOwned = usePlayChrome({
+    visible: !!run && !overlay && !coaching,
+    month: run?.month ?? 1,
+    atGate,
+    canAdvance: !!run?.alive && !current,
+    pro: !!run?.pro,
+    activeTab: activity,
+    onTab: setActivity,
+    onAdvance: game.advance,
+    onOpenGate: game.openYearGate,
+    onControl: onNativeControl,
+  });
+
+  /** True when React still renders the tab bar and the advance button. */
+  const domChrome = !nativeChromeOwned || coaching;
+
+  /*
+   * Android's back button, and nothing else on this screen claims it. The
+   * order is the order these things stack on screen, so back always peels the
+   * top layer rather than the one that happens to be listed first.
+   */
+  useBackHandler(!!current, game.dismissCard);
+  useBackHandler(!!activity, () => setActivity(null));
+  useBackHandler(!!phoneApp, () => setPhoneApp(null));
+  useBackHandler(showPro, () => setShowPro(false));
+  useBackHandler(showSettings, () => setShowSettings(false));
+  useBackHandler(dossier, () => setDossier(false));
+
   if (!run) {
     return (
       <main className="flex min-h-dvh items-center justify-center px-6">
@@ -117,19 +235,6 @@ function PlayScreen() {
   }
 
   if (perform) return <PerformScreen />;
-
-  // The guided first play blocks everything else until it's done — but it
-  // must yield to anything the player opened, or it draws over the top of it.
-  const coaching =
-    run.tutorial &&
-    run.tutorialStep > 0 &&
-    !current &&
-    !yearEnd &&
-    !activity &&
-    !phoneApp &&
-    !showPro &&
-    !showSettings &&
-    run.alive;
 
   const phoneNode = (app: PhoneApp | "home") => (
     <Phone
@@ -175,6 +280,9 @@ function PlayScreen() {
           onOpenPhone={() => setPhoneApp("home")}
           onOpenPro={() => setShowPro(true)}
           onOpenSettings={() => setShowSettings(true)}
+          dossierOpen={dossier}
+          onDossier={setDossier}
+          nativeControls={!domChrome}
         />
       </div>
 
@@ -184,29 +292,66 @@ function PlayScreen() {
           <TheBooks run={run} onTermTap={(t) => setTerm({ term: t })} />
         </div>
 
-        <div className="flex-1 overflow-y-auto pb-3">
+        {/*
+          The log takes the reserved space rather than a spacer taking it.
+          Glass refracts what is behind it, so what has to be behind the native
+          deck is scrolling content — a padded opaque band would leave the most
+          expensive material on the screen with nothing to show.
+        */}
+        <div
+          className="flex-1 overflow-y-auto pb-3"
+          style={domChrome ? undefined : { paddingBottom: "var(--nv-chrome-bottom, 0px)" }}
+        >
           <LifeLog lines={run.log} />
         </div>
 
-        <div className="sticky bottom-0 z-20 border-t border-[var(--hairline)] bg-[var(--bg)] pt-2 lg:bg-[var(--surface)]">
-          <TermCoach
-            term={term?.term ?? null}
-            detail={term?.detail}
-            onDismiss={() => setTerm(null)}
-          />
-          <div data-coach="advance">
-            <AdvanceButton
-              month={run.month}
-              atGate={atGate}
-              disabled={!!current || !run.alive}
-              onAdvance={game.advance}
-              onOpenGate={game.openYearGate}
+        {domChrome ? (
+          <>
+            {/* The height the fixed bar takes, given back to the flow. */}
+            <div
+              aria-hidden="true"
+              className="shrink-0 lg:hidden"
+              style={{ height: footerHeight }}
             />
+            <div
+              ref={setFooterEl}
+              className="fixed inset-x-0 bottom-0 z-20 border-t border-[var(--hairline)] bg-[var(--bg)] pt-2 lg:static lg:bg-[var(--surface)]"
+            >
+              <TermCoach
+                term={term?.term ?? null}
+                detail={term?.detail}
+                onDismiss={() => setTerm(null)}
+              />
+              <div data-coach="advance">
+                <AdvanceButton
+                  month={run.month}
+                  atGate={atGate}
+                  disabled={!!current || !run.alive}
+                  onAdvance={game.advance}
+                  onOpenGate={game.openYearGate}
+                />
+              </div>
+              <div className="mt-1.5" data-coach="tabs">
+                <ActivityBar active={activity} onOpen={setActivity} />
+              </div>
+            </div>
+          </>
+        ) : (
+          /* The coach quotes a live number, so it still has to sit above the
+             deck rather than float over the log it is describing. */
+          <div
+            className="pointer-events-none fixed inset-x-0 z-30"
+            style={{ bottom: "var(--nv-chrome-bottom, 0px)" }}
+          >
+            <div className="pointer-events-auto">
+              <TermCoach
+                term={term?.term ?? null}
+                detail={term?.detail}
+                onDismiss={() => setTerm(null)}
+              />
+            </div>
           </div>
-          <div className="mt-1.5" data-coach="tabs">
-            <ActivityBar active={activity} onOpen={setActivity} />
-          </div>
-        </div>
+        )}
       </div>
 
       {/*

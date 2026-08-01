@@ -1,0 +1,151 @@
+name: Android release
+
+# Publishes the APK the /download page links to.
+#
+# Tag a release (`git tag v1.0.3 && git push --tags`) or run it by hand. The
+# asset is always named novus.apk, because
+# https://github.com/<repo>/releases/latest/download/novus.apk only resolves if
+# the filename is stable — that URL is what app/download/page.tsx points at, so
+# the page never needs editing when a build ships.
+#
+# ── Signing ─────────────────────────────────────────────────────────────────
+#
+# With these four repository secrets set, the release is signed with your own
+# key and installs as an upgrade over the previous one:
+#
+#   ANDROID_KEYSTORE_BASE64   base64 of your .jks   (base64 -w0 novus.jks)
+#   ANDROID_KEYSTORE_PASSWORD
+#   ANDROID_KEY_ALIAS
+#   ANDROID_KEY_PASSWORD
+#
+# Without them the job still produces an installable APK — signed with the
+# runner's throwaway debug key. That is fine for trying the game and wrong for
+# anything else: the key differs per run, so every build has to be uninstalled
+# before the next one goes on. The release notes say so rather than leaving
+# someone to discover it.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Version to publish, e.g. v1.0.0"
+        required: true
+        default: v0.1.0
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Work out the version
+        id: version
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          NAME="${TAG#v}"
+          # A monotonic versionCode Play will accept, derived from the run
+          # number so it rises even if a tag is re-cut.
+          echo "tag=$TAG"                              >> "$GITHUB_OUTPUT"
+          echo "name=$NAME"                            >> "$GITHUB_OUTPUT"
+          echo "code=$(( 1000 + ${{ github.run_number }} ))" >> "$GITHUB_OUTPUT"
+
+      - run: npm ci
+
+      - name: Build the bundle the app ships
+        run: npm run build:native:only
+
+      - name: Copy it into the Android project
+        run: npx cap sync android
+
+      - name: Restore the signing key
+        id: keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/novus.jks"
+            echo "path=$RUNNER_TEMP/novus.jks" >> "$GITHUB_OUTPUT"
+            echo "signed=true"                 >> "$GITHUB_OUTPUT"
+          else
+            echo "No ANDROID_KEYSTORE_BASE64 secret — falling back to a debug build."
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Assemble
+        working-directory: android
+        env:
+          NOVUS_KEYSTORE_PATH: ${{ steps.keystore.outputs.path }}
+          NOVUS_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          NOVUS_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          NOVUS_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          NOVUS_VERSION_CODE: ${{ steps.version.outputs.code }}
+          NOVUS_VERSION_NAME: ${{ steps.version.outputs.name }}
+        run: |
+          if [ "${{ steps.keystore.outputs.signed }}" = "true" ]; then
+            ./gradlew --no-daemon assembleRelease bundleRelease
+          else
+            ./gradlew --no-daemon assembleDebug
+          fi
+
+      - name: Collect the artifacts
+        id: collect
+        run: |
+          mkdir -p dist
+          if [ "${{ steps.keystore.outputs.signed }}" = "true" ]; then
+            cp android/app/build/outputs/apk/release/app-release.apk dist/novus.apk
+            cp android/app/build/outputs/bundle/release/app-release.aab dist/novus.aab
+          else
+            cp android/app/build/outputs/apk/debug/app-debug.apk dist/novus.apk
+          fi
+          ls -la dist
+          {
+            echo "sha256<<EOF"
+            sha256sum dist/* | sed 's|dist/||'
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Novus ${{ steps.version.outputs.name }}
+          files: dist/*
+          fail_on_unmatched_files: true
+          body: |
+            ## Novus ${{ steps.version.outputs.name }} — Android
+
+            **[Download the APK](https://github.com/${{ github.repository }}/releases/latest/download/novus.apk)** ·
+            Android 7.0 and up · versionCode `${{ steps.version.outputs.code }}`
+
+            ${{ steps.keystore.outputs.signed == 'true'
+              && 'Signed with the project release key, so this installs straight over the previous version.'
+              || '> **Unsigned build.** No release key is configured for this repository, so this APK carries the CI runner''s throwaway debug key. It installs and plays, but the key changes every build — uninstall the previous version before installing this one. Add the `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD` secrets to get properly signed releases.' }}
+
+            Android will warn that the app is from an unknown developer. That is
+            what it says about every app not installed through the Play Store.
+
+            ```
+            ${{ steps.collect.outputs.sha256 }}
+            ```
+
+            The iOS build is not published here — it ships through App Store
+            Connect. See [/download](https://novuspitch.com/download).

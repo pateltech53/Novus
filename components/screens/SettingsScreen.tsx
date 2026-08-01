@@ -37,6 +37,7 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
       exit={{ opacity: 0, y: 12 }}
       transition={{ type: "spring", stiffness: 380, damping: 34 }}
       role="dialog"
+      aria-modal="true"
       aria-label="Settings"
     >
       {/* Centred column on desktop rather than a stretched sheet. */}

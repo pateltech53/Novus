@@ -101,7 +101,15 @@ export function FounderPortrait({
       className={`select-none object-contain ${dimmed ? "opacity-45" : ""} ${className}`}
       // The renders are already keyed to transparency, so there is no box to
       // hide — they sit directly on whatever surface they are dropped onto.
-      style={{ width: size, height: size }}
+      //
+      // The size goes through a custom property so a container can shrink a
+      // portrait without the call site knowing: the masthead gives height back
+      // to the log on a short phone (globals.css), and an inline `width` set
+      // in pixels is the one thing a stylesheet cannot override.
+      style={{
+        width: `var(--nv-portrait-size, ${size}px)`,
+        height: `var(--nv-portrait-size, ${size}px)`,
+      }}
       draggable={false}
     />
   );

@@ -4,6 +4,7 @@ import "./globals.css";
 import { Motion } from "@/components/ui/Motion";
 import { Sound } from "@/components/ui/Sound";
 import { CloudSync } from "@/components/CloudSync";
+import { NativeShell } from "@/components/native/NativeShell";
 import { THEME_COLOR_DARK } from "@/lib/brand";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 
@@ -107,6 +108,7 @@ export default function RootLayout({
           re-resolve the custom property on theme change, so overscroll never
           flashes the previous theme's colour. */}
       <body className="min-h-dvh bg-[var(--bg)] text-[var(--text-primary)] antialiased">
+        <NativeShell />
         <Sound />
         <CloudSync />
         <Motion>{children}</Motion>

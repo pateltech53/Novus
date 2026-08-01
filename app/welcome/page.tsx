@@ -33,6 +33,7 @@ import {
 } from "@/lib/media/recorder";
 import { speak, stopSpeaking } from "@/lib/ai/speech";
 import { saveProfile, loadProfile } from "@/lib/engine/save";
+import { usePrefetch } from "@/lib/prefetch";
 
 /**
  * Onboarding O1–O7. Nine steps total; O8 (found the company) lives at /found
@@ -53,6 +54,9 @@ export default function WelcomePage() {
   const [age, setAge] = useState("");
 
   useEffect(() => () => stopSpeaking(), []);
+
+  // The paperwork screen is the only place this screen leads.
+  usePrefetch("/found");
 
   const finish = useCallback(() => {
     const existing = loadProfile();

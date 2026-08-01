@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: Typecheck, content, web build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # The content pipeline fails the build on a dead flag gate or a malformed
+      # outcome, so it runs before anything that would only fail later.
+      - name: Content pipeline
+        run: npm run events
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Balance harness
+        run: npm run sim 20 6
+
+      - name: Web build
+        run: npx next build
+
+  native-bundle:
+    name: Static export + Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - run: npm ci
+
+      # Proves the export the apps ship from still builds: it is a different
+      # Next configuration to the web build and can break on its own.
+      - name: Static export
+        run: npm run build:native:only
+
+      - name: Copy the bundle into the Android project
+        run: npx cap sync android
+
+      - name: Assemble debug APK
+        working-directory: android
+        run: ./gradlew --no-daemon assembleDebug
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: novus-debug-apk
+          path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
