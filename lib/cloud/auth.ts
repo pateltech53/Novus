@@ -109,7 +109,10 @@ export async function signUp(
   // Failure here is survivable: the save is still on the device and the next
   // game action pushes it. So it does not fail the sign-up.
   try {
-    const { pushLocalNow } = await import("@/lib/cloud/sync");
+    const { resume, pushLocalNow } = await import("@/lib/cloud/sync");
+    // Boot switched sync off because this device had no account. It has one
+    // now — one created a moment ago — so turn it back on before pushing.
+    resume();
     await pushLocalNow();
   } catch {
     /* the device still has it; the next commit will carry it up */
@@ -260,6 +263,36 @@ export async function signOut(): Promise<void> {
   forgetIdentity();
 
   if (syncedOk) wipeDevice();
+}
+
+/**
+ * Delete this account and everything attached to it.
+ *
+ * The privacy policy promises "the deletion is real, not a flag", so this is
+ * wired to a button rather than left as a route only support could reach —
+ * a promise whose only implementation is an email address is a slower promise.
+ *
+ * The device is wiped on success whatever the server said about the rest,
+ * because after this there is no account to sync back from: leaving the
+ * companies in localStorage would mean "delete everything" left everything
+ * visible on the machine the player was sitting at.
+ */
+export async function deleteAccount(): Promise<{ ok: boolean; message?: string }> {
+  const out = await post("/api/auth/delete", {});
+  if (!out) return { ok: false, message: "Could not reach the server. Check your connection." };
+
+  const { res, body } = out;
+  if (!res.ok) {
+    return {
+      ok: false,
+      message: body.error ?? "Could not delete the account. Try again.",
+    };
+  }
+
+  forgetLocalAccount();
+  forgetIdentity();
+  wipeDevice();
+  return { ok: true };
 }
 
 /** Ask for a password reset email. The answer never says whether the address

@@ -65,8 +65,17 @@ export function onSyncState(fn: (s: SyncState) => void): () => void {
 }
 
 /**
- * Establishes the anonymous session. Safe to call more than once; the cookie
- * makes the second call a no-op refresh rather than a second identity.
+ * Is there an account to sync to?
+ *
+ * This used to CREATE one — /api/session minted an anonymous identity for
+ * anyone who asked. It no longer does, so this is now a question rather than
+ * an instruction, and "no" is the normal answer for a player who has not
+ * signed up.
+ *
+ * `disabled` is set on a no, which switches the whole sync layer off for the
+ * page: no pulls, no pushes, nothing leaves the device. It is deliberately NOT
+ * sticky across sign-in — signUp() and signIn() call resume() below, because
+ * by then the answer has genuinely changed.
  */
 export async function ensureSession(): Promise<boolean> {
   if (disabled) return false;
@@ -75,8 +84,10 @@ export async function ensureSession(): Promise<boolean> {
     const res = await fetch("/api/session", { method: "POST" });
     const body = (await res.json()) as { configured: boolean; signedIn: boolean };
     if (!body.configured || !body.signedIn) {
-      // Not an error worth surfacing: an unconfigured project is a local-only
-      // install, which is a supported way to run this game.
+      // Three cases, one answer: no Supabase project, no account, or an
+      // expired cookie. All three mean the game plays on localStorage alone,
+      // which is a supported way to run Novus and not worth surfacing as an
+      // error to a player who never asked for cloud saves.
       disabled = true;
       setState("off");
       return false;
@@ -88,6 +99,23 @@ export async function ensureSession(): Promise<boolean> {
     setState("off");
     return false;
   }
+}
+
+/**
+ * Re-arms the sync layer after an account appears.
+ *
+ * On a device with no account, boot sets `disabled` and every later call
+ * returns early — which is the point. But signing up does not reload the page,
+ * so without this the brand-new account would sit behind a flag set one second
+ * earlier by the fact that it did not exist yet, and the first push
+ * (pushLocalNow) would silently do nothing.
+ *
+ * Called by lib/cloud/auth.ts on sign-up and sign-in.
+ */
+export function resume(): void {
+  disabled = false;
+  signedIn = false; // re-established on the next ensureSession, as the new user
+  setState("idle");
 }
 
 /** Pulls the cloud copy. Returns null when there is nothing to adopt. */

@@ -65,9 +65,17 @@ delete every other player in the database.
 | **Confirm email** | **OFF** | See below |
 | Minimum password length | 8 or lower | The app asks 8; a higher floor here would reject passwords its own form accepted |
 
-**Anonymous sign-ins → keep Enabled.** They are still how a player without an
-account gets their save synced. Turning them off does not break the game (it
-falls back to localStorage) but it does remove cloud backup for free players.
+**Anonymous sign-ins → you can turn this OFF.** Novus no longer creates
+anonymous users. A player without an account sends nothing at all: no user is
+minted, no save leaves the device, and the game runs on localStorage exactly as
+it does with no Supabase configured.
+
+That is a deliberate reversal. `/api/session` used to mint an anonymous
+identity on every visitor's first page load, which cost a permanent row about a
+child and bought them almost nothing — an anonymous identity lives only in a
+cookie, so it could not be signed back into, could not reach a second device,
+and died in exactly the case a backup exists for. Leaving the setting enabled is
+harmless (nothing calls it), but off is the honest match to what the app does.
 
 ### On "Confirm email: OFF"
 
@@ -124,39 +132,40 @@ looking at — the same rule the rest of the app follows.
 
 ---
 
-## 4. Sign-up mints a NEW identity, and why that is fine
+## 4. What happens to progress at sign-up and sign-in
 
-Signing up does not convert the device's existing anonymous user. It creates a
-separate one.
+Sign-up creates a brand-new auth user. There is nothing to convert — a player
+without an account has no server-side identity at all now (§2) — and
+Supabase's in-place conversion would not have been usable anyway: it requires
+**manual linking (beta)** AND the email **verified before a password may be
+set**, which cannot coexist with signing straight in.
 
-That is not a shortcut — Supabase's in-place conversion requires **manual
-linking (beta)** to be enabled AND the email to be **verified before a password
-may be set**, which is incompatible with signing straight in (§2). So the
-anonymous user is left behind.
+The two paths deliberately do opposite things with the device:
 
-Nothing important is stranded, because of what each thing is:
+- **Sign-up KEEPS it.** The companies in localStorage are the player's own, and
+  they made an account to hold onto them. `signUp()` pushes them into the new
+  account immediately (`pushLocalNow`) rather than waiting for the debounced
+  write, which would never fire for someone who signs up and closes the tab.
+- **Sign-in WIPES it, then pulls.** Signing in is a claim to a different
+  identity, and on the machines this app is used on the data sitting there very
+  often belongs to another student. Leaving it would show their companies under
+  the new player's name, route past onboarding using their profile, leak their
+  cached Pro, and push their save up over the cloud copy the signing-in player
+  came back for.
 
-- **Saves follow the player anyway.** `lib/cloud/sync.ts` treats localStorage as
-  the source of truth and pushes it up to whatever account is signed in. The
-  companies on the device carry across to the new account by themselves.
-- **Purchases cannot be stranded, by construction.**
-  `/api/billing/checkout` refuses to sell to an anonymous identity at all. You
-  sign up, then you buy — never the other way round. An anonymous player who
-  taps CHOOSE PRO is told to make an account first.
-
-That refusal is the load-bearing piece. An anonymous identity exists only as
-long as its cookie; selling a subscription to one would mean the player loses
-it the first time they clear their browser, with no email, no password, and no
-way on earth to prove they paid.
+**Purchases cannot be stranded, by construction.** `/api/billing/checkout`
+refuses to sell to an anonymous identity at all, so you sign up and then you
+buy, never the other way round. That refusal is the load-bearing piece, and it
+still stands for old anonymous cookies that predate this build.
 
 ---
 
 ## 5. Abandoned anonymous users
 
-Every visitor who plays without an account gets an anonymous `auth.users` row so
-their save can sync. Most will never come back. Each one is a row, plus a
-profile, plus whatever they played — kept forever, about a child, for no
-purpose.
+Novus no longer creates these (§2), but earlier builds did — every visitor who
+played without an account got an anonymous `auth.users` row, a profile, and
+whatever they played, kept forever. If your project ran a build before this one,
+those rows are still there.
 
 `0004` adds a sweep for them:
 
@@ -173,8 +182,9 @@ of a purchase.
 Nothing of value is lost: an anonymous user cannot be signed back into by
 definition, so a player whose row is swept could never have reached it again.
 
-Run it by hand from the SQL editor, or schedule it with `pg_cron` — 0004 has the
-`cron.schedule` call commented out at the bottom, left commented because
+Run it once from the SQL editor to clear the backlog. Scheduling it is optional
+now that nothing creates new anonymous users — 0004 has a `cron.schedule` call
+commented out at the bottom if you want it anyway, left commented because
 enabling an extension is a decision about your project, not one a migration
 should make for you.
 
@@ -211,8 +221,9 @@ a checkout button. Those two decisions together have legal weight:
 
 What the code does to limit exposure, all of it deliberate:
 
-- The free game needs **no account at all**, so a younger player never has to
-  give an email to play.
+- The free game needs **no account at all**, and playing without one transmits
+  nothing whatsoever — no email, no identifier, no save. A younger player can
+  use the whole product without us holding a single field about them.
 - The only fields collected are a display name the player invents, an email,
   and a password. No age is stored server-side — `RunState.playerAge` is used
   for local gating and never transmitted (`docs/LEADERBOARD.md` §9.4). No phone,

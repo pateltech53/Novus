@@ -76,14 +76,20 @@ const pack = (
   };
 };
 
-/** Mints a brand-new anonymous identity. No email, no phone, no password. */
-export async function createAnonSession(): Promise<Session | null> {
-  if (!configured()) return null;
-  const supabase = anonClient();
-  const { data, error } = await supabase.auth.signInAnonymously();
-  if (error) return null;
-  return pack(supabase, data);
-}
+/*
+ * There is deliberately no createAnonSession() here any more.
+ *
+ * It existed to mint a throwaway identity for every visitor so their saves
+ * could sync before they committed to anything. Real accounts replaced the
+ * reason for it: an anonymous identity lives only in a cookie, so it could not
+ * be signed back into, could not reach another device, and died in exactly the
+ * case a backup exists for — while costing a permanent row about a child, for
+ * everyone who ever opened the page.
+ *
+ * A player without an account now sends nothing at all. If this ever needs to
+ * come back, note that `Session.anonymous` and the checkout refusal that reads
+ * it are still in place, because old anonymous cookies may still arrive.
+ */
 
 /**
  * What went wrong, in words a player can act on.
@@ -165,11 +171,6 @@ export async function sessionFromRequest(req: NextRequest): Promise<Session | nu
   // refreshSession stores the new access token on the client, so every
   // subsequent .from() call below carries it and RLS sees the real user.
   return pack(supabase, data);
-}
-
-/** Session from the cookie, or a fresh anonymous one if there is no valid cookie. */
-export async function sessionOrCreate(req: NextRequest): Promise<Session | null> {
-  return (await sessionFromRequest(req)) ?? (await createAnonSession());
 }
 
 export function attachSession(res: NextResponse, session: Session): NextResponse {

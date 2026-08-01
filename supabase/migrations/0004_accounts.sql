@@ -28,11 +28,14 @@
 --
 -- ═══ Why stale anonymous users have to be cleaned up ═══════════════════════
 --
--- `/api/session` mints an anonymous auth user for every visitor so their save
--- can sync before they commit to anything. That was the whole identity story
--- before this release. Now it is the WAITING ROOM: most of those users will
--- never become accounts, and each one is a row in auth.users plus a profile
--- plus whatever they played, kept forever, about a child, for no purpose.
+-- `/api/session` USED TO mint an anonymous auth user for every visitor so their
+-- save could sync before they committed to anything. That was the whole
+-- identity story before this release, and it is gone: a player without an
+-- account now sends nothing at all.
+--
+-- The rows it already made are still there, though — one auth.users row plus a
+-- profile plus whatever they played, for every visitor who ever opened the
+-- page, kept forever, about a child, for no purpose.
 --
 -- The app's own stated position (0001's header, docs/LEADERBOARD.md §9) is
 -- that the cheapest way to handle a child's personal information is not to

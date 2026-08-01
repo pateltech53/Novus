@@ -5,7 +5,14 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 import { MAX_NAME_LENGTH, loadAccount, signOut as forgetLocalAccount } from "@/lib/account";
-import { identity, requestPasswordReset, signIn, signOut, signUp } from "@/lib/cloud/auth";
+import {
+  deleteAccount,
+  identity,
+  requestPasswordReset,
+  signIn,
+  signOut,
+  signUp,
+} from "@/lib/cloud/auth";
 import { MIN_PASSWORD_LENGTH } from "@/lib/auth/credentials";
 import { loadProfile } from "@/lib/engine/save";
 import { play } from "@/lib/sound";
@@ -50,6 +57,8 @@ export function AccountGate() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  /** Second tap arms the delete. Reset by any other action. */
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const firstFieldRef = useRef<HTMLInputElement>(null);
 
@@ -103,6 +112,7 @@ export function AccountGate() {
     play("click");
     setError(null);
     setNotice(null);
+    setConfirmDelete(false);
     setMode(next);
   };
 
@@ -190,6 +200,36 @@ export function AccountGate() {
     play("click");
     setBusy(true);
     await signOut();
+    window.location.href = "/";
+  };
+
+  /**
+   * Delete the account, on the second tap.
+   *
+   * Two taps rather than a modal: the confirmation is the label changing to
+   * say what is about to happen, which is harder to click through on autopilot
+   * than a dialog with an OK button. Reloads on success for the same reason
+   * sign-out does — the device has just been emptied and every screen holding
+   * those values in memory needs to re-read them.
+   */
+  const remove = async () => {
+    if (busy) return;
+    if (!confirmDelete) {
+      play("click");
+      setError(null);
+      setNotice(null);
+      setConfirmDelete(true);
+      return;
+    }
+
+    setBusy(true);
+    const result = await deleteAccount();
+    if (!result.ok) {
+      setBusy(false);
+      setConfirmDelete(false);
+      setError(result.message ?? "Could not delete the account.");
+      return;
+    }
     window.location.href = "/";
   };
 
@@ -304,14 +344,31 @@ export function AccountGate() {
       ) : null}
 
       {mode === "signedIn" ? (
-        <button
-          type="button"
-          onClick={() => void leave()}
-          disabled={busy}
-          className="mx-auto mt-3 block text-2xs text-[var(--text-tertiary)] underline underline-offset-4"
-        >
-          Not {displayName}? Sign out on this device
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={() => void leave()}
+            disabled={busy}
+            className="mx-auto mt-3 block text-2xs text-[var(--text-tertiary)] underline underline-offset-4"
+          >
+            Not {displayName}? Sign out on this device
+          </button>
+
+          {/* The privacy policy promises deletion is real and immediate. A
+              promise whose only implementation is an email address is a slower
+              promise, so it is a button — behind one confirmation, because it
+              cannot be undone and this is a product for teenagers. */}
+          <button
+            type="button"
+            onClick={() => void remove()}
+            disabled={busy}
+            className="mx-auto mt-2 block text-2xs text-[var(--text-tertiary)] underline underline-offset-4"
+          >
+            {confirmDelete
+              ? "Tap again to permanently delete your account"
+              : "Delete my account"}
+          </button>
+        </>
       ) : mode === "signUp" ? (
         <FootLink onClick={() => go("signIn")}>
           Already have an account? Sign in

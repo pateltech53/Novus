@@ -33,12 +33,13 @@ const SECTIONS: { heading: string; body: React.ReactNode }[] = [
     body: (
       <>
         Your game plays on your device. Your camera footage never leaves it.
-        Your microphone is used to understand your words, not your voice. Your
-        progress is backed up to our server — anonymously if you have no
-        account, and under your email if you do, so it survives a new phone.
-        That is the whole of what we keep. We have no ads, no trackers, no data
-        broker, and nothing about you for sale. Novus is played by minors, and
-        we treat that as a design constraint, not a checkbox.
+        Your microphone is used to understand your words, not your voice.
+        Without an account, nothing about your game is sent to us at all. Make
+        one and we store your email and a copy of your progress, so it survives
+        a new phone — that is the whole of what we keep. We have no ads, no
+        trackers, no data broker, and nothing about you for sale. Novus is
+        played by minors, and we treat that as a design constraint, not a
+        checkbox.
       </>
     ),
   },
@@ -46,15 +47,12 @@ const SECTIONS: { heading: string; body: React.ReactNode }[] = [
     heading: "Accounts, and the choice not to have one",
     body: (
       <>
-        <strong>You can play the whole free game without an account.</strong>{" "}
-        Your companies live in your browser&rsquo;s local storage, and clearing
-        it deletes them. A backup copy is also kept on our server under a
-        random identifier held in a cookie — no email, no name attached to it,
-        and nothing we could use to work out who you are. It exists so a
-        half-finished company survives a browser hiccup. Because that
-        identifier only lives in the cookie, it dies with it: clear your
-        browser and both copies are gone for good. We delete these abandoned
-        backups automatically.
+        <strong>You can play the whole free game without an account, and if
+        you do, nothing about your game is sent to us at all.</strong>{" "}
+        No account is created for you in the background. Your companies live in
+        your browser&rsquo;s local storage, on this device, and clearing your
+        browser data deletes them — permanently, because there is no copy
+        anywhere else.
         <br />
         <br />
         If you make an account, we ask for a display name you invent, an email
@@ -125,20 +123,17 @@ const SECTIONS: { heading: string; body: React.ReactNode }[] = [
     heading: "What leaves your device",
     body: (
       <>
-        The app downloads its own files (images, sounds, the 3D models, the
-        on-device coaching models) from wherever it is hosted, like any website.
+        Without an account: nothing but the app&rsquo;s own files (images,
+        sounds, the 3D models, the on-device coaching models), downloaded from
+        wherever it is hosted, like any website. No game data, no identifier,
+        nothing about you.
         <br />
         <br />
-        Without an account: your game progress, to Supabase, under the random
-        cookie identifier described above. No email, because you have not given
-        us one.
-        <br />
-        <br />
-        With an account: the same progress, plus your email and display name —
-        and, if you buy Pro, the minimum needed to take a payment (below). That
-        is the complete list. It sends no analytics, no telemetry, and nothing
-        about you to anyone else. There are no advertising SDKs and no social
-        pixels anywhere in it.
+        With an account: your email, display name and game progress, to
+        Supabase — and, if you buy Pro, the minimum needed to take a payment
+        (below). That is the complete list. It sends no analytics, no
+        telemetry, and nothing about you to anyone else. There are no
+        advertising SDKs and no social pixels anywhere in it.
       </>
     ),
   },
