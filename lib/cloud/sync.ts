@@ -10,8 +10,8 @@ import type { Entitlements } from "@/lib/monetization";
  * ── Why localStorage does not go away ──────────────────────────────────────────
  *
  * `lib/engine/save.ts` is synchronous, and it has to stay that way. Its callers
- * read it during render — `loadProfile()?.onboarded ? "/found" : "/welcome"` in
- * AccountGate, `useState(() => loadLegacy().runsCompleted)` in ClosetScreen —
+ * read it during render — `entryRoute()` behind AccountGate's CONTINUE button
+ * (lib/entry.ts), `useState(() => loadLegacy().runsCompleted)` in ClosetScreen —
  * and there is no synchronous fetch. Making the six save functions async would
  * mean touching every screen, which is exactly what save.ts's own doc comment
  * says this migration must not do.

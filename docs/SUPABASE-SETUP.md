@@ -152,7 +152,7 @@ psql -d novus -f supabase/tests/_supabase_shim.sql \
 ### 为什么 localStorage 没有被删掉
 
 因为 `lib/engine/save.ts` 是**同步**的，而且必须保持同步。它的调用方在 render 里就要读它 ——
-`AccountGate` 的 `loadProfile()?.onboarded ? "/found" : "/welcome"`、
+`AccountGate` 里 CONTINUE 按钮背后的 `entryRoute()`（`lib/entry.ts`）、
 `ClosetScreen` 的 `useState(() => loadLegacy().runsCompleted)` —— 而世界上没有同步的 fetch。
 改成 async 就要动每一个屏幕，而这正是 save.ts 自己的注释说不要做的事。
 

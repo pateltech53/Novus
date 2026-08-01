@@ -21,7 +21,7 @@ import {
   type SubscriptionPlan,
 } from "@/lib/monetization";
 import { goToCheckout } from "@/lib/cloud/billing";
-import { loadProfile } from "@/lib/engine/save";
+import { hasSavedRun, loadProfile } from "@/lib/engine/save";
 import { loadAccount } from "@/lib/account";
 
 /**
@@ -279,9 +279,15 @@ function PricingSection() {
   const [error, setError] = useState<string | null>(null);
 
   const enter = () => {
-    // A named account with an onboarded profile skips straight to founding.
-    const dest =
-      loadAccount() && loadProfile()?.onboarded ? "/found" : "/welcome";
+    // An open company wins over everything else — buying Pro must never be the
+    // moment a player is handed a "found a new one" screen instead of the one
+    // they already have (lib/entry.ts). Below that, a named account with an
+    // onboarded profile skips straight to founding.
+    const dest = hasSavedRun()
+      ? "/play"
+      : loadAccount() && loadProfile()?.onboarded
+        ? "/found"
+        : "/welcome";
     router.push(dest);
   };
 

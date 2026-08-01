@@ -33,6 +33,7 @@ import {
 } from "@/lib/media/recorder";
 import { speak, stopSpeaking } from "@/lib/ai/speech";
 import { saveProfile, loadProfile } from "@/lib/engine/save";
+import { entryRoute } from "@/lib/entry";
 import { usePrefetch } from "@/lib/prefetch";
 
 /**
@@ -55,8 +56,10 @@ export default function WelcomePage() {
 
   useEffect(() => () => stopSpeaking(), []);
 
-  // The paperwork screen is the only place this screen leads.
-  usePrefetch("/found");
+  // The paperwork screen is where this leads for the player it is written for.
+  // Someone re-running onboarding with a company still open goes back to it
+  // instead (lib/entry.ts), so both are warmed.
+  usePrefetch("/found", "/play");
 
   const finish = useCallback(() => {
     const existing = loadProfile();
@@ -68,7 +71,9 @@ export default function WelcomePage() {
       onboarded: true,
       micCalibration: existing?.micCalibration ?? null,
     });
-    router.push("/found");
+    // Onboarding is not a reason to lose a company. Someone who walks back
+    // through these steps with a run in progress is returned to it.
+    router.push(entryRoute());
   }, [name, age, router]);
 
   // AnimatePresence mode="wait" takes exactly ONE child. Rendering conditional
