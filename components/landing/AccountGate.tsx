@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -59,8 +59,22 @@ export function AccountGate() {
   const [notice, setNotice] = useState<string | null>(null);
   /** Second tap arms the delete. Reset by any other action. */
   const [confirmDelete, setConfirmDelete] = useState(false);
+  /** Reveal the password. Off by default; resets whenever the mode changes. */
+  const [showPassword, setShowPassword] = useState(false);
 
   const firstFieldRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  /*
+   * Field ids have to be unique per instance, and this component is rendered
+   * TWICE on the landing page — once in the hero, once above the footer. With
+   * hard-coded ids both copies claimed the same three, which is invalid HTML
+   * and breaks the thing labels exist for: tapping "EMAIL" on the footer form
+   * moved focus to the hero form, hundreds of pixels up the page. useId gives
+   * each instance its own set.
+   */
+  const uid = useId();
+  const fieldId = (name: string) => `${uid}-${name}`;
 
   // localStorage is unreachable during SSR; hydrate the real state after
   // mount. The default (create) is also the most common first visit.
@@ -101,7 +115,23 @@ export function AccountGate() {
   }, []);
 
   useEffect(() => {
-    if (mode === "signUp" || mode === "signIn") firstFieldRef.current?.focus();
+    if (mode !== "signUp" && mode !== "signIn") return;
+
+    /*
+     * Bring the form to the player.
+     *
+     * This component lives partway down a tall landing page, and on a phone
+     * the button that opens it is often the only part on screen. Expanding
+     * three fields and a button below the fold meant tapping CREATE ACCOUNT
+     * appeared to do nothing until you scrolled.
+     *
+     * Focus first — the focus itself scrolls, and on iOS raises the keyboard,
+     * which changes the viewport; scrolling after that lands in the right
+     * place rather than fighting it. `block: "center"` leaves the fields above
+     * the keyboard instead of behind it.
+     */
+    firstFieldRef.current?.focus({ preventScroll: true });
+    formRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
   }, [mode]);
 
   /** Where a signed-in player goes: onboarding once, then straight to
@@ -113,6 +143,7 @@ export function AccountGate() {
     setError(null);
     setNotice(null);
     setConfirmDelete(false);
+    setShowPassword(false);
     setMode(next);
   };
 
@@ -237,7 +268,8 @@ export function AccountGate() {
     <div className="w-full">
       {(mode === "signUp" || mode === "signIn") && (
         <form
-          className="mb-4"
+          ref={formRef}
+          className="mb-1"
           onSubmit={(e) => {
             e.preventDefault();
             void (mode === "signUp" ? submitSignUp() : submitSignIn());
@@ -245,54 +277,72 @@ export function AccountGate() {
         >
           {mode === "signUp" && (
             <Field
-              id="display-name"
+              id={fieldId("name")}
               inputRef={firstFieldRef}
               label="YOUR NAME"
               value={name}
               onChange={(v) => setName(v.slice(0, MAX_NAME_LENGTH))}
               placeholder="Your name"
               autoComplete="nickname"
+              enterKeyHint="next"
               hero
             />
           )}
 
           <Field
-            id="account-email"
+            id={fieldId("email")}
             inputRef={mode === "signIn" ? firstFieldRef : undefined}
             label="EMAIL"
             value={email}
             onChange={setEmail}
             placeholder="you@example.com"
             type="email"
+            inputMode="email"
+            enterKeyHint="next"
             autoComplete="email"
             className={mode === "signUp" ? "mt-5" : undefined}
           />
 
           <Field
-            id="account-password"
+            id={fieldId("password")}
             label="PASSWORD"
             value={password}
             onChange={setPassword}
             placeholder={mode === "signUp" ? `${MIN_PASSWORD_LENGTH} characters or more` : "Your password"}
-            type="password"
+            type={showPassword ? "text" : "password"}
             autoComplete={mode === "signUp" ? "new-password" : "current-password"}
+            enterKeyHint={mode === "signUp" ? "done" : "go"}
             className="mt-5"
           />
 
+          {/* A reveal, because the alternative is a teenager typing eight or
+              more characters blind on a phone keyboard and being told the
+              password is wrong with no way to see why. Defaults to hidden and
+              resets on every mode change, so it cannot be left on. */}
+          <FootLink onClick={() => setShowPassword((v) => !v)}>
+            {showPassword ? "Hide password" : "Show password"}
+          </FootLink>
+
           {mode === "signUp" && (
-            <label className="mx-auto mt-5 flex max-w-[21rem] cursor-pointer items-start gap-2.5 text-left">
+            <label
+              style={{ touchAction: "manipulation" }}
+              className="mx-auto mt-5 flex max-w-[21rem] cursor-pointer items-start gap-2.5 py-2 text-left"
+            >
               <input
                 type="checkbox"
                 checked={agreed}
                 onChange={(e) => setAgreed(e.target.checked)}
-                className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--action)]"
+                // 20px rather than 16px, and the whole label row is the target.
+                className="mt-px h-5 w-5 shrink-0 accent-[var(--action)]"
               />
               <span className="text-2xs leading-relaxed text-[var(--text-secondary)]">
                 I&rsquo;ve read the{" "}
                 <Link
                   href="/privacy"
                   target="_blank"
-                  className="font-bold underline underline-offset-2"
+                  // inline-block + py gives the link a real hit area without
+                  // breaking the sentence it sits inside.
+                  className="inline-block py-1.5 font-bold underline underline-offset-2"
                 >
                   privacy policy
                 </Link>{" "}
@@ -303,9 +353,26 @@ export function AccountGate() {
             </label>
           )}
 
-          {/* Submit lives outside the form's visible buttons below, but a
-              hidden one keeps Enter working in every browser. */}
-          <button type="submit" className="hidden" tabIndex={-1} aria-hidden />
+          {/* The real submit, INSIDE the form.
+              It used to sit outside with a hidden <button type="submit"> to
+              keep Enter working. That works, but password managers look for a
+              submit control within the form to decide whether they have just
+              seen a login — so an offer to save the password never appeared,
+              on the one screen where saving it matters most. */}
+          <div className="mt-6">
+            <GateButton
+              type="submit"
+              disabled={(mode === "signUp" ? !canSignUp : !canSignIn) || busy}
+            >
+              {busy
+                ? mode === "signUp"
+                  ? "CREATING…"
+                  : "SIGNING IN…"
+                : mode === "signUp"
+                  ? "CREATE ACCOUNT"
+                  : "SIGN IN"}
+            </GateButton>
+          </div>
         </form>
       )}
 
@@ -313,17 +380,9 @@ export function AccountGate() {
         <GateButton onClick={() => router.push(destination())}>
           CONTINUE AS {displayName.toUpperCase()}
         </GateButton>
-      ) : mode === "signUp" ? (
-        <GateButton onClick={() => void submitSignUp()} disabled={!canSignUp || busy}>
-          {busy ? "CREATING…" : "CREATE ACCOUNT"}
-        </GateButton>
-      ) : mode === "signIn" ? (
-        <GateButton onClick={() => void submitSignIn()} disabled={!canSignIn || busy}>
-          {busy ? "SIGNING IN…" : "SIGN IN"}
-        </GateButton>
-      ) : (
+      ) : mode === "create" ? (
         <GateButton onClick={() => go("signUp")}>CREATE ACCOUNT</GateButton>
-      )}
+      ) : null}
 
       {error ? (
         <p
@@ -345,29 +404,19 @@ export function AccountGate() {
 
       {mode === "signedIn" ? (
         <>
-          <button
-            type="button"
-            onClick={() => void leave()}
-            disabled={busy}
-            className="mx-auto mt-3 block text-2xs text-[var(--text-tertiary)] underline underline-offset-4"
-          >
+          <FootLink onClick={() => void leave()} disabled={busy}>
             Not {displayName}? Sign out on this device
-          </button>
+          </FootLink>
 
           {/* The privacy policy promises deletion is real and immediate. A
               promise whose only implementation is an email address is a slower
               promise, so it is a button — behind one confirmation, because it
               cannot be undone and this is a product for teenagers. */}
-          <button
-            type="button"
-            onClick={() => void remove()}
-            disabled={busy}
-            className="mx-auto mt-2 block text-2xs text-[var(--text-tertiary)] underline underline-offset-4"
-          >
+          <FootLink onClick={() => void remove()} disabled={busy}>
             {confirmDelete
               ? "Tap again to permanently delete your account"
               : "Delete my account"}
-          </button>
+          </FootLink>
         </>
       ) : mode === "signUp" ? (
         <FootLink onClick={() => go("signIn")}>
@@ -413,6 +462,8 @@ function Field({
   placeholder,
   type = "text",
   autoComplete,
+  inputMode,
+  enterKeyHint,
   inputRef,
   hero,
   className,
@@ -424,6 +475,10 @@ function Field({
   placeholder: string;
   type?: string;
   autoComplete?: string;
+  /** Which soft keyboard to raise. `email` puts @ and . on the front row. */
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  /** What the phone's return key says: Next through the form, Go to submit. */
+  enterKeyHint?: React.HTMLAttributes<HTMLInputElement>["enterKeyHint"];
   inputRef?: React.RefObject<HTMLInputElement | null>;
   hero?: boolean;
   className?: string;
@@ -444,6 +499,8 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         autoComplete={autoComplete}
+        inputMode={inputMode}
+        enterKeyHint={enterKeyHint}
         autoCapitalize="none"
         spellCheck={false}
         className={`mx-auto mt-3 block w-full max-w-[16rem] border-0 border-b-2 border-[var(--hairline)] bg-transparent pb-2 text-center font-extrabold leading-tight tracking-[-0.02em] text-[var(--n-11)] transition-colors focus:border-[var(--n-11)] focus-visible:outline-none! placeholder:font-bold placeholder:text-[var(--n-6)] ${
@@ -454,18 +511,32 @@ function Field({
   );
 }
 
+/**
+ * The secondary actions under the button — switch mode, forgot password, sign
+ * out, delete.
+ *
+ * The vertical padding is doing real work. As bare 12px text these were 14–18px
+ * tall, which is a miss-target on a phone held one-handed, and this app is used
+ * by children on shared school hardware. `min-h-11` is 44px — the smallest
+ * thing Apple's HIG considers reliably tappable — while `py-3` keeps the hit
+ * area centred on the label. The text is unchanged; only what you can hit is.
+ */
 function FootLink({
   children,
   onClick,
+  disabled,
 }: {
   children: React.ReactNode;
   onClick: () => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="mx-auto mt-3 block text-2xs text-[var(--text-tertiary)] underline underline-offset-4"
+      disabled={disabled}
+      style={{ touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
+      className="mx-auto flex min-h-11 w-full items-center justify-center px-2 py-3 text-center text-2xs text-[var(--text-tertiary)] underline underline-offset-4 disabled:opacity-50"
     >
       {children}
     </button>
@@ -481,16 +552,23 @@ function GateButton({
   children,
   onClick,
   disabled,
+  type = "button",
 }: {
   children: React.ReactNode;
-  onClick: () => void;
+  onClick?: () => void;
   disabled?: boolean;
+  type?: "button" | "submit";
 }) {
   return (
     <button
-      type="button"
+      type={type}
       onClick={onClick}
       disabled={disabled}
+      // touch-action: manipulation kills the 300ms double-tap-zoom delay, and
+      // the tap highlight is suppressed on the element rather than globally —
+      // design.md §6, which is explicit that doing it globally breaks text
+      // selection.
+      style={{ touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
       className="block h-14 w-full truncate rounded-[var(--radius-pill)] bg-[var(--action)] px-6 text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--on-action)] shadow-[var(--e3)] transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-35"
     >
       {children}

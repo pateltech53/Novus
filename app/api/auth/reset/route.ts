@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { checkEmail, normaliseEmail } from "@/lib/auth/credentials";
 import { SUPABASE_ANON_KEY, SUPABASE_URL, configured } from "@/lib/supabase/config";
 import { SITE_URL } from "@/lib/stripe/config";
+import { LIMITS, THROTTLED_MESSAGE, callerKey, emailKey, throttle } from "@/lib/auth/throttle";
 import { createClient } from "@supabase/supabase-js";
 import { crossSite } from "@/lib/supabase/route";
 
@@ -64,6 +65,23 @@ export async function POST(req: NextRequest) {
   // player's typo, not a fact about who has an account.
   if (checkEmail(email)) {
     return NextResponse.json({ error: "That does not look like an email address." }, { status: 400 });
+  }
+
+  // This route makes us send mail to an address a stranger typed. Unthrottled
+  // it is a mail bomber pointed at anyone, and a way to burn the project's
+  // email quota until real resets stop arriving.
+  const limited = await throttle([
+    { bucket: "reset:ip", key: callerKey(req), limit: LIMITS.resetPerIp },
+    { bucket: "reset:email", key: emailKey(email), limit: LIMITS.resetPerEmail, windowMinutes: 60 },
+  ]);
+  if (!limited.allowed) {
+    // Same shape as the success answer on purpose — see the note above about
+    // never revealing whether an address has an account. A distinct 429 here
+    // would say "this address is worth rate limiting", which is a tell.
+    return NextResponse.json({
+      sent: true,
+      message: "If that email has an account, a reset link is on its way.",
+    });
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {

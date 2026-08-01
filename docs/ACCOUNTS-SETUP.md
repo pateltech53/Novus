@@ -13,11 +13,12 @@ purchase to attach to**.
 
 ## 1. The SQL to run
 
-Two migrations, in order, in the Supabase SQL editor:
+Three migrations, in order, in the Supabase SQL editor:
 
 ```
-supabase/migrations/0003_billing.sql     ← if you have not run it yet
+supabase/migrations/0003_billing.sql        ← if you have not run it yet
 supabase/migrations/0004_accounts.sql
+supabase/migrations/0005_auth_throttle.sql
 ```
 
 **Accounts themselves need no new tables and no new columns.** That is worth
@@ -35,7 +36,8 @@ saying plainly, because it is the sort of thing that looks like an omission:
   schema change because the schema never tied them to a device.
 
 So `0004` contains one thing: a sweep that deletes abandoned anonymous users
-(see §5). Everything else about accounts is Supabase configuration and app code.
+(see §5). `0005` is the rate limiter that stops bulk sign-ups (see §6).
+Everything else about accounts is Supabase configuration and app code.
 
 To check the migrations before trusting them, against a plain local Postgres:
 
@@ -46,7 +48,9 @@ psql -d novus -f supabase/tests/_supabase_shim.sql \
               -f supabase/migrations/0002_leaderboard.sql \
               -f supabase/migrations/0003_billing.sql \
               -f supabase/migrations/0004_accounts.sql \
-              -f supabase/tests/accounts_test.sql
+              -f supabase/migrations/0005_auth_throttle.sql \
+              -f supabase/tests/accounts_test.sql \
+              -f supabase/tests/throttle_test.sql
 ```
 
 Section 1 is supposed to print a permission error — that is the assertion that
@@ -190,7 +194,52 @@ should make for you.
 
 ---
 
-## 6. What is NOT built
+## 6. Bulk sign-up protection
+
+Supabase rate-limits auth by IP. Novus never lets the browser talk to Supabase,
+so Supabase sees **one** address for every player in the world: ours. Its
+per-IP limit therefore protects nothing here, and without a replacement a
+script could open accounts as fast as it could post.
+
+`0005` is the replacement. The counter lives in Postgres because the app runs
+serverless — an in-process counter is per-instance, resets on every cold start,
+and three instances would mean three times the limit.
+
+| Bucket | Limit | Window |
+|---|---|---|
+| `signup:ip` | 5 | 15 min |
+| `signin:ip` | 30 | 15 min |
+| `signin:email` | 10 | 15 min |
+| `reset:ip` | 5 | 15 min |
+| `reset:email` | 3 | 60 min |
+
+Five sign-ups per address per fifteen minutes is far above what a real person
+does — a family behind one router, a teacher setting up alongside a class — and
+far below what makes bulk creation worth automating. The two sign-in buckets
+cover different attacks: per-address stops one machine grinding a word list,
+per-account stops a distributed attempt on one player, which is what credential
+stuffing actually looks like.
+
+**No IP address is stored.** 0001's header forbids putting one in this schema
+(§9.6), and rate limiting is exactly the feature that wants to. What reaches the
+database is an HMAC of the address under a server-only secret, truncated —
+opaque, unreversible without the secret, lossy even with it, and deleted when
+its window closes. That is a real trade rather than a clean win, and
+`0005`'s header states it so the next person weighs the same thing.
+
+**It needs `SUPABASE_SERVICE_ROLE_KEY`.** Without it there is no admin client
+and no HMAC secret, so nothing can be counted and the throttle allows
+everything. That is the local-development case; a deploy missing that variable
+has **no rate limiting at all**, which is said here plainly because a
+protection you have to be told about is worth more than one you assume.
+
+Optional: schedule `select public.prune_auth_throttle();` with `pg_cron` to
+clear closed windows. The table stays small without it, but old rows are
+retained data.
+
+---
+
+## 7. What is NOT built
 
 - **Changing your email.** There is no route for it. It needs the same
   verification dance as anonymous conversion, and doing it badly means locking
@@ -204,7 +253,7 @@ should make for you.
 
 ---
 
-## 7. Minors, honestly
+## 8. Minors, honestly
 
 This is the part to read before launch, not after.
 

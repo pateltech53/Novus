@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { normaliseEmail } from "@/lib/auth/credentials";
+import { LIMITS, THROTTLED_MESSAGE, callerKey, emailKey, throttle } from "@/lib/auth/throttle";
 import { configured } from "@/lib/supabase/config";
 import { crossSite, attachSession, signInWithPassword } from "@/lib/supabase/route";
 
@@ -59,7 +60,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Enter your email and password." }, { status: 400 });
   }
 
-  const { session, failure } = await signInWithPassword(normaliseEmail(body.email), body.password);
+  // Two buckets. Per-address stops one machine grinding through a word list;
+  // per-account stops a distributed attempt on ONE player, which is what
+  // credential stuffing actually looks like and what an address limit misses.
+  const target = normaliseEmail(body.email);
+  const limited = await throttle([
+    { bucket: "signin:ip", key: callerKey(req), limit: LIMITS.signinPerIp },
+    { bucket: "signin:email", key: emailKey(target), limit: LIMITS.signinPerEmail },
+  ]);
+  if (!limited.allowed) {
+    return NextResponse.json({ error: THROTTLED_MESSAGE, throttled: true }, { status: 429 });
+  }
+
+  const { session, failure } = await signInWithPassword(target, body.password);
 
   if (failure || !session) {
     return NextResponse.json(

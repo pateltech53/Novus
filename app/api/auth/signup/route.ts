@@ -5,6 +5,7 @@ import {
   checkCredentials,
   normaliseEmail,
 } from "@/lib/auth/credentials";
+import { LIMITS, THROTTLED_MESSAGE, callerKey, throttle } from "@/lib/auth/throttle";
 import { configured } from "@/lib/supabase/config";
 import { crossSite, attachSession, signUpWithPassword } from "@/lib/supabase/route";
 
@@ -75,6 +76,15 @@ export async function POST(req: NextRequest) {
   const problem = checkCredentials(email, body.password);
   if (problem) {
     return NextResponse.json({ error: CREDENTIAL_MESSAGE[problem] }, { status: 400 });
+  }
+
+  // Spent BEFORE Supabase is called, so a flood costs us one cheap upsert per
+  // request instead of an account-creation round trip each.
+  const limited = await throttle([
+    { bucket: "signup:ip", key: callerKey(req), limit: LIMITS.signupPerIp },
+  ]);
+  if (!limited.allowed) {
+    return NextResponse.json({ error: THROTTLED_MESSAGE, throttled: true }, { status: 429 });
   }
 
   const { session, failure } = await signUpWithPassword(email, body.password);
