@@ -39,15 +39,29 @@ export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/+$/,
 export const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 
 /**
+ * Which of the four required variables are unset.
+ *
+ * NAMES only, never values. The names are already public — they are listed in
+ * .env.example in the repository — so this leaks nothing an attacker could not
+ * read there, while turning "configured: false" from a dead end into an
+ * instruction. Without it the only way to find the missing one is to guess,
+ * which is exactly what happened the first time this was set up.
+ */
+export function missingBillingConfig(): string[] {
+  const missing: string[] = [];
+  if (!STRIPE_SECRET_KEY) missing.push("STRIPE_SECRET_KEY");
+  if (!STRIPE_WEBHOOK_SECRET) missing.push("STRIPE_WEBHOOK_SECRET");
+  if (!SUPABASE_SERVICE_ROLE_KEY) missing.push("SUPABASE_SERVICE_ROLE_KEY");
+  if (!SITE_URL) missing.push("NEXT_PUBLIC_SITE_URL");
+  return missing;
+}
+
+/**
  * Every piece has to be present. Half-configured billing is worse than none:
  * a checkout that completes against a webhook secret we do not hold takes the
  * player's money and never grants the thing they bought.
  */
-export const billingConfigured = (): boolean =>
-  STRIPE_SECRET_KEY.length > 0 &&
-  STRIPE_WEBHOOK_SECRET.length > 0 &&
-  SUPABASE_SERVICE_ROLE_KEY.length > 0 &&
-  SITE_URL.length > 0;
+export const billingConfigured = (): boolean => missingBillingConfig().length === 0;
 
 /**
  * Test keys are `sk_test_…`, live keys are `sk_live_…`. Surfaced so the setup
