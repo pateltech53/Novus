@@ -62,15 +62,22 @@ All four in **USD** — every price in `lib/monetization.ts` is USD, and checkou
 refuses a price in another currency rather than showing a player a converted
 number the pricing screen never claimed.
 
-### Products vs prices
+### Products vs prices — either id works
 
 A product (`prod_…`) is the thing being sold. A price (`price_…`) is what it
 costs, and one product can carry several — that is how Stripe models "same
 product, monthly or yearly".
 
-**The env vars take the `price_…` id, not the `prod_…` id.** After creating a
-product, open it and copy the id from the pricing row; it starts with `price_`.
-A `prod_` id in these variables fails at the first checkout.
+Checkout needs the price, but **the env vars accept either**. Give a product id
+and it is resolved to that product's price: `default_price` if set, otherwise
+its single active price. So you can paste the id the dashboard shows you right
+after creating a product, without hunting for a second one.
+
+The exception is a product with two or more active prices. That is ambiguous —
+it is exactly the shape where guessing charges someone the wrong cadence — so
+the app refuses and lists the candidates. Name the `price_…` id in that case.
+
+Every SKU Novus sells has one price, so in practice product ids are fine.
 
 ### One Industry Pack product for twelve industries
 
@@ -96,8 +103,13 @@ accurate — they are just not checkout buttons yet.
 Before opening any checkout the app fetches the price from Stripe and compares
 it to `lib/monetization.ts`: amount, currency, one-off vs recurring, and the
 billing interval. A mismatch is a refusal, not a warning. So pasting the
-monthly price id into `STRIPE_PRICE_PRO_YEARLY` fails loudly instead of
-charging $39.99 every month to someone who was shown a yearly figure.
+monthly id into `STRIPE_PRICE_PRO_YEARLY` fails loudly instead of charging
+$39.99 every month to someone who was shown a yearly figure.
+
+This is also what makes accepting product ids safe. Resolution on its own would
+be a footgun — "whichever price this product happens to have" is not something
+to charge a card on — but every resolved price still has to survive the check
+above. See `lib/stripe/prices.ts`.
 
 ---
 
@@ -179,10 +191,18 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
-STRIPE_PRICE_PRO_MONTHLY=price_...
-STRIPE_PRICE_PRO_YEARLY=price_...
-STRIPE_PRICE_INDUSTRY_PACK=price_...
-STRIPE_PRICE_EXTRA_RUN_SLOT=price_...
+# price_… or prod_… — both accepted, see §2
+STRIPE_PRICE_PRO_MONTHLY=prod_...
+STRIPE_PRICE_PRO_YEARLY=prod_...
+STRIPE_PRICE_INDUSTRY_PACK=prod_...
+STRIPE_PRICE_EXTRA_RUN_SLOT=prod_...
+```
+
+`scripts/stripe-prices.mjs` prints that block filled in from your account, and
+checks every amount against the pricing screens before you paste it:
+
+```sh
+STRIPE_SECRET_KEY=sk_test_... node scripts/stripe-prices.mjs
 ```
 
 Billing is all-or-nothing: unless the first four are all present,

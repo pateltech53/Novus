@@ -4,6 +4,7 @@ import { adminClient } from "@/lib/supabase/admin";
 import { attachSession, sessionOrCreate, type Session } from "@/lib/supabase/route";
 import { CATALOGUE, isSellableIndustry, isSkuId, priceIdFor, type Sku } from "@/lib/stripe/catalogue";
 import { stripe } from "@/lib/stripe/client";
+import { resolvePrice } from "@/lib/stripe/prices";
 import { SITE_URL, billingConfigured } from "@/lib/stripe/config";
 
 export const runtime = "nodejs";
@@ -20,12 +21,14 @@ export const dynamic = "force-dynamic";
  *
  * ── What this route refuses to do ──────────────────────────────────────────
  *
- * · **Sell at a price the app does not display.** The price id is an env var
+ * · **Sell at a price the app does not display.** The price is configuration
  *   and the amount is in lib/monetization.ts, and nothing keeps the two
- *   honest. So before opening checkout it fetches the price and compares. A
- *   mismatch is a 500 with the two numbers in it, because the alternative is
- *   charging a player something other than the number on the screen they
- *   tapped.
+ *   honest. So before opening checkout it fetches the price and compares
+ *   amount, currency and cadence — see lib/stripe/prices.ts. A mismatch is a
+ *   500 with both numbers in it, because the alternative is charging a player
+ *   something other than the number on the screen they tapped. That check is
+ *   also what makes it safe for the env vars to accept a product id (prod_…)
+ *   as well as a price id: a wrong id fails loudly instead of charging.
  * · **Sell something the player already owns.** Buying TECH twice is a charge
  *   for nothing; the array in `entitlements` would swallow the duplicate.
  * · **Take a price id from the client.** The body names a SKU from a closed
@@ -66,8 +69,7 @@ export async function POST(req: NextRequest) {
   if (!isSkuId(body.sku)) return bad("unknown sku");
   const sku = CATALOGUE[body.sku];
 
-  const priceId = priceIdFor(sku);
-  if (!priceId) return bad(`${sku.envVar} is not set`, 501);
+  if (!priceIdFor(sku)) return bad(`${sku.envVar} is not set`, 501);
 
   // An industry pack without an industry is a $2.99 charge for nothing, and a
   // free industry is a charge for something already owned. Both are checked
@@ -94,8 +96,11 @@ export async function POST(req: NextRequest) {
   const owned = await alreadyOwns(db, session.userId, sku, industry);
   if (owned) return bad(owned, 409);
 
-  const mismatch = await priceMismatch(sku, priceId);
-  if (mismatch) return bad(mismatch, 500);
+  // Accepts either a price id or a product id, and refuses outright if the
+  // amount, currency or cadence disagrees with the pricing screens.
+  const resolved = await resolvePrice(sku);
+  if (!resolved.ok) return bad(resolved.reason, 500);
+  const priceId = resolved.priceId;
 
   let customer: string;
   try {
@@ -146,50 +151,6 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return bad(`stripe: ${(e as Error).message}`, 502);
   }
-}
-
-/**
- * The refusal that keeps the screen and the charge in agreement.
- *
- * Also checks currency and recurrence, because a monthly price id pasted into
- * STRIPE_PRICE_PRO_YEARLY charges $39.99 every month to a player who was shown
- * a yearly figure — same amount, wrong promise, and no amount comparison would
- * catch it.
- */
-async function priceMismatch(sku: Sku, priceId: string): Promise<string | null> {
-  let price;
-  try {
-    price = await stripe().prices.retrieve(priceId);
-  } catch (e) {
-    return `${sku.envVar}=${priceId} could not be read from Stripe: ${(e as Error).message}`;
-  }
-
-  if (!price.active) return `${sku.envVar}=${priceId} is archived in Stripe`;
-
-  if (price.unit_amount !== sku.expectedCents) {
-    return (
-      `${sku.envVar}=${priceId} costs ${price.unit_amount} cents but the app ` +
-      `displays ${sku.expectedCents} — refusing to charge a price the player was not shown`
-    );
-  }
-
-  if (price.currency !== "usd") {
-    return `${sku.envVar}=${priceId} is in ${price.currency}; every price in lib/monetization.ts is USD`;
-  }
-
-  const wantRecurring = sku.kind === "subscription";
-  if (wantRecurring !== !!price.recurring) {
-    return `${sku.envVar}=${priceId} is ${price.recurring ? "recurring" : "one-time"} but ${sku.id} is not`;
-  }
-
-  if (price.recurring) {
-    const want = sku.id === "pro_monthly" ? "month" : "year";
-    if (price.recurring.interval !== want || price.recurring.interval_count !== 1) {
-      return `${sku.envVar}=${priceId} bills every ${price.recurring.interval_count} ${price.recurring.interval}, expected 1 ${want}`;
-    }
-  }
-
-  return null;
 }
 
 /** A refusal string when the player already has the thing, else null. */

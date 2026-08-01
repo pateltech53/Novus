@@ -3,11 +3,12 @@
  * Resolve Stripe PRODUCT ids to the PRICE ids the app actually needs, and
  * check every amount against lib/monetization.ts.
  *
- * This exists because `prod_…` and `price_…` are easy to confuse and the
- * dashboard shows the product id most prominently. A product is the thing; a
- * price is what it costs, and one product can carry several. The env vars take
- * the price. Pasting a `prod_` id into them fails at the first checkout, which
- * is a bad place to find out.
+ * The env vars accept either form — a product id is resolved to its price at
+ * checkout (lib/stripe/prices.ts). This script exists anyway, for two reasons:
+ * it emits the unambiguous price id, which cannot break later if a product
+ * gains a second price; and it checks every amount against the pricing screens
+ * up front, rather than letting the first real checkout be where a mismatched
+ * price is discovered.
  *
  * Read-only: it lists, it never creates or modifies anything in your account.
  *
@@ -140,6 +141,9 @@ for (const want of EXPECTED) {
   if (hits.length === 1) {
     console.log(`  ✓ ${want.env}`);
     console.log(`      ${want.what} — ${describe(hits[0])}`);
+    // The price id, not the product id. Both are accepted by the app, but the
+    // price is the unambiguous one — a product that later gains a second price
+    // becomes a refusal, and this file is pasted once and forgotten.
     env.push(`${want.env}=${hits[0].id}`);
   } else if (hits.length === 0) {
     problems++;
