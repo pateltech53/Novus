@@ -9,7 +9,8 @@ import type { Gender } from "@/lib/engine/avatar";
 import { INDUSTRIES } from "@/lib/engine/constants";
 import type { Industry } from "@/lib/engine/types";
 import { loadProfile } from "@/lib/engine/save";
-import { loadEntitlements, runsRemainingToday } from "@/lib/monetization";
+import { isPro, loadEntitlements, onEntitlementsChange, runsRemainingToday } from "@/lib/monetization";
+import { useUpgrade } from "@/components/upgrade/UpgradeProvider";
 import { usePrefetch } from "@/lib/prefetch";
 
 export default function FoundPageWrapper() {
@@ -41,6 +42,7 @@ export default function FoundPageWrapper() {
 function FoundPage() {
   const router = useRouter();
   const game = useGame();
+  const upgrade = useUpgrade();
   const saved = game.run;
   const [companyName, setCompanyName] = useState("");
   const [industry, setIndustry] = useState<Industry>("FOOD");
@@ -70,10 +72,26 @@ function FoundPage() {
    * itself 400ms in, and the name you chose is simply gone.
    */
   const [profile, setProfile] = useState<ReturnType<typeof loadProfile>>(null);
+  /*
+   * The entitlement half re-reads on every write, not only at mount. Buying Pro
+   * from the upgrade screen happens without leaving this page, and reading once
+   * meant the grid the player was staring at kept its locks and FOUND IT stayed
+   * disabled — the purchase looked like it had failed. The profile stays a
+   * one-shot read: a purchase does not rename anybody.
+   *
+   * `isPro` rather than the raw `pro` flag, to match `industryUnlocked()` in
+   * lib/monetization.ts: a chapter seat is Pro for the year, and reading the
+   * flag directly locked every paid industry for a classroom that had paid for
+   * all of them.
+   */
   useEffect(() => {
-    setSlotsLeft(runsRemainingToday());
-    setHasPro(loadEntitlements().pro);
+    const sync = () => {
+      setSlotsLeft(runsRemainingToday());
+      setHasPro(isPro(loadEntitlements()));
+    };
+    sync();
     setProfile(loadProfile());
+    return onEntitlementsChange(sync);
   }, []);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -227,11 +245,19 @@ function FoundPage() {
             <li key={ind.code}>
               <button
                 type="button"
-                onClick={() =>
-                  ind.free || hasPro
-                    ? (setIndustry(ind.code), setLockedNote(null))
-                    : setLockedNote(ind.name)
-                }
+                onClick={() => {
+                  if (ind.free || hasPro) {
+                    setIndustry(ind.code);
+                    setLockedNote(null);
+                    return;
+                  }
+                  // Both, and they do different jobs. The notification explains
+                  // the limit once per session and offers the screen; the note
+                  // below names THIS industry and stays put, so the second tap
+                  // on a second locked card is still answered by something.
+                  setLockedNote(ind.name);
+                  upgrade.notify("industries");
+                }}
                 className={`flex w-full items-center justify-between gap-2 rounded-[var(--radius-card)] border px-3 py-3 text-left transition-colors duration-150 ${
                   selected
                     ? "border-[var(--text-primary)] bg-[var(--surface-elevated)] font-bold"
@@ -249,13 +275,21 @@ function FoundPage() {
       </ul>
 
       {lockedNote && (
-        <motion.p
-          className="mt-3 text-xs leading-relaxed text-[var(--text-tertiary)]"
+        <motion.button
+          type="button"
+          onClick={() => upgrade.open("industries")}
+          className="mt-3 block text-left text-xs leading-relaxed text-[var(--text-secondary)]"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
-          This industry requires Pro.
-        </motion.p>
+          {lockedNote} is one of the eight Pro industries.{" "}
+          {/* `nowrap`: §7 forbids clickable text breaking across two lines, and
+              the sentence in front of it is long enough to push this over the
+              edge at 320px. The sentence still wraps; the label cannot. */}
+          <span className="whitespace-nowrap font-bold text-[var(--color-prestige)] underline underline-offset-4">
+            See what Pro adds
+          </span>
+        </motion.button>
       )}
 
       {profile?.onboarded && (
@@ -321,10 +355,28 @@ function FoundPage() {
               yours — continue it above, or found another tomorrow.
             </p>
           ) : (
-            <p className="mt-2 text-center text-2xs leading-snug text-[var(--text-tertiary)]">
+            /*
+             * The one place in the app where free stops a player from playing
+             * at all rather than from playing wider, so the way out is a
+             * control rather than a line of grey text under a disabled button.
+             *
+             * Only on an empty device. The branch above has a company sitting
+             * in storage, and there the honest next step is continuing it —
+             * selling Pro to someone who already has somewhere to go would be
+             * the upsell talking over the answer.
+             */
+            <button
+              type="button"
+              onClick={() => upgrade.open("run_slots")}
+              className="mt-2 block w-full text-center text-2xs leading-snug text-[var(--text-secondary)]"
+            >
               One company a day on the free plan, and a dead one stays dead.
-              Tomorrow, or Pro.
-            </p>
+              Tomorrow, or{" "}
+              <span className="whitespace-nowrap font-bold text-[var(--color-prestige)] underline underline-offset-4">
+                three a day with Pro
+              </span>
+              .
+            </button>
           ))}
       </div>
     </main>

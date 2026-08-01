@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useGame } from "@/lib/state/GameProvider";
 import { FounderPortrait } from "@/components/FounderAvatar";
@@ -25,7 +25,8 @@ import {
 import { STAGE_NAME, STAGE_REVENUE_FLOOR } from "@/lib/engine/constants";
 import { fmtMoney } from "@/lib/engine/format";
 import { loadLegacy } from "@/lib/engine/save";
-import { isPro, loadEntitlements } from "@/lib/monetization";
+import { isPro, loadEntitlements, onEntitlementsChange } from "@/lib/monetization";
+import { useUpgrade } from "@/components/upgrade/UpgradeProvider";
 import type { StageNum } from "@/lib/engine/types";
 
 /** The panel only has room for so much name before it stops being a name. */
@@ -85,11 +86,22 @@ export function ClosetScreen({
   onChange: (next: AvatarConfig) => void;
 }) {
   const { run } = useGame();
+  const upgrade = useUpgrade();
   const [name, setName] = useState(run?.avatar.name ?? "");
   // Read once on open. This screen only mounts client-side (behind a tap), so
   // the storage reads are safe, and nothing else writes these while it is up.
   const [runsFinished] = useState(() => loadLegacy().runsCompleted);
-  const [proActive] = useState(() => isPro(loadEntitlements()));
+  /*
+   * Pro is the one value on this screen that another surface can change while
+   * it is open: the upgrade screen opens straight from the wardrobe track, and
+   * read-once meant a player bought Pro, landed back on six greyscale portraits
+   * and had to close the closet to see what they had paid for.
+   */
+  const [proActive, setProActive] = useState(() => isPro(loadEntitlements()));
+  useEffect(
+    () => onEntitlementsChange(() => setProActive(isPro(loadEntitlements()))),
+    [],
+  );
   const [equipped, setEquipped] = useState<SkinId | null>(() => loadWardrobe().equipped);
 
   if (!run) return null;
@@ -403,9 +415,25 @@ export function ClosetScreen({
                   >
                     {worn ? "EQUIPPED" : "EQUIP"}
                   </button>
+                ) : p.earned ? (
+                  /*
+                   * The sharpest gate in the app, so it gets the one live
+                   * control: this fit has been EARNED — the runs are finished
+                   * and banked — and the only thing between the founder and
+                   * wearing it is the plan. A dead grey chip reading "PRO" was
+                   * the answer to that, next to a portrait already greyscaled.
+                   */
+                  <button
+                    type="button"
+                    onClick={() => upgrade.open("wardrobe")}
+                    aria-label={`${s.label} is earned. Pro wears it. See what Pro adds.`}
+                    className="nv-press shrink-0 rounded-[var(--radius-pill)] bg-[var(--chip)] px-3 py-2 text-2xs font-bold tracking-[0.12em] text-[var(--color-prestige)]"
+                  >
+                    PRO
+                  </button>
                 ) : (
                   <span className="shrink-0 rounded-[var(--radius-pill)] bg-[var(--chip)] px-3 py-2 text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
-                    {p.earned ? "PRO" : "LOCKED"}
+                    LOCKED
                   </span>
                 )}
               </li>

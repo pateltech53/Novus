@@ -339,6 +339,51 @@ export function saveEntitlements(next: Entitlements): void {
   } catch {
     // A full or blocked store must not take the screen down with it.
   }
+  announce();
+}
+
+// ── Watching the receipt ─────────────────────────────────────────────────────
+
+/**
+ * Told when entitlements change, so a purchase reaches the screen that is
+ * already open.
+ *
+ * Several surfaces read entitlements exactly once — `useState(() =>
+ * isPro(loadEntitlements()))` in ClosetScreen, the industry grid in /found, and
+ * `run.pro`, which is copied out of the store when a company is founded and
+ * never again. Before this, buying Pro from a gate in month seven left The Room
+ * shut until the next company: the money moved and nothing on screen did, which
+ * is indistinguishable from a purchase that failed.
+ *
+ * Deliberately not the `storage` event. That one fires in OTHER tabs and never
+ * in the tab that wrote, which is precisely backwards for this — the tab that
+ * just took the payment is the one holding the stale screen.
+ *
+ * Listeners re-read the store themselves rather than being handed a value, so a
+ * write that localStorage refused still resolves to the truth rather than to
+ * what the caller hoped it had saved.
+ */
+type EntitlementListener = () => void;
+
+const listeners = new Set<EntitlementListener>();
+
+/** Returns its own unsubscribe, for a `useEffect` cleanup to return directly. */
+export function onEntitlementsChange(fn: EntitlementListener): () => void {
+  listeners.add(fn);
+  return () => {
+    listeners.delete(fn);
+  };
+}
+
+function announce(): void {
+  // A throwing listener must not stop the others from hearing about a purchase.
+  for (const fn of [...listeners]) {
+    try {
+      fn();
+    } catch {
+      /* one broken screen, not all of them */
+    }
+  }
 }
 
 /**
