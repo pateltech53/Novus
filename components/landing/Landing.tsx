@@ -21,8 +21,7 @@ import {
   type SubscriptionPlan,
 } from "@/lib/monetization";
 import { goToCheckout } from "@/lib/cloud/billing";
-import { loadProfile } from "@/lib/engine/save";
-import { loadAccount } from "@/lib/account";
+import { entryRoute } from "@/lib/entry";
 
 /**
  * The front door.
@@ -279,10 +278,17 @@ function PricingSection() {
   const [error, setError] = useState<string | null>(null);
 
   const enter = () => {
-    // A named account with an onboarded profile skips straight to founding.
-    const dest =
-      loadAccount() && loadProfile()?.onboarded ? "/found" : "/welcome";
-    router.push(dest);
+    /*
+     * The same rule the account gate uses, from the same place — a company
+     * already running first, then founding, then onboarding (lib/entry.ts).
+     *
+     * It used to be spelled out again here, and the two spellings had drifted:
+     * this one also demanded `loadAccount()`, so a player who had finished
+     * onboarding but never made an account — the supported localStorage-only
+     * path — was walked back through onboarding every time they came in this
+     * way.
+     */
+    router.push(entryRoute());
   };
 
   /**

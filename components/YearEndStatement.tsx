@@ -4,7 +4,7 @@ import { play } from "@/lib/sound";
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { useGame } from "@/lib/state/GameProvider";
+import { allocationFlag, useGame } from "@/lib/state/GameProvider";
 import type { YearEndSummary } from "@/lib/engine/run";
 import { fmtMoney } from "@/lib/engine/format";
 import { STAGE_NAME } from "@/lib/engine/constants";
@@ -15,7 +15,17 @@ import { STAGE_NAME } from "@/lib/engine/constants";
  */
 export function YearEndStatement({ summary }: { summary: YearEndSummary }) {
   const game = useGame();
-  const [allocated, setAllocated] = useState<string | null>(null);
+  const [picked, setPicked] = useState<string | null>(null);
+  /*
+   * This statement now survives a reload, so "have you allocated yet" cannot
+   * live only in this component: a player who allocated, quit, and came back
+   * would be handed the money a second time. The run remembers instead. The
+   * empty string means "yes, but on a previous visit" — nothing to highlight,
+   * everything still locked.
+   */
+  const allocated =
+    picked ?? (game.run?.flags[allocationFlag(game.run.year)] ? "" : null);
+  const locked = allocated !== null;
 
   const rows = [
     { label: "Revenue", value: fmtMoney(summary.revenue) },
@@ -111,15 +121,15 @@ export function YearEndStatement({ summary }: { summary: YearEndSummary }) {
               <li key={option.id}>
                 <button
                   type="button"
-                  disabled={!!allocated}
+                  disabled={locked}
                   onClick={() => {
                     game.chooseAllocation(option.id);
-                    setAllocated(option.id);
+                    setPicked(option.id);
                   }}
                   className={`flex w-full items-baseline justify-between gap-4 border-b border-[var(--hairline)] px-1 py-3.5 text-left transition-colors duration-150 disabled:cursor-default ${
                     allocated === option.id
                       ? "text-[var(--action)]"
-                      : allocated
+                      : locked
                         ? "opacity-40"
                         : "hover:bg-[var(--card)] active:bg-[var(--chip)]"
                   }`}
@@ -137,12 +147,12 @@ export function YearEndStatement({ summary }: { summary: YearEndSummary }) {
         <button
           type="button"
           onClick={game.closeYearEnd}
-          disabled={!allocated}
+          disabled={!locked}
           className="mt-8 w-full rounded-[var(--radius-card)] bg-[var(--action)] px-5 py-4 text-base font-extrabold tracking-[0.06em] text-[var(--n-11)] transition-colors duration-150 hover:bg-[var(--action-hover)] active:bg-[var(--action-press)] disabled:cursor-not-allowed disabled:opacity-40"
         >
           INTO YEAR {summary.year + 1} ▸
         </button>
-        {!allocated && (
+        {!locked && (
           <p className="mt-2 text-center text-2xs tracking-[0.1em] text-[var(--text-tertiary)]">
             PICK WHERE THE MONEY GOES FIRST
           </p>

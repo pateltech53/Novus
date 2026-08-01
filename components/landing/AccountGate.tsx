@@ -14,7 +14,7 @@ import {
   signUp,
 } from "@/lib/cloud/auth";
 import { MIN_PASSWORD_LENGTH } from "@/lib/auth/credentials";
-import { loadProfile } from "@/lib/engine/save";
+import { entryRoute } from "@/lib/entry";
 import { play } from "@/lib/sound";
 import { Turnstile, turnstileEnabled } from "@/components/landing/Turnstile";
 import { usePrefetch } from "@/lib/prefetch";
@@ -145,13 +145,13 @@ export function AccountGate() {
     formRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
   }, [mode]);
 
-  /** Where a signed-in player goes: onboarding once, then straight to
-   *  founding a company. */
-  const destination = () => (loadProfile()?.onboarded ? "/found" : "/welcome");
+  /** Where a signed-in player goes: back to the company if there is one,
+   *  onboarding once, then founding. See lib/entry.ts. */
+  const destination = entryRoute;
 
-  // Both, because which one it is depends on storage this component reads
+  // All three, because which one it is depends on storage this component reads
   // lazily — and warming the wrong one costs nothing next to a cold push.
-  usePrefetch("/welcome", "/found");
+  usePrefetch("/welcome", "/found", "/play");
 
   const go = (next: Mode) => {
     play("click");

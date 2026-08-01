@@ -1,4 +1,5 @@
-import type { LegacyState, RunState } from "./types";
+import type { GameEvent, LegacyState, RunState } from "./types";
+import type { YearEndSummary } from "./run";
 import { DEFAULT_AVATAR } from "./avatar";
 import { queueLegacy, queuePrefs, queueRun } from "@/lib/cloud/sync";
 
@@ -24,6 +25,7 @@ const KEYS = {
   run: "novus:run:v1",
   legacy: "novus:legacy:v1",
   profile: "novus:profile:v1",
+  table: "novus:table:v1",
 } as const;
 
 export interface Profile {
@@ -84,6 +86,90 @@ export function clearRun() {
   queueRun(null);
   if (!canStore()) return;
   localStorage.removeItem(KEYS.run);
+  localStorage.removeItem(KEYS.table);
+}
+
+// ── What is on the table but not yet in the run ──────────────────────────────
+
+/**
+ * The decisions that are waiting on the player.
+ *
+ * `advanceMonth()` moves time and saves — and the cards it surfaced lived only
+ * in React state, so closing the app between the tap and the answer threw them
+ * away. That is not a cosmetic loss:
+ *
+ *   · `dueFollowups()` has already spliced the chain step out of
+ *     `state.followups`, so an authored chain loses its middle and never
+ *     resumes.
+ *   · `todaysMarket()` has already stamped `state.marketDayISO` with today, so
+ *     the shared daily case is spent for the rest of the day without ever
+ *     having been read.
+ *   · And it was a free skip: force-quitting was the cheapest way to duck a
+ *     card you did not like, with the month already banked.
+ *
+ * The same is true of the year-end statement, which is a decision the game
+ * refuses to let you leave without — the INTO YEAR N button is disabled until
+ * the money is allocated — and which vanished on a reload just as quietly.
+ *
+ * So the table is saved beside the run. It is deliberately NOT part of
+ * `RunState`: the engine is pure and knows nothing about which cards are still
+ * face-up, and `lib/engine/types.ts` is additive-only by house rule. It is
+ * also deliberately local-only — the cloud copy is the run, and a card is a
+ * moment at a table, not a thing to hand another device mid-hand.
+ */
+export interface OpenTable {
+  /** The run these belong to. A different company never inherits them. */
+  runId: string;
+  /** Where the run stood when this was written; anything else is stale. */
+  year: number;
+  month: number;
+  /** Frozen decision cards, in the order they were surfaced. */
+  cards: GameEvent[];
+  /** Which of them is today's shared market case, if any. */
+  marketId: string | null;
+  /** The year-end statement, while it is still on screen. */
+  yearEnd: YearEndSummary | null;
+}
+
+/**
+ * Reads the table back, and only if the world has not moved since.
+ *
+ * The run's own year/month is the check: a table written at Y1 M4 is
+ * meaningless once the player is at M5, and re-surfacing it would replay a
+ * decision the engine has already accounted for.
+ */
+export function loadTable(run: RunState): OpenTable | null {
+  if (!canStore()) return null;
+  try {
+    const raw = localStorage.getItem(KEYS.table);
+    if (!raw) return null;
+    const table = JSON.parse(raw) as Partial<OpenTable>;
+    if (table.runId !== run.id || table.year !== run.year || table.month !== run.month) {
+      localStorage.removeItem(KEYS.table);
+      return null;
+    }
+    return {
+      runId: table.runId,
+      year: table.year,
+      month: table.month,
+      cards: table.cards ?? [],
+      marketId: table.marketId ?? null,
+      yearEnd: table.yearEnd ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function saveTable(table: OpenTable | null) {
+  if (!canStore()) return;
+  try {
+    if (table) localStorage.setItem(KEYS.table, JSON.stringify(table));
+    else localStorage.removeItem(KEYS.table);
+  } catch {
+    // A full or blocked store must not take the screen down with it. The
+    // failure mode is the old behaviour — a lost card — not a crash.
+  }
 }
 
 const defaultLegacy = (): LegacyState => ({
