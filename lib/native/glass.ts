@@ -52,7 +52,17 @@ export interface NativeControl {
   leading?: boolean;
 }
 
-export type ChromeMode = "full" | "hidden";
+/**
+ * `coach` is `full` with one surface singled out.
+ *
+ * The guided first play dims the screen and cuts a hole around one control.
+ * That works for anything the web layer drew and cannot work for a UIKit view
+ * — native composites above the webview, so a web scrim cannot dim it and a
+ * web hole cannot expose it. In this mode the chrome dims and disables itself
+ * and leaves exactly one surface lit, which is the same teaching gesture drawn
+ * by the only renderer that can draw it.
+ */
+export type ChromeMode = "full" | "hidden" | "coach";
 
 export interface NativeChromeState {
   mode: ChromeMode;
@@ -61,6 +71,20 @@ export interface NativeChromeState {
   activeTab: string | null;
   cta: NativeCta | null;
   controls: NativeControl[];
+  /**
+   * Which surface the tutorial is teaching, in `coach` mode. `"advance"`,
+   * `"tabs"`, or a control id. Null when the step is teaching something the
+   * web layer drew, in which case every native surface dims and none respond.
+   */
+  coach?: string | null;
+}
+
+/** A box in CSS pixels, page coordinates. */
+export interface NativeRect {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
 }
 
 /** Reserved space, in CSS pixels, that the web layout must leave empty. */
@@ -71,6 +95,15 @@ export interface ChromeInsets {
   bottom: number;
   /** Just the tab bar, for surfaces that keep it and drop the rest. */
   tabBar: number;
+  /**
+   * Where the spotlit control is, when one is.
+   *
+   * There is no element to call `getBoundingClientRect` on, so the coachmark
+   * card gets the box from the renderer that owns it — on the same layout pass
+   * that produces the insets, and by the same route, so the two can never
+   * describe different frames.
+   */
+  coach?: NativeRect | null;
 }
 
 export interface GlassCapabilities {
@@ -172,4 +205,4 @@ export interface NovusGlassPlugin {
 
 export const NovusGlass = registerPlugin<NovusGlassPlugin>("NovusGlass");
 
-export const ZERO_INSETS: ChromeInsets = { top: 0, bottom: 0, tabBar: 0 };
+export const ZERO_INSETS: ChromeInsets = { top: 0, bottom: 0, tabBar: 0, coach: null };

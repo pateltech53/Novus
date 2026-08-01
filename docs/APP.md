@@ -160,10 +160,43 @@ so the moment one opens, `mode: "hidden"` goes across the bridge. The
 reservation stays, though: collapsing it would reflow the play screen behind
 the sheet and reflow it back on dismiss.
 
-The guided first play is the one case that runs the other way. It dims the
-screen and cuts a hole around a DOM element, and it cannot cut a hole around a
-UIKit view — so during coaching the DOM chrome comes back and the native chrome
-stands down.
+The guided first play used to be the one case that ran the other way. It dims
+the screen and cuts a hole around a DOM element, which cannot work on a UIKit
+view: native composites above the webview, so a web scrim cannot dim it and a
+web hole cannot expose it. The old answer was to hand the chrome back to the
+DOM for the duration.
+
+That answer was wrong, and the reason is not visible in the code. The guided
+run is a new player's entire first session — so the app's first impression
+contained no Liquid Glass anywhere, on the one screen most worth showing it on.
+
+`mode: "coach"` is the fix. The chrome dims and disables itself, leaves exactly
+one surface lit and tappable, and reports that surface's frame back with the
+insets so the coachmark card can sit beside it. Lit and tappable are both
+required: a native control left live over a dimmed screen is a player
+advancing the month in the middle of being told what a month is. Steps declare
+their own native surface (`CoachStep.native`), and on Android and the web the
+same steps find real DOM elements and are measured the ordinary way.
+
+### Telling which material you are actually looking at
+
+Two things silently produce a native chrome that is *not* Liquid Glass: an
+Xcode older than 26 compiles the fallback, and a device older than iOS 26
+declines it at runtime. Both leave `.systemThinMaterial` on screen — a real
+native material, and a frosted pane rather than a lens. The difference is
+obvious side by side and nobody has them side by side, so the app writes it
+down on the root element at launch:
+
+```js
+document.documentElement.dataset.nativeGlass   // "true" — the plugin answered
+document.documentElement.dataset.liquidGlass   // "true" — it is UIGlassEffect
+document.documentElement.dataset.nativeOs      // "26"
+```
+
+Safari ▸ Develop ▸ Simulator ▸ the app, and read them. The same line goes to
+the console once per launch. `liquidGlass: false` on a green build is not a
+bug — it is the simulator runtime, and the fix is a newer one in Xcode ▸
+Settings ▸ Components.
 
 ### If the plugin is not there
 
