@@ -3,6 +3,7 @@ import { Urbanist, IBM_Plex_Mono, Instrument_Serif, Baloo_2 } from "next/font/go
 import "./globals.css";
 import { Motion } from "@/components/ui/Motion";
 import { Sound } from "@/components/ui/Sound";
+import { CloudSync } from "@/components/CloudSync";
 import { THEME_COLOR_DARK } from "@/lib/brand";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 
@@ -107,6 +108,7 @@ export default function RootLayout({
           flashes the previous theme's colour. */}
       <body className="min-h-dvh bg-[var(--bg)] text-[var(--text-primary)] antialiased">
         <Sound />
+        <CloudSync />
         <Motion>{children}</Motion>
       </body>
     </html>
