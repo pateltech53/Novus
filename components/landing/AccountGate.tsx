@@ -14,6 +14,7 @@ import {
   signUp,
 } from "@/lib/cloud/auth";
 import { MIN_PASSWORD_LENGTH } from "@/lib/auth/credentials";
+import { whenRestored } from "@/lib/cloud/sync";
 import { ENTRY_ROUTES, entryRoute } from "@/lib/entry";
 import { play } from "@/lib/sound";
 import { Turnstile, turnstileEnabled } from "@/components/landing/Turnstile";
@@ -61,6 +62,8 @@ export function AccountGate() {
   const [notice, setNotice] = useState<string | null>(null);
   /** Second tap arms the delete. Reset by any other action. */
   const [confirmDelete, setConfirmDelete] = useState(false);
+  /** CONTINUE has been pressed and the app is on its way in. */
+  const [entering, setEntering] = useState(false);
   /** Reveal the password. Off by default; resets whenever the mode changes. */
   const [showPassword, setShowPassword] = useState(false);
   /**
@@ -153,6 +156,37 @@ export function AccountGate() {
   // All three, because which one it is depends on storage this component reads
   // lazily — and warming the wrong one costs nothing next to a cold push.
   usePrefetch(...ENTRY_ROUTES);
+
+  /**
+   * CONTINUE.
+   *
+   * ── Why it waits ───────────────────────────────────────────────────────────
+   *
+   * `destination()` reads localStorage, and on a device that has never seen
+   * this account — a new phone, a cleared browser, the next machine in a
+   * computer lab — the company that answers it is still arriving from the
+   * server. Pressing CONTINUE before the boot restore lands routed a returning
+   * player into onboarding. whenRestored() resolves immediately once that has
+   * settled, which is every press after the first second, and gives up after
+   * four seconds so a network that never answers is a pause rather than a
+   * locked door (lib/cloud/sync.ts).
+   *
+   * ── Why it says so ─────────────────────────────────────────────────────────
+   *
+   * /play is the heaviest route in the app, and a client-side push to it shows
+   * nothing at all while its bundle is on the wire. Every other button on this
+   * gate reports itself — CREATING…, SIGNING IN… — and the one that carries the
+   * most traffic did not, so a slow push was indistinguishable from a dead
+   * button. The sound is the other half of that: it fires on the tap itself,
+   * before anything has to load.
+   */
+  const enter = async () => {
+    if (entering) return;
+    play("click");
+    setEntering(true);
+    await whenRestored();
+    router.push(destination());
+  };
 
   const go = (next: Mode) => {
     play("click");
@@ -414,8 +448,8 @@ export function AccountGate() {
       )}
 
       {mode === "signedIn" ? (
-        <GateButton onClick={() => router.push(destination())}>
-          CONTINUE AS {displayName.toUpperCase()}
+        <GateButton onClick={() => void enter()} disabled={entering}>
+          {entering ? "OPENING…" : `CONTINUE AS ${displayName.toUpperCase()}`}
         </GateButton>
       ) : mode === "create" ? (
         <GateButton onClick={() => go("signUp")}>CREATE ACCOUNT</GateButton>

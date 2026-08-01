@@ -21,6 +21,7 @@ import {
   type SubscriptionPlan,
 } from "@/lib/monetization";
 import { goToCheckout } from "@/lib/cloud/billing";
+import { whenRestored } from "@/lib/cloud/sync";
 import { useSellsHere } from "@/lib/commerce";
 import { hasSavedRun, loadProfile } from "@/lib/engine/save";
 import { loadAccount } from "@/lib/account";
@@ -302,7 +303,12 @@ function PricingSection() {
   const [busy, setBusy] = useState<ProPlanId | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const enter = () => {
+  const enter = async () => {
+    // Settled state first, exactly as AccountGate's CONTINUE does and for the
+    // same reason: these three reads are localStorage, and on a device the
+    // boot restore is still filling they answer for a player who is not this
+    // one. Resolves immediately once that has landed.
+    await whenRestored();
     // An open company wins over everything else — buying Pro must never be the
     // moment a player is handed a "found a new one" screen instead of the one
     // they already have (lib/entry.ts). Below that, a named account with an
@@ -331,11 +337,11 @@ function PricingSection() {
 
     if (result.reason === "not-configured") {
       grantProLocally(plan.id);
-      enter();
+      await enter();
       return;
     }
     if (result.reason === "owned") {
-      enter();
+      await enter();
       return;
     }
 
@@ -378,7 +384,7 @@ function PricingSection() {
             </ul>
             <button
               type="button"
-              onClick={enter}
+              onClick={() => void enter()}
               className="nv-press mt-6 w-full rounded-full bg-[var(--n-4)] px-5 py-3 text-sm font-extrabold tracking-[0.04em]"
             >
               PLAY FREE
