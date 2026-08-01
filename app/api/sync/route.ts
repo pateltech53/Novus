@@ -146,9 +146,13 @@ async function writePrefs(session: Session, prefs: Prefs): Promise<string[]> {
   const { error } = await session.supabase.from("preferences").upsert(
     {
       profile_id: session.userId,
-      rookie_mode: prefs.rookieMode,
-      onboarded: prefs.onboarded,
-      mic_calibration: prefs.micCalibration,
+      rookie_mode: !!prefs.rookieMode,
+      onboarded: !!prefs.onboarded,
+      // The column is checked `between 0 and 1`. An out-of-range or NaN
+      // calibration would fail the whole upsert, which would take rookie_mode
+      // and onboarded down with it — a mic reading must never cost a player
+      // their onboarding flag. Out-of-range reads as "never calibrated".
+      mic_calibration: micOrNull(prefs.micCalibration),
     },
     { onConflict: "profile_id" },
   );
@@ -208,3 +212,7 @@ async function writeRun(session: Session, run: RunState | null): Promise<string[
 
 const clamp = (n: number, lo: number, hi: number) =>
   Math.min(hi, Math.max(lo, Math.trunc(Number.isFinite(n) ? n : lo)));
+
+/** 0..1 or nothing. Anything else is a broken reading, not a quieter room. */
+const micOrNull = (n: number | null): number | null =>
+  typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= 1 ? n : null;
