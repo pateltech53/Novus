@@ -1,30 +1,36 @@
-import { loadProfile, loadRun } from "@/lib/engine/save";
+import { hasSavedRun, loadProfile } from "@/lib/engine/save";
 
 /**
- * Which door this device opens.
+ * Where a player goes when they open Novus.
  *
- * The landing page asks this in two places — the account gate's CONTINUE AS
- * button and the pricing table's PLAY FREE — and both used to answer
- * "/found": the screen for founding a NEW company. For a returning player with
- * a company already running, that is the wrong room, and on the free plan it
- * is a locked one. One run a day is the free allowance and the ledger counts
- * STARTS, so the company they were coming back to had already spent the day's
- * slot: FOUND IT reads NO RUNS LEFT TODAY, disabled, with nothing on the
- * screen pointing at the live company. The only way back in was to know to
- * type /play.
+ * ── The bug this file exists to stop ─────────────────────────────────────────
  *
- * With a slot still free it was worse rather than better — the button worked,
- * and founding overwrites `novus:run:v1`, so coming back through the front
- * door and naming a second company silently buried the first.
+ * Every web entry point used to ask one question — "have they onboarded?" — and
+ * send an onboarded player to /found. That is right for someone whose last
+ * company is over and wrong for everyone else: a player with a live company
+ * came back to a screen demanding a NEW one, and on the free plan (one founding
+ * a real day, `runsRemainingToday()`) the button read NO RUNS LEFT TODAY. Their
+ * company was safe in localStorage the whole time. Nothing on the screen could
+ * reach it.
  *
- * So: a saved company wins over everything. That includes a dead one — /play
- * shows Chapter 7, which is the screen that lets the player read the autopsy
- * and then found again, rather than a paperwork screen that pretends the
- * company never existed.
+ * A saved run is therefore the FIRST question, not an afterthought. This is
+ * exactly what the native launcher has always done (native/boot.html reads
+ * `novus:run:v1` before `novus:profile:v1`); the web now agrees with it, and
+ * both read from the same rule instead of two copies that drift.
  *
- * Only reachable in the browser: both callers use it inside a click handler.
+ * Synchronous, because callers evaluate it inside a click handler and there is
+ * no synchronous fetch — see lib/engine/save.ts for why that constraint holds
+ * across the whole persistence layer.
  */
-export function entryRoute(): "/play" | "/found" | "/welcome" {
-  if (loadRun()) return "/play";
+export type EntryRoute = "/play" | "/found" | "/welcome";
+
+/** Every route the entry points may send someone to. Prefetch fodder. */
+export const ENTRY_ROUTES: readonly EntryRoute[] = ["/play", "/found", "/welcome"];
+
+export function entryRoute(): EntryRoute {
+  // A dead company routes here too, on purpose: /play shows Chapter Seven, and
+  // reading what killed it is how a run ends. Founding again is one tap from
+  // that screen, and it is the player's tap.
+  if (hasSavedRun()) return "/play";
   return loadProfile()?.onboarded ? "/found" : "/welcome";
 }

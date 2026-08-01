@@ -20,15 +20,35 @@ export default function FoundPageWrapper() {
   );
 }
 
-/** O8 · Found the company. Locked industries are aspiration, not annoyance. */
+/**
+ * O8 · Found the company. Locked industries are aspiration, not annoyance.
+ *
+ * ── Why this screen knows about the company you already have ─────────────────
+ *
+ * It is reachable with a run in progress — a bookmark, the back button, the
+ * reload the cloud restore performs after adopting a save — and it used to
+ * pretend otherwise. Two things went wrong when it did. A free player, who gets
+ * one founding a real day, saw NO RUNS LEFT TODAY with no way to reach the
+ * company that was sitting in storage the whole time. And a player who DID have
+ * a slot left founded straight over a live company: startRun writes the new run
+ * to the same key, so the old one went without a record, an autopsy, or a
+ * question.
+ *
+ * So: an open company is offered back first, and founding another one closes it
+ * the honest way — through endRun(), which writes it into legacy exactly as
+ * Settings does — behind a confirmation that says the name out loud.
+ */
 function FoundPage() {
   const router = useRouter();
   const game = useGame();
+  const saved = game.run;
   const [companyName, setCompanyName] = useState("");
   const [industry, setIndustry] = useState<Industry>("FOOD");
   const [gender, setGender] = useState<Gender>("male");
   const [skipTutorial, setSkipTutorial] = useState(false);
   const [lockedNote, setLockedNote] = useState<string | null>(null);
+  /** Armed by the first tap on FOUND IT when a company is already open. */
+  const [confirmReplace, setConfirmReplace] = useState(false);
   /** null until mounted — the ledger lives in localStorage. */
   const [slotsLeft, setSlotsLeft] = useState<number | null>(null);
   /**
@@ -83,6 +103,25 @@ function FoundPage() {
   usePrefetch("/play");
 
   const start = () => {
+    /*
+     * The ledger is a real calendar day and this screen can sit open across
+     * midnight in either direction, so the slot is re-counted at the tap rather
+     * than trusted from mount. Without this the confirmation below could close
+     * a live company for a founding that startRun would then refuse.
+     */
+    const left = runsRemainingToday();
+    setSlotsLeft(left);
+    if (left <= 0) return;
+
+    if (saved && !confirmReplace) {
+      setConfirmReplace(true);
+      return;
+    }
+    // Close it properly first. endRun writes the company into legacy — years
+    // survived, what killed it, or that you closed it yourself — which is the
+    // whole difference between ending a run and overwriting one.
+    if (saved) game.endRun();
+
     game.startRun({
       founderName: profile?.founderName ?? "Founder",
       playerAge: profile?.playerAge ?? null,
@@ -99,6 +138,34 @@ function FoundPage() {
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))]">
+      {/*
+        The company you already have, offered back before the form for a new
+        one. It is the first thing on the screen because for a returning player
+        it is the only thing they came for.
+      */}
+      {saved && (
+        <section className="mb-6 rounded-[var(--radius-card)] bg-[var(--surface)] p-4 shadow-[var(--e1)]">
+          <p className="text-2xs font-bold tracking-[0.16em] text-[var(--text-tertiary)]">
+            {saved.alive ? "STILL OPEN" : "CHAPTER SEVEN"}
+          </p>
+          <p className="mt-1 truncate text-[1.125rem] font-extrabold leading-tight tracking-[-0.01em]">
+            {saved.companyName}
+          </p>
+          <p className="mt-0.5 text-2xs leading-snug text-[var(--text-tertiary)]">
+            {saved.alive
+              ? `Year ${saved.year}, month ${saved.month}. Right where you left it.`
+              : `It went under in year ${saved.year}. The books are still open.`}
+          </p>
+          <button
+            type="button"
+            onClick={() => router.push("/play")}
+            className="nv-press mt-3 h-12 w-full truncate rounded-[var(--radius-pill)] bg-[var(--action)] px-5 text-sm font-extrabold tracking-[0.06em] text-[var(--n-11)]"
+          >
+            {saved.alive ? "CONTINUE ▸" : "READ WHAT KILLED IT ▸"}
+          </button>
+        </section>
+      )}
+
       <p className="text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]">
         THE PAPERWORK
       </p>
@@ -204,20 +271,61 @@ function FoundPage() {
       )}
 
       <div className="mt-auto w-full pt-8">
+        {/*
+          design.md §1.5, the strictest rule in the system: the accent paints
+          at most ONE element per screen, and it belongs to the primary CTA.
+          With a company still open the primary action is continuing it, so
+          this button steps down to a surface while CONTINUE takes the orange.
+          On an empty device it is the primary CTA and keeps it.
+        */}
         <button
           type="button"
           onClick={start}
           disabled={!valid || slotsLeft === 0}
-          className="w-full rounded-[var(--radius-card)] bg-[var(--action)] px-5 py-4 text-base font-extrabold tracking-[0.06em] text-[var(--n-11)] transition-colors duration-150 hover:bg-[var(--action-hover)] active:bg-[var(--action-press)] disabled:cursor-not-allowed disabled:opacity-35"
+          className={`w-full truncate rounded-[var(--radius-card)] px-5 py-4 text-base font-extrabold tracking-[0.06em] transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-35 ${
+            saved
+              ? "bg-[var(--surface-elevated)] text-[var(--text-primary)] shadow-[var(--e1)] hover:bg-[var(--surface-overlay)]"
+              : "bg-[var(--action)] text-[var(--n-11)] hover:bg-[var(--action-hover)] active:bg-[var(--action-press)]"
+          }`}
         >
-          {slotsLeft === 0 ? "NO RUNS LEFT TODAY" : "FOUND IT ▸"}
+          {slotsLeft === 0
+            ? "NO RUNS LEFT TODAY"
+            : saved && confirmReplace
+              ? "TAP AGAIN TO REPLACE IT ▸"
+              : "FOUND IT ▸"}
         </button>
-        {slotsLeft === 0 && (
-          <p className="mt-2 text-center text-2xs leading-snug text-[var(--text-tertiary)]">
-            One company a day on the free plan, and a dead one stays dead.
-            Tomorrow, or Pro.
-          </p>
+
+        {/* Named, because "are you sure?" is not a question anyone reads. And
+            a way back out, because an armed confirmation with no exit is a
+            trap rather than a safeguard. */}
+        {saved && confirmReplace && slotsLeft !== 0 && (
+          <>
+            <p className="mt-2 text-center text-2xs leading-snug text-[var(--text-tertiary)]">
+              This files {saved.companyName} away for good. Year {saved.year}{" "}
+              goes into your legacy — the company does not come back.
+            </p>
+            <button
+              type="button"
+              onClick={() => setConfirmReplace(false)}
+              className="mx-auto mt-1 flex min-h-11 w-full items-center justify-center text-2xs text-[var(--text-tertiary)] underline underline-offset-4"
+            >
+              Keep {saved.companyName}
+            </button>
+          </>
         )}
+
+        {slotsLeft === 0 &&
+          (saved ? (
+            <p className="mt-2 text-center text-2xs leading-snug text-[var(--text-tertiary)]">
+              One company a day on the free plan. {saved.companyName} is still
+              yours — continue it above, or found another tomorrow.
+            </p>
+          ) : (
+            <p className="mt-2 text-center text-2xs leading-snug text-[var(--text-tertiary)]">
+              One company a day on the free plan, and a dead one stays dead.
+              Tomorrow, or Pro.
+            </p>
+          ))}
       </div>
     </main>
   );

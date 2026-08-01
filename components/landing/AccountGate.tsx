@@ -14,7 +14,7 @@ import {
   signUp,
 } from "@/lib/cloud/auth";
 import { MIN_PASSWORD_LENGTH } from "@/lib/auth/credentials";
-import { entryRoute } from "@/lib/entry";
+import { ENTRY_ROUTES, entryRoute } from "@/lib/entry";
 import { play } from "@/lib/sound";
 import { Turnstile, turnstileEnabled } from "@/components/landing/Turnstile";
 import { usePrefetch } from "@/lib/prefetch";
@@ -145,13 +145,14 @@ export function AccountGate() {
     formRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
   }, [mode]);
 
-  /** Where a signed-in player goes: back to the company if there is one,
-   *  onboarding once, then founding. See lib/entry.ts. */
-  const destination = entryRoute;
+  /** Where a signed-in player goes: back into the company they have open, or
+   *  onboarding once, then founding. See lib/entry.ts — CONTINUE has to mean
+   *  continue, and it used to land a returning player on the found screen. */
+  const destination = () => entryRoute();
 
   // All three, because which one it is depends on storage this component reads
   // lazily — and warming the wrong one costs nothing next to a cold push.
-  usePrefetch("/welcome", "/found", "/play");
+  usePrefetch(...ENTRY_ROUTES);
 
   const go = (next: Mode) => {
     play("click");
