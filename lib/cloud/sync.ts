@@ -1,5 +1,6 @@
 import { adoptEntitlements } from "@/lib/cloud/billing";
 import { RESTORED_FLAG } from "@/lib/cloud/keys";
+import { API_CREDENTIALS, apiUrl } from "@/lib/native/origin";
 import type { LegacyState, RunState } from "@/lib/engine/types";
 import type { Entitlements } from "@/lib/monetization";
 
@@ -72,7 +73,10 @@ export async function ensureSession(): Promise<boolean> {
   if (disabled) return false;
   if (signedIn) return true;
   try {
-    const res = await fetch("/api/session", { method: "POST" });
+    const res = await fetch(apiUrl("/api/session"), {
+      method: "POST",
+      credentials: API_CREDENTIALS,
+    });
     const body = (await res.json()) as { configured: boolean; signedIn: boolean };
     if (!body.configured || !body.signedIn) {
       // Not an error worth surfacing: an unconfigured project is a local-only
@@ -95,7 +99,10 @@ export async function pull(): Promise<PullResult | null> {
   if (!(await ensureSession())) return null;
   try {
     setState("syncing");
-    const res = await fetch("/api/sync", { method: "GET" });
+    const res = await fetch(apiUrl("/api/sync"), {
+      method: "GET",
+      credentials: API_CREDENTIALS,
+    });
     const body = (await res.json()) as PullResult;
     if (!body.signedIn) {
       setState("off");
@@ -141,8 +148,9 @@ export async function flush(): Promise<void> {
   inFlight = true;
   setState("syncing");
   try {
-    const res = await fetch("/api/sync", {
+    const res = await fetch(apiUrl("/api/sync"), {
       method: "PUT",
+      credentials: API_CREDENTIALS,
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
     });

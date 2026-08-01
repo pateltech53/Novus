@@ -1,4 +1,5 @@
 import { RESTORED_FLAG } from "@/lib/cloud/keys";
+import { API_CREDENTIALS, apiUrl } from "@/lib/native/origin";
 import {
   loadEntitlements,
   saveEntitlements,
@@ -42,7 +43,7 @@ let statusCache: Promise<BillingStatus> | null = null;
 
 export function billingStatus(): Promise<BillingStatus> {
   if (!statusCache) {
-    statusCache = fetch("/api/billing/status")
+    statusCache = fetch(apiUrl("/api/billing/status"), { credentials: API_CREDENTIALS })
       .then((res) => (res.ok ? (res.json() as Promise<BillingStatus>) : null))
       .then((body) => body ?? { configured: false, live: false, skus: [] })
       .catch(() => ({ configured: false, live: false, skus: [] }));
@@ -71,8 +72,9 @@ export async function startCheckout(
   industry?: string,
 ): Promise<CheckoutResult> {
   try {
-    const res = await fetch("/api/billing/checkout", {
+    const res = await fetch(apiUrl("/api/billing/checkout"), {
       method: "POST",
+      credentials: API_CREDENTIALS,
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ sku, ...(industry ? { industry } : {}) }),
     });
@@ -117,7 +119,10 @@ export async function goToCheckout(
  */
 export async function openBillingPortal(): Promise<boolean> {
   try {
-    const res = await fetch("/api/billing/portal", { method: "POST" });
+    const res = await fetch(apiUrl("/api/billing/portal"), {
+      method: "POST",
+      credentials: API_CREDENTIALS,
+    });
     const body = (await res.json()) as { url?: string };
     if (!res.ok || !body.url) return false;
     window.location.href = body.url;
@@ -184,7 +189,9 @@ export async function awaitPurchase(): Promise<boolean> {
 
     let body: { entitlements?: Entitlements | null; signedIn?: boolean };
     try {
-      const res = await fetch("/api/billing/entitlements");
+      const res = await fetch(apiUrl("/api/billing/entitlements"), {
+        credentials: API_CREDENTIALS,
+      });
       if (!res.ok) continue;
       body = (await res.json()) as typeof body;
     } catch {

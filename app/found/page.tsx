@@ -10,6 +10,7 @@ import { INDUSTRIES } from "@/lib/engine/constants";
 import type { Industry } from "@/lib/engine/types";
 import { loadProfile } from "@/lib/engine/save";
 import { loadEntitlements, runsRemainingToday } from "@/lib/monetization";
+import { usePrefetch } from "@/lib/prefetch";
 
 export default function FoundPageWrapper() {
   return (
@@ -48,6 +49,9 @@ function FoundPage() {
     const t = setTimeout(() => inputRef.current?.focus(), 400);
     return () => clearTimeout(t);
   }, []);
+
+  // Naming a company is the last thing before the game itself.
+  usePrefetch("/play");
 
   const start = () => {
     game.startRun({

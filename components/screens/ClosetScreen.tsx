@@ -117,6 +117,12 @@ export function ClosetScreen({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 12 }}
       transition={{ type: "spring", stiffness: 380, damping: 34 }}
+      // Full-bleed and opaque, so it is a modal whether or not it says so.
+      // Settings, its twin, already carried these; this one did not, which
+      // left a screen reader walking through the play screen underneath it.
+      role="dialog"
+      aria-modal="true"
+      aria-label="The Closet"
     >
       <div className="mx-auto w-full max-w-md px-5 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))]">
         <div className="flex items-center justify-between">

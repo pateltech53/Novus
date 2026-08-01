@@ -44,5 +44,21 @@ public/founder/*.mp4
 dist/
 build/
 *.log
+
+# Screenshots from `npm run audit:phone`. Regenerated on demand.
+.audit-shots/
+
+# Where scripts/build-native.mjs parks app/api for the duration of a static
+# export. Never committed, and restored in a finally — see that script for why
+# the directory has to move at all.
+.native-build/
+
+# Capacitor's copy of the export, and the native build outputs. The iOS and
+# Android projects ARE committed; what `cap sync` and Gradle generate inside
+# them is not (ios/.gitignore and android/.gitignore carry the details).
+android/app/release/
+*.jks
+*.keystore
+!android/app/debug.keystore
 .vercel
 panel.tmp.mjs

@@ -205,7 +205,7 @@ export function CompanyScreen({ onClose }: { onClose: () => void }) {
               aria-checked={run.rookieMode}
               aria-label="Rookie Mode"
               onClick={() => setRookieMode(!run.rookieMode)}
-              className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 ${
+              className={`nv-tap relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 ${
                 run.rookieMode ? "bg-[var(--action)]" : "bg-[var(--chip)]"
               }`}
             >
