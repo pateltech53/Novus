@@ -60,11 +60,24 @@ function FoundPage() {
    * either honest state.
    */
   const [hasPro, setHasPro] = useState(false);
+  /**
+   * Read after mount, like the two above it, and for a sharper reason.
+   *
+   * `loadProfile()` used to be called during render. localStorage does not
+   * exist on the server, so the returning player's "skip the guided year"
+   * checkbox was in the client's tree and not in the server's — a hydration
+   * mismatch, which React answers by throwing away that subtree and building
+   * it again. The subtree contains the company-name field, so anything already
+   * typed into it was discarded: type fast enough on the screen that focuses
+   * itself 400ms in, and the name you chose is simply gone.
+   */
+  const [profile, setProfile] = useState<ReturnType<typeof loadProfile>>(null);
   /*
-   * Re-read on every entitlement write, not only at mount. Buying Pro from the
-   * upgrade screen happens without leaving this page, and reading once meant
-   * the grid the player was staring at kept its locks and FOUND IT stayed
-   * disabled — the purchase looked like it had failed.
+   * The entitlement half re-reads on every write, not only at mount. Buying Pro
+   * from the upgrade screen happens without leaving this page, and reading once
+   * meant the grid the player was staring at kept its locks and FOUND IT stayed
+   * disabled — the purchase looked like it had failed. The profile stays a
+   * one-shot read: a purchase does not rename anybody.
    *
    * `isPro` rather than the raw `pro` flag, to match `industryUnlocked()` in
    * lib/monetization.ts: a chapter seat is Pro for the year, and reading the
@@ -77,10 +90,27 @@ function FoundPage() {
       setHasPro(isPro(loadEntitlements()));
     };
     sync();
+    setProfile(loadProfile());
     return onEntitlementsChange(sync);
   }, []);
   const inputRef = useRef<HTMLInputElement>(null);
-  const profile = loadProfile();
+
+  /*
+   * …and the field keeps whatever is already in it.
+   *
+   * This page is server-rendered, so the input exists and accepts typing
+   * before React has hydrated — which is the normal state of the screen for a
+   * returning player who opens it directly. A controlled input resolves that
+   * gap by resetting the DOM to its prop, so the browser's own value loses to
+   * an empty string that was decided before the player arrived.
+   *
+   * Uncontrolled through hydration, then adopted: `maxLength` enforces the
+   * same 28 characters the slice below does, so the two can never disagree.
+   */
+  useEffect(() => {
+    const typed = inputRef.current?.value;
+    if (typed) setCompanyName(typed.slice(0, 28));
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => inputRef.current?.focus(), 400);
@@ -197,7 +227,8 @@ function FoundPage() {
 
       <input
         ref={inputRef}
-        value={companyName}
+        defaultValue=""
+        maxLength={28}
         onChange={(e) => setCompanyName(e.target.value.slice(0, 28))}
         placeholder="Company name"
         autoComplete="off"

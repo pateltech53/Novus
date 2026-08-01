@@ -195,6 +195,10 @@ export async function signIn(email: string, password: string): Promise<AuthOutco
  */
 const DEVICE_KEYS = [
   "novus:run:v1",
+  // The cards left face-up on that run. loadTable() would refuse them for a
+  // different company anyway, but "the last student's decision is still on the
+  // table" is the same problem this list exists to prevent.
+  "novus:table:v1",
   "novus:legacy:v1",
   "novus:profile:v1",
   "novus:entitlements:v1",
