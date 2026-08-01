@@ -40,6 +40,18 @@ export interface PlayChromeOptions {
    * this is a single flag rather than a set of per-surface exceptions.
    */
   visible: boolean;
+  /**
+   * The surface the guided first play is teaching, or null when it is not
+   * running. `"advance"`, `"tabs"`, a control id — or `""` for a step that
+   * teaches something in the web layer, which still dims the chrome but lights
+   * nothing.
+   *
+   * Distinct from `visible` on purpose: the chrome stays on screen throughout
+   * the tutorial. It used to withdraw entirely, which meant a new player's
+   * whole first session — the app's first impression — had no Liquid Glass in
+   * it anywhere.
+   */
+  coach: string | null;
   month: number;
   atGate: boolean;
   /** The advance button is dead while a card is open or the company is gone. */
@@ -57,7 +69,7 @@ export function usePlayChrome(options: PlayChromeOptions): boolean {
   const owned = useNativeChromeOwned();
   const theme = useResolvedTheme();
 
-  const { visible, month, atGate, canAdvance, pro, activeTab } = options;
+  const { visible, coach, month, atGate, canAdvance, pro, activeTab } = options;
 
   const state = useMemo<NativeChromeState | null>(() => {
     if (!owned) return null;
@@ -76,7 +88,10 @@ export function usePlayChrome(options: PlayChromeOptions): boolean {
     ];
 
     return {
-      mode: visible ? "full" : "hidden",
+      // Hidden wins over coach: a sheet open over the tutorial is still a
+      // sheet, and native chrome left visible under it sits on top of it.
+      mode: !visible ? "hidden" : coach !== null ? "coach" : "full",
+      coach: coach || null,
       theme,
       tabs: NATIVE_TABS,
       activeTab,
@@ -93,7 +108,7 @@ export function usePlayChrome(options: PlayChromeOptions): boolean {
       },
       controls,
     };
-  }, [owned, visible, theme, month, atGate, canAdvance, pro, activeTab]);
+  }, [owned, visible, coach, theme, month, atGate, canAdvance, pro, activeTab]);
 
   useNativeChrome(state, {
     onTab: (id) => options.onTab(id as ActivityTab),
