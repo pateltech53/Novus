@@ -82,11 +82,11 @@ The masthead cluster additionally sits inside a `UIGlassContainerEffect`, so
 the circles merge and separate as the system's own do rather than reading as
 three unrelated panes.
 
-What is **not** glass, deliberately: the decision sheet's body and its choice
-rows. Every choice can carry a cash figure, and that is the one thing the
-design law puts on solid ground. Changing that is a two-line edit in
-`GlassSheetController.choiceRow` — but it is a decision about the design
-system, not a styling tweak.
+The decision sheet's own surface and its choice rows are glass too — the named
+exception in `design.md` §0, taken deliberately rather than by erosion. It is
+iOS-only (the web and Android sheet stays opaque), the cost chip moved to
+`label` semibold to pay for the legibility it costs, and it is one line to undo
+in `choiceRow` if it reads muddy on a device.
 
 ### Why the sheet is native at all
 

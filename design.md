@@ -18,11 +18,37 @@ Apple's own guidance is the resolution:
 
 | Layer | What is in it | Material |
 |---|---|---|
-| **Content** | cards, The Books, decision sheets, lists, forms, closet grids | Opaque solid. Flat fill, no gradient, no blur, no transparency. Depth from shadow and elevation only. |
+| **Content** | cards, The Books, lists, forms, closet grids | Opaque solid. Flat fill, no gradient, no blur, no transparency. Depth from shadow and elevation only. |
 | **Chrome** | tab bar, FAB, sheet grabber, toasts, year-gate banner, phone status bar + dock, modal scrims | Liquid glass. Max **two** glass surfaces visible at once. |
+| **The decision sheet** | its own surface and its choice rows | Liquid glass, on iOS only. **The named exception**, below. |
 | **Stage** | mascot, panel room | Real 3D, real lighting. Depth from geometry and light. |
 
-**Money is read on solid ground.** Any element containing a financial figure is content, never glass.
+**Money is read on solid ground.** Any element containing a financial figure is
+content, never glass — with one exception, named so that it stays an exception.
+
+### The named exception: the decision sheet, on iOS
+
+The month's decision is presented by UIKit (`GlassSheetController.swift`), and
+its surface and choice rows are Liquid Glass, cost chips and all. That is a
+product decision taken deliberately, not a rule that eroded.
+
+Three things keep it honest:
+
+- **It is iOS-only.** The web and Android decision sheet is unchanged and stays
+  opaque. This is not a licence for glass to spread to The Books, to cards, or
+  to any list on any platform.
+- **It is paid for.** Small monospaced text is the first thing a refractive
+  material eats, so the cost chip moved from `secondaryLabel` regular to
+  `label` semibold. A figure that cannot be read is worse than one on the
+  wrong material.
+- **It is one line to undo.** `panel.backgroundColor` and the row's material in
+  `choiceRow` are the whole change. If it reads muddy on a device, put them
+  back and the sheet keeps every other piece of glass it has.
+
+This also spends the "max two glass surfaces" budget deliberately: with a card
+open there are three — backdrop, sheet, rows — and the tab bar is withdrawn.
+More nesting than Apple's own guidance likes. Recorded here rather than left to
+be discovered.
 
 ### The gradient ledger — exactly three, named
 
@@ -144,8 +170,10 @@ Four layers, in order:
 **Allowed:** floating tab bar / bottom nav · sheet grabber and sheet header when content scrolls
 under it · toasts and the year-gate banner · the in-game phone's status bar and dock · modal scrims.
 
-**Forbidden:** decision sheets · The Books · cards · list rows · closet grids · anything over the
-WebGL canvas · anything containing a financial figure.
+**Forbidden:** The Books · cards · list rows · closet grids · anything over the
+WebGL canvas · anything containing a financial figure — **except** the native
+iOS decision sheet and its choice rows, per the named exception in §0. On the
+web and on Android the decision sheet is opaque, unchanged.
 
 `Glass.tsx` must ship a `@supports not (backdrop-filter: blur(1px))` fallback to solid
 `--surface-overlay`, and accept a `solid` prop that forces that fallback for use near the canvas.
