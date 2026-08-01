@@ -113,9 +113,15 @@
   --stage-floor: oklch(0.125 0.005 260);
 
   /* ── Glass · consumed only by components/ui/Glass.tsx ─────────────────── */
-  --glass-tint: oklch(0.215 0.005 260 / 0.7);
-  --glass-ring: oklch(1 0 0 / 0.06);
-  --glass-specular: oklch(1 0 0 / 0.14);
+  --glass-tint: oklch(0.215 0.005 260 / 0.62);
+  --glass-ring: oklch(1 0 0 / 0.08);
+  --glass-specular: oklch(1 0 0 / 0.16);
+  /* The underside. A pane of glass is lit on top and shadowed underneath, and
+     that one asymmetry is most of what makes it read as a solid with
+     thickness rather than a blurred rectangle. */
+  --glass-underside: oklch(0 0 0 / 0.22);
+  /* What the pane casts on the content behind it. */
+  --glass-drop: 0 -1px 24px oklch(0 0 0 / 0.28);
 
   /* ── In-fiction phone app tints ───────────────────────────────────────────
      Deliberately OUTSIDE the Novus palette — these are other companies' brands
@@ -195,9 +201,11 @@
   --stage-floor: oklch(0.905 0.010 85);
 
   --scrim: oklch(0.28 0.01 85 / 0.42);
-  --glass-tint: oklch(0.98 0.003 85 / 0.72);
-  --glass-ring: oklch(0.2 0.01 85 / 0.08);
-  --glass-specular: oklch(1 0 0 / 0.65);
+  --glass-tint: oklch(0.98 0.003 85 / 0.62);
+  --glass-ring: oklch(0.2 0.01 85 / 0.09);
+  --glass-specular: oklch(1 0 0 / 0.75);
+  --glass-underside: oklch(0.2 0.01 85 / 0.09);
+  --glass-drop: 0 -1px 20px oklch(0.2 0.01 85 / 0.1);
 }
 
 /* ══ Base ══════════════════════════════════════════════════════════════════ */
@@ -208,8 +216,42 @@ body {
   background: var(--bg);
   color: var(--text-primary);
   font-family: var(--font-sans);
+  /* The type scale is deliberate down to the 12px floor. Mobile Safari's
+     automatic text inflation picks its own sizes for "narrow" blocks, which
+     turns a measured scale into three different ones on the same screen. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   /* No colour transition here. Only transform and opacity animate; a
      background-color transition on <body> repaints the whole document. */
+}
+
+/* ── The app shell ─────────────────────────────────────────────────────────
+   Set by lib/native/chrome.ts from what UIKit measured after layout. Zero on
+   the web and on Android, where the chrome is in the DOM and takes its own
+   space. Anything that reads these must tolerate 0 — they are 0 for the frame
+   between the first paint and the first measurement. */
+:root {
+  --nv-chrome-top: 0px;
+  --nv-chrome-bottom: 0px;
+  --nv-chrome-tabbar: 0px;
+  --nv-keyboard: 0px;
+}
+
+/*
+ * In the app, a long press is a game input and never a text selection. On the
+ * web it stays selectable, because a life log is a thing people quote.
+ * Inputs are exempt everywhere: a field you cannot select text in is broken.
+ */
+html[data-native="true"] body {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+html[data-native="true"] input,
+html[data-native="true"] textarea,
+html[data-native="true"] [contenteditable] {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 /* The body never scrolls — an inner container does. This is what stops iOS
@@ -296,14 +338,39 @@ textarea {
 }
 
 /* ── Glass · consumed only by components/ui/Glass.tsx ─────────────────────
-   Four layers: blur+saturate, a tint fill, a specular top edge, a hairline
-   ring. Never on content, never over the WebGL canvas. */
+   Never on content, never over the WebGL canvas.
+
+   On iOS this is not what you see. The tab bar, the advance button and the
+   masthead controls are UIKit views running the system's own Liquid Glass, and
+   the DOM does not render them at all — see lib/native/chrome.ts. What follows
+   is the material everywhere else: Android, the desktop web, and any iOS
+   surface the native chrome does not own.
+
+   It is built out of what a browser is fast at. The tempting next step is an
+   SVG feDisplacementMap on the backdrop, which is the one effect that actually
+   distinguishes liquid glass from frosted glass — and which Safari does not
+   support in `backdrop-filter` at all, and which costs a full-surface GPU pass
+   per frame on the phones this most needs to be smooth on. The platform that
+   can do it properly does it properly, natively. The rest gets four cheap
+   layers that read as glass and never drop a frame:
+
+     1. backdrop-filter: blur + saturate + a touch of brightness
+     2. a semi-transparent tint fill
+     3. a lit top edge and a shadowed underside — the asymmetry that makes a
+        pane read as a solid with thickness rather than a blurred rectangle
+     4. a hairline ring, and a soft drop onto the content behind it */
 .nv-glass {
   position: relative;
   background: var(--glass-tint);
-  box-shadow: inset 0 0 0 1px var(--glass-ring);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  backdrop-filter: blur(24px) saturate(180%);
+  box-shadow:
+    inset 0 -1px 0 0 var(--glass-underside),
+    inset 0 0 0 1px var(--glass-ring),
+    var(--glass-drop);
+  -webkit-backdrop-filter: blur(28px) saturate(185%) brightness(1.04);
+  backdrop-filter: blur(28px) saturate(185%) brightness(1.04);
+  /* The blur is the one thing on screen worth its own layer: without this the
+     tab bar re-rasterises the strip of log behind it on every scroll frame. */
+  will-change: backdrop-filter;
 }
 
 /* Layer 3 — the specular top edge. GRADIENT #1 OF 3. */
@@ -322,16 +389,21 @@ textarea {
   );
 }
 
-/* Over the canvas, and on engines without backdrop-filter, go opaque. */
+/* Over the canvas, and on engines without backdrop-filter, go opaque. The
+   edges stay: a solid panel still has a lit top and a shadowed underside, and
+   dropping them here is what makes the fallback look like a different
+   component rather than the same one without a blur. */
 .nv-glass[data-glass="solid"] {
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   background: var(--surface-overlay);
+  will-change: auto;
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .nv-glass {
     background: var(--surface-overlay);
+    will-change: auto;
   }
 }
 
@@ -347,6 +419,44 @@ textarea {
   height: 3rem;
   pointer-events: none;
   background: linear-gradient(to top, var(--surface), transparent);
+}
+
+/*
+ * Short phones.
+ *
+ * The masthead is 386px on a 320×568 screen, which leaves the life log a
+ * sliver and pushes the one control that moves time toward the fold. The
+ * mascot is the only thing on it with slack in it, so the mascot gives the
+ * height back — measured, not guessed: 168 → 120 buys 48px, and 132 on the
+ * middle band buys 36 without the character reading as an icon.
+ *
+ * Keyed on height rather than width, because this is a vertical budget and a
+ * wide short window has exactly the same problem.
+ */
+@media (max-height: 780px) {
+  .nv-masthead {
+    --nv-portrait-size: 8.25rem; /* 132px */
+  }
+}
+
+@media (max-height: 670px) {
+  .nv-masthead {
+    --nv-portrait-size: 7.5rem; /* 120px */
+  }
+}
+
+/*
+ * Grows a control's touch area without touching its box.
+ *
+ * A switch is drawn 28px tall because that is what a switch looks like, and a
+ * thumb needs 44 because that is what a thumb is. The two numbers are allowed
+ * to disagree; the pseudo-element is where they are reconciled. Requires
+ * `position: relative` on the host, which every user of it already has.
+ */
+.nv-tap::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
 }
 
 /* Press state — touch's primary feedback. Hover is desktop-only, below. */

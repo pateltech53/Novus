@@ -1,5 +1,6 @@
 import { createAccount, loadAccount, signOut as forgetLocalAccount } from "@/lib/account";
 import { RESTORED_FLAG } from "@/lib/cloud/keys";
+import { API_CREDENTIALS, apiUrl } from "@/lib/native/origin";
 
 /**
  * The browser's half of accounts.
@@ -48,8 +49,12 @@ interface AuthBody {
 
 async function post(path: string, payload: unknown): Promise<{ res: Response; body: AuthBody } | null> {
   try {
-    const res = await fetch(path, {
+    // apiUrl + credentials: the shipped app is a static bundle with no server
+    // behind it, so these have to go to the real origin and carry the session
+    // cookie explicitly across it (lib/native/origin.ts).
+    const res = await fetch(apiUrl(path), {
       method: "POST",
+      credentials: API_CREDENTIALS,
       headers: { "content-type": "application/json" },
       body: JSON.stringify(payload),
     });
@@ -254,7 +259,10 @@ export async function signOut(): Promise<void> {
   }
 
   try {
-    await fetch("/api/auth/signout", { method: "POST" });
+    await fetch(apiUrl("/api/auth/signout"), {
+      method: "POST",
+      credentials: API_CREDENTIALS,
+    });
   } catch {
     /* the cookie is still cleared below by the local half */
   }
@@ -348,7 +356,7 @@ let identityCache: Promise<Identity> | null = null;
 
 export function identity(): Promise<Identity> {
   if (!identityCache) {
-    identityCache = fetch("/api/auth/me")
+    identityCache = fetch(apiUrl("/api/auth/me"), { credentials: API_CREDENTIALS })
       .then((res) => (res.ok ? (res.json() as Promise<Identity>) : null))
       .then((body) => ({ ...NOBODY, ...(body ?? {}) }))
       .catch(() => NOBODY);

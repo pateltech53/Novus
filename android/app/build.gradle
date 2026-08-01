@@ -1,0 +1,86 @@
+apply plugin: 'com.android.application'
+
+/*
+ * Release signing, when CI has a key to sign with.
+ *
+ * Both halves are environment-driven so nothing secret is ever committed and a
+ * local `./gradlew assembleDebug` keeps working untouched. Without the four
+ * variables the release build stays unsigned and the workflow ships the debug
+ * artifact instead — see .github/workflows/android-release.yml, which says so
+ * on the release page rather than quietly handing out a build that cannot be
+ * upgraded in place.
+ */
+def keystorePath = System.getenv("NOVUS_KEYSTORE_PATH")
+def hasKeystore = keystorePath != null && !keystorePath.isEmpty() && file(keystorePath).exists()
+
+android {
+    namespace = "com.novuspitch.app"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "com.novuspitch.app"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        // Driven by the tag the workflow builds from, so two releases never
+        // claim the same version and Play never rejects an upload for it.
+        versionCode System.getenv("NOVUS_VERSION_CODE") ? System.getenv("NOVUS_VERSION_CODE").toInteger() : 1
+        versionName System.getenv("NOVUS_VERSION_NAME") ?: "1.0"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    signingConfigs {
+        release {
+            if (hasKeystore) {
+                storeFile file(keystorePath)
+                storePassword System.getenv("NOVUS_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("NOVUS_KEY_ALIAS")
+                keyPassword System.getenv("NOVUS_KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            // R8 is left off deliberately. Capacitor resolves plugins by class
+            // name at runtime, so shrinking needs keep rules per plugin and a
+            // missed one fails as a plugin that silently does not exist.
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (hasKeystore) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}

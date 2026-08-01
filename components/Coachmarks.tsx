@@ -204,7 +204,12 @@ export function Coachmarks({
           <p className="mt-1 text-base font-extrabold leading-snug text-[var(--n-11)]">{step.title}</p>
           <p className="mt-1 text-sm leading-snug text-[var(--n-8)]">{step.body}</p>
 
-          {step.mode === "ack" ? (
+          {/* A "tap it" step whose target could not be measured has no hole to
+              tap and no control to activate, which would leave a first-time
+              player with a dimmed screen and no way forward. An unmeasurable
+              target falls back to an acknowledgeable one: a tutorial that can
+              be skipped beats a tutorial that traps. */}
+          {step.mode === "ack" || !rect ? (
             <button
               type="button"
               className="pointer-events-auto mt-3 h-11 w-full rounded-[var(--radius-pill)] bg-[var(--action)] text-sm font-extrabold tracking-[0.04em] text-[var(--n-11)] active:scale-[0.97]"

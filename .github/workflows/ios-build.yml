@@ -1,0 +1,80 @@
+name: iOS build check
+
+# The Liquid Glass chrome is Swift that no other job compiles. This is the only
+# thing standing between a typo in ios/App/App/Native/ and finding it in Xcode.
+#
+# Unsigned, simulator-only: it answers "does it build", which is the question
+# CI can answer without a signing identity. Shipping still happens from Xcode.
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "ios/**"
+      - "capacitor.config.ts"
+      - ".github/workflows/ios-build.yml"
+  pull_request:
+    paths:
+      - "ios/**"
+      - "capacitor.config.ts"
+      - ".github/workflows/ios-build.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # A green run has to mean the glass compiled.
+      #
+      # Every Liquid Glass call site is behind `#if compiler(>=6.2)`, so on an
+      # older Xcode the whole branch is skipped and the job passes having
+      # type-checked only the fallback — the most misleading kind of green
+      # there is. Failing loudly here is the difference between "it builds" and
+      # "the thing this app is for builds".
+      - name: Require an SDK that has Liquid Glass in it
+        run: |
+          xcodebuild -version
+          swift --version
+          MAJOR=$(xcodebuild -version | head -1 | sed -E 's/Xcode ([0-9]+).*/\1/')
+          echo "Xcode major version: $MAJOR"
+          if [ "$MAJOR" -lt 26 ]; then
+            echo "::error::Xcode $MAJOR predates the Liquid Glass SDK. This job would"
+            echo "::error::compile only the pre-26 fallback and report success, so it fails"
+            echo "::error::instead. Pin a newer image or set DEVELOPER_DIR to Xcode 26+."
+            exit 1
+          fi
+
+      # cap sync needs a webDir to copy, and the iOS project needs the bundle
+      # it references. Skipping the sync leaves an empty App/App/public and a
+      # build that fails for a reason that has nothing to do with the Swift.
+      - name: Static export
+        run: npm run build:native:only
+
+      - name: Sync
+        run: npx cap sync ios
+
+      - name: Build for the simulator, unsigned
+        working-directory: ios/App
+        run: |
+          xcodebuild \
+            -project App.xcodeproj \
+            -scheme App \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build

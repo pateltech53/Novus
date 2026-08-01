@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Novus</string>
+    <string name="title_activity_main">Novus</string>
+    <string name="package_name">com.novuspitch.app</string>
+    <string name="custom_url_scheme">com.novuspitch.app</string>
+</resources>

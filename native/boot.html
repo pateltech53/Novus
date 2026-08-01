@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"
+    />
+    <title>Novus</title>
+    <style>
+      /* The two grounds, matching --n-1 in each theme. Whatever this page
+         paints is the last frame of the launch screen, so it has to be the
+         same colour the app is about to be. */
+      html {
+        background: #f6f7f9;
+      }
+      @media (prefers-color-scheme: dark) {
+        html {
+          background: #1c1d21;
+        }
+      }
+      html[data-theme="dark"] {
+        background: #1c1d21;
+      }
+      html[data-theme="light"] {
+        background: #f6f7f9;
+      }
+      body {
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      The app's front door, and deliberately not a Next.js page.
+
+      A framework route cannot answer "which screen does this player belong on"
+      until the runtime, the router and the page chunk have all parsed — a
+      couple of hundred milliseconds of nothing on a cold start, spent to read
+      two keys out of localStorage. This document does it in one parse and
+      hands the webview straight to the right route, so the launch screen is
+      followed by the game rather than by a loading state.
+
+      Generated into the app bundle only; the web build never serves it.
+    -->
+    <script>
+      (function () {
+        var target = "/welcome/";
+        try {
+          var theme = localStorage.getItem("novus:theme:v1");
+          if (theme === "dark" || theme === "light") {
+            document.documentElement.setAttribute("data-theme", theme);
+          }
+          if (localStorage.getItem("novus:run:v1")) {
+            target = "/play/";
+          } else {
+            var raw = localStorage.getItem("novus:profile:v1");
+            if (raw && JSON.parse(raw).onboarded) target = "/found/";
+          }
+        } catch (e) {
+          /* First launch, or storage denied. Onboarding is the right answer. */
+        }
+        location.replace(target);
+      })();
+    </script>
+  </body>
+</html>

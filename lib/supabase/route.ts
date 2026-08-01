@@ -216,10 +216,26 @@ export function withSession(res: NextResponse, session: Session | null): NextRes
  * check), which has no ambient cookies to abuse in the first place.
  */
 export function crossSite(req: NextRequest): boolean {
+  /*
+   * The shipped app is first-party, and it IS cross-site.
+   *
+   * capacitor.config.ts serves the bundle from `app.novuspitch.com` under
+   * `capacitor://` on iOS and `https://` on Android, while the server routes
+   * live at the real origin (lib/native/origin.ts). Every call the app makes
+   * is therefore cross-site by the browser's reckoning, and `CapacitorHttp` is
+   * disabled so these are ordinary fetches carrying ordinary headers.
+   *
+   * Checked before Sec-Fetch-Site precisely because that header will say
+   * "cross-site" for the app and be right. An allow-list of origins we ship
+   * ourselves is the distinction that matters: a website cannot forge Origin,
+   * so this admits our app and nobody else's page.
+   */
+  const origin = req.headers.get("origin");
+  if (origin && NATIVE_ORIGINS.has(origin)) return false;
+
   const fetchSite = req.headers.get("sec-fetch-site");
   if (fetchSite) return fetchSite !== "same-origin" && fetchSite !== "none";
 
-  const origin = req.headers.get("origin");
   if (!origin) return false;
 
   try {
@@ -228,6 +244,16 @@ export function crossSite(req: NextRequest): boolean {
     return true;
   }
 }
+
+/**
+ * The origins our own binaries run at — `server.hostname` in
+ * capacitor.config.ts, under each platform's scheme. Kept in step with that
+ * file by hand; there are two values and they change when the app is renamed.
+ */
+const NATIVE_ORIGINS = new Set([
+  "capacitor://app.novuspitch.com",
+  "https://app.novuspitch.com",
+]);
 
 /**
  * Signs out by destroying the cookie.

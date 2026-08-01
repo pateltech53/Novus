@@ -16,6 +16,7 @@ import {
 import { MIN_PASSWORD_LENGTH } from "@/lib/auth/credentials";
 import { loadProfile } from "@/lib/engine/save";
 import { play } from "@/lib/sound";
+import { usePrefetch } from "@/lib/prefetch";
 
 /**
  * The front door's only interactive element, and the page's one accent.
@@ -137,6 +138,10 @@ export function AccountGate() {
   /** Where a signed-in player goes: onboarding once, then straight to
    *  founding a company. */
   const destination = () => (loadProfile()?.onboarded ? "/found" : "/welcome");
+
+  // Both, because which one it is depends on storage this component reads
+  // lazily — and warming the wrong one costs nothing next to a cold push.
+  usePrefetch("/welcome", "/found");
 
   const go = (next: Mode) => {
     play("click");

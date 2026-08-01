@@ -10,9 +10,23 @@
     "events": "node scripts/parse-events.mjs && node scripts/validate-events.mjs && node scripts/validate-activities.mjs && node scripts/validate-tokens.mjs",
     "sim": "node scripts/simulate.mjs",
     "check": "npm run events && tsc --noEmit && npm run sim 30 8",
-    "capture": "node scripts/capture.mjs"
+    "capture": "node scripts/capture.mjs",
+    "build:native": "node scripts/build-native.mjs",
+    "build:native:only": "node scripts/build-native.mjs --no-sync",
+    "ios": "npm run build:native && npx cap open ios",
+    "android": "npm run build:native && npx cap open android",
+    "sync": "npx cap sync",
+    "audit:phone": "node scripts/audit-phone.mjs",
+    "icons": "node scripts/make-icons.mjs && node scripts/make-app-icons.mjs"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/browser": "^8.0.4",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/keyboard": "^8.0.5",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.3",
     "@mediapipe/tasks-vision": "^0.10.17",
     "@react-three/drei": "^10.0.0",
     "@react-three/fiber": "^9.0.0",
@@ -26,6 +40,9 @@
     "three": "^0.177.0"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/cli": "^8.5.0",
+    "@capacitor/ios": "^8.5.0",
     "@tailwindcss/postcss": "^4.1.0",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",

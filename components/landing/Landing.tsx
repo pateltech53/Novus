@@ -239,6 +239,12 @@ export function Landing() {
               NOVUS
             </p>
             <a
+              href="/download"
+              className="text-sm font-bold underline decoration-[var(--hairline)] underline-offset-4 transition-colors hover:decoration-[var(--text-primary)]"
+            >
+              Get the app
+            </a>
+            <a
               href="mailto:team@novuspitch.com"
               className="tnum text-sm font-bold underline decoration-[var(--hairline)] underline-offset-4 transition-colors hover:decoration-[var(--text-primary)]"
             >

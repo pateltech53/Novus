@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { createPortal } from "react-dom";
 import type { RunState } from "@/lib/engine/types";
 import { FounderAvatar } from "@/components/FounderAvatar";
@@ -44,24 +43,44 @@ export function HomeStage({
   onOpenPhone,
   onOpenPro,
   onOpenSettings,
+  dossierOpen,
+  onDossier,
+  nativeControls = false,
 }: {
   run: RunState;
   founderName: string;
   onOpenPhone: () => void;
   onOpenPro: () => void;
   onOpenSettings: () => void;
-}) {
   /*
-   * The dossier owns its own open state rather than taking a prop, so the
-   * masthead stays a drop-in for the play page. It renders through a portal
-   * because on desktop this component sits inside a sticky, overflow-hidden
-   * column — a fixed sheet nested in there is one `transform` away from being
-   * clipped, and that failure is invisible until someone adds one.
+   * The dossier used to own its own open state. It is lifted now because the
+   * app's masthead controls are UIKit views on iOS, and a native button
+   * cannot reach into this component's `useState` — the page has to hold the
+   * one piece of state both renderers drive.
    */
-  const [dossier, setDossier] = useState(false);
-
+  dossierOpen: boolean;
+  onDossier: (open: boolean) => void;
+  /**
+   * True when the four controls in this row are real Liquid Glass views
+   * floating over this section instead of DOM buttons.
+   *
+   * The row is not rendered at all in that case rather than hidden: a
+   * `display:none` button takes no taps, but an `opacity:0` one does, and the
+   * difference between those two mistakes is a masthead that silently eats
+   * every touch aimed at the mascot behind it. What replaces it is the exact
+   * height UIKit measured for its own cluster, so nothing under it moves.
+   */
+  nativeControls?: boolean;
+}) {
   return (
-    <section className="nv-stage relative overflow-hidden rounded-b-[1.75rem] px-5 pb-5 pt-[max(0.5rem,env(safe-area-inset-top))]">
+    <section
+      className="nv-masthead nv-stage relative overflow-hidden rounded-b-[1.75rem] px-5 pb-5"
+      style={{
+        paddingTop: nativeControls
+          ? "max(var(--nv-chrome-top, 0px), env(safe-area-inset-top), 0.5rem)"
+          : "max(0.5rem, env(safe-area-inset-top))",
+      }}
+    >
       {/* The orange bloom that used to sit here is gone. It spent the screen's
           one accent on decoration — leaving the ADVANCE MONTH button, the thing
           that actually asks you to act, competing with a glow for attention.
@@ -70,11 +89,15 @@ export function HomeStage({
           depth is supposed to come from. */}
 
       {/* Phone lives in the masthead: it is a device you own, not a menu item. */}
+      {!nativeControls && (
       <div className="relative flex items-start justify-between">
         <button
           type="button"
           onClick={onOpenPro}
-          className={`rounded-full px-2.5 py-1 text-2xs font-bold tracking-[0.12em] transition-colors ${
+          // The same 36px as the three controls opposite it. It was 26px,
+          // which both missed a thumb and sat visibly short of the row it
+          // shares a line with.
+          className={`nv-press flex h-9 items-center rounded-full px-3.5 text-2xs font-bold tracking-[0.12em] transition-colors ${
             run.pro
               ? "bg-[var(--color-prestige)] text-[var(--on-prestige)]"
               : "bg-[var(--n-4)] text-[var(--n-8)]"
@@ -88,7 +111,7 @@ export function HomeStage({
         <button
           type="button"
           data-opens
-          onClick={() => setDossier(true)}
+          onClick={() => onDossier(true)}
           aria-label="Company dossier"
           className="nv-press flex h-9 w-9 items-center justify-center rounded-[0.7rem] bg-[var(--n-4)] text-[var(--n-10)]"
         >
@@ -113,6 +136,7 @@ export function HomeStage({
         </button>
         </div>
       </div>
+      )}
 
       <div className="relative flex flex-col items-center">
         {/* The player's own founder, not a generic mascot. This is the same
@@ -134,10 +158,14 @@ export function HomeStage({
         </div>
       </div>
 
-      {dossier &&
+      {/* Rendered through a portal because on desktop this component sits
+          inside a sticky, overflow-hidden column — a fixed sheet nested in
+          there is one `transform` away from being clipped, and that failure is
+          invisible until someone adds one. */}
+      {dossierOpen &&
         typeof document !== "undefined" &&
         createPortal(
-          <CompanyDossier run={run} onClose={() => setDossier(false)} />,
+          <CompanyDossier run={run} onClose={() => onDossier(false)} />,
           document.body,
         )}
     </section>
