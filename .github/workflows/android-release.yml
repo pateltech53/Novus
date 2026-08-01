@@ -57,6 +57,10 @@ jobs:
           distribution: temurin
           java-version: 21
 
+      # See ci.yml: which Android platforms the runner image carries drifts, so
+      # the SDK compileSdk asks for is installed here rather than assumed.
+      - uses: android-actions/setup-android@v3
+
       - name: Work out the version
         id: version
         run: |

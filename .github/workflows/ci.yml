@@ -53,6 +53,11 @@ jobs:
           distribution: temurin
           java-version: 21
 
+      # The runner image ships some Android platforms and not others, and which
+      # ones drift. This installs whatever compileSdk asks for and accepts the
+      # licences, so the job fails on the code rather than on the image.
+      - uses: android-actions/setup-android@v3
+
       - run: npm ci
 
       # Proves the export the apps ship from still builds: it is a different
