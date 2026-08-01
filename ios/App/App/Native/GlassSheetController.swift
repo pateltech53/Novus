@@ -561,6 +561,27 @@ final class GlassSheetController: UIViewController, UIScrollViewDelegate {
         }
     }
 
+    /// The same 0.985 the DOM rows use. A choice row is the one control in
+    /// this game a player presses without already knowing what it costs, so it
+    /// has to answer the finger before it answers the question.
+    @objc private func rowDown(_ sender: UIButton) {
+        UIView.animate(
+            withDuration: 0.12, delay: 0, options: [.curveEaseOut, .allowUserInteraction]
+        ) {
+            sender.transform = CGAffineTransform(scaleX: 0.985, y: 0.985)
+            sender.alpha = 0.92
+        }
+    }
+
+    @objc private func rowUp(_ sender: UIButton) {
+        UIView.animate(
+            withDuration: 0.16, delay: 0, options: [.curveEaseOut, .allowUserInteraction]
+        ) {
+            sender.transform = .identity
+            sender.alpha = 1
+        }
+    }
+
     @objc private func actionTapped() {
         guard !answered else { return }
         answered = true
