@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Environment, useGLTF } from "@react-three/drei";
+import { useGLTF } from "@react-three/drei";
 import { Color, type Group, type Mesh, type MeshStandardMaterial } from "three";
 import { BRAND_ACTION, NEUTRAL_WHITE } from "@/lib/brand";
 import type { SharkState } from "@/components/SharkStage";
@@ -14,6 +14,37 @@ import type { SharkState } from "@/components/SharkStage";
  * previously `useGLTF.preload()` sat at module scope, so importing SharkStage
  * anywhere pulled the 23 MB GLB. /welcome and /found both paid for it while
  * showing only a poster.
+ *
+ * ── Why the lighting is authored and not fetched ────────────────────────────
+ *
+ * This used to hang `<Environment preset="city" />` under the Suspense below.
+ * A drei preset is not a local asset: it resolves to
+ * `raw.githack.com/pmndrs/drei-assets/.../potsdamer_platz_1k.hdr` and is pulled
+ * over the network the moment the shark mounts. Three things were wrong with
+ * that, in increasing order of seriousness.
+ *
+ * It is a third-party request, which this app forbids — the same rule that
+ * turned useDraco off twelve lines down rather than let drei attach a Google
+ * CDN decoder, and the same rule the landing shark was rebuilt around
+ * (components/landing/LandingSharkCanvas.tsx). It is a request made from the
+ * one screen that has the player's camera open, on a product for minors.
+ *
+ * The shipped app boots with no network at all by design (capacitor.config.ts
+ * — "Nothing is loaded over the network at boot"), so on a phone the fetch had
+ * nothing to reach.
+ *
+ * And when it failed it did not degrade, it threw. The loader's rejection
+ * propagates out of Suspense with no boundary under it, so /play died outright
+ * — "Application error: a client-side exception has occurred" — and this is
+ * the ONLY place the mascot is mounted: PerformScreen and PitchScore, which is
+ * to say the pitch. Twelve months of a company played fine and the year gate
+ * was a white screen, offline, on a school network that blocks the CDN, or in
+ * the app.
+ *
+ * So the rig below stands in for the HDRI: the key and the brand rim are the
+ * ones that were always here, plus the cool fill and floor bounce the image
+ * was quietly providing. Same shape as the landing rig, which was authored for
+ * the same reason.
  */
 
 const BASE_Y = -0.06;
@@ -53,9 +84,13 @@ export default function SharkCanvas({
       {/* Brand orange rim light — the mascot's signature edge, and the honest
           version of the CSS bloom that used to fake it. */}
       <directionalLight position={[-3, 1, -2]} intensity={0.9} color={BRAND_ACTION} />
+      {/* The two the HDRI was standing in for: a cool fill low on the front
+          left, so the shadow side opens without the suit going flat, and a dim
+          floor bounce so its underside and the tail keep their form. */}
+      <directionalLight position={[-2.6, 0.6, 2.8]} intensity={0.55} color="#dfe8f2" />
+      <directionalLight position={[0, -2.5, 1.5]} intensity={0.3} color="#f4ede2" />
       <Suspense fallback={null}>
         <SharkModel state={state} level={level} reduced={reduced} tint={tint} suitTint={suitTint} />
-        <Environment preset="city" />
       </Suspense>
     </Canvas>
   );
