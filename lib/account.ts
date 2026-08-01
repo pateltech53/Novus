@@ -1,11 +1,22 @@
 /**
- * The simulated account.
+ * The device-local mirror of the account.
  *
- * Deliberately NOT an auth system. No email, no password, no secret of any
- * kind — this product is handed to minors, and collecting credentials this
- * build cannot protect would be worse than collecting nothing. One display
- * name, stored on this device, until online accounts (Firebase) replace this
- * file behind the same three calls.
+ * This file used to BE the account — a display name in localStorage, with no
+ * email and no password, because collecting credentials a device-local build
+ * could not protect would have been worse than collecting nothing. Real
+ * accounts now exist (lib/cloud/auth.ts, app/api/auth/*), and Supabase holds
+ * the email and the password hash. This file kept its job but lost its
+ * authority: it is the CACHE the front door reads synchronously at mount.
+ *
+ * It exists for the same reason lib/engine/save.ts cannot be async — screens
+ * read it during render (`loadAccount() && loadProfile()?.onboarded`), and
+ * there is no synchronous fetch. The server is the truth; this is what the
+ * first paint can afford to know.
+ *
+ * **No password, ever, in here.** The email is stored because the front door
+ * shows it; a password would be a credential sitting in localStorage where any
+ * injected script could read it, which is precisely the thing the httpOnly
+ * cookie exists to prevent.
  *
  * Shaped like lib/engine/save.ts on purpose: every load is validated rather
  * than trusted, and storage failures degrade to "no account" instead of a
@@ -21,6 +32,12 @@ export interface Account {
   acceptedPrivacyISO?: string;
   displayName: string;
   createdAtISO: string;
+  /**
+   * The signed-in address, for display only. Absent on accounts made before
+   * real sign-up existed, and on a deploy with no Supabase project — both of
+   * which are still valid local accounts.
+   */
+  email?: string;
 }
 
 const KEY = "novus:account:v1";
@@ -46,6 +63,7 @@ export function loadAccount(): Account | null {
         typeof parsed.createdAtISO === "string"
           ? parsed.createdAtISO
           : new Date(0).toISOString(),
+      ...(typeof parsed.email === "string" && parsed.email ? { email: parsed.email } : {}),
     };
   } catch {
     return null;
@@ -56,7 +74,7 @@ export function loadAccount(): Account | null {
  * Trims, caps, and persists. Returns null for a blank name so the caller can
  * keep its button disabled instead of minting an account called "".
  */
-export function createAccount(displayName: string): Account | null {
+export function createAccount(displayName: string, email?: string): Account | null {
   // Recorded at the moment of creation — the UI does not call this until the
   // policy checkbox is ticked.
   const name = displayName.trim().slice(0, MAX_NAME_LENGTH);
@@ -65,6 +83,7 @@ export function createAccount(displayName: string): Account | null {
     displayName: name,
     createdAtISO: new Date().toISOString(),
     acceptedPrivacyISO: new Date().toISOString(),
+    ...(email ? { email: email.trim().toLowerCase() } : {}),
   };
   if (canStore()) {
     try {

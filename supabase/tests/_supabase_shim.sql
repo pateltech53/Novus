@@ -22,7 +22,17 @@ do $$ begin
 end $$;
 
 create schema if not exists auth;
-create table auth.users (id uuid primary key default gen_random_uuid());
+
+-- The columns 0004 reads. The real auth.users has many more; these are the
+-- ones the stale-anonymous sweep depends on, so these are the ones the tests
+-- need in order to prove it does what it claims.
+create table auth.users (
+  id               uuid primary key default gen_random_uuid(),
+  email            text unique,
+  is_anonymous     boolean not null default false,
+  created_at       timestamptz not null default now(),
+  last_sign_in_at  timestamptz
+);
 
 create or replace function auth.uid() returns uuid
 language sql stable as $$

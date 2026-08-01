@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { adminClient } from "@/lib/supabase/admin";
-import { attachSession, sessionOrCreate, type Session } from "@/lib/supabase/route";
+import { attachSession, sessionFromRequest, type Session } from "@/lib/supabase/route";
 import { CATALOGUE, isSellableIndustry, isSkuId, priceIdFor, type Sku } from "@/lib/stripe/catalogue";
 import { stripe } from "@/lib/stripe/client";
 import { resolvePrice } from "@/lib/stripe/prices";
@@ -80,8 +80,37 @@ export async function POST(req: NextRequest) {
     industry = body.industry;
   }
 
-  const session = await sessionOrCreate(req);
+  // Not sessionOrCreate: a purchase must never be the thing that mints an
+  // identity. See the anonymous check immediately below.
+  const session = await sessionFromRequest(req);
   if (!session) return NextResponse.json({ configured: true, signedIn: false }, { status: 200 });
+
+  /*
+   * Nothing is sold to an anonymous identity.
+   *
+   * An anonymous user exists only as long as its cookie. Clear the browser,
+   * switch device, or hand the school iPad to the next student, and it is gone
+   * — along with every entitlement attached to it, with no email, no password
+   * and no way on earth for the player to prove they paid. Taking money for
+   * that is indefensible, so the sale is refused and the client is told to
+   * send them through sign-up first.
+   *
+   * This is also what makes it safe for sign-up to mint a NEW user id instead
+   * of converting the anonymous one (app/api/auth/signup/route.ts): if nothing
+   * can be bought before the account exists, nothing can be stranded when it
+   * is created.
+   */
+  if (session.anonymous) {
+    return NextResponse.json(
+      {
+        configured: true,
+        signedIn: true,
+        needsAccount: true,
+        error: "Create an account before buying — otherwise the purchase has nothing to attach to.",
+      },
+      { status: 403 },
+    );
+  }
 
   // Same upsert /api/session does. A purchase can be someone's first ever
   // request — the profile row is the foreign key every table below hangs off,

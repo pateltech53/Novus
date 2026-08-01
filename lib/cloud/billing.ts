@@ -59,7 +59,18 @@ export type CheckoutSku =
 /** What a checkout attempt can come back as. `url` means go there now. */
 export type CheckoutResult =
   | { ok: true; url: string }
-  | { ok: false; reason: "not-configured" | "signed-out" | "owned" | "error"; message?: string };
+  | {
+      ok: false;
+      /**
+       * `needs-account` is the refusal that matters. The player is signed in,
+       * but only as an anonymous identity that lives in a cookie — checkout
+       * will not sell to one, because clearing the browser would destroy the
+       * purchase with no way to prove it happened. The caller sends them to
+       * sign up and back.
+       */
+      reason: "not-configured" | "signed-out" | "needs-account" | "owned" | "error";
+      message?: string;
+    };
 
 /**
  * Opens Stripe Checkout. Returns rather than navigating, so the caller decides
@@ -79,6 +90,7 @@ export async function startCheckout(
     const body = (await res.json()) as {
       configured?: boolean;
       signedIn?: boolean;
+      needsAccount?: boolean;
       url?: string;
       error?: string;
     };
@@ -86,6 +98,9 @@ export async function startCheckout(
     // No Stripe keys on this deploy. Not an error: the caller falls back to the
     // behaviour the app had before billing existed.
     if (body.configured === false) return { ok: false, reason: "not-configured" };
+    if (body.needsAccount) {
+      return { ok: false, reason: "needs-account", message: body.error };
+    }
     if (body.signedIn === false) return { ok: false, reason: "signed-out" };
     if (res.status === 409) return { ok: false, reason: "owned", message: body.error };
     if (!res.ok || !body.url) {
