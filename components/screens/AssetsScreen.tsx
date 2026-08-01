@@ -15,6 +15,7 @@ import {
 import { S_UNIT, STAGE_NAME } from "@/lib/engine/constants";
 import type { StageNum } from "@/lib/engine/types";
 import { fmtMoney, fmtPct } from "@/lib/engine/format";
+import { useUpgrade } from "@/components/upgrade/UpgradeProvider";
 
 /**
  * Assets — the long game. Everything on this screen is revalued at the close of
@@ -392,6 +393,7 @@ function ForSaleCard({
   pro: boolean;
   onBuy: () => void;
 }) {
+  const upgrade = useUpgrade();
   const price = def.priceS * sUnit;
   // Pro gates the catalogue, never the outcome (Brand Law 4). The card still
   // renders in full so the lock is honest about what it is withholding.
@@ -442,21 +444,41 @@ function ForSaleCard({
             {fmtMoney(price)}
           </p>
         </div>
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={onBuy}
-          aria-label={
-            locked
-              ? `${def.name}, Pro only`
-              : broke
+        {/*
+          "LOCKED", greyed out, was the whole answer here. It named the state
+          and offered no way out of it, on a list where eight cards can be in
+          that state at once.
+
+          Now it is a live control — but a quiet one. A gold slab on every
+          locked row would turn a catalogue into a pitch, so the lock keeps the
+          neutral chip it always had and spends only the prestige INK, which is
+          the colour the PRO badge on this same card is already wearing. Being
+          short of cash still greys out: that one is answered by playing.
+        */}
+        {locked ? (
+          <button
+            type="button"
+            onClick={() => upgrade.open("assets")}
+            aria-label={`${def.name} is Pro. See what Pro adds.`}
+            className="nv-press h-11 shrink-0 rounded-[var(--radius-pill)] bg-[var(--chip)] px-6 text-2xs font-extrabold tracking-[0.12em] text-[var(--color-prestige)]"
+          >
+            SEE PRO
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={onBuy}
+            aria-label={
+              broke
                 ? `${def.name}, ${fmtMoney(short)} short`
                 : `Buy ${def.name} for ${fmtMoney(price)}`
-          }
-          className="h-11 shrink-0 rounded-[var(--radius-pill)] bg-[var(--action)] px-6 text-2xs font-extrabold tracking-[0.12em] text-[var(--n-11)] transition-transform duration-150 enabled:active:scale-[0.97] disabled:cursor-not-allowed disabled:bg-[var(--chip)] disabled:text-[var(--text-tertiary)]"
-        >
-          {locked ? "LOCKED" : "BUY"}
-        </button>
+            }
+            className="h-11 shrink-0 rounded-[var(--radius-pill)] bg-[var(--action)] px-6 text-2xs font-extrabold tracking-[0.12em] text-[var(--n-11)] transition-transform duration-150 enabled:active:scale-[0.97] disabled:cursor-not-allowed disabled:bg-[var(--chip)] disabled:text-[var(--text-tertiary)]"
+          >
+            BUY
+          </button>
+        )}
       </div>
 
       {disabled && (

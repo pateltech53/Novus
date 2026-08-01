@@ -5,6 +5,7 @@ import { Motion } from "@/components/ui/Motion";
 import { Sound } from "@/components/ui/Sound";
 import { CloudSync } from "@/components/CloudSync";
 import { NativeShell } from "@/components/native/NativeShell";
+import { UpgradeProvider } from "@/components/upgrade/UpgradeProvider";
 import { THEME_COLOR_DARK } from "@/lib/brand";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 
@@ -111,7 +112,13 @@ export default function RootLayout({
         <NativeShell />
         <Sound />
         <CloudSync />
-        <Motion>{children}</Motion>
+        {/* Outside <Motion> would put the upgrade sheet's spring beyond
+            MotionConfig's reach, so a reduced-motion player would get the one
+            animation in the app that ignored them. Inside, and the gates on
+            /found, /play and the in-game phone all reach the same provider. */}
+        <Motion>
+          <UpgradeProvider>{children}</UpgradeProvider>
+        </Motion>
       </body>
     </html>
   );

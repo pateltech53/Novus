@@ -34,7 +34,13 @@ import { callerById, consumeCall, type CallOutcome } from "@/lib/ai/callers";
 import { specFor, specForRun } from "@/lib/engine/industries/index";
 import { freezeEvent } from "@/lib/engine/interpolate";
 import { positioningYearTick, syncPositioning } from "@/lib/engine/positioning";
-import { loadEntitlements, recordRunStart, runsRemainingToday } from "@/lib/monetization";
+import {
+  isPro,
+  loadEntitlements,
+  onEntitlementsChange,
+  recordRunStart,
+  runsRemainingToday,
+} from "@/lib/monetization";
 import {
   ensurePortfolio,
   launchItem,
@@ -919,6 +925,35 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     },
     [commit],
   );
+
+  /*
+   * A purchase reaches the company that is already running.
+   *
+   * `startRun` copies device Pro into the run, which covers founding AFTER a
+   * purchase and nothing else. Buying Pro from a gate in month seven left The
+   * Room shut, the Pro industries locked and the paid asset classes greyed out
+   * until the next company — a purchase that visibly did nothing, which is the
+   * one failure mode worse than not selling at all.
+   *
+   * Runs on mount as well as on the event, so resuming a saved company on a new
+   * device picks up the entitlements that arrived while it was closed. The
+   * mount pass is safe because hydrate's effect is declared above this one and
+   * effects run in order, so `runRef.current` is already the restored run.
+   *
+   * Upward only. ProSheet's simulated switch turns `run.pro` off without
+   * touching entitlements, and syncing both directions would turn it straight
+   * back on the moment anything else wrote to the store.
+   */
+  useEffect(() => {
+    const sync = () => {
+      const state = runRef.current;
+      if (!state || state.pro) return;
+      if (!isPro(loadEntitlements())) return;
+      setPro(true);
+    };
+    sync();
+    return onEntitlementsChange(sync);
+  }, [setPro]);
 
   const choicesFor = useCallback(
     (ev: GameEvent) => (run ? visibleChoices(run, ev) : []),

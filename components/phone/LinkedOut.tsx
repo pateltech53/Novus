@@ -7,6 +7,7 @@ import { useGame } from "@/lib/state/GameProvider";
 import { candidatePool, type Candidate, type Seat } from "@/lib/engine/people";
 import { KNOBS, S_UNIT } from "@/lib/engine/constants";
 import { fmtMoney, MONTH_NAMES } from "@/lib/engine/format";
+import { useUpgrade } from "@/components/upgrade/UpgradeProvider";
 
 /**
  * LinkedOut — the hiring app. It looks like a professional network because
@@ -146,6 +147,7 @@ function CandidateCard({
   proUnlocked: boolean;
   onHire: (candidateId: string) => void;
 }) {
+  const upgrade = useUpgrade();
   const salary = candidate.salaryS * unitS;
   const signing = candidate.signingS * unitS;
 
@@ -221,20 +223,39 @@ function CandidateCard({
         </span>
       </p>
 
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => {
-          play("hire");
-          onHire(candidate.id);
-        }}
-        data-sfx="none"
-        aria-label={`Hire ${candidate.name}, ${candidate.role}`}
-        aria-describedby={reason ? `${candidate.id}-why` : undefined}
-        className="mt-3.5 h-14 w-full rounded-[var(--radius-pill)] bg-[var(--action)] text-sm font-extrabold tracking-[0.04em] text-[var(--n-11)] transition-transform duration-150 enabled:active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        HIRE
-      </button>
+      {/*
+        A Pro-locked candidate does not get a greyed-out HIRE. The person is
+        real, the salary is real, and the only missing piece is the plan — so
+        the control says what to do about that instead of going dead and
+        explaining itself in 13px underneath. Being short of cash still greys
+        out, because that one is answered by playing, not by paying.
+      */}
+      {proLocked ? (
+        <button
+          type="button"
+          onClick={() => upgrade.open("talent_pool")}
+          aria-label={`${candidate.name} is in the Pro talent pool. See what Pro adds.`}
+          aria-describedby={`${candidate.id}-why`}
+          className="nv-press mt-3.5 h-14 w-full rounded-[var(--radius-pill)] bg-[var(--color-prestige)] text-sm font-extrabold tracking-[0.04em] text-[var(--on-prestige)]"
+        >
+          SEE WHAT PRO ADDS
+        </button>
+      ) : (
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => {
+            play("hire");
+            onHire(candidate.id);
+          }}
+          data-sfx="none"
+          aria-label={`Hire ${candidate.name}, ${candidate.role}`}
+          aria-describedby={reason ? `${candidate.id}-why` : undefined}
+          className="mt-3.5 h-14 w-full rounded-[var(--radius-pill)] bg-[var(--action)] text-sm font-extrabold tracking-[0.04em] text-[var(--n-11)] transition-transform duration-150 enabled:active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          HIRE
+        </button>
+      )}
 
       {reason && (
         <p

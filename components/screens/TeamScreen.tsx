@@ -6,6 +6,7 @@ import { useGame } from "@/lib/state/GameProvider";
 import { S_UNIT } from "@/lib/engine/constants";
 import { fmtMoney } from "@/lib/engine/format";
 import type { Employee } from "@/lib/engine/people";
+import { useUpgrade } from "@/components/upgrade/UpgradeProvider";
 
 /**
  * The team. A roster of named people with salaries, not a headcount integer —
@@ -74,6 +75,7 @@ export interface TeamScreenProps {
 
 export function TeamScreen({ onClose, onFire, onOpenPhone }: TeamScreenProps) {
   const { run } = useGame();
+  const upgrade = useUpgrade();
   /** Firing is two taps: the first one only admits you are thinking about it. */
   const [confirming, setConfirming] = useState<string | null>(null);
 
@@ -221,12 +223,21 @@ export function TeamScreen({ onClose, onFire, onOpenPhone }: TeamScreenProps) {
           </button>
           {!run.pro && (
             // Content only, never outcomes: Pro widens the list, not the odds.
-            <p className="mt-3 flex flex-wrap items-center justify-center gap-1.5 text-center text-2xs leading-snug text-[var(--text-tertiary)]">
-              <span className="rounded-full bg-[var(--color-prestige)] px-1.5 py-0.5 text-2xs font-bold tracking-[0.1em] text-[var(--color-navy)]">
+            // Tappable because it was already making the offer — it just had no
+            // way to accept it, which is a sentence about a product rather than
+            // a route to one.
+            <button
+              type="button"
+              onClick={() => upgrade.open("talent_pool")}
+              className="nv-press mt-3 flex w-full flex-wrap items-center justify-center gap-1.5 text-center text-2xs leading-snug text-[var(--text-tertiary)]"
+            >
+              <span className="rounded-full bg-[var(--color-prestige)] px-1.5 py-0.5 text-2xs font-bold tracking-[0.1em] text-[var(--on-prestige)]">
                 PRO
               </span>
-              More candidates in the pool. The same people can still say no.
-            </p>
+              <span>
+                More candidates in the pool. The same people can still say no.
+              </span>
+            </button>
           )}
         </div>
 
