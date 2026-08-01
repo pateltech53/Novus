@@ -54,8 +54,18 @@ export const CADENCE_SUFFIX: Record<Cadence, string> = {
 
 export type PlanId = "free" | "pro_monthly" | "pro_yearly";
 
+/**
+ * The plans that are actually bought. "free" is a PlanId because it is a
+ * choice a player can record, but it is not a SubscriptionPlan — there is no
+ * price, no cadence and nothing to check out with. Splitting the two means the
+ * checkout call below cannot be handed "free" by a screen that iterates
+ * SUBSCRIPTIONS, which is a mistake the compiler should catch rather than
+ * Stripe.
+ */
+export type ProPlanId = Exclude<PlanId, "free">;
+
 export interface SubscriptionPlan {
-  id: PlanId;
+  id: ProPlanId;
   /** What the button says the player is starting. */
   label: string;
   priceCents: Cents;

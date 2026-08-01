@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
@@ -16,8 +17,10 @@ import {
   formatRange,
   grantProLocally,
   perSeatCents,
+  type ProPlanId,
   type SubscriptionPlan,
 } from "@/lib/monetization";
+import { goToCheckout } from "@/lib/cloud/billing";
 import { loadProfile } from "@/lib/engine/save";
 import { loadAccount } from "@/lib/account";
 
@@ -260,6 +263,10 @@ export function Landing() {
 function PricingSection() {
   const router = useRouter();
 
+  /** The plan whose checkout is opening, so only that button reads BUSY. */
+  const [busy, setBusy] = useState<ProPlanId | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
   const enter = () => {
     // A named account with an onboarded profile skips straight to founding.
     const dest =
@@ -267,9 +274,32 @@ function PricingSection() {
     router.push(dest);
   };
 
-  const choosePro = (plan: SubscriptionPlan) => {
-    grantProLocally(plan.id);
-    enter();
+  /**
+   * Same two behaviours as the onboarding sheet, and for the same reason —
+   * see the long note on takePro() in app/welcome/page.tsx. Checkout when
+   * Stripe is configured, the device-local grant when it is not, and no grant
+   * at all when a configured checkout fails.
+   */
+  const choosePro = async (plan: SubscriptionPlan) => {
+    if (busy) return;
+    setBusy(plan.id);
+    setError(null);
+
+    const result = await goToCheckout(plan.id);
+    if (result.ok) return; // leaving for Stripe
+
+    if (result.reason === "not-configured") {
+      grantProLocally(plan.id);
+      enter();
+      return;
+    }
+    if (result.reason === "owned") {
+      enter();
+      return;
+    }
+
+    setBusy(null);
+    setError("Checkout could not be opened. Nothing was charged.");
   };
 
   return (
@@ -331,19 +361,26 @@ function PricingSection() {
             <div className="mt-6 grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => choosePro(PRO_MONTHLY)}
-                className="nv-press w-full rounded-full bg-[var(--action)] px-4 py-3 text-sm font-extrabold tracking-[0.04em] text-[var(--on-action)]"
+                onClick={() => void choosePro(PRO_MONTHLY)}
+                disabled={busy !== null}
+                className="nv-press w-full rounded-full bg-[var(--action)] px-4 py-3 text-sm font-extrabold tracking-[0.04em] text-[var(--on-action)] disabled:opacity-60"
               >
-                MONTHLY
+                {busy === PRO_MONTHLY.id ? "OPENING…" : "MONTHLY"}
               </button>
               <button
                 type="button"
-                onClick={() => choosePro(PRO_YEARLY)}
-                className="nv-press w-full rounded-full bg-[var(--action)] px-4 py-3 text-sm font-extrabold tracking-[0.04em] text-[var(--on-action)]"
+                onClick={() => void choosePro(PRO_YEARLY)}
+                disabled={busy !== null}
+                className="nv-press w-full rounded-full bg-[var(--action)] px-4 py-3 text-sm font-extrabold tracking-[0.04em] text-[var(--on-action)] disabled:opacity-60"
               >
-                YEARLY
+                {busy === PRO_YEARLY.id ? "OPENING…" : "YEARLY"}
               </button>
             </div>
+            {error ? (
+              <p role="alert" className="mt-2 text-xs leading-relaxed text-[var(--color-alert)]">
+                {error}
+              </p>
+            ) : null}
           </div>
 
           {/* Chapters — the teacher's column. */}

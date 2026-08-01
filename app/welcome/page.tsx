@@ -7,7 +7,9 @@ import { FounderPortrait } from "@/components/FounderAvatar";
 import { play } from "@/lib/sound";
 import { LoopExplainer } from "@/components/LoopExplainer";
 import { PrimaryButton, StepShell } from "@/components/StepShell";
+import { billingStatus, goToCheckout } from "@/lib/cloud/billing";
 import {
+  CADENCE_SUFFIX,
   CHAPTER_LICENCES,
   ONE_TIME_PURCHASES,
   PRO_FEATURES,
@@ -396,14 +398,65 @@ function PlansSheet({ onDone }: { onDone: () => void }) {
   const [panel, setPanel] = useState<"pro" | "chapter">("pro");
   const reduced = useReducedMotion();
 
+  // Null until the status route answers. The line under the button says
+  // different things depending on it, so it renders nothing rather than
+  // flashing the wrong promise for one frame.
+  const [canCharge, setCanCharge] = useState<boolean | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    void billingStatus().then((s) => {
+      if (alive) setCanCharge(s.configured);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   const swap = (next: "pro" | "chapter") => {
     play("tab");
     setPanel(next);
   };
 
-  const takePro = () => {
-    grantProLocally(plan.id);
-    onDone();
+  /**
+   * Two behaviours behind one button, decided by whether Stripe is wired up.
+   *
+   * With keys set this opens Stripe's hosted checkout and the player leaves the
+   * page; Pro is granted by the webhook when the money lands, never here. With
+   * no keys it keeps the pre-billing behaviour exactly — grant on this device,
+   * no card, walk into the game — because that is still the honest answer on a
+   * deploy that cannot charge anyone.
+   *
+   * The failure branch deliberately does NOT fall back to the local grant. On a
+   * deploy that CAN take money, a checkout that failed and granted Pro anyway
+   * would make Pro free to anyone who can drop a request.
+   */
+  const takePro = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+
+    const result = await goToCheckout(plan.id);
+    if (result.ok) return; // navigating to Stripe; leave the button busy.
+
+    if (result.reason === "not-configured") {
+      grantProLocally(plan.id);
+      onDone();
+      return;
+    }
+    if (result.reason === "owned") {
+      onDone();
+      return;
+    }
+
+    setBusy(false);
+    setError(
+      result.reason === "signed-out"
+        ? "Could not reach your account. Check your connection and try again."
+        : "Checkout could not be opened. Nothing was charged.",
+    );
   };
 
   const enter = reduced
@@ -570,11 +623,30 @@ function PlansSheet({ onDone }: { onDone: () => void }) {
         </p>
 
         <div className="mt-3.5">
-          <PrimaryButton onClick={takePro}>CHOOSE PRO</PrimaryButton>
+          <PrimaryButton onClick={takePro} disabled={busy}>
+            {busy ? "OPENING…" : "CHOOSE PRO"}
+          </PrimaryButton>
         </div>
+
+        {/* The one line under the button has to match what the button does.
+            Before billing it promised no card; with Stripe wired up that would
+            be false, and this is the screen a teacher reads before spending. */}
         <p className="mt-1.5 text-center text-2xs text-[var(--text-tertiary)]">
-          No card is taken. Pro switches on for this device until accounts launch.
+          {canCharge === null
+            ? " "
+            : canCharge
+              ? `${formatPrice(plan.priceCents)}${CADENCE_SUFFIX[plan.cadence]}, billed by Stripe. Cancel any time.`
+              : "No card is taken. Pro switches on for this device until accounts launch."}
         </p>
+
+        {error ? (
+          <p
+            role="alert"
+            className="mt-1.5 text-center text-2xs leading-relaxed text-[var(--color-alert)]"
+          >
+            {error}
+          </p>
+        ) : null}
 
         {/* Same width and height as CHOOSE PRO, solid rather than accented.
             Free is one of two answers to the question, not the way out of a
