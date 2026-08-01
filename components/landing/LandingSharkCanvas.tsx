@@ -58,8 +58,9 @@ export default function LandingSharkCanvas({
   onReady,
 }: {
   reduced: boolean;
-  /** False while the hero is scrolled away — freezes the loop so reading the
-   *  page below does not cost 60fps of GPU. */
+  /** False while the hero is scrolled away, and false while the page is being
+   *  scrolled at all — freezes the loop so neither reading the page below nor
+   *  dragging it costs 60fps of GPU. */
   spinning: boolean;
   onReady?: () => void;
 }) {
@@ -154,7 +155,15 @@ function ChampionModel({
       group.current.rotation.x = 0;
       return;
     }
-    t.current += delta;
+    /*
+     * Clamped, because this loop is stopped and restarted — every scroll
+     * freezes it (see LandingShark). R3F reports the true gap since the last
+     * rendered frame, so an unclamped delta would advance the sway by however
+     * long the visitor spent scrolling and the shark would resume mid-lurch.
+     * Clamping means the idle simply pauses and continues.
+     */
+    const dt = Math.min(delta, 1 / 30);
+    t.current += dt;
 
     // Idle on two incommensurate periods, so the loop never visibly repeats:
     // breath in the chest, weight in the stance.
@@ -165,7 +174,7 @@ function ChampionModel({
     // tracking; the damped version reads as attention.
     const targetYaw = BASE_YAW + sway + pointer.current.x * POINTER_YAW;
     const targetPitch = pointer.current.y * POINTER_PITCH;
-    const k = Math.min(1, delta * 4);
+    const k = Math.min(1, dt * 4);
     group.current.rotation.y += (targetYaw - group.current.rotation.y) * k;
     group.current.rotation.x += (targetPitch - group.current.rotation.x) * k;
     group.current.position.y = breathe;
