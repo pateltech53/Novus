@@ -70,9 +70,11 @@ final class GlassSheetController: UIViewController, UIScrollViewDelegate {
 
     private let spec: SheetSpec
     private var answered = false
+    private var rowGlass: [Int: UIView] = [:]
 
     private let backdrop = GlassKit.backdrop()
     private let panel = UIView()
+    private let panelGlass = GlassKit.panel(corner: 0, interactive: false, tint: nil)
     private let scroll = UIScrollView()
     private let stack = UIStackView()
     private let grabber = GlassKit.panel(corner: 2.5, interactive: false, tint: nil)
@@ -155,7 +157,11 @@ final class GlassSheetController: UIViewController, UIScrollViewDelegate {
 
     private func buildPanel() {
         panel.translatesAutoresizingMaskIntoConstraints = false
-        panel.backgroundColor = .secondarySystemBackground
+        // Clear, with the glass added as the first subview rather than as the
+        // panel itself: everything else in this file already lays out against
+        // `panel`, and swapping its class would move every one of those
+        // constraints onto a contentView for no gain.
+        panel.backgroundColor = .clear
         panel.layer.cornerRadius = Metric.corner
         panel.layer.cornerCurve = .continuous
         panel.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
@@ -173,6 +179,24 @@ final class GlassSheetController: UIViewController, UIScrollViewDelegate {
             top,
             panel.heightAnchor.constraint(
                 lessThanOrEqualTo: view.heightAnchor, multiplier: Metric.maxHeightFraction),
+        ])
+
+        /*
+         * The sheet's own surface, now Liquid Glass.
+         *
+         * Three materials end up stacked here — the blurred backdrop, this,
+         * and the choice rows — which is more nesting than Apple's guidance
+         * likes. It is a deliberate call, recorded in design.md §0 rather than
+         * left as an accident: reverting is `panel.backgroundColor =
+         * .secondarySystemBackground` and deleting these eight lines.
+         */
+        panelGlass.isUserInteractionEnabled = false
+        panel.insertSubview(panelGlass, at: 0)
+        NSLayoutConstraint.activate([
+            panelGlass.leadingAnchor.constraint(equalTo: panel.leadingAnchor),
+            panelGlass.trailingAnchor.constraint(equalTo: panel.trailingAnchor),
+            panelGlass.topAnchor.constraint(equalTo: panel.topAnchor),
+            panelGlass.bottomAnchor.constraint(equalTo: panel.bottomAnchor),
         ])
 
         // The grabber. Glass, and one of the five surfaces design.md names.
@@ -241,7 +265,7 @@ final class GlassSheetController: UIViewController, UIScrollViewDelegate {
         if !spec.notes.isEmpty {
             let box = UIView()
             box.translatesAutoresizingMaskIntoConstraints = false
-            box.backgroundColor = .tertiarySystemFill
+            box.backgroundColor = .secondarySystemBackground
             box.layer.cornerRadius = Metric.rowCorner
             box.layer.cornerCurve = .continuous
 
@@ -282,7 +306,7 @@ final class GlassSheetController: UIViewController, UIScrollViewDelegate {
         if let hintTitle = spec.hintTitle, let hintText = spec.hintText {
             let box = UIView()
             box.translatesAutoresizingMaskIntoConstraints = false
-            box.backgroundColor = .tertiarySystemFill
+            box.backgroundColor = .secondarySystemBackground
             box.layer.cornerRadius = Metric.rowCorner
             box.layer.cornerCurve = .continuous
 
@@ -307,8 +331,26 @@ final class GlassSheetController: UIViewController, UIScrollViewDelegate {
         }
 
         // ── The choices ─────────────────────────────────────────────────────
-        for (index, choice) in spec.choices.enumerated() {
-            stack.addArrangedSubview(choiceRow(choice, index: index))
+        //
+        // Grouped, where the OS can group them. A column of separate glass
+        // panes is exactly the thing UIGlassContainerEffect exists to stop:
+        // inside one, the rows merge and separate as a set.
+        let rows = spec.choices.enumerated().map { choiceRow($0.element, index: $0.offset) }
+        if !rows.isEmpty, let group = GlassKit.container(spacing: 8) {
+            let column = UIStackView(arrangedSubviews: rows)
+            column.axis = .vertical
+            column.spacing = 8
+            column.translatesAutoresizingMaskIntoConstraints = false
+            group.contentView.addSubview(column)
+            NSLayoutConstraint.activate([
+                column.leadingAnchor.constraint(equalTo: group.contentView.leadingAnchor),
+                column.trailingAnchor.constraint(equalTo: group.contentView.trailingAnchor),
+                column.topAnchor.constraint(equalTo: group.contentView.topAnchor),
+                column.bottomAnchor.constraint(equalTo: group.contentView.bottomAnchor),
+            ])
+            stack.addArrangedSubview(group)
+        } else {
+            rows.forEach { stack.addArrangedSubview($0) }
         }
 
         // ── Or the one thing there is to do ─────────────────────────────────
@@ -428,21 +470,33 @@ final class GlassSheetController: UIViewController, UIScrollViewDelegate {
     }
 
     /**
-     One choice.
+     One choice, on glass.
 
-     Opaque, and not negotiable: `cost` is a financial figure, and design.md's
-     rule for those is that they are read on solid ground.
+     This is the deliberate exception to design.md §0. The rule was *money is
+     read on solid ground*, and a cost chip — "Cash −3S" — is money. It was
+     changed on purpose, and the doc was changed with it rather than left to
+     disagree with the code.
+
+     What the change costs is legibility budget, so it is paid back here: the
+     cost chip is `label` and semibold rather than `secondaryLabel` and regular,
+     because small monospaced text is the first thing a refractive material
+     eats. If this reads muddy on a device, the honest fix is to put the rows
+     back on `.tertiarySystemBackground` — one line, and the sheet keeps every
+     other piece of glass it has.
      */
     private func choiceRow(_ choice: SheetChoice, index: Int) -> UIView {
-        let row = UIButton(type: .custom)
-        row.translatesAutoresizingMaskIntoConstraints = false
-        row.tag = index
-        row.backgroundColor = .tertiarySystemBackground
-        row.layer.cornerRadius = Metric.rowCorner
-        row.layer.cornerCurve = .continuous
-        row.addTarget(self, action: #selector(choiceTapped(_:)), for: .touchUpInside)
-        row.addTarget(self, action: #selector(rowDown(_:)), for: .touchDown)
-        row.addTarget(
+        let glass = GlassKit.panel(corner: Metric.rowCorner, interactive: true, tint: nil)
+        rowGlass[index] = glass
+
+        let button = UIButton(type: .custom)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.tag = index
+        button.backgroundColor = .clear
+        button.isAccessibilityElement = true
+        button.accessibilityLabel = choice.cost.map { "\(choice.label), \($0)" } ?? choice.label
+        button.addTarget(self, action: #selector(choiceTapped(_:)), for: .touchUpInside)
+        button.addTarget(self, action: #selector(rowDown(_:)), for: .touchDown)
+        button.addTarget(
             self, action: #selector(rowUp(_:)),
             for: [.touchUpInside, .touchUpOutside, .touchCancel])
 
@@ -466,10 +520,10 @@ final class GlassSheetController: UIViewController, UIScrollViewDelegate {
                     ]))
         }
         title.attributedText = text
-        row.addSubview(title)
+        glass.contentView.addSubview(title)
 
         var trailing = title.trailingAnchor.constraint(
-            equalTo: row.trailingAnchor, constant: -16)
+            equalTo: glass.contentView.trailingAnchor, constant: -16)
 
         if let cost = choice.cost {
             let chip = UILabel()
@@ -478,29 +532,39 @@ final class GlassSheetController: UIViewController, UIScrollViewDelegate {
                 string: cost,
                 attributes: [
                     // The ledger's own face, monospaced, so a column of costs
-                    // lines up the way it does everywhere else in this game.
-                    .font: UIFont.monospacedSystemFont(ofSize: 12, weight: .bold),
-                    .foregroundColor: UIColor.secondaryLabel,
+                    // lines up the way it does everywhere else in this game —
+                    // and a weight up from the old secondary grey, because it
+                    // is now being read through a refractive material.
+                    .font: UIFont.monospacedSystemFont(ofSize: 12, weight: .semibold),
+                    .foregroundColor: UIColor.label,
                 ])
             chip.setContentCompressionResistancePriority(.required, for: .horizontal)
             chip.setContentHuggingPriority(.required, for: .horizontal)
-            row.addSubview(chip)
+            glass.contentView.addSubview(chip)
             NSLayoutConstraint.activate([
-                chip.trailingAnchor.constraint(equalTo: row.trailingAnchor, constant: -16),
-                chip.topAnchor.constraint(equalTo: row.topAnchor, constant: 16),
+                chip.trailingAnchor.constraint(
+                    equalTo: glass.contentView.trailingAnchor, constant: -16),
+                chip.topAnchor.constraint(equalTo: glass.contentView.topAnchor, constant: 16),
             ])
             trailing = title.trailingAnchor.constraint(
                 lessThanOrEqualTo: chip.leadingAnchor, constant: -12)
         }
 
+        glass.contentView.addSubview(button)
         NSLayoutConstraint.activate([
-            title.leadingAnchor.constraint(equalTo: row.leadingAnchor, constant: 16),
-            title.topAnchor.constraint(equalTo: row.topAnchor, constant: 14),
-            title.bottomAnchor.constraint(equalTo: row.bottomAnchor, constant: -14),
+            title.leadingAnchor.constraint(
+                equalTo: glass.contentView.leadingAnchor, constant: 16),
+            title.topAnchor.constraint(equalTo: glass.contentView.topAnchor, constant: 14),
+            title.bottomAnchor.constraint(
+                equalTo: glass.contentView.bottomAnchor, constant: -14),
             trailing,
-            row.heightAnchor.constraint(greaterThanOrEqualToConstant: 56),
+            button.leadingAnchor.constraint(equalTo: glass.contentView.leadingAnchor),
+            button.trailingAnchor.constraint(equalTo: glass.contentView.trailingAnchor),
+            button.topAnchor.constraint(equalTo: glass.contentView.topAnchor),
+            button.bottomAnchor.constraint(equalTo: glass.contentView.bottomAnchor),
+            glass.heightAnchor.constraint(greaterThanOrEqualToConstant: 56),
         ])
-        return row
+        return glass
     }
 
     // ── Scroll ───────────────────────────────────────────────────────────────
@@ -565,20 +629,20 @@ final class GlassSheetController: UIViewController, UIScrollViewDelegate {
     /// this game a player presses without already knowing what it costs, so it
     /// has to answer the finger before it answers the question.
     @objc private func rowDown(_ sender: UIButton) {
+        guard let row = rowGlass[sender.tag] else { return }
         UIView.animate(
             withDuration: 0.12, delay: 0, options: [.curveEaseOut, .allowUserInteraction]
         ) {
-            sender.transform = CGAffineTransform(scaleX: 0.985, y: 0.985)
-            sender.alpha = 0.92
+            row.transform = CGAffineTransform(scaleX: 0.985, y: 0.985)
         }
     }
 
     @objc private func rowUp(_ sender: UIButton) {
+        guard let row = rowGlass[sender.tag] else { return }
         UIView.animate(
             withDuration: 0.16, delay: 0, options: [.curveEaseOut, .allowUserInteraction]
         ) {
-            sender.transform = .identity
-            sender.alpha = 1
+            row.transform = .identity
         }
     }
 
