@@ -374,14 +374,27 @@ final class GlassSheetController: UIViewController, UIScrollViewDelegate {
             stack.addArrangedSubview(button)
         }
 
-        // Clear of the home indicator, always.
+        /*
+         * Clear of the home indicator, always.
+         *
+         * Added to the stack BEFORE the constraint is activated, and the order
+         * is not cosmetic. This relates the footer's height to a distance
+         * measured on `view`, so the two must already share an ancestor when
+         * the constraint goes live — activating it a line earlier, while the
+         * footer is still parentless, throws "no common ancestor" and takes the
+         * sheet down with it.
+         *
+         * The button above gets away with the other order because
+         * `equalToConstant:` involves nothing but itself. That difference is
+         * invisible at the call site, which is exactly why it is written down.
+         */
         let footer = UIView()
         footer.translatesAutoresizingMaskIntoConstraints = false
+        stack.addArrangedSubview(footer)
         footer.heightAnchor.constraint(
             equalTo: view.safeAreaLayoutGuide.bottomAnchor.anchorWithOffset(
                 to: view.bottomAnchor)
         ).isActive = true
-        stack.addArrangedSubview(footer)
     }
 
     /**
