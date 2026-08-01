@@ -146,7 +146,10 @@ export function useNativeChrome(state: NativeChromeState | null, handlers: Chrom
       await add<ChromeInsets>("insetsChanged", (d) => writeInsets(d));
     };
 
-    void attach();
+    // A rejection here would be an unhandled promise, and the only thing that
+    // can reject is the bridge being gone — in which case the DOM chrome is
+    // already what the player is looking at.
+    void attach().catch(() => {});
     return () => {
       cancelled = true;
       subs.forEach((s) => s.remove());

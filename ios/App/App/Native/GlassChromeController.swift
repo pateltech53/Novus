@@ -430,7 +430,14 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
                 ])
             content = label
             hPadding = 12
-        } else if let symbol = control.symbol, let image = UIImage(systemName: symbol) {
+        } else if let symbol = control.symbol,
+            let image = UIImage(
+                systemName: symbol,
+                // Stated rather than inherited: the default point size follows
+                // the body text style, so a player at a large accessibility
+                // size would get a glyph wider than the 36pt circle holding it.
+                withConfiguration: UIImage.SymbolConfiguration(pointSize: 17, weight: .semibold))
+        {
             let view = UIImageView(image: image)
             view.tintColor = ink
             view.contentMode = .scaleAspectFit
@@ -446,6 +453,7 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
         }
 
         content.translatesAutoresizingMaskIntoConstraints = false
+        content.setContentHuggingPriority(.required, for: .horizontal)
         glass.contentView.addSubview(content)
 
         let button = UIButton(type: .custom)
@@ -460,8 +468,6 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
         NSLayoutConstraint.activate([
             content.centerXAnchor.constraint(equalTo: glass.contentView.centerXAnchor),
             content.centerYAnchor.constraint(equalTo: glass.contentView.centerYAnchor),
-            content.leadingAnchor.constraint(
-                equalTo: glass.contentView.leadingAnchor, constant: hPadding),
             button.leadingAnchor.constraint(equalTo: glass.contentView.leadingAnchor),
             button.trailingAnchor.constraint(equalTo: glass.contentView.trailingAnchor),
             button.topAnchor.constraint(equalTo: glass.contentView.topAnchor),
@@ -469,7 +475,21 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
             glass.heightAnchor.constraint(equalToConstant: height),
             glass.widthAnchor.constraint(greaterThanOrEqualToConstant: height),
         ])
-        if !isBadge {
+
+        if isBadge {
+            // The capsule hugs its label plus padding. Pinning both edges is
+            // what sizes it; the >= above only stops a two-character badge
+            // from coming out narrower than the circles beside it.
+            NSLayoutConstraint.activate([
+                content.leadingAnchor.constraint(
+                    equalTo: glass.contentView.leadingAnchor, constant: hPadding),
+                content.trailingAnchor.constraint(
+                    equalTo: glass.contentView.trailingAnchor, constant: -hPadding),
+            ])
+        } else {
+            // A circle, and the symbol keeps its own size inside it. Pinning
+            // the image's edges here would stretch a 17pt glyph to fill all
+            // 36 and leave the control with no padding at all.
             glass.widthAnchor.constraint(equalToConstant: height).isActive = true
         }
         return glass
