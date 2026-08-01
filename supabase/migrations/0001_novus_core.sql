@@ -10,9 +10,16 @@
 --   novus:legacy:v1        → public.legacy
 --   novus:entitlements:v1  → public.entitlements
 --   novus:runledger:v1     → public.run_ledger
---   novus:wardrobe:v1      → public.preferences.equipped_skin
---   novus:theme:v1         → public.preferences.theme
---   novus:sound:v1         → public.preferences.sound_on
+--   novus:wardrobe:v1      → public.preferences.equipped_skin   (not yet wired)
+--   novus:theme:v1         → public.preferences.theme           (not yet wired)
+--   novus:sound:v1         → public.preferences.sound_on        (not yet wired)
+--
+-- The last three columns exist and are ready, but nothing writes them yet:
+-- lib/theme.ts, lib/sound.ts and lib/engine/wardrobe.ts each own their own
+-- storage key and none of them route through lib/engine/save.ts. They are
+-- device-level taste rather than progress, so nothing is lost while they wait.
+-- Reserving the columns now keeps that a one-file change later instead of a
+-- migration.
 --
 -- Identity is Supabase ANONYMOUS auth. No email, no phone, no password, no
 -- OAuth — this product is handed to minors, and the cheapest way to handle a
@@ -95,7 +102,7 @@ create table public.preferences (
   -- O2 volume baseline, 0..1. Null = never calibrated.
   mic_calibration real check (mic_calibration is null or mic_calibration between 0 and 1),
 
-  -- novus:theme:v1 / novus:sound:v1
+  -- novus:theme:v1 / novus:sound:v1 — reserved, see the header.
   theme           text not null default 'light' check (theme in ('light','dark')),
   sound_on        boolean not null default true,
 
