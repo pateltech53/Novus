@@ -471,6 +471,50 @@ for (const [shell, inject] of SHELLS) {
   want(sheet.includes("TERMS OF USE") && sheet.includes("PRIVACY"),
     "the Pro sheet is missing its terms/privacy links");
 
+  // ── The upgrade screen ───────────────────────────────────────────────────
+  // Six refused gates open this one, which makes it the most reachable pricing
+  // surface in the app and the one a reviewer is most likely to find. Reached
+  // here through the talent-pool gate on the team tab.
+  await page.goto(`http://127.0.0.1:${PORT}/play/`, { waitUntil: "networkidle" });
+  await page.waitForTimeout(900);
+  const team = page
+    .locator('nav[aria-label="Activities"] button')
+    .filter({ hasText: /^team$/i });
+  if (await team.count()) {
+    await team.first().click();
+    await page.waitForTimeout(650);
+    const gate = page
+      .locator("button")
+      .filter({ hasText: "More candidates in the pool" })
+      .first();
+    if (await gate.count()) {
+      await gate.click();
+      await page.waitForTimeout(700);
+
+      const upgrade = await page.evaluate(() => {
+        const dialogs = document.querySelectorAll('[role="dialog"]');
+        return dialogs[dialogs.length - 1]?.innerText ?? "";
+      });
+      await page.screenshot({ path: join(SHOTS, `shell-${shell}-upgrade.png`) });
+
+      want(upgrade.includes("KEEP PLAYING FREE"), "the upgrade screen did not open");
+      want(PRICE.test(upgrade) === sells, sells
+        ? "no price on the upgrade screen in a browser"
+        : `a price is on the upgrade screen in the ${shell} build`);
+      want(upgrade.includes("GET PRO") === sells, sells
+        ? "no GET PRO on the upgrade screen in a browser"
+        : `GET PRO is on the upgrade screen in the ${shell} build`);
+      want(upgrade.includes("Restore purchases"),
+        "the upgrade screen has no Restore purchases");
+      want(upgrade.includes("TERMS OF USE") && upgrade.includes("PRIVACY"),
+        "the upgrade screen is missing its terms/privacy links");
+    } else {
+      problems.push("could not reach the talent-pool gate");
+    }
+  } else {
+    problems.push("no team tab");
+  }
+
   if (problems.length) {
     failures += problems.length;
     console.log(`\n✗ store rule · ${shell}`);

@@ -3,8 +3,11 @@
 import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { play } from "@/lib/sound";
-import { billingStatus, goToCheckout } from "@/lib/cloud/billing";
+import { billingStatus, goToCheckout, restorePurchases } from "@/lib/cloud/billing";
+import { NOT_SOLD_HERE_NOTE, useSellsHere } from "@/lib/commerce";
 import { EXIT, SHEET_SPRING } from "@/components/ui/Motion";
+import { LegalSheet } from "@/components/LegalSheet";
+import { PRIVACY, TERMS, type LegalDocument } from "@/lib/legal/documents";
 import {
   CADENCE_SUFFIX,
   MONTHLY_ANNUALISED_CENTS,
@@ -52,6 +55,20 @@ import type { Gate } from "@/lib/upgrade";
  * With no keys it grants Pro on this device and says so. A checkout that FAILED
  * never falls back to the local grant — on a deploy that can take money, that
  * would make Pro free to anyone who can drop a request.
+ *
+ * ── …and where it does not exist at all ─────────────────────────────────────
+ *
+ * In a store build there is no price and no button. Six gates open this screen,
+ * which makes it the most reachable pricing surface in the app and therefore
+ * the one that would collect App Store Guideline 3.1.1 first: digital content
+ * used inside the app is sold with the store's billing or not at all, and
+ * 3.1.3(a) forbids pointing at any other purchase mechanism. So the whole
+ * purchase strip is replaced by what Pro is, a Restore, and the free exit —
+ * see lib/commerce.ts.
+ *
+ * The gate's own argument stays. Telling a player what they hit and what tier
+ * contains it is a description of the product; it is the price and the way to
+ * pay it that may not be here.
  */
 export function UpgradeScreen({
   gate,
@@ -62,6 +79,11 @@ export function UpgradeScreen({
 }) {
   const [plan, setPlan] = useState<SubscriptionPlan>(PRO_YEARLY);
   const reduced = useReducedMotion();
+
+  /** Whether this build may show a price at all. Null until the shell is known. */
+  const sellsHere = useSellsHere();
+  const [legal, setLegal] = useState<LegalDocument | null>(null);
+  const [restored, setRestored] = useState<string | null>(null);
 
   // Null until the status route answers. The line under the button promises
   // different things depending on it, so it renders a blank rather than
@@ -122,17 +144,53 @@ export function UpgradeScreen({
     );
   };
 
+  /**
+   * Bring a purchase made elsewhere onto this device.
+   *
+   * On a store build this is the only way Pro ever arrives, so it is the
+   * button that replaces GET PRO. It is offered on the web too: a player who
+   * paid on their laptop and hit a gate on their phone is asking the same
+   * question either way.
+   */
+  const restore = async () => {
+    if (busy) return;
+    setBusy(true);
+    setRestored(null);
+    setError(null);
+
+    const result = await restorePurchases();
+    setBusy(false);
+
+    if (!result.ok) {
+      setError(
+        result.reason === "signed-out"
+          ? "Sign in first — purchases attach to your Novus account, not to this device. Settings › Account."
+          : result.reason === "not-configured"
+            ? "Purchases are not switched on for this build."
+            : "Could not reach the server. Check your connection and try again.",
+      );
+      return;
+    }
+    if (result.pro) {
+      play("success");
+      onClose();
+      return;
+    }
+    setRestored("Nothing to restore on this account.");
+  };
+
   const priceLine =
     canCharge === null
       ? " "
       : canCharge
-        ? `${formatPrice(plan.priceCents)}${CADENCE_SUFFIX[plan.cadence]}, billed by Stripe. Cancel any time.`
+        ? `Novus Pro, ${formatPrice(plan.priceCents)}${CADENCE_SUFFIX[plan.cadence]}, billed by Stripe. Renews automatically each ${plan.cadence} until you cancel; cancel any time from Settings.`
         : "No card is taken. Pro switches on for this device until accounts launch.";
 
-  /* The picker, the button and the two lines under it. Identical on both
+  /* The picker, the button and the line under it. Identical on both
      compositions — only where they sit changes, so the price a player reads is
-     never a different element from the price they pressed. */
-  const purchase = (
+     never a different element from the price they pressed. Rendered only where
+     a price may be shown at all. */
+  const priceBlock = (
     <>
       <div
         className="grid grid-cols-2 gap-2 lg:grid-cols-1"
@@ -201,6 +259,36 @@ export function UpgradeScreen({
       <p className="mt-1.5 text-center text-2xs leading-snug text-[var(--text-tertiary)]">
         {priceLine}
       </p>
+    </>
+  );
+
+  /* What the pinned strip and the desktop panel both carry.
+     In a browser that starts with the price block above. In a store build the
+     price block does not exist, and its place is taken by what Pro is and by
+     the way to bring one already bought onto this device. The free exit and
+     the two legal links are on every platform in the same place, so the way
+     out never moves and the terms are never more than one tap from the offer. */
+  const purchase = (
+    <>
+      {sellsHere === true ? priceBlock : null}
+
+      {sellsHere === false ? (
+        <p className="rounded-[var(--radius-row)] bg-[var(--surface)] px-4 py-3 text-xs leading-relaxed text-[var(--text-secondary)]">
+          {NOT_SOLD_HERE_NOTE}
+        </p>
+      ) : null}
+
+      {/* On a store build this is the only way Pro ever arrives, which is why
+          it is here and not only in Settings — the player is standing at the
+          gate that just refused them. */}
+      <button
+        type="button"
+        onClick={() => void restore()}
+        disabled={busy}
+        className="nv-press mt-2.5 h-12 w-full rounded-[var(--radius-pill)] bg-[var(--chip)] text-sm font-bold text-[var(--text-primary)] disabled:opacity-60"
+      >
+        {busy ? "CHECKING…" : "Restore purchases"}
+      </button>
 
       {error ? (
         <p
@@ -208,6 +296,15 @@ export function UpgradeScreen({
           className="mt-1.5 text-center text-2xs leading-relaxed text-[var(--alert)]"
         >
           {error}
+        </p>
+      ) : null}
+
+      {restored ? (
+        <p
+          role="status"
+          className="mt-1.5 text-center text-2xs leading-relaxed text-[var(--text-tertiary)]"
+        >
+          {restored}
         </p>
       ) : null}
 
@@ -221,6 +318,23 @@ export function UpgradeScreen({
       >
         KEEP PLAYING FREE
       </button>
+
+      <div className="mt-3 flex justify-center gap-5 text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
+        <button
+          type="button"
+          onClick={() => setLegal(TERMS)}
+          className="underline underline-offset-4"
+        >
+          TERMS OF USE
+        </button>
+        <button
+          type="button"
+          onClick={() => setLegal(PRIVACY)}
+          className="underline underline-offset-4"
+        >
+          PRIVACY
+        </button>
+      </div>
     </>
   );
 
@@ -356,6 +470,10 @@ export function UpgradeScreen({
           {purchase}
         </div>
       </motion.section>
+
+      {/* Once, at the root: `purchase` is rendered twice — pinned on phone,
+          panelled on desktop — and only one of them may open a document. */}
+      {legal && <LegalSheet doc={legal} onClose={() => setLegal(null)} />}
     </div>
   );
 }

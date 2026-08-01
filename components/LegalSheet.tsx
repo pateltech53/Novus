@@ -31,7 +31,10 @@ export function LegalSheet({
   useBackHandler(true, onClose);
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-end justify-center sm:items-center sm:p-6">
+    /* Above everything, including the upgrade screen at z-98 — this sheet is
+       opened FROM the surfaces that sit highest, and a policy that renders
+       underneath the thing that linked to it is not a functional link. */
+    <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-6">
       <button
         type="button"
         aria-label="Close"
