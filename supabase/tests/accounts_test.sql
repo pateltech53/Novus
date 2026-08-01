@@ -1,4 +1,4 @@
-\set ON_ERROR_STOP 0
+\set ON_ERROR_STOP 1
 \pset pager off
 
 -- Accounts (0004). Two claims are tested, both of which fail dangerously:
@@ -9,12 +9,7 @@
 --      deletes users; reachable over PostgREST it would let any anonymous
 --      visitor delete every other player in the database.
 --
---   psql -d novus -f _supabase_shim.sql \
---                 -f ../migrations/0001_novus_core.sql \
---                 -f ../migrations/0002_leaderboard.sql \
---                 -f ../migrations/0003_billing.sql \
---                 -f ../migrations/0004_accounts.sql \
---                 -f accounts_test.sql
+--   npm run test:db          # all five suites, fresh database each
 
 set role postgres;
 
@@ -48,44 +43,60 @@ insert into public.legacy (profile_id, best_year) values
 
 
 \echo ''
-\echo '=== 1. a player CANNOT call the sweep (should FAIL 42501) ==='
+\echo '=== 1. a player CANNOT call the sweep ==='
 set role authenticated;
 set request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-000000000002';
 -- security definer + reachable over PostgREST would mean any visitor could
 -- delete every other player. The revoke in 0004 is the only thing stopping it.
-select public.delete_stale_anonymous_users();
+select test.throws('42501', $$
+  select public.delete_stale_anonymous_users()
+$$, 'a player cannot call the stale-account sweep');
 
 
 \echo ''
 \echo '=== 2. the service role can, and sweeps exactly ONE user ==='
 set role service_role;
 set request.jwt.claim.sub = '';
-select public.delete_stale_anonymous_users() as swept;
+select test.eq(public.delete_stale_anonymous_users(), 1::bigint,
+               'the sweep deletes exactly one user');
 
 
 \echo ''
-\echo '=== 3. who survived (expect 4: active anon, real account, paid, customer) ==='
+\echo '=== 3. who survived ==='
 set role postgres;
-select
-  (select count(*) from auth.users) as users_left,
-  (select count(*) from auth.users where id = 'aaaaaaaa-0000-0000-0000-000000000001') as ghost_gone_expect_0,
-  (select count(*) from auth.users where id = 'aaaaaaaa-0000-0000-0000-000000000002') as active_anon_expect_1,
-  (select count(*) from auth.users where id = 'aaaaaaaa-0000-0000-0000-000000000003') as real_account_expect_1,
-  (select count(*) from auth.users where id = 'aaaaaaaa-0000-0000-0000-000000000004') as paid_anon_expect_1,
-  (select count(*) from auth.users where id = 'aaaaaaaa-0000-0000-0000-000000000005') as customer_anon_expect_1;
+select test.eq((select count(*) from auth.users), 4::bigint, 'four of five users survive');
+select test.eq((select count(*) from auth.users
+                where id = 'aaaaaaaa-0000-0000-0000-000000000001'), 0::bigint,
+               'the stale ghost is gone');
+select test.eq((select count(*) from auth.users
+                where id = 'aaaaaaaa-0000-0000-0000-000000000002'), 1::bigint,
+               'an anonymous player who signed in yesterday survives');
+select test.eq((select count(*) from auth.users
+                where id = 'aaaaaaaa-0000-0000-0000-000000000003'), 1::bigint,
+               'a real account survives however old and idle');
+select test.eq((select count(*) from auth.users
+                where id = 'aaaaaaaa-0000-0000-0000-000000000004'), 1::bigint,
+               'a player who bought something survives');
+select test.eq((select count(*) from auth.users
+                where id = 'aaaaaaaa-0000-0000-0000-000000000005'), 1::bigint,
+               'a player with a Stripe customer survives');
 
 
 \echo ''
 \echo '=== 4. the sweep cascaded — the ghost took its profile and legacy with it ==='
-select
-  (select count(*) from public.profiles where id = 'aaaaaaaa-0000-0000-0000-000000000001') as profile_expect_0,
-  (select count(*) from public.legacy   where profile_id = 'aaaaaaaa-0000-0000-0000-000000000001') as legacy_expect_0;
+select test.eq((select count(*) from public.profiles
+                where id = 'aaaaaaaa-0000-0000-0000-000000000001'), 0::bigint,
+               'the ghost''s profile went with it');
+select test.eq((select count(*) from public.legacy
+                where profile_id = 'aaaaaaaa-0000-0000-0000-000000000001'), 0::bigint,
+               'and its legacy went with it');
 
 
 \echo ''
-\echo '=== 5. running it again is a no-op (expect 0) ==='
+\echo '=== 5. running it again is a no-op ==='
 set role service_role;
-select public.delete_stale_anonymous_users() as swept_again;
+select test.eq(public.delete_stale_anonymous_users(), 0::bigint,
+               'a second sweep finds nothing left to take');
 
 
 \echo ''
@@ -96,7 +107,18 @@ set role postgres;
 insert into public.entitlements (profile_id, pro) values ('aaaaaaaa-0000-0000-0000-000000000003', true);
 insert into public.preferences (profile_id) values ('aaaaaaaa-0000-0000-0000-000000000003');
 delete from auth.users where id = 'aaaaaaaa-0000-0000-0000-000000000003';
-select
-  (select count(*) from public.profiles     where id = 'aaaaaaaa-0000-0000-0000-000000000003') as profile_expect_0,
-  (select count(*) from public.entitlements where profile_id = 'aaaaaaaa-0000-0000-0000-000000000003') as ent_expect_0,
-  (select count(*) from public.preferences  where profile_id = 'aaaaaaaa-0000-0000-0000-000000000003') as prefs_expect_0;
+
+select test.eq((select count(*) from public.profiles
+                where id = 'aaaaaaaa-0000-0000-0000-000000000003'), 0::bigint,
+               'the profile is really gone');
+select test.eq((select count(*) from public.entitlements
+                where profile_id = 'aaaaaaaa-0000-0000-0000-000000000003'), 0::bigint,
+               'the entitlements are really gone');
+select test.eq((select count(*) from public.preferences
+                where profile_id = 'aaaaaaaa-0000-0000-0000-000000000003'), 0::bigint,
+               'the preferences are really gone');
+-- ...and stopped there.
+select test.eq((select count(*) from public.profiles), 3::bigint,
+               'and nobody else was deleted along the way');
+
+\echo '=== accounts_test: all checks passed ==='
