@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Privacy — Novus",
   description:
-    "How Novus handles your camera, microphone, and data. Short version: your game lives on your device, your video never leaves it, and we don't sell anything about you.",
+    "How Novus handles your camera, microphone, account and payment data. Short version: your video never leaves your device, an account stores only your email and progress, we never see your card, and we don't sell anything about you.",
   alternates: { canonical: "https://novuspitch.com/privacy" },
 };
 
@@ -13,43 +13,73 @@ export const metadata: Metadata = {
  *
  * Written to describe what the code ACTUALLY does, checked against the
  * implementation it describes — the camera pipeline (lib/ai/delivery-coach.ts),
- * the transcription paths (lib/ai/transcribe.ts), and the storage layer
- * (localStorage throughout). Every claim here has a file behind it. When the
- * behaviour changes — real accounts, a billing provider, a hosted STT — this
- * page must change in the same release, and the "last updated" date with it.
+ * the transcription paths (lib/ai/transcribe.ts), the storage layer
+ * (localStorage, plus Supabase once signed in — lib/cloud/sync.ts), accounts
+ * (app/api/auth/*) and payments (lib/stripe/*). Every claim here has a file
+ * behind it. When the behaviour changes — a hosted STT, a second processor —
+ * this page must change in the same release, and the "last updated" date with
+ * it. Accounts and Stripe billing are the change this revision describes.
  *
  * Voice: plain sentences a fourteen-year-old and their parent can both read.
  * No "we value your privacy" throat-clearing. Facts, in order of what people
  * actually worry about: the camera, the mic, what leaves the device, minors.
  */
 
-const LAST_UPDATED = "July 31, 2026";
+const LAST_UPDATED = "August 1, 2026";
 
 const SECTIONS: { heading: string; body: React.ReactNode }[] = [
   {
     heading: "The short version",
     body: (
       <>
-        Your game lives on your device. Your camera footage never leaves it.
-        Your microphone is used to understand your words, not your voice. We
-        have no ads, no trackers, no data broker, and nothing about you for
-        sale. Novus is played by minors, and we treat that as a design
-        constraint, not a checkbox.
+        Your game plays on your device. Your camera footage never leaves it.
+        Your microphone is used to understand your words, not your voice.
+        Without an account, nothing about your game is sent to us at all. Make
+        one and we store your email and a copy of your progress, so it survives
+        a new phone — that is the whole of what we keep. We have no ads, no
+        trackers, no data broker, and nothing about you for sale. Novus is
+        played by minors, and we treat that as a design constraint, not a
+        checkbox.
       </>
     ),
   },
   {
-    heading: "What we store, and where",
+    heading: "Accounts, and the choice not to have one",
     body: (
       <>
-        Your account (a display name you invent — we never ask for an email or
-        a password), your founder profile, your companies, your progress and
-        your settings are stored in your browser&rsquo;s local storage,{" "}
-        <strong>on your device</strong>. There is no Novus server holding a copy.
-        Clearing your browser data deletes it, and that deletion is real and
-        permanent. When online accounts launch, anything that changes about
-        this will be listed here first, and syncing will be something you turn
-        on, not something that happens to you.
+        <strong>You can play the whole free game without an account, and if
+        you do, nothing about your game is sent to us at all.</strong>{" "}
+        No account is created for you in the background. Your companies live in
+        your browser&rsquo;s local storage, on this device, and clearing your
+        browser data deletes them — permanently, because there is no copy
+        anywhere else.
+        <br />
+        <br />
+        If you make an account, we ask for a display name you invent, an email
+        address, and a password. The email is how you sign back in and how you
+        reset a forgotten password; the password is stored only as a
+        cryptographic hash by our authentication provider (Supabase), and nobody
+        at Novus can read it. An account exists for two reasons: your progress
+        follows you to another device, and a Pro subscription has something
+        durable to attach to. We do not send marketing email, and there is no
+        newsletter to be added to.
+      </>
+    ),
+  },
+  {
+    heading: "What we store once you have an account",
+    body: (
+      <>
+        Your email, your display name, your founder profile, your companies,
+        your progress and your settings — held for us by Supabase, on servers we
+        rent. That is the whole list. We do not store your age: the game asks it
+        to adjust itself and that answer never leaves your device. We do not
+        store your address, your school, your phone number, your real name (the
+        display name is whatever you type), or a photo.
+        <br />
+        <br />
+        Ask us to delete your account and we delete it — the email, the
+        progress, all of it — and the deletion is real, not a flag.
       </>
     ),
   },
@@ -90,14 +120,20 @@ const SECTIONS: { heading: string; body: React.ReactNode }[] = [
     ),
   },
   {
-    heading: "What leaves your device today",
+    heading: "What leaves your device",
     body: (
       <>
-        Almost nothing. The app downloads its own files (images, sounds, the 3D
-        models, the on-device coaching models) from wherever it is hosted, like
-        any website. It sends no analytics, no telemetry, and no personal data
-        to us or to third parties. There are no advertising SDKs and no social
-        pixels anywhere in it.
+        Without an account: nothing but the app&rsquo;s own files (images,
+        sounds, the 3D models, the on-device coaching models), downloaded from
+        wherever it is hosted, like any website. No game data, no identifier,
+        nothing about you.
+        <br />
+        <br />
+        With an account: your email, display name and game progress, to
+        Supabase — and, if you buy Pro, the minimum needed to take a payment
+        (below). That is the complete list. It sends no analytics, no
+        telemetry, and nothing about you to anyone else. There are no
+        advertising SDKs and no social pixels anywhere in it.
       </>
     ),
   },
@@ -105,10 +141,22 @@ const SECTIONS: { heading: string; body: React.ReactNode }[] = [
     heading: "Payments",
     body: (
       <>
-        No card can be taken today. Choosing Pro switches it on for your device
-        only. When real billing launches it will run through a payment
-        processor; we will never see or store your card number, and this page
-        will name the processor before the first charge happens.
+        Payments run through <strong>Stripe</strong>. When you buy Pro you are
+        taken to a page hosted by Stripe, you enter your card there, and you come
+        back. <strong>We never see or store your card number</strong> — no part
+        of it ever reaches Novus, and Stripe loads no code onto our pages.
+        <br />
+        <br />
+        The only thing we tell Stripe about you is a random account identifier,
+        so that when they confirm a payment we know which account to unlock.
+        Stripe will ask you for an email for the receipt, and they hold that
+        under their own privacy policy. We keep a record that your account has
+        Pro, when the subscription renews, and Stripe&rsquo;s id for your
+        customer record — never a card.
+        <br />
+        <br />
+        Buying anything requires an account, because a purchase attached to a
+        browser cookie would vanish the first time you cleared it.
       </>
     ),
   },
@@ -116,11 +164,23 @@ const SECTIONS: { heading: string; body: React.ReactNode }[] = [
     heading: "For parents and teachers",
     body: (
       <>
-        Novus is built for students. That is why accounts are a display name and
-        nothing else — no email, no password, no phone number, no real-name
-        requirement, no photo. Nothing in the game can buy a score, a survival,
-        or a leaderboard place, at any price. If you have questions, or want
-        anything explained better than this page manages, write to{" "}
+        Novus is built for students. An account asks for a display name the
+        student invents, an email, and a password — and nothing else. No phone
+        number, no real-name requirement, no photo, no address, no age stored on
+        our side. The free game needs no account at all, and we would rather a
+        younger student played that way.
+        <br />
+        <br />
+        <strong>
+          If your child is under 13, please make the account yourself and use
+          your own email address.
+        </strong>{" "}
+        Buying Pro needs an account, and the card behind it should be a
+        grown-up&rsquo;s decision either way. Nothing in the game can buy a
+        score, a survival, or a leaderboard place, at any price — that is the
+        one rule we will not sell an exception to. If you have questions, want
+        an account deleted, or want anything explained better than this page
+        manages, write to{" "}
         <a className="font-bold underline underline-offset-4" href="mailto:team@novuspitch.com">
           team@novuspitch.com
         </a>{" "}

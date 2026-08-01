@@ -305,7 +305,11 @@ function PricingSection() {
     }
 
     setBusy(null);
-    setError("Checkout could not be opened. Nothing was charged.");
+    setError(
+      result.reason === "needs-account"
+        ? "Pro attaches to an account so it survives a new phone. Create one above first — the free game does not need one."
+        : "Checkout could not be opened. Nothing was charged.",
+    );
   };
 
   return (

@@ -157,7 +157,18 @@ export function adoptFromCloud(data: {
   } | null;
 }) {
   if (!canStore()) return;
-  if (data.run) localStorage.setItem(KEYS.run, JSON.stringify(migrate(data.run)));
+  if (data.run) {
+    // The server has never seen playerAge (it is stripped on the way out, and
+    // again on arrival), so a run pulled from the cloud comes back without it.
+    // Restore it from this device — the same move the prefs branch below makes,
+    // and for the same reason: age-gating is local, and a restored company must
+    // not silently un-gate itself because the field came back undefined.
+    const local = loadProfile();
+    localStorage.setItem(
+      KEYS.run,
+      JSON.stringify({ ...migrate(data.run), playerAge: local?.playerAge ?? null }),
+    );
+  }
   if (data.legacy) localStorage.setItem(KEYS.legacy, JSON.stringify(data.legacy));
   if (data.prefs) {
     // playerAge never left this device, so it is restored from whatever is

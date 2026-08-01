@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { adminClient } from "@/lib/supabase/admin";
-import { attachSession, sessionOrCreate, type Session } from "@/lib/supabase/route";
+import { attachSession, sessionFromRequest, withSession, type Session } from "@/lib/supabase/route";
 import { CATALOGUE, isSellableIndustry, isSkuId, priceIdFor, type Sku } from "@/lib/stripe/catalogue";
 import { stripe } from "@/lib/stripe/client";
 import { resolvePrice } from "@/lib/stripe/prices";
@@ -51,6 +51,17 @@ interface Body {
 
 const bad = (error: string, status = 400) => NextResponse.json({ error }, { status });
 
+/**
+ * A refusal that does NOT sign the player out.
+ *
+ * sessionFromRequest rotates the refresh token, so by the time any of the
+ * checks below can fail, the token in the browser's cookie is already spent.
+ * Returning a bare error would leave it there — and "you already own TECH"
+ * would quietly cost the player their session and their cloud sync.
+ */
+const refuse = (session: Session | null, error: string, status = 400) =>
+  withSession(NextResponse.json({ error }, { status }), session);
+
 export async function POST(req: NextRequest) {
   if (!billingConfigured()) {
     // The same shape lib/cloud/sync.ts already expects from an unconfigured
@@ -80,8 +91,41 @@ export async function POST(req: NextRequest) {
     industry = body.industry;
   }
 
-  const session = await sessionOrCreate(req);
+  // Not sessionOrCreate: a purchase must never be the thing that mints an
+  // identity. See the anonymous check immediately below.
+  const session = await sessionFromRequest(req);
   if (!session) return NextResponse.json({ configured: true, signedIn: false }, { status: 200 });
+
+  /*
+   * Nothing is sold to an anonymous identity.
+   *
+   * An anonymous user exists only as long as its cookie. Clear the browser,
+   * switch device, or hand the school iPad to the next student, and it is gone
+   * — along with every entitlement attached to it, with no email, no password
+   * and no way on earth for the player to prove they paid. Taking money for
+   * that is indefensible, so the sale is refused and the client is told to
+   * send them through sign-up first.
+   *
+   * This is also what makes it safe for sign-up to mint a NEW user id instead
+   * of converting the anonymous one (app/api/auth/signup/route.ts): if nothing
+   * can be bought before the account exists, nothing can be stranded when it
+   * is created.
+   */
+  if (session.anonymous) {
+    return withSession(
+      NextResponse.json(
+        {
+          configured: true,
+          signedIn: true,
+          needsAccount: true,
+          error:
+            "Create an account before buying — otherwise the purchase has nothing to attach to.",
+        },
+        { status: 403 },
+      ),
+      session,
+    );
+  }
 
   // Same upsert /api/session does. A purchase can be someone's first ever
   // request — the profile row is the foreign key every table below hangs off,
@@ -89,24 +133,24 @@ export async function POST(req: NextRequest) {
   const { error: profileError } = await session.supabase
     .from("profiles")
     .upsert({ id: session.userId, display_name: "Founder" }, { onConflict: "id", ignoreDuplicates: true });
-  if (profileError) return bad(`profile: ${profileError.message}`, 500);
+  if (profileError) return refuse(session, `profile: ${profileError.message}`, 500);
 
   const db = adminClient();
 
   const owned = await alreadyOwns(db, session.userId, sku, industry);
-  if (owned) return bad(owned, 409);
+  if (owned) return refuse(session, owned, 409);
 
   // Accepts either a price id or a product id, and refuses outright if the
   // amount, currency or cadence disagrees with the pricing screens.
   const resolved = await resolvePrice(sku);
-  if (!resolved.ok) return bad(resolved.reason, 500);
+  if (!resolved.ok) return refuse(session, resolved.reason, 500);
   const priceId = resolved.priceId;
 
   let customer: string;
   try {
     customer = await customerFor(db, session);
   } catch (e) {
-    return bad(`customer: ${(e as Error).message}`, 500);
+    return refuse(session, `customer: ${(e as Error).message}`, 500);
   }
 
   try {
@@ -146,10 +190,10 @@ export async function POST(req: NextRequest) {
       // and comes back needs a fresh session, not the expired one.
     );
 
-    if (!checkout.url) return bad("stripe returned no checkout url", 500);
+    if (!checkout.url) return refuse(session, "stripe returned no checkout url", 500);
     return attachSession(NextResponse.json({ configured: true, url: checkout.url }), session);
   } catch (e) {
-    return bad(`stripe: ${(e as Error).message}`, 502);
+    return refuse(session, `stripe: ${(e as Error).message}`, 502);
   }
 }
 

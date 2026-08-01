@@ -457,9 +457,11 @@ function PlansSheet({ onDone }: { onDone: () => void }) {
 
     setBusy(false);
     setError(
-      result.reason === "signed-out"
-        ? "Could not reach your account. Check your connection and try again."
-        : "Checkout could not be opened. Nothing was charged.",
+      result.reason === "needs-account"
+        ? "Pro attaches to an account, so it survives a new phone. Create one on the front page first — the free game does not need one."
+        : result.reason === "signed-out"
+          ? "Could not reach your account. Check your connection and try again."
+          : "Checkout could not be opened. Nothing was charged.",
     );
   };
 
