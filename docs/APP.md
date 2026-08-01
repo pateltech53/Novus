@@ -46,6 +46,21 @@ redirects on a preflight, so an origin that 308s (`novuspitch.com` →
 `www.novuspitch.com`) fails every call from the app while working perfectly in
 a browser tab. Point it at the host that answers, not the one that redirects.
 
+Its default lives in `lib/native/origin.ts` and **only** there. It briefly lived
+in two places — `scripts/build-native.mjs` carried a copy — and when the one in
+source was corrected, the copy went on overriding it on every native build. The
+fix shipped, the build was green, the export was fresh, and no binary ever got
+it. So `build-native.mjs` now reads the origin back out of the chunks it just
+emitted and fails the build if the string that landed is not the string the
+repo declared. It prints the host on every run:
+
+```
+· the app will call https://www.novuspitch.com
+```
+
+That line is worth reading. A value that can be overridden from three places
+needs to be checked against the artifact, not against the configuration.
+
 Both failures look identical from inside the app — "network error" — and
 neither can reproduce on the web, where the same code is same-origin and no
 preflight happens at all. That asymmetry is why they survived every check that
