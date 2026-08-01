@@ -145,8 +145,25 @@ export async function PUT(req: NextRequest) {
     errors.push(...(await writeRun(session, body.run)));
   }
 
+  /*
+   * A write that did not happen answers 500, not 200.
+   *
+   * This used to return `{ok: false, errors}` with a 200, on the reasoning
+   * that the request itself was fine and the body said what went wrong. The
+   * client read `res.ok`, saw true, and reported the save as landed. That is
+   * the wrong end of a chain that finishes with lib/cloud/auth.ts wiping
+   * localStorage on sign-out because the server "has a copy" — so a failed
+   * upsert here could take the only remaining copy of a player's company with
+   * it. The status code is the part of the answer callers actually check, so
+   * it has to be the part that is true.
+   *
+   * `errors` still rides along, because "which table" is the difference
+   * between a retry that works and a retry that loops.
+   */
   return attachSession(
-    NextResponse.json(errors.length ? { ok: false, errors } : { ok: true }),
+    errors.length
+      ? NextResponse.json({ ok: false, errors }, { status: 500 })
+      : NextResponse.json({ ok: true }),
     session,
   );
 }

@@ -35,6 +35,7 @@ import { usePlayChrome, type NativeControlId } from "@/components/native/usePlay
 import { useNativeSheet } from "@/components/native/useNativeSheet";
 import { useNativeTermCoach } from "@/components/native/useNativeTermCoach";
 import { useBackHandler } from "@/lib/native/back";
+import { useNativeCoachRect } from "@/lib/native/chrome";
 
 export default function PlayPage() {
   return (
@@ -158,11 +159,17 @@ function PlayScreen() {
    * statement — every piece of native chrome has to go, or it sits on top of
    * that thing. `overlay` is that single question, asked once.
    *
-   * The guided first play is the one exception that runs the other way. It
-   * dims the screen and cuts a hole around a DOM element, and it cannot cut a
-   * hole around a UIKit view — so during coaching the DOM chrome comes back
-   * and the native chrome stands down. The alternative is a tutorial that
-   * spotlights a control the player cannot reach.
+   * The guided first play does NOT withdraw the chrome, and used to. It dims
+   * the screen and cuts a hole around a DOM element, which cannot work on a
+   * UIKit view — native composites above the webview, so a web scrim cannot
+   * dim it and a web hole cannot expose it. The old answer was to hand the
+   * chrome back to the DOM for the duration, and the cost was one nobody sees
+   * by reading it: the guided run is a new player's entire first session, so
+   * the app's first impression contained no Liquid Glass at all.
+   *
+   * The chrome now dims itself instead, lights the one surface being taught,
+   * and reports where that surface is so the coachmark card can sit beside it.
+   * `coachTarget` is the whole of the web side's half.
    *
    * And the space the native chrome occupies is never guessed. UIKit measures
    * itself after layout and reports back; the numbers arrive as
@@ -193,28 +200,75 @@ function PlayScreen() {
     !!game.tierUnlock ||
     !!perform;
 
-  const onNativeControl = useCallback((id: NativeControlId) => {
-    if (id === "pro") setShowPro(true);
-    else if (id === "dossier") setDossier(true);
-    else if (id === "settings") setShowSettings(true);
-    else if (id === "phone") setPhoneApp("home");
-  }, []);
+  /**
+   * Which native surface the current tutorial step is teaching.
+   *
+   * null when the tutorial is not running; "" when the step teaches something
+   * the web layer drew, which still dims the chrome but lights nothing. The
+   * step declares its own native surface, so this file never carries a second
+   * copy of the mapping.
+   */
+  const coachTarget = coaching ? FIRST_RUN_STEPS[coachIndex]?.native ?? "" : null;
+
+  /**
+   * A native control that is being taught completes its step when it fires.
+   *
+   * The tap lands on a UIKit view, so the coachmark overlay never sees it —
+   * there is no click for it to catch and no element for it to activate. The
+   * control's own callback is the only signal that the player did the thing,
+   * which makes it the thing that advances the script.
+   */
+  const completeCoachStep = useCallback(
+    (surface: string) => {
+      if (!coaching || coachTarget !== surface) return;
+      if (coachIndex >= FIRST_RUN_STEPS.length - 1) finishCoaching();
+      else setCoachIndex((i) => i + 1);
+    },
+    [coaching, coachTarget, coachIndex, finishCoaching],
+  );
+
+  const onNativeControl = useCallback(
+    (id: NativeControlId) => {
+      completeCoachStep(id);
+      if (id === "pro") setShowPro(true);
+      else if (id === "dossier") setDossier(true);
+      else if (id === "settings") setShowSettings(true);
+      else if (id === "phone") setPhoneApp("home");
+    },
+    [completeCoachStep],
+  );
+
+  const onNativeTab = useCallback(
+    (tab: ActivityTab) => {
+      completeCoachStep("tabs");
+      setActivity(tab);
+    },
+    [completeCoachStep],
+  );
+
+  const onNativeAdvance = useCallback(() => {
+    completeCoachStep("advance");
+    game.advance();
+  }, [completeCoachStep, game]);
 
   const nativeChromeOwned = usePlayChrome({
-    visible: !!run && !overlay && !coaching,
+    visible: !!run && !overlay,
+    coach: coachTarget,
     month: run?.month ?? 1,
     atGate,
     canAdvance: !!run?.alive && !current,
     pro: !!run?.pro,
     activeTab: activity,
-    onTab: setActivity,
-    onAdvance: game.advance,
+    onTab: onNativeTab,
+    onAdvance: onNativeAdvance,
     onOpenGate: game.openYearGate,
     onControl: onNativeControl,
   });
 
   /** True when React still renders the tab bar and the advance button. */
-  const domChrome = !nativeChromeOwned || coaching;
+  const domChrome = !nativeChromeOwned;
+
+  const nativeCoachRect = useNativeCoachRect();
 
   /*
    * The month's decision goes to UIKit as well.
@@ -461,6 +515,8 @@ function PlayScreen() {
           index={coachIndex}
           onAdvance={() => setCoachIndex((i) => i + 1)}
           onFinish={finishCoaching}
+          nativeChrome={nativeChromeOwned}
+          nativeRect={nativeCoachRect}
         />
       )}
     </main>

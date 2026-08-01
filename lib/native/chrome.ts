@@ -6,6 +6,7 @@ import {
   ZERO_INSETS,
   type ChromeInsets,
   type NativeChromeState,
+  type NativeRect,
 } from "@/lib/native/glass";
 import { isIOS, isNative } from "@/lib/native/platform";
 
@@ -43,13 +44,51 @@ function subscribe(fn: Listener): () => void {
 const snapshot = () => owned;
 const serverSnapshot = () => false;
 
+/**
+ * The spotlit control's box, as its own store.
+ *
+ * Separate from the CSS variables because it is not a reservation — nothing
+ * lays out around it. One component reads it, and it changes far more often
+ * than the insets do (every layout pass while a coachmark is up), so it gets a
+ * snapshot React can subscribe to rather than a custom property to parse back.
+ */
+let coachRect: NativeRect | null = null;
+const coachListeners = new Set<Listener>();
+
 function writeInsets(next: ChromeInsets) {
   insets = next;
+
+  const rect = next.coach ?? null;
+  const changed =
+    !!rect !== !!coachRect ||
+    (rect &&
+      coachRect &&
+      (Math.abs(rect.top - coachRect.top) > 0.5 ||
+        Math.abs(rect.left - coachRect.left) > 0.5 ||
+        Math.abs(rect.width - coachRect.width) > 0.5 ||
+        Math.abs(rect.height - coachRect.height) > 0.5));
+  if (changed) {
+    coachRect = rect;
+    coachListeners.forEach((fn) => fn());
+  }
+
   if (typeof document === "undefined") return;
   const el = document.documentElement.style;
   el.setProperty("--nv-chrome-top", `${next.top}px`);
   el.setProperty("--nv-chrome-bottom", `${next.bottom}px`);
   el.setProperty("--nv-chrome-tabbar", `${next.tabBar}px`);
+}
+
+/** Where the native control being taught is, or null. */
+export function useNativeCoachRect(): NativeRect | null {
+  return useSyncExternalStore(
+    (fn) => {
+      coachListeners.add(fn);
+      return () => coachListeners.delete(fn);
+    },
+    () => coachRect,
+    () => null,
+  );
 }
 
 function setOwned(next: boolean) {
@@ -63,6 +102,40 @@ function setOwned(next: boolean) {
 }
 
 /**
+ * Writes down which material is actually on screen.
+ *
+ * There are two ways to end up looking at a native chrome that is not Liquid
+ * Glass — an Xcode older than 26 compiled the fallback, or the device is older
+ * than iOS 26 and the runtime check declined it — and until this existed there
+ * was no way to tell either of them from "the glass is on and you are looking
+ * right at it". `.systemThinMaterial` is a frosted pane; Liquid Glass is a
+ * lens. Side by side the difference is obvious, and nobody has them side by
+ * side.
+ *
+ * So it goes on the root element, where Web Inspector shows it without a
+ * rebuild and without a debug build:
+ *
+ *     document.documentElement.dataset.liquidGlass  // "true" | "false"
+ *     document.documentElement.dataset.nativeOs     // "26"
+ *
+ * Absent entirely on Android and the web, where the question does not arise.
+ */
+function recordMaterial(caps: { available: boolean; liquidGlass: boolean; osVersion: number }) {
+  if (typeof document === "undefined") return;
+  const root = document.documentElement;
+  root.dataset.nativeGlass = String(caps.available);
+  root.dataset.liquidGlass = String(caps.liquidGlass);
+  root.dataset.nativeOs = String(caps.osVersion);
+  // One line, once per launch. A player never opens the console; the person
+  // trying to work out why the app looks wrong opens it first.
+  console.info(
+    `[novus] native chrome ${caps.available ? "on" : "off"} · ` +
+      `material ${caps.liquidGlass ? "Liquid Glass (UIGlassEffect)" : "systemThinMaterial — needs iOS 26"} · ` +
+      `iOS ${caps.osVersion}`,
+  );
+}
+
+/**
  * Asks the plugin whether it is there. Runs at most once per launch; every
  * later caller awaits the same promise rather than starting a second probe.
  */
@@ -73,6 +146,7 @@ export function probeNativeChrome(theme: "light" | "dark", tint: string): Promis
     try {
       if (!isNative() || !isIOS()) return;
       const caps = await NovusGlass.capabilities();
+      recordMaterial(caps);
       if (!caps.available) return;
       const next = await NovusGlass.configure({ theme, tint });
       writeInsets(next);

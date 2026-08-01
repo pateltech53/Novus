@@ -72,6 +72,25 @@ export function loadRun(): RunState | null {
   }
 }
 
+/**
+ * Is there a company on this device?
+ *
+ * Cheaper than loadRun() and answers the only question the entry points ask —
+ * "continue, or found?" (lib/entry.ts). A corrupt blob reads as "no run", the
+ * same answer loadRun() gives it, so the two can never disagree about whether
+ * /play has something to open.
+ */
+export function hasSavedRun(): boolean {
+  if (!canStore()) return false;
+  try {
+    const raw = localStorage.getItem(KEYS.run);
+    if (!raw) return false;
+    return typeof (JSON.parse(raw) as Partial<RunState>)?.companyName === "string";
+  } catch {
+    return false;
+  }
+}
+
 export function saveRun(state: RunState) {
   queueRun(state);
   if (!canStore()) return;
