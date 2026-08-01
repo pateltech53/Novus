@@ -1,6 +1,8 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { NextRequest, NextResponse } from "next/server";
 
+import { isNativeOrigin } from "@/lib/native/origins";
+
 import {
   COOKIE_OPTIONS,
   SESSION_COOKIE,
@@ -231,7 +233,7 @@ export function crossSite(req: NextRequest): boolean {
    * so this admits our app and nobody else's page.
    */
   const origin = req.headers.get("origin");
-  if (origin && NATIVE_ORIGINS.has(origin)) return false;
+  if (isNativeOrigin(origin)) return false;
 
   const fetchSite = req.headers.get("sec-fetch-site");
   if (fetchSite) return fetchSite !== "same-origin" && fetchSite !== "none";
@@ -245,15 +247,6 @@ export function crossSite(req: NextRequest): boolean {
   }
 }
 
-/**
- * The origins our own binaries run at — `server.hostname` in
- * capacitor.config.ts, under each platform's scheme. Kept in step with that
- * file by hand; there are two values and they change when the app is renamed.
- */
-const NATIVE_ORIGINS = new Set([
-  "capacitor://app.novuspitch.com",
-  "https://app.novuspitch.com",
-]);
 
 /**
  * Signs out by destroying the cookie.

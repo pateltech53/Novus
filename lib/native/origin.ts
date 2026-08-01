@@ -11,8 +11,13 @@ import { isNative } from "@/lib/native/platform";
  *
  * `NEXT_PUBLIC_API_ORIGIN` is read at build time so the shipped binary has no
  * runtime configuration step and no way to be pointed somewhere else.
+ *
+ * **It must be the canonical host, with no redirect in front of it.** The
+ * default was `novuspitch.com`, which 308s to `www.` — and a browser does not
+ * follow redirects on a CORS preflight, so every call from the app failed
+ * before it was sent. A redirect here is not a slower path, it is a broken one.
  */
-const ORIGIN = (process.env.NEXT_PUBLIC_API_ORIGIN || "https://novuspitch.com").replace(/\/$/, "");
+const ORIGIN = (process.env.NEXT_PUBLIC_API_ORIGIN || "https://www.novuspitch.com").replace(/\/$/, "");
 
 export function apiUrl(path: string): string {
   if (!isNative()) return path;
