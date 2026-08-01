@@ -76,7 +76,12 @@ export function Landing() {
                       ease: [0.16, 1, 0.3, 1] as const,
                     },
                   })}
-              className="relative mx-auto mt-2 h-[44dvh] min-h-[280px] w-full max-w-[24rem] lg:order-2 lg:col-span-6 lg:mx-0 lg:mt-0 lg:h-[560px] lg:max-w-none"
+              /* `svh`, not `dvh`. A mobile browser re-resolves `dvh` on every
+                 frame of its toolbar collapse, and this box holds a WebGL
+                 canvas — so the drawing buffer was being reallocated and the
+                 page reflowed all the way through the visitor's first drag.
+                 `svh` holds still. Same reasoning in ScrollPhone. */
+              className="relative mx-auto mt-2 h-[44svh] min-h-[280px] w-full max-w-[24rem] lg:order-2 lg:col-span-6 lg:mx-0 lg:mt-0 lg:h-[560px] lg:max-w-none"
             >
               <div
                 aria-hidden="true"

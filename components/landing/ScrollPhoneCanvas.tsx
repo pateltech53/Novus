@@ -1,9 +1,8 @@
 "use client";
 
-import { Suspense, type MutableRefObject } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Suspense, useEffect, useRef, type MutableRefObject } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { RoundedBox, useTexture } from "@react-three/drei";
-import { useRef } from "react";
 import type { Group } from "three";
 
 /**
@@ -21,6 +20,14 @@ import type { Group } from "three";
  * the visitor DRIVES the turn: scroll down, the phone comes around to face
  * you; scroll back, it turns away. Reduced motion pins it at the presentation
  * angle and the page scrolls past a still object.
+ *
+ * Because the turn is driven and not timed, the render loop is `demand`: the
+ * only reason to draw a frame is that the scroll moved or the chase has not
+ * caught up yet. The shell asks for at most one frame per animation frame, the
+ * chase asks for its own until it settles, and standing still beside the phone
+ * — which is what a visitor does while reading the list next to it — costs
+ * nothing at all. The previous `always` loop held 60fps for as long as any part
+ * of a three-viewport section was on screen.
  */
 
 const SCREEN_URL = "/landing/play.webp";
@@ -39,12 +46,13 @@ const YAW_TO = 0.12;
 export default function ScrollPhoneCanvas({
   progressRef,
   reduced,
-  active,
+  invalidateRef,
 }: {
   progressRef: MutableRefObject<number>;
   reduced: boolean;
-  /** False while the section is off screen — no reason to spend frames. */
-  active: boolean;
+  /** Filled in below with R3F's `invalidate`, so the shell can ask for a frame
+   *  from the scroll handler without importing three.js to do it. */
+  invalidateRef: MutableRefObject<(() => void) | null>;
 }) {
   return (
     <Canvas
@@ -52,8 +60,9 @@ export default function ScrollPhoneCanvas({
       gl={{ alpha: true, antialias: true }}
       style={{ background: "transparent" }}
       dpr={[1, 2]}
-      frameloop={active && !reduced ? "always" : "demand"}
+      frameloop="demand"
     >
+      <FrameBridge invalidateRef={invalidateRef} />
       {/* Same studio family as the hero rig: warm key, cool fill, no CDN. */}
       <ambientLight intensity={0.75} />
       <directionalLight position={[2.4, 3, 2.5]} intensity={1.6} color="#fff4e6" />
@@ -66,6 +75,27 @@ export default function ScrollPhoneCanvas({
   );
 }
 
+/**
+ * Hands the shell the renderer's own `invalidate`. Lives outside the Suspense
+ * boundary so the handle exists from the first commit rather than from
+ * whenever the texture finishes loading.
+ */
+function FrameBridge({
+  invalidateRef,
+}: {
+  invalidateRef: MutableRefObject<(() => void) | null>;
+}) {
+  const invalidate = useThree((s) => s.invalidate);
+  useEffect(() => {
+    invalidateRef.current = invalidate;
+    invalidate();
+    return () => {
+      invalidateRef.current = null;
+    };
+  }, [invalidate, invalidateRef]);
+  return null;
+}
+
 function Phone({
   progressRef,
   reduced,
@@ -75,8 +105,25 @@ function Phone({
 }) {
   const group = useRef<Group>(null);
   const screen = useTexture(SCREEN_URL);
+  const invalidate = useThree((s) => s.invalidate);
 
-  useFrame((_, delta) => {
+  /*
+   * Start at the angle the scroll position already implies, rather than at
+   * zero and chasing. It matters because the canvas now mounts on approach
+   * instead of with the page: without this, arriving at the section — or
+   * reloading halfway through it — would open on a phone sweeping in from
+   * wherever the default happened to be.
+   *
+   * The texture also arrives after the first commit, and a demand loop has no
+   * reason of its own to draw again, so this asks for the frame that shows it.
+   */
+  useEffect(() => {
+    const p = Math.min(1, Math.max(0, progressRef.current));
+    if (group.current) group.current.rotation.y = YAW_FROM + (YAW_TO - YAW_FROM) * p;
+    invalidate();
+  }, [invalidate, progressRef, screen]);
+
+  useFrame(({ invalidate: askForAnother }, delta) => {
     if (!group.current) return;
     if (reduced) {
       group.current.rotation.y = -0.28;
@@ -87,10 +134,15 @@ function Phone({
     const target = YAW_FROM + (YAW_TO - YAW_FROM) * p;
     // Soft chase: the phone follows the scrollbar like a hand turning it, not
     // like a value snapped to it. Also erases scroll-jitter for free.
-    const k = Math.min(1, delta * 7);
+    // Delta is clamped because a demand loop can resume after an arbitrary
+    // gap; without it the first frame back would be a snap rather than a turn.
+    const k = Math.min(1, Math.min(delta, 0.1) * 7);
     group.current.rotation.y += (target - group.current.rotation.y) * k;
     // A whisper of tilt so the top edge catches the key light mid-turn.
     group.current.rotation.x = 0.03 + Math.sin(p * Math.PI) * 0.05;
+    // Keep the loop alive only while there is still ground to cover. A
+    // thousandth of a radian is a fifth of a pixel at this size.
+    if (Math.abs(target - group.current.rotation.y) > 0.001) askForAnother();
   });
 
   return (
