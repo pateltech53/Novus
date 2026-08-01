@@ -418,7 +418,52 @@ export { RESTORED_FLAG };
  * asking, and a device with a full localStorage is exactly the device that
  * would never have asked.
  */
-export async function restoreOnBoot(): Promise<void> {
+export function restoreOnBoot(): Promise<void> {
+  booted ??= boot();
+  return booted;
+}
+
+/** The boot restore, held so a screen can wait for it instead of racing it. */
+let booted: Promise<void> | null = null;
+
+/**
+ * How long the front door waits for a restore before going with whatever is
+ * already on the device.
+ *
+ * Long enough for a phone on mobile data; short enough that a network which
+ * never answers is a pause rather than a locked door. Playing on localStorage
+ * alone is a supported way to run Novus, so the timeout lands somewhere real.
+ */
+const RESTORE_WAIT_MS = 4000;
+
+/**
+ * Resolves once the boot restore has settled, or given up waiting for it.
+ *
+ * The front door needs this. CONTINUE routes on what is in localStorage
+ * (`entryRoute()`), and on a device that has never seen this account — a new
+ * phone, a cleared browser, a school machine — the company that answers that
+ * question is still on the wire. Routing before it lands sends a returning
+ * player into onboarding, or to a found screen offering them a company they
+ * already have.
+ *
+ * Resolves immediately when no restore is running, which is the common case: a
+ * device with no account never starts one, and the flag stops the second.
+ */
+export function whenRestored(): Promise<void> {
+  if (!booted) return Promise.resolve();
+  // Settled, not resolved: a restore that threw must let the player in, not
+  // reject into a click handler that has no way to answer for it.
+  const settled = booted.then(
+    () => undefined,
+    () => undefined,
+  );
+  return Promise.race([
+    settled,
+    new Promise<void>((resolve) => setTimeout(resolve, RESTORE_WAIT_MS)),
+  ]);
+}
+
+async function boot(): Promise<void> {
   installFlushOnHide();
 
   if (typeof window === "undefined") return;
@@ -432,16 +477,35 @@ export async function restoreOnBoot(): Promise<void> {
   }
   if (alreadyTried) return;
 
+  const landed = await pullAndAdopt();
+  // A changed entitlement re-enters too, even with no save to restore: several
+  // screens read it once at mount. Same one-reload-per-tab guard.
+  if (landed.saves || landed.entitlements) markAndReload();
+}
+
+/**
+ * Pulls the account's copy onto this device and adopts what the device is
+ * missing. Goes nowhere and reloads nothing — the caller decides that.
+ *
+ * Split out of the boot restore so a caller who is ABOUT to navigate can make
+ * the data land first. That is the whole of the sign-in problem: signing in
+ * empties this device on purpose (lib/cloud/auth.ts), so a route chosen from
+ * localStorage a moment later is chosen for nobody.
+ */
+async function pullAndAdopt(): Promise<{ saves: boolean; entitlements: boolean }> {
+  const nothing = { saves: false, entitlements: false };
+  if (typeof window === "undefined") return nothing;
+
   const hasLocalRun = !!window.localStorage.getItem("novus:run:v1");
   const hasLocalLegacy = !!window.localStorage.getItem("novus:legacy:v1");
   const hasLocalProfile = !!window.localStorage.getItem("novus:profile:v1");
 
   const cloud = await pull();
-  if (!cloud) return;
+  if (!cloud) return nothing;
 
   // Runs first and unconditionally. A player whose Pro lapsed must not keep
   // The Room just because this device also has a save worth keeping.
-  const entitlementsChanged = adoptEntitlements(cloud.entitlements);
+  const entitlements = adoptEntitlements(cloud.entitlements);
 
   // Import here rather than at module scope: save.ts imports this file, and a
   // static cycle between the two would leave one of them half-initialised.
@@ -451,23 +515,60 @@ export async function restoreOnBoot(): Promise<void> {
   const legacy = hasLocalLegacy ? undefined : cloud.legacy;
   const prefs = hasLocalProfile ? undefined : cloud.prefs;
 
-  if (!run && !legacy && !prefs) {
-    // Nothing to restore, but a changed entitlement still has to reach screens
-    // that read it once at mount. Same one-reload-per-tab guard.
-    if (entitlementsChanged) markAndReload();
-    return;
-  }
+  if (!run && !legacy && !prefs) return { saves: false, entitlements };
 
   adoptFromCloud({ run, legacy, prefs });
-  markAndReload();
+  return { saves: true, entitlements };
 }
 
 /**
- * Re-enters the app once, and only once per tab.
+ * Bring the account's saves down NOW, for a caller about to decide where the
+ * player goes.
+ *
+ * The one caller is the in-app sign-in (components/screens/SettingsScreen).
+ * The web front door does not need it — AccountGate hands the same decision to
+ * the boot restore by way of `whenRestored()` — but the shipped app has no
+ * front door to hand it to: "/" is the marketing page, and a store build may
+ * not show it at all (lib/commerce.ts). So the app waits here instead.
+ *
+ * Never throws: a sign-in that worked must not be reported as a failure
+ * because the save behind it was slow. The player is signed in either way, and
+ * the ordinary boot restore on the next page is still behind this.
+ */
+export async function restoreForSignIn(): Promise<void> {
+  try {
+    await pullAndAdopt();
+  } catch {
+    /* the account is still signed in; the next boot will try again */
+  }
+}
+
+/**
+ * Re-enters the app once, and only once per tab — but never the front door.
  *
  * The flag is set BEFORE the reload, so a failure to write it means no reload
  * at all rather than a loop — the same trade the original restore made, now
  * shared with the entitlements path.
+ *
+ * ── The bug this exception fixes ───────────────────────────────────────────
+ *
+ * On the web a tab starts at "/", so the front door is where this almost
+ * always landed — and reloading it took the player's tap with it. CONTINUE AS
+ * is a client-side push, and for the second or so that /play's bundle is on
+ * the wire the URL is still "/": the reload re-entered the landing page, the
+ * push was thrown away, and the one button on the screen read as broken. It
+ * looked intermittent because it was a race, and it cleared up after one
+ * reload because by then the flag was set.
+ *
+ * Skipping it there costs nothing. The landing page is the only screen that
+ * reads no saved state at mount — the gate resolves `entryRoute()` inside the
+ * click handler — so an adopt is already visible to it the moment it lands.
+ * The screens that DO snapshot at mount (/play, /found, and everything they
+ * hold) are reached by a navigation that mounts them fresh anyway.
+ *
+ * The shipped app is untouched: it boots at native/boot.html, which hands the
+ * webview straight to /play, /found or /welcome, so a restore there still
+ * re-enters exactly as before.
  */
 function markAndReload(): void {
   try {
@@ -475,5 +576,12 @@ function markAndReload(): void {
   } catch {
     return;
   }
+  if (onTheFrontDoor()) return;
   window.location.reload();
+}
+
+/** "/" — and the same page as the static export names it. */
+function onTheFrontDoor(): boolean {
+  const path = window.location.pathname;
+  return path === "/" || path === "/index.html";
 }

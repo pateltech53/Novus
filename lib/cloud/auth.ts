@@ -179,6 +179,19 @@ export async function signIn(email: string, password: string): Promise<AuthOutco
   // and this device may never have seen it before.
   createAccount(body.displayName ?? "Founder", body.email ?? email);
   forgetIdentity();
+
+  // Same re-arm sign-up does, and for the same reason: boot switched the sync
+  // layer off because this device had no account, and every call since has
+  // returned early behind that flag. A caller that pulls the account's saves
+  // before reloading — the in-app sign-in does — would otherwise be answered
+  // by a decision made one second before this account existed here.
+  try {
+    const { resume } = await import("@/lib/cloud/sync");
+    resume();
+  } catch {
+    /* the reload re-initialises the module anyway */
+  }
+
   return { ok: true, email: body.email ?? email, displayName: body.displayName };
 }
 

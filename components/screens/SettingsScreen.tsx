@@ -16,6 +16,7 @@ import {
   signOut,
 } from "@/lib/cloud/auth";
 import { openBillingPortal, restorePurchases } from "@/lib/cloud/billing";
+import { restoreForSignIn } from "@/lib/cloud/sync";
 import { isPro, loadEntitlements } from "@/lib/monetization";
 import { MANAGE_SUBSCRIPTION_NOTE, storefront, useSellsHere } from "@/lib/commerce";
 import { entryRoute } from "@/lib/entry";
@@ -307,9 +308,27 @@ function AccountSection() {
       setError(result.message);
       return;
     }
-    // signIn wiped the device and pulled nothing yet; the reload is what makes
-    // the account's own saves appear.
-    window.location.href = entryRoute();
+    /*
+     * The account's saves land BEFORE the route is chosen.
+     *
+     * Two bugs sat on this line. signIn() empties the device on purpose — it
+     * belonged to whoever was here before — so `entryRoute()` asked straight
+     * afterwards reads an empty device and answers "/welcome" for everyone:
+     * the returning player this form exists for was marched through the
+     * onboarding they finished a term ago, with their company arriving from
+     * the server a second later onto a screen that had already decided. The
+     * web front door dodges this by handing the decision to AccountGate, which
+     * waits; the app has no front door, so the wait happens here.
+     *
+     * And the app's file server resolves a route by finding its index.html, so
+     * it needs the trailing slash — the export has no /play.html to fall back
+     * on (next.config.ts). leave() below already does this; this line did not,
+     * which made signing in inside the app a navigation to a path the shell
+     * cannot resolve.
+     */
+    await restoreForSignIn();
+    const route = entryRoute();
+    window.location.href = storefront() === "web" ? route : `${route}/`;
   };
 
   const forgot = async () => {
