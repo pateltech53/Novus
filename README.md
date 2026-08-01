@@ -42,6 +42,7 @@ number somebody guessed. See **[docs/APP.md](docs/APP.md)**.
 | `npm run events` | Merge `data/sections/*.json` → `data/events.json`, then validate |
 | `npm run sim [runs] [years]` | Headless balance harness against the real engine |
 | `npm run check` | events + typecheck + a 30×8 simulation |
+| `npm run test:db` | Applies every migration to a scratch database and runs the RLS suite |
 | `npm run build:native` | Static export for the apps, then `cap sync` |
 | `npm run audit:phone` | Type, tap targets and occlusion at 320–430px |
 | `npm run ios` / `npm run android` | Build, sync, open the native project |
@@ -113,6 +114,34 @@ so `PublicBrief` in `lib/ai/types.ts` is inferred and marked as such.
 Adapters are pure functions today; when they go live they must move behind route
 handlers so no key ever reaches the client.
 
+## Persistence, accounts and money
+
+`localStorage` is the cache the game reads; Supabase is the durable copy behind
+it. `lib/engine/save.ts` stays synchronous because its callers read it during
+render, so every local write also queues a debounced push through
+`lib/cloud/sync.ts` to `/api/sync`. A player without an account sends nothing
+at all — no identity is minted for a visitor, and the game runs on localStorage
+alone, which is a supported way to run Novus.
+
+Email-and-password accounts are in `app/api/auth/*`, Stripe is in
+`app/api/billing/*`, and **the webhook is the only thing that grants a paid
+entitlement** — a success URL proves only that somebody reached a URL. Setup
+lives in [docs/ACCOUNTS-SETUP.md](docs/ACCOUNTS-SETUP.md),
+[docs/SUPABASE-SETUP.md](docs/SUPABASE-SETUP.md) and
+[docs/STRIPE-SETUP.md](docs/STRIPE-SETUP.md).
+
+Access control is row-level security, not route code: everything on the player
+path runs as the signed-in player with the anon key, so the database is what
+refuses. `supabase/tests/` proves that, and **`npm run test:db` is what makes
+it a proof** — it builds a scratch database per suite, applies all five
+migrations, and asserts each claim (`test.throws('42501', …)` for the refusals).
+CI runs it on every pull request. You need a Postgres to point it at:
+
+```bash
+docker run --rm -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres:16
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres npm run test:db
+```
+
 ## The shark
 
 Rendered live from `public/shark/shark.glb` with React Three Fiber on a
@@ -150,9 +179,6 @@ is sized to buy a year of runway rather than a fraction of valuation.
 
 ## Not built yet
 
-- **Persistence (P5).** Runs, legacy and Shark Respect are in `localStorage`
-  behind `lib/engine/save.ts`, which is shaped so Supabase drops in underneath.
-  No Supabase project is wired up.
 - **Tutorial spotlight coaching.** Term-on-first-use, Rookie Mode and the
   unfailable first year all work; the dim-and-cut-a-hole overlay does not exist
   yet — the tutorial currently teaches through the shark's narration.
