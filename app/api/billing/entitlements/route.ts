@@ -1,0 +1,54 @@
+import { NextResponse, type NextRequest } from "next/server";
+
+import type { Entitlements } from "@/lib/monetization";
+import { configured } from "@/lib/supabase/config";
+import { attachSession, sessionFromRequest } from "@/lib/supabase/route";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+/**
+ * GET /api/billing/entitlements — just the entitlements, nothing else.
+ *
+ * `/api/sync` already returns these, and for the boot path that is the right
+ * place: one request, everything the client needs. This route exists for the
+ * one case that has to POLL — the moment a player lands back from Stripe, when
+ * the webhook may be milliseconds behind them. Polling /api/sync would drag a
+ * whole run blob across the wire several times to read six fields.
+ *
+ * Read-only, and running as the player: RLS (0001) is the access check, and
+ * there is no write path to entitlements anywhere a client can reach.
+ */
+export async function GET(req: NextRequest) {
+  if (!configured()) {
+    return NextResponse.json({ configured: false, signedIn: false }, { status: 200 });
+  }
+
+  const session = await sessionFromRequest(req);
+  if (!session) {
+    return NextResponse.json({ configured: true, signedIn: false }, { status: 200 });
+  }
+
+  const { data } = await session.supabase
+    .from("entitlements")
+    .select("pro, extra_run_slots, industry_packs, cosmetic_bundles, chapter, intent")
+    .eq("profile_id", session.userId)
+    .maybeSingle();
+
+  // Null until a purchase is recorded — nothing else creates a row here.
+  const entitlements: Entitlements | null = data
+    ? {
+        pro: !!data.pro,
+        extraRunSlots: data.extra_run_slots ?? 0,
+        industryPacks: (data.industry_packs ?? []) as Entitlements["industryPacks"],
+        cosmeticBundles: data.cosmetic_bundles ?? [],
+        chapter: data.chapter ?? null,
+        intent: data.intent ?? null,
+      }
+    : null;
+
+  return attachSession(
+    NextResponse.json({ configured: true, signedIn: true, entitlements }),
+    session,
+  );
+}

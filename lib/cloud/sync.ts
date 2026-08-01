@@ -1,4 +1,7 @@
+import { adoptEntitlements } from "@/lib/cloud/billing";
+import { RESTORED_FLAG } from "@/lib/cloud/keys";
 import type { LegacyState, RunState } from "@/lib/engine/types";
+import type { Entitlements } from "@/lib/monetization";
 
 /**
  * The cloud half of persistence.
@@ -37,6 +40,9 @@ interface PullResult {
   run?: RunState | null;
   legacy?: LegacyState | null;
   prefs?: Prefs | null;
+  /** Null until a purchase is recorded. Never sent back up — the PUT side has
+   *  no entitlements field, because the server is the only writer. */
+  entitlements?: Entitlements | null;
 }
 
 /** Set once the session route says there is nothing to sync to. */
@@ -180,8 +186,10 @@ export function installFlushOnHide() {
 
 // ── Boot ─────────────────────────────────────────────────────────────────────
 
-/** Guards the restore reload below so it can happen at most once per tab. */
-const RESTORED_FLAG = "novus:cloud-restored";
+/** Guards the restore reload below so it can happen at most once per tab.
+ *  Shared with lib/cloud/billing.ts, which clears it when a player returns
+ *  from Stripe — see lib/cloud/keys.ts for why it lives in its own file. */
+export { RESTORED_FLAG };
 
 /**
  * Runs once on boot: install the flush hook, then restore from the cloud if
@@ -202,6 +210,14 @@ const RESTORED_FLAG = "novus:cloud-restored";
  *
  * The sessionStorage flag makes a reload loop impossible even if the adopt
  * silently fails: the second pass finds the flag and returns.
+ *
+ * **Entitlements are the exception to all of the above.** They are adopted on
+ * every boot, and the server's copy always wins — see lib/cloud/billing.ts for
+ * why the rule inverts. That is also why the "device already has saves, skip
+ * the request" shortcut that used to sit here is gone: a subscription
+ * cancelled last night, or a pack bought on a phone, is only knowable by
+ * asking, and a device with a full localStorage is exactly the device that
+ * would never have asked.
  */
 export async function restoreOnBoot(): Promise<void> {
   installFlushOnHide();
@@ -217,15 +233,16 @@ export async function restoreOnBoot(): Promise<void> {
   }
   if (alreadyTried) return;
 
-  // Cheap local check first: a device with a save needs nothing from us, and
-  // this avoids a pointless request on every single boot.
   const hasLocalRun = !!window.localStorage.getItem("novus:run:v1");
   const hasLocalLegacy = !!window.localStorage.getItem("novus:legacy:v1");
   const hasLocalProfile = !!window.localStorage.getItem("novus:profile:v1");
-  if (hasLocalRun && hasLocalLegacy && hasLocalProfile) return;
 
   const cloud = await pull();
   if (!cloud) return;
+
+  // Runs first and unconditionally. A player whose Pro lapsed must not keep
+  // The Room just because this device also has a save worth keeping.
+  const entitlementsChanged = adoptEntitlements(cloud.entitlements);
 
   // Import here rather than at module scope: save.ts imports this file, and a
   // static cycle between the two would leave one of them half-initialised.
@@ -234,10 +251,26 @@ export async function restoreOnBoot(): Promise<void> {
   const run = hasLocalRun ? undefined : cloud.run;
   const legacy = hasLocalLegacy ? undefined : cloud.legacy;
   const prefs = hasLocalProfile ? undefined : cloud.prefs;
-  if (!run && !legacy && !prefs) return;
+
+  if (!run && !legacy && !prefs) {
+    // Nothing to restore, but a changed entitlement still has to reach screens
+    // that read it once at mount. Same one-reload-per-tab guard.
+    if (entitlementsChanged) markAndReload();
+    return;
+  }
 
   adoptFromCloud({ run, legacy, prefs });
+  markAndReload();
+}
 
+/**
+ * Re-enters the app once, and only once per tab.
+ *
+ * The flag is set BEFORE the reload, so a failure to write it means no reload
+ * at all rather than a loop — the same trade the original restore made, now
+ * shared with the entitlements path.
+ */
+function markAndReload(): void {
   try {
     window.sessionStorage.setItem(RESTORED_FLAG, "1");
   } catch {
