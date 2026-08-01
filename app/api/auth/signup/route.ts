@@ -6,6 +6,7 @@ import {
   normaliseEmail,
 } from "@/lib/auth/credentials";
 import { LIMITS, THROTTLED_MESSAGE, callerKey, throttle } from "@/lib/auth/throttle";
+import { remoteIpFrom, verifyTurnstile } from "@/lib/auth/turnstile";
 import { configured } from "@/lib/supabase/config";
 import { crossSite, attachSession, signUpWithPassword } from "@/lib/supabase/route";
 
@@ -46,6 +47,8 @@ interface Body {
   email?: unknown;
   password?: unknown;
   displayName?: unknown;
+  /** Cloudflare Turnstile token. Absent when the check is not configured. */
+  captchaToken?: unknown;
 }
 
 export async function POST(req: NextRequest) {
@@ -85,6 +88,32 @@ export async function POST(req: NextRequest) {
   ]);
   if (!limited.allowed) {
     return NextResponse.json({ error: THROTTLED_MESSAGE, throttled: true }, { status: 429 });
+  }
+
+  /*
+   * The human check, after the throttle and before Supabase.
+   *
+   * After the throttle because that is a single cheap upsert and this is a
+   * round trip to Cloudflare — a flood should be stopped by the cheap thing.
+   * Before Supabase because the whole point is that no account is created for
+   * something that could not prove it was a person.
+   *
+   * A no-op when TURNSTILE_SECRET_KEY is unset, which is how local development
+   * and a half-configured deploy keep working.
+   */
+  const human = await verifyTurnstile(body.captchaToken, remoteIpFrom(req.headers));
+  if (!human.ok) {
+    return NextResponse.json(
+      {
+        configured: true,
+        error:
+          human.reason === "unreachable"
+            ? "The human check is unavailable right now. Try again in a minute."
+            : "Complete the human check and try again.",
+        captcha: human.reason,
+      },
+      { status: human.reason === "unreachable" ? 503 : 400 },
+    );
   }
 
   const { session, failure } = await signUpWithPassword(email, body.password);

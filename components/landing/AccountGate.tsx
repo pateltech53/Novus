@@ -16,6 +16,7 @@ import {
 import { MIN_PASSWORD_LENGTH } from "@/lib/auth/credentials";
 import { loadProfile } from "@/lib/engine/save";
 import { play } from "@/lib/sound";
+import { Turnstile, turnstileEnabled } from "@/components/landing/Turnstile";
 import { usePrefetch } from "@/lib/prefetch";
 
 /**
@@ -62,6 +63,15 @@ export function AccountGate() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   /** Reveal the password. Off by default; resets whenever the mode changes. */
   const [showPassword, setShowPassword] = useState(false);
+  /**
+   * The Turnstile token, when the human check is switched on for this deploy.
+   *
+   * `captchaNonce` remounts the widget to get a fresh one. Tokens are
+   * single-use, so after a failed sign-up the old one is spent and retrying
+   * with it would fail a second time for a reason the player cannot see.
+   */
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaNonce, setCaptchaNonce] = useState(0);
 
   const firstFieldRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -149,6 +159,8 @@ export function AccountGate() {
     setNotice(null);
     setConfirmDelete(false);
     setShowPassword(false);
+    setCaptchaToken(null);
+    setCaptchaNonce((n) => n + 1);
     setMode(next);
   };
 
@@ -156,7 +168,10 @@ export function AccountGate() {
     name.trim().length > 0 &&
     email.trim().length > 0 &&
     password.length >= MIN_PASSWORD_LENGTH &&
-    agreed;
+    agreed &&
+    // Only a gate when the check is actually configured. With no site key the
+    // widget renders nothing and the server requires nothing.
+    (!turnstileEnabled() || !!captchaToken);
 
   const canSignIn = email.trim().length > 0 && password.length > 0;
 
@@ -165,10 +180,19 @@ export function AccountGate() {
     setBusy(true);
     setError(null);
 
-    const result = await signUp(email, password, name);
+    const result = await signUp(email, password, name, captchaToken);
     if (!result.ok) {
       setBusy(false);
       setError(result.message);
+
+      // The token is spent whatever the outcome — Turnstile tokens are
+      // single-use — so a fresh widget is needed before the player can try
+      // again, or the second attempt fails for an invisible reason.
+      if (turnstileEnabled()) {
+        setCaptchaToken(null);
+        setCaptchaNonce((n) => n + 1);
+      }
+
       // A taken email is nearly always a returning player, so put them one tap
       // from the door they actually wanted rather than making them find it.
       if (result.reason === "taken") setMode("signIn");
@@ -357,6 +381,13 @@ export function AccountGate() {
               </span>
             </label>
           )}
+
+          {/* The human check. Renders nothing, and requires nothing, unless
+              NEXT_PUBLIC_TURNSTILE_SITE_KEY is set — see Turnstile.tsx for why
+              the script is loaded here rather than in the root layout. */}
+          {mode === "signUp" && turnstileEnabled() ? (
+            <Turnstile key={captchaNonce} onToken={setCaptchaToken} />
+          ) : null}
 
           {/* The real submit, INSIDE the form.
               It used to sit outside with a hidden <button type="submit"> to
