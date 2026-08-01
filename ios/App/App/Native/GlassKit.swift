@@ -82,6 +82,48 @@ enum GlassKit {
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }
+
+    /**
+     A group of glass elements that behave as one.
+
+     iOS 26's container effect is what makes neighbouring glass merge and
+     separate as they move, instead of reading as several unrelated panes
+     sitting near each other. Only worth it where there is genuinely more than
+     one — a container around a single control is a wasted compositing pass.
+
+     Returns nil before iOS 26, where the caller should just add the elements
+     directly and get the older material.
+     */
+    static func container(spacing: CGFloat) -> UIVisualEffectView? {
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, *) {
+            let effect = UIGlassContainerEffect()
+            effect.spacing = spacing
+            let view = UIVisualEffectView(effect: effect)
+            view.translatesAutoresizingMaskIntoConstraints = false
+            return view
+        }
+        #endif
+        return nil
+    }
+
+    /**
+     A full-bleed backdrop.
+
+     Deliberately NOT `UIGlassEffect`. Liquid Glass is a material for discrete
+     controls — Apple's own guidance, and stretching it edge to edge is how you
+     get a wash rather than a lens. A modal scrim is the one glass surface in
+     design.md that is measured in screens rather than in points, and
+     `.systemThinMaterial` is what the system itself puts behind a sheet.
+
+     What it blurs is the webview: the game frosts over behind whatever just
+     opened, composited by the OS rather than by `backdrop-filter`.
+     */
+    static func backdrop() -> UIVisualEffectView {
+        let view = UIVisualEffectView(effect: UIBlurEffect(style: .systemThinMaterial))
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }
 }
 
 /**

@@ -26,9 +26,12 @@ public class NovusGlassPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "configure", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setChrome", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "toast", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "presentSheet", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "dismissSheet", returnType: CAPPluginReturnPromise),
     ]
 
     private var chrome: GlassChromeController?
+    private var sheet: GlassSheetController?
 
     // ── Methods ──────────────────────────────────────────────────────────────
 
@@ -68,7 +71,10 @@ public class NovusGlassPlugin: CAPPlugin, CAPBridgedPlugin {
                 self.chrome = controller
             }
 
-            let insets = controller.install(in: host)
+            // The webview's own scroll view goes in so the chrome can read the
+            // page's scroll position for the scroll-edge bar without the web
+            // layer posting an offset across the bridge sixty times a second.
+            let insets = controller.install(in: host, scrollView: self.bridge?.webView?.scrollView)
             // A first paint with the wrong ground is worse than a late one:
             // the webview's own background shows through for the frame before
             // the page has painted, and it must match the theme it is about
@@ -97,6 +103,7 @@ public class NovusGlassPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     @objc func toast(_ call: CAPPluginCall) {
+        let title = call.getString("title") ?? ""
         let text = call.getString("text") ?? ""
         let tone = call.getString("tone") ?? "neutral"
         guard !text.isEmpty else {
@@ -104,7 +111,70 @@ public class NovusGlassPlugin: CAPPlugin, CAPBridgedPlugin {
             return
         }
         DispatchQueue.main.async { [weak self] in
-            self?.chrome?.toast(text: text, tone: tone)
+            self?.chrome?.toast(title: title, text: text, tone: tone)
+            call.resolve()
+        }
+    }
+
+    /**
+     Puts a decision on screen as a real sheet over a real blurred game.
+
+     Presenting replaces whatever was up: the engine only ever has one card
+     open, and a stale sheet outliving the month it belonged to is worse than
+     a missed animation.
+     */
+    @objc func presentSheet(_ call: CAPPluginCall) {
+        guard let spec = Self.parseSheet(call) else {
+            call.reject("A sheet needs at least an id and a title")
+            return
+        }
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let host = self.bridge?.viewController else {
+                call.reject("No view controller to present from")
+                return
+            }
+
+            let controller = GlassSheetController(spec: spec)
+            controller.onChoose = { [weak self] id, index in
+                self?.sheet = nil
+                self?.notifyListeners("sheetChoice", data: ["id": id, "index": index])
+            }
+            controller.onAction = { [weak self] id in
+                self?.sheet = nil
+                self?.notifyListeners("sheetAction", data: ["id": id])
+            }
+            controller.onDismissed = { [weak self] id in
+                self?.sheet = nil
+                self?.notifyListeners("sheetDismissed", data: ["id": id])
+            }
+
+            let present = {
+                self.sheet = controller
+                // Unanimated on purpose — GlassSheetController choreographs its
+                // own entrance so the backdrop and the panel can move
+                // independently.
+                host.present(controller, animated: false)
+                call.resolve()
+            }
+
+            if let existing = self.sheet {
+                existing.closeWithoutAnswering()
+                self.sheet = nil
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05, execute: present)
+            } else {
+                present()
+            }
+        }
+    }
+
+    /// Closed by the game rather than by the player. Resolves either way: the
+    /// web side calls this whenever its own state says no card is open, and
+    /// "there was nothing to close" is a correct outcome, not an error.
+    @objc func dismissSheet(_ call: CAPPluginCall) {
+        DispatchQueue.main.async { [weak self] in
+            self?.sheet?.closeWithoutAnswering()
+            self?.sheet = nil
             call.resolve()
         }
     }
@@ -168,5 +238,38 @@ public class NovusGlassPlugin: CAPPlugin, CAPBridgedPlugin {
             activeTab: call.getString("activeTab"),
             cta: cta,
             controls: controls)
+    }
+
+    private static func parseSheet(_ call: CAPPluginCall) -> SheetSpec? {
+        guard let id = call.getString("id"), let title = call.getString("title") else { return nil }
+
+        let choices: [SheetChoice] = (call.getArray("choices", JSObject.self) ?? [])
+            .compactMap { raw in
+                guard let label = str(raw, "label") else { return nil }
+                return SheetChoice(
+                    label: label, cost: str(raw, "cost"), camera: bool(raw, "camera", false))
+            }
+
+        let notes: [SheetNote] = (call.getArray("notes", JSObject.self) ?? [])
+            .compactMap { raw in
+                guard let term = str(raw, "term"), let text = str(raw, "text") else { return nil }
+                return SheetNote(term: term, text: text)
+            }
+
+        return SheetSpec(
+            id: id,
+            eyebrow: call.getString("eyebrow") ?? "",
+            eyebrowStyle: call.getString("eyebrowStyle") ?? "plain",
+            eyebrowDetail: call.getString("eyebrowDetail"),
+            title: title,
+            body: call.getString("body") ?? "",
+            notes: notes,
+            hintTitle: call.getString("hintTitle"),
+            hintText: call.getString("hintText"),
+            choices: choices,
+            actionLabel: call.getString("actionLabel"),
+            actionCamera: call.getBool("actionCamera") ?? false,
+            dismissible: call.getBool("dismissible") ?? true,
+            theme: call.getString("theme") ?? "dark")
     }
 }

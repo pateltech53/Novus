@@ -213,4 +213,28 @@ const CATEGORY_LABELS: Record<string, string> = {
   WILD: "WILDCARD",
 };
 
-const categoryLabel = (c: string) => CATEGORY_LABELS[c] ?? c.toUpperCase();
+/** Exported so the native sheet labels a card the same way this one does —
+ *  two copies of this table is two vocabularies for the same game. */
+export const categoryLabel = (c: string) => CATEGORY_LABELS[c] ?? c.toUpperCase();
+
+/** The market dateline's right-hand side, shared for the same reason. */
+export const marketDatelineDetail = () =>
+  `${new Date()
+    .toLocaleDateString("en-US", { month: "long", day: "numeric" })
+    .toUpperCase()} · EVERY FOUNDER GETS THIS`;
+
+/**
+ * The once-only "how to read this", as plain text.
+ *
+ * The DOM version marks the four things a choice can spend in bold. A native
+ * label has no place to put that emphasis, and the sentence has to survive
+ * without it — so this is the same argument written to stand on its own,
+ * rather than the same string with the tags stripped out.
+ */
+export const HOW_TO_READ = {
+  title: "How to read this",
+  text:
+    "There is no free option. Each one spends something — cash, time, people, or goodwill. " +
+    "Ask which one you can most afford to lose right now, then look at your runway to check " +
+    "you are right.",
+};

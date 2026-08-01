@@ -32,6 +32,8 @@ import { LinkedOut } from "@/components/phone/LinkedOut";
 import { deriveRunwayMonths } from "@/lib/engine/sim";
 import { fmtMonths } from "@/lib/engine/format";
 import { usePlayChrome, type NativeControlId } from "@/components/native/usePlayChrome";
+import { useNativeSheet } from "@/components/native/useNativeSheet";
+import { useNativeTermCoach } from "@/components/native/useNativeTermCoach";
 import { useBackHandler } from "@/lib/native/back";
 
 export default function PlayPage() {
@@ -215,6 +217,42 @@ function PlayScreen() {
   const domChrome = !nativeChromeOwned || coaching;
 
   /*
+   * The month's decision goes to UIKit as well.
+   *
+   * Not for the sheet — for the scrim behind it. design.md allows modal scrims
+   * to be glass, and a `backdrop-filter` inside the webview can only blur other
+   * web content, never the game the sheet is covering. Presented natively, the
+   * board frosts over behind the card with the system's own material.
+   *
+   * The stance question keeps its DOM sheet. It is the one decision in the game
+   * that is an identity rather than a tradeoff, and it is drawn as one.
+   */
+  const isStanceQuestion = !!current?.id.startsWith("E-POS-ASK");
+  const currentChoices = current ? game.choicesFor(current) : [];
+
+  const nativeSheetOwned = useNativeSheet({
+    event: isStanceQuestion ? null : current,
+    choices: currentChoices,
+    industry: run?.industry ?? "FOOD",
+    rookieMode: !!run?.rookieMode,
+    isMarket: currentIsMarket,
+    explain: !!run?.tutorial && run?.year === 1 && !run?.seenTerms.includes("choices"),
+    onChoose: (i) => {
+      if (run?.tutorial && !run.seenTerms.includes("choices")) game.markTermSeen("choices");
+      game.choose(i);
+    },
+    onDismiss: game.dismissCard,
+  });
+
+  const domDecisionSheet = !nativeSheetOwned || isStanceQuestion;
+
+  /* Term-on-first-use becomes a glass note floated from the top. The DOM
+     version docks above the advance bar so it cannot cover the number it is
+     quoting; the native one arrives from the opposite edge for the same
+     reason, because that number now lives in a UIKit deck. */
+  useNativeTermCoach(domChrome ? null : (term?.term ?? null), term?.detail, () => setTerm(null));
+
+  /*
    * Android's back button, and nothing else on this screen claims it. The
    * order is the order these things stack on screen, so back always peels the
    * top layer rather than the one that happens to be listed first.
@@ -336,22 +374,7 @@ function PlayScreen() {
               </div>
             </div>
           </>
-        ) : (
-          /* The coach quotes a live number, so it still has to sit above the
-             deck rather than float over the log it is describing. */
-          <div
-            className="pointer-events-none fixed inset-x-0 z-30"
-            style={{ bottom: "var(--nv-chrome-bottom, 0px)" }}
-          >
-            <div className="pointer-events-auto">
-              <TermCoach
-                term={term?.term ?? null}
-                detail={term?.detail}
-                onDismiss={() => setTerm(null)}
-              />
-            </div>
-          </div>
-        )}
+        ) : null}
       </div>
 
       {/*
@@ -361,7 +384,7 @@ function PlayScreen() {
         choices in STANCE_CHOICE_ORDER, so the stance maps straight back to a
         choice index and resolves through the exact same engine path.
       */}
-      {current?.id.startsWith("E-POS-ASK") ? (
+      {isStanceQuestion ? (
         <PositioningSheet
           industry={run.industry}
           event={current}
@@ -370,20 +393,22 @@ function PlayScreen() {
           onDismiss={game.dismissCard}
         />
       ) : (
-            <DecisionSheet
-        event={current}
-        choices={current ? game.choicesFor(current) : []}
-        industry={run.industry}
-        rookieMode={run.rookieMode}
-        isMarket={currentIsMarket}
-        // Once, on the first decision of a guided run.
-        explain={run.tutorial && run.year === 1 && !run.seenTerms.includes("choices")}
-        onChoose={(i) => {
-          if (run.tutorial && !run.seenTerms.includes("choices")) game.markTermSeen("choices");
-          game.choose(i);
-        }}
-        onDismiss={game.dismissCard}
-      />
+        domDecisionSheet && (
+          <DecisionSheet
+            event={current}
+            choices={currentChoices}
+            industry={run.industry}
+            rookieMode={run.rookieMode}
+            isMarket={currentIsMarket}
+            // Once, on the first decision of a guided run.
+            explain={run.tutorial && run.year === 1 && !run.seenTerms.includes("choices")}
+            onChoose={(i) => {
+              if (run.tutorial && !run.seenTerms.includes("choices")) game.markTermSeen("choices");
+              game.choose(i);
+            }}
+            onDismiss={game.dismissCard}
+          />
+        )
       )}
 
       {/* ── Each tab is a full screen now, not a list of options ─────────── */}

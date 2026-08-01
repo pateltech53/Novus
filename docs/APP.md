@@ -53,13 +53,48 @@ Four Swift files in `ios/App/App/Native/`:
 | File | What it is |
 |---|---|
 | `GlassKit.swift` | The material, and the only place that decides what "glass" means |
-| `GlassChromeController.swift` | The tab bar, the advance deck, the masthead cluster, toasts |
+| `GlassChromeController.swift` | Tab bar, advance deck, masthead cluster, scroll-edge bar, glass notes |
+| `GlassSheetController.swift` | The month's decision, presented over a blurred game |
 | `NovusGlassPlugin.swift` | The Capacitor bridge |
 | `NovusBridgeViewController.swift` | Registers the plugin explicitly |
 
-and three on the web side: `lib/native/glass.ts` (the contract),
-`lib/native/chrome.ts` (the handoff), `components/native/usePlayChrome.ts`
-(what the play screen asks for).
+and on the web side: `lib/native/glass.ts` (the contract), `lib/native/chrome.ts`
+(the handoff), and three hooks in `components/native/` for what the play screen
+asks for, the decision sheet, and term-on-first-use.
+
+### Every surface design.md allows, and no others
+
+`design.md` §0 draws one line: **glass is a material for the control layer,
+never for content**, and *money is read on solid ground*. It then names the
+exact surfaces that may be glass. All of them now are, natively:
+
+| Sanctioned surface | Where it is |
+|---|---|
+| floating tab bar / bottom nav | system `UITabBar` |
+| the FAB | tinted `UIGlassEffect` capsule — orange, or gold at the year gate |
+| sheet grabber | `GlassSheetController` |
+| a sheet header once content scrolls under it | same, fading in on overscroll |
+| toasts | `toast(title:text:tone:)`, which term-on-first-use now uses |
+| the year-gate banner | the gold state of the FAB |
+| modal scrims | `GlassKit.backdrop()` behind the decision sheet |
+
+The masthead cluster additionally sits inside a `UIGlassContainerEffect`, so
+the circles merge and separate as the system's own do rather than reading as
+three unrelated panes.
+
+What is **not** glass, deliberately: the decision sheet's body and its choice
+rows. Every choice can carry a cash figure, and that is the one thing the
+design law puts on solid ground. Changing that is a two-line edit in
+`GlassSheetController.choiceRow` — but it is a decision about the design
+system, not a styling tweak.
+
+### Why the sheet is native at all
+
+For the scrim. A `backdrop-filter` inside the webview can only blur other web
+content, and the thing worth blurring is the game the sheet is covering. Only
+a native presentation can put a real system material between the player and
+the board. Real sheet physics, pull-to-dismiss and scroll deceleration come
+along with being there anyway.
 
 ### The three rules it is built on
 
@@ -135,7 +170,10 @@ lets an app opt out of resizing. Both are one line each
 in the project) if that changes.
 
 Xcode 26 is needed for the Liquid Glass path to compile at all. On anything
-older the guards select the pre-26 material and the app still builds and runs.
+older the `#if compiler(>=6.2)` guards select the pre-26 material and the app
+still builds and runs — which is why `ios-build.yml` fails outright on an
+older toolchain rather than reporting a green run that only type-checked the
+fallback.
 
 ### Android
 

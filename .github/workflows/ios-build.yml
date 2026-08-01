@@ -37,13 +37,25 @@ jobs:
 
       - run: npm ci
 
-      - name: Report the toolchain
+      # A green run has to mean the glass compiled.
+      #
+      # Every Liquid Glass call site is behind `#if compiler(>=6.2)`, so on an
+      # older Xcode the whole branch is skipped and the job passes having
+      # type-checked only the fallback — the most misleading kind of green
+      # there is. Failing loudly here is the difference between "it builds" and
+      # "the thing this app is for builds".
+      - name: Require an SDK that has Liquid Glass in it
         run: |
           xcodebuild -version
           swift --version
-          echo "Liquid Glass needs Xcode 26 (Swift 6.2). On anything older the"
-          echo "#if compiler(>=6.2) guards compile the pre-26 material instead,"
-          echo "so a green run here does not by itself prove the glass path."
+          MAJOR=$(xcodebuild -version | head -1 | sed -E 's/Xcode ([0-9]+).*/\1/')
+          echo "Xcode major version: $MAJOR"
+          if [ "$MAJOR" -lt 26 ]; then
+            echo "::error::Xcode $MAJOR predates the Liquid Glass SDK. This job would"
+            echo "::error::compile only the pre-26 fallback and report success, so it fails"
+            echo "::error::instead. Pin a newer image or set DEVELOPER_DIR to Xcode 26+."
+            exit 1
+          fi
 
       # cap sync needs a webDir to copy, and the iOS project needs the bundle
       # it references. Skipping the sync leaves an empty App/App/public and a
