@@ -177,6 +177,53 @@ export function adoptEntitlements(server: Entitlements | null | undefined): bool
   return true;
 }
 
+// ── Restore ─────────────────────────────────────────────────────────────────
+
+export type RestoreResult =
+  | { ok: true; changed: boolean; pro: boolean }
+  | { ok: false; reason: "signed-out" | "not-configured" | "offline" };
+
+/**
+ * "Restore purchases" — ask the server what this account owns and adopt it.
+ *
+ * App Review looks for this control in any app where something can be bought,
+ * and it is the load-bearing one here rather than a formality: nothing is sold
+ * inside the store builds (see lib/commerce.ts), so signing in and restoring
+ * is the ONLY way Pro appears on a phone. A player who paid on a laptop and
+ * then installed the app has to have a button that makes it true.
+ *
+ * It grants nothing on its own — it reads the server's receipt and copies it
+ * down, which is the direction of authority `adoptEntitlements` already
+ * enforces. A player with no purchases gets an honest "nothing to restore"
+ * rather than an error, because for most people that is the correct answer and
+ * not a failure.
+ */
+export async function restorePurchases(): Promise<RestoreResult> {
+  let body: {
+    configured?: boolean;
+    signedIn?: boolean;
+    entitlements?: Entitlements | null;
+  };
+  try {
+    const res = await fetch(apiUrl("/api/billing/entitlements"), {
+      credentials: API_CREDENTIALS,
+    });
+    if (!res.ok) return { ok: false, reason: "offline" };
+    body = (await res.json()) as typeof body;
+  } catch {
+    // Offline, blocked, or no server behind this build. Not a failed purchase.
+    return { ok: false, reason: "offline" };
+  }
+
+  if (body.configured === false) return { ok: false, reason: "not-configured" };
+  if (body.signedIn === false) return { ok: false, reason: "signed-out" };
+
+  const changed = adoptEntitlements(body.entitlements);
+  // Report against what is on the device AFTER the adopt, so a restore that
+  // found nothing new still tells the truth about what the player has.
+  return { ok: true, changed, pro: loadEntitlements().pro };
+}
+
 // ── Coming back from Stripe ─────────────────────────────────────────────────
 
 /**

@@ -40,6 +40,12 @@
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 
+	<!-- The category the binary declares, matching the one chosen in App Store
+	     Connect. Set in both places or the listing and the build disagree, and
+	     the disagreement is a question in review rather than an error. -->
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.simulation-games</string>
+
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

@@ -28,6 +28,13 @@ than a CSS impression of it — and the height they take is measured after
 layout and handed back as a CSS variable, so nothing is ever occluded by a
 number somebody guessed. See **[docs/APP.md](docs/APP.md)**.
 
+**Nothing is sold inside the app.** Pro is bought on the web and attaches to a
+Novus account, so a store build carries no price, no checkout and no link to
+one — App Store Guideline 3.1.1, and Google Play's Payments policy, say the
+same thing. The rule is one file, `lib/commerce.ts`; what App Review looks for
+and what is still a form to fill in are in
+**[docs/APP-STORE.md](docs/APP-STORE.md)**.
+
 > If `npm install` fails with `EACCES … .npm/_cacache`, the npm cache has
 > root-owned files from an old npm bug. Either run
 > `sudo chown -R $(id -u):$(id -g) ~/.npm`, or install with a local cache:

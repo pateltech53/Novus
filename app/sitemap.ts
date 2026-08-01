@@ -27,5 +27,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 0.8,
     },
+    // The two documents App Store Connect asks for by URL, and that a
+    // reviewer follows from the listing. Low priority, but they have to be
+    // crawlable — an unindexed policy is one more thing to explain in a
+    // review note.
+    {
+      url: "https://novuspitch.com/privacy",
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
+    {
+      url: "https://novuspitch.com/terms",
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
   ];
 }

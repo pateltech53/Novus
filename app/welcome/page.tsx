@@ -8,6 +8,9 @@ import { play } from "@/lib/sound";
 import { LoopExplainer } from "@/components/LoopExplainer";
 import { PrimaryButton, StepShell } from "@/components/StepShell";
 import { billingStatus, goToCheckout } from "@/lib/cloud/billing";
+import { NOT_SOLD_HERE_NOTE, useSellsHere } from "@/lib/commerce";
+import { LegalSheet } from "@/components/LegalSheet";
+import { PRIVACY, TERMS, type LegalDocument } from "@/lib/legal/documents";
 import {
   CADENCE_SUFFIX,
   CHAPTER_LICENCES,
@@ -414,6 +417,24 @@ function PlansSheet({ onDone }: { onDone: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * Whether this build may show a way to pay at all.
+   *
+   * This is the step the shipped app boots into — native/boot.html sends a
+   * first-run cold start straight to /welcome — so for a while the iPhone
+   * build's fourth screen was a subscription button that opened Stripe
+   * Checkout. That is App Store Guideline 3.1.1, the single most reliably
+   * rejected thing an app can do, and 3.1.3(a) closes the "link to our site"
+   * escape hatch behind it. In a store build the prices, the chips, the
+   * checkout button and the classroom price list are all withdrawn and the
+   * step becomes what Pro contains; see lib/commerce.ts.
+   *
+   * Null until the shell is known, so the prerendered HTML never paints a
+   * price for one frame inside the App Store build.
+   */
+  const sellsHere = useSellsHere();
+  const [legal, setLegal] = useState<LegalDocument | null>(null);
+
   useEffect(() => {
     let alive = true;
     void billingStatus().then((s) => {
@@ -513,45 +534,60 @@ function PlansSheet({ onDone }: { onDone: () => void }) {
               {/* The third line on each chip is the comparison, carried by both
                   options rather than only the one being sold. A yearly plan
                   that shows its saving while the monthly plan hides its true
-                  cost is an argument, not a price list. */}
-              <div className="mt-4 grid grid-cols-2 gap-2" role="group" aria-label="Billing period">
-                {[PRO_MONTHLY, PRO_YEARLY].map((p) => {
-                  const on = p.id === plan.id;
-                  const monthly = p.id === PRO_MONTHLY.id;
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      aria-pressed={on}
-                      onClick={() => {
-                        play("click");
-                        setPlan(p);
-                      }}
-                      className={`nv-press rounded-[var(--radius-card)] px-3 py-2 text-left ${
-                        on
-                          ? "bg-[var(--surface-elevated)] shadow-[var(--e2)]"
-                          : "bg-[var(--surface)]"
-                      }`}
-                    >
-                      <span
-                        className={`tnum block text-base font-extrabold ${
-                          on ? "text-[var(--text-primary)]" : "text-[var(--text-secondary)]"
+                  cost is an argument, not a price list.
+
+                  Withdrawn entirely in a store build: a price with no way to
+                  pay it is a dead end, and a price with a way to pay it that
+                  is not the store's is a rejection. */}
+              {sellsHere === true && (
+                <div className="mt-4 grid grid-cols-2 gap-2" role="group" aria-label="Billing period">
+                  {[PRO_MONTHLY, PRO_YEARLY].map((p) => {
+                    const on = p.id === plan.id;
+                    const monthly = p.id === PRO_MONTHLY.id;
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => {
+                          play("click");
+                          setPlan(p);
+                        }}
+                        className={`nv-press rounded-[var(--radius-card)] px-3 py-2 text-left ${
+                          on
+                            ? "bg-[var(--surface-elevated)] shadow-[var(--e2)]"
+                            : "bg-[var(--surface)]"
                         }`}
                       >
-                        {formatPrice(p.priceCents)}
-                      </span>
-                      <span className="block text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]">
-                        {monthly ? "A MONTH" : "A YEAR"}
-                      </span>
-                      <span className="tnum mt-0.5 block text-2xs text-[var(--text-tertiary)]">
-                        {monthly
-                          ? `${formatPrice(MONTHLY_ANNUALISED_CENTS)} a year`
-                          : `${formatPrice(YEARLY_SAVING_CENTS)} less`}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+                        <span
+                          className={`tnum block text-base font-extrabold ${
+                            on ? "text-[var(--text-primary)]" : "text-[var(--text-secondary)]"
+                          }`}
+                        >
+                          {formatPrice(p.priceCents)}
+                        </span>
+                        <span className="block text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]">
+                          {monthly ? "A MONTH" : "A YEAR"}
+                        </span>
+                        <span className="tnum mt-0.5 block text-2xs text-[var(--text-tertiary)]">
+                          {monthly
+                            ? `${formatPrice(MONTHLY_ANNUALISED_CENTS)} a year`
+                            : `${formatPrice(YEARLY_SAVING_CENTS)} less`}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* What replaces the prices in a store build. States a fact and
+                  stops: no URL, no "visit", nothing that reads as a call to
+                  action pointed at a purchase somewhere else. */}
+              {sellsHere === false && (
+                <p className="mt-4 rounded-[var(--radius-row)] bg-[var(--surface)] px-4 py-3 text-xs leading-relaxed text-[var(--text-secondary)]">
+                  {NOT_SOLD_HERE_NOTE}
+                </p>
+              )}
             </motion.div>
           ) : (
             <motion.div
@@ -614,13 +650,17 @@ function PlansSheet({ onDone }: { onDone: () => void }) {
           )}
         </AnimatePresence>
 
-        <button
-          type="button"
-          onClick={() => swap(panel === "pro" ? "chapter" : "pro")}
-          className="mt-2.5 text-xs text-[var(--text-tertiary)] underline underline-offset-4"
-        >
-          {panel === "pro" ? "Classrooms, clubs and one-time buys" : "What Pro adds"}
-        </button>
+        {/* The other panel is a price list — classroom licences and the
+            one-time buys — so it goes with the prices in a store build. */}
+        {sellsHere === true && (
+          <button
+            type="button"
+            onClick={() => swap(panel === "pro" ? "chapter" : "pro")}
+            className="mt-2.5 text-xs text-[var(--text-tertiary)] underline underline-offset-4"
+          >
+            {panel === "pro" ? "Classrooms, clubs and one-time buys" : "What Pro adds"}
+          </button>
+        )}
       </div>
 
       {/* The promise sits above the buttons, not in a footnote, because it is
@@ -633,20 +673,22 @@ function PlansSheet({ onDone }: { onDone: () => void }) {
           </span>
         </p>
 
-        <div className="mt-3.5">
-          <PrimaryButton onClick={takePro} disabled={busy}>
-            {busy ? "OPENING…" : "CHOOSE PRO"}
-          </PrimaryButton>
-        </div>
+        {sellsHere === true && (
+          <div className="mt-3.5">
+            <PrimaryButton onClick={takePro} disabled={busy}>
+              {busy ? "OPENING…" : "CHOOSE PRO"}
+            </PrimaryButton>
+          </div>
+        )}
 
         {/* The one line under the button has to match what the button does.
             Before billing it promised no card; with Stripe wired up that would
             be false, and this is the screen a teacher reads before spending. */}
-        <p className="mt-1.5 text-center text-2xs text-[var(--text-tertiary)]">
-          {canCharge === null
+        <p className="mt-1.5 text-center text-2xs leading-relaxed text-[var(--text-tertiary)]">
+          {sellsHere !== true || canCharge === null
             ? " "
             : canCharge
-              ? `${formatPrice(plan.priceCents)}${CADENCE_SUFFIX[plan.cadence]}, billed by Stripe. Cancel any time.`
+              ? `Novus Pro, ${formatPrice(plan.priceCents)}${CADENCE_SUFFIX[plan.cadence]}, billed by Stripe. Renews automatically each ${plan.cadence} until you cancel; cancel any time from Settings.`
               : "No card is taken. Pro switches on for this device until accounts launch."}
         </p>
 
@@ -661,15 +703,45 @@ function PlansSheet({ onDone }: { onDone: () => void }) {
 
         {/* Same width and height as CHOOSE PRO, solid rather than accented.
             Free is one of two answers to the question, not the way out of a
-            paywall, and a 12px underline at the bottom would say otherwise. */}
+            paywall, and a 12px underline at the bottom would say otherwise.
+
+            In a store build it is the only button on the step, so it stops
+            being an answer to a question nobody was asked and simply starts
+            the game. */}
         <button
           type="button"
           onClick={onDone}
-          className="nv-press mt-2.5 h-14 w-full rounded-[var(--radius-pill)] bg-[var(--surface-elevated)] text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--text-primary)]"
+          className={`nv-press h-14 w-full rounded-[var(--radius-pill)] text-[1.0625rem] font-extrabold tracking-[0.04em] ${
+            sellsHere === false
+              ? "mt-3.5 bg-[var(--action)] text-[var(--on-action)] shadow-[var(--e3)]"
+              : "mt-2.5 bg-[var(--surface-elevated)] text-[var(--text-primary)]"
+          }`}
         >
-          CONTINUE FREE
+          {sellsHere === false ? "START PLAYING" : "CONTINUE FREE"}
         </button>
+
+        {/* Reachable from the screen that offers the subscription, and read
+            without leaving the app — a link out to a browser is not a link a
+            reviewer can follow on a plane. */}
+        <div className="mt-3 flex justify-center gap-5 text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
+          <button
+            type="button"
+            onClick={() => setLegal(TERMS)}
+            className="underline underline-offset-4"
+          >
+            TERMS OF USE
+          </button>
+          <button
+            type="button"
+            onClick={() => setLegal(PRIVACY)}
+            className="underline underline-offset-4"
+          >
+            PRIVACY
+          </button>
+        </div>
       </div>
+
+      {legal && <LegalSheet doc={legal} onClose={() => setLegal(null)} />}
     </StepShell>
   );
 }

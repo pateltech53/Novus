@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { SUPABASE_SERVICE_ROLE_KEY } from "@/lib/stripe/config";
+import { SUPABASE_SERVICE_ROLE_KEY, billingConfigured } from "@/lib/stripe/config";
+import { stripe } from "@/lib/stripe/client";
 import { adminClient } from "@/lib/supabase/admin";
 import { configured } from "@/lib/supabase/config";
 import { crossSite, clearSession, sessionFromRequest } from "@/lib/supabase/route";
@@ -33,10 +34,26 @@ export const dynamic = "force-dynamic";
  * with the cascade, so nothing here can associate that Stripe customer with a
  * person again.
  *
- * An ACTIVE subscription is deliberately refused rather than silently
- * cancelled. Deleting the account would leave a live subscription billing a
- * card every month with no account to unlock — the worst possible outcome of
- * a "delete me" request. The player is told to cancel in the portal first.
+ * ── An active subscription is cancelled, not a reason to refuse ────────────
+ *
+ * This route used to answer 409 to anyone with a live subscription and tell
+ * them to cancel in the portal first. The reasoning was sound — deleting the
+ * account would leave a subscription billing a card every month with no
+ * account to unlock, which is the worst possible outcome of a "delete me"
+ * request — but the conclusion was wrong twice over.
+ *
+ * It is wrong for App Review: Guideline 5.1.1(v) requires that a player can
+ * INITIATE deletion from inside the app and have it complete. "Go and cancel
+ * something somewhere else first, then come back" is a deletion the app does
+ * not offer, and in the shipped app there is no portal to send them to — a
+ * store build sells nothing and opens no billing pages (lib/commerce.ts).
+ *
+ * And it is wrong for the player, who asked for one thing and got homework.
+ *
+ * So the subscription is cancelled HERE, immediately, as the first step of the
+ * deletion, and only then does the account go. The refusal survives for the
+ * one case that still deserves it: the cancellation itself failing. Better to
+ * say "try again" than to delete the account and leave the card billable.
  */
 export async function POST(req: NextRequest) {
 
@@ -67,7 +84,7 @@ export async function POST(req: NextRequest) {
 
   const { data: billing } = await db
     .from("billing_customers")
-    .select("subscription_status, cancel_at_period_end")
+    .select("subscription_id, subscription_status, cancel_at_period_end")
     .eq("profile_id", session.userId)
     .maybeSingle();
 
@@ -99,14 +116,36 @@ export async function POST(req: NextRequest) {
     !!status && BILLABLE.includes(status) && billing?.cancel_at_period_end !== true;
 
   if (stillBillable) {
-    return NextResponse.json(
-      {
-        error:
-          "Cancel your Pro subscription first — otherwise it keeps billing your card with no account to unlock.",
-        activeSubscription: true,
-      },
-      { status: 409 },
-    );
+    const subscriptionId = billing?.subscription_id as string | undefined;
+
+    // A billable status with no subscription id on the row is a broken record,
+    // not a live subscription — there is nothing to cancel and nothing that
+    // can bill. Deleting is the right answer and the cascade takes the row.
+    if (subscriptionId && billingConfigured()) {
+      try {
+        // Immediately, not at period end: the account is about to stop
+        // existing, so there is no one left to serve out the rest of the term.
+        // The webhook writes `canceled` back to a row the cascade is about to
+        // delete either way, and an out-of-order arrival is harmless.
+        await stripe().subscriptions.cancel(subscriptionId, {
+          invoice_now: false,
+          prorate: false,
+        });
+      } catch (e) {
+        // Do NOT delete now. An account deleted while Stripe still bills the
+        // card is the outcome the whole check exists to prevent, and the
+        // player can try again in a moment.
+        return NextResponse.json(
+          {
+            error:
+              "Your Pro subscription could not be cancelled just now, so nothing was deleted — please try again in a minute.",
+            activeSubscription: true,
+            detail: (e as Error).message,
+          },
+          { status: 409 },
+        );
+      }
+    }
   }
 
   const { error } = await db.auth.admin.deleteUser(session.userId);

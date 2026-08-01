@@ -229,7 +229,11 @@ export function TeamScreen({ onClose, onFire, onOpenPhone }: TeamScreenProps) {
             <button
               type="button"
               onClick={() => upgrade.open("talent_pool")}
-              className="nv-press mt-3 flex w-full flex-wrap items-center justify-center gap-1.5 text-center text-2xs leading-snug text-[var(--text-tertiary)]"
+              // py-2.5 rather than nothing: two lines of 2xs is a 21px box, and
+              // a 21px box is not a tap target however true its sentence is.
+              // The padding is the hit area — npm run audit:phone measures this
+              // one by hit-testing, and it failed at 430px before it existed.
+              className="nv-press mt-1.5 flex w-full flex-wrap items-center justify-center gap-1.5 py-2.5 text-center text-2xs leading-snug text-[var(--text-tertiary)]"
             >
               <span className="rounded-full bg-[var(--color-prestige)] px-1.5 py-0.5 text-2xs font-bold tracking-[0.1em] text-[var(--on-prestige)]">
                 PRO
