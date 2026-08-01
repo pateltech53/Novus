@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { CATALOGUE, availableSkus, priceIdFor, type SkuId } from "@/lib/stripe/catalogue";
-import { billingConfigured, isLiveMode, missingBillingConfig } from "@/lib/stripe/config";
+import { billingConfigured, missingBillingConfig, stripeMode } from "@/lib/stripe/config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,9 +35,20 @@ export function GET() {
     (id) => !priceIdFor(CATALOGUE[id]),
   ).map((id) => CATALOGUE[id].envVar);
 
+  /*
+   * Read from the key alone, NEVER gated on `configured`.
+   *
+   * This used to be `configured && isLiveMode()`, so a deploy that was missing
+   * any other variable reported `live: false` no matter what key it held — and
+   * the field was then read as "you are in test mode", which is the one thing
+   * it must never say wrongly. The mode of the key is a fact about the key.
+   */
+  const mode = stripeMode();
+
   return NextResponse.json({
     configured,
-    live: configured && isLiveMode(),
+    mode,
+    live: mode === "live",
     // Which SKUs are actually purchasable right now.
     skus: configured ? availableSkus() : [],
 
@@ -52,6 +63,12 @@ export function GET() {
      * happened. Said here because the alternative is half an hour of checking
      * spellings that were right.
      */
+    // Loudest thing in the payload when it is true, because the difference
+    // between the two modes is whether a test run charges a real card.
+    ...(mode === "live"
+      ? { WARNING: "LIVE key — checkouts here charge real cards. Test card 4242… will be DECLINED." }
+      : {}),
+
     hint:
       missing.length > 0
         ? "Set these, then REDEPLOY — env vars added after a build do not reach it. On Vercel, check you set them for the right environment (Production vs Preview)."

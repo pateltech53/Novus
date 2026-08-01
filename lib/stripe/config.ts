@@ -68,4 +68,25 @@ export const billingConfigured = (): boolean => missingBillingConfig().length ==
  * doc and the checkout response can say which mode is answering — "why did my
  * card not get charged" is nearly always this.
  */
-export const isLiveMode = (): boolean => STRIPE_SECRET_KEY.startsWith("sk_live_");
+export type StripeMode = "live" | "test" | "unknown";
+
+/**
+ * Which Stripe account the key points at, read from the key itself.
+ *
+ * Matches on `_live_` / `_test_` rather than on `sk_live_`, because Stripe
+ * issues RESTRICTED keys too — `rk_live_`, `rk_test_` — and now recommends
+ * them over unrestricted secret keys for exactly the reason this app should
+ * want: a key scoped to the few things billing does. A check that only knew
+ * `sk_live_` reported a restricted live key as test mode, which is the single
+ * most dangerous direction for this answer to be wrong in.
+ *
+ * "unknown" rather than a guess for anything else, so a key format we have not
+ * seen shows up as a question rather than quietly asserting test mode.
+ */
+export function stripeMode(): StripeMode {
+  if (STRIPE_SECRET_KEY.includes("_live_")) return "live";
+  if (STRIPE_SECRET_KEY.includes("_test_")) return "test";
+  return "unknown";
+}
+
+export const isLiveMode = (): boolean => stripeMode() === "live";
