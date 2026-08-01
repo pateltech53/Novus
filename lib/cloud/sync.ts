@@ -157,9 +157,83 @@ export async function flush(): Promise<void> {
   }
 }
 
+/**
+ * Strips the one field that is never allowed to leave this device.
+ *
+ * `RunState.playerAge` is local age-gating. 0001's header lists it as one of
+ * two fields "deliberately absent from this schema [that] must never be
+ * added", the PUT handler has a comment saying sending it "would convert a
+ * device preference into stored data about a child", and adoptFromCloud
+ * restores it from local because "the server has never seen it".
+ *
+ * All of which was true of the PREFS payload, and false of this one. The run
+ * is sent as an opaque blob — `state: run` straight into a jsonb column — and
+ * playerAge is a field of RunState, so it rode along inside it and was stored
+ * verbatim on the server. Three careful comments guarded the front door while
+ * the field went through the wall.
+ *
+ * It is stripped here, on the way out, rather than only server-side: the point
+ * is that a child's age never crosses the wire at all, and a strip that
+ * happens after the request arrives has already failed at that.
+ */
+const withoutAge = (run: RunState): RunState => {
+  const { playerAge: _dropped, ...rest } = run;
+  return rest as RunState;
+};
+
 export function queueRun(run: RunState | null) {
-  pending.run = run;
+  pending.run = run === null ? null : withoutAge(run);
   schedule();
+}
+
+/**
+ * Pushes whatever is on this device to the account that is signed in NOW.
+ *
+ * Called once, straight after sign-up. A player who has been playing
+ * anonymously has their companies in localStorage and nowhere else that they
+ * can reach; sign-up mints a NEW auth user, so without this their progress
+ * stays attached to the abandoned anonymous identity and the fresh account
+ * starts empty on every other device.
+ *
+ * The ordinary debounced path would eventually carry it up — but only on the
+ * next commit(), which never comes for someone who signs up and closes the
+ * tab. "Made an account to keep my company, lost my company" is not a
+ * behaviour to leave to chance.
+ *
+ * Awaited rather than queued, so the caller can reload knowing it landed.
+ */
+export async function pushLocalNow(): Promise<void> {
+  if (disabled) return;
+  // Dynamic import for the same reason restoreOnBoot uses one: save.ts imports
+  // this file, and a static cycle would leave one of them half-initialised.
+  const { loadRun, loadLegacy, loadProfile } = await import("@/lib/engine/save");
+
+  const profile = loadProfile();
+  const run = loadRun();
+
+  pending = {
+    ...pending,
+    // `run: null` is a real instruction (clearRun), so only send the key when
+    // there is genuinely a company here — an empty device must not tell a
+    // fresh account to delete a save it might have. Stripped of playerAge on
+    // the way out, exactly as queueRun does.
+    ...(run ? { run: withoutAge(run) } : {}),
+    legacy: loadLegacy(),
+    ...(profile
+      ? {
+          prefs: {
+            rookieMode: profile.rookieMode,
+            onboarded: profile.onboarded,
+            micCalibration: profile.micCalibration,
+            founderName: profile.founderName,
+            // playerAge is deliberately absent, as everywhere else.
+          },
+        }
+      : {}),
+  };
+
+  if (timer) clearTimeout(timer);
+  await flush();
 }
 
 export function queueLegacy(legacy: LegacyState) {

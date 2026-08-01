@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { clearSession, sessionFromRequest } from "@/lib/supabase/route";
+import { crossSite, clearSession, sessionFromRequest } from "@/lib/supabase/route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,6 +22,12 @@ export const dynamic = "force-dynamic";
  * mode of the reverse is the next child inheriting an account.
  */
 export async function POST(req: NextRequest) {
+
+  // Not from our own pages. See crossSite() — a cross-site form post is not
+  // preflighted, and req.json() parses the body whatever type it claims.
+  if (crossSite(req)) {
+    return NextResponse.json({ error: "cross-site request refused" }, { status: 403 });
+  }
   const session = await sessionFromRequest(req);
 
   if (session) {

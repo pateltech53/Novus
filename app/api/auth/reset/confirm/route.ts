@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 
 import { CREDENTIAL_MESSAGE, checkPassword } from "@/lib/auth/credentials";
 import { SUPABASE_ANON_KEY, SUPABASE_URL, configured } from "@/lib/supabase/config";
-import { attachSession, type Session } from "@/lib/supabase/route";
+import { crossSite, attachSession, type Session } from "@/lib/supabase/route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,6 +38,12 @@ interface Body {
 }
 
 export async function POST(req: NextRequest) {
+
+  // Not from our own pages. See crossSite() — a cross-site form post is not
+  // preflighted, and req.json() parses the body whatever type it claims.
+  if (crossSite(req)) {
+    return NextResponse.json({ error: "cross-site request refused" }, { status: 403 });
+  }
   if (!configured()) {
     return NextResponse.json({ configured: false }, { status: 200 });
   }

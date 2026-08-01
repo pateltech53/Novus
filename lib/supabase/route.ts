@@ -104,8 +104,13 @@ export function classifyAuthError(message: string): AuthFailure {
     return "weak-password";
   }
   if (m.includes("email") && (m.includes("invalid") || m.includes("valid"))) return "bad-email";
-  // Signups disabled, or email provider off, in the Supabase dashboard.
-  if (m.includes("disabled") || m.includes("not enabled")) return "disabled";
+  // Signups disabled, or the email provider switched off, in the dashboard.
+  // Supabase's actual wording is "Signups not allowed for this instance", so
+  // matching only on "disabled" would classify it as unknown and tell the
+  // player to try again forever against a project that will never accept one.
+  if (m.includes("disabled") || m.includes("not enabled") || m.includes("not allowed")) {
+    return "disabled";
+  }
   return "unknown";
 }
 
@@ -170,6 +175,57 @@ export async function sessionOrCreate(req: NextRequest): Promise<Session | null>
 export function attachSession(res: NextResponse, session: Session): NextResponse {
   res.cookies.set(SESSION_COOKIE, session.refreshToken, COOKIE_OPTIONS);
   return res;
+}
+
+/**
+ * attachSession for a session that may not exist.
+ *
+ * Exists because of a bug class that is invisible until it bites: Supabase
+ * ROTATES the refresh token on every `refreshSession`, so the moment
+ * sessionFromRequest succeeds, the token in the player's cookie is spent. A
+ * route that then returns an error without attaching the new one leaves the
+ * browser holding a dead token — and the player is silently signed out by a
+ * refusal that was supposed to be recoverable ("you already own TECH", "that
+ * price is misconfigured").
+ *
+ * So every response on a path that resolved a session goes through here,
+ * success or not.
+ */
+export function withSession(res: NextResponse, session: Session | null): NextResponse {
+  return session ? attachSession(res, session) : res;
+}
+
+/**
+ * Rejects state-changing requests that did not come from our own pages.
+ *
+ * Next.js Route Handlers have no CSRF protection of their own. A JSON fetch
+ * from another origin is stopped by CORS preflight, but a cross-site FORM post
+ * with `enctype="text/plain"` is not preflighted at all, and `req.json()`
+ * parses the body regardless of its declared type — so a form on any website
+ * can reach these routes with the player's cookies attached.
+ *
+ * That matters most on the reset-confirm route, which installs a session from
+ * tokens in the request body: an attacker who posts THEIR tokens into a
+ * player's browser signs that player into the attacker's account, and
+ * everything the player does next — including a purchase — lands there.
+ *
+ * `Sec-Fetch-Site` is checked first because browsers set it and scripts cannot
+ * forge it. `Origin` is the fallback for anything older. A request with
+ * neither is allowed through: that is a non-browser caller (curl, a health
+ * check), which has no ambient cookies to abuse in the first place.
+ */
+export function crossSite(req: NextRequest): boolean {
+  const fetchSite = req.headers.get("sec-fetch-site");
+  if (fetchSite) return fetchSite !== "same-origin" && fetchSite !== "none";
+
+  const origin = req.headers.get("origin");
+  if (!origin) return false;
+
+  try {
+    return new URL(origin).host !== new URL(req.url).host;
+  } catch {
+    return true;
+  }
 }
 
 /**

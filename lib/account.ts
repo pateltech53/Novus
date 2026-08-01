@@ -74,16 +74,51 @@ export function loadAccount(): Account | null {
  * Trims, caps, and persists. Returns null for a blank name so the caller can
  * keep its button disabled instead of minting an account called "".
  */
-export function createAccount(displayName: string, email?: string): Account | null {
-  // Recorded at the moment of creation — the UI does not call this until the
-  // policy checkbox is ticked.
+export function createAccount(
+  displayName: string,
+  email?: string,
+  /**
+   * True only when the player has just ticked the privacy checkbox — i.e. from
+   * sign-up. Sign-in passes false.
+   *
+   * This is a parameter rather than something inferred because the function is
+   * called from both, and guessing gets it wrong in both directions. Stamping
+   * on every call would re-date the consent record every time anyone signed in,
+   * and a consent record that silently moves is not a record of anything.
+   * Carrying over whatever was already on the device would be worse on the
+   * machines this app is used on: the stamp sitting there belongs to the
+   * previous student, and inheriting it would attribute their consent to the
+   * person now signing in.
+   *
+   * So on sign-in the stamp is simply absent — which the field already allows
+   * and already means "no stamp". We genuinely do not know when a player
+   * signing in on a fresh device agreed to anything, and saying nothing beats
+   * inventing a date.
+   */
+  consentedNow = false,
+): Account | null {
   const name = displayName.trim().slice(0, MAX_NAME_LENGTH);
   if (!name) return null;
+
+  const now = new Date().toISOString();
+  const normalised = email?.trim().toLowerCase();
+
+  // The same player signing in again on their own device keeps their original
+  // timestamps — matched on email so it cannot pick up a different account's.
+  const existing = loadAccount();
+  const sameAccount = !!normalised && existing?.email === normalised;
+
+  const acceptedPrivacyISO = consentedNow
+    ? (sameAccount ? (existing?.acceptedPrivacyISO ?? now) : now)
+    : sameAccount
+      ? existing?.acceptedPrivacyISO
+      : undefined;
+
   const account: Account = {
     displayName: name,
-    createdAtISO: new Date().toISOString(),
-    acceptedPrivacyISO: new Date().toISOString(),
-    ...(email ? { email: email.trim().toLowerCase() } : {}),
+    createdAtISO: sameAccount ? (existing?.createdAtISO ?? now) : now,
+    ...(acceptedPrivacyISO ? { acceptedPrivacyISO } : {}),
+    ...(normalised ? { email: normalised } : {}),
   };
   if (canStore()) {
     try {

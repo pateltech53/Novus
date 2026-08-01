@@ -78,7 +78,7 @@ export async function signUp(
   // No Supabase project on this deploy. Not an error — the app is built to run
   // this way, so fall back to the device-local account and carry on.
   if (body.configured === false) {
-    createAccount(displayName, email);
+    createAccount(displayName, email, true);
     forgetIdentity();
     return { ok: true, email };
   }
@@ -95,12 +95,51 @@ export async function signUp(
     return fail("error", body.error ?? "Could not create the account. Try again.");
   }
 
-  createAccount(displayName, body.email ?? email);
+  createAccount(displayName, body.email ?? email, true);
   forgetIdentity();
+
+  // Carry this device's progress INTO the new account.
+  //
+  // Sign-up mints a new auth user rather than converting the anonymous one, so
+  // everything played before this moment is attached to an identity nobody can
+  // sign back into. The local copy is the only reachable one, and this is the
+  // moment to push it — the debounced path would only fire on the next
+  // commit(), which never comes for someone who signs up and closes the tab.
+  //
+  // Failure here is survivable: the save is still on the device and the next
+  // game action pushes it. So it does not fail the sign-up.
+  try {
+    const { pushLocalNow } = await import("@/lib/cloud/sync");
+    await pushLocalNow();
+  } catch {
+    /* the device still has it; the next commit will carry it up */
+  }
+
   return { ok: true, email: body.email ?? email };
 }
 
-/** Sign an existing account back in. */
+/**
+ * Sign an existing account back in.
+ *
+ * ── Why this WIPES the device first ────────────────────────────────────────
+ *
+ * Signing in is a claim to a different identity, and the data sitting in
+ * localStorage belongs to whoever was here before — which on the machines this
+ * app is actually used on is very often another student.
+ *
+ * Leaving it in place breaks in both directions at once. The previous
+ * occupant's companies appear under the new player's name, `destination()`
+ * reads their `onboarded` flag and routes past onboarding into their founder
+ * profile, and the first debounced write pushes their run up into the signing-
+ * in player's account — overwriting the cloud save that player came back FOR.
+ * The Pro entitlement cached in localStorage leaks across accounts the same
+ * way.
+ *
+ * So the device is emptied and the account's own copy is pulled on the reload
+ * that follows (restoreOnBoot finds an empty device and adopts the cloud save,
+ * which is exactly the case it was written for). The caller must reload — see
+ * AccountGate.
+ */
 export async function signIn(email: string, password: string): Promise<AuthOutcome> {
   const out = await post("/api/auth/signin", { email, password });
   if (!out) return fail("offline", "Could not reach the server. Check your connection.");
@@ -112,6 +151,10 @@ export async function signIn(email: string, password: string): Promise<AuthOutco
   if (!res.ok || !body.signedIn) {
     return fail("invalid", body.error ?? "That email and password do not match an account.");
   }
+
+  // Empty the device BEFORE writing the new account, so a failure between the
+  // two leaves no account cache pointing at someone else's saves.
+  wipeDevice();
 
   // The server's display name wins — it is the one that followed the account,
   // and this device may never have seen it before.
@@ -143,6 +186,30 @@ const DEVICE_KEYS = [
 ];
 
 /**
+ * Empties this device of the previous player, leaving the account cache alone.
+ *
+ * Used by both sign-out and sign-in: in each case the person about to use this
+ * browser is not the person whose data is in it.
+ */
+function wipeDevice(): void {
+  if (typeof window === "undefined") return;
+  for (const key of DEVICE_KEYS) {
+    try {
+      window.localStorage.removeItem(key);
+    } catch {
+      // One blocked key must not stop the rest from being cleared.
+    }
+  }
+  try {
+    // Otherwise the next boot sees the flag, skips the cloud restore, and sits
+    // on an empty device that never asks the server for the account's save.
+    window.sessionStorage.removeItem(RESTORED_FLAG);
+  } catch {
+    /* private mode; the restore will simply run as normal */
+  }
+}
+
+/**
  * Sign out here, and leave nothing behind.
  *
  * ── Why this wipes the device now, when it never used to ───────────────────
@@ -158,35 +225,41 @@ const DEVICE_KEYS = [
  * entitlement for the next child is the failure mode that matters here, and
  * it is not fixed by clearing a display name.
  *
- * The server half is attempted first but never gates the local half, for the
- * same reason the route clears the cookie unconditionally: a machine must not
- * stay signed in because Supabase was briefly unreachable.
+ * ── The two things that must be true before wiping ─────────────────────────
+ *
+ * The whole justification is "the server has a copy", so it only wipes when
+ * that is actually true:
+ *
+ *   1. **The pending write must land first.** flush() is debounced by 1.5s, so
+ *      the last decision a player made is very often still sitting in memory
+ *      when they hit sign out. Wiping first would delete the only copy of it.
+ *   2. **There must be a server at all.** On a deploy with no Supabase
+ *      configured, or one where sync never came up, localStorage is not a
+ *      cache — it is the save. Wiping there is data loss with no upside, so it
+ *      does not happen, and the session cookie is cleared alone.
  */
 export async function signOut(): Promise<void> {
+  // Land the last decision before anything is destroyed. If this throws or the
+  // request fails, syncedOk stays false and the device is left intact.
+  let syncedOk = false;
+  try {
+    const { flush, syncState } = await import("@/lib/cloud/sync");
+    await flush();
+    syncedOk = syncState() !== "off" && syncState() !== "error";
+  } catch {
+    syncedOk = false;
+  }
+
   try {
     await fetch("/api/auth/signout", { method: "POST" });
   } catch {
-    /* the local half still happens */
+    /* the cookie is still cleared below by the local half */
   }
 
   forgetLocalAccount();
   forgetIdentity();
 
-  if (typeof window === "undefined") return;
-  for (const key of DEVICE_KEYS) {
-    try {
-      window.localStorage.removeItem(key);
-    } catch {
-      // One blocked key must not stop the rest from being cleared.
-    }
-  }
-  try {
-    // Otherwise the next player's boot sees the flag, skips the cloud restore,
-    // and starts on an empty device that never asks the server for their save.
-    window.sessionStorage.removeItem(RESTORED_FLAG);
-  } catch {
-    /* private mode; the restore will simply run as normal */
-  }
+  if (syncedOk) wipeDevice();
 }
 
 /** Ask for a password reset email. The answer never says whether the address

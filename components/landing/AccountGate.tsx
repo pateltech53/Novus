@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-import { MAX_NAME_LENGTH, loadAccount } from "@/lib/account";
-import { requestPasswordReset, signIn, signOut, signUp } from "@/lib/cloud/auth";
+import { MAX_NAME_LENGTH, loadAccount, signOut as forgetLocalAccount } from "@/lib/account";
+import { identity, requestPasswordReset, signIn, signOut, signUp } from "@/lib/cloud/auth";
 import { MIN_PASSWORD_LENGTH } from "@/lib/auth/credentials";
 import { loadProfile } from "@/lib/engine/save";
 import { play } from "@/lib/sound";
@@ -61,6 +61,34 @@ export function AccountGate() {
       setDisplayName(account.displayName);
       setMode("signedIn");
     }
+
+    /*
+     * ...then check with the server, because localStorage can lie.
+     *
+     * The cache says "signed in" for as long as it survives, but the thing that
+     * actually signs a player in is the session cookie — and cookies expire, get
+     * cleared on their own, and are dropped by browsers with aggressive storage
+     * policies while localStorage survives. A player in that state sees
+     * CONTINUE AS SAM, plays as a freshly minted anonymous user, and is told to
+     * "create an account" the moment they try to buy Pro, having had one all
+     * along.
+     *
+     * Only demotes an account the server does not recognise; it never promotes,
+     * because the cache is the thing being checked.
+     */
+    let alive = true;
+    void identity().then((who) => {
+      if (!alive || !who.configured) return;
+      if (account && (!who.signedIn || who.anonymous)) {
+        forgetLocalAccount();
+        setDisplayName("");
+        setMode("signIn");
+        setNotice("Your session expired. Sign in to pick up where you left off.");
+      }
+    });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -102,9 +130,10 @@ export function AccountGate() {
     }
 
     play("success");
-    // A fresh account always walks through onboarding — /found would reuse the
-    // previous player's founder profile under the new account.
-    router.push("/welcome");
+    // Unlike sign-in, sign-up KEEPS this device's progress — signUp() has just
+    // pushed it into the new account — so a client-side push is fine here and
+    // the anonymous player's half-built company survives making an account.
+    router.push(destination());
   };
 
   const submitSignIn = async () => {
@@ -120,10 +149,19 @@ export function AccountGate() {
     }
 
     play("success");
-    // Returning players keep their place. lib/cloud/sync.ts pulls the account's
-    // save on the next boot; sending them to /welcome would re-onboard someone
-    // who finished that a term ago.
-    router.push(destination());
+    /*
+     * A full page load, not router.push().
+     *
+     * signIn() has just emptied this device (it belonged to whoever was here
+     * before). The account's own save has NOT been pulled yet — that happens
+     * in restoreOnBoot, which runs when CloudSync mounts, and CloudSync is in
+     * the root layout so a client-side navigation never remounts it.
+     *
+     * Landing on `/` also means destination() is evaluated after the restore
+     * rather than before it: routing on the now-empty profile would send a
+     * returning player through onboarding they finished a term ago.
+     */
+    window.location.href = "/";
   };
 
   const forgot = async () => {

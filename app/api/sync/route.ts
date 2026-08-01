@@ -212,13 +212,22 @@ async function writeRun(session: Session, run: RunState | null): Promise<string[
     return error ? [`saves: ${error.message}`] : [];
   }
 
+  // playerAge is stripped again here, having already been stripped on the way
+  // out (lib/cloud/sync.ts). Belt and braces on purpose: `state` is an opaque
+  // blob written straight to jsonb, so anything the client puts in it is
+  // stored verbatim — and this column is the one place a child's age could be
+  // retained without any line of code appearing to ask for it. An older
+  // client, a replayed request, or a hand-made call must not be able to put it
+  // there. 0001's header: never transmitted, never stored.
+  const { playerAge: _neverStored, ...storableRun } = run;
+
   const { error } = await session.supabase.from("saves").upsert(
     {
       profile_id: session.userId,
       slot: 0,
       run_id: run.id,
       seed: run.seed,
-      state: run,
+      state: storableRun,
       // Derived here, not trusted from the client.
       company_name: run.companyName,
       industry: run.industry,

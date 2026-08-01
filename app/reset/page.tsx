@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { MIN_PASSWORD_LENGTH } from "@/lib/auth/credentials";
 import { confirmPasswordReset } from "@/lib/cloud/auth";
+import { createAccount } from "@/lib/account";
 
 /**
  * Where the password reset email lands.
@@ -29,7 +30,21 @@ export default function ResetPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * Guards against reading the hash twice.
+   *
+   * The effect CLEARS the hash as its last act, so a second invocation finds
+   * nothing and would flip a perfectly good link to "no-token". React's
+   * StrictMode double-invokes effects in development, which means without this
+   * every reset link appears broken on localhost — exactly where this flow
+   * gets tested.
+   */
+  const read = useRef(false);
+
   useEffect(() => {
+    if (read.current) return;
+    read.current = true;
+
     const hash = window.location.hash.startsWith("#")
       ? window.location.hash.slice(1)
       : window.location.hash;
@@ -67,8 +82,13 @@ export default function ResetPage() {
       return;
     }
 
-    // The confirm route leaves the player signed in, so there is nowhere to
-    // send them but forward.
+    // The confirm route leaves the player signed in. Write the local account
+    // cache to match, or the front door would read no account and offer
+    // CREATE ACCOUNT to someone who is already signed in.
+    if (result.ok && result.email) {
+      createAccount(result.displayName ?? "Founder", result.email);
+    }
+
     setPhase("done");
     setTimeout(() => router.push("/"), 1200);
   };

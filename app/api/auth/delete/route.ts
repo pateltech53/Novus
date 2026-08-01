@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_SERVICE_ROLE_KEY } from "@/lib/stripe/config";
 import { adminClient } from "@/lib/supabase/admin";
 import { configured } from "@/lib/supabase/config";
-import { clearSession, sessionFromRequest } from "@/lib/supabase/route";
+import { crossSite, clearSession, sessionFromRequest } from "@/lib/supabase/route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,6 +39,12 @@ export const dynamic = "force-dynamic";
  * a "delete me" request. The player is told to cancel in the portal first.
  */
 export async function POST(req: NextRequest) {
+
+  // Not from our own pages. See crossSite() — a cross-site form post is not
+  // preflighted, and req.json() parses the body whatever type it claims.
+  if (crossSite(req)) {
+    return NextResponse.json({ error: "cross-site request refused" }, { status: 403 });
+  }
   if (!configured()) {
     return NextResponse.json({ configured: false }, { status: 200 });
   }
@@ -61,12 +67,38 @@ export async function POST(req: NextRequest) {
 
   const { data: billing } = await db
     .from("billing_customers")
-    .select("subscription_status")
+    .select("subscription_status, cancel_at_period_end")
     .eq("profile_id", session.userId)
     .maybeSingle();
 
   const status = billing?.subscription_status as string | undefined;
-  if (status && ["active", "trialing", "past_due"].includes(status)) {
+
+  /*
+   * Which statuses can still take money.
+   *
+   * `unpaid` and `paused` are in the list alongside the obvious three. Neither
+   * is finished: Stripe can resume a paused subscription, and an `unpaid` one
+   * still has an open invoice that a recovered card settles. Treating either as
+   * safe would delete the account and leave the card billable with nothing to
+   * unlock — the exact outcome this check exists to prevent.
+   *
+   * `canceled`, `incomplete` and `incomplete_expired` are genuinely finished
+   * and do not block.
+   */
+  const BILLABLE = ["active", "trialing", "past_due", "unpaid", "paused"];
+
+  /*
+   * ...unless they have ALREADY cancelled.
+   *
+   * A player who cancelled keeps Pro until the period ends, so the status is
+   * still `active` — with `cancel_at_period_end` set. Without this clause,
+   * doing exactly what we asked ("cancel first") would leave them refused for
+   * up to a year, told to cancel a subscription they already cancelled.
+   */
+  const stillBillable =
+    !!status && BILLABLE.includes(status) && billing?.cancel_at_period_end !== true;
+
+  if (stillBillable) {
     return NextResponse.json(
       {
         error:

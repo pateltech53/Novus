@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { adminClient } from "@/lib/supabase/admin";
-import { attachSession, sessionFromRequest } from "@/lib/supabase/route";
+import { attachSession, sessionFromRequest, withSession } from "@/lib/supabase/route";
 import { stripe } from "@/lib/stripe/client";
 import { SITE_URL, billingConfigured } from "@/lib/stripe/config";
 
@@ -39,13 +39,19 @@ export async function POST(req: NextRequest) {
     .eq("profile_id", session.userId)
     .maybeSingle();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  // withSession, not a bare error: sessionFromRequest rotated the refresh
+  // token, so returning without it would sign the player out on the way to
+  // reporting a database hiccup.
+  if (error) return withSession(NextResponse.json({ error: error.message }, { status: 500 }), session);
 
   if (!data?.stripe_customer_id) {
     // Never bought anything. A normal answer — Settings uses it to keep the
     // "Manage subscription" row hidden rather than showing a button that opens
     // an error.
-    return NextResponse.json({ configured: true, signedIn: true, customer: false }, { status: 200 });
+    return withSession(
+      NextResponse.json({ configured: true, signedIn: true, customer: false }, { status: 200 }),
+      session,
+    );
   }
 
   try {
@@ -61,13 +67,16 @@ export async function POST(req: NextRequest) {
     // The commonest cause by far is that nobody has saved a portal
     // configuration in the Stripe dashboard yet, so say so rather than
     // reporting a bare 502.
-    return NextResponse.json(
-      {
-        error:
-          `stripe: ${(e as Error).message} — if this mentions configuration, ` +
-          `save the customer portal settings once in the Stripe dashboard`,
-      },
-      { status: 502 },
+    return withSession(
+      NextResponse.json(
+        {
+          error:
+            `stripe: ${(e as Error).message} — if this mentions configuration, ` +
+            `save the customer portal settings once in the Stripe dashboard`,
+        },
+        { status: 502 },
+      ),
+      session,
     );
   }
 }

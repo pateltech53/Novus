@@ -2,7 +2,9 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { checkEmail, normaliseEmail } from "@/lib/auth/credentials";
 import { SUPABASE_ANON_KEY, SUPABASE_URL, configured } from "@/lib/supabase/config";
+import { SITE_URL } from "@/lib/stripe/config";
 import { createClient } from "@supabase/supabase-js";
+import { crossSite } from "@/lib/supabase/route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,6 +37,12 @@ interface Body {
 }
 
 export async function POST(req: NextRequest) {
+
+  // Not from our own pages. See crossSite() — a cross-site form post is not
+  // preflighted, and req.json() parses the body whatever type it claims.
+  if (crossSite(req)) {
+    return NextResponse.json({ error: "cross-site request refused" }, { status: 403 });
+  }
   if (!configured()) {
     return NextResponse.json({ configured: false }, { status: 200 });
   }
@@ -62,11 +70,14 @@ export async function POST(req: NextRequest) {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   });
 
-  // The origin is taken from the request rather than from configuration on
-  // purpose: this only ever produces a link back to the page the player is
-  // already on, and Supabase will refuse any redirect not on the project's
-  // allow-list, so a spoofed Host cannot send the email somewhere else.
-  const origin = new URL(req.url).origin;
+  // Configured origin first, request origin only as a fallback.
+  //
+  // `new URL(req.url).origin` is built from the Host header, which the caller
+  // controls — the exact input lib/stripe/config.ts refuses to trust for
+  // Stripe's return URLs. Supabase's redirect allow-list would reject a
+  // spoofed host anyway, but "a second system happens to catch it" is not the
+  // same as not sending it, and this link is the one that resets a password.
+  const origin = SITE_URL || new URL(req.url).origin;
 
   try {
     await supabase.auth.resetPasswordForEmail(email, {

@@ -6,7 +6,7 @@ import {
   normaliseEmail,
 } from "@/lib/auth/credentials";
 import { configured } from "@/lib/supabase/config";
-import { attachSession, signUpWithPassword } from "@/lib/supabase/route";
+import { crossSite, attachSession, signUpWithPassword } from "@/lib/supabase/route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,6 +48,12 @@ interface Body {
 }
 
 export async function POST(req: NextRequest) {
+
+  // Not from our own pages. See crossSite() — a cross-site form post is not
+  // preflighted, and req.json() parses the body whatever type it claims.
+  if (crossSite(req)) {
+    return NextResponse.json({ error: "cross-site request refused" }, { status: 403 });
+  }
   if (!configured()) {
     // No Supabase project. The app is designed to run this way — the caller
     // keeps its device-local account and plays on localStorage alone.
