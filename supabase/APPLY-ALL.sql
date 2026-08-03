@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════════════
--- APPLY ALL · the complete Novus schema (0001 → 0008), idempotently
+-- APPLY ALL · the complete Novus schema (0001 → 0010), idempotently
 -- ═══════════════════════════════════════════════════════════════════════════
 --
 -- Paste the whole file into the Supabase SQL editor of the NOVUS project and
@@ -1108,6 +1108,685 @@ grant execute on function public.chapter_board(text, text) to authenticated, ser
 
 
 -- ═══════════════════════════════════════════════════════════════════════════
+-- 0009 · Admin — role on profiles, comped access, console SQL
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- ── profiles: role + testing view, guarded against self-promotion ──────────
+alter table public.profiles
+  add column if not exists role text not null default 'player'
+    check (role in ('player', 'admin'));
+alter table public.profiles
+  add column if not exists admin_view text
+    check (admin_view in ('free', 'pro', 'all'));
+
+create or replace function public.guard_admin_columns()
+returns trigger
+language plpgsql
+set search_path = public, pg_temp
+as $$
+begin
+  if current_user in ('anon', 'authenticated') then
+    if tg_op = 'INSERT' then
+      if new.role is distinct from 'player' or new.admin_view is not null then
+        raise exception 'role is set from the Supabase dashboard, not from the app'
+          using errcode = '42501';
+      end if;
+    elsif new.role is distinct from old.role
+       or new.admin_view is distinct from old.admin_view then
+      raise exception 'role is set from the Supabase dashboard, not from the app'
+        using errcode = '42501';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists profiles_guard_admin on public.profiles;
+create trigger profiles_guard_admin
+  before insert or update on public.profiles
+  for each row execute function public.guard_admin_columns();
+
+revoke execute on function public.guard_admin_columns() from public, anon, authenticated;
+
+-- ── entitlements: the comp columns ─────────────────────────────────────────
+alter table public.entitlements
+  add column if not exists comp_pro boolean not null default false;
+alter table public.entitlements
+  add column if not exists comp_until timestamptz;
+alter table public.entitlements
+  add column if not exists comp_note text
+    check (comp_note is null or length(comp_note) <= 280);
+
+create or replace function public.admin_set_comp_pro(
+  p_profile uuid,
+  p_active  boolean,
+  p_until   timestamptz default null,
+  p_note    text default null
+)
+returns void
+language sql
+set search_path = public, pg_temp
+as $$
+  insert into public.entitlements (profile_id, comp_pro, comp_until, comp_note)
+  values (p_profile, p_active, p_until, left(p_note, 280))
+  on conflict (profile_id) do update
+    set comp_pro   = excluded.comp_pro,
+        comp_until = excluded.comp_until,
+        comp_note  = excluded.comp_note;
+$$;
+
+create or replace function public.admin_revoke_industry_pack(
+  p_profile  uuid,
+  p_industry text
+)
+returns void
+language sql
+set search_path = public, pg_temp
+as $$
+  update public.entitlements
+     set industry_packs = array_remove(industry_packs, p_industry)
+   where profile_id = p_profile;
+$$;
+
+create or replace function public.admin_set_extra_run_slots(
+  p_profile uuid,
+  p_slots   int
+)
+returns void
+language sql
+set search_path = public, pg_temp
+as $$
+  insert into public.entitlements (profile_id, extra_run_slots)
+  values (p_profile, least(greatest(coalesce(p_slots, 0), 0), 20))
+  on conflict (profile_id) do update
+    set extra_run_slots = least(greatest(coalesce(p_slots, 0), 0), 20);
+$$;
+
+-- ── player_allowance: one copy of the run-a-day formula ────────────────────
+create or replace function public.player_allowance(p_profile uuid)
+returns int
+language sql
+stable
+set search_path = public, pg_temp
+as $$
+  select case
+    when p.role = 'admin' then
+      case coalesce(p.admin_view, 'all')
+        when 'free' then 1
+        when 'pro'  then 3
+        else 999
+      end
+    else
+      case when coalesce(e.pro, false)
+             or (coalesce(e.comp_pro, false)
+                 and (e.comp_until is null or e.comp_until > now()))
+             or e.chapter is not null
+           then 3 else 1 end
+      + coalesce(e.extra_run_slots, 0)
+  end
+  from public.profiles p
+  left join public.entitlements e on e.profile_id = p.id
+  where p.id = p_profile;
+$$;
+
+revoke execute on function public.player_allowance(uuid) from public, anon, authenticated;
+grant  execute on function public.player_allowance(uuid) to service_role;
+
+create or replace function public.claim_run_slot()
+returns boolean
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  today   date := (now() at time zone 'utc')::date;
+  caller  uuid := auth.uid();
+  allowed int;
+  used    int;
+begin
+  if caller is null then
+    raise exception 'not authenticated';
+  end if;
+
+  allowed := coalesce(public.player_allowance(caller), 1);
+
+  insert into public.run_ledger as l (profile_id, day, started)
+  values (caller, today, 1)
+  on conflict (profile_id) do update
+    set day     = today,
+        started = case when l.day = today then l.started + 1 else 1 end
+  returning l.started into used;
+
+  return used <= allowed;
+end;
+$$;
+
+revoke execute on function public.claim_run_slot() from public, anon;
+grant  execute on function public.claim_run_slot() to authenticated;
+
+create or replace function public.runs_remaining_today()
+returns int
+language sql
+security definer
+set search_path = public, pg_temp
+as $$
+  select greatest(0,
+    coalesce(public.player_allowance(auth.uid()), 1)
+    - coalesce((select l.started from public.run_ledger l
+                 where l.profile_id = auth.uid()
+                   and l.day = (now() at time zone 'utc')::date), 0)
+  );
+$$;
+
+revoke execute on function public.runs_remaining_today() from public, anon;
+grant  execute on function public.runs_remaining_today() to authenticated;
+
+-- ── chapters: comped licences ──────────────────────────────────────────────
+alter table public.chapters
+  alter column stripe_subscription_id drop not null;
+alter table public.chapters
+  add column if not exists source text not null default 'stripe'
+    check (source in ('stripe', 'comp'));
+
+create or replace function public.admin_create_comp_chapter(
+  p_owner   uuid,
+  p_licence text,
+  p_until   timestamptz default null
+)
+returns uuid
+language plpgsql
+set search_path = public, pg_temp
+as $$
+declare
+  v_seats int := case p_licence when 'chapter_35'  then 35
+                                when 'chapter_100' then 100 end;
+  v_id uuid;
+begin
+  if v_seats is null then
+    raise exception 'unknown licence %', p_licence using errcode = '23514';
+  end if;
+
+  if exists (select 1 from public.chapters c
+              where c.owner_profile_id = p_owner and c.status = 'active') then
+    raise exception 'already owns an active chapter' using errcode = '23505';
+  end if;
+
+  insert into public.chapters
+    (owner_profile_id, licence, seats, source, status, current_period_end, stripe_subscription_id)
+  values
+    (p_owner, p_licence, v_seats, 'comp', 'active', p_until, null)
+  returning id into v_id;
+
+  return v_id;
+end;
+$$;
+
+create or replace function public.admin_revoke_comp_chapter(p_chapter uuid)
+returns boolean
+language plpgsql
+set search_path = public, pg_temp
+as $$
+declare
+  found boolean;
+begin
+  update public.chapters c
+     set status = 'lapsed'
+   where c.id = p_chapter
+     and c.source = 'comp'
+     and c.status = 'active'
+  returning true into found;
+
+  if coalesce(found, false) then
+    perform public.set_chapter_access(p_chapter, false);
+  end if;
+  return coalesce(found, false);
+end;
+$$;
+
+create or replace function public.admin_lapse_expired_comp_chapters()
+returns integer
+language plpgsql
+set search_path = public, pg_temp
+as $$
+declare
+  doomed uuid;
+  n integer := 0;
+begin
+  for doomed in
+    select c.id from public.chapters c
+     where c.source = 'comp'
+       and c.status = 'active'
+       and c.current_period_end is not null
+       and c.current_period_end < now()
+  loop
+    update public.chapters set status = 'lapsed' where id = doomed;
+    perform public.set_chapter_access(doomed, false);
+    n := n + 1;
+  end loop;
+  return n;
+end;
+$$;
+
+-- ── admin_audit ────────────────────────────────────────────────────────────
+create table if not exists public.admin_audit (
+  id           bigint generated always as identity primary key,
+  actor        uuid references public.profiles(id) on delete set null,
+  actor_email  text,
+  action       text not null,
+  target       uuid,
+  target_email text,
+  detail       jsonb not null default '{}'::jsonb,
+  created_at   timestamptz not null default now()
+);
+
+alter table public.admin_audit enable row level security;
+revoke all on public.admin_audit from anon, authenticated;
+
+create index if not exists admin_audit_created_idx on public.admin_audit (created_at desc);
+create index if not exists admin_audit_target_idx  on public.admin_audit (target, created_at desc);
+
+-- ── The console's reads ────────────────────────────────────────────────────
+create or replace function public.admin_list_users(
+  p_query  text default null,
+  p_limit  int  default 50,
+  p_offset int  default 0
+)
+returns table (
+  id                   uuid,
+  email                text,
+  display_name         text,
+  role                 text,
+  is_anonymous         boolean,
+  created_at           timestamptz,
+  last_sign_in_at      timestamptz,
+  pro                  boolean,
+  comp_pro             boolean,
+  comp_until           timestamptz,
+  comp_note            text,
+  chapter              text,
+  extra_run_slots      int,
+  industry_packs       text[],
+  intent               text,
+  subscription_status  text,
+  plan                 text,
+  current_period_end   timestamptz,
+  cancel_at_period_end boolean,
+  owns_chapter_id      uuid,
+  owns_chapter_status  text,
+  owns_chapter_source  text,
+  owns_chapter_licence text,
+  seat_chapter_id      uuid,
+  total                bigint
+)
+language sql
+stable
+security definer
+set search_path = public, auth, pg_temp
+as $$
+  with q as (
+    select nullif(btrim(coalesce(p_query, '')), '') as needle
+  )
+  select
+    u.id,
+    u.email,
+    p.display_name,
+    coalesce(p.role, 'player'),
+    coalesce(u.is_anonymous, false),
+    u.created_at,
+    u.last_sign_in_at,
+    coalesce(e.pro, false),
+    coalesce(e.comp_pro, false),
+    e.comp_until,
+    e.comp_note,
+    e.chapter,
+    coalesce(e.extra_run_slots, 0),
+    coalesce(e.industry_packs, '{}'),
+    e.intent,
+    b.subscription_status,
+    b.plan,
+    b.current_period_end,
+    coalesce(b.cancel_at_period_end, false),
+    oc.id,
+    oc.status,
+    oc.source,
+    oc.licence,
+    s.chapter_id,
+    count(*) over () as total
+  from auth.users u
+  left join public.profiles p          on p.id = u.id
+  left join public.entitlements e      on e.profile_id = u.id
+  left join public.billing_customers b on b.profile_id = u.id
+  left join lateral (
+    select c.id, c.status, c.source, c.licence
+      from public.chapters c
+     where c.owner_profile_id = u.id
+     order by (c.status = 'active') desc, c.created_at desc
+     limit 1
+  ) oc on true
+  left join public.chapter_seats s     on s.profile_id = u.id
+  cross join q
+  where q.needle is null
+     or u.email ilike '%' || q.needle || '%'
+     or p.display_name ilike '%' || q.needle || '%'
+     or u.id::text = lower(q.needle)
+  order by u.created_at desc
+  limit  least(greatest(coalesce(p_limit, 50), 1), 200)
+  offset greatest(coalesce(p_offset, 0), 0);
+$$;
+
+create or replace function public.admin_stats()
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public, auth, pg_temp
+as $$
+  select jsonb_build_object(
+    'accounts',       (select count(*) from auth.users u where coalesce(u.is_anonymous, false) is false),
+    'anonymous',      (select count(*) from auth.users u where coalesce(u.is_anonymous, false)),
+    'admins',         (select count(*) from public.profiles p where p.role = 'admin'),
+    'newWeek',        (select count(*) from auth.users u
+                        where coalesce(u.is_anonymous, false) is false
+                          and u.created_at > now() - interval '7 days'),
+    'activeWeek',     (select count(*) from auth.users u
+                        where coalesce(u.is_anonymous, false) is false
+                          and coalesce(u.last_sign_in_at, u.created_at) > now() - interval '7 days'),
+    'activeMonth',    (select count(*) from auth.users u
+                        where coalesce(u.is_anonymous, false) is false
+                          and coalesce(u.last_sign_in_at, u.created_at) > now() - interval '30 days'),
+    'proPaid',        (select count(*) from public.entitlements e where e.pro),
+    'proComp',        (select count(*) from public.entitlements e
+                        where e.comp_pro and (e.comp_until is null or e.comp_until > now())),
+    'chapterSeats',   (select count(*) from public.chapter_seats),
+    'chaptersActive', (select count(*) from public.chapters c where c.status = 'active'),
+    'chaptersComp',   (select count(*) from public.chapters c
+                        where c.status = 'active' and c.source = 'comp'),
+    'savesAlive',     (select count(*) from public.saves s where s.alive),
+    'boardListed',    (select count(*) from public.leaderboard_entries l where l.listed),
+    'boardQueue',     (select count(*) from public.leaderboard_entries l where l.listed is false)
+  );
+$$;
+
+-- ── The stale-anonymous sweep learns about comps (0004, one guard wider) ───
+create or replace function public.delete_stale_anonymous_users(
+  p_older_than interval default interval '90 days'
+)
+returns integer
+language plpgsql
+security definer
+set search_path = public, auth, pg_temp
+as $$
+declare
+  removed integer;
+begin
+  with doomed as (
+    delete from auth.users u
+    where u.is_anonymous is true
+      and coalesce(u.last_sign_in_at, u.created_at) < (now() - p_older_than)
+      and not exists (
+        select 1 from public.entitlements e
+        where e.profile_id = u.id
+          and (e.pro or e.comp_pro or e.extra_run_slots > 0
+               or array_length(e.industry_packs, 1) > 0
+               or e.chapter is not null)
+      )
+      and not exists (
+        select 1 from public.billing_customers b where b.profile_id = u.id
+      )
+    returning 1
+  )
+  select count(*) into removed from doomed;
+
+  return removed;
+end;
+$$;
+
+revoke execute on function public.delete_stale_anonymous_users(interval)
+  from public, anon, authenticated;
+grant execute on function public.delete_stale_anonymous_users(interval)
+  to service_role;
+
+-- ── Grants ─────────────────────────────────────────────────────────────────
+revoke execute on function public.admin_set_comp_pro(uuid, boolean, timestamptz, text) from public, anon, authenticated;
+revoke execute on function public.admin_revoke_industry_pack(uuid, text)               from public, anon, authenticated;
+revoke execute on function public.admin_set_extra_run_slots(uuid, int)                 from public, anon, authenticated;
+revoke execute on function public.admin_create_comp_chapter(uuid, text, timestamptz)   from public, anon, authenticated;
+revoke execute on function public.admin_revoke_comp_chapter(uuid)                      from public, anon, authenticated;
+revoke execute on function public.admin_lapse_expired_comp_chapters()                  from public, anon, authenticated;
+revoke execute on function public.admin_list_users(text, int, int)                     from public, anon, authenticated;
+revoke execute on function public.admin_stats()                                        from public, anon, authenticated;
+
+grant execute on function public.admin_set_comp_pro(uuid, boolean, timestamptz, text)  to service_role;
+grant execute on function public.admin_revoke_industry_pack(uuid, text)                to service_role;
+grant execute on function public.admin_set_extra_run_slots(uuid, int)                  to service_role;
+grant execute on function public.admin_create_comp_chapter(uuid, text, timestamptz)    to service_role;
+grant execute on function public.admin_revoke_comp_chapter(uuid)                       to service_role;
+grant execute on function public.admin_lapse_expired_comp_chapters()                   to service_role;
+grant execute on function public.admin_list_users(text, int, int)                      to service_role;
+grant execute on function public.admin_stats()                                        to service_role;
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 0010 · Admin analytics — cohorts, time series, and the daily snapshot
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- ── admin_daily: one row of COUNTS per day, written lazily ─────────────────
+create table if not exists public.admin_daily (
+  day             date primary key,
+  accounts        int not null,
+  new_accounts    int not null,
+  active_1d       int not null,
+  active_7d       int not null,
+  active_30d      int not null,
+  runs_started    int not null,
+  pro_paid        int not null,
+  pro_comp        int not null,
+  seats           int not null,
+  chapters_active int not null,
+  saves_alive     int not null,
+  board_listed    int not null,
+  board_queue     int not null,
+  captured_at     timestamptz not null default now()
+);
+
+alter table public.admin_daily enable row level security;
+revoke all on public.admin_daily from anon, authenticated;
+
+-- ── The last-seen expression, once ─────────────────────────────────────────
+create or replace function public.admin_last_seen()
+returns table (id uuid, created_at timestamptz, last_seen timestamptz)
+language sql
+stable
+security definer
+set search_path = public, auth, pg_temp
+as $$
+  select
+    u.id,
+    u.created_at,
+    greatest(
+      coalesce(u.last_sign_in_at, u.created_at),
+      coalesce((select max(s.updated_at) from public.saves s where s.profile_id = u.id), u.created_at),
+      coalesce((select p.updated_at from public.preferences p where p.profile_id = u.id), u.created_at),
+      coalesce((select l.updated_at from public.legacy l where l.profile_id = u.id), u.created_at)
+    ) as last_seen
+  from auth.users u
+  where coalesce(u.is_anonymous, false) is false;
+$$;
+
+-- ── admin_timeseries ───────────────────────────────────────────────────────
+create or replace function public.admin_timeseries(p_days int default 60)
+returns table (
+  day          date,
+  signups      bigint,
+  submissions  bigint,
+  actives      int,
+  runs_started int
+)
+language sql
+stable
+security definer
+set search_path = public, auth, pg_temp
+as $$
+  with span as (
+    select generate_series(
+      current_date - (least(greatest(coalesce(p_days, 60), 7), 365) - 1),
+      current_date,
+      interval '1 day'
+    )::date as day
+  ),
+  signups as (
+    select u.created_at::date as day, count(*) as n
+      from auth.users u
+     where coalesce(u.is_anonymous, false) is false
+     group by 1
+  ),
+  submissions as (
+    select e.created_at::date as day, count(*) as n
+      from public.leaderboard_entries e
+     group by 1
+  )
+  select
+    span.day,
+    coalesce(signups.n, 0),
+    coalesce(submissions.n, 0),
+    d.active_1d,
+    d.runs_started
+  from span
+  left join signups     on signups.day = span.day
+  left join submissions on submissions.day = span.day
+  left join public.admin_daily d on d.day = span.day
+  order by span.day;
+$$;
+
+-- ── admin_cohorts ──────────────────────────────────────────────────────────
+create or replace function public.admin_cohorts(p_weeks int default 12)
+returns table (
+  week        date,
+  cohort      bigint,
+  bounced     bigint,
+  retained_7  bigint,
+  retained_30 bigint
+)
+language sql
+stable
+security definer
+set search_path = public, auth, pg_temp
+as $$
+  select
+    date_trunc('week', s.created_at)::date as week,
+    count(*) as cohort,
+    count(*) filter (where s.last_seen <  s.created_at + interval '1 day')  as bounced,
+    count(*) filter (where s.last_seen >= s.created_at + interval '7 days') as retained_7,
+    count(*) filter (where s.last_seen >= s.created_at + interval '30 days') as retained_30
+  from public.admin_last_seen() s
+  where s.created_at >= date_trunc('week', now())
+                        - (least(greatest(coalesce(p_weeks, 12), 1), 52) - 1) * interval '1 week'
+  group by 1
+  order by 1;
+$$;
+
+-- ── admin_capture_daily ────────────────────────────────────────────────────
+create or replace function public.admin_capture_daily()
+returns void
+language sql
+security definer
+set search_path = public, auth, pg_temp
+as $$
+  insert into public.admin_daily as d
+    (day, accounts, new_accounts, active_1d, active_7d, active_30d,
+     runs_started, pro_paid, pro_comp, seats, chapters_active,
+     saves_alive, board_listed, board_queue)
+  select
+    current_date,
+    (select count(*) from public.admin_last_seen()),
+    (select count(*) from public.admin_last_seen() s where s.created_at >= current_date),
+    (select count(*) from public.admin_last_seen() s where s.last_seen > now() - interval '1 day'),
+    (select count(*) from public.admin_last_seen() s where s.last_seen > now() - interval '7 days'),
+    (select count(*) from public.admin_last_seen() s where s.last_seen > now() - interval '30 days'),
+    coalesce((select sum(l.started) from public.run_ledger l
+               where l.day = (now() at time zone 'utc')::date), 0),
+    (select count(*) from public.entitlements e where e.pro),
+    (select count(*) from public.entitlements e
+      where e.comp_pro and (e.comp_until is null or e.comp_until > now())),
+    (select count(*) from public.chapter_seats),
+    (select count(*) from public.chapters c where c.status = 'active'),
+    (select count(*) from public.saves s where s.alive),
+    (select count(*) from public.leaderboard_entries l where l.listed),
+    (select count(*) from public.leaderboard_entries l where l.listed is false)
+  on conflict (day) do update set
+    accounts        = excluded.accounts,
+    new_accounts    = excluded.new_accounts,
+    active_1d       = excluded.active_1d,
+    active_7d       = excluded.active_7d,
+    active_30d      = excluded.active_30d,
+    runs_started    = excluded.runs_started,
+    pro_paid        = excluded.pro_paid,
+    pro_comp        = excluded.pro_comp,
+    seats           = excluded.seats,
+    chapters_active = excluded.chapters_active,
+    saves_alive     = excluded.saves_alive,
+    board_listed    = excluded.board_listed,
+    board_queue     = excluded.board_queue,
+    captured_at     = now();
+$$;
+
+-- ── admin_stats learns what "seen" means ───────────────────────────────────
+create or replace function public.admin_stats()
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public, auth, pg_temp
+as $$
+  with seen as (
+    select * from public.admin_last_seen()
+  )
+  select jsonb_build_object(
+    'accounts',       (select count(*) from seen),
+    'anonymous',      (select count(*) from auth.users u where coalesce(u.is_anonymous, false)),
+    'admins',         (select count(*) from public.profiles p where p.role = 'admin'),
+    'newWeek',        (select count(*) from seen s where s.created_at > now() - interval '7 days'),
+    'activeToday',    (select count(*) from seen s where s.last_seen > now() - interval '1 day'),
+    'activeWeek',     (select count(*) from seen s where s.last_seen > now() - interval '7 days'),
+    'activeMonth',    (select count(*) from seen s where s.last_seen > now() - interval '30 days'),
+    'activity',       (select jsonb_build_object(
+                        'd1',    count(*) filter (where s.last_seen >  now() - interval '1 day'),
+                        'd7',    count(*) filter (where s.last_seen <= now() - interval '1 day'
+                                              and s.last_seen >  now() - interval '7 days'),
+                        'd30',   count(*) filter (where s.last_seen <= now() - interval '7 days'
+                                              and s.last_seen >  now() - interval '30 days'),
+                        'd90',   count(*) filter (where s.last_seen <= now() - interval '30 days'
+                                              and s.last_seen >  now() - interval '90 days'),
+                        'older', count(*) filter (where s.last_seen <= now() - interval '90 days')
+                      ) from seen s),
+    'proPaid',        (select count(*) from public.entitlements e where e.pro),
+    'proComp',        (select count(*) from public.entitlements e
+                        where e.comp_pro and (e.comp_until is null or e.comp_until > now())),
+    'chapterSeats',   (select count(*) from public.chapter_seats),
+    'chaptersActive', (select count(*) from public.chapters c where c.status = 'active'),
+    'chaptersComp',   (select count(*) from public.chapters c
+                        where c.status = 'active' and c.source = 'comp'),
+    'savesAlive',     (select count(*) from public.saves s where s.alive),
+    'boardListed',    (select count(*) from public.leaderboard_entries l where l.listed),
+    'boardQueue',     (select count(*) from public.leaderboard_entries l where l.listed is false)
+  );
+$$;
+
+-- ── Grants ─────────────────────────────────────────────────────────────────
+revoke execute on function public.admin_last_seen()        from public, anon, authenticated;
+revoke execute on function public.admin_timeseries(int)    from public, anon, authenticated;
+revoke execute on function public.admin_cohorts(int)       from public, anon, authenticated;
+revoke execute on function public.admin_capture_daily()    from public, anon, authenticated;
+revoke execute on function public.admin_stats()            from public, anon, authenticated;
+
+grant execute on function public.admin_last_seen()         to service_role;
+grant execute on function public.admin_timeseries(int)     to service_role;
+grant execute on function public.admin_cohorts(int)        to service_role;
+grant execute on function public.admin_capture_daily()     to service_role;
+grant execute on function public.admin_stats()             to service_role;
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
 -- The report — read this before closing the tab
 -- ═══════════════════════════════════════════════════════════════════════════
 
@@ -1142,5 +1821,21 @@ from (
                      and column_name = 'invite_token')),
     ('0008 board rank',
       exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-               where n.nspname = 'public' and p.proname = 'chapter_board'))
+               where n.nspname = 'public' and p.proname = 'chapter_board')),
+    ('0009 admin',
+      to_regclass('public.admin_audit') is not null
+      and exists (select 1 from information_schema.columns
+                   where table_schema = 'public' and table_name = 'profiles'
+                     and column_name = 'role')
+      and exists (select 1 from information_schema.columns
+                   where table_schema = 'public' and table_name = 'entitlements'
+                     and column_name = 'comp_pro')
+      and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                   where n.nspname = 'public' and p.proname = 'admin_list_users')),
+    ('0010 admin analytics',
+      to_regclass('public.admin_daily') is not null
+      and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                   where n.nspname = 'public' and p.proname = 'admin_cohorts')
+      and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                   where n.nspname = 'public' and p.proname = 'admin_timeseries'))
 ) as t(migration, present);

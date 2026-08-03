@@ -171,6 +171,9 @@ export function adoptEntitlements(server: Entitlements | null | undefined): bool
     local.extraRunSlots === server.extraRunSlots &&
     local.chapter === server.chapter &&
     local.intent === server.intent &&
+    // The admin overlay travels in the same object; a view switch in the
+    // console changes ONLY this field, and must still count as a change.
+    local.admin === server.admin &&
     sameSet(local.industryPacks, server.industryPacks) &&
     sameSet(local.cosmeticBundles, server.cosmeticBundles);
 

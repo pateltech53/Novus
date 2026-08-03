@@ -147,6 +147,13 @@ lives in [docs/ACCOUNTS-SETUP.md](docs/ACCOUNTS-SETUP.md),
 [docs/SUPABASE-SETUP.md](docs/SUPABASE-SETUP.md) and
 [docs/STRIPE-SETUP.md](docs/STRIPE-SETUP.md).
 
+An **operator role** — a cell in `profiles.role`, flipped in the Supabase
+dashboard and never by any route — gets the console at `/admin`: user
+records, gifted Pro that no webhook can overwrite, comped enterprise
+chapters, and the board queue, every action audited. Their own account plays
+fully unlocked, with a view switch to test the free and Pro tiers for real.
+See [docs/ADMIN.md](docs/ADMIN.md).
+
 Access control is row-level security, not route code: everything on the player
 path runs as the signed-in player with the anon key, so the database is what
 refuses. `supabase/tests/` proves that, and **`npm run test:db` is what makes

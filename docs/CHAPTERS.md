@@ -12,7 +12,7 @@ product ids ship as in-code defaults — see `docs/STRIPE-SETUP.md` §2.
 
 ## 1. What to run
 
-One file: **`supabase/APPLY-ALL.sql`** — the whole schema, 0001 → 0008, safe
+One file: **`supabase/APPLY-ALL.sql`** — the whole schema, 0001 → 0010, safe
 on any starting state. Paste it into the Supabase SQL editor of the NOVUS
 project and run it once: it creates whatever is missing, changes nothing
 that already exists, refuses outright if pasted into the wrong project, and
