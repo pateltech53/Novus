@@ -123,8 +123,16 @@ export const PRO_PURCHASE_URL = `${WEB_ORIGIN}/#pro`;
  */
 export async function openProPurchase(): Promise<void> {
   if (isNative()) {
-    await Browser.open({ url: PRO_PURCHASE_URL });
-    return;
+    try {
+      await Browser.open({ url: PRO_PURCHASE_URL });
+      return;
+    } catch {
+      // A binary that predates the Browser plugin being linked, or a native
+      // throw. Capacitor routes a window.open at a host that is not the app's
+      // own out to the system browser, so the link still leaves — and a
+      // rejection here would otherwise be an unhandled one, thrown from a tap
+      // handler that has no way to catch it.
+    }
   }
   window.open(PRO_PURCHASE_URL, "_blank", "noopener,noreferrer");
 }
