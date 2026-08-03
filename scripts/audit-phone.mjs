@@ -432,6 +432,19 @@ for (const [shell, inject] of SHELLS) {
   const problems = [];
   const want = (condition, complaint) => { if (!condition) problems.push(complaint); };
 
+  // ── "/" belongs to the web ───────────────────────────────────────────────
+  //
+  // The shell is pointed at /boot.html, so a store build should never render
+  // the marketing page — it carries a WebGL scene and an account gate whose
+  // CONTINUE AS has no business inside an app. Configuration can fail to
+  // apply; this checks the behaviour rather than the setting.
+  await page.goto(`http://127.0.0.1:${PORT}/`, { waitUntil: "domcontentloaded" });
+  await page.waitForTimeout(1400);
+  const onLanding = await page.evaluate(() => location.pathname === "/");
+  want(onLanding === sells, sells
+    ? "the browser does not render the landing page at /"
+    : `the ${shell} build sits on the marketing page at /`);
+
   // ── The onboarding plans step: what a first cold start opens on ──────────
   await page.goto(`http://127.0.0.1:${PORT}/welcome/`, { waitUntil: "networkidle" });
   await page.waitForTimeout(700);

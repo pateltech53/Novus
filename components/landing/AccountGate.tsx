@@ -19,6 +19,16 @@ import { ENTRY_ROUTES, entryRoute } from "@/lib/entry";
 import { play } from "@/lib/sound";
 import { Turnstile, turnstileEnabled } from "@/components/landing/Turnstile";
 import { usePrefetch } from "@/lib/prefetch";
+import { storefront } from "@/lib/commerce";
+
+/**
+ * How long CONTINUE stays busy before it will take another press.
+ *
+ * Comfortably longer than any navigation that is going to succeed — a hard
+ * one unloads the page in a fraction of this — and short enough that a player
+ * whose tap went nowhere is not left holding a dead button.
+ */
+const RETRY_AFTER_MS = 6000;
 
 /**
  * The front door's only interactive element, and the page's one accent.
@@ -179,13 +189,37 @@ export function AccountGate() {
    * most traffic did not, so a slow push was indistinguishable from a dead
    * button. The sound is the other half of that: it fires on the tap itself,
    * before anything has to load.
+   *
+   * ── Why it navigates twice over ────────────────────────────────────────────
+   *
+   * A client-side `router.push` is right on the web and wrong in a store
+   * build. The app's file server resolves a route by finding its index.html,
+   * and the export has no /play.html to fall back on — which is why every
+   * other in-app navigation goes through `window.location` with a trailing
+   * slash, in so many words, in SettingsScreen. This was the one place still
+   * pushing, and a push that cannot resolve leaves the button reading OPENING…
+   * with nothing behind it.
+   *
+   * ── And why it lets go ─────────────────────────────────────────────────────
+   *
+   * `entering` guards against a double tap, and it latched: nothing ever set
+   * it back, because the only expected outcome was a navigation that took the
+   * page with it. Any outcome that is NOT that — a push that resolves nowhere,
+   * a file the shell cannot find — left the one button on the screen dead for
+   * good, with a second press swallowed by the guard that was supposed to be
+   * protecting it. A navigation unloads this component long before the timer
+   * matters; if it is still here, the tap failed and the player gets it back.
    */
   const enter = async () => {
     if (entering) return;
     play("click");
     setEntering(true);
+    window.setTimeout(() => setEntering(false), RETRY_AFTER_MS);
     await whenRestored();
-    router.push(destination());
+
+    const route = destination();
+    if (storefront() === "web") router.push(route);
+    else window.location.href = `${route}/`;
   };
 
   const go = (next: Mode) => {

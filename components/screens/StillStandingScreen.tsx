@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 
-import { Glass } from "@/components/ui/Glass";
+import { Glass, GlassScrim } from "@/components/ui/Glass";
 import { useGame } from "@/lib/state/GameProvider";
 import { fmtMoney } from "@/lib/engine/format";
 import { industryByCode } from "@/lib/engine/constants";
@@ -169,12 +169,9 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.18 }}
     >
-      <button
-        type="button"
-        aria-label="Close the leaderboard"
-        onClick={onClose}
-        className="absolute inset-0 bg-[var(--scrim)]"
-      />
+      {/* The board landed a day after every other sheet's scrim became glass,
+          so it kept the flat fill they all used to have. */}
+      <GlassScrim label="Close the leaderboard" onClose={onClose} />
 
       <motion.section
         role="dialog"
