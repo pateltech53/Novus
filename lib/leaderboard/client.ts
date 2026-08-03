@@ -31,13 +31,25 @@ export interface BoardRow {
   season: string;
 }
 
+/** Everyone, or only the caller's classroom. */
+export type BoardScope = "global" | "chapter";
+
 export interface BoardPage {
   configured: boolean;
   board: Board;
   season: string;
+  scope?: BoardScope;
   rows: BoardRow[];
   /** This player's handle, so the screen can find their own row. */
   myHandle: string | null;
+  /** The caller's own place among ALL listed rows — present even when their
+   *  row is below the visible slice. Null when they are not on the board. */
+  myRank?: { rank: number; total: number } | null;
+  /** The caller's own row, rank included, for pinning under the list. */
+  myRow?: BoardRow | null;
+  /** Whether this account belongs to a chapter, so the screen knows to offer
+   *  the MY CHAPTER scope at all. */
+  chapterAvailable?: boolean;
 }
 
 const EMPTY: BoardPage = {
@@ -46,11 +58,19 @@ const EMPTY: BoardPage = {
   season: "",
   rows: [],
   myHandle: null,
+  myRank: null,
+  myRow: null,
+  chapterAvailable: false,
 };
 
-export async function fetchBoard(board: Board, season?: string): Promise<BoardPage> {
+export async function fetchBoard(
+  board: Board,
+  season?: string,
+  scope: BoardScope = "global",
+): Promise<BoardPage> {
   const query = new URLSearchParams({ board });
   if (season) query.set("season", season);
+  if (scope !== "global") query.set("scope", scope);
   try {
     const res = await fetch(apiUrl(`/api/leaderboard?${query}`), {
       credentials: API_CREDENTIALS,

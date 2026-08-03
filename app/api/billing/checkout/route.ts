@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { adminClient } from "@/lib/supabase/admin";
 import { attachSession, sessionFromRequest, withSession, type Session } from "@/lib/supabase/route";
-import { CATALOGUE, isSellableIndustry, isSkuId, priceIdFor, type Sku } from "@/lib/stripe/catalogue";
+import { CATALOGUE, isChapterSku, isSellableIndustry, isSkuId, priceIdFor, type Sku } from "@/lib/stripe/catalogue";
 import { stripe } from "@/lib/stripe/client";
 import { resolvePrice } from "@/lib/stripe/prices";
 import { SITE_URL, billingConfigured } from "@/lib/stripe/config";
@@ -171,14 +171,21 @@ export async function POST(req: NextRequest) {
         },
 
         // Copied onto the subscription itself, so the three
-        // customer.subscription.* events can identify the player without
-        // needing the checkout session that started it all.
+        // customer.subscription.* events can identify the player — and tell a
+        // chapter licence from Pro — without needing the checkout session
+        // that started it all.
         ...(sku.kind === "subscription"
-          ? { subscription_data: { metadata: { profile_id: session.userId } } }
+          ? { subscription_data: { metadata: { profile_id: session.userId, sku: sku.id } } }
           : {}),
 
-        success_url: `${SITE_URL}/found?purchase=ok`,
-        cancel_url: `${SITE_URL}/found?purchase=cancelled`,
+        // A licence buyer lands on the seat console their purchase just
+        // opened; everyone else returns to the game.
+        success_url: isChapterSku(sku.id)
+          ? `${SITE_URL}/chapter?purchase=ok`
+          : `${SITE_URL}/found?purchase=ok`,
+        cancel_url: isChapterSku(sku.id)
+          ? `${SITE_URL}/chapter?purchase=cancelled`
+          : `${SITE_URL}/found?purchase=cancelled`,
 
         // A checkout left open on a school iPad should not still be a live
         // payment link an hour later. Stripe's floor is 30 minutes and it
@@ -204,6 +211,23 @@ async function alreadyOwns(
   sku: Sku,
   industry: string | null,
 ): Promise<string | null> {
+  // A chapter licence is owned as a chapter, not as an entitlement — and
+  // holding personal Pro is no reason to refuse a teacher a classroom. One
+  // live licence per owner: sizes are changed in the billing portal, where
+  // the subscription already lives, not by stacking a second subscription.
+  if (isChapterSku(sku.id)) {
+    const { data } = await db
+      .from("chapters")
+      .select("id")
+      .eq("owner_profile_id", profileId)
+      .eq("status", "active")
+      .limit(1)
+      .maybeSingle();
+    return data
+      ? "this account already runs a chapter — change its size from the billing portal"
+      : null;
+  }
+
   const { data } = await db
     .from("entitlements")
     .select("pro, industry_packs")

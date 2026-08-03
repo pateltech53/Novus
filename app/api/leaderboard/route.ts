@@ -45,6 +45,47 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, reason: "unknown-board" }, { status: 400 });
   }
   const season = params.get("season") ?? SEASON;
+  // "chapter" cuts the same public rows down to the caller's classroom and
+  // re-ranks within it. Anything else — including no session to scope by —
+  // is the global board.
+  const scope = params.get("scope") === "chapter" ? "chapter" : "global";
+
+  const session = await sessionFromRequest(req);
+
+  if (scope === "chapter") {
+    if (!session) {
+      return NextResponse.json({ ok: false, reason: "signed-out" }, { status: 401 });
+    }
+    // The definer function resolves the caller's chapter itself — the request
+    // names no chapter id, so there is nothing to tamper with. It returns
+    // only rows that are already listed on the public board.
+    const { data, error } = await session.supabase.rpc("chapter_board", {
+      p_board: board,
+      p_season: season,
+    });
+    if (error) {
+      return withSession(
+        NextResponse.json({ ok: false, reason: "read-failed" }, { status: 503 }),
+        session,
+      );
+    }
+    const rows = (data ?? []) as Array<Record<string, unknown> & { is_me?: boolean }>;
+    const mineRow = rows.find((r) => r.is_me === true) ?? null;
+    return withSession(
+      NextResponse.json({
+        configured: true,
+        board,
+        season,
+        scope,
+        rows: rows.map(({ is_me: _isMe, ...row }) => row),
+        myHandle: (mineRow?.founder_display_name as string | undefined) ?? null,
+        myRank: mineRow ? { rank: Number(mineRow.rank), total: rows.length } : null,
+        myRow: mineRow ? (({ is_me: _m, ...row }) => row)(mineRow) : null,
+        chapterAvailable: rows.length > 0 || (await inChapter(session)),
+      }),
+      session,
+    );
+  }
 
   const anon = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
@@ -83,9 +124,15 @@ export async function GET(req: NextRequest) {
    * up from their session and returned separately, and the screen highlights
    * the row that matches. Nothing about anybody else is disclosed by that,
    * because the handle was already on the page.
+   *
+   * `my_board_rank` (0008) is the other half: a player whose row is not in
+   * the top 100 slice still learns "#147 of 2,431" — their own row, their own
+   * rank, and nothing about anyone that the board does not already show.
    */
-  const session = await sessionFromRequest(req);
   let mine: string | null = null;
+  let myRank: { rank: number; total: number } | null = null;
+  let myRow: Record<string, unknown> | null = null;
+  let chapterAvailable = false;
   if (session) {
     const { data: profile } = await session.supabase
       .from("profiles")
@@ -93,6 +140,19 @@ export async function GET(req: NextRequest) {
       .eq("id", session.userId)
       .maybeSingle();
     mine = profile?.board_handle ?? null;
+
+    const { data: ranked } = await session.supabase.rpc("my_board_rank", {
+      p_board: board,
+      p_season: season,
+    });
+    const own = Array.isArray(ranked) && ranked.length > 0 ? (ranked[0] as Record<string, unknown>) : null;
+    if (own) {
+      myRank = { rank: Number(own.rank), total: Number(own.total) };
+      const { rank: _r, total: _t, ...rest } = own;
+      myRow = { rank: Number(own.rank), ...rest };
+    }
+
+    chapterAvailable = await inChapter(session);
   }
 
   return withSession(
@@ -100,9 +160,25 @@ export async function GET(req: NextRequest) {
       configured: true,
       board,
       season,
+      scope,
       rows: data ?? [],
       myHandle: mine,
+      myRank,
+      myRow,
+      chapterAvailable,
     }),
     session,
   );
+}
+
+/** Whether the caller belongs to (or owns) a chapter — decides if the board
+ *  screen offers the MY CHAPTER scope at all. Swallows errors as "no": a
+ *  project without 0007/0008 applied simply keeps the global-only screen. */
+async function inChapter(session: NonNullable<Awaited<ReturnType<typeof sessionFromRequest>>>): Promise<boolean> {
+  try {
+    const { data } = await session.supabase.rpc("my_chapter_id");
+    return typeof data === "string" && data.length > 0;
+  } catch {
+    return false;
+  }
 }

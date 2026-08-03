@@ -55,7 +55,9 @@ export type CheckoutSku =
   | "pro_monthly"
   | "pro_yearly"
   | "industry_pack"
-  | "extra_run_slot";
+  | "extra_run_slot"
+  | "chapter_35"
+  | "chapter_100";
 
 /** What a checkout attempt can come back as. `url` means go there now. */
 export type CheckoutResult =
