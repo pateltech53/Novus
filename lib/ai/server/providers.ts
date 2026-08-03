@@ -68,10 +68,23 @@ export const AI_LIMITS = {
   sttPerIp: numberFromEnv("NOVUS_AI_STT_PER_IP", 60),
   /** The game itself allows three cold calls a real day, per player. */
   pitchPerIp: numberFromEnv("NOVUS_AI_PITCH_PER_IP", 60),
+  /**
+   * A panel round is one call per beat and a year gate is one panel, so this is
+   * roughly a dozen full Tank sessions an hour from a single address — enough
+   * for a classroom sharing a NAT, nowhere near enough to be worth abusing.
+   */
+  panelPerIp: numberFromEnv("NOVUS_AI_PANEL_PER_IP", 240),
+  /** One per Tank session, and the longest single call the game makes. */
+  debriefPerIp: numberFromEnv("NOVUS_AI_DEBRIEF_PER_IP", 40),
+  /** Founding a company is rare and the call is tiny. */
+  briefPerIp: numberFromEnv("NOVUS_AI_BRIEF_PER_IP", 30),
   /** Everyone, everywhere, per 24h. The wallet's limit rather than a player's. */
   ttsPerDay: numberFromEnv("NOVUS_AI_TTS_PER_DAY", 20_000),
   sttPerDay: numberFromEnv("NOVUS_AI_STT_PER_DAY", 4_000),
   pitchPerDay: numberFromEnv("NOVUS_AI_PITCH_PER_DAY", 4_000),
+  panelPerDay: numberFromEnv("NOVUS_AI_PANEL_PER_DAY", 20_000),
+  debriefPerDay: numberFromEnv("NOVUS_AI_DEBRIEF_PER_DAY", 3_000),
+  briefPerDay: numberFromEnv("NOVUS_AI_BRIEF_PER_DAY", 2_000),
 } as const;
 
 function numberFromEnv(name: string, fallback: number): number {

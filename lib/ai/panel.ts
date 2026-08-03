@@ -1,0 +1,223 @@
+import { apiUrl } from "@/lib/native/origin";
+import { reportFallback, reportLive } from "./report";
+import type { PanelContext } from "./panel-context";
+import { localNegotiateTurn, localOfferTurn, localQuestionTurn } from "./panel-local";
+import type {
+  SharkId,
+  SharkNegotiateTurn,
+  SharkOffer,
+  SharkOfferTurn,
+  SharkQuestions,
+} from "./types";
+
+/**
+ * ONE TURN IN THE TANK — live if there is a model, real either way.
+ *
+ * `SharkPanel` asks this for the next thing a shark says. It prefers
+ * `/api/panel`, and falls through to `lib/ai/panel-local.ts` on anything at
+ * all: no key, a bad key, a rate limit, a dead network, a model that answered
+ * in prose. The local room reads the same attack points, so a fallback session
+ * is a worse conversation and never an empty one.
+ *
+ * ── The failure this replaces ──────────────────────────────────────────────
+ *
+ * The panel previously called `stubAi.runPanel()` and got a canned script. It
+ * never once contacted a model, on any deploy, with any key set — which is why
+ * setting OPENROUTER_API_KEY changed the cold calls and changed nothing about
+ * The Tank. `reportLive`/`reportFallback` are wired here for the same reason
+ * they exist everywhere else in this directory: so "the sharks are live" and
+ * "the sharks are canned" stop being two states with one appearance.
+ */
+
+const ENDPOINT = process.env.NEXT_PUBLIC_PANEL_ENDPOINT || "/api/panel";
+
+/** Latches on a settled refusal so a keyless deploy spends one request a session. */
+let panelDown = false;
+
+/** Everything the room has said and been told, carried turn to turn. */
+export interface PanelSessionState {
+  ctx: PanelContext;
+  pitchTranscript: string;
+  /** 0..10 for this year's pitch, used by the offline offer maths. */
+  score: number;
+  /** Public log — what each shark said, in order. */
+  log: { speaker: string; spoken: string; questions?: string[] }[];
+  /** Every question asked by anybody, so nobody asks it twice. */
+  askedQuestions: string[];
+  /** Attack-point ids already used, for the offline shark's pool. */
+  usedAttackIds: string[];
+  answers: { question: string; answer: string; declined: boolean }[];
+  offersOnTable: { shark: SharkId; offer: SharkOffer }[];
+}
+
+export type TurnSource = "api" | "local";
+
+export interface QuestionTurn extends SharkQuestions {
+  source: TurnSource;
+  /** Set by the offline shark so the caller can retire the attack point. */
+  attackId?: string;
+  /** A glossary key worth explaining alongside this question. */
+  term?: string;
+}
+
+export async function sharkQuestionTurn(opts: {
+  shark: SharkId;
+  session: PanelSessionState;
+  round: number;
+  lastAnswer?: { text: string; declined: boolean } | null;
+}): Promise<QuestionTurn> {
+  const local = (): QuestionTurn => ({
+    ...localQuestionTurn({
+      shark: opts.shark,
+      ctx: opts.session.ctx,
+      usedIds: opts.session.usedAttackIds,
+      askedQuestions: opts.session.askedQuestions,
+      lastAnswer: opts.lastAnswer,
+      round: opts.round,
+    }),
+    source: "local",
+  });
+
+  const live = await ask<SharkQuestions>({
+    phase: "questions",
+    shark: opts.shark,
+    round: opts.round,
+    session: opts.session,
+    maxQuestions: 1,
+  });
+  if (!live || !live.questions?.length) return local();
+
+  /*
+   * A live shark that repeated a question anyway.
+   *
+   * The prompt forbids it and carries the full asked list, but a model is not a
+   * guarantee — and one repeated question is the single thing players notice
+   * most about this room. So it is checked here rather than hoped for, and a
+   * repeat falls to the offline shark, which cannot repeat by construction.
+   */
+  if (opts.session.askedQuestions.some((q) => similar(q, live.questions[0]))) {
+    return local();
+  }
+  return { ...live, source: "api" };
+}
+
+export async function sharkOfferTurn(opts: {
+  shark: SharkId;
+  session: PanelSessionState;
+}): Promise<SharkOfferTurn & { source: TurnSource }> {
+  const live = await ask<SharkOfferTurn>({
+    phase: "offer",
+    shark: opts.shark,
+    round: 1,
+    session: opts.session,
+  });
+  if (live && live.spoken) return { ...live, source: "api" };
+  return {
+    ...localOfferTurn({
+      shark: opts.shark,
+      ctx: opts.session.ctx,
+      answers: opts.session.answers,
+      offersOnTable: opts.session.offersOnTable,
+      score: opts.session.score,
+    }),
+    source: "local",
+  };
+}
+
+export async function sharkNegotiateTurn(opts: {
+  shark: SharkId;
+  session: PanelSessionState;
+  current: SharkOffer;
+  counter: string;
+}): Promise<SharkNegotiateTurn & { source: TurnSource }> {
+  const live = await ask<SharkNegotiateTurn>({
+    phase: "negotiate",
+    shark: opts.shark,
+    round: 2,
+    session: opts.session,
+  });
+  if (live && live.spoken) return { ...live, source: "api" };
+  return {
+    ...localNegotiateTurn({
+      shark: opts.shark,
+      ctx: opts.session.ctx,
+      current: opts.current,
+      counter: opts.counter,
+    }),
+    source: "local",
+  };
+}
+
+// ── The transport ───────────────────────────────────────────────────────────
+
+async function ask<T>(opts: {
+  phase: "questions" | "offer" | "negotiate";
+  shark: SharkId;
+  round: number;
+  session: PanelSessionState;
+  maxQuestions?: number;
+}): Promise<T | null> {
+  if (!ENDPOINT || panelDown) return null;
+  try {
+    const res = await fetch(ENDPOINT.startsWith("/") ? apiUrl(ENDPOINT) : ENDPOINT, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        phase: opts.phase,
+        shark: opts.shark,
+        round: opts.round,
+        maxQuestions: opts.maxQuestions ?? 1,
+        pitchTranscript: opts.session.pitchTranscript,
+        context: opts.session.ctx,
+        log: opts.session.log,
+        askedQuestions: opts.session.askedQuestions,
+        answers: opts.session.answers,
+        offersOnTable: opts.session.offersOnTable.map((o) => ({
+          shark: o.shark,
+          amount_usd: o.offer.amount_usd,
+          equity_pct: o.offer.equity_pct,
+          implied_valuation_usd: o.offer.implied_valuation_usd,
+          deal_type: o.offer.deal_type,
+        })),
+      }),
+    });
+    if (!res.ok) {
+      // No key (501), a bad one (401), nothing deployed (404), or the budget
+      // spent (429). None of those change before the session ends, so stop
+      // asking — one request per session rather than one per spoken line.
+      if ([501, 401, 404, 429].includes(res.status)) panelDown = true;
+      reportFallback("panel", res.status);
+      return null;
+    }
+    reportLive("panel");
+    return (await res.json()) as T;
+  } catch {
+    reportFallback("panel", 0);
+    return null;
+  }
+}
+
+/**
+ * Near-enough-the-same question detection.
+ *
+ * Deliberately crude: it compares the significant words, so "What's your
+ * monthly churn?" and "Tell me your churn rate per month" collide, while two
+ * genuinely different questions about churn do not. A false positive costs one
+ * offline question; a false negative costs the thing players complain about.
+ */
+function similar(a: string, b: string): boolean {
+  const key = (s: string) =>
+    new Set(
+      s
+        .toLowerCase()
+        .replace(/[^a-z\s]/g, " ")
+        .split(/\s+/)
+        .filter((w) => w.length > 3),
+    );
+  const A = key(a);
+  const B = key(b);
+  if (A.size === 0 || B.size === 0) return false;
+  let shared = 0;
+  for (const w of A) if (B.has(w)) shared += 1;
+  return shared / Math.min(A.size, B.size) >= 0.6;
+}

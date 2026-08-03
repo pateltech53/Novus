@@ -6,60 +6,215 @@ import { useGame } from "@/lib/state/GameProvider";
 import { FounderAvatar } from "@/components/FounderAvatar";
 import { TankRoom } from "@/components/panel/TankRoom";
 import { AnswerTurn } from "@/components/panel/AnswerTurn";
-import { CAST, CHAIR, type SeatState } from "@/lib/ai/panel-cast";
-import { stubAi } from "@/lib/ai/stub";
+import { PitchNotes } from "@/components/PitchNotes";
+import { TermCoach } from "@/components/TermCoach";
+import { CAST, CHAIR, PANEL, type SeatState } from "@/lib/ai/panel-cast";
 import { speak, stopSpeaking } from "@/lib/ai/speech";
 import { stanceQuestionFor } from "@/lib/engine/positioning";
-import type { PanelScriptBeat, SharkId, SharkOffer } from "@/lib/ai/types";
+import type { SharkId, SharkOffer } from "@/lib/ai/types";
 import { fmtMoney } from "@/lib/engine/format";
 import { S_UNIT } from "@/lib/engine/constants";
 import { haptic } from "@/lib/haptics";
 import { play, startLoop, stopLoop } from "@/lib/sound";
 import { requestCapture, stopStream } from "@/lib/media/recorder";
+import { buildPanelContext } from "@/lib/ai/panel-context";
+import {
+  sharkNegotiateTurn,
+  sharkOfferTurn,
+  sharkQuestionTurn,
+  type PanelSessionState,
+} from "@/lib/ai/panel";
+import { firstUnseenTerm } from "@/lib/ai/terms";
+import { hashString, mulberry32 } from "@/lib/engine/rng";
 
 /**
- * The Panel — a room with five faces, and a conversation you are actually in.
+ * THE PANEL — a room with five faces, and a conversation you are actually in.
  *
- * WHAT CHANGED, AND WHY IT MATTERS
+ * ── What this used to be ───────────────────────────────────────────────────
  *
- * 1. Nothing advances on a timer. The old version revealed beats on
- *    `setTimeout(delayMs)`, so the whole round played itself while the player
- *    watched. Now a shark speaks, and the room STOPS. It does not move again
- *    until the founder answers, declines, or presses on. That is the one
- *    feature no competitor has and it was running on autopilot.
+ * `stubAi.runPanel()`. Three canned scripts in
+ * `lib/ai/fixtures/panel-scripts.json`, picked by score band and replayed word
+ * for word, on every deploy, with or without an API key. That single fact is
+ * behind almost everything players report about this room:
  *
- * 2. The app never writes the player's dialogue. Fixture beats attributed to
- *    "founder" are dropped on the way in — the player's words come from the
- *    player's mouth (or keyboard) or they do not exist. There is no exception.
+ *   · the same questions every session — there were only ever three scripts
+ *   · questions with nothing to do with your company — written before it existed
+ *   · the sharks never reacting to an answer — the answer carried no words at
+ *     all (see the header of components/panel/AnswerTurn.tsx)
+ *   · feedback quoting a founder who does not exist — the debrief read fixtures
  *
- * 3. Five faces, always visible, with legible state. Who is talking, who leaned
- *    in, who folded — readable without reading.
+ * Now every turn is a request that carries the whole session: the company brief
+ * the founder wrote at founding, the books, the derived deck, the attack points
+ * computed from those numbers, the pitch transcript, every question already
+ * asked and every answer already given. With no key behind the route, the
+ * offline shark in `lib/ai/panel-local.ts` reads the same attack points — so a
+ * keyless deploy still gets questions about ITS OWN company, and still never
+ * repeats one.
+ *
+ * ── What did not change, because it was right ──────────────────────────────
+ *
+ * 1. Nothing advances on a timer. A shark speaks and the room STOPS until the
+ *    founder answers, declines, or presses on.
+ * 2. The app never writes the player's dialogue. Not one line, not as a
+ *    placeholder.
+ * 3. Five faces, always visible, with legible state.
  */
+
+/** How many questions the room asks before it talks money. */
+const QUESTION_COUNT = 4;
+
+type Step =
+  | { kind: "chair"; text: string }
+  | { kind: "question"; shark: SharkId }
+  | { kind: "offer"; shark: SharkId }
+  | { kind: "counter" }
+  | { kind: "negotiate"; shark: SharkId }
+  | { kind: "verdict" };
+
+/** One thing said in the room, in the order it was said. */
+interface Beat {
+  speaker: SharkId | "chair";
+  spoken: string;
+  question?: string;
+  offer?: SharkOffer | null;
+  decision?: string;
+  /** The founder's reply to this beat's question, once it exists. */
+  answer?: { text: string; spoken: boolean; declined: boolean };
+  /** True when this beat came from the offline shark rather than the model. */
+  offline?: boolean;
+}
+
+export interface TankOutcome {
+  beats: Beat[];
+  answers: { question: string; answer: string; declined: boolean; askedBy: string }[];
+  offers: { shark: SharkId; offer: SharkOffer }[];
+  accepted: SharkOffer | null;
+  acceptedFrom: SharkId | null;
+  /** Investor-only reads, surfaced only in the debrief. */
+  privateNotes: { shark: SharkId; note: string }[];
+  /** True when no turn in the session reached a model. */
+  offline: boolean;
+}
+
 export function SharkPanel({
   score,
+  pitchTranscript,
   onDone,
 }: {
   score: number;
-  onDone: (dealCashS?: number, dealEquityPct?: number) => void;
+  /** The founder's own pitch, verbatim. The room reads it before it speaks. */
+  pitchTranscript: string;
+  onDone: (
+    dealCashS: number | undefined,
+    dealEquityPct: number | undefined,
+    outcome: TankOutcome,
+  ) => void;
 }) {
   const { run } = useGame();
-  const [beats, setBeats] = useState<PanelScriptBeat[]>([]);
+
+  const [beats, setBeats] = useState<Beat[]>([]);
   const [cursor, setCursor] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [accepted, setAccepted] = useState<SharkOffer | null>(null);
+  const [thinking, setThinking] = useState(true);
+  const [accepted, setAccepted] = useState<{ shark: SharkId; offer: SharkOffer } | null>(null);
   const [micLevel, setMicLevel] = useState(0);
-  const [awaiting, setAwaiting] = useState<string | null>(null);
+  const [awaiting, setAwaiting] = useState<{ question: string; shark: SharkId } | null>(null);
+  const [countering, setCountering] = useState(false);
   const [seats, setSeats] = useState<Partial<Record<SharkId, SeatState>>>({});
-  const [transcript, setTranscript] = useState<
-    { question: string; answer: string; spoken: boolean; declined: boolean }[]
-  >([]);
-  const logRef = useRef<HTMLDivElement>(null);
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [term, setTerm] = useState<string | null>(null);
   const [cam, setCam] = useState<MediaStream | null>(null);
 
-  // The founder's own return feed, small, in the corner — you are on the show.
+  const logRef = useRef<HTMLDivElement>(null);
   /** The stance question fires at most once per panel session. */
   const askedStanceRef = useRef(false);
+  /** Terms already explained this session, so no card appears twice. */
+  const seenTermsRef = useRef<string[]>([]);
+  /** The counter the founder made, fed to the negotiate turns. */
+  const counterRef = useRef("");
+  /** Guards double-taps on ADVANCE while a request is in flight. */
+  const busyRef = useRef(false);
+  /** Investor-only reads, collected for the debrief and shown nowhere else. */
+  const privateNotesRef = useRef<{ shark: SharkId; note: string }[]>([]);
+  /** Who asked each answered question, parallel to `session.answers`. */
+  const answeredByRef = useRef<string[]>([]);
+  /** How many turns actually reached a model. Reported, never player-facing. */
+  const liveTurnsRef = useRef(0);
+  /**
+   * The running order, readable from inside `step` without re-creating it.
+   *
+   * `step` must walk the SAME list the end-of-round check counts against, and
+   * that list grows when the founder counters — negotiate turns are spliced in
+   * ahead of the verdict. Reading it through a ref rather than a dependency
+   * keeps one source of truth and stops the callback churning on every splice.
+   */
+  const stepsRef = useRef<Step[]>([]);
 
+  /*
+   * Everything the room knows, built once from the run and the pitch. It is a
+   * ref rather than state because every turn mutates it (a new answer, a new
+   * offer) and the mutation must be visible to the NEXT request immediately —
+   * a re-render is not the thing being waited on.
+   */
+  const sessionRef = useRef<PanelSessionState | null>(null);
+  if (run && !sessionRef.current) {
+    sessionRef.current = {
+      ctx: buildPanelContext({
+        run,
+        pitchTranscript,
+        // You raise to buy runway, not to match a valuation. The floor keeps a
+        // pre-revenue garage from asking for nothing at all.
+        askFloorUsd: 4 * S_UNIT[run.stage],
+      }),
+      pitchTranscript,
+      score,
+      log: [],
+      askedQuestions: [],
+      usedAttackIds: [],
+      answers: [],
+      offersOnTable: [],
+    };
+  }
+  const session = sessionRef.current;
+
+  /**
+   * The running order.
+   *
+   * Who asks is decided by who CARES: the attack points carry an owner, so the
+   * shark with the strongest claim on the worst weakness in this company gets
+   * the first question. Any seat still unfilled is taken in seat order, seeded
+   * on the run so the same company gets the same room twice and two different
+   * companies do not.
+   */
+  const steps = useMemo<Step[]>(() => {
+    if (!run || !session) return [];
+    const rng = mulberry32(hashString(`tank:${run.seed}:${run.year}`));
+    const owners = session.ctx.attackPoints.map((a) => a.owner);
+    const questioners: SharkId[] = [];
+    for (const id of owners) {
+      if (questioners.length >= QUESTION_COUNT) break;
+      if (!questioners.includes(id)) questioners.push(id);
+    }
+    const rest = PANEL.map((p) => p.id).filter((id) => !questioners.includes(id));
+    // Shuffle only the leftovers — the ones who earned a question keep their order.
+    for (let i = rest.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(rng() * (i + 1));
+      [rest[i], rest[j]] = [rest[j], rest[i]];
+    }
+    while (questioners.length < QUESTION_COUNT && rest.length) questioners.push(rest.shift()!);
+
+    return [
+      { kind: "chair", text: chairOpen(run.companyName, session.ctx.company.stage) },
+      ...questioners.map((shark) => ({ kind: "question" as const, shark })),
+      { kind: "chair", text: "That's the questions. Sharks — money, or no money." },
+      // Everyone decides, including the ones who never asked anything.
+      ...PANEL.map((p) => ({ kind: "offer" as const, shark: p.id })),
+      { kind: "counter" },
+      { kind: "verdict" },
+    ];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [run?.seed, run?.year, session]);
+
+  // The founder's own return feed, small, in the corner — you are on the show.
   // Video only: the mic belongs to the answer turn, which opens it per question.
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -71,8 +226,7 @@ export function SharkPanel({
         setCam(s);
       })
       .catch(() => {
-        // No camera is a completely normal way to play. The corner shows a
-        // placeholder and nothing else changes.
+        // No camera is a completely normal way to play.
       });
     return () => {
       cancelled = true;
@@ -84,160 +238,345 @@ export function SharkPanel({
   useEffect(() => {
     play("tank-sting");
     startLoop("tank-ambient");
-    return () => stopLoop("tank-ambient");
+    return () => {
+      stopLoop("tank-ambient");
+      stopSpeaking();
+    };
   }, []);
 
   useEffect(() => {
-    if (!run) return;
-    let cancelled = false;
-    void stubAi
-      .runPanel({
-        score,
-        companyName: run.companyName,
-        valuation: run.stats.valuation,
-        // You raise to buy runway, not to match a valuation: the ask is a year
-        // of burn, or a fifth of the company, whichever is larger.
-        askUsd: Math.max(
-          run.stats.valuation * 0.2,
-          Math.max(0, run.stats.burnMonthly) * 12,
-          4 * S_UNIT[run.stage],
-        ),
-      })
-      .then((script) => {
-        if (cancelled) return;
-        // The app does not speak for the founder. Ever.
-        setBeats(script.filter((b) => b.speaker !== "founder"));
-        setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-      stopSpeaking();
-    };
-  }, [run, score]);
+    logRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [beats.length, awaiting, countering]);
 
-  const shown = beats.slice(0, cursor);
-  const current = beats[cursor - 1];
-  const atEnd = !loading && cursor >= beats.length;
+  /** Push a beat, speak it, and surface any jargon in it exactly once. */
+  const emit = useCallback((beat: Beat) => {
+    setBeats((b) => [...b, beat]);
+    if (beat.spoken) void speak(beat.spoken, beat.speaker);
+    const jargon = firstUnseenTerm(
+      `${beat.spoken} ${beat.question ?? ""}`,
+      seenTermsRef.current,
+    );
+    if (jargon) {
+      seenTermsRef.current = [...seenTermsRef.current, jargon];
+      setTerm(jargon);
+    }
+  }, []);
 
-  /** Advance exactly one beat. Only ever called from a player action. */
-  const step = useCallback(() => {
-    const next = beats[cursor];
+  const setSeat = useCallback((shark: SharkId, state: SeatState) => {
+    setSeats((s) => {
+      const next: Partial<Record<SharkId, SeatState>> = { ...s };
+      // Whoever had the floor sits back down, unless they had already folded.
+      for (const k of Object.keys(next) as SharkId[]) {
+        if (next[k] === "speaking" || next[k] === "listening") next[k] = "idle";
+      }
+      next[shark] = state;
+      return next;
+    });
+  }, []);
+
+  /**
+   * Run one step. Only ever called from a player action — see the header.
+   *
+   * Each branch talks to `lib/ai/panel.ts`, which prefers the live room and
+   * falls to the offline shark. Neither path can hang the round: every failure
+   * inside it resolves to a local turn rather than throwing.
+   */
+  const step = useCallback(async () => {
+    if (busyRef.current || !run || !session) return;
+    const next = stepsRef.current[cursor];
     if (!next) return;
+    busyRef.current = true;
+    setThinking(true);
     setCursor((c) => c + 1);
 
-    const payload = next.payload as {
-      spoken?: string;
-      questions?: string[];
-      decision?: string;
-      offer?: SharkOffer | null;
-    };
-    const who = next.speaker as SharkId;
+    try {
+      switch (next.kind) {
+        case "chair": {
+          emit({ speaker: "chair", spoken: next.text });
+          break;
+        }
 
-    setSeats((s) => {
-      const cleared: Partial<Record<SharkId, SeatState>> = { ...s };
-      // Whoever was speaking sits back down, unless they had already folded.
-      for (const k of Object.keys(cleared) as SharkId[]) {
-        if (cleared[k] === "speaking" || cleared[k] === "listening") cleared[k] = "idle";
+        case "question": {
+          setSeat(next.shark, "speaking");
+          const last = session.answers.at(-1);
+          const turn = await sharkQuestionTurn({
+            shark: next.shark,
+            session,
+            round: session.askedQuestions.length + 1,
+            lastAnswer: last ? { text: last.answer, declined: last.declined } : null,
+          });
+
+          /*
+           * The FIRST question of the session is stance-aware when the player
+           * has a positioning worth interrogating (Addendum B §5.6): an
+           * imitator gets the price-war question, a differentiator the
+           * one-product question, low clarity the one-sentence test. It
+           * replaces the shark's question rather than being added to it,
+           * because two questions at once gets one answer.
+           */
+          let question = turn.questions[0] ?? "";
+          if (!askedStanceRef.current) {
+            askedStanceRef.current = true;
+            const stanceQ = stanceQuestionFor(run);
+            if (stanceQ) question = stanceQ;
+          }
+
+          if (turn.source === "api") liveTurnsRef.current += 1;
+          if (turn.attackId) session.usedAttackIds = [...session.usedAttackIds, turn.attackId];
+          if (turn.private_notes) {
+            privateNotesRef.current.push({ shark: next.shark, note: turn.private_notes });
+          }
+          session.log = [
+            ...session.log,
+            { speaker: next.shark, spoken: turn.spoken, questions: [question] },
+          ];
+          session.askedQuestions = [...session.askedQuestions, question];
+
+          emit({
+            speaker: next.shark,
+            spoken: turn.spoken,
+            question,
+            offline: turn.source === "local",
+          });
+          setAwaiting({ question, shark: next.shark });
+          setSeat(next.shark, "listening");
+          break;
+        }
+
+        case "offer": {
+          setSeat(next.shark, "speaking");
+          const turn = await sharkOfferTurn({ shark: next.shark, session });
+          if (turn.source === "api") liveTurnsRef.current += 1;
+          if (turn.private_notes) {
+            privateNotesRef.current.push({ shark: next.shark, note: turn.private_notes });
+          }
+          if (turn.decision === "out" || !turn.offer) {
+            setSeat(next.shark, "out");
+            session.offersOnTable = session.offersOnTable.filter((o) => o.shark !== next.shark);
+          } else {
+            setSeat(next.shark, "bidding");
+            session.offersOnTable = [
+              ...session.offersOnTable.filter((o) => o.shark !== next.shark),
+              { shark: next.shark, offer: turn.offer },
+            ];
+          }
+          session.log = [...session.log, { speaker: next.shark, spoken: turn.spoken }];
+          emit({
+            speaker: next.shark,
+            spoken: turn.spoken,
+            offer: turn.offer,
+            decision: turn.decision,
+            offline: turn.source === "local",
+          });
+          break;
+        }
+
+        case "counter": {
+          // Nothing to negotiate against. Skip straight to the verdict rather
+          // than asking a founder to counter an empty table.
+          if (session.offersOnTable.length === 0) {
+            emit({
+              speaker: "chair",
+              spoken:
+                "Nobody bid. That happens, and it is information rather than a verdict — the reasons are in your debrief.",
+            });
+            break;
+          }
+          emit({
+            speaker: "chair",
+            spoken:
+              "You have offers. You can take one as it stands, or push back once — name the terms you actually want and see who moves.",
+          });
+          setCountering(true);
+          break;
+        }
+
+        case "negotiate": {
+          const standing = session.offersOnTable.find((o) => o.shark === next.shark);
+          if (!standing) break;
+          setSeat(next.shark, "speaking");
+          const turn = await sharkNegotiateTurn({
+            shark: next.shark,
+            session,
+            current: standing.offer,
+            counter: counterRef.current,
+          });
+          if (turn.source === "api") liveTurnsRef.current += 1;
+          if (turn.private_notes) {
+            privateNotesRef.current.push({ shark: next.shark, note: turn.private_notes });
+          }
+          if (turn.decision === "out") {
+            setSeat(next.shark, "out");
+            session.offersOnTable = session.offersOnTable.filter((o) => o.shark !== next.shark);
+          } else if (turn.offer) {
+            setSeat(next.shark, "bidding");
+            session.offersOnTable = session.offersOnTable.map((o) =>
+              o.shark === next.shark ? { shark: next.shark, offer: turn.offer! } : o,
+            );
+          }
+          session.log = [...session.log, { speaker: next.shark, spoken: turn.spoken }];
+          emit({
+            speaker: next.shark,
+            spoken: turn.spoken,
+            offer: turn.offer,
+            decision: turn.decision,
+            offline: turn.source === "local",
+          });
+          break;
+        }
+
+        case "verdict": {
+          emit({ speaker: "chair", spoken: chairClose(session.offersOnTable.length) });
+          break;
+        }
       }
-      if (CAST[who]) {
-        cleared[who] = payload.decision === "out" ? "out" : payload.offer ? "bidding" : "speaking";
-      }
-      return cleared;
-    });
-
-    // Each shark speaks in their own voice — see lib/ai/voices.ts.
-    if (payload.spoken) void speak(payload.spoken, next.speaker as SharkId);
-
-    /*
-     * A question stops the room. This is the whole point.
-     *
-     * The FIRST question of the session is stance-aware when the player has a
-     * positioning worth interrogating (Addendum B §5.6): an imitator gets the
-     * price-war question, a differentiator the one-product question, low clarity
-     * the one-sentence test. The scripted question stands in every other case,
-     * and the answer flows through the same turn machinery either way.
-     */
-    let q = payload.questions?.[0];
-    if (q && !askedStanceRef.current && run) {
-      askedStanceRef.current = true;
-      const stanceQ = stanceQuestionFor(run);
-      if (stanceQ) q = stanceQ;
+    } finally {
+      setThinking(false);
+      busyRef.current = false;
     }
-    if (q) {
-      setAwaiting(q);
-      setSeats((s) => (CAST[who] ? { ...s, [who]: "listening" } : s));
-    }
-  }, [beats, cursor, run]);
+  }, [cursor, run, session, emit, setSeat]);
 
   // Open on the Chair's framing so the player is not staring at a dead screen,
   // then hand control over and never take it back.
   useEffect(() => {
-    if (!loading && cursor === 0 && beats.length) step();
+    if (steps.length && cursor === 0) void step();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, beats]);
-
-  useEffect(() => {
-    logRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [cursor, awaiting]);
+  }, [steps.length]);
 
   const answered = useCallback(
     (answer: { text: string; spoken: boolean; seconds: number }) => {
-      const who = current?.speaker as SharkId | undefined;
-      setTranscript((t) => [
-        ...t,
-        { question: awaiting ?? "", answer: answer.text, spoken: answer.spoken, declined: false },
-      ]);
+      if (!session || !awaiting) return;
+      const declined = !answer.text.trim();
+      session.answers = [
+        ...session.answers,
+        { question: awaiting.question, answer: answer.text, declined },
+      ];
+      answeredByRef.current.push(CAST[awaiting.shark]?.name ?? "The Chair");
+      setBeats((b) =>
+        b.map((beat, i) =>
+          i === b.length - 1
+            ? { ...beat, answer: { text: answer.text, spoken: answer.spoken, declined } }
+            : beat,
+        ),
+      );
       setAwaiting(null);
       setMicLevel(0);
       stopSpeaking();
-      // How they took it. Until the rubric lands in Phase 3, a real answer
-      // reads as engagement and a very short one reads as a dodge — but it is
-      // always a reaction to something the player actually did.
-      const engaged = answer.spoken ? answer.seconds >= 6 : answer.text.length >= 40;
-      if (who && CAST[who]) {
-        setSeats((s) => ({ ...s, [who]: engaged ? "interested" : "skeptical" }));
-      }
+      /*
+       * How they took it. The seat reacts to whether an answer arrived and
+       * whether it contained anything — never to how long it took or how it
+       * sounded. The old version read `seconds >= 6` as engagement, which is
+       * speech rhythm reaching an outcome and is exactly what Brand Law 5
+       * forbids.
+       */
+      setSeat(awaiting.shark, declined ? "skeptical" : "interested");
       haptic("choice");
     },
-    [awaiting, current],
+    [awaiting, session, setSeat],
   );
 
   const declined = useCallback(() => {
-    const who = current?.speaker as SharkId | undefined;
-    setTranscript((t) => [
-      ...t,
-      { question: awaiting ?? "", answer: "", spoken: false, declined: true },
-    ]);
+    if (!session || !awaiting) return;
+    session.answers = [
+      ...session.answers,
+      { question: awaiting.question, answer: "", declined: true },
+    ];
+    answeredByRef.current.push(CAST[awaiting.shark]?.name ?? "The Chair");
+    setBeats((b) =>
+      b.map((beat, i) =>
+        i === b.length - 1
+          ? { ...beat, answer: { text: "", spoken: false, declined: true } }
+          : beat,
+      ),
+    );
     setAwaiting(null);
     setMicLevel(0);
     stopSpeaking();
     // Silence is a legitimate move, and it lands as one.
-    if (who && CAST[who]) setSeats((s) => ({ ...s, [who]: "skeptical" }));
-  }, [awaiting, current]);
+    setSeat(awaiting.shark, "skeptical");
+  }, [awaiting, session, setSeat]);
 
-  const offers = useMemo(() => collectOffers(shown), [shown]);
-
-  const accept = useCallback(
-    (offer: SharkOffer) => {
-      setAccepted(offer);
-      haptic("dealSigned");
-      play("money");
-      const S = run ? S_UNIT[run.stage] : 1000;
-      onDone(offer.amount_usd / S, offer.equity_pct);
+  /**
+   * The founder pushed back.
+   *
+   * The counter is inserted into the running order rather than resolved here,
+   * so it advances on a press like everything else — one negotiate turn per
+   * shark still holding an offer.
+   */
+  const countered = useCallback(
+    (answer: { text: string }) => {
+      if (!session) return;
+      counterRef.current = answer.text;
+      setCountering(false);
+      const bidders = session.offersOnTable.map((o) => o.shark);
+      setNegotiations(bidders);
     },
-    [onDone, run],
+    [session],
   );
 
-  if (!run) return null;
+  /** Extra steps spliced in after the counter. */
+  const [negotiations, setNegotiations] = useState<SharkId[]>([]);
+  const fullSteps = useMemo<Step[]>(() => {
+    if (!negotiations.length) return steps;
+    const at = steps.findIndex((s) => s.kind === "verdict");
+    if (at < 0) return steps;
+    return [
+      ...steps.slice(0, at),
+      ...negotiations.map((shark) => ({ kind: "negotiate" as const, shark })),
+      ...steps.slice(at),
+    ];
+  }, [steps, negotiations]);
+
+  const offers = session?.offersOnTable ?? [];
+  stepsRef.current = fullSteps;
+
+  const atEnd = cursor >= fullSteps.length && !awaiting && !countering;
+
+  const accept = useCallback(
+    (shark: SharkId, offer: SharkOffer) => {
+      if (!run || !session) return;
+      setAccepted({ shark, offer });
+      haptic("dealSigned");
+      play("money");
+    },
+    [run, session],
+  );
+
+  const finish = useCallback(() => {
+    if (!run || !session) return;
+    const S = S_UNIT[run.stage];
+    const outcome: TankOutcome = {
+      beats,
+      answers: session.answers.map((a, i) => ({
+        ...a,
+        askedBy: answeredByRef.current[i] ?? "The panel",
+      })),
+      offers: session.offersOnTable,
+      accepted: accepted?.offer ?? null,
+      acceptedFrom: accepted?.shark ?? null,
+      privateNotes: privateNotesRef.current,
+      // True only when NOT ONE turn reached a model. The debrief says so out
+      // loud rather than presenting an offline session as a live one.
+      offline: liveTurnsRef.current === 0,
+    };
+    onDone(
+      accepted ? accepted.offer.amount_usd / S : 0,
+      accepted ? accepted.offer.equity_pct : undefined,
+      outcome,
+    );
+  }, [accepted, beats, onDone, run, session]);
+
+  if (!run || !session) return null;
+
+  // The step that is about to run, for the button's label.
+  const upcoming = fullSteps[cursor];
 
   return (
     /*
-     * The set is a fixed header, not a sticky one.
-     *
-     * `position: sticky` needs the nearest scrolling ancestor to be the one you
-     * think it is, and here the page scrolled rather than the section — so the
-     * room slid off the top mid-question. Splitting the layout into a fixed
-     * header plus its own scroll region is deterministic: the tank cannot move.
+     * The set is a fixed header, not a sticky one. `position: sticky` needs the
+     * nearest scrolling ancestor to be the one you think it is, and here the
+     * page scrolled rather than the section — so the room slid off the top
+     * mid-question. A fixed header plus its own scroll region is deterministic.
      */
     <motion.section
       className="flex h-dvh flex-col overflow-hidden"
@@ -246,53 +585,78 @@ export function SharkPanel({
       transition={{ duration: 0.25 }}
     >
       <div className="mx-auto w-full max-w-lg shrink-0 px-4 pt-[max(0.5rem,env(safe-area-inset-top))]">
-        {/* The set: five sharks behind the desk, under the sign, you in the
-            corner. Sticky, because a set does not scroll away mid-question —
-            the transcript moves underneath it. */}
         <TankRoom
           states={seats}
-          speaking={(current?.speaker as SharkId) ?? null}
+          speaking={(lastSpeaker(beats) as SharkId) ?? null}
           micLevel={micLevel}
           cameraStream={cam}
           year={run.year}
         />
+
+        {/*
+          Your notes, in the room.
+
+          The dossier was a button on another screen, so a founder being asked
+          for their churn rate had to leave the conversation to look it up.
+          Everything here is derived from the same books the sharks are reading,
+          which is what makes glancing at it the opposite of cheating: it is
+          how a founder stops contradicting their own P&L under pressure.
+        */}
+        <button
+          type="button"
+          onClick={() => setNotesOpen((v) => !v)}
+          className="nv-press mt-2 flex w-full items-center justify-between rounded-[var(--radius-pill)] bg-[var(--surface)] px-4 py-2 text-2xs font-bold tracking-[0.1em] text-[var(--text-secondary)]"
+        >
+          <span>YOUR NOTES · BRIEF, NUMBERS, THE ORDER</span>
+          <span>{notesOpen ? "HIDE" : "OPEN"}</span>
+        </button>
+        {notesOpen && (
+          <PitchNotes
+            run={run}
+            variant="panel"
+            defaultTab="numbers"
+            className="mt-2"
+            onTerm={(t) => {
+              seenTermsRef.current = [...new Set([...seenTermsRef.current, t])];
+              setTerm(t);
+            }}
+          />
+        )}
       </div>
 
       {/* Everything else scrolls beneath the set, on solid ground — dialogue
           over a photograph is the reason text was unreadable. */}
       <div className="mx-auto w-full max-w-lg flex-1 overflow-y-auto bg-[var(--bg)] px-4 pb-[max(2rem,env(safe-area-inset-bottom))]">
-
-        {loading && (
-          <p className="mt-8 text-sm text-[var(--text-secondary)]">
-            The room is reading your numbers…
-          </p>
-        )}
-
-        {/* What has been said so far, newest last. */}
         <ol className="mt-5 space-y-3">
           <AnimatePresence initial={false}>
-            {shown.map((beat, i) => (
+            {beats.map((beat, i) => (
               <motion.li
                 key={i}
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
               >
-                <Beat beat={beat} />
-                {transcript[countQuestionsBefore(shown, i)] &&
-                  hasQuestion(beat) && (
-                    <YourAnswer entry={transcript[countQuestionsBefore(shown, i)]} run={run} />
-                  )}
+                <BeatRow beat={beat} />
+                {beat.answer && <YourAnswer entry={beat.answer} run={run} />}
               </motion.li>
             ))}
           </AnimatePresence>
         </ol>
 
+        {thinking && !awaiting && (
+          <p className="mt-4 text-sm text-[var(--text-secondary)]">
+            {beats.length === 0
+              ? "The room is reading your numbers…"
+              : "They're thinking about it…"}
+          </p>
+        )}
+
         {/* The room is stopped, waiting on you. */}
         {awaiting && (
           <div className="mt-4">
             <AnswerTurn
-              question={awaiting}
+              key={awaiting.question}
+              question={awaiting.question}
               onAnswer={answered}
               onDecline={declined}
               onLevel={setMicLevel}
@@ -300,14 +664,29 @@ export function SharkPanel({
           </div>
         )}
 
+        {countering && (
+          <div className="mt-4">
+            <AnswerTurn
+              key="counter"
+              label="YOUR MOVE"
+              question="Push back, or take what's on the table. Say the terms you want — a number and a percentage — and they'll tell you if it exists."
+              speakLabel="COUNTER OUT LOUD"
+              declineLabel="DON'T COUNTER"
+              onAnswer={countered}
+              onDecline={() => setCountering(false)}
+              onLevel={setMicLevel}
+            />
+          </div>
+        )}
+
         {/* Nothing moves unless the player moves it. */}
-        {!loading && !awaiting && !atEnd && (
+        {!awaiting && !countering && !atEnd && !thinking && (
           <button
             type="button"
-            onClick={step}
+            onClick={() => void step()}
             className="nv-press mt-5 h-14 w-full rounded-[var(--radius-pill)] bg-[var(--action)] text-base font-extrabold tracking-[0.04em] text-[var(--on-action)] shadow-[var(--e3)]"
           >
-            {nextLabel(beats[cursor])}
+            {nextLabel(upcoming)}
           </button>
         )}
 
@@ -329,9 +708,9 @@ export function SharkPanel({
                       <button
                         type="button"
                         disabled={!!accepted}
-                        onClick={() => accept(offer)}
+                        onClick={() => accept(shark, offer)}
                         className={`flex w-full items-center gap-3 border-b border-[var(--hairline)] py-3 text-left disabled:cursor-default ${
-                          accepted === offer ? "" : accepted ? "opacity-35" : ""
+                          accepted?.shark === shark ? "" : accepted ? "opacity-35" : ""
                         }`}
                       >
                         <img
@@ -363,16 +742,17 @@ export function SharkPanel({
               </>
             ) : (
               <p className="border-l-2 border-[var(--alert)] pl-3 text-sm leading-relaxed text-[var(--text-secondary)]">
-                Nobody bid. The year still closes — you just close it alone.
+                Nobody bid. The year still closes — you just close it alone. The
+                debrief has every reason they gave.
               </p>
             )}
 
             <button
               type="button"
-              onClick={() => onDone(accepted ? undefined : 0)}
+              onClick={finish}
               className="nv-press mt-6 h-14 w-full rounded-[var(--radius-pill)] bg-[var(--action)] text-base font-extrabold tracking-[0.04em] text-[var(--on-action)] shadow-[var(--e3)]"
             >
-              {accepted ? "SIGN IT ▸" : offers.length > 0 ? "TAKE NO DEAL ▸" : "CLOSE THE YEAR ▸"}
+              {accepted ? "SIGN IT ▸" : offers.length > 0 ? "TAKE NO DEAL ▸" : "READ THE DEBRIEF ▸"}
             </button>
             {offers.length > 0 && !accepted && (
               <p className="mt-2 text-center text-2xs tracking-[0.1em] text-[var(--text-tertiary)]">
@@ -384,23 +764,54 @@ export function SharkPanel({
 
         <div ref={logRef} />
       </div>
+
+      {/* The jargon card. Docked above everything, dismissable, once per term. */}
+      <TermCoach term={term} onDismiss={() => setTerm(null)} />
     </motion.section>
   );
 }
 
-const hasQuestion = (b: PanelScriptBeat) =>
-  ((b.payload as { questions?: string[] }).questions?.length ?? 0) > 0;
+// ── The Chair ───────────────────────────────────────────────────────────────
 
-/** Which answer index belongs to the question at position i. */
-const countQuestionsBefore = (list: PanelScriptBeat[], i: number) =>
-  list.slice(0, i).filter(hasQuestion).length;
+/*
+ * The Chair's lines are written here rather than fetched.
+ *
+ * They frame the round and take no side, so there is nothing for a model to
+ * decide — and spending a request and a second of latency on "welcome to the
+ * Tank" would be paying for the least interesting sentence in the session. The
+ * company's own name and stage go in, so it is still addressed to this founder.
+ */
+function chairOpen(companyName: string, stage: string): string {
+  return `${companyName}, a ${stage.toLowerCase()}-stage company. You've made your pitch — now the panel has questions, and they've read your numbers. Answer them one at a time. When they're done asking, they'll decide.`;
+}
 
-function nextLabel(next?: PanelScriptBeat): string {
+function chairClose(offerCount: number): string {
+  if (offerCount === 0) {
+    return "No offers. Take the reasons with you — every one of them told you what would have changed their mind.";
+  }
+  return `${offerCount === 1 ? "One offer" : `${offerCount} offers`} on the table. Choose one, or walk. Walking is a real answer and it costs you nothing but the money.`;
+}
+
+// ── Small pieces ────────────────────────────────────────────────────────────
+
+const lastSpeaker = (beats: Beat[]) => beats.at(-1)?.speaker ?? null;
+
+function nextLabel(next?: Step): string {
   if (!next) return "CONTINUE ▸";
-  const p = next.payload as { decision?: string; offer?: unknown };
-  if (p.offer) return "HEAR THE OFFER ▸";
-  if (p.decision === "out") return "TAKE IT ▸";
-  return "LET THEM SPEAK ▸";
+  switch (next.kind) {
+    case "question":
+      return "LET THEM ASK ▸";
+    case "offer":
+      return "HEAR THEM OUT ▸";
+    case "negotiate":
+      return "SEE IF THEY MOVE ▸";
+    case "counter":
+      return "TALK TERMS ▸";
+    case "verdict":
+      return "CLOSE THE ROUND ▸";
+    default:
+      return "CONTINUE ▸";
+  }
 }
 
 /** The founder's own answer, shown in their own portrait. */
@@ -408,7 +819,7 @@ function YourAnswer({
   entry,
   run,
 }: {
-  entry: { answer: string; spoken: boolean; declined: boolean };
+  entry: { text: string; spoken: boolean; declined: boolean };
   run: { avatar: { gender: "male" | "female"; tier: 1 | 2 | 3 | 4 | 5 } };
 }) {
   return (
@@ -417,25 +828,23 @@ function YourAnswer({
           player earned and equipped. Cosmetic only — the sharks judge the books. */}
       <FounderAvatar avatar={run.avatar} size={32} />
       <p className="mt-1 text-2xs leading-snug text-[var(--text-tertiary)]">
-        {entry.declined
+        {/*
+          The words, whether they were spoken or typed. This used to say only
+          "You answered out loud", because a spoken answer genuinely carried no
+          text — the recording was thrown away. It carries text now, so it is
+          shown: a founder must be able to see what the room actually heard.
+        */}
+        {entry.declined || !entry.text
           ? "You said nothing."
-          : entry.spoken
-            ? "You answered out loud."
-            : `"${entry.answer}"`}
+          : `"${entry.text}"`}
       </p>
     </div>
   );
 }
 
-function Beat({ beat }: { beat: PanelScriptBeat }) {
-  const cast = CAST[beat.speaker as SharkId];
-  const who = cast ?? { name: CHAIR.name, tag: CHAIR.tag, portrait: null };
-  const payload = beat.payload as {
-    spoken?: string;
-    questions?: string[];
-    decision?: string;
-    offer?: SharkOffer | null;
-  };
+function BeatRow({ beat }: { beat: Beat }) {
+  const cast = beat.speaker === "chair" ? null : CAST[beat.speaker];
+  const who = cast ?? { name: CHAIR.name, tag: CHAIR.tag };
 
   return (
     <div className="flex gap-2.5">
@@ -458,41 +867,32 @@ function Beat({ beat }: { beat: PanelScriptBeat }) {
               {who.tag.toUpperCase()}
             </span>
           )}
-          {payload.decision === "out" && (
+          {beat.decision === "out" && (
             <span className="text-2xs font-bold tracking-[0.12em] text-[var(--alert)]">OUT</span>
           )}
         </p>
-        {payload.spoken && (
-          <p className="mt-1 text-sm leading-relaxed text-[var(--text-secondary)]">
-            {payload.spoken}
+        {beat.spoken && (
+          <p className="mt-1 text-sm leading-relaxed text-[var(--text-secondary)]">{beat.spoken}</p>
+        )}
+        {beat.question && (
+          <p className="mt-1.5 text-base font-semibold leading-snug">{beat.question}</p>
+        )}
+        {beat.offer && (
+          <p className="tnum mt-1.5 text-sm font-bold text-[var(--color-prestige)]">
+            {fmtMoney(beat.offer.amount_usd)} for {beat.offer.equity_pct}% ·{" "}
+            {fmtMoney(beat.offer.implied_valuation_usd)} post-money
           </p>
         )}
-        {payload.questions?.map((q) => (
-          <p key={q} className="mt-1.5 text-base font-semibold leading-snug">
-            {q}
-          </p>
-        ))}
-        {payload.offer && (
-          <p className="tnum mt-1.5 text-sm font-bold text-[var(--color-prestige)]">
-            {fmtMoney(payload.offer.amount_usd)} for {payload.offer.equity_pct}% ·{" "}
-            {fmtMoney(payload.offer.implied_valuation_usd)} post-money
-          </p>
+        {beat.offer?.conditions && beat.offer.conditions.length > 0 && (
+          <ul className="mt-1 space-y-0.5">
+            {beat.offer.conditions.map((c) => (
+              <li key={c} className="text-2xs leading-snug text-[var(--text-tertiary)]">
+                · {c}
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     </div>
   );
-}
-
-/** Latest standing offer per shark, in the order they landed. */
-function collectOffers(beats: PanelScriptBeat[]): { shark: SharkId; offer: SharkOffer }[] {
-  const map = new Map<SharkId, SharkOffer | null>();
-  for (const beat of beats) {
-    if (beat.speaker === "chair") continue;
-    const payload = beat.payload as { decision?: string; offer?: SharkOffer | null };
-    if (payload.decision === "out") map.set(beat.speaker as SharkId, null);
-    else if (payload.offer) map.set(beat.speaker as SharkId, payload.offer);
-  }
-  return [...map.entries()]
-    .filter((entry): entry is [SharkId, SharkOffer] => entry[1] !== null)
-    .map(([shark, offer]) => ({ shark, offer }));
 }

@@ -13,13 +13,14 @@ import {
   stopStream,
   type LevelMeter,
 } from "@/lib/media/recorder";
-import { stubAi, tierForScore } from "@/lib/ai/stub";
+import { tierForScore } from "@/lib/ai/stub";
 import { speak, stopSpeaking } from "@/lib/ai/speech";
-import type { CoachReport, PitchTranscript } from "@/lib/ai/types";
+import type { PitchTranscript } from "@/lib/ai/types";
 import { KNOBS } from "@/lib/engine/constants";
 import { LiveTranscriber, resolveTranscript } from "@/lib/ai/transcribe";
 import { CompanyDossier, DossierGlyph } from "@/components/CompanyDossier";
-import { scorePitchContent, deliveryMetrics, type ContentFinding } from "@/lib/ai/pitch-content";
+import { PitchNotes } from "@/components/PitchNotes";
+import { scorePitchContent, type ContentFinding } from "@/lib/ai/pitch-content";
 import {
   createDeliveryCoach,
   type DeliveryLive,
@@ -80,7 +81,6 @@ export function PerformScreen() {
   const [elapsed, setElapsed] = useState(0);
   const [level, setLevel] = useState(0);
   const [transcript, setTranscript] = useState<PitchTranscript | null>(null);
-  const [coach, setCoach] = useState<CoachReport | null>(null);
   const [score, setScore] = useState(0);
   /** What the mic heard, live, so the player can see what will be judged. */
   const [heard, setHeard] = useState("");
@@ -112,8 +112,6 @@ export function PerformScreen() {
   /** Live tracker readings, sampled four times a second while recording. */
   const [liveTrack, setLiveTrack] = useState<DeliveryLive | null>(null);
   const [coachArmed, setCoachArmed] = useState(false);
-  const [coachOpen, setCoachOpen] = useState(false);
-  const [coachStowed, setCoachStowed] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -313,20 +311,20 @@ export function PerformScreen() {
     setFindings(content.findings);
 
     /*
-     * The fixture report still supplies the coach's prose — line edits, structure
-     * notes, priorities — which is genuinely useful writing. But its numbers are
-     * replaced with real ones, and its overall score no longer decides anything.
-     * Delivery figures are REPORTED here and scored nowhere.
+     * ── The fixture is gone ───────────────────────────────────────────────
+     *
+     * This used to call `stubAi.scoreLanguage(tx)` and keep the fixture's
+     * prose — line edits, structure notes, three priorities — while replacing
+     * its numbers. The prose was the problem: those line edits quote a founder
+     * saying "Hi. I'm sixteen, and I've been running this company for eleven
+     * months", which is a sentence in
+     * `lib/ai/fixtures/coach-reports.json` and not a sentence any player ever
+     * said. That is the "why does it think I'm sixteen" report, exactly.
+     *
+     * Nothing on this path reads a fixture now. `content.findings` come from
+     * the player's own words checked against their own books, and the full
+     * write-up happens after The Tank, where it can also cover the questioning.
      */
-    const report = await stubAi.scoreLanguage(tx);
-    setCoach({
-      ...report,
-      delivery_metrics: deliveryMetrics(tx.text, tx.durationSeconds),
-      scores: {
-        ...report.scores,
-        overall: { ...report.scores.overall, score: content.score },
-      },
-    });
 
     let final = content.score;
     // The tutorial year cannot be failed — the shark can be unimpressed only.
@@ -379,6 +377,11 @@ export function PerformScreen() {
                 </li>
               ))}
             </ol>
+
+            {/* Read your own company back before the camera opens. Same card
+                that stays on screen through the take, so nothing about the
+                layout moves when the clock starts. */}
+            <PitchNotes run={run} variant="camera" defaultTab="company" className="mt-5" />
 
             <div className="mt-auto pt-6">
               <button
@@ -484,6 +487,26 @@ export function PerformScreen() {
               )}
 
               {/*
+                Your notes, on screen, the whole time — not behind the dossier
+                button, which is still there for the full books.
+
+                A founder pitching from memory is being tested on recall, and
+                recall is not the skill. The numbers here are derived from the
+                same stats the scorer checks claims against, so glancing down
+                is what STOPS a player contradicting their own P&L rather than
+                a way around the test. Opens on THE ORDER before the clock
+                starts (what do I say first?) and on THE NUMBERS once it is
+                running (what was that figure?).
+              */}
+              <PitchNotes
+                run={run}
+                variant="camera"
+                defaultTab={phase === "recording" ? "numbers" : "order"}
+                className="mb-3"
+              />
+
+
+              {/*
                 What the judge is going to read, while you are still saying it.
                 The score now comes from these words, so hiding them would mean
                 grading someone on something they never saw. It also does the job
@@ -569,26 +592,19 @@ export function PerformScreen() {
               The shark is thinking. It does that slowly on purpose.
             </p>
           </motion.section>
-        ) : phase === "score" && transcript && coach ? (
+        ) : phase === "score" && transcript ? (
           <>
             {/*
-              The verdict owns the screen; the coaching sits under it as its own
-              surface so nobody can mistake one for the other. `display: contents`
-              keeps the layout identical — the wrapper exists only to notice that
-              the player has moved on (to the panel, or back to the company), at
-              which point a delivery strip is no longer the right thing on screen.
+              The verdict, then the room, then the report. PitchScore owns all
+              three — see its header for why the order is the fix.
             */}
-            <div
-              className="contents"
-              onClickCapture={(e) => {
-                if ((e.target as HTMLElement | null)?.closest?.("button")) setCoachStowed(true);
-              }}
-            >
+            <div className="contents">
               <PitchScore
                 delivery={coaching}
                 key="score"
                 score={score}
-                coach={coach}
+                run={run}
+                findings={findings}
                 transcript={transcript}
                 isYearGate={perform.kind === "yearEnd"}
                 tutorialFloor={!!run.tutorial && run.year === 1}
@@ -610,197 +626,19 @@ export function PerformScreen() {
   );
 }
 
-/**
- * The coaching strip. Deliberately plain, deliberately below the verdict, and
- * deliberately labelled — a teenager should be able to tell at a glance that the
- * thing measuring their eyes did not mark their pitch.
+/*
+ * DeliveryStrip, DeliverySheet and DeliveryRow used to live here.
+ *
+ * They rendered eye contact, gestures, sway and volume as a stowable strip
+ * under the verdict — before The Tank, and separate from every other piece of
+ * feedback. Players asked for all of it in ONE report, after the room, and that
+ * is now `components/TankDebrief.tsx`: same measurements, same on-device
+ * privacy promise, same very loud "this changed nothing" header, in the place
+ * somebody actually reads it.
+ *
+ * The measuring itself has not moved. `coachRef` still runs during the take and
+ * still hands its report to PitchScore, which carries it into the debrief.
  */
-function DeliveryStrip({
-  report,
-  onOpen,
-  onStow,
-}: {
-  report: DeliveryCoaching;
-  onOpen: () => void;
-  onStow: () => void;
-}) {
-  const headline = report.notes.find((n) => n.tone === "watch") ?? report.notes[0];
-  return (
-    <motion.aside
-      initial={{ y: 28, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1], delay: 0.7 }}
-      className="shrink-0 border-t border-[var(--hairline)] bg-[var(--surface)] px-6 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
-    >
-      <div className="mx-auto flex w-full max-w-lg items-center gap-3">
-        <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
-          <p className="text-2xs font-bold tracking-[0.14em] text-[var(--n-7)]">
-            DELIVERY NOTES · NOT PART OF YOUR SCORE
-          </p>
-          <p className="mt-0.5 truncate text-sm font-semibold text-[var(--n-10)]">
-            {headline?.text ?? "How you came across"}
-          </p>
-        </button>
-        <button
-          type="button"
-          onClick={onOpen}
-          aria-label="Open the delivery notes"
-          className="shrink-0 rounded-[var(--radius-pill)] bg-[var(--n-4)] px-3 py-1.5 text-2xs font-extrabold tracking-[0.08em] text-[var(--n-11)]"
-        >
-          READ ▸
-        </button>
-        <button
-          type="button"
-          onClick={onStow}
-          aria-label="Hide the delivery notes"
-          className="shrink-0 px-1 text-base leading-none text-[var(--n-7)]"
-        >
-          ×
-        </button>
-      </div>
-    </motion.aside>
-  );
-}
-
-/** The card itself. Numbers, what to do about them, and where they went. */
-function DeliverySheet({
-  report,
-  onClose,
-}: {
-  report: DeliveryCoaching;
-  onClose: () => void;
-}) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  const { volume, camera } = report;
-  const sway = camera.torsoSway ?? camera.headSway;
-  const swayUnit = camera.torsoSway !== null ? "shoulder-widths" : "head-widths";
-
-  return (
-    <div
-      className="fixed inset-0 z-[95] flex items-end"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Delivery notes"
-    >
-      <button
-        type="button"
-        aria-label="Close the delivery notes"
-        onClick={onClose}
-        className="absolute inset-0 bg-[var(--scrim)]"
-      />
-      <motion.section
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.34, ease: [0.16, 1, 0.3, 1] }}
-        className="relative max-h-[86%] w-full overflow-y-auto rounded-t-[var(--radius-card)] bg-[var(--sheet)] px-6 pt-5 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
-      >
-        <div className="mx-auto w-full max-w-lg">
-          <p className="text-2xs font-bold tracking-[0.18em] text-[var(--n-7)]">
-            HOW YOU CAME ACROSS
-          </p>
-          <h2 className="mt-1 text-[1.5rem] font-extrabold leading-tight tracking-[-0.02em]">
-            Delivery notes
-          </h2>
-
-          <p className="mt-3 border-l-2 border-[var(--action)] pl-3 text-sm leading-relaxed text-[var(--n-9)]">
-            This didn&rsquo;t affect your score — it&rsquo;s here so you can practise. The verdict
-            was about what you said and whether the books back it up, not about how you looked
-            saying it.
-          </p>
-
-          <dl className="mt-6 border-t border-[var(--hairline)]">
-            {volume && (
-              <DeliveryRow
-                label="Level"
-                value={`${Math.round(volume.averageLevel * 100)}/100`}
-                hint={
-                  volume.dropouts > 0
-                    ? `on the bar you watched · fell out of range ${volume.dropouts}×`
-                    : "on the bar you watched"
-                }
-              />
-            )}
-            <DeliveryRow
-              label="On the lens"
-              value={`${Math.round(camera.eyeContactShare * 100)}%`}
-              hint={`longest look away ${camera.longestAwaySeconds}s`}
-            />
-            {sway !== null && (
-              <DeliveryRow label="Sway" value={String(sway)} hint={swayUnit} />
-            )}
-            {camera.gesturesPerMinute !== null && (
-              <DeliveryRow
-                label="Hands"
-                value={`${camera.gesturesPerMinute}/min`}
-                hint={
-                  camera.handsVisibleShare !== null
-                    ? `in shot ${Math.round(camera.handsVisibleShare * 100)}% of the take`
-                    : undefined
-                }
-              />
-            )}
-          </dl>
-
-          <ul className="mt-6 space-y-3">
-            {report.notes.map((note) => (
-              <li key={note.text} className="flex gap-3">
-                <span
-                  aria-hidden="true"
-                  className={`mt-[0.45rem] h-1.5 w-1.5 shrink-0 rounded-full ${
-                    note.tone === "watch" ? "bg-[var(--action)]" : "bg-[var(--n-6)]"
-                  }`}
-                />
-                <p className="text-sm leading-snug text-[var(--n-10)]">{note.text}</p>
-              </li>
-            ))}
-          </ul>
-
-          <p className="mt-6 border-t border-[var(--hairline)] pt-4 text-xs leading-relaxed text-[var(--n-7)]">
-            The camera was read on this device, one frame at a time, and every frame was thrown
-            away the moment it was read. No video, no pictures and no measurements were uploaded
-            or stored. Nothing here left this device, and nothing here is kept once you close
-            this card.
-          </p>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="mt-6 w-full rounded-[var(--radius-card)] bg-[var(--n-4)] px-5 py-3.5 text-sm font-extrabold tracking-[0.06em] text-[var(--n-11)]"
-          >
-            DONE
-          </button>
-        </div>
-      </motion.section>
-    </div>
-  );
-}
-
-function DeliveryRow({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-}) {
-  return (
-    <div className="flex items-baseline justify-between gap-4 border-b border-[var(--hairline)] py-2.5">
-      <dt className="text-sm font-semibold text-[var(--n-9)]">{label}</dt>
-      <dd className="text-right">
-        <span className="tnum text-sm font-bold text-[var(--n-11)]">{value}</span>
-        {hint && <span className="ml-2 text-2xs text-[var(--n-7)]">{hint}</span>}
-      </dd>
-    </div>
-  );
-}
 
 function LevelMeterBar({ level, active }: { level: number; active: boolean }) {
   const bars = 28;

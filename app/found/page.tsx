@@ -12,6 +12,8 @@ import { loadProfile } from "@/lib/engine/save";
 import { isPro, loadEntitlements, onEntitlementsChange, runsRemainingToday } from "@/lib/monetization";
 import { useUpgrade } from "@/components/upgrade/UpgradeProvider";
 import { usePrefetch } from "@/lib/prefetch";
+import { EMPTY_BRIEF, sanitizeBrief, type CompanyBrief } from "@/lib/engine/company-brief";
+import { writeBrief } from "@/lib/ai/brief";
 
 export default function FoundPageWrapper() {
   return (
@@ -48,6 +50,16 @@ function FoundPage() {
   const [industry, setIndustry] = useState<Industry>("FOOD");
   const [gender, setGender] = useState<Gender>("male");
   const [skipTutorial, setSkipTutorial] = useState(false);
+  /**
+   * What the company IS. Four questions the sim cannot answer for itself, asked
+   * once here rather than improvised under questioning in The Tank.
+   *
+   * Every field is optional. A player who wants to found and go can; the notes
+   * card simply has less on it, and the debrief says so rather than pretending.
+   */
+  const [brief, setBrief] = useState<CompanyBrief>(EMPTY_BRIEF);
+  const [writing, setWriting] = useState(false);
+  const [briefOpen, setBriefOpen] = useState(false);
   const [lockedNote, setLockedNote] = useState<string | null>(null);
   /** Armed by the first tap on FOUND IT when a company is already open. */
   const [confirmReplace, setConfirmReplace] = useState(false);
@@ -148,9 +160,39 @@ function FoundPage() {
       rookieMode: profile?.rookieMode ?? true,
       tutorial: !skipTutorial,
       gender,
+      brief: sanitizeBrief(brief),
     });
     router.push("/play");
   };
+
+  /**
+   * The way out for a founder who cannot yet write a positioning statement.
+   *
+   * It never overwrites a field the player has already filled in — see
+   * `mergeDraft` in lib/ai/brief.ts — so this is a way of finishing a brief,
+   * not of having one written over you. It also always returns something: with
+   * no model behind the route the offline writer answers instead.
+   */
+  const generate = async () => {
+    if (writing) return;
+    setWriting(true);
+    setBriefOpen(true);
+    try {
+      const { brief: written } = await writeBrief({
+        companyName: companyName.trim() || "GlorpCo",
+        industry,
+        industryName: INDUSTRIES.find((i) => i.code === industry)?.name ?? "",
+        companyType: brief.companyType,
+        draft: brief,
+      });
+      setBrief(written);
+    } finally {
+      setWriting(false);
+    }
+  };
+
+  const setField = (key: keyof CompanyBrief, value: string) =>
+    setBrief((b) => ({ ...b, [key]: value, source: "player" }));
 
   const valid = companyName.trim().length > 0;
 
@@ -292,6 +334,99 @@ function FoundPage() {
         </motion.button>
       )}
 
+      {/*
+        WHAT THE COMPANY IS.
+
+        This is new, and it is the largest thing on the screen for a reason: a
+        run used to be a name and an industry code, so a player reaching The
+        Tank had to invent a product, a customer and a reason to exist on the
+        spot and then defend whatever they had just made up. A founder walks
+        into a room having already decided. Now so does the player.
+
+        Collapsed by default so the screen still reads as "name it and go", and
+        every field is optional — but the section says out loud what it is for,
+        because "you will be asked these in the Tank" is the only argument that
+        makes anyone fill in a form.
+      */}
+      <section className="mt-8">
+        <button
+          type="button"
+          onClick={() => setBriefOpen((v) => !v)}
+          className="flex w-full items-baseline justify-between gap-3 text-left"
+        >
+          <span className="min-w-0">
+            <span className="block text-2xs font-bold tracking-[0.16em] text-[var(--text-tertiary)]">
+              WHAT THE COMPANY IS
+            </span>
+            <span className="mt-0.5 block text-2xs leading-snug text-[var(--text-tertiary)]">
+              The sharks will ask you all of this. Answer it now and it stays on
+              screen while you pitch.
+            </span>
+          </span>
+          <span className="shrink-0 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]">
+            {briefOpen ? "HIDE" : filledCount(brief) > 0 ? `${filledCount(brief)}/4` : "ADD"}
+          </span>
+        </button>
+
+        {briefOpen && (
+          <div className="mt-3 space-y-3">
+            <BriefField
+              label="What kind of business is it?"
+              hint="Burger shop. Study app. Sneaker label."
+              value={brief.companyType}
+              rows={1}
+              max={48}
+              onChange={(v) => setField("companyType", v)}
+            />
+            <BriefField
+              label="What does it do?"
+              hint="What you sell, and who buys it."
+              value={brief.whatItDoes}
+              rows={3}
+              max={240}
+              onChange={(v) => setField("whatItDoes", v)}
+            />
+            <BriefField
+              label="What makes it different?"
+              hint="The one thing a competitor cannot copy by Friday."
+              value={brief.usp}
+              rows={2}
+              max={200}
+              onChange={(v) => setField("usp", v)}
+            />
+            <BriefField
+              label="Why would someone choose you?"
+              hint="From the customer's side, not yours."
+              value={brief.whyCustomers}
+              rows={2}
+              max={200}
+              onChange={(v) => setField("whyCustomers", v)}
+            />
+            <BriefField
+              label="What is it ultimately for?"
+              hint="Optional. One plain sentence."
+              value={brief.mission}
+              rows={2}
+              max={160}
+              onChange={(v) => setField("mission", v)}
+            />
+
+            <button
+              type="button"
+              onClick={generate}
+              disabled={writing}
+              className="nv-press h-11 w-full rounded-[var(--radius-pill)] bg-[var(--surface-elevated)] text-2xs font-extrabold tracking-[0.1em] text-[var(--text-primary)] shadow-[var(--e1)] disabled:opacity-50"
+            >
+              {writing ? "WRITING…" : "I DON'T KNOW — WRITE A FIRST DRAFT"}
+            </button>
+            <p className="text-2xs leading-snug text-[var(--text-tertiary)]">
+              It fills in the blanks only. Anything you have already written is
+              kept exactly as you wrote it, and you can edit every word after.
+            </p>
+          </div>
+        )}
+      </section>
+
       {profile?.onboarded && (
         <label className="mt-7 flex items-center gap-3 text-sm text-[var(--text-secondary)]">
           <input
@@ -380,6 +515,52 @@ function FoundPage() {
           ))}
       </div>
     </main>
+  );
+}
+
+/** How much of the brief is answered, for the collapsed header's counter. */
+function filledCount(brief: CompanyBrief): number {
+  return [brief.whatItDoes, brief.usp, brief.whyCustomers, brief.mission].filter((v) =>
+    v.trim(),
+  ).length;
+}
+
+/**
+ * One question from the brief.
+ *
+ * A textarea rather than an input even at one row: these are sentences, and a
+ * single-line field that scrolls sideways is how you teach someone to write
+ * three words. The character cap matches `sanitizeBrief` exactly so the two can
+ * never disagree about what fits.
+ */
+function BriefField({
+  label,
+  hint,
+  value,
+  rows,
+  max,
+  onChange,
+}: {
+  label: string;
+  hint: string;
+  value: string;
+  rows: number;
+  max: number;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="block text-xs font-bold text-[var(--text-primary)]">{label}</span>
+      <span className="mt-0.5 block text-2xs leading-snug text-[var(--text-tertiary)]">
+        {hint}
+      </span>
+      <textarea
+        value={value}
+        rows={rows}
+        onChange={(e) => onChange(e.target.value.slice(0, max))}
+        className="mt-1.5 w-full resize-none rounded-[var(--radius-row)] bg-[var(--surface)] px-3 py-2 text-sm leading-snug text-[var(--text-primary)] outline-none ring-1 ring-[var(--hairline)] transition-shadow focus:ring-[var(--text-secondary)] placeholder:text-[var(--text-tertiary)]"
+      />
+    </label>
   );
 }
 

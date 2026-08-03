@@ -34,7 +34,7 @@ export interface AiThrottle {
 
 export async function claimAiCall(
   req: NextRequest,
-  feature: "tts" | "stt" | "pitch",
+  feature: "tts" | "stt" | "pitch" | "panel" | "debrief" | "brief",
   limits: { perIp: number; perDay: number },
 ): Promise<AiThrottle> {
   const verdict = await throttle([

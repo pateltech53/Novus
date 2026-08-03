@@ -72,12 +72,33 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Voice budget spent." }, { status: 429 });
   }
 
-  // An explicit id from lib/ai/voices.ts wins; otherwise the account is asked
-  // what it has. See resolveVoice for why that is not just a default constant.
+  /*
+   * Casting order, and the order matters.
+   *
+   *   1. `ELEVENLABS_VOICE_<CHARACTER>` — the operator's own casting. It has to
+   *      outrank everything, because whoever runs the deploy chose it
+   *      deliberately and the client's default is only a default.
+   *   2. The id the client sent, which now comes from `lib/ai/voices.ts` and is
+   *      stable per character. This is what stopped the sharks swapping voices
+   *      between serverless instances — see that file's header.
+   *   3. Whatever the account actually has, assigned by seat.
+   *   4. The premade library, when the account could not be read at all.
+   *
+   * Step 1 used to sit BELOW step 2 (`explicit ? … : resolveVoice(speaker)`),
+   * which was harmless only while the client never sent an id. Now that it
+   * always does, leaving it that way would have silently disabled every
+   * ELEVENLABS_VOICE_* variable the moment this shipped.
+   */
+  const configured = process.env[VOICE_ENV[speaker]]?.trim();
   const explicit = typeof body.voiceId === "string" ? body.voiceId.trim() : "";
-  const cast = explicit
-    ? { voiceId: explicit, alternates: [] as string[], status: 200 }
-    : await resolveVoice(speaker);
+  const cast = configured
+    ? { voiceId: configured, alternates: [] as string[], status: 200 }
+    : explicit
+      ? // If the pinned default is absent from this account the synthesis call
+        // 404s, and the rotation below is the recovery — so the alternates are
+        // supplied here rather than leaving a wrong id with nowhere to go.
+        { voiceId: explicit, alternates: premadeRotation(speaker), status: 200 }
+      : await resolveVoice(speaker);
   if (!cast.voiceId) {
     // Reporting this as 502 would tell the client "transient", and it would
     // re-ask on every line for the rest of the session. Pass the real reason
@@ -268,10 +289,21 @@ async function resolveVoice(speaker: Speaker): Promise<Cast> {
   // and those are indistinguishable from this side. Try to speak anyway — if
   // the key really is bad the synthesis call says so, and that answer is
   // strictly better than assuming it.
-  const rotated = PREMADE_VOICES.map(
-    (_, i) => PREMADE_VOICES[(seat + i) % PREMADE_VOICES.length],
-  );
+  const rotated = premadeRotation(speaker);
   return { voiceId: rotated[0], alternates: rotated.slice(1), status: pool.status };
+}
+
+/**
+ * The premade library, rotated so each character starts at a different voice.
+ *
+ * Keyed on the speaker's fixed seat index rather than on anything per-request,
+ * so two instances answering two lines for the same shark walk the same list in
+ * the same order. That determinism is the point: a "fallback" that picked
+ * differently per process is how a shark's voice changed mid-sentence.
+ */
+function premadeRotation(speaker: Speaker): string[] {
+  const seat = SPEAKERS.indexOf(speaker);
+  return PREMADE_VOICES.map((_, i) => PREMADE_VOICES[(seat + i) % PREMADE_VOICES.length]);
 }
 
 /**
