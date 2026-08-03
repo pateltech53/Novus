@@ -123,6 +123,18 @@ export function UpgradeScreen({
     const result = await goToCheckout(plan.id);
     if (result.ok) return; // navigating to Stripe; leave the button busy.
 
+    // The operator's fork: a skip already granted and adopted server truth,
+    // so it closes exactly as the local grant does — minus the local grant.
+    if (result.reason === "admin-cancel") {
+      setBusy(false);
+      return;
+    }
+    if (result.reason === "admin-skip") {
+      play("success");
+      onClose();
+      return;
+    }
+
     if (result.reason === "not-configured") {
       // Writing entitlements announces itself, so the run, the industry grid
       // and the closet all pick Pro up without a reload. See

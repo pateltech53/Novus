@@ -21,18 +21,19 @@ dashboard and nowhere else**, and unlocks three things:
 3. 用这个账号访问 `https://<你的域名>/admin` —— 控制台就在那里。
    降权同理：把 `role` 改回 `player`，一切立即恢复，无需清理任何数据。
 
-前提：`supabase/APPLY-ALL.sql`（0001 → 0009）已在 Novus 项目跑过，部署配置了
+前提：`supabase/APPLY-ALL.sql`（0001 → 0010）已在 Novus 项目跑过，部署配置了
 `SUPABASE_SERVICE_ROLE_KEY`（计费同款，见 `docs/ACCOUNTS-SETUP.md`）。
 
 ---
 
 ## 1. What to run
 
-**`supabase/APPLY-ALL.sql`** — the whole schema, 0001 → 0009, idempotent.
-Admin specifically is `supabase/migrations/0009_admin.sql`, and
-`supabase/tests/admin_test.sql` proves its claims under `npm run test:db`
-(47 checks: self-promotion refused, gifts expire, the directory answers to
-the service role alone, demotion is total).
+**`supabase/APPLY-ALL.sql`** — the whole schema, 0001 → 0010, idempotent.
+Admin specifically is `supabase/migrations/0009_admin.sql` and
+`0010_admin_analytics.sql`, and `supabase/tests/admin_test.sql` proves their
+claims under `npm run test:db` (62 checks: self-promotion refused, gifts
+expire, the directory answers to the service role alone, demotion is total,
+cohort math holds).
 
 No new environment variables. The routes run on `SUPABASE_SERVICE_ROLE_KEY`,
 which billing already requires.
@@ -72,7 +73,28 @@ Cold calls stay at Pro's three a day in every view: the cap lives inside the
 engine, which deliberately knows nothing about entitlements beyond
 `run.pro`.
 
-## 4. Gifting (送会员)
+## 4. Skipping checkout (跳过付款)
+
+Every paid button in the game — Pro plans on the landing page, the welcome
+flow and the in-game paywalls, industry packs and run slots in the shelf,
+chapter licences — funnels through one function, and for an **admin session
+only** that function pauses with a choice:
+
+- **TEST THE REAL CHECKOUT** — continue to Stripe and exercise the money
+  path end to end;
+- **SKIP PAYMENT — GRANT NOW** — `/api/admin/skip` grants the item to the
+  admin's own account using the same functions the webhook calls (Pro lands
+  in the comp column; packs and slots via 0003's own grants; licences as a
+  comped chapter), writes a `checkout_skip` audit row, and the screen
+  updates in place;
+- **CANCEL** — nothing happens.
+
+Players never see any of this: the fork exists only after a per-tab admin
+check that answers 404 for everyone else. Skipping while in the FREE view
+grants but does not show (FREE hides even owned things by design) — the
+prompt says so and offers a one-tap switch to the PRO view.
+
+## 5. Gifting (送会员)
 
 **Gift Pro** writes `entitlements.comp_pro` / `comp_until` — *beside* the
 paid flag, never inside it, because the Stripe webhook owns `pro` and
@@ -88,7 +110,7 @@ the same row), and extra run slots are set outright, 0–20.
 Notes on gifts (`comp_note`) are technically readable by the player through
 their own entitlements row — keep them neutral.
 
-## 5. Comped enterprise (开 chapter)
+## 6. Comped enterprise (开 chapter)
 
 `GRANT 35 SEATS` / `GRANT 100 SEATS` on an account mints a real `chapters`
 row with `source = 'comp'` and **no Stripe subscription** (0009 relaxed
@@ -103,7 +125,7 @@ live seat console at `/chapter` — invites, CSV registration, the cap, all of
 - A comp chapter given an end date lapses lazily: `/api/admin/stats` sweeps
   overdue ones every time the console loads.
 
-## 6. User records (用户记录)
+## 7. User records (用户记录)
 
 The ACCOUNTS band searches by email, display name, or exact profile id
 (`admin_list_users`, service-role only, `security definer` over
@@ -118,7 +140,7 @@ every table. Admins cannot be deleted from the console (demote in the
 dashboard first), and the caller cannot delete themselves (Settings has the
 self-serve path).
 
-## 7. The charts (0010)
+## 8. The charts (0010)
 
 THE CHARTS band on the console: signups/day and board entries/day (exact,
 reconstructed from `created_at`), weekly cohort **retention** (back after
@@ -143,7 +165,7 @@ card surfaces (see `--viz-*` in globals.css), every chart has hover
 tooltips and an AS-A-TABLE view, and none of the brand-law colors (CTA
 orange, solvency green, prestige gold) appear in a chart.
 
-## 8. The audit log
+## 9. The audit log
 
 Every grant, revoke, view switch, board decision and deletion writes a row
 to `admin_audit` — who, what, whom, when, with emails denormalised so the
@@ -151,7 +173,7 @@ log still reads after the account it is about is gone. No RLS policy and no
 grants: PostgREST cannot expose it to anyone. The console's overview shows
 the recent tail.
 
-## 9. Moderation, without the token
+## 10. Moderation, without the token
 
 The BOARD QUEUE band is `/api/leaderboard/moderate` re-authorised by the
 role instead of `NOVUS_MODERATOR_TOKEN`. Both doors end at
@@ -159,7 +181,7 @@ role instead of `NOVUS_MODERATOR_TOKEN`. Both doors end at
 The token route stays for curl and CI; the env var can now be retired at
 your leisure.
 
-## 10. What admin deliberately cannot do
+## 11. What admin deliberately cannot do
 
 Brand Law 4 holds for operators too. There is no code path here — console,
 route, or SQL function — that changes a score, a survival, a revive, a
