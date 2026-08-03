@@ -20,6 +20,7 @@ import { play } from "@/lib/sound";
 import { Turnstile, turnstileEnabled } from "@/components/landing/Turnstile";
 import { usePrefetch } from "@/lib/prefetch";
 import { storefront } from "@/lib/commerce";
+import { appPath } from "@/lib/native/href";
 
 /**
  * How long CONTINUE stays busy before it will take another press.
@@ -193,12 +194,11 @@ export function AccountGate() {
    * ── Why it navigates twice over ────────────────────────────────────────────
    *
    * A client-side `router.push` is right on the web and wrong in a store
-   * build. The app's file server resolves a route by finding its index.html,
-   * and the export has no /play.html to fall back on — which is why every
-   * other in-app navigation goes through `window.location` with a trailing
-   * slash, in so many words, in SettingsScreen. This was the one place still
-   * pushing, and a push that cannot resolve leaves the button reading OPENING…
-   * with nothing behind it.
+   * build, where a document navigation is what actually leaves this page. And
+   * that navigation has to name a FILE — the shell's router serves the bundle's
+   * root index.html for any extensionless path, which in this export is the
+   * marketing page, so a trailing slash pointed straight back here. See
+   * lib/native/href.ts; `appPath` is the whole of the rule.
    *
    * ── And why it lets go ─────────────────────────────────────────────────────
    *
@@ -219,7 +219,7 @@ export function AccountGate() {
 
     const route = destination();
     if (storefront() === "web") router.push(route);
-    else window.location.href = `${route}/`;
+    else window.location.href = appPath(route);
   };
 
   const go = (next: Mode) => {

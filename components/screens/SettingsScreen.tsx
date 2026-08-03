@@ -20,6 +20,7 @@ import { restoreForSignIn } from "@/lib/cloud/sync";
 import { isPro, loadEntitlements } from "@/lib/monetization";
 import { MANAGE_SUBSCRIPTION_NOTE, storefront, useSellsHere } from "@/lib/commerce";
 import { BuyOnWeb, RestoreButton } from "@/components/upgrade/BuyOnWeb";
+import { appPath } from "@/lib/native/href";
 import { entryRoute } from "@/lib/entry";
 
 /**
@@ -290,7 +291,7 @@ function AccountSection() {
       return;
     }
     const route = entryRoute();
-    window.location.href = `${route === "/play" ? "/welcome" : route}/`;
+    window.location.href = appPath(route === "/play" ? "/welcome" : route);
   };
 
   const submitSignIn = async () => {
@@ -321,15 +322,16 @@ function AccountSection() {
      * web front door dodges this by handing the decision to AccountGate, which
      * waits; the app has no front door, so the wait happens here.
      *
-     * And the app's file server resolves a route by finding its index.html, so
-     * it needs the trailing slash — the export has no /play.html to fall back
-     * on (next.config.ts). leave() below already does this; this line did not,
-     * which made signing in inside the app a navigation to a path the shell
-     * cannot resolve.
+     * And the app's navigation has to name a file, not a directory. This line
+     * used to append a trailing slash, on the belief that the shell resolved a
+     * directory to its index.html. It does the opposite: an extensionless path
+     * gets the bundle's ROOT index.html, which in this export is the marketing
+     * page. See lib/native/href.ts — that belief is what put an account gate
+     * inside the app and made every way out of it lead back to it.
      */
     await restoreForSignIn();
     const route = entryRoute();
-    window.location.href = storefront() === "web" ? route : `${route}/`;
+    window.location.href = storefront() === "web" ? route : appPath(route);
   };
 
   const forgot = async () => {
