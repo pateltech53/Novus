@@ -47,7 +47,7 @@ export const dynamic = "force-dynamic";
  */
 
 /** `price_1Ab…`, `prod_Xyz…`, `cus_…` — removed from anything echoed back. */
-const scrub = (text: string): string => text.replace(/\b(price|prod|cus)_[A-Za-z0-9]+/g, "$1_…");
+const scrub = (text: string): string => text.replace(/\b(price|prod|cus)_[A-Za-z0-9_]+/g, "$1_…");
 
 interface SkuCheck {
   sku: SkuId;
@@ -188,10 +188,14 @@ export async function GET(req: NextRequest) {
     hint:
       missing.length > 0
         ? "Set these, then REDEPLOY — env vars added after a build do not reach it. On Vercel, check you set them for the right environment (Production vs Preview)."
-        : missingPrices.length > 0
-          ? "Core config is complete. Each price id above disables one purchase button until set."
-          : broken.length > 0
-            ? `Config is complete but checkout will still fail: ${broken.join(", ")}. See prices/tables above.`
+        : // Ahead of `missingPrices`, which it already contains: a deep run
+          // knows both which ids are unset AND which set ones do not work, and
+          // reporting only the first half sends an operator to check spellings
+          // that were right.
+          broken.length > 0
+          ? `Checkout will fail on: ${broken.join(", ")}. See prices/tables above for each reason.`
+          : missingPrices.length > 0
+            ? "Core config is complete. Each price id above disables one purchase button until set."
             : deep
               ? "Billing is fully configured, every price verifies against Stripe, and both billing tables are reachable. A checkout that still fails is a signed-out or already-subscribed caller, not configuration."
               : "Billing is fully configured. Add ?deep=1 to verify the prices against Stripe and the billing tables against the database.",
