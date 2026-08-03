@@ -10,6 +10,7 @@ import { AiStatusBanner } from "@/components/AiStatusBanner";
 import { THEME_COLOR_DARK } from "@/lib/brand";
 import { OG_IMAGE, SITE_NAME, SITE_ORIGIN } from "@/lib/seo";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
+import { PLATFORM_INIT_SCRIPT } from "@/lib/native/platform";
 
 const urbanist = Urbanist({
   subsets: ["latin"],
@@ -152,6 +153,12 @@ export default function RootLayout({
         {/* Blocking on purpose. Without it the page paints light and swaps to
             dark a frame later — the flash every themed app gets wrong once. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        {/* Blocking for the same reason, and it decides a bigger thing: glass
+            is the iOS app's material and nowhere else's, so every
+            backdrop-filter in globals.css is keyed off the attribute this
+            writes. Deciding it after hydration is one frame of glass on every
+            page load in a browser. */}
+        <script dangerouslySetInnerHTML={{ __html: PLATFORM_INIT_SCRIPT }} />
       </head>
       {/* Themed via utilities rather than a raw `body` rule: utilities
           re-resolve the custom property on theme change, so overscroll never

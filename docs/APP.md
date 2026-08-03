@@ -217,12 +217,20 @@ previews an item — and whichever is on top is the one whose chrome is on scree
 Unmounting re-pushes whatever is underneath, so closing a legal sheet does not
 leave a settings screen with no way out of it.
 
-### And on every platform: the control material
+### And inside the iOS app: the control material
 
 Native draws the chrome. It cannot draw the other 170 buttons — they are DOM,
 they scroll, and a native view cannot be inside a web scroll container. So
 `globals.css` grew the control half of the material to sit beside the panel
-half:
+half, and **it is gated to iOS**: `[data-platform="ios"]`, written on `<html>`
+by a blocking script in `<head>`, decides whether any of it renders.
+
+On Android and on the web every one of these is a solid, shadowed panel
+instead. Liquid Glass is a material iOS renders; everywhere else it is an
+approximation of one, and an approximation of a lens invites the one
+comparison it cannot win. The gate moves two properties — the backdrop and the
+fill — so the layout, the tap targets and the ink are identical on all three
+platforms and only the substance differs.
 
 | Class | What it is |
 |---|---|
@@ -231,6 +239,7 @@ half:
 | `nv-flat` | A control that is already ON glass. Keeps the tint and the press, drops the blur, because two stacked backdrops are a smudge rather than deeper glass |
 | `nv-t-*` | The tone, which colours the material rather than painting over it — the web's `UIGlassEffect.tintColor` |
 | `data-live-3d` | On a screen that runs a WebGL canvas. Every control inside it goes opaque |
+| `[data-platform="ios"]` | The gate. Absent → no backdrop, no crest, no sheen, anywhere |
 
 `components/ui/Glass.tsx` is still the only file allowed to reach for the
 material, and it now exports `GlassButton`, `GlassLink`, `GlassGroup`,

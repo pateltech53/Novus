@@ -976,6 +976,124 @@ textarea {
   }
 }
 
+/* ══ Glass is the iOS app's, and only the iOS app's ═══════════════════════
+ *
+ * ── The decision ─────────────────────────────────────────────────────────
+ *
+ * Liquid Glass is a material iOS renders. Everywhere else it is an
+ * approximation of one, and an approximation of a lens is not a cheaper lens —
+ * it is a different, worse thing that invites the comparison it cannot win. On
+ * a browser and on Android the material is now simply off, and those surfaces
+ * are the solid, shadowed, well-lit panels the design system had before any of
+ * this: flat fill, real elevation, no blur, no crest, no sheen.
+ *
+ * On iOS it is untouched — the UIKit chrome is the system's own Liquid Glass,
+ * and the DOM layer inside the app keeps the material so a screen does not
+ * change substance halfway down.
+ *
+ * ── Why one gate instead of unwinding it ─────────────────────────────────
+ *
+ * Every control in the app now says `nv-gc`, and the honest way to read that
+ * class is "this is a control" rather than "this is glass". So the material is
+ * withdrawn in one place instead of the ~170 call sites re-learning which
+ * background they used to have. Two properties change — the backdrop and the
+ * fill — and every layout, every tap target and every ink colour is the same
+ * on all three platforms, which is exactly the property a per-call-site revert
+ * would have quietly destroyed.
+ *
+ * `[data-platform]` is written by a blocking script in <head>
+ * (`lib/native/platform.ts`), so a browser never paints a frame of glass
+ * before finding out it should not have.
+ *
+ * The specificity is deliberate: `:root:not(…)` plus a class is (0,3,0), which
+ * clears `.nv-gc`, every tone, `nv-flat` and `[data-live-3d]`. The nested
+ * selectors below go higher still, because a group's children and a lit
+ * segment have to keep winning over the rule that solidified their parent.
+ */
+
+:root:not([data-platform="ios"]) .nv-gc,
+:root:not([data-platform="ios"]) .nv-ggroup,
+:root:not([data-platform="ios"]) .nv-glass {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  will-change: auto;
+}
+
+/* No crest, no sheen. A solid panel has an edge because it has elevation, not
+   because light is bending through it. */
+:root:not([data-platform="ios"]) .nv-gc::before,
+:root:not([data-platform="ios"]) .nv-ggroup::before,
+:root:not([data-platform="ios"]) .nv-glass::before {
+  display: none;
+}
+
+/* Each surface falls back to the fill it would have had. `--gc-solid` and
+   `--glass-solid` already carry a tone's own colour, so an action button is
+   the flat accent it always was rather than the neutral panel. */
+:root:not([data-platform="ios"]) .nv-gc {
+  background: var(--gc-solid, var(--surface-overlay));
+  box-shadow: var(--e1);
+}
+
+:root:not([data-platform="ios"]) .nv-ggroup {
+  background: var(--surface);
+  box-shadow: var(--e1);
+}
+
+:root:not([data-platform="ios"]) .nv-glass {
+  background: var(--glass-solid, var(--surface-overlay));
+}
+
+/* A group is still one surface with controls cut out of it — that was never a
+   glass idea, it is how a list of rows works. */
+:root:not([data-platform="ios"]) .nv-ggroup > .nv-gc {
+  background: transparent;
+  box-shadow: none;
+}
+
+:root:not([data-platform="ios"]) .nv-ggroup > .nv-gc + .nv-gc {
+  box-shadow: inset 0 1px 0 0 var(--hairline);
+}
+
+:root:not([data-platform="ios"]) .nv-ggroup > .nv-gc[data-on="true"],
+:root:not([data-platform="ios"]) .nv-ggroup > .nv-gc.nv-on {
+  background: var(--surface-elevated);
+}
+
+/*
+ * No divider between segments — the same correction the glass path needed, and
+ * it has to be restated here because the rule above put the group's row
+ * hairline back at a higher specificity.
+ *
+ * `inset 0 1px 0 0` is a top edge, which is right for a stack of list rows and
+ * wrong twice over on a segmented control: it follows a pill's radius and
+ * reads as an arc, and it lands on every child except the first — so the
+ * UNSELECTED segments come out ringed and the selected one bare. Exactly
+ * backwards, and stated before the selected rule so that one still wins.
+ */
+:root:not([data-platform="ios"]) .nv-gseg > .nv-gc + .nv-gc {
+  box-shadow: none;
+}
+
+/* The selected segment is a raised surface rather than a lit pane. */
+:root:not([data-platform="ios"]) .nv-gseg > .nv-gc[data-on="true"],
+:root:not([data-platform="ios"]) .nv-gseg > .nv-gc.nv-on {
+  background: var(--surface-elevated);
+  box-shadow: var(--e1);
+}
+
+/*
+ * The scrim keeps its darkening and loses only the lens.
+ *
+ * This one is not cosmetic. The gate above hands `.nv-glass` an opaque fill,
+ * and a scrim that took one would not dim the game behind a sheet — it would
+ * delete it. Stated after, so it wins.
+ */
+:root:not([data-platform="ios"]) .nv-glass.nv-scrim {
+  background: var(--scrim);
+  box-shadow: none;
+}
+
 /*
  * Bottom fade on scrollable sheets, so content dissolves rather than being
  * guillotined by the edge. GRADIENT #3 OF 3.
