@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useGame } from "@/lib/state/GameProvider";
 import { SoundToggle } from "@/components/ui/SoundToggle";
+import { RookieToggle } from "@/components/ui/RookieToggle";
 import {
   GlassButton,
   GlassGroup,
@@ -196,9 +197,19 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
           </p>
         </Section>
 
-        {/* ── Sound ──────────────────────────────────────────────────────── */}
-        <Section label="SOUND">
-          <SoundToggle />
+        {/* ── The game ───────────────────────────────────────────────────── */}
+        {/*
+          Rookie Mode and the sound switch, together. Both are how the player
+          wants to be spoken to — this screen's own definition of itself — and
+          Rookie Mode spent its first revisions on the Company sheet only
+          because Settings had no section for it. The Company sheet is company
+          data again; the pair lives here.
+        */}
+        <Section label="THE GAME">
+          <div className="space-y-2">
+            <RookieToggle />
+            <SoundToggle />
+          </div>
         </Section>
 
         {/* ── Identity ───────────────────────────────────────────────────── */}

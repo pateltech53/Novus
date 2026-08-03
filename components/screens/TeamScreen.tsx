@@ -172,10 +172,18 @@ export function TeamScreen({ onClose, onFire, onOpenPhone }: TeamScreenProps) {
               Every hire is a monthly cost you cannot un-sign. It is still
               cheaper than being the only person who knows anything.
             </p>
+            {/*
+              Neutral glass, deliberately. The screen's one accent belongs to
+              the standing CTA — UIKit's prominent dock button on iOS, the
+              orange button at the foot of the list everywhere else — and this
+              row said the same thing in the same orange, which is two CTAs
+              and therefore none (§1.5). The empty state keeps its button
+              because it is where the eye is; it gives up the colour.
+            */}
             <button
               type="button"
               onClick={onOpenPhone}
-              className="nv-gc mt-5 flex h-14 w-full items-center justify-center rounded-[var(--radius-pill)] nv-t-action px-4 text-center text-sm font-extrabold leading-tight sm:text-[0.9375rem]"
+              className="nv-gc mt-5 flex h-14 w-full items-center justify-center rounded-[var(--radius-pill)] px-4 text-center text-sm font-extrabold leading-tight text-[var(--text)] sm:text-[0.9375rem]"
             >
               Open the phone → LinkedOut to hire
             </button>

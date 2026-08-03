@@ -1,7 +1,5 @@
 "use client";
 
-import { SoundToggle } from "@/components/ui/SoundToggle";
-
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useGame } from "@/lib/state/GameProvider";
@@ -62,7 +60,7 @@ function plainLine(row: StatRow): string {
 }
 
 export function CompanyScreen({ onClose }: { onClose: () => void }) {
-  const { run, setRookieMode, runActivity } = useGame();
+  const { run, runActivity } = useGame();
   // Activities are one-per-visit here for the same reason as the activity
   // sheet: without it a player can drain the same lever ten times in one month.
   const [spent, setSpent] = useState<string[]>([]);
@@ -108,100 +106,51 @@ export function CompanyScreen({ onClose }: { onClose: () => void }) {
         </p>
       )}
 
-      {/* ── 2 · The Books ─────────────────────────────────────────── */}
+      {/* ── 2 · The Books, at a glance ────────────────────────────── */}
       <SectionLabel>THE BOOKS</SectionLabel>
       <div className="px-3">
+        {/*
+          One glance-strip instead of five cards. The play screen carries
+          these four figures at display size now; repeating them here at the
+          same weight made this sheet a second ledger, and the sheet is for
+          what the play screen does NOT show. The figures wrap as label–value
+          pairs rather than truncating, because a clipped financial figure is
+          the one thing this strip must never produce (§7, and the phone
+          audit measures it). NET MARGIN is not here twice — it stays in the
+          stat sheet below, where it always was.
+        */}
         <div
-          className={`nv-card px-4 py-3 ${
+          className={`nv-card flex flex-wrap items-baseline gap-x-4 gap-y-1.5 px-4 py-3 ${
             run.stats.cash < 0 ? "ring-1 ring-[var(--alert)]/40" : ""
           }`}
         >
-          <p className="text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
-            CASH
-          </p>
-          <p
-            className="tnum mt-0.5 truncate text-2xl font-extrabold leading-none"
-            style={{ color: run.stats.cash < 0 ? BAD : "var(--text)" }}
-          >
-            {fmtMoney(run.stats.cash)}
-          </p>
-          {run.rookieMode && (
-            <p className="mt-1 text-xs text-[var(--text-tertiary)]">
-              {GLOSSARY["cash"].rookie}
-            </p>
-          )}
-        </div>
-
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          <BookTile
+          <BookFigure
+            label="CASH"
+            value={fmtMoney(run.stats.cash)}
+            tone={run.stats.cash < 0 ? "bad" : "neutral"}
+          />
+          <BookFigure
             label="BURN / MO"
-            term="burn rate"
             value={profitable ? `+${fmtMoney(-burn)}` : fmtMoney(burn)}
             tone={profitable ? "good" : "neutral"}
-            rookie={run.rookieMode}
           />
-          <BookTile
+          <BookFigure
             label="RUNWAY"
-            term="runway"
             value={fmtMonths(runway)}
             tone={runway < 4 ? "bad" : "neutral"}
-            rookie={run.rookieMode}
           />
-          <BookTile
+          <BookFigure
             label="VALUATION"
-            term="valuation"
             value={fmtMoney(run.stats.valuation)}
             tone="neutral"
-            rookie={run.rookieMode}
-          />
-          <BookTile
-            label="NET MARGIN"
-            term="net margin"
-            value={fmtPct(run.stats.netMarginPt, true)}
-            tone={run.stats.netMarginPt >= 0 ? "good" : "bad"}
-            rookie={run.rookieMode}
           />
         </div>
       </div>
 
-      {/* ── 3 + 4 · Full stat sheet, with the Rookie Mode toggle ──── */}
+      {/* ── 3 + 4 · Full stat sheet ───────────────────────────────── */}
       <SectionLabel>THE STAT SHEET</SectionLabel>
       <div className="px-3">
-        <div className="nv-card flex items-center justify-between gap-3 px-4 py-3">
-          <span className="min-w-0">
-            <span className="block text-[0.9375rem] font-semibold leading-snug">
-              Rookie Mode
-            </span>
-            <span className="mt-0.5 block text-xs leading-snug text-[var(--text-secondary)]">
-              Adds a plain-English line under every term. The real word stays.
-            </span>
-          </span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={run.rookieMode}
-            aria-label="Rookie Mode"
-            onClick={() => setRookieMode(!run.rookieMode)}
-            className={`nv-gc nv-tap relative h-7 w-12 shrink-0 rounded-full ${
-              run.rookieMode ? "nv-t-action" : ""
-            }`}
-          >
-            <span
-              aria-hidden="true"
-              className={`absolute top-1 h-5 w-5 rounded-full bg-[var(--card)] shadow-[var(--e1)] transition-[left] duration-200 ${
-                run.rookieMode ? "left-6" : "left-1"
-              }`}
-            />
-          </button>
-        </div>
-
-        {/* Sound effects live beside Rookie Mode: both are how the player
-            wants to be spoken to, rather than anything about the company. */}
-        <div className="mt-2">
-          <SoundToggle />
-        </div>
-
-        <ul className="mt-2 space-y-2">
+        <ul className="space-y-2">
           {rows.map((row) => {
             const tone = row.tone ?? "neutral";
             return (
@@ -303,37 +252,30 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function BookTile({
+/** One label–value pair on the glance-strip. No box of its own, no rookie
+ *  line: the terms are taught on the play screen's ledger, and glossed again
+ *  in the stat sheet below where each figure has the width for a sentence. */
+function BookFigure({
   label,
-  term,
   value,
   tone,
-  rookie,
 }: {
   label: string;
-  term: string;
   value: string;
   tone: Tone;
-  rookie: boolean;
 }) {
-  const gloss = GLOSSARY[term];
   return (
-    <div className="nv-card min-w-0 px-3 py-2.5">
-      <p className="truncate text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]">
+    <span className="flex items-baseline gap-1.5">
+      <span className="text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]">
         {label}
-      </p>
-      <p
-        className="tnum mt-0.5 truncate text-base font-extrabold leading-tight"
+      </span>
+      <span
+        className="tnum text-[0.9375rem] font-extrabold leading-tight"
         style={{ color: TONE_TEXT[tone] }}
       >
         {value}
-      </p>
-      {rookie && gloss && (
-        <p className="mt-1 text-2xs leading-[1.3] text-[var(--text-tertiary)]">
-          {gloss.rookie}
-        </p>
-      )}
-    </div>
+      </span>
+    </span>
   );
 }
 
