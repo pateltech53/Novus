@@ -13,7 +13,7 @@
         "phase": "questions",
         "speaker": "marcus",
         "payload": {
-          "spoken": "Well. Somebody walked in here knowing their own P&L. Chief, you said your margin number out loud without being asked — I nearly applauded, and I don't applaud. Two things before Serena starts pricing the dream.",
+          "spoken": "Well. Somebody walked in here knowing their own P&L. You said your margin number out loud without being asked — I nearly applauded, and I don't applaud. Two things before Serena starts pricing the dream.",
           "questions": [
             "Your CAC payback — you gave me the blended number. What is it on your worst channel?",
             "If I gave you the money as half equity, half note, what does that do to your hiring plan?"
@@ -39,7 +39,7 @@
         "phase": "questions",
         "speaker": "marcus",
         "payload": {
-          "spoken": "The rearview mirror is the only mirror with data in it, Serena. You've bought four futures this year — how many of them have filed accounts? Chief, ignore her for ninety seconds and answer me first.",
+          "spoken": "The rearview mirror is the only mirror with data in it, Serena. You've bought four futures this year — how many of them have filed accounts? Ignore her for ninety seconds and answer me first.",
           "questions": [],
           "private_notes": "She'll bid before the answers land; she always does. Needling her early makes the founder watch the gap between our numbers instead of the size of hers — that gap is my whole argument. Anchor stays below the fair midpoint regardless."
         },
@@ -115,7 +115,7 @@
         "phase": "offer",
         "speaker": "marcus",
         "payload": {
-          "spoken": "I'll open before Serena inflates the room. Chief, you answered every number question with a number — do you know how rare that is? Here's real money with a real structure: three hundred thousand for twenty percent, half of it as a note. Numbers don't have moods, and neither does my offer.",
+          "spoken": "I'll open before Serena inflates the room. You answered every number question with a number — do you know how rare that is? Here's real money with a real structure: three hundred thousand for twenty percent, half of it as a note. Numbers don't have moods, and neither does my offer.",
           "decision": "offer",
           "offer": {
             "amount_usd": 300000,
@@ -156,7 +156,7 @@
         "phase": "negotiate",
         "speaker": "marcus",
         "payload": {
-          "spoken": "Six million dollars, Serena. You've priced eleven months of trading at six million and called it discipline. Chief — ask her what a down round feels like from the inside; she has never once been in the room for one. My three hundred stands, and it still has a floor under it.",
+          "spoken": "Six million dollars, Serena. You've priced eleven months of trading at six million and called it discipline. Ask her what a down round feels like from the inside; she has never once been in the room for one. My three hundred stands, and it still has a floor under it.",
           "decision": "hold",
           "offer": null,
           "reason": "Not chasing a valuation the arithmetic in front of me can't defend; the structure is the offer.",
@@ -217,7 +217,7 @@
         "phase": "negotiate",
         "speaker": "marcus",
         "payload": {
-          "spoken": "Done, Dev. Your hands protect my money, and you're the only person at this table whose scars are load-bearing. Chief, notice what just happened: Serena's number went up because she's excited. Mine went up because Dev is coming to work.",
+          "spoken": "Done, Dev. Your hands protect my money, and you're the only person at this table whose scars are load-bearing. Notice what just happened: Serena's number went up because she's excited. Mine went up because Dev is coming to work.",
           "decision": "hold",
           "offer": null,
           "reason": "Accepting Dev's joint structure alongside my own paper; his involvement earns the valuation concession, Serena's enthusiasm doesn't.",
@@ -312,7 +312,7 @@
         "phase": "negotiate",
         "speaker": "marcus",
         "payload": {
-          "spoken": "I'll say this once, chief, and then the ledger closes. Her offer is bigger. Mine is real — structured, solvent, and priced so nobody cries at the next round. Take her seven if you want the headline; take my three hundred with Dev's hands if you want the machine. Revenue is vanity, margin is sanity, cash is reality.",
+          "spoken": "I'll say this once, and then the ledger closes. Her offer is bigger. Mine is real — structured, solvent, and priced so nobody cries at the next round. Take her seven if you want the headline; take my three hundred with Dev's hands if you want the machine. Revenue is vanity, margin is sanity, cash is reality.",
           "decision": "hold",
           "offer": null,
           "reason": "Not chasing Serena's number; the structure is the offer. Dev's joint proposal stands alongside it.",
@@ -354,7 +354,7 @@
         "phase": "questions",
         "speaker": "marcus",
         "payload": {
-          "spoken": "Chief, you spent four minutes on the story and thirty seconds on the arithmetic — for me that ratio is upside down. Serena can have the story; I'll take the arithmetic. Let's fix it right now. Give me the number.",
+          "spoken": "You spent four minutes on the story and thirty seconds on the arithmetic — for me that ratio is upside down. Serena can have the story; I'll take the arithmetic. Let's fix it right now. Give me the number.",
           "questions": [
             "What is your monthly churn — one number, no adjectives?",
             "Your headline growth and your recent quarters are telling me two different stories. Which one am I buying?"
@@ -531,7 +531,7 @@
         "phase": "offer",
         "speaker": "marcus",
         "payload": {
-          "spoken": "Everyone's leaving, chief, so here's the cold arithmetic. Lily just confirmed the leak is real and Viktor priced the story for me on his way out. Your churn answer was a real number and your growth answer was a bridge with a wobble in it. I'll pay for the first and discount the second. Two hundred thousand for twenty-five percent, with a royalty until I've seen my capital again. That's not an insult — that's a mirror.",
+          "spoken": "Everyone's leaving, so here's the cold arithmetic. Lily just confirmed the leak is real and Viktor priced the story for me on his way out. Your churn answer was a real number and your growth answer was a bridge with a wobble in it. I'll pay for the first and discount the second. Two hundred thousand for twenty-five percent, with a royalty until I've seen my capital again. That's not an insult — that's a mirror.",
           "decision": "offer",
           "offer": {
             "amount_usd": 200000,
@@ -574,7 +574,7 @@
         "phase": "negotiate",
         "speaker": "marcus",
         "payload": {
-          "spoken": "You came back with the quarterly numbers instead of a speech — that's the only currency I take, chief. Fine. Two hundred thousand for twenty percent, the royalty's gone, half rides as a note. Lily, you can stop looking at me like that. Move the structure, not the mood. Final.",
+          "spoken": "You came back with the quarterly numbers instead of a speech — that's the only currency I take. Fine. Two hundred thousand for twenty percent, the royalty's gone, half rides as a note. Lily, you can stop looking at me like that. Move the structure, not the mood. Final.",
           "decision": "revise",
           "offer": {
             "amount_usd": 200000,
@@ -637,7 +637,7 @@
         "phase": "questions",
         "speaker": "marcus",
         "payload": {
-          "spoken": "Chief, I counted eleven adjectives and zero margins before you got to your ask — and the ask was a number you never once justified. Serena will forgive that; I won't. We'll start at the bottom of the ledger. Give me the number.",
+          "spoken": "I counted eleven adjectives and zero margins before you got to your ask — and the ask was a number you never once justified. Serena will forgive that; I won't. We'll start at the bottom of the ledger. Give me the number.",
           "questions": [
             "What is your monthly churn?",
             "What did it cost you to acquire your last customer — actual dollars, actual customer?"
@@ -749,7 +749,7 @@
         "phase": "offer",
         "speaker": "marcus",
         "payload": {
-          "spoken": "Chief, I asked for two numbers and got two paragraphs. Every time you didn't answer, my valuation dropped — it just ran out of floor. I'm out. Not because the business is bad — I genuinely can't tell — but because you priced your ask on vibes and defended it with adjectives. Numbers don't have moods, and today they don't have a spokesperson either.",
+          "spoken": "I asked for two numbers and got two paragraphs. Every time you didn't answer, my valuation dropped — it just ran out of floor. I'm out. Not because the business is bad — I genuinely can't tell — but because you priced your ask on vibes and defended it with adjectives. Numbers don't have moods, and today they don't have a spokesperson either.",
           "decision": "out",
           "offer": null,
           "join_with": "",
@@ -822,7 +822,7 @@
         "phase": "negotiate",
         "speaker": "marcus",
         "payload": {
-          "spoken": "Cutting the ask in half is the wrong move and I'll tell you why for free: the price was never the problem. I don't know what your company is worth, chief. Neither do you — that's the problem, and it's cheaper to fix than you think. Three numbers and a derivation, and I'm in this chair again next year.",
+          "spoken": "Cutting the ask in half is the wrong move and I'll tell you why for free: the price was never the problem. I don't know what your company is worth. Neither do you — that's the problem, and it's cheaper to fix than you think. Three numbers and a derivation, and I'm in this chair again next year.",
           "decision": "hold",
           "offer": null,
           "reason": "Position unchanged — out. Halving the ask discounts a valuation that was never established; the missing evidence is the same at any price.",

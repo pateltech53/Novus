@@ -24,7 +24,7 @@
  * line is how a console becomes as useless as silence.
  */
 
-export type AiFeature = "voice" | "transcription" | "verdict";
+export type AiFeature = "voice" | "transcription" | "verdict" | "panel" | "debrief";
 
 /** Which route backs each feature, and which key turns it on. Both appear in
  *  the log line, because "voice is off" is not actionable and "ELEVENLABS_API_KEY
@@ -44,6 +44,22 @@ const ORIGIN_OF: Record<AiFeature, { route: string; key: string; fallback: strin
     route: "/api/pitch",
     key: "OPENROUTER_API_KEY",
     fallback: "the offline resolver",
+  },
+  /*
+   * The Tank used to have no entry here because it never called anything: it
+   * replayed `lib/ai/fixtures/panel-scripts.json` on every deploy, with or
+   * without a key. That is precisely the "five states, one appearance" problem
+   * the top of this file describes, and it is why it now reports like the rest.
+   */
+  panel: {
+    route: "/api/panel",
+    key: "OPENROUTER_API_KEY",
+    fallback: "the offline shark, which reads the same attack points",
+  },
+  debrief: {
+    route: "/api/debrief",
+    key: "OPENROUTER_API_KEY",
+    fallback: "the offline debrief, built from the transcript and the books",
   },
 };
 
@@ -87,13 +103,15 @@ const reports = new Map<AiFeature, AiReport>();
  *  recovering and failing again is still only one line per distinct state. */
 const said = new Set<string>();
 
-export const FEATURES = ["voice", "transcription", "verdict"] as const;
+export const FEATURES = ["voice", "transcription", "verdict", "panel", "debrief"] as const;
 
 /** What each feature is called on screen, where "verdict" means nothing. */
 export const LABEL: Record<AiFeature, string> = {
   voice: "Shark voices",
   transcription: "Transcription",
   verdict: "Cold-call verdicts",
+  panel: "The Tank",
+  debrief: "Pitch debrief",
 };
 
 export function routeOf(feature: AiFeature): string {

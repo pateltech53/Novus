@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import type { LevelMeter } from "@/lib/media/recorder";
+import type { LevelMeter, Recording } from "@/lib/media/recorder";
 import {
   createLevelMeter,
   mediaSupported,
@@ -10,6 +10,7 @@ import {
   startRecording,
   stopStream,
 } from "@/lib/media/recorder";
+import { LiveTranscriber, resolveTranscript } from "@/lib/ai/transcribe";
 
 /**
  * The player's turn.
@@ -20,10 +21,30 @@ import {
  *
  * Two ways to answer, and the typed one is not a consolation prize: a player
  * who cannot speak, or is on a bus, or shares a room, must be able to play. It
- * is scored on content only, and it is offered plainly rather than buried.
+ * is judged on content only, and it is offered plainly rather than buried.
  *
  * A player may also decline. That is a legitimate move with a consequence —
  * the shark reacts to the silence — so it is a visible button, not a trapdoor.
+ *
+ * ── What changed, and why it was the biggest hole in the room ──────────────
+ *
+ * `finish()` used to do exactly this:
+ *
+ *     onAnswer({ text: "", spoken: true, seconds })
+ *
+ * A spoken answer carried NO WORDS. The microphone opened, the audio was
+ * recorded, and the recording was dropped on the floor — so the sharks had
+ * nothing to read, and the only thing the room could react to was how long the
+ * founder talked for. That is speech rhythm reaching an outcome, which Brand
+ * Law 5 exists to prevent; it is also why the debrief could never say anything
+ * specific about the questioning, because there was nothing to be specific
+ * about.
+ *
+ * Now a spoken answer is transcribed on the same three-path ladder the pitch
+ * already uses (`lib/ai/transcribe.ts`): a server STT when one is configured,
+ * the browser's own recognition otherwise, and the keyboard when neither
+ * works. The words reach the sharks and the debrief. Nothing reads the
+ * duration.
  */
 export function AnswerTurn({
   question,
@@ -31,23 +52,44 @@ export function AnswerTurn({
   onDecline,
   onLevel,
   maxSeconds = 45,
+  label = "THEY ARE WAITING",
+  speakLabel = "ANSWER OUT LOUD",
+  declineLabel = "SAY NOTHING",
+  allowDecline = true,
 }: {
   question: string;
-  /** transcript (typed, or a placeholder for the recording) */
+  /** The founder's actual words, however they arrived. */
   onAnswer: (answer: { text: string; spoken: boolean; seconds: number }) => void;
   onDecline: () => void;
   onLevel?: (level: number) => void;
   maxSeconds?: number;
+  /** Overridden for the counter-offer turn, which is not a question. */
+  label?: string;
+  speakLabel?: string;
+  declineLabel?: string;
+  allowDecline?: boolean;
 }) {
-  const [mode, setMode] = useState<"choose" | "recording" | "typing">("choose");
+  const [mode, setMode] = useState<"choose" | "recording" | "transcribing" | "typing">("choose");
   const [seconds, setSeconds] = useState(0);
   const [typed, setTyped] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  /** What the mic is picking up, live, so the player sees what will be read. */
+  const [heard, setHeard] = useState("");
+  const [interim, setInterim] = useState("");
 
   const streamRef = useRef<MediaStream | null>(null);
-  const stopRef = useRef<(() => void) | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const doneRef = useRef<Promise<Recording> | null>(null);
+  const scribeRef = useRef<LiveTranscriber | null>(null);
   const meterRef = useRef<LevelMeter | null>(null);
   const rafRef = useRef<number | null>(null);
+  /** Guards the double-finish the clock and the button can both cause. */
+  const finishingRef = useRef(false);
+  /** Read inside `finish`, which is not re-created when the text changes. */
+  const heardRef = useRef("");
+  heardRef.current = heard;
+  const secondsRef = useRef(0);
+  secondsRef.current = seconds;
 
   const cleanup = useCallback(() => {
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
@@ -70,7 +112,7 @@ export function AnswerTurn({
   }, [mode]);
 
   useEffect(() => {
-    if (mode === "recording" && seconds >= maxSeconds) finish();
+    if (mode === "recording" && seconds >= maxSeconds) void finish();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seconds, mode]);
 
@@ -96,26 +138,76 @@ export function AnswerTurn({
         rafRef.current = requestAnimationFrame(pump);
       };
       rafRef.current = requestAnimationFrame(pump);
-      const { recorder } = startRecording(stream, false);
-      stopRef.current = () => recorder.state === "recording" && recorder.stop();
+
+      /*
+       * Two captures at once, on purpose and for different jobs — the same
+       * arrangement `PerformScreen` uses for the pitch itself. The recorder
+       * produces audio for a server STT when one is configured (accurate, and
+       * it keeps the "um"s the filler count needs); the browser's own
+       * recogniser gives words immediately and works offline.
+       * `resolveTranscript` takes whichever turns out better.
+       */
+      const { recorder, done } = startRecording(stream, false);
+      recorderRef.current = recorder;
+      doneRef.current = done;
+
+      const scribe = new LiveTranscriber((text, mid) => {
+        setHeard(text);
+        setInterim(mid);
+      });
+      scribe.start();
+      scribeRef.current = scribe;
+
+      setHeard("");
+      setInterim("");
       setSeconds(0);
+      finishingRef.current = false;
       setMode("recording");
     } catch {
-      setErr("No microphone. You can type your answer instead — it is scored the same.");
+      setErr("No microphone. You can type your answer instead — it is judged the same.");
       setMode("typing");
     }
   }, [onLevel]);
 
-  function finish() {
-    stopRef.current?.();
+  async function finish() {
+    if (finishingRef.current) return;
+    finishingRef.current = true;
+
+    if (recorderRef.current?.state === "recording") recorderRef.current.stop();
+    const live = scribeRef.current?.stop();
+    scribeRef.current = null;
+    setMode("transcribing");
+
+    /*
+     * Race the blob against a short deadline.
+     *
+     * `MediaRecorder.stop()` is not guaranteed to fire `onstop` — a yanked
+     * device, a revoked permission, another tab taking the microphone, some
+     * mobile browsers on backgrounding. Awaiting it bare is what once left the
+     * pitch screen hung on "processing" forever, and a hang HERE would be
+     * worse: the room would be stopped on a question with no way to move it.
+     */
+    const settled = await Promise.race([
+      doneRef.current,
+      new Promise<null>((r) => setTimeout(() => r(null), 4000)),
+    ]);
+    const blob = settled?.blob ?? null;
+    const durationSeconds = settled?.durationSeconds ?? secondsRef.current;
+
+    const tx = await resolveTranscript({
+      audio: blob,
+      liveText: live?.text || heardRef.current,
+      durationSeconds,
+    });
+
     cleanup();
     onAnswer({
-      // Until live transcription lands, a spoken take carries no text; the
-      // panel scores it on delivery signals and length. Never invent words the
-      // player did not say.
-      text: "",
+      // Empty only when every path failed. The room treats that the same way it
+      // treats silence, and the player is offered the keyboard next time rather
+      // than being quietly judged on nothing.
+      text: tx?.text ?? "",
       spoken: true,
-      seconds,
+      seconds: Math.round(durationSeconds),
     });
   }
 
@@ -126,16 +218,12 @@ export function AnswerTurn({
       transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
       className="rounded-[var(--radius-card)] bg-[var(--surface-elevated)] p-4 shadow-[var(--e3)]"
     >
-      <p className="text-2xs font-bold tracking-[0.16em] text-[var(--text-tertiary)]">
-        THEY ARE WAITING
-      </p>
+      <p className="text-2xs font-bold tracking-[0.16em] text-[var(--text-tertiary)]">{label}</p>
       <p className="mt-1.5 text-base font-semibold leading-snug text-[var(--text-primary)]">
         {question}
       </p>
 
-      {err && (
-        <p className="mt-3 text-sm leading-snug text-[var(--text-secondary)]">{err}</p>
-      )}
+      {err && <p className="mt-3 text-sm leading-snug text-[var(--text-secondary)]">{err}</p>}
 
       {mode === "choose" && (
         <div className="mt-4 space-y-2">
@@ -144,7 +232,7 @@ export function AnswerTurn({
             onClick={beginRecording}
             className="nv-press h-14 w-full rounded-[var(--radius-pill)] bg-[var(--action)] text-base font-extrabold tracking-[0.04em] text-[var(--on-action)] shadow-[var(--e3)]"
           >
-            ANSWER OUT LOUD
+            {speakLabel}
           </button>
           <button
             type="button"
@@ -153,13 +241,15 @@ export function AnswerTurn({
           >
             Type it instead
           </button>
-          <button
-            type="button"
-            onClick={onDecline}
-            className="h-10 w-full text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]"
-          >
-            SAY NOTHING
-          </button>
+          {allowDecline && (
+            <button
+              type="button"
+              onClick={onDecline}
+              className="h-10 w-full text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]"
+            >
+              {declineLabel}
+            </button>
+          )}
         </div>
       )}
 
@@ -171,14 +261,45 @@ export function AnswerTurn({
           <p className="mt-0.5 text-center text-2xs tracking-[0.1em] text-[var(--text-tertiary)]">
             {maxSeconds - seconds}s LEFT
           </p>
+
+          {/* What the room is going to read, while you are still saying it.
+              The sharks answer these words now, so hiding them would mean
+              being judged on something you never got to see. */}
+          {(heard || interim) && (
+            <div className="mt-3 max-h-24 overflow-y-auto rounded-[var(--radius-row)] bg-[var(--surface)] px-3 py-2">
+              <p className="text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
+                WHAT THEY HEARD
+              </p>
+              <p className="mt-1 text-sm leading-snug text-[var(--text-primary)]">
+                {heard}
+                {interim && <span className="text-[var(--text-tertiary)]"> {interim}</span>}
+              </p>
+            </div>
+          )}
+          {/* Nothing coming through well into the answer: say so, rather than
+              letting a working microphone with a broken recogniser land as a
+              refusal to answer. */}
+          {seconds >= 8 && !heard && !interim && (
+            <p className="mt-3 text-2xs leading-snug text-[var(--text-tertiary)]">
+              Nothing is coming through yet. Finish anyway and the recording is
+              still sent, or type it instead — typed answers are judged the same.
+            </p>
+          )}
+
           <button
             type="button"
-            onClick={finish}
+            onClick={() => void finish()}
             className="nv-press mt-4 h-14 w-full rounded-[var(--radius-pill)] bg-[var(--action)] text-base font-extrabold tracking-[0.04em] text-[var(--on-action)] shadow-[var(--e3)]"
           >
             THAT&rsquo;S MY ANSWER
           </button>
         </div>
+      )}
+
+      {mode === "transcribing" && (
+        <p className="mt-5 text-center text-sm text-[var(--text-secondary)]">
+          Reading back what you said&hellip;
+        </p>
       )}
 
       {mode === "typing" && (

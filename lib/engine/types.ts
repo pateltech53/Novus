@@ -4,6 +4,7 @@ import type { StockPosition } from "./market";
 import type { AvatarConfig } from "./avatar";
 import type { Portfolio } from "./portfolio";
 import type { Positioning } from "./positioning";
+import type { CompanyBrief } from "./company-brief";
 
 /**
  * Novus engine types — the contract between the authored event library
@@ -348,6 +349,16 @@ export interface RunState {
    * none, and saves from before the layer existed must keep loading.
    */
   positioning?: Positioning;
+  /**
+   * What the company IS, in the founder's own words — decided at founding and
+   * on screen from then on (lib/engine/company-brief.ts).
+   *
+   * Optional for the same reason `positioning` is: runs saved before it existed
+   * must keep loading, and a player may legitimately found a company without
+   * filling it in. Every read goes through `briefIsUsable()`; nothing in the
+   * engine reads it for a number, and no score depends on it.
+   */
+  brief?: CompanyBrief;
   /** Extra portfolio slots earned from `operator` hires. */
   portfolioCapBonus?: number;
   /**

@@ -1,12 +1,18 @@
 # AI setup
 
-Three features in Novus can run on a hosted model. None of them has to.
+Six features in Novus can run on a hosted model. None of them has to.
 
-| Feature | Provider | Key | Without the key |
-|---|---|---|---|
-| Shark and narrator voices | ElevenLabs | `ELEVENLABS_API_KEY` | The browser's built-in voice, shaped per character |
-| Pitch transcription | Deepgram | `DEEPGRAM_API_KEY` | The browser's own recogniser, or the player types |
-| Cold-call verdicts | OpenRouter | `OPENROUTER_API_KEY` | The offline resolver, reading the same transcript |
+| Feature | Route | Provider | Key | Without the key |
+|---|---|---|---|---|
+| Shark and narrator voices | `/api/tts` | ElevenLabs | `ELEVENLABS_API_KEY` | The browser's built-in voice, shaped per character |
+| Pitch and answer transcription | `/api/stt` | Deepgram | `DEEPGRAM_API_KEY` | The browser's own recogniser, or the player types |
+| Cold-call verdicts | `/api/pitch` | OpenRouter | `OPENROUTER_API_KEY` | The offline resolver, reading the same transcript |
+| **The Tank** — every shark turn | `/api/panel` | OpenRouter | `OPENROUTER_API_KEY` | The offline shark, reading the same attack points |
+| **The debrief** — after the Tank | `/api/debrief` | OpenRouter | `OPENROUTER_API_KEY` | The offline debrief, built from the transcript and the books |
+| **The founding brief** — "write it for me" | `/api/brief` | OpenRouter | `OPENROUTER_API_KEY` | The offline writer in `lib/engine/company-brief.ts` |
+
+The last three are new, and the first of them fixes the largest silent gap this
+document has ever described — see §1b.
 
 Each is independent — set one, get one. There is no all-or-nothing rule like the
 one billing has, because every fallback above is a complete feature rather than
@@ -34,6 +40,55 @@ not need to set the endpoint variables at all.
 
 The lesson generalises: a feature that degrades silently by design cannot report
 its own misconfiguration. That is what `npm run test:ai -- --live` is for.
+
+---
+
+## 1b · The same failure, one layer up: The Tank never called anything
+
+The three routes above fixed the *transport*. They did not fix The Tank, because
+The Tank was not on the transport at all.
+
+`components/SharkPanel.tsx` called `stubAi.runPanel()`, which picked one of
+**three canned scripts** out of `lib/ai/fixtures/panel-scripts.json` by score
+band and replayed it verbatim — on every deploy, with or without a key. So
+`OPENROUTER_API_KEY` changed the cold calls and changed nothing whatsoever about
+the panel, which is the feature the product is named for. Everything players
+reported about that room follows from this one fact:
+
+- **the same questions every session** — there were only ever three scripts;
+- **questions with nothing to do with your company** — they were written before
+  your company existed;
+- **the sharks never reacting to an answer** — a spoken answer carried *no
+  words*: `AnswerTurn` recorded audio and passed `text: ""`, so there was
+  nothing to react to;
+- **feedback quoting a founder who does not exist** — the verdict card rendered
+  `line_edits` from `lib/ai/fixtures/coach-reports.json`, whose quotes include
+  *"Hi. I'm sixteen, and I've been running this company for eleven months."*
+  That is the "why does it think I'm sixteen" report. It was a fixture, and it
+  was never reading the player's transcript.
+
+`app/api/panel` and `app/api/debrief` are the missing other end, and the
+fixtures no longer drive either. The panel now sends the whole session — brief,
+books, derived metrics, attack points, transcript, every prior question and
+answer — one request per spoken turn.
+
+**Without a key it is still not a fixture.** `lib/ai/panel-local.ts` reads the
+same attack points, which are computed from the player's own books, so a keyless
+deploy asks about *that* company's runway, *that* company's churn, and never
+repeats a question — asked points are removed from the pool. It cannot follow up
+on the *content* of an answer, only on whether one was given, and the debrief
+says so rather than pretending.
+
+The prompts are the ones already in `lib/ai/prompts/` (verbatim from the pack),
+assembled rulebook + persona + a **HOUSE RULES** block this codebase owns. The
+house rules revoke Marcus's "chief" habit, forbid repeating a question, require
+jargon to be defined once in character, and restate Brand Law 5.
+
+⚠️ **`next.config.ts` pins `lib/ai/prompts/**/*.md` into the `/api/panel` and
+`/api/debrief` bundles via `outputFileTracingIncludes`.** They are read with
+`readFileSync`, which file tracing cannot see. Remove that entry and both routes
+answer 502 on a deploy with a perfectly good key — the same class of silent
+failure this whole document exists to prevent.
 
 ---
 
@@ -236,16 +291,45 @@ Other things that keep the bill down, already in place:
   of the session rather than re-asking once per spoken line.
 - `temperature: 0.4` and `max_tokens: 400` on the cold call. Judging against a
   fixed rubric wants consistency, not surprise.
+- The Tank costs roughly **one request per spoken turn** — about a dozen for a
+  full session — capped by `NOVUS_AI_PANEL_PER_IP` (240) and
+  `NOVUS_AI_PANEL_PER_DAY` (20,000). The debrief is one longer request per
+  session (`NOVUS_AI_DEBRIEF_PER_IP`, 40). The founding brief is one tiny
+  request per company founded (`NOVUS_AI_BRIEF_PER_IP`, 30) and is the only
+  call in the app that runs at `temperature: 1` — two players founding a burger
+  shop must not be handed the same paragraph.
 
 ---
 
 ## 6 · Casting the voices
 
-With no casting configured, `/api/tts` asks the ElevenLabs account which voices
-it has and assigns each character a different one, deterministically — so five
-sharks get five voices and marcus sounds like marcus every time.
+⚠️ **If a shark's voice changes mid-conversation, this section is why.**
 
-That is a working default, not a good one. `lib/ai/voices.ts` carries the
+`lib/ai/voices.ts` used to carry an empty `elevenVoiceId` for every character.
+The client only sends a `voiceId` when that table names one, so it sent nothing —
+and `/api/tts` had to work out who was speaking per request: read the account's
+voice list and assign by seat, or, if that read failed, rotate through the
+premade library instead. Both caches are **per process**. On a deploy where the
+list read is intermittent — a key without `voices_read`, a rate limit, a cold
+instance — the same shark got a different voice depending on which serverless
+instance answered. That is exactly the reported symptom: the Chair sounds right
+because the Chair speaks from one screen, and the sharks change voices because
+their lines fan out across instances.
+
+Every character now has a pinned default id, so the client always names a voice
+and the answer no longer depends on which machine picked up.
+
+Casting order, highest first:
+
+1. `ELEVENLABS_VOICE_<CHARACTER>` — the operator's casting, and it outranks
+   everything. (This used to sit *below* the client-supplied id, which was
+   harmless only while the client never sent one; leaving it would have silently
+   disabled every one of these variables.)
+2. The pinned default in `lib/ai/voices.ts`.
+3. Whatever the account has, assigned by seat.
+4. The premade library, when the account cannot be read at all.
+
+The pinned defaults are a working default, not a good one. `lib/ai/voices.ts` carries the
 direction each part needs — *"Low, unhurried, never raises it. The pause before
 the number is the threat."* — and casting to it is a real improvement:
 
@@ -259,9 +343,8 @@ ELEVENLABS_VOICE_CHAIR=...
 ELEVENLABS_VOICE_NARRATOR=...
 ```
 
-Setting `elevenVoiceId` in `lib/ai/voices.ts` also works and takes priority —
-the client sends it when present. The environment variables exist so casting
-does not require a code change.
+Setting `elevenVoiceId` in `lib/ai/voices.ts` is how the defaults are supplied;
+the environment variables above override them without a code change.
 
 ---
 
@@ -295,11 +378,14 @@ and already answers their preflights.
 
 ## 9 · Pointing a feature somewhere else
 
-`NEXT_PUBLIC_TTS_ENDPOINT`, `NEXT_PUBLIC_STT_ENDPOINT` and
-`NEXT_PUBLIC_PITCH_ENDPOINT` still work and still take priority. They are now
-only for sending a feature somewhere *other* than this app's own route — a
-shared voice cache, a school's own proxy, a different model gateway.
+`NEXT_PUBLIC_TTS_ENDPOINT`, `NEXT_PUBLIC_STT_ENDPOINT`,
+`NEXT_PUBLIC_PITCH_ENDPOINT`, `NEXT_PUBLIC_PANEL_ENDPOINT`,
+`NEXT_PUBLIC_DEBRIEF_ENDPOINT` and `NEXT_PUBLIC_BRIEF_ENDPOINT` still work and
+still take priority. They are now only for sending a feature somewhere *other*
+than this app's own route — a shared voice cache, a school's own proxy, a
+different model gateway.
 
-Unset, each client calls `/api/tts`, `/api/stt` and `/api/pitch` respectively.
+Unset, each client calls `/api/tts`, `/api/stt`, `/api/pitch`, `/api/panel`,
+`/api/debrief` and `/api/brief` respectively.
 That default is what makes setting a key sufficient on its own, and it is the
 part that was missing.

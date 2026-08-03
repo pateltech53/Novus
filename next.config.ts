@@ -16,6 +16,23 @@ const nextConfig: NextConfig = {
   // A stray lockfile in the home directory makes Next infer the wrong root.
   outputFileTracingRoot: __dirname,
 
+  /*
+   * The shark prompts are markdown, read at request time by
+   * lib/ai/server/panel-prompts.ts rather than inlined into TypeScript — see
+   * lib/ai/prompts/README.md, which requires those files stay verbatim
+   * transcriptions of design/PROMPT_PACK.txt.
+   *
+   * File tracing cannot see a `readFileSync(join(process.cwd(), …))`, so
+   * without this line the folder is absent from the serverless bundle and every
+   * panel turn falls silently to its offline shark on a deploy that has a
+   * working key. Which is exactly the class of failure this feature already had
+   * once.
+   */
+  outputFileTracingIncludes: {
+    "/api/panel": ["./lib/ai/prompts/**/*.md"],
+    "/api/debrief": ["./lib/ai/prompts/**/*.md"],
+  },
+
   // The floating dev-tools badge kept photographing itself into marketing
   // screenshots and demo videos. Nothing it offers is used in this project.
   devIndicators: false,

@@ -18,6 +18,40 @@ import panelData from "./fixtures/panel-scripts.json";
  * The camera and microphone are real; only the intelligence is stubbed.
  * Every call runs through a 600–1200ms delay so loading states and the shark's
  * thinking animation get built and tested now.
+ *
+ * ── WHAT STILL USES THIS, AND WHAT NO LONGER DOES ──────────────────────────
+ *
+ * Still live:
+ *   · `chairLine()`     — the Chair's stock framing lines, which are authored
+ *                          copy rather than a stand-in for intelligence.
+ *   · `tierForScore()`  — a pure score→band helper.
+ *
+ * NO LONGER USED BY ANY SCREEN, and deliberately so:
+ *   · `runPanel()`       — The Tank ran on this. It picked one of three canned
+ *                          scripts by score band and replayed it verbatim, on
+ *                          every deploy, key or no key. That is the whole
+ *                          explanation for "the sharks ask the same thing every
+ *                          time" and "the questions have nothing to do with my
+ *                          company". The panel now goes through
+ *                          `lib/ai/panel.ts` → `/api/panel`, and falls back to
+ *                          `lib/ai/panel-local.ts`, which reads attack points
+ *                          computed from the player's own books.
+ *   · `scoreLanguage()`  — the verdict card rendered this fixture's `line_edits`
+ *                          and `top_3_priorities`, whose quotes include "Hi. I'm
+ *                          sixteen, and I've been running this company for
+ *                          eleven months." Players read feedback about being
+ *                          sixteen because it was quoting a fixture rather than
+ *                          their transcript. Replaced by `scorePitchContent`
+ *                          plus the post-Tank debrief.
+ *   · `transcribePitch()`— took the audio as `_audio` and threw it away.
+ *                          Replaced by `lib/ai/transcribe.ts`.
+ *   · `debrief()`        — replaced by `lib/ai/debrief.ts`.
+ *
+ * The four dead methods and their fixtures are kept, not deleted: `AiAdapter`
+ * is the transcribed contract from the pack, the fixtures are the only worked
+ * examples of each output shape, and both are worth reading when writing a new
+ * prompt. They are simply no longer allowed near a player. If you are about to
+ * wire one of them into a screen, read the paragraph above it first.
  */
 
 const LATENCY_MIN = 600;

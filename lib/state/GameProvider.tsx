@@ -26,6 +26,7 @@ import {
   type YearEndSummary,
 } from "@/lib/engine/run";
 import { buildAutopsy, type AutopsyReport } from "@/lib/engine/autopsy";
+import type { CompanyBrief } from "@/lib/engine/company-brief";
 import { activityById, isAvailable } from "@/lib/engine/activities";
 import { callerById, consumeCall, type CallOutcome } from "@/lib/ai/callers";
 import { syncPositioning } from "@/lib/engine/positioning";
@@ -185,6 +186,11 @@ interface GameContextValue {
     tutorial: boolean;
     /** Chosen once at founding. Everything else about the avatar is earned. */
     gender?: Gender;
+    /**
+     * What the company IS, in the founder's own words. Optional — a run without
+     * one plays identically, it just has less on the notes card in The Tank.
+     */
+    brief?: CompanyBrief;
   }): void;
   advance(): void;
   choose(index: number): void;
@@ -373,7 +379,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (runsRemainingToday() <= 0) return;
       recordRunStart();
       const legacy = loadLegacy();
-      const { gender, ...runOpts } = opts;
+      const { gender, brief, ...runOpts } = opts;
       const next = createRun({
         ...runOpts,
         carriedRespect: legacy.sharkRespect,
@@ -381,6 +387,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         // rides in on that rather than adding a field to the protected run.ts.
         avatar: { ...DEFAULT_AVATAR, gender: gender ?? "male", name: opts.founderName },
       });
+      /*
+       * The brief is attached HERE rather than in `createRun`, because run.ts is
+       * a protected file (docs/DO-NOT-TOUCH.md) and this needs no change to it:
+       * `brief` is an optional field on RunState, so writing it after
+       * construction is the additive path the rules ask for. Nothing in the
+       * engine reads it, so a run without one behaves identically.
+       */
+      if (brief && (brief.whatItDoes || brief.usp || brief.companyType)) {
+        next.brief = brief;
+      }
       // Device-level Pro (chosen on the plans screen) reaches the run itself,
       // so The Room and the Pro industries do not read as broken after buying.
       if (loadEntitlements().pro) next.pro = true;

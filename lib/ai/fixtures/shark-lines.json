@@ -55,17 +55,17 @@
   "sharks": {
     "marcus": {
       "react_high": [
-        "You answered a numeric question with a number, chief. Inside two seconds. That buys you my attention.",
+        "You answered a numeric question with a number. Inside two seconds. That buys you my attention.",
         "Your payback period ties out against the brief. I checked it twice while you were still talking.",
         "Revenue is vanity, margin is sanity, cash is reality. You led with the third one. Good."
       ],
       "react_mid": [
-        "Top line's fine. The unit economics are a rumor. Fix one of those before the next quarter, chief.",
+        "Top line's fine. The unit economics are a rumor. Fix one of those before the next quarter.",
         "You know your revenue cold and your CAC not at all. That's half a founder.",
         "Numbers don't have moods. Yours went vague at exactly the place where the cash leaks."
       ],
       "react_low": [
-        "You're buying revenue for more than it returns. That isn't growth, chief. That's a subsidy with a logo.",
+        "You're buying revenue for more than it returns. That isn't growth. That's a subsidy with a logo.",
         "Four minutes. No gross margin, no churn, no payback period. I priced what you didn't say.",
         "Your ask rests on a multiple you heard somewhere. That isn't a valuation. That's a guess wearing a dollar sign."
       ]
