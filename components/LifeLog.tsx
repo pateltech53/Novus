@@ -5,19 +5,51 @@ import type { LogLine } from "@/lib/engine/types";
 
 /**
  * The life log — the game's memory and the thing users screenshot.
- * Chronological, oldest at top, auto-scrolled to the latest. Decisions and
- * consequences sit on raised rows (the prototype's sheet language); narration
- * stays as plain type so the feed still reads as a story, not a table.
+ * Chronological, oldest at top. Decisions and consequences sit on raised rows
+ * (the prototype's sheet language); narration stays as plain type so the feed
+ * still reads as a story, not a table.
+ *
+ * ── Auto-scroll follows the reader, never drags them ─────────────────────────
+ *
+ * This used to scroll the tail into view on EVERY append. On a phone the play
+ * screen is one scrolling document — masthead, books, then this log — so a tap
+ * on ADVANCE MONTH, made beside the masthead, appended lines and yanked the
+ * whole page down to the log's end. The player asked for a month, not a
+ * navigation.
+ *
+ * Now the tail is watched, and the scroll fires only when it was already on
+ * screen: a player reading the feed's end keeps following it, and a player
+ * anywhere else stays exactly where they are. The generous rootMargin counts
+ * "just below the fold" as at the end, so following does not stall the first
+ * time a long month pushes the anchor a line past the edge.
  */
 export function LifeLog({ lines }: { lines: LogLine[] }) {
   const endRef = useRef<HTMLDivElement>(null);
   const count = useRef(lines.length);
+  const atEnd = useRef(false);
 
   useEffect(() => {
-    if (lines.length !== count.current) {
-      count.current = lines.length;
-      endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-    }
+    const el = endRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const watcher = new IntersectionObserver(
+      ([entry]) => {
+        atEnd.current = entry.isIntersecting;
+      },
+      { rootMargin: "0px 0px 160px 0px" },
+    );
+    watcher.observe(el);
+    return () => watcher.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (lines.length === count.current) return;
+    count.current = lines.length;
+    if (!atEnd.current) return;
+    const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    endRef.current?.scrollIntoView({
+      behavior: still ? "auto" : "smooth",
+      block: "end",
+    });
   }, [lines.length]);
 
   return (
