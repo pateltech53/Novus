@@ -5,7 +5,7 @@ import { useNativeChrome, useNativeChromeOwned } from "@/lib/native/chrome";
 import { useResolvedTheme } from "@/lib/native/theme";
 import type { NativeChromeState, NativeControl, NativeTab } from "@/lib/native/glass";
 import type { ActivityTab } from "@/components/ActivityBar";
-import { YEAR_END_MONTH } from "@/lib/engine/constants";
+import { monthBadge, monthBadgeLabel } from "@/lib/engine/format";
 
 /**
  * The play screen's chrome, described for UIKit.
@@ -53,6 +53,8 @@ export interface PlayChromeOptions {
    */
   coach: string | null;
   month: number;
+  /** Fiscal year, for the badge's "→ FY2" at the gate. */
+  year: number;
   atGate: boolean;
   /** The advance button is dead while a card is open or the company is gone. */
   canAdvance: boolean;
@@ -69,7 +71,7 @@ export function usePlayChrome(options: PlayChromeOptions): boolean {
   const owned = useNativeChromeOwned();
   const theme = useResolvedTheme();
 
-  const { visible, coach, month, atGate, canAdvance, pro, activeTab } = options;
+  const { visible, coach, month, year, atGate, canAdvance, pro, activeTab } = options;
 
   const state = useMemo<NativeChromeState | null>(() => {
     if (!owned) return null;
@@ -97,18 +99,15 @@ export function usePlayChrome(options: PlayChromeOptions): boolean {
       activeTab,
       cta: {
         title: atGate ? "CLOSE THE YEAR" : "ADVANCE MONTH",
-        caption: atGate
-          ? "THE YEAR DOES NOT CLOSE UNTIL YOU PITCH"
-          : `MONTH ${month} OF ${YEAR_END_MONTH}`,
-        progress: month,
-        total: YEAR_END_MONTH,
+        badge: monthBadge(month, year, atGate),
+        badgeLabel: monthBadgeLabel(month, year, atGate),
         style: atGate ? "prestige" : "action",
         enabled: canAdvance,
         locked: atGate,
       },
       controls,
     };
-  }, [owned, visible, coach, theme, month, atGate, canAdvance, pro, activeTab]);
+  }, [owned, visible, coach, theme, month, year, atGate, canAdvance, pro, activeTab]);
 
   useNativeChrome(state, {
     onTab: (id) => options.onTab(id as ActivityTab),

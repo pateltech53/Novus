@@ -19,8 +19,8 @@ Apple's own guidance is the resolution:
 | Layer | What is in it | Material |
 |---|---|---|
 | **Content** | cards, The Books, lists, forms, closet grids | Opaque solid. Flat fill, no gradient, no blur, no transparency. Depth from shadow and elevation only. |
-| **Chrome** | tab bar, FAB, sheet grabber, toasts, year-gate banner, phone status bar + dock, modal scrims | Liquid glass. Max **two** glass surfaces visible at once. |
-| **The decision sheet** | its own surface and its choice rows | Liquid glass, on iOS only. **The named exception**, below. |
+| **Chrome** | tab bar, the advance capsule and the month badge beside it, sheet grabber, toasts, year-gate banner, phone status bar + dock, modal scrims | Liquid glass. Max **two** glass surfaces visible at once. |
+| **The decision sheet** | its own surface, its choice rows, its explainer boxes and its one action button | Liquid glass, on iOS only. **The named exception**, below. |
 | **Stage** | mascot, panel room | Real 3D, real lighting. Depth from geometry and light. |
 
 **Money is read on solid ground.** Any element containing a financial figure is
@@ -29,8 +29,16 @@ content, never glass — with one exception, named so that it stays an exception
 ### The named exception: the decision sheet, on iOS
 
 The month's decision is presented by UIKit (`GlassSheetController.swift`), and
-its surface and choice rows are Liquid Glass, cost chips and all. That is a
-product decision taken deliberately, not a rule that eroded.
+its surface, choice rows, explainer boxes and action button are Liquid Glass,
+cost chips and all. That is a product decision taken deliberately, not a rule
+that eroded.
+
+The explainer boxes and the action button joined it later and for one reason:
+they were the only three opaque things left on a surface that is otherwise
+glass end to end — `.secondarySystemBackground` slabs and a flat orange
+rectangle in the middle of it, which read as unfinished rather than as
+restrained. Neither carries a figure, so the "money on solid ground" half of
+the law is untouched by them.
 
 Three things keep it honest:
 
@@ -167,8 +175,25 @@ Four layers, in order:
 3. a 1 px specular top edge — top-aligned linear-gradient `white/14% → transparent` *(gradient #1)*
 4. an inset hairline ring — `box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.06)`
 
-**Allowed:** floating tab bar / bottom nav · sheet grabber and sheet header when content scrolls
-under it · toasts and the year-gate banner · the in-game phone's status bar and dock · modal scrims.
+**Allowed:** floating tab bar / bottom nav · the advance capsule and the month badge beside it ·
+sheet grabber and sheet header when content scrolls under it · toasts, the term-on-first-use note
+and the year-gate banner · the in-game phone's status bar and dock · modal scrims.
+
+**Tint.** `Glass.tsx` takes `tone="action" | "prestige"`, which colours layer 2 rather than
+painting a fill over the stack — the web's half of `UIGlassEffect.tintColor`. It adds no gradient:
+the specular edge is still gradient #1, brightened to clear a saturated pane. The accent rule is
+unchanged by it. `action` belongs to the one control that moves time and to nothing else.
+
+**Not the scroll edge.** A glass bar that faded in behind the masthead controls as the mascot
+scrolled past used to be here, on the "sheet header once content scrolls under it" clause. It is
+deleted. Those controls are already Liquid Glass floating over the stage; a second pane arriving
+behind them on scroll is glass behind glass, which is a smudge rather than a layer.
+
+**The budget, spent.** §0's "max two visible at once" is a real limit and `/play` now sits at its
+ceiling: the masthead cluster and the bottom deck, where the deck's two capsules are one grouped
+surface (`UIGlassContainerEffect`) rather than two. The term-on-first-use note makes a third for
+the seconds it is up, which is the same allowance a toast has always had. Recorded here rather
+than left to be discovered.
 
 **Forbidden:** The Books · cards · list rows · closet grids · anything over the
 WebGL canvas · anything containing a financial figure — **except** the native

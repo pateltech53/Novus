@@ -148,8 +148,8 @@ final class PassthroughView: UIView {
     }
 }
 
-/// The same rule for a stack: the gaps between the meter, the button and the
-/// caption belong to the web layer underneath, not to the stack view.
+/// The same rule for a stack: the gaps between two capsules in a cluster belong
+/// to the web layer underneath, not to the stack view.
 final class PassthroughStackView: UIStackView {
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         let hit = super.hitTest(point, with: event)

@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { play } from "@/lib/sound";
 import { billingStatus, goToCheckout, restorePurchases } from "@/lib/cloud/billing";
-import { NOT_SOLD_HERE_NOTE, useSellsHere } from "@/lib/commerce";
+import { useSellsHere } from "@/lib/commerce";
+import { BuyOnWeb, RestoreButton } from "@/components/upgrade/BuyOnWeb";
 import { EXIT, SHEET_SPRING } from "@/components/ui/Motion";
 import { LegalSheet } from "@/components/LegalSheet";
 import { PRIVACY, TERMS, type LegalDocument } from "@/lib/legal/documents";
@@ -58,13 +59,12 @@ import type { Gate } from "@/lib/upgrade";
  *
  * ── …and where it does not exist at all ─────────────────────────────────────
  *
- * In a store build there is no price and no button. Six gates open this screen,
+ * In a store build there is no in-app checkout. Six gates open this screen,
  * which makes it the most reachable pricing surface in the app and therefore
  * the one that would collect App Store Guideline 3.1.1 first: digital content
- * used inside the app is sold with the store's billing or not at all, and
- * 3.1.3(a) forbids pointing at any other purchase mechanism. So the whole
- * purchase strip is replaced by what Pro is, a Restore, and the free exit —
- * see lib/commerce.ts.
+ * used inside the app is sold with the store's billing or not at all. So the
+ * price block is replaced by a link that leaves for the browser, which is
+ * where the sale is allowed to happen — see lib/commerce.ts.
  *
  * The gate's own argument stays. Telling a player what they hit and what tier
  * contains it is a description of the product; it is the price and the way to
@@ -263,32 +263,22 @@ export function UpgradeScreen({
   );
 
   /* What the pinned strip and the desktop panel both carry.
-     In a browser that starts with the price block above. In a store build the
-     price block does not exist, and its place is taken by what Pro is and by
-     the way to bring one already bought onto this device. The free exit and
-     the two legal links are on every platform in the same place, so the way
-     out never moves and the terms are never more than one tap from the offer. */
+     In a browser that starts with the price block above. In a store build its
+     place is taken by the link out to the web. The free exit and the two legal
+     links are on every platform in the same place, so the way out never moves
+     and the terms are never more than one tap from the offer. */
   const purchase = (
     <>
       {sellsHere === true ? priceBlock : null}
 
-      {sellsHere === false ? (
-        <p className="rounded-[var(--radius-row)] bg-[var(--surface)] px-4 py-3 text-xs leading-relaxed text-[var(--text-secondary)]">
-          {NOT_SOLD_HERE_NOTE}
-        </p>
-      ) : null}
+      {/* A store build cannot take the money, so it hands the player to the
+          browser that can. */}
+      {sellsHere === false ? <BuyOnWeb /> : null}
 
-      {/* On a store build this is the only way Pro ever arrives, which is why
-          it is here and not only in Settings — the player is standing at the
-          gate that just refused them. */}
-      <button
-        type="button"
-        onClick={() => void restore()}
-        disabled={busy}
-        className="nv-press mt-2.5 h-12 w-full rounded-[var(--radius-pill)] bg-[var(--chip)] text-sm font-bold text-[var(--text-primary)] disabled:opacity-60"
-      >
-        {busy ? "CHECKING…" : "Restore purchases"}
-      </button>
+      {/* Small, and here rather than only in Settings — the player is standing
+          at the gate that just refused them, and the answer for some of them
+          is that they already own this. */}
+      <RestoreButton busy={busy} onRestore={() => void restore()} className="mt-2.5" />
 
       {error ? (
         <p

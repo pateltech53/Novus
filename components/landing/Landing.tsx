@@ -357,8 +357,12 @@ function PricingSection() {
 
   return (
     <section
+      // The app's purchase link lands here by fragment — see PRO_PURCHASE_URL
+      // in lib/commerce.ts. A player who tapped GET PRO on a phone arrives at
+      // the plans, not at the top of a marketing page they then have to scroll.
+      id="pro"
       aria-label="Pricing"
-      className="border-y border-[var(--hairline)] bg-[var(--n-2)]"
+      className="scroll-mt-6 border-y border-[var(--hairline)] bg-[var(--n-2)]"
     >
       <div className="mx-auto w-full max-w-6xl px-6 py-16 lg:px-10 lg:py-24">
         <h2 className="text-[1.5rem] font-extrabold leading-tight tracking-[-0.02em] lg:text-[1.875rem]">

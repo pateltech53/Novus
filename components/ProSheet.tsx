@@ -7,7 +7,8 @@ import { useGame } from "@/lib/state/GameProvider";
 import { LegalSheet } from "@/components/LegalSheet";
 import { PRIVACY, TERMS, type LegalDocument } from "@/lib/legal/documents";
 import { billingStatus, goToCheckout, restorePurchases } from "@/lib/cloud/billing";
-import { NOT_SOLD_HERE_NOTE, useSellsHere } from "@/lib/commerce";
+import { useSellsHere } from "@/lib/commerce";
+import { BuyOnWeb, RestoreButton } from "@/components/upgrade/BuyOnWeb";
 import {
   CADENCE_SUFFIX,
   MONTHLY_ANNUALISED_CENTS,
@@ -44,9 +45,10 @@ import {
  *   disclosures a subscription has to carry beside them (Guideline 3.1.2:
  *   length, price per period, that it renews, and links to the terms and the
  *   privacy policy — reachable, in the app, without leaving it).
- * · **In the iPhone or Android app**, no price and no button, because a store
- *   build sells nothing (lib/commerce.ts). What it offers instead is Restore,
- *   which is the path by which Pro actually arrives on a phone.
+ * · **In the iPhone or Android app**, no in-app checkout, because a store build
+ *   cannot take the money (lib/commerce.ts). What it offers instead is a link
+ *   that leaves for the browser, and Restore under it — the path by which a
+ *   purchase made anywhere actually arrives on this phone.
  *
  * Brand Law 4 is the design, not a disclaimer: Pro adds CONTENT (industries,
  * cosmetics, candidates, asset classes). It never adds outcomes — no better
@@ -292,22 +294,15 @@ export function ProSheet({ onClose }: { onClose: () => void }) {
               </p>
             </>
           ) : sellsHere === false ? (
-            <p className="rounded-[var(--radius-row)] bg-[var(--surface)] px-4 py-3 text-xs leading-relaxed text-[var(--text-secondary)]">
-              {NOT_SOLD_HERE_NOTE}
-            </p>
+            <BuyOnWeb />
           ) : null}
 
           {/* Always available, on every platform and in both states: a player
               who paid on another device has to be able to get it back, and a
-              player who thinks they paid has to be able to check. */}
-          <button
-            type="button"
-            onClick={() => void restore()}
-            disabled={busy}
-            className="nv-press mt-2 h-12 w-full rounded-[var(--radius-pill)] bg-[var(--chip)] text-sm font-bold text-[var(--text-primary)] disabled:opacity-60"
-          >
-            {busy ? "CHECKING…" : "Restore purchases"}
-          </button>
+              player who thinks they paid has to be able to check. Small,
+              because for most people the answer is that there is nothing to
+              restore. */}
+          <RestoreButton busy={busy} onRestore={() => void restore()} className="mt-3" />
 
           {message ? (
             <p

@@ -263,11 +263,7 @@ final class GlassSheetController: UIViewController, UIScrollViewDelegate {
 
         // ── Rookie Mode's plain-English layer ────────────────────────────────
         if !spec.notes.isEmpty {
-            let box = UIView()
-            box.translatesAutoresizingMaskIntoConstraints = false
-            box.backgroundColor = .secondarySystemBackground
-            box.layer.cornerRadius = Metric.rowCorner
-            box.layer.cornerCurve = .continuous
+            let box = explainerBox()
 
             let inner = UIStackView()
             inner.axis = .vertical
@@ -292,23 +288,13 @@ final class GlassSheetController: UIViewController, UIScrollViewDelegate {
                 l.numberOfLines = 0
                 inner.addArrangedSubview(l)
             }
-            box.addSubview(inner)
-            NSLayoutConstraint.activate([
-                inner.leadingAnchor.constraint(equalTo: box.leadingAnchor, constant: 14),
-                inner.trailingAnchor.constraint(equalTo: box.trailingAnchor, constant: -14),
-                inner.topAnchor.constraint(equalTo: box.topAnchor, constant: 12),
-                inner.bottomAnchor.constraint(equalTo: box.bottomAnchor, constant: -12),
-            ])
+            fill(box, with: inner)
             stack.addArrangedSubview(box)
         }
 
         // ── The once-only "how to read this" ────────────────────────────────
         if let hintTitle = spec.hintTitle, let hintText = spec.hintText {
-            let box = UIView()
-            box.translatesAutoresizingMaskIntoConstraints = false
-            box.backgroundColor = .secondarySystemBackground
-            box.layer.cornerRadius = Metric.rowCorner
-            box.layer.cornerCurve = .continuous
+            let box = explainerBox()
 
             let inner = UIStackView()
             inner.axis = .vertical
@@ -320,13 +306,7 @@ final class GlassSheetController: UIViewController, UIScrollViewDelegate {
                     color: .tertiaryLabel))
             inner.addArrangedSubview(
                 label(hintText, size: 14, weight: .regular, kern: 0, color: .secondaryLabel, lines: 0))
-            box.addSubview(inner)
-            NSLayoutConstraint.activate([
-                inner.leadingAnchor.constraint(equalTo: box.leadingAnchor, constant: 14),
-                inner.trailingAnchor.constraint(equalTo: box.trailingAnchor, constant: -14),
-                inner.topAnchor.constraint(equalTo: box.topAnchor, constant: 12),
-                inner.bottomAnchor.constraint(equalTo: box.bottomAnchor, constant: -12),
-            ])
+            fill(box, with: inner)
             stack.addArrangedSubview(box)
         }
 
@@ -354,12 +334,18 @@ final class GlassSheetController: UIViewController, UIScrollViewDelegate {
         }
 
         // ── Or the one thing there is to do ─────────────────────────────────
+        //
+        // Tinted glass, matching the capsule that moves time on the play
+        // screen. It was a flat orange rectangle, which made the one card with
+        // no choices on it the one card whose primary control was not the same
+        // material as everything around it.
         if let actionLabel = spec.actionLabel {
+            let glass = GlassKit.panel(corner: 27, interactive: true, tint: GlassKit.action)
+            glass.heightAnchor.constraint(equalToConstant: 54).isActive = true
+
             let button = UIButton(type: .system)
             button.translatesAutoresizingMaskIntoConstraints = false
-            button.backgroundColor = GlassKit.action
-            button.layer.cornerRadius = 27
-            button.layer.cornerCurve = .continuous
+            button.backgroundColor = .clear
             button.setAttributedTitle(
                 NSAttributedString(
                     string: spec.actionCamera ? "\u{1F4F9}  \(actionLabel)" : actionLabel,
@@ -370,8 +356,14 @@ final class GlassSheetController: UIViewController, UIScrollViewDelegate {
                     ]),
                 for: .normal)
             button.addTarget(self, action: #selector(actionTapped), for: .touchUpInside)
-            button.heightAnchor.constraint(equalToConstant: 54).isActive = true
-            stack.addArrangedSubview(button)
+            glass.contentView.addSubview(button)
+            NSLayoutConstraint.activate([
+                button.leadingAnchor.constraint(equalTo: glass.contentView.leadingAnchor),
+                button.trailingAnchor.constraint(equalTo: glass.contentView.trailingAnchor),
+                button.topAnchor.constraint(equalTo: glass.contentView.topAnchor),
+                button.bottomAnchor.constraint(equalTo: glass.contentView.bottomAnchor),
+            ])
+            stack.addArrangedSubview(glass)
         }
 
         /*
@@ -434,6 +426,35 @@ final class GlassSheetController: UIViewController, UIScrollViewDelegate {
     }
 
     // ── Pieces ───────────────────────────────────────────────────────────────
+
+    /**
+     The two explanatory boxes inside a card — Rookie Mode's plain English and
+     the once-only "how to read this".
+
+     Glass, like everything else on this sheet. They were `.secondarySystemBackground`
+     rectangles, which is a system grey that belongs to no theme this app has,
+     sitting on a glass panel between two sets of glass rows — two opaque slabs
+     in the middle of the one surface design.md lets go all the way. They carry
+     no figure, which is what makes this the easy half of the named exception:
+     they explain the board, they are not part of it.
+     */
+    private func explainerBox() -> UIVisualEffectView {
+        GlassKit.panel(corner: Metric.rowCorner, interactive: false, tint: nil)
+    }
+
+    /// Inset a box's one child by the padding every box in this sheet uses.
+    /// Effect views host their children in `contentView`; adding to the view
+    /// itself puts them above the material rather than inside it.
+    private func fill(_ box: UIVisualEffectView, with content: UIView) {
+        box.contentView.addSubview(content)
+        NSLayoutConstraint.activate([
+            content.leadingAnchor.constraint(equalTo: box.contentView.leadingAnchor, constant: 14),
+            content.trailingAnchor.constraint(
+                equalTo: box.contentView.trailingAnchor, constant: -14),
+            content.topAnchor.constraint(equalTo: box.contentView.topAnchor, constant: 12),
+            content.bottomAnchor.constraint(equalTo: box.contentView.bottomAnchor, constant: -12),
+        ])
+    }
 
     private func label(
         _ text: String, size: CGFloat, weight: UIFont.Weight, kern: CGFloat, color: UIColor,

@@ -2,28 +2,46 @@
 
 import { useEffect, useState } from "react";
 
-import { platform, type NativePlatform } from "@/lib/native/platform";
+import { Browser } from "@capacitor/browser";
+
+import { WEB_ORIGIN } from "@/lib/native/origin";
+import { isNative, platform, type NativePlatform } from "@/lib/native/platform";
 
 /**
- * Where money is allowed to change hands, and where it is not.
+ * Where money is allowed to change hands, and how the app gets a player there.
  *
- * ── The rejection this file exists to stop ──────────────────────────────────
+ * ── The rule, and what changed about it ─────────────────────────────────────
  *
- * App Store Review Guideline 3.1.1: digital content used inside an iOS app
- * must be sold with In-App Purchase. A subscription button that opens Stripe
- * Checkout — which is exactly what `goToCheckout()` does — is the single most
- * reliably rejected thing an app can ship. Guideline 3.1.3(a) closes the other
- * door: the app may not carry buttons, links or calls to action pointing at a
- * purchase mechanism outside the app either, so "buy it on our website" is not
- * the fix. Google Play's Payments policy says the same thing about Play
- * Billing, which is why this returns false for both shells rather than only
- * for iOS.
+ * App Store Review Guideline 3.1.1: digital content used inside an iOS app is
+ * sold with In-App Purchase. That has not moved, and it is why nothing in a
+ * store build ever opens Stripe Checkout in the webview — `sellsHere()` is
+ * false on both shells and every in-app checkout button is gated on it. Google
+ * Play's Payments policy says the same about Play Billing.
  *
- * So the rule is one line: **a store build sells nothing.** Pro is bought on
- * the web, it attaches to a Novus account (never to a device), and the app
- * turns it on when that account signs in. Everything the player needs for that
- * — status, restore, cancel — exists inside the app, which is what keeps the
- * removal of the buttons from being a dead end.
+ * What did move is the other half. 3.1.3(a) used to forbid the app from
+ * carrying so much as a link to a purchase mechanism outside it, which left a
+ * store build with Restore and nothing else — a screen that told a player Pro
+ * existed and then refused to say where. Since the April 2025 US injunction in
+ * *Epic v. Apple*, US storefront apps may carry a plain link out to the web,
+ * with no entitlement, no commission and no interstitial. So the build offers
+ * one: **the purchase link leaves the app.** It opens the pricing section of
+ * the website in the player's own browser, the sale happens there against
+ * their Novus account, and the app picks it up on the next sync or Restore.
+ *
+ * Two things keep that honest, and both are load-bearing:
+ *
+ * · **It genuinely leaves.** `Browser.open` is a Safari view with Safari's
+ *   cookies, not an embedded webview wearing a browser costume. A purchase
+ *   flow rendered inside the app's own webview is an in-app purchase however
+ *   it is framed.
+ * · **Restore stays.** It is the path by which a purchase made anywhere
+ *   arrives here, and App Review looks for it in any app where something can
+ *   be bought. Smaller than the link, because the link is what most people
+ *   need and Restore is what some people need.
+ *
+ * Outside the US storefront this link is the thing to switch off first if a
+ * review ever objects: delete the two call sites, and the build is the
+ * sells-nothing build it was before, with Restore already in place.
  *
  * ── Why a hook and not a plain call ─────────────────────────────────────────
  *
@@ -86,11 +104,45 @@ export const MANAGE_SUBSCRIPTION_NOTE =
   "Novus Pro is billed to your Novus account. Sign in on the web to change or cancel it — the change reaches this app the next time it syncs.";
 
 /**
- * The one line a store build shows where prices used to be.
+ * Where the purchase link goes.
  *
- * States a fact about the app and stops. No URL, no "visit", no instruction to
- * go anywhere: an App Store build that tells a player where else to buy is the
- * 3.1.3(a) rejection wearing a different coat.
+ * The website's pricing section, by id, so the browser lands on the plans
+ * rather than at the top of a marketing page the player then has to scroll.
+ * Absolute on purpose — see WEB_ORIGIN.
  */
-export const NOT_SOLD_HERE_NOTE =
-  "Nothing is sold inside this app. If your Novus account already has Pro, it switches on when you sign in.";
+export const PRO_PURCHASE_URL = `${WEB_ORIGIN}/#pro`;
+
+/**
+ * Leaves the app for the pricing page.
+ *
+ * `Browser.open` on a device: a real Safari view sharing Safari's cookies, so
+ * a player already signed in on the web is still signed in when they get
+ * there, and the purchase attaches to the account it should. A plain tab on
+ * the web, where this is only ever reached by someone who wants the full
+ * pricing page rather than the sheet they are standing in.
+ */
+export async function openProPurchase(): Promise<void> {
+  if (isNative()) {
+    try {
+      await Browser.open({ url: PRO_PURCHASE_URL });
+      return;
+    } catch {
+      // A binary that predates the Browser plugin being linked, or a native
+      // throw. Capacitor routes a window.open at a host that is not the app's
+      // own out to the system browser, so the link still leaves — and a
+      // rejection here would otherwise be an unhandled one, thrown from a tap
+      // handler that has no way to catch it.
+    }
+  }
+  window.open(PRO_PURCHASE_URL, "_blank", "noopener,noreferrer");
+}
+
+/**
+ * The line beside the purchase link in a store build.
+ *
+ * Says where the payment happens and how it gets back, because both halves are
+ * surprising: the sale is not on this screen, and the thing that finishes it
+ * here is Restore rather than another payment.
+ */
+export const BUY_IN_BROWSER_NOTE =
+  "Pro is bought on the web and attaches to your Novus account, not to this device. The link opens your browser; come back and tap Restore, or it arrives on the next sync.";

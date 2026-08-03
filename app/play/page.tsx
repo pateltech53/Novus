@@ -255,6 +255,7 @@ function PlayScreen() {
     visible: !!run && !overlay,
     coach: coachTarget,
     month: run?.month ?? 1,
+    year: run?.year ?? 1,
     atGate,
     canAdvance: !!run?.alive && !current,
     pro: !!run?.pro,
@@ -417,6 +418,7 @@ function PlayScreen() {
               <div data-coach="advance">
                 <AdvanceButton
                   month={run.month}
+                  year={run.year}
                   atGate={atGate}
                   disabled={!!current || !run.alive}
                   onAdvance={game.advance}

@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { GLOSSARY } from "@/lib/engine/constants";
+import { Glass } from "@/components/ui/Glass";
 
 /**
  * Term-on-first-use. The shark defines a word the moment it first appears on
@@ -10,6 +11,11 @@ import { GLOSSARY } from "@/lib/engine/constants";
  *
  * It docks above the advance bar rather than floating over the log: it quotes
  * a live number, so it must never cover the thing it is describing.
+ *
+ * Glass, and always was in every renderer but this one: on iOS the identical
+ * note is a floated `UIGlassEffect` panel (GlassChromeController.toast). This
+ * is a toast, which design.md names as one of the surfaces glass is for — it
+ * explains the board rather than being part of it.
  */
 export function TermCoach({
   term,
@@ -39,26 +45,28 @@ export function TermCoach({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
     >
-      <button
-        type="button"
-        onClick={onDismiss}
-        className="nv-press mx-auto flex w-full max-w-2xl items-start gap-3 rounded-[var(--radius-row)] bg-[var(--surface-overlay)] px-4 py-3 text-left shadow-[var(--e3)]"
-      >
-        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--n-6)] text-2xs font-extrabold text-[var(--text-primary)]">
-          ?
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-2xs font-bold tracking-[0.14em] text-[var(--text-secondary)]">
-            {term.toUpperCase()}
+      <Glass className="mx-auto w-full max-w-2xl overflow-hidden rounded-[var(--radius-row)]">
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="nv-press flex w-full items-start gap-3 px-4 py-3 text-left"
+        >
+          <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--n-6)] text-2xs font-extrabold text-[var(--text-primary)]">
+            ?
           </span>
-          <span className="mt-0.5 block text-sm leading-snug text-[var(--text-primary)]">
-            {detail ?? capitalize(gloss.rookie)}
+          <span className="min-w-0 flex-1">
+            <span className="block text-2xs font-bold tracking-[0.14em] text-[var(--text-secondary)]">
+              {term.toUpperCase()}
+            </span>
+            <span className="mt-0.5 block text-sm leading-snug text-[var(--text-primary)]">
+              {detail ?? capitalize(gloss.rookie)}
+            </span>
+            <span className="mt-1 block text-2xs text-[var(--text-tertiary)]">
+              {gloss.pro} · tap to dismiss
+            </span>
           </span>
-          <span className="mt-1 block text-2xs text-[var(--text-tertiary)]">
-            {gloss.pro} · tap to dismiss
-          </span>
-        </span>
-      </button>
+        </button>
+      </Glass>
     </motion.div>
   );
 }

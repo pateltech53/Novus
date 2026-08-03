@@ -389,6 +389,29 @@ textarea {
   );
 }
 
+/* ── Tinted glass ─────────────────────────────────────────────────────────
+   The web's half of `UIGlassEffect.tintColor`. Only layer 2 changes: the tint
+   goes INTO the material, which is why the pane still reads as a pane rather
+   than as an orange rectangle with a blur behind it. The ring and the specular
+   brighten with it, because a lit edge on a saturated pane has to clear the
+   pane to still be an edge.
+
+   The accent rule is not relaxed by this. `action` belongs to the one control
+   that moves time and to nothing else; `prestige` to the year gate. */
+.nv-glass[data-tone="action"] {
+  --glass-tint: color-mix(in oklch, var(--action) 82%, transparent);
+  --glass-ring: oklch(1 0 0 / 0.24);
+  --glass-specular: oklch(1 0 0 / 0.5);
+  --glass-underside: oklch(0 0 0 / 0.2);
+}
+
+.nv-glass[data-tone="prestige"] {
+  --glass-tint: color-mix(in oklch, var(--color-prestige) 84%, transparent);
+  --glass-ring: oklch(1 0 0 / 0.3);
+  --glass-specular: oklch(1 0 0 / 0.6);
+  --glass-underside: oklch(0 0 0 / 0.16);
+}
+
 /* Over the canvas, and on engines without backdrop-filter, go opaque. The
    edges stay: a solid panel still has a lit top and a shadowed underside, and
    dropping them here is what makes the fallback look like a different
@@ -404,6 +427,27 @@ textarea {
   .nv-glass {
     background: var(--surface-overlay);
     will-change: auto;
+  }
+}
+
+/* A tinted surface that cannot blur is the flat accent it was before glass
+   existed — never the neutral panel, which would drop the CTA's colour on the
+   one engine that cannot show the material. */
+.nv-glass[data-glass="solid"][data-tone="action"],
+.nv-glass[data-tone="action"] {
+  --glass-solid: var(--action);
+}
+.nv-glass[data-glass="solid"][data-tone="prestige"],
+.nv-glass[data-tone="prestige"] {
+  --glass-solid: var(--color-prestige);
+}
+.nv-glass[data-glass="solid"][data-tone] {
+  background: var(--glass-solid, var(--surface-overlay));
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .nv-glass[data-tone] {
+    background: var(--glass-solid, var(--surface-overlay));
   }
 }
 

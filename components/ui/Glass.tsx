@@ -18,6 +18,21 @@
  *   4. an inset hairline ring
  */
 
+/**
+ * What colours the material itself.
+ *
+ * `action` and `prestige` are the web's answer to `UIGlassEffect.tintColor`:
+ * the tint goes into layer 2, so the pane is still a pane — lit edge, shadowed
+ * underside, the content behind it still showing through. Painting the accent
+ * over the top instead gives a coloured rectangle that happens to have a blur
+ * behind it, which is the thing this whole file exists not to be.
+ *
+ * A tinted surface still counts against the two-glass-surfaces budget, and the
+ * accent rule is unchanged: `action` belongs to the one control that asks you
+ * to do something, and nothing else.
+ */
+export type GlassTone = "neutral" | "action" | "prestige";
+
 interface GlassProps extends React.HTMLAttributes<HTMLElement> {
   /** Rendered element. `React.ElementType` widens props to `never`, so this
    *  is deliberately narrowed to the tags glass is actually allowed on. */
@@ -28,11 +43,13 @@ interface GlassProps extends React.HTMLAttributes<HTMLElement> {
    * iOS Safari jank source, and it will not reproduce in a desktop browser.
    */
   solid?: boolean;
+  tone?: GlassTone;
 }
 
 export function Glass({
   as: Tag = "div",
   solid = false,
+  tone = "neutral",
   className = "",
   children,
   ...rest
@@ -40,6 +57,9 @@ export function Glass({
   return (
     <Tag
       data-glass={solid ? "solid" : "blur"}
+      // Absent rather than "neutral" for the default, so the attribute
+      // selector in globals.css only ever matches a deliberate choice.
+      data-tone={tone === "neutral" ? undefined : tone}
       className={`nv-glass ${className}`}
       {...rest}
     >
