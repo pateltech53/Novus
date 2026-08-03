@@ -106,7 +106,7 @@ export function ChapterSeven({ report }: { report: AutopsyReport }) {
         <button
           type="button"
           onClick={game.abandonRun}
-          className="mt-6 w-full rounded-[var(--radius-card)] bg-[var(--action)] px-5 py-4 text-base font-extrabold tracking-[0.06em] text-[var(--n-11)] transition-colors duration-150 hover:bg-[var(--action-hover)] active:bg-[var(--action-press)]"
+          className="nv-gc mt-6 w-full rounded-[var(--radius-card)] nv-t-action px-5 py-4 text-base font-extrabold tracking-[0.06em]"
         >
           FOUND ANOTHER ONE ▸
         </button>

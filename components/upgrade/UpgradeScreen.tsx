@@ -218,10 +218,10 @@ export function UpgradeScreen({
                 play("click");
                 setPlan(p);
               }}
-              className={`nv-press rounded-[var(--radius-card)] px-3 py-2.5 text-left ${
+              className={`nv-gc rounded-[var(--radius-card)] px-3 py-2.5 text-left ${
                 on
-                  ? "bg-[var(--surface-elevated)] shadow-[var(--e2)]"
-                  : "bg-[var(--surface)]"
+                  ? "nv-on shadow-[var(--e2)]"
+                  : ""
               }`}
             >
               {/* Stacked, not "$6.99 A MONTH" on one line. Side by side, the
@@ -256,7 +256,7 @@ export function UpgradeScreen({
         type="button"
         onClick={takePro}
         disabled={busy}
-        className="nv-press mt-3 h-14 w-full rounded-[var(--radius-pill)] bg-[var(--action)] text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--on-action)] shadow-[var(--e2)] disabled:opacity-60"
+        className="nv-gc mt-3 h-14 w-full rounded-[var(--radius-pill)] nv-t-action text-[1.0625rem] font-extrabold tracking-[0.04em] shadow-[var(--e2)] disabled:opacity-60"
       >
         {busy ? "OPENING…" : "GET PRO"}
       </button>
@@ -313,7 +313,7 @@ export function UpgradeScreen({
       <button
         type="button"
         onClick={onClose}
-        className="nv-press mt-2.5 h-14 w-full rounded-[var(--radius-pill)] bg-[var(--surface-elevated)] text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--text-primary)]"
+        className="nv-gc mt-2.5 h-14 w-full rounded-[var(--radius-pill)] nv-on text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--text-primary)]"
       >
         KEEP PLAYING FREE
       </button>
@@ -363,7 +363,7 @@ export function UpgradeScreen({
           <button
             type="button"
             onClick={onClose}
-            className="nv-press -mr-1 -mt-1 shrink-0 rounded-full px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]"
+            className="nv-gc nv-t-quiet -mr-1 -mt-1 shrink-0 rounded-full px-3 py-1.5 text-2xs font-bold tracking-[0.12em]"
           >
             CLOSE
           </button>

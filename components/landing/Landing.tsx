@@ -99,7 +99,7 @@ export function Landing() {
   return (
     <main className="min-h-dvh">
       {/* ── 1 · The stage ─────────────────────────────────────────────────── */}
-      <header className="nv-stage relative overflow-hidden">
+      <header data-live-3d className="nv-stage relative overflow-hidden">
         <div className="mx-auto w-full max-w-6xl px-6 lg:px-10">
           <div className="flex items-baseline justify-between pt-[max(1.5rem,env(safe-area-inset-top))]">
             <p className="text-sm font-extrabold tracking-[0.24em]">NOVUS</p>
@@ -495,7 +495,7 @@ function PricingSection() {
             <button
               type="button"
               onClick={() => void enter()}
-              className="nv-press mt-6 w-full rounded-full bg-[var(--n-4)] px-5 py-3 text-sm font-extrabold tracking-[0.04em]"
+              className="nv-gc mt-6 w-full rounded-full px-5 py-3 text-sm font-extrabold tracking-[0.04em]"
             >
               PLAY FREE
             </button>
@@ -526,7 +526,7 @@ function PricingSection() {
                 type="button"
                 onClick={() => void choosePro(PRO_MONTHLY)}
                 disabled={busy !== null}
-                className="nv-press w-full rounded-full bg-[var(--action)] px-4 py-3 text-sm font-extrabold tracking-[0.04em] text-[var(--on-action)] disabled:opacity-60"
+                className="nv-gc w-full rounded-full nv-t-action px-4 py-3 text-sm font-extrabold tracking-[0.04em] disabled:opacity-60"
               >
                 {busy === PRO_MONTHLY.id ? "OPENING…" : "MONTHLY"}
               </button>
@@ -534,7 +534,7 @@ function PricingSection() {
                 type="button"
                 onClick={() => void choosePro(PRO_YEARLY)}
                 disabled={busy !== null}
-                className="nv-press w-full rounded-full bg-[var(--action)] px-4 py-3 text-sm font-extrabold tracking-[0.04em] text-[var(--on-action)] disabled:opacity-60"
+                className="nv-gc w-full rounded-full nv-t-action px-4 py-3 text-sm font-extrabold tracking-[0.04em] disabled:opacity-60"
               >
                 {busy === PRO_YEARLY.id ? "OPENING…" : "YEARLY"}
               </button>
@@ -594,7 +594,7 @@ function PricingSection() {
             </dl>
             <a
               href="mailto:team@novuspitch.com?subject=Novus%20chapter%20licence"
-              className="nv-press mt-6 w-full rounded-full bg-[var(--n-4)] px-5 py-3 text-center text-sm font-extrabold tracking-[0.04em]"
+              className="nv-gc mt-6 w-full rounded-full px-5 py-3 text-center text-sm font-extrabold tracking-[0.04em]"
             >
               EMAIL THE TEAM
             </a>

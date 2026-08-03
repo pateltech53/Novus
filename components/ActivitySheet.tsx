@@ -81,7 +81,7 @@ export function ActivitySheet({
               <button
                 type="button"
                 onClick={onClose}
-                className="shrink-0 rounded-full bg-[var(--chip)] px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
+                className="nv-gc shrink-0 rounded-full px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
               >
                 CLOSE
               </button>

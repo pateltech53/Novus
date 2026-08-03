@@ -696,8 +696,8 @@ function GateButton({
       // the tap highlight is suppressed on the element rather than globally —
       // design.md §6, which is explicit that doing it globally breaks text
       // selection.
-      style={{ touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
-      className="block h-14 w-full truncate rounded-[var(--radius-pill)] bg-[var(--action)] px-6 text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--on-action)] shadow-[var(--e3)] transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-35"
+      style={{ touchAction:"manipulation", WebkitTapHighlightColor:"transparent" }}
+      className="nv-gc block h-14 w-full truncate rounded-[var(--radius-pill)] nv-t-action px-6 text-[1.0625rem] font-extrabold tracking-[0.04em] shadow-[var(--e3)] disabled:cursor-not-allowed disabled:opacity-35"
     >
       {children}
     </button>

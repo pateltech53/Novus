@@ -1,9 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useGame } from "@/lib/state/GameProvider";
 import { SoundToggle } from "@/components/ui/SoundToggle";
+import {
+  GlassButton,
+  GlassGroup,
+  GlassRow,
+  GlassSegmented,
+} from "@/components/ui/Glass";
+import { useNativeOverlay, useNativeOverlayOwned } from "@/components/native/useNativeOverlay";
+import { useResolvedTheme } from "@/lib/native/theme";
 import { LegalSheet } from "@/components/LegalSheet";
 import { loadTheme, saveTheme, type ThemeChoice } from "@/lib/theme";
 import { APP_VERSION, SUPPORT_EMAIL, supportMailto } from "@/lib/app-info";
@@ -73,6 +81,33 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
     saveTheme(next);
   };
 
+  const native = useNativeOverlayOwned();
+  const resolved = useResolvedTheme();
+
+  /*
+   * The screen's own chrome, drawn by UIKit.
+   *
+   * Settings is a full-page overlay with its own ground, which is what makes
+   * it the right home for a floating glass toolbar: there is nothing for it to
+   * collide with and the whole page scrolls under it, which is the one thing a
+   * Liquid Glass toolbar is actually for. DONE is a glass circle in the
+   * trailing cluster; the title rides on a glass plate beside it.
+   */
+  useNativeOverlay(
+    useMemo(
+      () => ({
+        mode: "shown" as const,
+        theme: resolved,
+        title: "Settings",
+        trailing: [
+          { id: "done", symbol: "xmark", label: "Close settings", style: "plain" as const },
+        ],
+      }),
+      [resolved],
+    ),
+    { onAction: onClose },
+  );
+
   return (
     <motion.div
       className="fixed inset-0 z-40 overflow-y-auto bg-[var(--bg)]"
@@ -84,49 +119,39 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
       aria-modal="true"
       aria-label="Settings"
     >
-      {/* Centred column on desktop rather than a stretched sheet. */}
-      <div className="mx-auto w-full max-w-lg px-5 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(2.5rem,env(safe-area-inset-bottom))]">
+      {/* Centred column on desktop rather than a stretched sheet. The top pad
+          clears the native toolbar where there is one, and is the plain safe
+          area everywhere else — `--nv-overlay-top` is 0 off iOS. */}
+      <div className="mx-auto w-full max-w-lg px-5 pt-[max(1.25rem,env(safe-area-inset-top),var(--nv-overlay-top))] pb-[max(2.5rem,env(safe-area-inset-bottom))]">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-extrabold tracking-[-0.01em]">Settings</h1>
-          <button
-            type="button"
-            onClick={onClose}
-            className="nv-press h-10 rounded-[var(--radius-pill)] px-4 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
-          >
-            DONE
-          </button>
+          {/* UIKit draws both of these when it owns the screen. Not rendered
+              rather than hidden: a hidden button still takes a tap on iOS. */}
+          {native ? null : (
+            <>
+              <h1 className="text-xl font-extrabold tracking-[-0.01em]">Settings</h1>
+              <GlassButton
+                shape="pill"
+                onClick={onClose}
+                className="text-2xs tracking-[0.12em]"
+              >
+                DONE
+              </GlassButton>
+            </>
+          )}
         </div>
 
         {/* ── Appearance ─────────────────────────────────────────────────── */}
         <Section label="APPEARANCE">
-          <div
-            role="radiogroup"
-            aria-label="Theme"
-            className="grid grid-cols-3 gap-2"
-          >
-            {(
-              [
-                { id: "system", label: "System" },
-                { id: "light", label: "Light" },
-                { id: "dark", label: "Dark" },
-              ] as { id: ThemeChoice; label: string }[]
-            ).map((opt) => (
-              <button
-                key={opt.id}
-                type="button"
-                role="radio"
-                aria-checked={theme === opt.id}
-                onClick={() => pickTheme(opt.id)}
-                className={`nv-press rounded-[var(--radius-row)] py-3 text-sm font-bold ${
-                  theme === opt.id
-                    ? "bg-[var(--surface-elevated)] text-[var(--text-primary)] shadow-[var(--e2)]"
-                    : "bg-[var(--surface)] text-[var(--text-tertiary)]"
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
+          <GlassSegmented<ThemeChoice>
+            label="Theme"
+            value={theme}
+            onChange={pickTheme}
+            options={[
+              { id: "system", label: "System" },
+              { id: "light", label: "Light" },
+              { id: "dark", label: "Dark" },
+            ]}
+          />
           <p className="mt-2 text-2xs leading-snug text-[var(--text-tertiary)]">
             System follows your phone. Both themes are built and shipped — dark
             is not a debug mode.
@@ -181,36 +206,39 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
                 run does not.
               </p>
 
+              {/* `danger` is red ink on glass — dangerous without looking
+                  already-pressed. `alert` is the red ground, and it belongs to
+                  the second tap only. */}
               {!confirmEnd ? (
-                <button
-                  type="button"
+                <GlassButton
+                  tone="danger"
                   onClick={() => setConfirmEnd(true)}
-                  className="nv-press mt-3 h-12 w-full rounded-[var(--radius-pill)] bg-[var(--surface-overlay)] text-sm font-bold text-[var(--alert)]"
+                  className="mt-3 text-sm"
                 >
                   End this business
-                </button>
+                </GlassButton>
               ) : (
                 <div className="mt-3 space-y-2">
                   <p className="text-2xs font-bold tracking-[0.1em] text-[var(--alert)]">
                     THIS CANNOT BE UNDONE.
                   </p>
-                  <button
-                    type="button"
+                  <GlassButton
+                    tone="alert"
                     onClick={() => {
                       game.endRun();
                       onClose();
                     }}
-                    className="nv-press h-12 w-full rounded-[var(--radius-pill)] bg-[var(--alert)] text-sm font-extrabold tracking-[0.04em] text-[var(--on-action)]"
+                    className="text-sm font-extrabold tracking-[0.04em]"
                   >
                     Yes, end {run.companyName}
-                  </button>
-                  <button
-                    type="button"
+                  </GlassButton>
+                  <GlassButton
+                    tone="quiet"
                     onClick={() => setConfirmEnd(false)}
-                    className="nv-press h-11 w-full rounded-[var(--radius-pill)] text-sm font-bold text-[var(--text-secondary)]"
+                    className="h-11 text-sm"
                   >
                     Keep going
-                  </button>
+                  </GlassButton>
                 </div>
               )}
             </div>
@@ -219,9 +247,12 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
 
         {/* ── Legal, support, and which build this is ─────────────────────── */}
         <Section label="ABOUT NOVUS">
-          <div className="divide-y divide-[var(--hairline)] overflow-hidden rounded-[var(--radius-row)] bg-[var(--surface)]">
-            <RowButton label="Privacy policy" onClick={() => setLegal(PRIVACY)} />
-            <RowButton label="Terms of use" onClick={() => setLegal(TERMS)} />
+          {/* One pane of glass with three controls cut out of it, rather than
+              three panes — the web's answer to `UIGlassContainerEffect`, and
+              the reason this list costs one compositor pass and not three. */}
+          <GlassGroup>
+            <GlassRow label="Privacy policy" onClick={() => setLegal(PRIVACY)} />
+            <GlassRow label="Terms of use" onClick={() => setLegal(TERMS)} />
             {/* A real inbox, and the same address the store listing gives as
                 its support URL. Reviewers do write to it. */}
             <RowLink
@@ -229,7 +260,7 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
               value={SUPPORT_EMAIL}
               href={supportMailto("Novus — help")}
             />
-          </div>
+          </GlassGroup>
           <p className="tnum mt-2 text-2xs text-[var(--text-tertiary)]">
             Novus {APP_VERSION} · built at LaunchX Flagship, San Diego 2026
           </p>
@@ -401,14 +432,13 @@ function AccountSection() {
               account keeps its copy.
             </p>
 
-            <button
-              type="button"
+            <GlassButton
               onClick={() => void leaveAccount()}
               disabled={busy}
-              className="nv-press mt-3 h-12 w-full rounded-[var(--radius-pill)] bg-[var(--surface-overlay)] text-sm font-bold text-[var(--text-primary)] disabled:opacity-50"
+              className="mt-3 text-sm"
             >
               Sign out
-            </button>
+            </GlassButton>
           </div>
 
           {/* Deletion is its own card, below the ordinary controls, in the
@@ -429,27 +459,25 @@ function AccountSection() {
                 THIS CANNOT BE UNDONE.
               </p>
             )}
-            <button
-              type="button"
+            <GlassButton
+              tone={confirmDelete ? "alert" : "danger"}
               onClick={() => void remove()}
               disabled={busy}
-              className={`nv-press mt-2.5 h-12 w-full rounded-[var(--radius-pill)] text-sm font-bold disabled:opacity-50 ${
-                confirmDelete
-                  ? "bg-[var(--alert)] font-extrabold tracking-[0.04em] text-[var(--on-action)]"
-                  : "bg-[var(--surface-overlay)] text-[var(--alert)]"
+              className={`mt-2.5 text-sm ${
+                confirmDelete ? "font-extrabold tracking-[0.04em]" : ""
               }`}
             >
               {confirmDelete ? "Yes, delete my account" : "Delete my account"}
-            </button>
+            </GlassButton>
             {confirmDelete && (
-              <button
-                type="button"
+              <GlassButton
+                tone="quiet"
                 onClick={() => setConfirmDelete(false)}
                 disabled={busy}
-                className="nv-press mt-2 h-11 w-full rounded-[var(--radius-pill)] text-sm font-bold text-[var(--text-secondary)]"
+                className="mt-2 h-11 text-sm"
               >
                 Keep my account
-              </button>
+              </GlassButton>
             )}
           </div>
         </>
@@ -465,13 +493,9 @@ function AccountSection() {
           </p>
 
           {!open ? (
-            <button
-              type="button"
-              onClick={() => setOpen(true)}
-              className="nv-press mt-3 h-12 w-full rounded-[var(--radius-pill)] bg-[var(--surface-overlay)] text-sm font-bold text-[var(--text-primary)]"
-            >
+            <GlassButton onClick={() => setOpen(true)} className="mt-3 text-sm">
               Sign in
-            </button>
+            </GlassButton>
           ) : (
             <form
               className="mt-3"
@@ -504,21 +528,24 @@ function AccountSection() {
                 />
               </div>
 
-              <button
+              {/* The one control on this card that asks for something, so the
+                  one that takes the accent into the material. */}
+              <GlassButton
                 type="submit"
+                tone="action"
                 disabled={busy}
-                className="nv-press mt-3 h-12 w-full rounded-[var(--radius-pill)] bg-[var(--action)] text-sm font-extrabold tracking-[0.04em] text-[var(--on-action)] disabled:opacity-50"
+                className="mt-3 text-sm font-extrabold tracking-[0.04em]"
               >
                 {busy ? "SIGNING IN…" : "SIGN IN"}
-              </button>
-              <button
-                type="button"
+              </GlassButton>
+              <GlassButton
+                tone="quiet"
                 onClick={() => void forgot()}
                 disabled={busy}
-                className="nv-press mt-2 h-11 w-full rounded-[var(--radius-pill)] text-xs font-bold text-[var(--text-secondary)]"
+                className="mt-2 h-11 text-xs"
               >
                 Forgot your password?
-              </button>
+              </GlassButton>
               <p className="mt-1 text-2xs leading-snug text-[var(--text-tertiary)]">
                 New accounts are made at novuspitch.com, where the human check
                 can run. Signing in here brings that account&rsquo;s companies
@@ -631,13 +658,12 @@ function ProSection() {
             a button that cannot work. */}
         {pro &&
           (sellsHere === true ? (
-            <button
-              type="button"
+            <GlassButton
               onClick={() => void openBillingPortal()}
-              className="nv-press mt-2 h-12 w-full rounded-[var(--radius-pill)] bg-[var(--surface-overlay)] text-sm font-bold text-[var(--text-primary)]"
+              className="mt-2 text-sm"
             >
               Manage subscription
-            </button>
+            </GlassButton>
           ) : sellsHere === false ? (
             <p className="mt-2 text-2xs leading-snug text-[var(--text-tertiary)]">
               {MANAGE_SUBSCRIPTION_NOTE}
@@ -669,16 +695,7 @@ function Section({ label, children }: { label: string; children: React.ReactNode
 
 /** A 48px list row. The height is the tap target, not the text. */
 const ROW =
-  "nv-press flex h-12 w-full items-center justify-between gap-3 px-4 text-left text-sm font-semibold text-[var(--text-primary)]";
-
-function RowButton({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <button type="button" onClick={onClick} className={ROW}>
-      {label}
-      <span aria-hidden className="text-[var(--text-tertiary)]">›</span>
-    </button>
-  );
-}
+  "nv-gc flex h-12 w-full items-center justify-between gap-3 px-4 text-left text-sm font-semibold text-[var(--text-primary)]";
 
 function RowLink({
   label,
@@ -726,9 +743,12 @@ function Field({
   // password has no business being truncated.
   const capped = type === "text";
   return (
+    // A field is a control, so it is made of the control material — the same
+    // tint, crest and ring as the buttons under it, minus the press, which a
+    // text field does not have.
     <label
       htmlFor={id}
-      className="block rounded-[var(--radius-row)] bg-[var(--surface)] px-4 py-3"
+      className="nv-ggroup block rounded-[var(--radius-row)] px-4 py-3"
     >
       <span className="block text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]">
         {label.toUpperCase()}

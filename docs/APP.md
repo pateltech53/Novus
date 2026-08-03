@@ -91,35 +91,98 @@ for.
 
 ## The Liquid Glass chrome
 
-Four Swift files in `ios/App/App/Native/`:
+Five Swift files in `ios/App/App/Native/`:
 
 | File | What it is |
 |---|---|
 | `GlassKit.swift` | The material, and the only place that decides what "glass" means |
-| `GlassChromeController.swift` | Tab bar, advance deck, masthead cluster, scroll-edge bar, glass notes |
+| `GlassChromeController.swift` | The play screen: tab bar, advance deck, masthead cluster, glass notes |
+| `GlassOverlayController.swift` | Every other screen: floating toolbar, segmented control, action dock |
 | `GlassSheetController.swift` | The month's decision, presented over a blurred game |
 | `NovusGlassPlugin.swift` | The Capacitor bridge |
 | `NovusBridgeViewController.swift` | Registers the plugin explicitly |
 
 and on the web side: `lib/native/glass.ts` (the contract), `lib/native/chrome.ts`
-(the handoff), and three hooks in `components/native/` for what the play screen
-asks for, the decision sheet, and term-on-first-use.
+(the handoff), and four hooks in `components/native/` for what the play screen
+asks for, what any other screen asks for, the decision sheet, and
+term-on-first-use.
 
-### Every surface design.md allows, and no others
+### Every surface design.md allows
 
 `design.md` §0 draws one line: **glass is a material for the control layer,
-never for content**, and *money is read on solid ground*. It then names the
-exact surfaces that may be glass. All of them now are, natively:
+never for content**, and *money is read on solid ground*.
+
+For a long time "the control layer" was read as *the chrome* — five named
+surfaces on one screen — and everything else in the app was a flat fill. §0 now
+says what it always meant: a **button is** the control layer. What that buys,
+natively:
 
 | Sanctioned surface | Where it is |
 |---|---|
 | floating tab bar / bottom nav | system `UITabBar` |
 | the FAB | tinted `UIGlassEffect` capsule — orange, or gold at the year gate |
+| a screen's toolbar, its filter and its primary action | `GlassOverlayController` |
+| every button on a screen the DOM still draws | `.nv-gc` in `globals.css` |
 | sheet grabber | `GlassSheetController` |
 | a sheet header once content scrolls under it | same, fading in on overscroll |
 | toasts | `toast(title:text:tone:)`, which term-on-first-use now uses |
 | the year-gate banner | the gold state of the FAB |
 | modal scrims | `GlassKit.backdrop()` behind the decision sheet |
+
+### The screens that used to have no glass at all
+
+`GlassChromeController` draws the play screen, and it was the only thing that
+drew anything. Every other screen in this game — the six activity screens, the
+closet, settings, the in-fiction phone, the panel room, onboarding, the year-end
+statement — is a full-screen web overlay, and a native view always composites
+above the webview, so the moment one opened the chrome had to withdraw
+(`mode: "hidden"`).
+
+Which meant the deeper a player went, the less Liquid Glass there was, until
+there was none. The material was a property of one screen rather than of the
+app.
+
+`GlassOverlayController` is the other half, and it is the same three rules:
+
+- **A floating glass toolbar** at the top — a leading cluster, a title on its
+  own plate, a trailing cluster, each cluster inside a `UIGlassContainerEffect`
+  so its circles merge and separate as the system's own do.
+- **A glass segmented control** under it, where a screen has a filter.
+- **A floating glass dock** at the bottom for what the screen is asking you to
+  do, built on `UIButton.Configuration.prominentGlass()` — Apple's own Liquid
+  Glass button, with the system's own metrics, disabled behaviour and contrast
+  handling, rather than a plain button laid on top of a blurred view.
+
+It measures itself after layout and reports `--nv-overlay-top` and
+`--nv-overlay-bottom`, and the screen underneath reserves exactly that. The
+sheet screens cap their own height against it — `max-h-[min(88dvh,calc(100dvh
+- var(--nv-overlay-top) - 0.75rem))]` — which is 88dvh everywhere there is no
+toolbar, because the variable is 0 there.
+
+Registration is a **stack**, not a setter (`components/native/useNativeOverlay.ts`).
+Screens genuinely nest — settings opens a legal document over itself, the closet
+previews an item — and whichever is on top is the one whose chrome is on screen.
+Unmounting re-pushes whatever is underneath, so closing a legal sheet does not
+leave a settings screen with no way out of it.
+
+### And on every platform: the control material
+
+Native draws the chrome. It cannot draw the other 170 buttons — they are DOM,
+they scroll, and a native view cannot be inside a web scroll container. So
+`globals.css` grew the control half of the material to sit beside the panel
+half:
+
+| Class | What it is |
+|---|---|
+| `.nv-gc` | A control. Blur, tint, specular crest, shadowed underside, ring, and a press that scales and brightens on the curve UIKit uses |
+| `.nv-ggroup` | The web's `UIGlassContainerEffect` — one blur for a whole cluster, children get a hairline. A thirteen-row settings list costs one compositor pass, not thirteen |
+| `nv-flat` | A control that is already ON glass. Keeps the tint and the press, drops the blur, because two stacked backdrops are a smudge rather than deeper glass |
+| `nv-t-*` | The tone, which colours the material rather than painting over it — the web's `UIGlassEffect.tintColor` |
+| `data-live-3d` | On a screen that runs a WebGL canvas. Every control inside it goes opaque |
+
+`components/ui/Glass.tsx` is still the only file allowed to reach for the
+material, and it now exports `GlassButton`, `GlassLink`, `GlassGroup`,
+`GlassRow`, `GlassSegmented` and `GlassPane` alongside the original panel.
 
 The masthead cluster additionally sits inside a `UIGlassContainerEffect`, so
 the circles merge and separate as the system's own do rather than reading as

@@ -45,7 +45,7 @@ export function PrimaryButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="h-14 w-full rounded-[var(--radius-pill)] bg-[var(--action)] text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--on-action)] shadow-[var(--e3)] transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-35"
+      className="nv-gc h-14 w-full rounded-[var(--radius-pill)] nv-t-action text-[1.0625rem] font-extrabold tracking-[0.04em] shadow-[var(--e3)] disabled:cursor-not-allowed disabled:opacity-35"
     >
       {children}
     </button>

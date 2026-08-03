@@ -21,6 +21,7 @@
 		A9F100000000000000000013 /* NovusGlassPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F100000000000000000003 /* NovusGlassPlugin.swift */; };
 		A9F100000000000000000014 /* NovusBridgeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F100000000000000000004 /* NovusBridgeViewController.swift */; };
 		A9F100000000000000000015 /* GlassSheetController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F100000000000000000005 /* GlassSheetController.swift */; };
+		A9F100000000000000000016 /* GlassOverlayController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F100000000000000000006 /* GlassOverlayController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -40,6 +41,7 @@
 		A9F100000000000000000003 /* NovusGlassPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NovusGlassPlugin.swift; sourceTree = "<group>"; };
 		A9F100000000000000000004 /* NovusBridgeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NovusBridgeViewController.swift; sourceTree = "<group>"; };
 		A9F100000000000000000005 /* GlassSheetController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassSheetController.swift; sourceTree = "<group>"; };
+		A9F100000000000000000006 /* GlassOverlayController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassOverlayController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -93,6 +95,7 @@
 			children = (
 				A9F100000000000000000001 /* GlassKit.swift */,
 				A9F100000000000000000002 /* GlassChromeController.swift */,
+				A9F100000000000000000006 /* GlassOverlayController.swift */,
 				A9F100000000000000000005 /* GlassSheetController.swift */,
 				A9F100000000000000000003 /* NovusGlassPlugin.swift */,
 				A9F100000000000000000004 /* NovusBridgeViewController.swift */,
@@ -184,6 +187,7 @@
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				A9F100000000000000000011 /* GlassKit.swift in Sources */,
 				A9F100000000000000000012 /* GlassChromeController.swift in Sources */,
+				A9F100000000000000000016 /* GlassOverlayController.swift in Sources */,
 				A9F100000000000000000015 /* GlassSheetController.swift in Sources */,
 				A9F100000000000000000013 /* NovusGlassPlugin.swift in Sources */,
 				A9F100000000000000000014 /* NovusBridgeViewController.swift in Sources */,

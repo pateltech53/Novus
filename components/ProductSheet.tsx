@@ -128,7 +128,7 @@ export function ProductSheet() {
         type="button"
         onClick={() => setLaunching(true)}
         disabled={live.length >= cap}
-        className="nv-press mt-4 w-full rounded-[var(--radius-row)] bg-[var(--action)] px-4 py-3.5 text-sm font-extrabold tracking-[0.04em] text-[var(--on-action)] disabled:bg-[var(--n-4)] disabled:text-[var(--n-7)]"
+        className="nv-gc mt-4 w-full rounded-[var(--radius-row)] nv-t-action px-4 py-3.5 text-sm font-extrabold tracking-[0.04em] disabled:bg-[var(--n-4)] disabled:text-[var(--n-7)]"
       >
         {live.length >= cap ? "AT CAPACITY — RETIRE SOMETHING FIRST" : `ADD A ${spec.noun.toUpperCase()}`}
       </button>
@@ -181,7 +181,7 @@ function ItemRow({
       <button
         type="button"
         onClick={onOpen}
-        className="nv-press flex w-full items-center gap-2.5 rounded-[var(--radius-row)] bg-[var(--surface)] px-3 py-2.5 text-left"
+        className="nv-gc flex w-full items-center gap-2.5 rounded-[var(--radius-row)] px-3 py-2.5 text-left"
       >
         <TrendGlyph dir={trend} />
         <span className="min-w-0 flex-1">
@@ -321,7 +321,7 @@ function ItemDetail({
         <button
           type="button"
           onClick={() => setConfirming(true)}
-          className="nv-press mt-5 w-full rounded-[var(--radius-row)] bg-[var(--n-4)] px-4 py-3 text-sm font-extrabold"
+          className="nv-gc mt-5 w-full rounded-[var(--radius-row)] px-4 py-3 text-sm font-extrabold"
         >
           DISCONTINUE IT
         </button>
@@ -338,14 +338,14 @@ function ItemDetail({
                 retireLineItem(item.id);
                 onBack();
               }}
-              className="nv-press flex-1 rounded-[var(--radius-row)] bg-[var(--alert)] px-3 py-2.5 text-xs font-extrabold text-white"
+              className="nv-gc flex-1 rounded-[var(--radius-row)] nv-t-alert px-3 py-2.5 text-xs font-extrabold text-white"
             >
               DISCONTINUE
             </button>
             <button
               type="button"
               onClick={() => setConfirming(false)}
-              className="nv-press flex-1 rounded-[var(--radius-row)] bg-[var(--n-4)] px-3 py-2.5 text-xs font-extrabold"
+              className="nv-gc flex-1 rounded-[var(--radius-row)] px-3 py-2.5 text-xs font-extrabold"
             >
               KEEP IT
             </button>
@@ -426,7 +426,7 @@ function LaunchFlow({ spec, onDone }: { spec: IndustrySpec; onDone: () => void }
               type="button"
               disabled={sanitizeName(name).length === 0}
               onClick={() => setStep(1)}
-              className="nv-press mt-5 w-full rounded-[var(--radius-row)] bg-[var(--action)] px-4 py-3.5 text-sm font-extrabold tracking-[0.04em] text-[var(--on-action)] disabled:bg-[var(--n-4)] disabled:text-[var(--n-7)]"
+              className="nv-gc mt-5 w-full rounded-[var(--radius-row)] nv-t-action px-4 py-3.5 text-sm font-extrabold tracking-[0.04em] disabled:bg-[var(--n-4)] disabled:text-[var(--n-7)]"
             >
               NEXT
             </button>
@@ -447,7 +447,7 @@ function LaunchFlow({ spec, onDone }: { spec: IndustrySpec; onDone: () => void }
                 type="button"
                 aria-label="Lower the price"
                 onClick={() => setPrice((p) => clampPrice(p - spec.priceStep, spec))}
-                className="nv-press flex h-9 w-9 items-center justify-center rounded-full bg-[var(--n-4)] text-lg font-extrabold"
+                className="nv-gc flex h-9 w-9 items-center justify-center rounded-full text-lg font-extrabold"
               >
                 −
               </button>
@@ -456,7 +456,7 @@ function LaunchFlow({ spec, onDone }: { spec: IndustrySpec; onDone: () => void }
                 type="button"
                 aria-label="Raise the price"
                 onClick={() => setPrice((p) => clampPrice(p + spec.priceStep, spec))}
-                className="nv-press flex h-9 w-9 items-center justify-center rounded-full bg-[var(--n-4)] text-lg font-extrabold"
+                className="nv-gc flex h-9 w-9 items-center justify-center rounded-full text-lg font-extrabold"
               >
                 +
               </button>
@@ -471,10 +471,10 @@ function LaunchFlow({ spec, onDone }: { spec: IndustrySpec; onDone: () => void }
                   key={t.label}
                   type="button"
                   onClick={() => setInvestTier(i as 0 | 1 | 2)}
-                  className={`nv-press flex w-full items-center justify-between rounded-[var(--radius-row)] px-3 py-2.5 text-left ${
+                  className={`nv-gc flex w-full items-center justify-between rounded-[var(--radius-row)] px-3 py-2.5 text-left ${
                     investTier === i
-                      ? "bg-[var(--surface-elevated)] font-bold ring-1 ring-[var(--text-primary)]"
-                      : "bg-[var(--surface)]"
+                      ? "nv-on font-bold ring-1 ring-[var(--text-primary)]"
+                      : ""
                   }`}
                 >
                   <span className="text-sm">{t.label}</span>
@@ -502,10 +502,10 @@ function LaunchFlow({ spec, onDone }: { spec: IndustrySpec; onDone: () => void }
                       key={String(o.value)}
                       type="button"
                       onClick={() => setChoiceIdx(i)}
-                      className={`nv-press w-full rounded-[var(--radius-row)] px-3 py-2.5 text-left text-sm ${
+                      className={`nv-gc w-full rounded-[var(--radius-row)] px-3 py-2.5 text-left text-sm ${
                         choiceIdx === i
-                          ? "bg-[var(--surface-elevated)] font-bold ring-1 ring-[var(--text-primary)]"
-                          : "bg-[var(--surface)]"
+                          ? "nv-on font-bold ring-1 ring-[var(--text-primary)]"
+                          : ""
                       }`}
                     >
                       {o.label}
@@ -526,10 +526,10 @@ function LaunchFlow({ spec, onDone }: { spec: IndustrySpec; onDone: () => void }
                       key={t}
                       type="button"
                       onClick={() => toggleTag(t)}
-                      className={`rounded-full px-2.5 py-1 text-2xs font-bold transition-colors ${
+                      className={`nv-gc rounded-full px-2.5 py-1 text-2xs font-bold ${
                         tags.includes(t)
-                          ? "bg-[var(--n-11)] text-[var(--n-0)]"
-                          : "bg-[var(--n-4)] text-[var(--n-9)]"
+                          ?"bg-[var(--n-11)] text-[var(--n-0)]"
+                          : "text-[var(--n-9)]"
                       }`}
                     >
                       {t}
@@ -542,7 +542,7 @@ function LaunchFlow({ spec, onDone }: { spec: IndustrySpec; onDone: () => void }
             <button
               type="button"
               onClick={() => setStep(2)}
-              className="nv-press mt-5 w-full rounded-[var(--radius-row)] bg-[var(--action)] px-4 py-3.5 text-sm font-extrabold tracking-[0.04em] text-[var(--on-action)]"
+              className="nv-gc mt-5 w-full rounded-[var(--radius-row)] nv-t-action px-4 py-3.5 text-sm font-extrabold tracking-[0.04em]"
             >
               NEXT
             </button>
@@ -595,14 +595,14 @@ function LaunchFlow({ spec, onDone }: { spec: IndustrySpec; onDone: () => void }
                 });
                 onDone();
               }}
-              className="nv-press mt-4 w-full rounded-[var(--radius-row)] bg-[var(--action)] px-4 py-3.5 text-sm font-extrabold tracking-[0.04em] text-[var(--on-action)] disabled:bg-[var(--n-4)] disabled:text-[var(--n-7)]"
+              className="nv-gc mt-4 w-full rounded-[var(--radius-row)] nv-t-action px-4 py-3.5 text-sm font-extrabold tracking-[0.04em] disabled:bg-[var(--n-4)] disabled:text-[var(--n-7)]"
             >
               {affordable ? "PUT IT OUT" : "NOT ENOUGH CASH"}
             </button>
             <button
               type="button"
               onClick={() => setStep(1)}
-              className="nv-press mt-2 w-full rounded-[var(--radius-row)] bg-[var(--n-4)] px-4 py-2.5 text-xs font-bold"
+              className="nv-gc mt-2 w-full rounded-[var(--radius-row)] px-4 py-2.5 text-xs font-bold"
             >
               CHANGE THE PRICE
             </button>

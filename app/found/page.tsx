@@ -219,7 +219,7 @@ function FoundPage() {
           <button
             type="button"
             onClick={() => router.push("/play")}
-            className="nv-press mt-3 h-12 w-full truncate rounded-[var(--radius-pill)] bg-[var(--action)] px-5 text-sm font-extrabold tracking-[0.06em] text-[var(--n-11)]"
+            className="nv-gc mt-3 h-12 w-full truncate rounded-[var(--radius-pill)] nv-t-action px-5 text-sm font-extrabold tracking-[0.06em] text-[var(--n-11)]"
           >
             {saved.alive ? "CONTINUE ▸" : "READ WHAT KILLED IT ▸"}
           </button>
@@ -248,10 +248,10 @@ function FoundPage() {
               type="button"
               onClick={() => setGender(g)}
               aria-pressed={gender === g}
-              className={`nv-press flex flex-col items-center rounded-[var(--radius-card)] p-2 ${
+              className={`nv-gc flex flex-col items-center rounded-[var(--radius-card)] p-2 ${
                 gender === g
-                  ? "bg-[var(--surface-elevated)] shadow-[var(--e2)]"
-                  : "bg-[var(--surface)]"
+                  ? "nv-on shadow-[var(--e2)]"
+                  : ""
               }`}
             >
               <FounderPortrait gender={g} tier={1} size={120} priority />
@@ -300,12 +300,12 @@ function FoundPage() {
                   setLockedNote(ind.name);
                   upgrade.notify("industries");
                 }}
-                className={`flex w-full items-center justify-between gap-2 rounded-[var(--radius-card)] border px-3 py-3 text-left transition-colors duration-150 ${
+                className={`nv-gc flex w-full items-center justify-between gap-2 rounded-[var(--radius-card)] border px-3 py-3 text-left ${
                   selected
-                    ? "border-[var(--text-primary)] bg-[var(--surface-elevated)] font-bold"
+                    ?"border-[var(--text-primary)] nv-on font-bold"
                     : ind.free || hasPro
-                      ? "border-[var(--hairline)] hover:bg-[var(--card)]"
-                      : "border-[var(--hairline)] opacity-55"
+                      ?"border-[var(--hairline)] hover:bg-[var(--card)]"
+                      :"border-[var(--hairline)] opacity-55"
                 }`}
               >
                 <span className="text-sm font-semibold leading-tight">{ind.name}</span>
@@ -371,7 +371,7 @@ function FoundPage() {
         {briefOpen && (
           <div className="mt-3 space-y-3">
             <BriefField
-              label="What kind of business is it?"
+              label="What kind of business is it? "
               hint="Burger shop. Study app. Sneaker label."
               value={brief.companyType}
               rows={1}
@@ -379,7 +379,7 @@ function FoundPage() {
               onChange={(v) => setField("companyType", v)}
             />
             <BriefField
-              label="What does it do?"
+              label="What does it do? "
               hint="What you sell, and who buys it."
               value={brief.whatItDoes}
               rows={3}
@@ -387,7 +387,7 @@ function FoundPage() {
               onChange={(v) => setField("whatItDoes", v)}
             />
             <BriefField
-              label="What makes it different?"
+              label="What makes it different? "
               hint="The one thing a competitor cannot copy by Friday."
               value={brief.usp}
               rows={2}
@@ -395,7 +395,7 @@ function FoundPage() {
               onChange={(v) => setField("usp", v)}
             />
             <BriefField
-              label="Why would someone choose you?"
+              label="Why would someone choose you? "
               hint="From the customer's side, not yours."
               value={brief.whyCustomers}
               rows={2}
@@ -403,7 +403,7 @@ function FoundPage() {
               onChange={(v) => setField("whyCustomers", v)}
             />
             <BriefField
-              label="What is it ultimately for?"
+              label="What is it ultimately for? "
               hint="Optional. One plain sentence."
               value={brief.mission}
               rows={2}
@@ -415,7 +415,7 @@ function FoundPage() {
               type="button"
               onClick={generate}
               disabled={writing}
-              className="nv-press h-11 w-full rounded-[var(--radius-pill)] bg-[var(--surface-elevated)] text-2xs font-extrabold tracking-[0.1em] text-[var(--text-primary)] shadow-[var(--e1)] disabled:opacity-50"
+              className="nv-gc h-11 w-full rounded-[var(--radius-pill)] nv-on text-2xs font-extrabold tracking-[0.1em] text-[var(--text-primary)] shadow-[var(--e1)] disabled:opacity-50"
             >
               {writing ? "WRITING…" : "I DON'T KNOW — WRITE A FIRST DRAFT"}
             </button>
@@ -451,10 +451,10 @@ function FoundPage() {
           type="button"
           onClick={start}
           disabled={!valid || slotsLeft === 0}
-          className={`w-full truncate rounded-[var(--radius-card)] px-5 py-4 text-base font-extrabold tracking-[0.06em] transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-35 ${
+          className={`nv-gc w-full truncate rounded-[var(--radius-card)] px-5 py-4 text-base font-extrabold tracking-[0.06em] disabled:cursor-not-allowed disabled:opacity-35 ${
             saved
-              ? "bg-[var(--surface-elevated)] text-[var(--text-primary)] shadow-[var(--e1)] hover:bg-[var(--surface-overlay)]"
-              : "bg-[var(--action)] text-[var(--n-11)] hover:bg-[var(--action-hover)] active:bg-[var(--action-press)]"
+              ? "nv-on text-[var(--text-primary)] shadow-[var(--e1)] hover:bg-[var(--surface-overlay)]"
+              : "nv-t-action"
           }`}
         >
           {slotsLeft === 0
@@ -464,7 +464,7 @@ function FoundPage() {
               : "FOUND IT ▸"}
         </button>
 
-        {/* Named, because "are you sure?" is not a question anyone reads. And
+        {/* Named, because "are you sure? " is not a question anyone reads. And
             a way back out, because an armed confirmation with no exit is a
             trap rather than a safeguard. */}
         {saved && confirmReplace && slotsLeft !== 0 && (

@@ -108,11 +108,11 @@ export function PitchNotes({
             type="button"
             onClick={() => setTab(t.id)}
             aria-pressed={tab === t.id}
-            className={`flex-1 rounded-[var(--radius-pill)] px-2 py-1.5 text-2xs font-extrabold tracking-[0.08em] transition-colors ${
+            className={`nv-gc flex-1 rounded-[var(--radius-pill)] px-2 py-1.5 text-2xs font-extrabold tracking-[0.08em] ${
               tab === t.id
                 ? onStage
-                  ? "bg-[var(--n-5)] text-[var(--n-11)]"
-                  : "bg-[var(--chip)] text-[var(--text-primary)]"
+                  ?"bg-[var(--n-5)]"
+                  : "text-[var(--text-primary)]"
                 : muted
             }`}
           >

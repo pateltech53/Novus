@@ -337,10 +337,10 @@ function OwnedCard({
             ? `Confirm sale of ${def.name} for ${fmtMoney(holding.value)}`
             : `Sell ${def.name} for ${fmtMoney(holding.value)}`
         }
-        className={`mt-3 h-11 w-full rounded-[var(--radius-pill)] text-2xs font-extrabold tracking-[0.12em] transition-transform duration-150 active:scale-[0.97] ${
+        className={`nv-gc mt-3 h-11 w-full rounded-[var(--radius-pill)] text-2xs font-extrabold tracking-[0.12em] ${
           arming
-            ? "bg-[var(--action)] text-[var(--n-11)]"
-            : "border border-[var(--action)]/45 text-[var(--action)]"
+            ? "nv-t-action"
+            :"border border-[var(--action)]/45 text-[var(--action)]"
         }`}
       >
         {arming
@@ -434,7 +434,7 @@ function ForSaleCard({
             type="button"
             onClick={() => upgrade.open("assets")}
             aria-label={`${def.name} is Pro. See what Pro adds.`}
-            className="nv-press h-11 shrink-0 rounded-[var(--radius-pill)] bg-[var(--chip)] px-6 text-2xs font-extrabold tracking-[0.12em] text-[var(--color-prestige)]"
+            className="nv-gc h-11 shrink-0 rounded-[var(--radius-pill)] px-6 text-2xs font-extrabold tracking-[0.12em] text-[var(--color-prestige)]"
           >
             SEE PRO
           </button>
@@ -448,7 +448,7 @@ function ForSaleCard({
                 ? `${def.name}, ${fmtMoney(short)} short`
                 : `Buy ${def.name} for ${fmtMoney(price)}`
             }
-            className="h-11 shrink-0 rounded-[var(--radius-pill)] bg-[var(--action)] px-6 text-2xs font-extrabold tracking-[0.12em] text-[var(--n-11)] transition-transform duration-150 enabled:active:scale-[0.97] disabled:cursor-not-allowed disabled:bg-[var(--chip)] disabled:text-[var(--text-tertiary)]"
+            className="nv-gc h-11 shrink-0 rounded-[var(--radius-pill)] nv-t-action px-6 text-2xs font-extrabold tracking-[0.12em] disabled:cursor-not-allowed disabled:bg-[var(--chip)] disabled:text-[var(--text-tertiary)]"
           >
             BUY
           </button>

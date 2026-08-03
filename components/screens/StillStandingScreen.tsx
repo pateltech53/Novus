@@ -198,7 +198,7 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
             <button
               type="button"
               onClick={onClose}
-              className="shrink-0 rounded-full bg-[var(--chip)] px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
+              className="nv-gc nv-flat shrink-0 rounded-full px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
             >
               CLOSE
             </button>
@@ -219,9 +219,9 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
                 type="button"
                 aria-selected={board === b.id}
                 onClick={() => setBoard(b.id)}
-                className={`nv-press rounded-[var(--radius-pill)] px-3 py-2 text-2xs font-bold tracking-[0.1em] transition-colors ${
+                className={`nv-gc nv-flat rounded-[var(--radius-pill)] px-3 py-2 text-2xs font-bold tracking-[0.1em] ${
                   board === b.id
-                    ? "bg-[var(--surface-elevated)] text-[var(--text-primary)]"
+                    ? "nv-on text-[var(--text-primary)]"
                     : "text-[var(--text-tertiary)]"
                 }`}
               >
@@ -388,7 +388,7 @@ function Row({
             <button
               type="button"
               onClick={() => setAsking(false)}
-              className="rounded-[var(--radius-pill)] bg-[var(--chip)] px-3 py-1.5 text-2xs font-bold text-[var(--text-secondary)]"
+              className="nv-gc rounded-[var(--radius-pill)] px-3 py-1.5 text-2xs font-bold text-[var(--text-secondary)]"
             >
               No
             </button>
@@ -408,7 +408,7 @@ function Row({
             type="button"
             onClick={() => setAsking(true)}
             aria-label={`Report ${row.company_name}`}
-            className="nv-press px-2 py-1 text-2xs font-semibold text-[var(--text-tertiary)]"
+            className="nv-gc nv-t-quiet rounded-[var(--radius-pill)] px-2.5 py-1 text-2xs font-semibold"
           >
             Report
           </button>
@@ -474,7 +474,7 @@ function SubmitPanel({
         type="button"
         disabled={!canSubmit || submitting}
         onClick={onSubmit}
-        className="mt-3 flex h-14 w-full items-center justify-center rounded-[var(--radius-pill)] bg-[var(--action)] px-4 text-center text-sm font-extrabold leading-tight text-[var(--n-11)] transition-transform duration-150 active:scale-[0.97] disabled:opacity-40"
+        className="nv-gc mt-3 flex h-14 w-full items-center justify-center rounded-[var(--radius-pill)] nv-t-action px-4 text-center text-sm font-extrabold leading-tight disabled:opacity-40"
       >
         {submitting ? "Verifying…" : submitted ? "Submit again" : "Submit this run"}
       </button>
@@ -514,7 +514,7 @@ function HandlePicker({
               type="button"
               disabled={busy}
               onClick={() => onPick(handle)}
-              className="nv-press w-full rounded-[var(--radius-card)] border border-[var(--hairline)] px-3 py-3 text-sm font-bold disabled:opacity-40"
+              className="nv-gc w-full rounded-[var(--radius-card)] px-3 py-3 text-sm font-bold disabled:opacity-40"
             >
               {handle}
             </button>

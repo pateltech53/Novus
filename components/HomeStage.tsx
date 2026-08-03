@@ -132,10 +132,10 @@ export function HomeStage({
           // The same 36px as the three controls opposite it. It was 26px,
           // which both missed a thumb and sat visibly short of the row it
           // shares a line with.
-          className={`nv-press flex h-9 items-center rounded-full px-3.5 text-2xs font-bold tracking-[0.12em] transition-colors ${
+          className={`nv-gc flex h-9 items-center rounded-full px-3.5 text-2xs font-bold tracking-[0.12em] transition-colors ${
             run.pro
-              ? "bg-[var(--color-prestige)] text-[var(--on-prestige)]"
-              : "bg-[var(--n-4)] text-[var(--n-8)]"
+              ? "nv-t-prestige"
+              : "text-[var(--n-8)]"
           }`}
         >
           {run.pro ? "PRO" : "FREE"}
@@ -148,7 +148,7 @@ export function HomeStage({
           data-opens
           onClick={() => onDossier(true)}
           aria-label="Company dossier"
-          className="nv-press flex h-9 w-9 items-center justify-center rounded-[0.7rem] bg-[var(--n-4)] text-[var(--n-10)]"
+          className="nv-gc flex h-9 w-9 items-center justify-center rounded-[0.7rem] text-[var(--n-10)]"
         >
           <DossierGlyph />
         </button>
@@ -156,7 +156,7 @@ export function HomeStage({
           type="button"
           onClick={onOpenBoard}
           aria-label="Still Standing — the global boards"
-          className="nv-press flex h-9 w-9 items-center justify-center rounded-[0.7rem] bg-[var(--n-4)] text-[var(--n-10)]"
+          className="nv-gc flex h-9 w-9 items-center justify-center rounded-[0.7rem] text-[var(--n-10)]"
         >
           <BoardGlyph />
         </button>
@@ -164,7 +164,7 @@ export function HomeStage({
           type="button"
           onClick={onOpenSettings}
           aria-label="Settings"
-          className="nv-press flex h-9 w-9 items-center justify-center rounded-[0.7rem] bg-[var(--n-4)] text-[var(--n-10)]"
+          className="nv-gc flex h-9 w-9 items-center justify-center rounded-[0.7rem] text-[var(--n-10)]"
         >
           <GearGlyph />
         </button>
@@ -173,7 +173,7 @@ export function HomeStage({
           data-coach="phone"
           onClick={onOpenPhone}
           aria-label="Open your phone"
-          className="flex h-9 w-9 items-center justify-center rounded-[0.7rem] bg-[var(--n-4)] text-[var(--n-10)] transition-transform active:scale-95"
+          className="nv-gc flex h-9 w-9 items-center justify-center rounded-[0.7rem] text-[var(--n-10)]"
         >
           <PhoneGlyph />
         </button>

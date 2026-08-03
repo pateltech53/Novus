@@ -401,7 +401,10 @@ export function PerformScreen() {
   if (!perform || !run) return null;
 
   return (
-    <main className="nv-stage fixed inset-0 z-[80] flex flex-col text-[var(--n-11)]">
+    <main
+      data-live-3d
+      className="nv-stage fixed inset-0 z-[80] flex flex-col text-[var(--n-11)]"
+    >
       {/* Phases animate in on mount; no exit crossfade (see welcome/page.tsx). */}
       {phase === "brief" ? (
           <motion.section
@@ -475,7 +478,7 @@ export function PerformScreen() {
               <button
                 type="button"
                 onClick={openCamera}
-                className="w-full rounded-[var(--radius-card)] bg-[var(--action)] px-5 py-4 text-base font-extrabold tracking-[0.06em] text-[var(--n-11)] transition-colors duration-150 hover:bg-[var(--action-hover)] active:bg-[var(--action-press)]"
+                className="nv-gc w-full rounded-[var(--radius-card)] nv-t-action px-5 py-4 text-base font-extrabold tracking-[0.06em]"
               >
                 {error ? "TRY THE CAMERA AGAIN ▸" : "OPEN THE CAMERA ▸"}
               </button>
@@ -483,7 +486,7 @@ export function PerformScreen() {
                 type="button"
                 data-opens
                 onClick={() => setDossier(true)}
-                className="nv-press mt-2 flex w-full items-center justify-center gap-2 rounded-[var(--radius-card)] bg-[var(--n-4)] px-5 py-3 text-xs font-bold tracking-[0.06em] text-[var(--n-10)]"
+                className="nv-gc mt-2 flex w-full items-center justify-center gap-2 rounded-[var(--radius-card)] px-5 py-3 text-xs font-bold tracking-[0.06em] text-[var(--n-10)]"
               >
                 <DossierGlyph size={15} />
                 CHECK YOUR NUMBERS
@@ -637,7 +640,7 @@ export function PerformScreen() {
                   type="button"
                   onClick={finishRecording}
                   disabled={elapsed < MIN_SECONDS}
-                  className="mt-3 w-full rounded-[var(--radius-card)] bg-[var(--action)] px-5 py-4 text-base font-extrabold tracking-[0.06em] text-[var(--n-11)] transition-colors duration-150 hover:bg-[var(--action-hover)] active:bg-[var(--action-press)] disabled:cursor-not-allowed disabled:opacity-45"
+                  className="nv-gc mt-3 w-full rounded-[var(--radius-card)] nv-t-action px-5 py-4 text-base font-extrabold tracking-[0.06em] disabled:cursor-not-allowed disabled:opacity-45"
                 >
                   {elapsed < MIN_SECONDS
                     ? `KEEP GOING · ${MIN_SECONDS - elapsed}s`
@@ -648,7 +651,7 @@ export function PerformScreen() {
                   type="button"
                   onClick={beginRecording}
                   disabled={!streamReady}
-                  className="mt-3 w-full rounded-[var(--radius-card)] bg-[var(--action)] px-5 py-4 text-base font-extrabold tracking-[0.06em] text-[var(--n-11)] transition-colors duration-150 hover:bg-[var(--action-hover)] active:bg-[var(--action-press)] disabled:cursor-not-allowed disabled:opacity-45"
+                  className="nv-gc mt-3 w-full rounded-[var(--radius-card)] nv-t-action px-5 py-4 text-base font-extrabold tracking-[0.06em] disabled:cursor-not-allowed disabled:opacity-45"
                 >
                   START TALKING ▸
                 </button>

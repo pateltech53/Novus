@@ -18,13 +18,45 @@ Apple's own guidance is the resolution:
 
 | Layer | What is in it | Material |
 |---|---|---|
-| **Content** | cards, The Books, lists, forms, closet grids | Opaque solid. Flat fill, no gradient, no blur, no transparency. Depth from shadow and elevation only. |
-| **Chrome** | tab bar, the advance capsule and the month badge beside it, sheet grabber, toasts, year-gate banner, phone status bar + dock, modal scrims | Liquid glass. Max **two** glass surfaces visible at once. |
+| **Content** | cards, The Books, lists, the ledger, closet grids, anything carrying a figure | Opaque solid. Flat fill, no gradient, no blur, no transparency. Depth from shadow and elevation only. |
+| **Controls** | every button, chip, row control, segmented control, field and toggle in the app | Liquid glass. The material, not a colour on a rectangle. |
+| **Chrome** | tab bar, the advance capsule and the month badge beside it, screen toolbars and docks, sheet grabber, toasts, year-gate banner, phone status bar + dock, modal scrims | Liquid glass. |
 | **The decision sheet** | its own surface, its choice rows, its explainer boxes and its one action button | Liquid glass, on iOS only. **The named exception**, below. |
 | **Stage** | mascot, panel room | Real 3D, real lighting. Depth from geometry and light. |
 
 **Money is read on solid ground.** Any element containing a financial figure is
 content, never glass — with one exception, named so that it stays an exception.
+
+### The controls row is a widening, and it is deliberate
+
+Until this revision "the control layer" was read as *the chrome* — five named
+surfaces — and every one of the app's ~170 buttons was a flat fill. That was a
+misreading of the law that survived because it was never written down either
+way: a button is the control layer. It is the *only* thing in the app that is
+unambiguously a control.
+
+So the law is unchanged and the reading is corrected. What follows from it:
+
+- **A control is made of the material, not painted with it.** A tone colours
+  layer 2 — `UIGlassEffect.tintColor` natively, `--gc-tint` on the web — which
+  is why a tinted control is still a lens. An accent painted over the top gives
+  a coloured rectangle that happens to have a blur behind it, which is the thing
+  the whole material exists not to be.
+- **The accent rule is not relaxed by there being more glass.** One `action`
+  control per screen. `prestige` for the year gate and what the gold marks.
+- **The "max two glass surfaces" budget is retired**, and is replaced by the
+  thing it was protecting: a control never blurs what another glass surface has
+  already blurred. Two stacked backdrops are a smudge, not deeper glass. On iOS
+  that is `UIGlassContainerEffect`; on the web it is `.nv-ggroup` and
+  `nv-flat`, and both mean the same thing — one pane of material with several
+  controls cut out of it.
+- **Never over live pixels.** A control inside a `data-live-3d` subtree goes
+  opaque, because compositing a backdrop-filter over a running WebGL canvas
+  re-rasterises the backdrop root every frame on exactly the phones that can
+  least afford it.
+- **Content did not move.** Cards, The Books, the ledger, the roster and every
+  figure in the app are still opaque, and a control that carries a figure sets
+  its ink to a full-strength label colour to pay for the material.
 
 ### The named exception: the decision sheet, on iOS
 
@@ -53,14 +85,16 @@ Three things keep it honest:
   `choiceRow` are the whole change. If it reads muddy on a device, put them
   back and the sheet keeps every other piece of glass it has.
 
-This also spends the "max two glass surfaces" budget deliberately: with a card
-open there are three — backdrop, sheet, rows — and the tab bar is withdrawn.
-More nesting than Apple's own guidance likes. Recorded here rather than left to
-be discovered.
+With a card open there are three glass surfaces — backdrop, sheet, rows — and
+the tab bar is withdrawn. More nesting than Apple's own guidance likes.
+Recorded here rather than left to be discovered.
 
 ### The gradient ledger — exactly three, named
 
-1. The specular sheen inside a glass element (`Glass.tsx`, layer 3).
+1. The specular sheen inside a glass element — the lit crest that makes a pane
+   read as a solid with thickness. One mechanism, at two scales: `.nv-glass` on
+   a panel, `.nv-gc` and `.nv-ggroup` on a control. Every instance of it is
+   this entry; a control is not a fourth gradient for having an edge.
 2. The mascot-stage vignette (one radial, over solid `--n-0`).
 3. The scrim fade at the bottom of a scrollable sheet.
 

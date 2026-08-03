@@ -157,7 +157,7 @@ export function DecisionSheet({
                 <button
                   type="button"
                   onClick={onDismiss}
-                  className="mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-[var(--radius-pill)] bg-[var(--action)] text-base font-extrabold tracking-[0.04em] text-[var(--on-action)] shadow-[var(--e3)] transition-transform duration-150 active:scale-[0.97]"
+                  className="nv-gc mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-[var(--radius-pill)] nv-t-action text-base font-extrabold tracking-[0.04em] shadow-[var(--e3)]"
                 >
                   <CameraGlyph />
                   OPEN THE CAMERA ▸

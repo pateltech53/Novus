@@ -1,8 +1,12 @@
 "use client";
 
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 
-import { Glass, GlassScrim } from "@/components/ui/Glass";
+import { Glass, GlassButton, GlassScrim } from "@/components/ui/Glass";
+import { useNativeOverlay, useNativeOverlayOwned } from "@/components/native/useNativeOverlay";
+import { useResolvedTheme } from "@/lib/native/theme";
+import type { NativeOverlaySegment } from "@/lib/native/glass";
 
 /**
  * The shell every activity tab opens into.
@@ -37,6 +41,21 @@ import { Glass, GlassScrim } from "@/components/ui/Glass";
  * `subnav` rides inside the pinned header rather than under it. Assets is the
  * only caller with one, and a segmented control that scrolls away is a control
  * you have to go and find.
+ *
+ * ── On iOS, the way out is UIKit's ──────────────────────────────────────────
+ *
+ * The header stays where it is; what moves is the CLOSE chip. When the native
+ * chrome is live it is drawn as a real `UIGlassEffect` circle floating over the
+ * scrim above the sheet — the system's own material, its own press deformation,
+ * its own specular edge — and the DOM chip is not rendered at all. Not hidden:
+ * a `visibility: hidden` button still takes a tap on iOS if the native view
+ * above it passes the touch through, and the player gets a dead zone nobody can
+ * see.
+ *
+ * `nativeSegments` is the same handoff for the subnav. A caller that passes it
+ * gets a real glass segmented control on iOS and its own `subnav` node
+ * everywhere else, which is why both props exist rather than one: a React node
+ * cannot cross a bridge, and a list of ids cannot be styled by Tailwind.
  */
 export function ScreenSheet({
   label,
@@ -46,6 +65,9 @@ export function ScreenSheet({
   title,
   blurb,
   subnav,
+  nativeSegments,
+  activeSegment,
+  onSegment,
   children,
 }: {
   /** The dialog's accessible name. */
@@ -68,8 +90,42 @@ export function ScreenSheet({
   blurb?: React.ReactNode;
   /** Pinned with the header. A segmented control, where a screen has one. */
   subnav?: React.ReactNode;
+  /**
+   * The same control, described so UIKit can draw it in the real material.
+   *
+   * A caller that passes this AND `subnav` gets the native one on iOS and the
+   * DOM one everywhere else, and never both — `subnav` is not rendered when
+   * the native chrome owns the screen.
+   */
+  nativeSegments?: NativeOverlaySegment[];
+  activeSegment?: string;
+  onSegment?: (id: string) => void;
   children: React.ReactNode;
 }) {
+  const native = useNativeOverlayOwned();
+  const theme = useResolvedTheme();
+
+  useNativeOverlay(
+    useMemo(
+      () => ({
+        mode: "shown" as const,
+        theme,
+        // No title plate. The sheet's own pinned header already carries the
+        // title, 60pt below this and inside the surface it names; a second copy
+        // floating over the scrim would be the same words twice.
+        title: null,
+        // The way out, and only the way out.
+        trailing: [
+          { id: "close", symbol: "xmark", label: closeLabel, style: "plain" as const },
+        ],
+        segments: nativeSegments ?? [],
+        activeSegment: activeSegment ?? null,
+      }),
+      [theme, closeLabel, nativeSegments, activeSegment],
+    ),
+    { onAction: onClose, onSegment: (id) => onSegment?.(id) },
+  );
+
   return (
     <motion.div
       className="fixed inset-0 z-50 flex items-end justify-center"
@@ -83,7 +139,16 @@ export function ScreenSheet({
         role="dialog"
         aria-modal="true"
         aria-label={label}
-        className="relative flex max-h-[88dvh] w-full max-w-2xl flex-col overflow-y-auto rounded-t-[1.75rem] bg-[var(--sheet)] pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[var(--e3)]"
+        /*
+         * The height is capped by the chrome above it as well as by the screen.
+         *
+         * `--nv-overlay-top` is what UIKit measured its floating toolbar to be,
+         * and it is 0 on the web and on Android where there is no toolbar — so
+         * this is `88dvh` everywhere except the one platform where 88dvh would
+         * put the sheet's grabber underneath a glass close button. Measured,
+         * not guessed: the same rule the play screen's chrome is built on.
+         */
+        className="relative flex max-h-[min(88dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] w-full max-w-2xl flex-col overflow-y-auto rounded-t-[1.75rem] bg-[var(--sheet)] pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[var(--e3)]"
         initial={{ y: "8%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
@@ -112,16 +177,34 @@ export function ScreenSheet({
               ) : null}
               <h2 className="truncate text-xl font-extrabold tracking-[-0.01em]">{title}</h2>
             </div>
-            {/* Solid, on the glass. See the note on the grabber. */}
-            <button
-              type="button"
-              onClick={onClose}
-              className="nv-press shrink-0 rounded-full bg-[var(--chip)] px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
-            >
-              CLOSE
-            </button>
+            {/*
+              Not rendered at all when UIKit has drawn it — see the note at the
+              top of this file. `visibility: hidden` is not good enough on iOS.
+            */}
+            {native ? null : (
+              <GlassButton
+                /*
+                 * `bare`, and the chip's own geometry kept to the pixel.
+                 *
+                 * A shape preset here made the pill 8px wider, and 8px is the
+                 * whole margin Company's eyebrow has at 320px — "FOOD &
+                 * BEVERAGE · GARAGE" went from fitting to clipped. The material
+                 * changed; the box it occupies did not.
+                 */
+                shape="bare"
+                /* On the glass header, so it takes the material's tint and
+                   press without blurring what the header already blurred. */
+                flat
+                onClick={onClose}
+                className="shrink-0 rounded-full px-3 py-1.5 text-2xs tracking-[0.12em] text-[var(--text-secondary)]"
+              >
+                CLOSE
+              </GlassButton>
+            )}
           </div>
-          {subnav ? <div className="mt-3">{subnav}</div> : null}
+          {subnav && !(native && nativeSegments) ? (
+            <div className="mt-3">{subnav}</div>
+          ) : null}
         </Glass>
 
         {/*

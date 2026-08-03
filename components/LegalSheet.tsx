@@ -65,7 +65,7 @@ export function LegalSheet({
           <button
             type="button"
             onClick={onClose}
-            className="nv-press shrink-0 rounded-[var(--radius-pill)] bg-[var(--chip)] px-3.5 py-2 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
+            className="nv-gc shrink-0 rounded-[var(--radius-pill)] px-3.5 py-2 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
           >
             CLOSE
           </button>

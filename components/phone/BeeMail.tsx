@@ -291,7 +291,7 @@ export function BeeMail({ onRead }: { onRead: (id: string) => void }) {
           type="button"
           onClick={() => setOpenId(null)}
           aria-label="Back to inbox"
-          className="rounded-full bg-[var(--chip)] px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)] transition-transform duration-150 active:scale-[0.97]"
+          className="nv-gc rounded-full px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
         >
           ‹ INBOX
         </button>
