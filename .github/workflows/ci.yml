@@ -41,6 +41,15 @@ jobs:
       - name: AI route contracts
         run: npm run test:ai
 
+      # The board replays every submitted run against this exact engine, so the
+      # suite that proves a tape replays to the company that produced it belongs
+      # beside the balance harness rather than behind a database. It also
+      # carries the Brand Law 4 assertions: nothing purchasable may move a
+      # board, and a one-word edit to people.ts or holdings.ts re-breaks that
+      # silently until somebody screenshots the top ten.
+      - name: Leaderboard replay + Brand Law 4
+        run: npm run test:board
+
       - name: Web build
         run: npx next build
 

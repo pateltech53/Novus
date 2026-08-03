@@ -23,6 +23,38 @@ function PhoneGlyph() {
   );
 }
 
+/**
+ * A trophy, not a list.
+ *
+ * The board is two rankings, and a list glyph reads as a menu. Line art at the
+ * same weight as the gear and the phone beside it, because these three are one
+ * cluster of things you consult rather than three separate decisions.
+ */
+function BoardGlyph() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path
+        d="M5 2.6h8v3.9a4 4 0 0 1-8 0V2.6Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M5 4.2H3.2v1.1A2.6 2.6 0 0 0 5 7.8M13 4.2h1.8v1.1a2.6 2.6 0 0 1-1.8 2.5"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+      <path d="M9 10.4v2.4M6.4 15.4h5.2M7.4 15.4c0-1.4.7-2.6 1.6-2.6s1.6 1.2 1.6 2.6"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function GearGlyph() {
   return (
     <svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true">
@@ -43,6 +75,7 @@ export function HomeStage({
   onOpenPhone,
   onOpenPro,
   onOpenSettings,
+  onOpenBoard,
   dossierOpen,
   onDossier,
   nativeControls = false,
@@ -52,6 +85,8 @@ export function HomeStage({
   onOpenPhone: () => void;
   onOpenPro: () => void;
   onOpenSettings: () => void;
+  /** Still Standing. A UIKit glass button on iOS; this one everywhere else. */
+  onOpenBoard: () => void;
   /*
    * The dossier used to own its own open state. It is lifted now because the
    * app's masthead controls are UIKit views on iOS, and a native button
@@ -116,6 +151,14 @@ export function HomeStage({
           className="nv-press flex h-9 w-9 items-center justify-center rounded-[0.7rem] bg-[var(--n-4)] text-[var(--n-10)]"
         >
           <DossierGlyph />
+        </button>
+        <button
+          type="button"
+          onClick={onOpenBoard}
+          aria-label="Still Standing — the global boards"
+          className="nv-press flex h-9 w-9 items-center justify-center rounded-[0.7rem] bg-[var(--n-4)] text-[var(--n-10)]"
+        >
+          <BoardGlyph />
         </button>
         <button
           type="button"

@@ -199,6 +199,6 @@ is sized to buy a year of runway rather than a fraction of valuation.
 - **Tutorial spotlight coaching.** Term-on-first-use, Rookie Mode and the
   unfailable first year all work; the dim-and-cut-a-hole overlay does not exist
   yet — the tutorial currently teaches through the shark's narration.
-- **Still Standing, the Closet economy, Practice Gym, Marco's rival sim.**
+- **The Closet economy, Practice Gym, Marco's rival sim.**
 - The event queue is React state, so a mid-card reload drops that card. The run
   itself survives.

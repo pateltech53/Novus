@@ -192,20 +192,29 @@ psql -d novus -f supabase/tests/_supabase_shim.sql \
 
 ---
 
-## 6 · 排行榜还差什么
+## 6 · 排行榜：已经建好了
 
-Schema 就位了，但榜要上线还有代码要写（`docs/LEADERBOARD.md` §10 是完整清单）：
+榜是活的。这一节记录它由哪些东西组成，以及跑之前你要做的三件事。
 
-1. **先修引擎里两个品牌铁律 4 的漏洞**，在榜公开之前：
-   - `lib/engine/people.ts` — Pro 候选人 performance 摇 72–96，免费的 48–78。hire 的 aura 会推
-     `qual` 和 `brand`，而 `deriveValuation()` 直接读这两个。**今天 Pro 是能买到估值的。**
-   - `lib/engine/holdings.ts` — `art` 是 Pro 专属、增值率 0.11，免费最好的是 0.09，
-     而估值有一条 `max(hyped, cash)` 的地板。
-2. `lib/leaderboard/tape.ts` —— 录玩家的**输入**（不是结果）。
-3. `lib/leaderboard/verify.ts` —— 用真正的 `lib/engine` 重放 tape，追踪 `max(state.stats.valuation)`。
-   **peak valuation 在 `RunState` 里根本不存在** —— 峰值 4000 万、死时 20 万的公司，存的是 20 万。
-4. 路演得分**服务端重算**，不接受客户端报的数。
-5. 审核队列 —— 在任何一条 entry 变成 `listed` 之前。
+**要跑的迁移**：`0006_leaderboard_submit.sql`。它加的是 `record_board_entry`（原子的
+「只留更好的那一次」upsert）、`set_entry_listed`（审核员唯一的动词）、`report_board_entry`
+（一键下架），以及两个公开视图的重建 —— 每行现在带自己的 `id`，举报控件需要它。
+三个函数都 `security definer` 并对 `anon` / `authenticated` 撤销执行权。
+
+**要设的环境变量**（`.env.example` 有完整说明，四个都有默认值）：
+
+| 变量 | 不设会怎样 |
+|---|---|
+| `NOVUS_LEADERBOARD_SEASON` | 用 `2026-Q3` |
+| `NOVUS_ENGINE_VERSION` | 用 `1` |
+| `NOVUS_BOARD_AUTOLIST` | 每条 entry 都等人审 —— 这是 §9.3 要的默认值 |
+| `NOVUS_MODERATOR_TOKEN` | **`/api/leaderboard/moderate` 返回 404**，不是敞开 |
+
+**要验的一件事**：拿 anon 角色试着往 `leaderboard_entries` 里写一行。必须报 `42501`。
+成功了就别上线。`supabase/RUN-THIS.sql` 的 STEP 7 有现成的语句。
+
+引擎里两个品牌铁律 4 的漏洞（Pro 候选人摇更高的 performance、`art` 是 Pro 专属且增值最快）
+**已经修好了**，`npm run test:board` 现在会盯着它们，改回去 CI 会红。
 
 ---
 

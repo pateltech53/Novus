@@ -15,7 +15,12 @@ export function resolve(specifier, context, next) {
   // Map the "@/..." path alias used by the app.
   if (specifier.startsWith("@/")) {
     const target = resolvePath(projectRoot, specifier.slice(2));
-    return next(pathToFileURL(target).href, context);
+    // App code writes `@/lib/engine/run`, not `@/lib/engine/run.ts` — the
+    // bundler adds the extension and node does not. Without this the alias
+    // resolved to an extensionless path that exists as a file for nobody, and
+    // anything outside lib/engine/ was unreachable from a harness.
+    const withExt = /\.[a-z]+$/i.test(target) ? target : `${target}.ts`;
+    return next(pathToFileURL(withExt).href, context);
   }
   // Allow extensionless relative imports between engine modules.
   if (
@@ -29,6 +34,23 @@ export function resolve(specifier, context, next) {
 }
 
 export function load(url, context, next) {
+  /*
+   * JSON, the way a bundler hands it over.
+   *
+   * `import events from "@/data/events.json"` is a default import in app code.
+   * Node's own JSON modules need an import attribute the app does not write and
+   * TypeScript would not emit, so the file is wrapped as a module here instead.
+   * The engine's own imports are all relative .ts, which is why this never came
+   * up until something outside lib/engine/ needed loading.
+   */
+  if (url.endsWith(".json")) {
+    const source = readFileSync(fileURLToPath(url), "utf8");
+    return {
+      format: "module",
+      shortCircuit: true,
+      source: `export default ${source};`,
+    };
+  }
   if (url.endsWith(".ts") || url.endsWith(".tsx")) {
     const source = readFileSync(fileURLToPath(url), "utf8");
     const { outputText } = ts.transpileModule(source, {

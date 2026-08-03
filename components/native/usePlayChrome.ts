@@ -28,7 +28,7 @@ export const NATIVE_TABS: NativeTab[] = [
 
 /** Ids the masthead cluster can send back. Kept next to the tabs so the two
  *  vocabularies the native side knows about live in one file. */
-export type NativeControlId = "pro" | "dossier" | "settings" | "phone";
+export type NativeControlId = "pro" | "dossier" | "settings" | "board" | "phone";
 
 export interface PlayChromeOptions {
   /**
@@ -85,6 +85,18 @@ export function usePlayChrome(options: PlayChromeOptions): boolean {
         leading: true,
       },
       { id: "dossier", symbol: "doc.text.magnifyingglass", label: "Company dossier" },
+      /*
+       * Still Standing gets a real Liquid Glass control, the same as everything
+       * else in this cluster.
+       *
+       * `trophy` rather than `list.number` or `chart.bar`: the board is two
+       * rankings, and a list glyph reads as a menu. It is `plain`, not
+       * `prestige` — gold in this app means the year gate and earned status,
+       * and a button that merely OPENS a board has earned nothing. Making it
+       * gold would also be the first place a player looks for the suggestion
+       * that rank is something you can be given.
+       */
+      { id: "board", symbol: "trophy", label: "Still Standing — the global boards" },
       { id: "settings", symbol: "gearshape", label: "Settings" },
       { id: "phone", symbol: "iphone", label: "Open your phone" },
     ];

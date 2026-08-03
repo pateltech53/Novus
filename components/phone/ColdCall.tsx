@@ -96,7 +96,11 @@ export function ColdCall() {
             onDone={async (attempt) => {
               setStage({ kind: "judging", caller: stage.caller });
               const outcome = await judgePitch(attempt, run);
-              applyColdCall(stage.caller.id, outcome);
+              // The transcript rides along to the tape. The model may have
+              // taken this call, but a leaderboard cannot replay a model — so
+              // the server re-resolves these words with the deterministic
+              // resolver every player shares (lib/leaderboard/replay.ts).
+              applyColdCall(stage.caller.id, outcome, attempt.transcript ?? "");
               setStage({ kind: "result", caller: stage.caller, outcome });
             }}
           />

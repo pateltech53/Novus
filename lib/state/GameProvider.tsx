@@ -17,11 +17,8 @@ import type {
   RunState,
 } from "@/lib/engine/types";
 import {
-  advanceMonth,
   applyAllocation,
-  closeYear,
   createRun,
-  resolveAuto,
   resolveChoice,
   resolvePerformOnly,
   visibleChoices,
@@ -31,9 +28,7 @@ import {
 import { buildAutopsy, type AutopsyReport } from "@/lib/engine/autopsy";
 import { activityById, isAvailable } from "@/lib/engine/activities";
 import { callerById, consumeCall, type CallOutcome } from "@/lib/ai/callers";
-import { specFor, specForRun } from "@/lib/engine/industries/index";
-import { freezeEvent } from "@/lib/engine/interpolate";
-import { positioningYearTick, syncPositioning } from "@/lib/engine/positioning";
+import { syncPositioning } from "@/lib/engine/positioning";
 import {
   isPro,
   loadEntitlements,
@@ -43,20 +38,47 @@ import {
 } from "@/lib/monetization";
 import {
   ensurePortfolio,
-  launchItem,
   liveItems,
-  portfolioCap,
-  portfolioDrag,
   retireItem,
   refreshItem,
-  tickPortfolioYear,
   type LaunchInput,
   type LineItem,
   type PortfolioYearResult,
 } from "@/lib/engine/portfolio";
 import { candidatePool, fire as fireEmployee, hire as hireCandidate } from "@/lib/engine/people";
 import { assetById, buyAsset, sellAsset } from "@/lib/engine/holdings";
-import { minuteOf, priceAt, tickerBySymbol } from "@/lib/engine/market";
+import { minuteOf } from "@/lib/engine/market";
+/*
+ * The leaderboard's half of every tap.
+ *
+ * Two things arrive from `lib/leaderboard/` and they are different in kind.
+ *
+ * `record` APPENDS to the tape. It is called inside the mutation, before
+ * `commit()`, at every site that changes the run — a recorder that runs on a
+ * timer or in an effect eventually records a tap the run did not take, and a
+ * tape that disagrees with the save by one entry replays into a different
+ * company.
+ *
+ * `advanceTurn`, `closeFiscalYear`, `buyStockAt` and friends are the shared
+ * ORCHESTRATION. They used to be written out here; the verifier now runs the
+ * same functions, which is the whole argument docs/LEADERBOARD.md §1.1 makes
+ * for keeping the engine and the verifier in one deploy. If the year-end
+ * sequence changes, it changes for both, or it does not change.
+ */
+import {
+  advanceTurn,
+  buyStockAt,
+  closeFiscalYear,
+  launchLineItemFrom,
+  sellStockAt,
+  transferToBrokerageAmount,
+} from "@/lib/leaderboard/replay";
+import {
+  clearTape,
+  record as recordTap,
+  startTape,
+  todayISO as tapeToday,
+} from "@/lib/leaderboard/recorder";
 import {
   DEFAULT_AVATAR,
   normalizeAvatar,
@@ -168,7 +190,18 @@ interface GameContextValue {
   choose(index: number): void;
   dismissCard(): void;
   openYearGate(): void;
-  submitPerform(score: number, dealCashS?: number, dealEquityPct?: number): void;
+  /**
+   * `transcript` is the player's own words, and it is what the leaderboard
+   * verifies against — the server rescores it rather than believing `score`
+   * (docs/LEADERBOARD.md §7.3). Optional so a caller that has no words to hand
+   * still closes the year; the run is simply not verifiable at that gate.
+   */
+  submitPerform(
+    score: number,
+    dealCashS?: number,
+    dealEquityPct?: number,
+    transcript?: string,
+  ): void;
   chooseAllocation(pick: Allocation): void;
   closeYearEnd(): void;
   setRookieMode(on: boolean): void;
@@ -204,7 +237,7 @@ interface GameContextValue {
    * Bank a cold-call result. Consumes one of the three daily calls whatever the
    * answer was — you used the person's time either way.
    */
-  applyColdCall(callerId: string, outcome: CallOutcome): void;
+  applyColdCall(callerId: string, outcome: CallOutcome, transcript?: string): void;
   /** Consume a one-shot UI flag set by an activity (e.g. open_the_room). */
   clearFlag(flag: string): void;
 
@@ -351,6 +384,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       // Device-level Pro (chosen on the plans screen) reaches the run itself,
       // so The Room and the Pro industries do not read as broken after buying.
       if (loadEntitlements().pro) next.pro = true;
+      // A fresh company gets a fresh tape. Before any state is set, so a throw
+      // in the storage layer cannot leave a run running against another run's
+      // tape — `record` refuses a mismatched runId, so the failure mode is a
+      // company that cannot be submitted rather than one that submits a lie.
+      startTape(next);
+      if (next.pro) recordTap(next, { t: "pro", on: true });
       setQueue([]);
       setYearEnd(null);
       setAutopsy(null);
@@ -373,34 +412,38 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const state = runRef.current;
     if (!state || busy || queue.length > 0) return;
     const working: RunState = structuredClone(state);
-    const result = advanceMonth(working, EVENTS);
+    /*
+     * One tap, one shared function.
+     *
+     * `advanceTurn` is `advanceMonth` plus the four things a tap actually does
+     * around it: resolve the narration-only beats inline, freeze the rest into
+     * cards (Addendum B §3.3 — a mid-card retirement must not change the text
+     * of a card already on the table), and settle positioning. It lives in
+     * lib/leaderboard/replay.ts so the verifier runs the same sequence rather
+     * than an approximation of it.
+     */
+    const turn = advanceTurn(working, EVENTS);
 
-    if (result.gate) {
+    if (turn.gate) {
       setAtGate(true);
       return;
     }
     /*
-     * Narration-only beats resolve inline; the rest become cards — FROZEN.
+     * The date the ENGINE used, not the date this line asks for.
      *
-     * `freezeEvent` resolves interpolation tokens ({topItem}, {company}, {rival},
-     * {y}…) against run state at DRAW time and bakes the strings in, per
-     * Addendum B §3.3: a mid-card retirement must not change the text of a card
-     * already on the table. Addendum B nominated run.ts for this map, but run.ts
-     * is protected — this is the same seam one call later, before anything
-     * renders, which satisfies the freeze rule without opening that file.
+     * `advanceMonth` stamps `lastPlayedISO` with the day it read off the wall
+     * clock, and seeds Today's Market from the same one. Calling `new Date()`
+     * again here would almost always agree — and would disagree exactly once,
+     * for the player who taps ADVANCE at midnight UTC, whose tape would then
+     * replay a different day's shared event than the one they answered.
      */
-    const cards: GameEvent[] = [];
-    for (const ev of result.surfaced) {
-      if (ev.auto) resolveAuto(working, ev);
-      else cards.push(freezeEvent(ev, working));
-    }
-    syncPositioning(working);
+    recordTap(working, { t: "advance", atISO: working.lastPlayedISO ?? tapeToday() });
     commit(working);
     resolvingRef.current = null;
-    setQueue(cards);
-    setMarketId(result.marketEventId ?? null);
+    setQueue(turn.cards);
+    setMarketId(turn.marketEventId);
     if (working.month >= 12) setAtGate(true);
-    if (result.died || !working.alive) setAutopsy(buildAutopsy(working));
+    if (turn.died) setAutopsy(buildAutopsy(working));
   }, [busy, queue.length, commit]);
 
   const choose = useCallback(
@@ -430,6 +473,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         });
         return;
       }
+      recordTap(working, { t: "choice", eventId: ev.id, choice: index });
       commit(working);
       setLastDeltas(result.lines.flatMap((l) => l.deltas ?? []));
       setQueue((q) => q.slice(1));
@@ -447,6 +491,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setPerform({ kind: "eventOnly", performType: ev.performOnly.type, event: ev });
       return;
     }
+    // Recorded even though it changes nothing about the books. The replay draws
+    // the same cards the player was dealt, so it has to be told which ones were
+    // walked away from — otherwise a later `choice` naming the second card
+    // arrives at a table where the first one is still face-up.
+    recordTap(state, { t: "dismiss", eventId: ev.id });
     setQueue((q) => q.slice(1));
   }, [queue]);
 
@@ -455,11 +504,34 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const submitPerform = useCallback(
-    (score: number, dealCashS = 0, dealEquityPct = 0) => {
+    (score: number, dealCashS = 0, dealEquityPct = 0, transcript = "") => {
       const state = runRef.current;
       const request = perform;
       if (!state || !request) return;
       const working: RunState = structuredClone(state);
+
+      /*
+       * The WORDS go on the tape, never the score.
+       *
+       * `score` reached this function from the client, and the year gate turns
+       * it into a multiplier of 0.4 + 0.12 × score. The server rescores the
+       * transcript with the same `scorePitchContent` this screen used
+       * (docs/LEADERBOARD.md §7.3), so what a board sees is the pitch, not a
+       * number a devtools console could have typed.
+       *
+       * There is no audio here and there must never be. The scorer reads
+       * content and nothing about how a voice sounded (Brand Law 5), which is
+       * what makes a text transcript the complete input — and the right privacy
+       * answer, because there is then no recording to upload (§9.1).
+       */
+      recordTap(working, {
+        t: "perform",
+        kind: request.kind,
+        performType: request.performType as PerformResult["type"],
+        eventId: request.event?.id,
+        choiceIndex: request.choiceIndex,
+        transcript,
+      });
 
       if (request.kind === "choice" && request.event && request.choiceIndex !== undefined) {
         resolveChoice(working, request.event, request.choiceIndex, score);
@@ -478,56 +550,26 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           year: working.year,
         };
         /*
-         * The portfolio closes its own books just before the fiscal year does, so
-         * the year-end report has real history to render and this year's verdicts
-         * are assigned before the player sees the screen.
+         * The whole closing, in one shared call.
          *
-         * It is deliberately NOT writing straight into stats.revenueAnnual. That
-         * number is computed inside run.ts/sim.ts, which are protected, so the
-         * portfolio reaches the books the sanctioned way — through the effect
-         * vocabulary below. Wiring portfolio revenue in as THE revenue model is a
-         * bigger change to protected files and is called out in the handover
-         * rather than smuggled in here.
+         * The portfolio closes its own books first so the year-end report has
+         * real history and this year's verdicts are assigned before the player
+         * sees the screen; its result reaches the company's books through the
+         * effect vocabulary rather than by writing `stats.revenueAnnual`, which
+         * is computed inside the protected sim.ts; positioning settles; and
+         * only then does `closeYear` apply the deal and age the company up.
+         *
+         * That order is load-bearing, which is exactly why it is not written
+         * out twice. `lib/leaderboard/replay.ts` owns it and the verifier runs
+         * the same function — see the note beside the import.
          */
-        const pYear = tickPortfolioYear(working, specFor);
-        setPortfolioYear(pYear.rows.length > 0 ? pYear : null);
-
-        if (pYear.rows.length > 0) {
-          // Hits pull revenue up, flops and slot-hogs push it down. Modest on
-          // purpose: this is the portfolio earning its place in the books, not a
-          // second economy bolted on beside the first.
-          const hits = pYear.newVerdicts.filter((v) => v.verdict === "hit").length;
-          const flops = pYear.newVerdicts.filter((v) => v.verdict === "flop").length;
-          const drag = portfolioDrag(working);
-          const revPct = hits * 6 - flops * 5;
-          const effects = [];
-          if (revPct !== 0) effects.push({ stat: "rev_pct" as const, amount: revPct, durationQ: 4 });
-          if (drag.qualPenalty > 0)
-            effects.push({ stat: "qual" as const, amount: -Math.round(drag.qualPenalty) });
-          if (effects.length > 0) {
-            applyOutcome(
-              working,
-              { effects },
-              "portfolio-year",
-              runRng(working.seed, working.year, 12, hashString("portfolio")),
-            );
-          }
-          if (drag.over > 0) {
-            working.log.push(
-              makeLine(
-                working,
-                "decision",
-                `You are carrying ${drag.over} more ${drag.over === 1 ? "thing" : "things"} than the team can support well.`,
-              ),
-            );
-          }
-        }
-
-        // Positioning settles with the fiscal year: clarity drifts (balance
-        // decays toward the middle), the low/high-clarity flags refresh, and the
-        // stuck-in-the-middle event class becomes drawable when earned.
-        positioningYearTick(working);
-        const summary = closeYear(working, result, dealCashS, dealEquityPct);
+        const { summary, portfolioYear: pYear } = closeFiscalYear(
+          working,
+          result,
+          dealCashS,
+          dealEquityPct,
+        );
+        setPortfolioYear(pYear);
         // Shark Respect persists across runs (legacy).
         const legacy = loadLegacy();
         legacy.sharkRespect = working.stats.respect;
@@ -555,6 +597,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const working: RunState = structuredClone(state);
       applyAllocation(working, pick);
       working.flags[allocationFlag(working.year)] = true;
+      recordTap(working, { t: "allocation", pick });
       commit(working);
     },
     [commit],
@@ -617,6 +660,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       saveLegacy(legacy);
     }
     clearRun();
+    // The tape goes with the company. A player who buries this one and founds
+    // another must not carry the old taps into the new tape — `record` refuses
+    // a mismatched runId anyway, and this makes the intent explicit rather than
+    // leaving a spent tape in storage until something overwrites it.
+    clearTape();
     runRef.current = null;
     setRun(null);
     setQueue([]);
@@ -658,13 +706,26 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     [commit],
   );
 
+  /*
+   * ── Why these record an INDEX and not the thing ──────────────────────────
+   *
+   * A tape carries inputs, never outcomes, and the strongest version of that
+   * rule is to name a thing the server already holds rather than to describe
+   * one it would have to trust. `candidatePool()` is seeded on
+   * `${id}:hire:${year}:${month}`, so an index regenerates the same person; a
+   * serialised candidate would let a client invent one with performance 100.
+   * The same argument covers the roster, the holdings and the portfolio.
+   */
   const hire = useCallback(
     (candidateId: string) => {
       mutate((draft) => {
-        const cand = candidatePool(draft, 6).find((c) => c.id === candidateId);
+        const pool = candidatePool(draft, 6);
+        const index = pool.findIndex((c) => c.id === candidateId);
+        const cand = pool[index];
         if (!cand) return;
         if (cand.pro && !draft.pro) return; // Pro gates content, never outcomes
         hireCandidate(draft, cand);
+        recordTap(draft, { t: "hire", index });
         return `${cand.name} joins as ${cand.role}. Payroll is a promise you make every month.`;
       });
     },
@@ -674,8 +735,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const fire = useCallback(
     (employeeId: string) => {
       mutate((draft) => {
+        const index = draft.roster.findIndex((e) => e.id === employeeId);
         const gone = fireEmployee(draft, employeeId);
         if (!gone) return;
+        recordTap(draft, { t: "fire", index });
         return `You let ${gone.name} go. You did it yourself, which is the least and the most you could do.`;
       });
     },
@@ -689,6 +752,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         if (!def) return;
         if (def.pro && !draft.pro) return;
         if (!buyAsset(draft, def)) return;
+        recordTap(draft, { t: "buy-asset", defId });
         return `You buy ${def.name}.`;
       });
     },
@@ -698,10 +762,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const sellHolding = useCallback(
     (holdingId: string) => {
       mutate((draft) => {
-        const held = draft.holdings.find((h) => h.id === holdingId);
+        const index = draft.holdings.findIndex((h) => h.id === holdingId);
+        const held = draft.holdings[index];
         const def = held ? assetById(held.defId) : null;
         const proceeds = sellAsset(draft, holdingId);
         if (!proceeds || !def) return;
+        recordTap(draft, { t: "sell-asset", index });
         return `You sell ${def.name}. The money comes back; the thing does not.`;
       });
     },
@@ -711,32 +777,31 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const transferToBrokerage = useCallback(
     (amountUsd: number) => {
       mutate((draft) => {
-        const amount = Math.max(0, Math.min(amountUsd, draft.stats.cash));
-        if (amount <= 0) return;
-        draft.stats.cash -= amount;
-        draft.brokerageCash += amount;
+        const moved = transferToBrokerageAmount(draft, amountUsd);
+        if (moved <= 0) return;
+        // The amount ASKED for, not the amount that fitted. The replay clamps
+        // the same way against its own cash, so recording the clamped figure
+        // would clamp it twice on any run the replay disagreed with by a cent.
+        recordTap(draft, { t: "transfer", amountUsd });
       });
     },
     [mutate],
   );
 
+  /*
+   * ── Why a trade records a MINUTE ─────────────────────────────────────────
+   *
+   * `priceAt(ticker, minute)` is a pure function of ticker and minute since
+   * epoch — that is the whole design of RobinGhood, and it means the fill can
+   * be recomputed from the clock rather than believed from the client. A tape
+   * that carried a price would let anyone claim they bought FINN at $0.01.
+   */
   const buyStock = useCallback(
     (symbol: string, shares: number) => {
       mutate((draft) => {
-        const ticker = tickerBySymbol(symbol);
-        if (!ticker || shares <= 0) return;
-        const price = priceAt(ticker, minuteOf());
-        const cost = price * shares;
-        if (cost > draft.brokerageCash) return; // never spend money you don't have
-        draft.brokerageCash -= cost;
-        const held = draft.positions.find((p) => p.symbol === symbol);
-        if (held) {
-          const total = held.shares + shares;
-          held.avgCost = (held.avgCost * held.shares + cost) / total;
-          held.shares = total;
-        } else {
-          draft.positions.push({ symbol, shares, avgCost: price });
-        }
+        const minute = minuteOf();
+        if (!buyStockAt(draft, symbol, shares, minute)) return;
+        recordTap(draft, { t: "trade", side: "buy", symbol, qty: shares, minute });
       });
     },
     [mutate],
@@ -745,15 +810,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const sellStock = useCallback(
     (symbol: string, shares: number) => {
       mutate((draft) => {
-        const ticker = tickerBySymbol(symbol);
-        const held = draft.positions.find((p) => p.symbol === symbol);
-        if (!ticker || !held || shares <= 0) return;
-        const sold = Math.min(shares, held.shares);
-        draft.brokerageCash += priceAt(ticker, minuteOf()) * sold;
-        held.shares -= sold;
-        if (held.shares <= 0.0001) {
-          draft.positions = draft.positions.filter((p) => p.symbol !== symbol);
-        }
+        const minute = minuteOf();
+        if (!sellStockAt(draft, symbol, shares, minute)) return;
+        recordTap(draft, { t: "trade", side: "sell", symbol, qty: shares, minute });
       });
     },
     [mutate],
@@ -812,6 +871,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       saveLegacy(legacy);
     }
     clearRun();
+    // The tape goes with the company. A player who buries this one and founds
+    // another must not carry the old taps into the new tape — `record` refuses
+    // a mismatched runId anyway, and this makes the intent explicit rather than
+    // leaving a spent tape in storage until something overwrites it.
+    clearTape();
     runRef.current = null;
     setRun(null);
     setQueue([]);
@@ -842,23 +906,24 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const working: RunState = structuredClone(state);
       /*
        * `launch_seasonal` is set by FOOD's "Run a seasonal special" activity and
-       * used to be deleted a few lines below without ever being read, which made
-       * that activity's entire limited-time-offer mechanic a no-op. It now tags
-       * the item, which is what FOOD's spoilage function actually reads.
+       * used to be deleted without ever being read, which made that activity's
+       * entire limited-time-offer mechanic a no-op. It now tags the item, which
+       * is what FOOD's spoilage function actually reads. That tagging — and the
+       * one-shot consumption of the flag that opened the sheet — is inside
+       * `launchLineItemFrom`, shared with the replay.
        */
-      const seasonal = !!working.flags.launch_seasonal;
-      const item = launchItem(working, specForRun(working), {
-        ...input,
-        tags: seasonal && !input.tags.includes("seasonal")
-          ? [...input.tags, "seasonal"].slice(0, 2)
-          : input.tags,
-      });
+      const item = launchLineItemFrom(working, input);
       if (!item) return null;
-      // The launch sheet is one-shot: the flag that opened it is consumed here so
-      // reopening the product tab does not drop the player back into the flow.
-      delete working.flags.launch_sheet_open;
-      delete working.flags.launch_seasonal;
-      refreshBooks(working);
+      // Price in cents. A float that round-trips through JSON at a different
+      // last digit is a product priced one cent differently in the replay, and
+      // a portfolio's revenue is a function of its price.
+      recordTap(working, {
+        t: "product",
+        name: input.name,
+        priceCents: Math.round(input.price * 100),
+        investTier: input.investTier,
+        tags: input.tags,
+      });
       working.log.push(
         makeLine(
           working,
@@ -877,8 +942,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const state = runRef.current;
       if (!state || !state.alive) return;
       const working: RunState = structuredClone(state);
+      const index = liveItems(ensurePortfolio(working)).findIndex((i) => i.id === id);
       const gone = retireItem(working, id);
       if (!gone) return;
+      recordTap(working, { t: "retire", index });
       refreshBooks(working);
       working.log.push(
         makeLine(working, "decision", `You discontinued ${gone.name}. It stays in the archive.`),
@@ -895,7 +962,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const working: RunState = structuredClone(state);
       const p = ensurePortfolio(working);
       const item = p.items.find((i) => i.id === id);
+      const index = liveItems(p).findIndex((i) => i.id === id);
       if (!item || !refreshItem(working, id, costS)) return;
+      recordTap(working, { t: "refresh", index, costS });
       delete working.flags.refresh_sheet_open;
       refreshBooks(working);
       working.log.push(
@@ -922,10 +991,31 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   );
 
   const applyColdCall = useCallback(
-    (callerId: string, outcome: CallOutcome) => {
+    (callerId: string, outcome: CallOutcome, transcript = "") => {
       const state = runRef.current;
       if (!state || !state.alive) return;
       const working: RunState = structuredClone(state);
+
+      /*
+       * The words, and the day.
+       *
+       * `judgePitch` prefers a model and falls back to a deterministic local
+       * resolver. The model's answer cannot be replayed, so the server
+       * re-resolves every cold call locally from this transcript — otherwise a
+       * board would rank a run by whether an AI key happened to be deployed on
+       * the day it was played, which is Brand Law 4 broken by an environment
+       * variable. `lib/leaderboard/replay.ts` explains the trade in full.
+       *
+       * The date is here because the ration is per REAL day, not per fiscal
+       * month: more than three entries sharing one date is a forged tape, and
+       * `lib/leaderboard/bounds.ts` checks exactly that.
+       */
+      recordTap(working, {
+        t: "coldcall",
+        investorId: callerId,
+        transcript,
+        atISO: tapeToday(),
+      });
 
       // Consumed regardless of the answer. A cold call you fumbled is still a
       // cold call you made, and the scarcity is the mechanic.
@@ -988,6 +1078,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (!state) return;
       const working: RunState = structuredClone(state);
       working.pro = on;
+      // Audit only. Pro decides which candidates and asset classes a player can
+      // SEE, so the replay has to apply the same content gates — and it must
+      // never decide what any of them are worth. `pro_at_submit` lives on
+      // `runs` and reaches no board query, which is what makes §8.3's standing
+      // audit a test rather than a hope.
+      recordTap(working, { t: "pro", on });
       commit(working);
     },
     [commit],
@@ -1041,6 +1137,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (!isAvailable(activity, state)) return;
       const working: RunState = structuredClone(state);
       activity.apply(working);
+      // Activities spend resources and never advance time, but they absolutely
+      // reach the books — `apply` runs effects through the same seeded RNG the
+      // events do. A tape without them replays a different company.
+      recordTap(working, { t: "activity", id });
       commit(working);
     },
     [commit],
