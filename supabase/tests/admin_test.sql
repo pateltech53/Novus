@@ -190,6 +190,30 @@ select test.throws('23514', $$
   select public.admin_create_comp_chapter('90000000-0000-0000-0000-000000000004', 'chapter_9000')
 $$, 'an unknown licence is refused');
 
+-- The custom size (0011): the buyer's number is the row's seat count —
+-- required for chapter_custom, refused beside a licence that IS its size.
+select test.throws('23514', $$
+  select public.admin_create_comp_chapter('90000000-0000-0000-0000-000000000001', 'chapter_custom')
+$$, 'a custom chapter without its seat count is refused');
+select test.throws('23514', $$
+  select public.admin_create_comp_chapter('90000000-0000-0000-0000-000000000001', 'chapter_35', null, 80)
+$$, 'p_seats beside a fixed licence is refused');
+select test.ok(
+  (select public.admin_create_comp_chapter('90000000-0000-0000-0000-000000000001', 'chapter_custom', null, 60)
+     is not null),
+  'the service role can mint a custom-sized comp chapter');
+select test.eq((select c.seats from public.chapters c
+                where c.owner_profile_id = '90000000-0000-0000-0000-000000000001'), 60,
+               '…and the row carries the typed seat count');
+
+-- …and the licence value survives the whole grant path: entitlements'
+-- own check constraint admits it, exactly as chapters' does.
+select public.grant_chapter_seat('90000000-0000-0000-0000-000000000005', 'chapter_custom');
+select test.eq((select chapter from public.entitlements
+                where profile_id = '90000000-0000-0000-0000-000000000005'), 'chapter_custom',
+               'entitlements.chapter accepts the custom licence');
+select public.revoke_chapter_seat('90000000-0000-0000-0000-000000000005');
+
 select test.ok(
   (select public.admin_create_comp_chapter('90000000-0000-0000-0000-000000000004', 'chapter_35')
      is not null),

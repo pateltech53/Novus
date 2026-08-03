@@ -30,11 +30,13 @@ export const dynamic = "force-dynamic";
  * happens per address depends on what already exists, and every outcome is
  * reported per row:
  *
- *   · **New address** → the account is created with a random password, the
- *     seat and its entitlement are granted, and the address gets the invite
- *     email through RESEND: a link to `/join?code=<token>`, where the
+ *   · **New address** → the account is created with no usable password, the
+ *     seat and its entitlement are granted, and the address gets an invite
+ *     email — through Resend, a link to `/join?code=<token>`, where the
  *     invitee confirms their email and name and is handed straight into the
- *     existing set-password flow (/reset). → `action: "invited"`
+ *     existing set-password flow (/reset); through the fallback, Supabase's
+ *     own invite mail, whose link lands on /reset directly.
+ *     → `action: "invited"`
  *
  *   · **Existing account** → the seat and entitlement are granted and NO
  *     email is sent — they have a password that works, and no invite token
@@ -53,8 +55,13 @@ export const dynamic = "force-dynamic";
  * volume — which is precisely what Supabase's built-in auth mailer is not
  * for (it throttles at a handful per hour). So invites go through Resend
  * (lib/email/resend.ts). With RESEND_API_KEY unset the route falls back to
- * Supabase's recovery email as the invite: no claim page, smaller volume,
- * zero extra setup — the pre-Resend behaviour, kept working on purpose.
+ * Supabase's own INVITE email (`auth.admin.inviteUserByEmail`): no claim
+ * page, smaller volume, zero extra setup. What the fallback must never send
+ * a fresh invitee is the RECOVERY template — "we received a request to
+ * reset your password" to someone who never asked reads as either a mistake
+ * or a phish, and it is how this route's first fallback actually landed in
+ * inboxes. Recovery remains only where it is the true sentence: a RESEND to
+ * a seat whose account is already claimed (see resendForSeat).
  *
  * ── Why this may send mail at all ──────────────────────────────────────────
  *
@@ -81,6 +88,10 @@ interface RowResult {
 
 const refuse = (session: Session | null, error: string, status = 400) =>
   withSession(NextResponse.json({ error }, { status }), session);
+
+/** One condition, asked in three places: can the branded invite go out at
+ *  all? Resend needs its key AND the absolute URL the claim link is built on. */
+const invitesViaResend = (): boolean => resendConfigured() && !!SITE_URL;
 
 export async function POST(req: NextRequest) {
   if (crossSite(req)) {
@@ -144,6 +155,10 @@ export async function POST(req: NextRequest) {
       results,
       granted: results.filter((r) => r.ok).length,
       seats: chapter.seats,
+      // Which mailer carried the emails, so the console can say plainly that
+      // the branded invite (and its claim page) are off on this deploy
+      // rather than leaving the admin to hear it from a confused student.
+      mailer: invitesViaResend() ? "resend" : "supabase",
     }),
     session,
   );
@@ -215,19 +230,44 @@ async function inviteSeat(
     return { email, ok: true, action: "granted" };
   }
 
-  // A fresh address: account with a password nobody knows, then the seat,
-  // then the invite that lets its owner claim it and choose the real one.
-  const { data: created, error: createError } = await db.auth.admin.createUser({
-    email,
-    password: randomPassword(),
-    // The seat email came from the admin, not the student, and may point at a
-    // mailbox that never confirms anything. The licence is the vouching.
-    email_confirm: true,
-  });
-  if (createError || !created?.user) {
-    return { email, ok: false, error: createError?.message ?? "could not create the account" };
+  // A fresh address: account with no usable password, then the seat, then the
+  // invite that lets its owner claim it and choose the real one.
+  //
+  // Which call creates the account depends on the mailer. With Resend, the
+  // account is created quietly here and OUR invite email goes out last, after
+  // the seat and the entitlement are safely down. Without Resend, Supabase's
+  // own invite email is the only mailer there is, and sending it is the same
+  // call that creates the account — `inviteUserByEmail` — so the mail travels
+  // first, and the rare failure after it (a full chapter, say) deletes the
+  // account and leaves a link that reports itself invalid. That ordering
+  // wrinkle is accepted on purpose: the alternative was creating the account
+  // with `createUser` and then having no way to send anything but the
+  // RECOVERY email — which is exactly the "reset your password?" surprise
+  // this branch used to send and must not again.
+  let userId: string;
+  if (invitesViaResend()) {
+    const { data: created, error: createError } = await db.auth.admin.createUser({
+      email,
+      password: randomPassword(),
+      // The seat email came from the admin, not the student, and may point at
+      // a mailbox that never confirms anything. The licence is the vouching.
+      email_confirm: true,
+    });
+    if (createError || !created?.user) {
+      return { email, ok: false, error: createError?.message ?? "could not create the account" };
+    }
+    userId = created.user.id;
+  } else {
+    const { data: created, error: createError } = await db.auth.admin.inviteUserByEmail(email, {
+      // The invite link signs them in and lands on the set-password page —
+      // the same /reset every claim ends on.
+      ...(SITE_URL ? { redirectTo: `${SITE_URL}/reset` } : {}),
+    });
+    if (createError || !created?.user) {
+      return { email, ok: false, error: createError?.message ?? "could not create the account" };
+    }
+    userId = created.user.id;
   }
-  const userId = created.user.id;
   const token = randomUUID();
 
   const undo = async () => {
@@ -269,11 +309,16 @@ async function inviteSeat(
     return { email, ok: false, error: `grant: ${grantError.message}` };
   }
 
-  const sendError = await sendInvite(email, token);
-  if (sendError) {
-    // The seat is real and lit; only the mail is missing. Said plainly so the
-    // admin resends rather than re-inviting into "already on this roster".
-    return { email, ok: true, action: "invited", warning: `seat granted, but the email failed: ${sendError}` };
+  // In fallback mode the invite email already went out with the account
+  // creation above — sending again here would double it.
+  if (invitesViaResend()) {
+    const sendError = await sendInvite(db, email, token);
+    if (sendError) {
+      // The seat is real and lit; only the mail is missing. Said plainly so
+      // the admin resends rather than re-inviting into "already on this
+      // roster".
+      return { email, ok: true, action: "invited", warning: `seat granted, but the email failed: ${sendError}` };
+    }
   }
 
   return { email, ok: true, action: "invited" };
@@ -299,7 +344,7 @@ async function resendForSeat(
   let sendError: string | null;
 
   if (seat.createdByInvite && !seat.claimedAt && seat.inviteToken) {
-    sendError = await sendInvite(seat.email, seat.inviteToken);
+    sendError = await sendInvite(db, seat.email, seat.inviteToken);
   } else {
     sendError = await sendPasswordLink(db, seat.email);
   }
@@ -312,13 +357,37 @@ async function resendForSeat(
   return null;
 }
 
-/** The invite email, via Resend; the Supabase recovery mail when Resend (or
+/** The invite email, via Resend; Supabase's own invite mail when Resend (or
  *  the absolute join URL it needs) is not configured. */
-async function sendInvite(email: string, token: string): Promise<string | null> {
-  if (resendConfigured() && SITE_URL) {
+async function sendInvite(
+  db: ReturnType<typeof adminClient>,
+  email: string,
+  token: string,
+): Promise<string | null> {
+  if (invitesViaResend()) {
     const message = inviteEmail(`${SITE_URL}/join?code=${token}`);
     return sendEmail({ to: email, ...message });
   }
+  return supabaseInviteEmail(db, email);
+}
+
+/**
+ * The no-Resend invite: Supabase's "you have been invited" email — the
+ * template written for exactly this moment — re-sent to an account that has
+ * not yet accepted. GoTrue refuses to re-invite an account that is past
+ * inviting (its owner confirmed the address by claiming it), and for that
+ * account the recovery email takes over: "choose a new password" is the true
+ * sentence to someone who holds the account, where to a fresh invitee it
+ * read as a phish about a request they never made.
+ */
+async function supabaseInviteEmail(
+  db: ReturnType<typeof adminClient>,
+  email: string,
+): Promise<string | null> {
+  const { error } = await db.auth.admin.inviteUserByEmail(email, {
+    ...(SITE_URL ? { redirectTo: `${SITE_URL}/reset` } : {}),
+  });
+  if (!error) return null;
   return supabaseRecoveryEmail(email);
 }
 

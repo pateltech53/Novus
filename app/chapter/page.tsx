@@ -35,7 +35,7 @@ import { play } from "@/lib/sound";
 
 interface ChapterInfo {
   id: string;
-  licence: "chapter_35" | "chapter_100";
+  licence: "chapter_35" | "chapter_100" | "chapter_custom";
   seats: number;
   status: "active" | "lapsed";
   currentPeriodEnd: string | null;
@@ -84,10 +84,14 @@ function parseLines(text: string): string[][] {
 }
 
 const RESULT_LINE: Record<NonNullable<RowResult["action"]>, string> = {
-  invited: "invited — the claim email is on its way",
+  invited: "invited — the invite email is on its way",
   granted: "already had an account — seat granted, no email needed",
   resent: "email sent again",
 };
+
+/** Which mailer the server said it used. "supabase" means the deploy has no
+ *  Resend configured and invites travel as Supabase's own invite email. */
+type Mailer = "resend" | "supabase";
 
 export default function ChapterPage() {
   const [phase, setPhase] = useState<Phase>("loading");
@@ -97,6 +101,7 @@ export default function ChapterPage() {
 
   const [inviteText, setInviteText] = useState("");
   const [inviteResults, setInviteResults] = useState<RowResult[] | null>(null);
+  const [mailer, setMailer] = useState<Mailer | null>(null);
   const [registerText, setRegisterText] = useState("");
   const [registerResults, setRegisterResults] = useState<RowResult[] | null>(null);
   const [rowNote, setRowNote] = useState<{ email: string; note: string } | null>(null);
@@ -172,11 +177,16 @@ export default function ChapterPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ invites: rows }),
       });
-      const body = (await res.json()) as { results?: RowResult[]; error?: string };
+      const body = (await res.json()) as {
+        results?: RowResult[];
+        error?: string;
+        mailer?: Mailer;
+      };
       if (!res.ok || !body.results) {
         setInviteResults([{ email: "—", ok: false, error: body.error ?? `HTTP ${res.status}` }]);
       } else {
         setInviteResults(body.results);
+        if (body.mailer) setMailer(body.mailer);
         if (body.results.some((r) => r.ok)) {
           play("success");
           setInviteText("");
@@ -230,7 +240,12 @@ export default function ChapterPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ invites: [{ email }] }),
       });
-      const body = (await res.json()) as { results?: RowResult[]; error?: string };
+      const body = (await res.json()) as {
+        results?: RowResult[];
+        error?: string;
+        mailer?: Mailer;
+      };
+      if (body.mailer) setMailer(body.mailer);
       const row = body.results?.[0];
       setRowNote({
         email,
@@ -370,10 +385,11 @@ export default function ChapterPage() {
         {phase === "no-chapter" && (
           <>
             <Blurb title="No chapter on this account.">
-              A chapter is 35 or 100 seats for a classroom or club —{" "}
-              {formatPrice(CHAPTER_LICENCES[0].priceCents)} or{" "}
-              {formatPrice(CHAPTER_LICENCES[1].priceCents)} a year, about{" "}
-              {formatPrice(perSeatCents(CHAPTER_LICENCES[1]))}–
+              A chapter is seats for a classroom or club — 35 for{" "}
+              {formatPrice(CHAPTER_LICENCES[0].priceCents)} a year, 100 for{" "}
+              {formatPrice(CHAPTER_LICENCES[1].priceCents)}, or any size you
+              type, priced between{" "}
+              {formatPrice(perSeatCents(CHAPTER_LICENCES[1]))} and{" "}
               {formatPrice(perSeatCents(CHAPTER_LICENCES[0]))} a seat. Buy one
               from the pricing section and this page becomes its console.
             </Blurb>
@@ -477,6 +493,16 @@ export default function ChapterPage() {
             {busy === "invite" ? "SENDING…" : "SEND INVITES"}
           </button>
           <Results rows={inviteResults} />
+          {mailer === "supabase" && (
+            <p className="mt-3 rounded-[var(--radius-row)] bg-[var(--n-2)] px-3 py-2.5 text-2xs leading-relaxed text-[var(--text-secondary)]">
+              These emails went out through Supabase&rsquo;s built-in mailer —
+              its own invite email, throttled at a handful per hour — because
+              this deploy has no <span className="tnum">RESEND_API_KEY</span> /{" "}
+              <span className="tnum">RESEND_FROM</span> set. Fine for a few
+              seats; set both (docs/CHAPTERS.md §2) for the branded invite,
+              the claim page, and classroom volume.
+            </p>
+          )}
         </section>
 
         {/* Register directly */}

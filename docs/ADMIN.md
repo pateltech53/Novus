@@ -23,14 +23,14 @@ dashboard and nowhere else**, and unlocks three things:
    账号可见的 **OPERATOR → Admin console** 行，点进去就是同一个控制台。
    降权同理：把 `role` 改回 `player`，一切立即恢复，无需清理任何数据。
 
-前提：`supabase/APPLY-ALL.sql`（0001 → 0010）已在 Novus 项目跑过，部署配置了
+前提：`supabase/APPLY-ALL.sql`（0001 → 0011）已在 Novus 项目跑过，部署配置了
 `SUPABASE_SERVICE_ROLE_KEY`（计费同款，见 `docs/ACCOUNTS-SETUP.md`）。
 
 ---
 
 ## 1. What to run
 
-**`supabase/APPLY-ALL.sql`** — the whole schema, 0001 → 0010, idempotent.
+**`supabase/APPLY-ALL.sql`** — the whole schema, 0001 → 0011, idempotent.
 Admin specifically is `supabase/migrations/0009_admin.sql` and
 `0010_admin_analytics.sql`, and `supabase/tests/admin_test.sql` proves their
 claims under `npm run test:db` (62 checks: self-promotion refused, gifts

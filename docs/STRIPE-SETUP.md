@@ -65,6 +65,13 @@ catalogue.ts` carries their product ids as defaults, so their env vars only
 need setting to point somewhere else (a test-mode copy, a new account). In
 test mode, create the two products and set the vars, exactly like the rest.
 
+The **custom-size chapter** (`chapter_custom`, 10–500 seats) needs nothing
+here: it has no pre-made product or price. Checkout computes the amount from
+the typed seat count (`customChapterPriceCents` in `lib/monetization.ts`) and
+sends it as `price_data`, minting a one-off yearly price — named "Novus
+Chapter — N seats" — per purchase. It does need migration 0011 applied
+(`docs/CHAPTERS.md` §1) or the webhook cannot record the licence.
+
 All four in **USD** — every price in `lib/monetization.ts` is USD, and checkout
 refuses a price in another currency rather than showing a player a converted
 number the pricing screen never claimed.

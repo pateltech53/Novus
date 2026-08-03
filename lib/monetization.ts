@@ -118,9 +118,61 @@ export const CHAPTER_LICENCES: readonly ChapterLicence[] = [
   { id: "chapter_100", seats: 100, priceCents: 59900, cadence: "year" },
 ];
 
+/**
+ * Every licence a chapter row can carry: the two fixed sizes, and the
+ * buyer-sized one. `chapter_custom` is not a ChapterLicence — it has no one
+ * seat count or price to write down; both come from the buyer's number
+ * through `customChapterPriceCents` below.
+ */
+export type ChapterId = ChapterLicence["id"] | "chapter_custom";
+
 /** The number a budget holder actually asks for. Rounded to the cent. */
 export const perSeatCents = (licence: ChapterLicence): Cents =>
   Math.round(licence.priceCents / licence.seats);
+
+// ── The custom size ──────────────────────────────────────────────────────────
+
+/**
+ * The floor is where a "classroom" stops being one: below ten seats a custom
+ * licence undercuts buying Pro for each person, and a licence priced under a
+ * couple of personal plans is a discount code, not a chapter. The ceiling is
+ * the database's own sanity bound on `chapters.seats` (0007).
+ */
+export const CHAPTER_CUSTOM_MIN_SEATS = 10;
+export const CHAPTER_CUSTOM_MAX_SEATS = 500;
+
+export const isCustomSeatCount = (v: unknown): v is number =>
+  typeof v === "number" &&
+  Number.isInteger(v) &&
+  v >= CHAPTER_CUSTOM_MIN_SEATS &&
+  v <= CHAPTER_CUSTOM_MAX_SEATS;
+
+/**
+ * What N seats cost for a year, derived from the two fixed licences so the
+ * three prices can never disagree: below 35 seats the 35-seat per-seat rate,
+ * from 35 to 100 a straight line through the two tiers ($299 → $599), above
+ * 100 the 100-seat rate carried on. At exactly 35 or 100 it lands on the
+ * tier price to the cent, so the custom row can never undercut — or shame —
+ * the fixed one beside it. Rounded to whole dollars, because that is how a
+ * quote is written; the checkout charges this exact number.
+ *
+ * The caller validates with `isCustomSeatCount` first — this function is
+ * arithmetic, not a gate.
+ */
+export function customChapterPriceCents(seats: number): Cents {
+  const [small, large] = CHAPTER_LICENCES;
+  let exact: number;
+  if (seats <= small.seats) {
+    exact = (small.priceCents * seats) / small.seats;
+  } else if (seats <= large.seats) {
+    const perExtraSeat =
+      (large.priceCents - small.priceCents) / (large.seats - small.seats);
+    exact = small.priceCents + (seats - small.seats) * perExtraSeat;
+  } else {
+    exact = large.priceCents + (seats - large.seats) * (large.priceCents / large.seats);
+  }
+  return Math.round(exact / 100) * 100;
+}
 
 // ── One-time purchases ───────────────────────────────────────────────────────
 
@@ -302,7 +354,7 @@ export interface Entitlements {
   industryPacks: Industry[];
   cosmeticBundles: string[];
   /** A chapter licence covering this seat, if a teacher enrolled it. */
-  chapter: ChapterLicence["id"] | null;
+  chapter: ChapterId | null;
   /**
    * The plan the player asked for. Recorded so onboarding is not a dead end
    * while billing does not exist — it is an intent, never a receipt.

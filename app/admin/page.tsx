@@ -18,7 +18,12 @@ import {
 } from "@/components/admin/charts";
 import { restorePurchases } from "@/lib/cloud/billing";
 import { INDUSTRIES } from "@/lib/engine/constants";
-import { CHAPTER_LICENCES } from "@/lib/monetization";
+import {
+  CHAPTER_CUSTOM_MAX_SEATS,
+  CHAPTER_CUSTOM_MIN_SEATS,
+  CHAPTER_LICENCES,
+  isCustomSeatCount,
+} from "@/lib/monetization";
 import { play } from "@/lib/sound";
 
 /**
@@ -383,13 +388,17 @@ export default function AdminPage() {
       [refreshOpen],
     );
 
-  const grantChapter = (id: string, licence: string) =>
+  const grantChapter = (id: string, licence: string, seats?: number) =>
     act(
       `chapter:${licence}`,
       () =>
         call("/api/admin/chapters", {
           method: "POST",
-          body: JSON.stringify({ ownerProfileId: id, licence }),
+          body: JSON.stringify({
+            ownerProfileId: id,
+            licence,
+            ...(seats !== undefined ? { seats } : {}),
+          }),
         }),
       [refreshOpen, loadStats],
     );
@@ -842,7 +851,7 @@ export default function AdminPage() {
                       onRevokePro={() => void revokePro(u.id)}
                       onTogglePack={(code, grant) => void togglePack(u.id, code, grant)}
                       onSetSlots={(n) => void setSlots(u.id, n)}
-                      onGrantChapter={(licence) => void grantChapter(u.id, licence)}
+                      onGrantChapter={(licence, seats) => void grantChapter(u.id, licence, seats)}
                       onRevokeChapter={(cid) => void revokeChapter(cid)}
                       onDelete={() => void deleteAccount(u.id)}
                     />
@@ -957,11 +966,12 @@ function DetailPanel({
   onRevokePro: () => void;
   onTogglePack: (code: string, grant: boolean) => void;
   onSetSlots: (n: number) => void;
-  onGrantChapter: (licence: string) => void;
+  onGrantChapter: (licence: string, seats?: number) => void;
   onRevokeChapter: (chapterId: string) => void;
   onDelete: () => void;
 }) {
   const [slotsText, setSlotsText] = useState(String(detail.entitlements?.extra_run_slots ?? 0));
+  const [chapterSeatsText, setChapterSeatsText] = useState("");
   const [confirmText, setConfirmText] = useState("");
 
   const e = detail.entitlements;
@@ -1091,13 +1101,31 @@ function DetailPanel({
             ? ` — ${activeChapter.seats} seats, ${activeChapter.source === "comp" ? "comped" : "paid"}${activeChapter.current_period_end ? `, until ${day(activeChapter.current_period_end)}` : ""}`
             : " — none active"}
         </p>
-        <div className="mt-2 flex flex-wrap gap-2">
+        <div className="mt-2 flex flex-wrap items-center gap-2">
           {!activeChapter &&
             CHAPTER_LICENCES.map((l) => (
               <Chip key={l.id} onClick={() => onGrantChapter(l.id)} disabled={busy !== null}>
                 GRANT {l.seats} SEATS
               </Chip>
             ))}
+          {!activeChapter && (
+            <>
+              <input
+                value={chapterSeatsText}
+                onChange={(ev) => setChapterSeatsText(ev.target.value.replace(/[^0-9]/g, "").slice(0, 3))}
+                inputMode="numeric"
+                placeholder={`${CHAPTER_CUSTOM_MIN_SEATS}–${CHAPTER_CUSTOM_MAX_SEATS}`}
+                aria-label="Custom seat count"
+                className="tnum w-20 rounded-[var(--radius-row)] border border-[var(--hairline)] bg-transparent px-2 py-1.5 text-center text-sm placeholder:text-[var(--n-6)] focus:border-[var(--n-11)] focus-visible:outline-none!"
+              />
+              <Chip
+                onClick={() => onGrantChapter("chapter_custom", Number(chapterSeatsText))}
+                disabled={busy !== null || !isCustomSeatCount(Number(chapterSeatsText))}
+              >
+                GRANT CUSTOM
+              </Chip>
+            </>
+          )}
           {activeChapter && activeChapter.source === "comp" && (
             <Chip onClick={() => onRevokeChapter(activeChapter.id)} disabled={busy !== null} danger>
               REVOKE CHAPTER

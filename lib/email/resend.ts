@@ -21,10 +21,10 @@ import "server-only";
  * ── Unconfigured is a supported answer ─────────────────────────────────────
  *
  * With no key set, `resendConfigured()` is false and chapter invites fall
- * back to the Supabase recovery email (the pre-Resend behaviour): small
- * classrooms keep working with zero setup, and nothing half-sends. Both
- * variables are required together — a key with no verified sender would
- * accept the send and bounce it, which reads as "invited" and arrives never.
+ * back to Supabase's own invite email: small classrooms keep working with
+ * zero setup, and nothing half-sends. Both variables are required together —
+ * a key with no verified sender would accept the send and bounce it, which
+ * reads as "invited" and arrives never.
  */
 
 export const RESEND_API_KEY = process.env.RESEND_API_KEY ?? "";
