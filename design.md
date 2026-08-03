@@ -24,8 +24,29 @@ Apple's own guidance is the resolution:
 | **The decision sheet** | its own surface, its choice rows, its explainer boxes and its one action button | Liquid glass, on iOS only. **The named exception**, below. |
 | **Stage** | mascot, panel room | Real 3D, real lighting. Depth from geometry and light. |
 
-**Money is read on solid ground.** Any element containing a financial figure is
-content, never glass — with one exception, named so that it stays an exception.
+**Money is read at full strength.** This rule used to say *on solid ground* —
+that any element carrying a financial figure was content and never glass. It
+has changed, deliberately and with the cost known.
+
+What it was protecting was never the opacity. It was the number: a runway of
+3mo has to be as readable as a runway of 14mo, on a phone, at arm's length, in
+sunlight. A ledger tile on a lens is fine at that bar; a ledger tile on a lens
+whose figure was dropped to a secondary colour to "sit better on the material"
+is not, and that is the failure this clause now names.
+
+So the ledger, the dossier's cash panel and its stat tiles are glass, and the
+figures inside them keep the ink they had:
+
+- a figure is `--text` / `--solvency` / `--alert` at full strength, never a
+  secondary or tertiary step, and never a colour chosen to harmonise with a
+  tint;
+- `tnum` stays, so a changing number does not shift a pixel;
+- a tone's own mix is a legibility floor, not a taste setting — `--gc-mix` is
+  68% on dark and 88% on light because white ink on `#e35f00` at 68% over a
+  near-white page lands at 2.6:1 and fails AA outright.
+
+The decision sheet's choice rows keep their cost chip in `label` semibold for
+the same reason, which is where this reasoning was first written down.
 
 ### The controls row is a widening, and it is deliberate
 

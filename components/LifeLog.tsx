@@ -46,18 +46,32 @@ function LogEntry({ line }: { line: LogLine }) {
 
   if (line.kind === "year-open") {
     return (
-      <p className="nv-card px-3.5 py-3 text-[0.9375rem] font-bold leading-snug text-[var(--text)]">
+      <p className="nv-gc nv-flat rounded-[var(--radius-row)] px-3.5 py-3 text-[0.9375rem] font-bold leading-snug text-[var(--text)]">
         {line.text}
       </p>
     );
   }
 
+  /*
+   * Why the log's glass is `nv-flat` and the ledger's is not.
+   *
+   * A blur only buys you something when there is structure behind it to bend.
+   * The ledger sits over the masthead's edge and the page's own ground, so it
+   * genuinely lenses. The log is a column of cards over one flat fill, where a
+   * backdrop pass would resolve to the same colour it started as — and there
+   * are dozens of them, scrolling, each one re-rasterising its own patch of
+   * background on every frame.
+   *
+   * So these take the lens without its own backdrop pass: the tint, the crest,
+   * the sheen, the rim. Visually identical over a flat ground, and a scroll
+   * that stays at sixty.
+   */
   // Decisions and their consequences are the record — they get a surface.
   const raised = line.kind === "decision" || line.kind === "consequence" || line.kind === "perform";
 
   if (raised) {
     return (
-      <div className="nv-card px-3.5 py-3">
+      <div className="nv-gc nv-flat rounded-[var(--radius-row)] px-3.5 py-3">
         <p
           className={`text-[0.9375rem] leading-snug ${
             line.kind === "decision"

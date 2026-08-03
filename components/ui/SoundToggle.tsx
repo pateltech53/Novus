@@ -48,10 +48,16 @@ export function SoundToggle() {
         </span>
       </span>
 
+      {/*
+        The track is the material too, so the switch matches the row it sits
+        in. `nv-flat` rather than the full lens: this is inside a control that
+        has already blurred what is behind it, and a second backdrop pass on a
+        28px track buys nothing but a smudge.
+      */}
       <span
         aria-hidden="true"
-        className={`ml-3 flex h-7 w-12 shrink-0 items-center rounded-full p-0.5 transition-colors duration-200 ${
-          off ? "bg-[var(--n-5)]" : "bg-[var(--action)]"
+        className={`nv-gc nv-flat ml-3 flex h-7 w-12 shrink-0 items-center rounded-full p-0.5 ${
+          off ? "" : "nv-t-action"
         }`}
       >
         <span

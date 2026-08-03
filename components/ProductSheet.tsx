@@ -473,7 +473,7 @@ function LaunchFlow({ spec, onDone }: { spec: IndustrySpec; onDone: () => void }
                   onClick={() => setInvestTier(i as 0 | 1 | 2)}
                   className={`nv-gc flex w-full items-center justify-between rounded-[var(--radius-row)] px-3 py-2.5 text-left ${
                     investTier === i
-                      ? "nv-on font-bold ring-1 ring-[var(--text-primary)]"
+                      ? "nv-on font-bold outline -outline-offset-1 outline-[var(--text-primary)]"
                       : ""
                   }`}
                 >
@@ -504,7 +504,7 @@ function LaunchFlow({ spec, onDone }: { spec: IndustrySpec; onDone: () => void }
                       onClick={() => setChoiceIdx(i)}
                       className={`nv-gc w-full rounded-[var(--radius-row)] px-3 py-2.5 text-left text-sm ${
                         choiceIdx === i
-                          ? "nv-on font-bold ring-1 ring-[var(--text-primary)]"
+                          ? "nv-on font-bold outline -outline-offset-1 outline-[var(--text-primary)]"
                           : ""
                       }`}
                     >

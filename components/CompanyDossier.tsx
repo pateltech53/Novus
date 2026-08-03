@@ -204,8 +204,8 @@ function Body({ run }: { run: RunState }) {
       {/* ── The books ──────────────────────────────────────────────────── */}
       <Section title="THE BOOKS">
         <div
-          className={`nv-card px-4 py-3 ${
-            s.cash < 0 ? "ring-1 ring-[var(--alert)]/40" : ""
+          className={`nv-gc rounded-[var(--radius-row)] px-4 py-3 ${
+            s.cash < 0 ? "outline -outline-offset-1 outline-[var(--alert)]/45" : ""
           }`}
         >
           <p className="text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
@@ -425,7 +425,7 @@ function Tile({
   note?: string;
 }) {
   return (
-    <div className="nv-card min-w-0 px-3 py-2.5">
+    <div className="nv-gc min-w-0 rounded-[var(--radius-row)] px-3 py-2.5">
       <p className="truncate text-2xs font-bold tracking-[0.08em] text-[var(--text-tertiary)]">
         {label}
       </p>
