@@ -487,8 +487,13 @@ function PlansSheet({ onDone }: { onDone: () => void }) {
       result.reason === "needs-account"
         ? "Pro attaches to an account, so it survives a new phone. Create one on the front page first — the free game does not need one."
         : result.reason === "signed-out"
-          ? "Could not reach your account. Check your connection and try again."
-          : "Checkout could not be opened. Nothing was charged.",
+          ? // `signed-out` is a refusal, not a network failure — the route
+            // answers 200 with `signedIn: false`. Naming the real cause is what
+            // stops a player retrying a button that will never work.
+            "Nobody is signed in on this browser, and Pro attaches to a Novus account rather than to a device. Sign in on the front page, then choose a plan again."
+          : result.message
+            ? `Checkout could not be opened. Nothing was charged. (${result.message})`
+            : "Checkout could not be opened. Nothing was charged.",
     );
   };
 

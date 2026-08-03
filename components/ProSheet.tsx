@@ -130,8 +130,14 @@ export function ProSheet({ onClose }: { onClose: () => void }) {
         : result.reason === "needs-account"
           ? "Pro attaches to an account so it survives a new phone. Create one on the front page first — the free game does not need one."
           : result.reason === "signed-out"
-            ? "Could not reach your account. Check your connection and try again."
-            : "Checkout could not be opened. Nothing was charged.",
+            ? // Not a connection failure — that is `error`. This is the server
+              // refusing to sell a subscription to a request with no account on
+              // it, and saying so is the difference between a dead end and a
+              // ten-second fix. See lib/cloud/pending-pro.ts.
+              "Nobody is signed in on this browser, and Pro attaches to a Novus account rather than to a device. Sign in on the front page, then choose a plan again."
+            : result.message
+              ? `Checkout could not be opened. Nothing was charged. (${result.message})`
+              : "Checkout could not be opened. Nothing was charged.",
     );
   };
 

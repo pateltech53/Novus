@@ -14,6 +14,7 @@ import {
   signUp,
 } from "@/lib/cloud/auth";
 import { MIN_PASSWORD_LENGTH } from "@/lib/auth/credentials";
+import { resumePendingPro } from "@/lib/cloud/pending-pro";
 import { whenRestored } from "@/lib/cloud/sync";
 import { ENTRY_ROUTES, entryRoute } from "@/lib/entry";
 import { play } from "@/lib/sound";
@@ -269,6 +270,13 @@ export function AccountGate() {
     }
 
     play("success");
+
+    // Only ever true when this account was created BECAUSE a price was
+    // pressed — the pricing section records the plan when checkout refuses a
+    // signed-out buyer, and this is the moment that refusal stops being true.
+    // Answering true means the browser is already leaving for Stripe.
+    if (await resumePendingPro()) return;
+
     // Unlike sign-in, sign-up KEEPS this device's progress — signUp() has just
     // pushed it into the new account — so a client-side push is fine here and
     // the anonymous player's half-built company survives making an account.
@@ -288,6 +296,21 @@ export function AccountGate() {
     }
 
     play("success");
+
+    /*
+     * Somebody who signed in in order to buy goes to the checkout, not home.
+     *
+     * This is the whole point of the handoff: the App Store build's GET PRO
+     * link opens the pricing section in a browser that has never held the app's
+     * session, so pressing a plan there ALWAYS lands here first. Sending them
+     * back to the top of the front page and hoping they find the prices a
+     * second time is how the purchase gets abandoned.
+     *
+     * Nothing is skipped by leaving early — the account's save is pulled by
+     * restoreOnBoot on whichever page Stripe returns them to.
+     */
+    if (await resumePendingPro()) return;
+
     /*
      * A full page load, not router.push().
      *

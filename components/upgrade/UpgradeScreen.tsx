@@ -139,8 +139,17 @@ export function UpgradeScreen({
       result.reason === "needs-account"
         ? "Pro attaches to an account, so it survives a new phone. Create one on the front page first — the free game does not need one."
         : result.reason === "signed-out"
-          ? "Could not reach your account. Check your connection and try again."
-          : "Checkout could not be opened. Nothing was charged.",
+          ? // NOT "check your connection", which is what this said and was
+            // never what happened. `signed-out` is the server declining to
+            // sell a subscription to a request carrying no account — a thing
+            // the player fixes in ten seconds once somebody tells them.
+            "Nobody is signed in on this browser, and Pro attaches to a Novus account rather than to a device. Sign in on the front page, then press GET PRO again."
+          : result.message
+            ? // The server's own words, because "checkout could not be opened"
+              // is not answerable from a screenshot and "STRIPE_PRICE_PRO_YEARLY
+              // is not set" is.
+              `Checkout could not be opened. Nothing was charged. (${result.message})`
+            : "Checkout could not be opened. Nothing was charged.",
     );
   };
 
