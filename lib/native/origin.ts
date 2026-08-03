@@ -19,6 +19,14 @@ import { isNative } from "@/lib/native/platform";
  */
 const ORIGIN = (process.env.NEXT_PUBLIC_API_ORIGIN || "https://www.novuspitch.com").replace(/\/$/, "");
 
+/**
+ * The same host, as an absolute URL, for the places that must leave the app
+ * entirely rather than call into it — the purchase link opens this in the
+ * player's browser, where a relative path would resolve against
+ * `capacitor://localhost` and go nowhere.
+ */
+export const WEB_ORIGIN = ORIGIN;
+
 export function apiUrl(path: string): string {
   if (!isNative()) return path;
   return `${ORIGIN}${path.startsWith("/") ? path : `/${path}`}`;

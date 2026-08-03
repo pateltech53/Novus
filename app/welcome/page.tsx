@@ -8,7 +8,8 @@ import { play } from "@/lib/sound";
 import { LoopExplainer } from "@/components/LoopExplainer";
 import { PrimaryButton, StepShell } from "@/components/StepShell";
 import { billingStatus, goToCheckout } from "@/lib/cloud/billing";
-import { NOT_SOLD_HERE_NOTE, useSellsHere } from "@/lib/commerce";
+import { useSellsHere } from "@/lib/commerce";
+import { BuyOnWeb } from "@/components/upgrade/BuyOnWeb";
 import { LegalSheet } from "@/components/LegalSheet";
 import { PRIVACY, TERMS, type LegalDocument } from "@/lib/legal/documents";
 import {
@@ -580,14 +581,9 @@ function PlansSheet({ onDone }: { onDone: () => void }) {
                 </div>
               )}
 
-              {/* What replaces the prices in a store build. States a fact and
-                  stops: no URL, no "visit", nothing that reads as a call to
-                  action pointed at a purchase somewhere else. */}
-              {sellsHere === false && (
-                <p className="mt-4 rounded-[var(--radius-row)] bg-[var(--surface)] px-4 py-3 text-xs leading-relaxed text-[var(--text-secondary)]">
-                  {NOT_SOLD_HERE_NOTE}
-                </p>
-              )}
+              {/* What replaces the prices in a store build: the same offer,
+                  pointed at the browser that is allowed to take the money. */}
+              {sellsHere === false && <BuyOnWeb className="mt-4" />}
             </motion.div>
           ) : (
             <motion.div
@@ -705,19 +701,16 @@ function PlansSheet({ onDone }: { onDone: () => void }) {
             Free is one of two answers to the question, not the way out of a
             paywall, and a 12px underline at the bottom would say otherwise.
 
-            In a store build it is the only button on the step, so it stops
-            being an answer to a question nobody was asked and simply starts
-            the game. */}
+            It used to go orange and read START PLAYING in a store build, where
+            it was the only button on the step. It is not the only one any more
+            — GET PRO is the other answer again — and two accented buttons on
+            one screen is the accent spent twice. */}
         <button
           type="button"
           onClick={onDone}
-          className={`nv-press h-14 w-full rounded-[var(--radius-pill)] text-[1.0625rem] font-extrabold tracking-[0.04em] ${
-            sellsHere === false
-              ? "mt-3.5 bg-[var(--action)] text-[var(--on-action)] shadow-[var(--e3)]"
-              : "mt-2.5 bg-[var(--surface-elevated)] text-[var(--text-primary)]"
-          }`}
+          className="nv-press mt-2.5 h-14 w-full rounded-[var(--radius-pill)] bg-[var(--surface-elevated)] text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--text-primary)]"
         >
-          {sellsHere === false ? "START PLAYING" : "CONTINUE FREE"}
+          CONTINUE FREE
         </button>
 
         {/* Reachable from the screen that offers the subscription, and read

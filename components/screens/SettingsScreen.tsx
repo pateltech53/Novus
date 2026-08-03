@@ -19,6 +19,7 @@ import { openBillingPortal, restorePurchases } from "@/lib/cloud/billing";
 import { restoreForSignIn } from "@/lib/cloud/sync";
 import { isPro, loadEntitlements } from "@/lib/monetization";
 import { MANAGE_SUBSCRIPTION_NOTE, storefront, useSellsHere } from "@/lib/commerce";
+import { BuyOnWeb, RestoreButton } from "@/components/upgrade/BuyOnWeb";
 import { entryRoute } from "@/lib/entry";
 
 /**
@@ -615,14 +616,12 @@ function ProSection() {
             : "Free is the whole game — same year, same pitch, same panel, same board. Pro adds content, never an advantage."}
         </p>
 
-        <button
-          type="button"
-          onClick={() => void restore()}
-          disabled={busy}
-          className="nv-press mt-3 h-12 w-full rounded-[var(--radius-pill)] bg-[var(--surface-overlay)] text-sm font-bold text-[var(--text-primary)] disabled:opacity-50"
-        >
-          {busy ? "CHECKING…" : "Restore purchases"}
-        </button>
+        {/* A store build cannot take the money, so the offer is a link out to
+            the browser that can — the same component the Pro sheet and the
+            paywall use, so all three say the same thing at the same price. */}
+        {!pro && sellsHere === false ? <BuyOnWeb className="mt-3" /> : null}
+
+        <RestoreButton busy={busy} onRestore={() => void restore()} className="mt-3" />
 
         {/* On the web this opens Stripe's portal — cancel, switch plan, update
             card, receipts. In a store build there is nothing for the app to

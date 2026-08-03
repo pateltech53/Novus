@@ -19,9 +19,17 @@ struct ChromeControl {
 
 struct ChromeCta {
     let title: String
-    let caption: String
-    let progress: Int
-    let total: Int
+    /**
+     The short line on the capsule beside the button — "M4 → M5".
+
+     It replaced a twelve-tick meter above the button and a caption below it.
+     Both said the same thing the badge says, in two more elements and two more
+     materials, and neither of them was glass.
+     */
+    let badge: String
+    /// What the badge reads as out loud. The web layer owns every string in
+    /// this app, including the ones only VoiceOver hears.
+    let badgeLabel: String
     /// "action" for the orange month button, "prestige" for the gold year gate.
     let style: String
     let enabled: Bool
@@ -70,8 +78,8 @@ struct ChromeInsets {
    · a system `UITabBar` at the bottom, which on iOS 26 is Liquid Glass with no
      configuration at all — the system's own tab bar is not something worth
      re-implementing, and any re-implementation would be visibly not it
-   · a tinted `UIGlassEffect` capsule carrying the one control that moves time,
-     with the year meter above it and its caption below
+   · one glass group at the bottom holding two capsules: the tinted control
+     that moves time, and beside it the month it is moving from and to
    · a cluster of circular glass controls floating over the masthead
 
  Two rules hold the whole thing together.
@@ -101,23 +109,25 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
     private let host = PassthroughView()
     private let tabBar = UITabBar()
     private let deck = PassthroughStackView()
-    private let meter = PassthroughStackView()
-    private let caption = UILabel()
     private var ctaGlass: UIVisualEffectView?
     private let ctaButton = UIButton(type: .system)
+    private var monthGlass: UIVisualEffectView?
+    private let monthLabel = UILabel()
     private let leadingControls = PassthroughStackView()
     private let trailingControls = PassthroughStackView()
-    private let topBar = GlassKit.panel(corner: 0, interactive: false, tint: nil)
-    private var scrollToken: NSKeyValueObservation?
 
     /// The iOS 26 containers the clusters live in, when the OS has them. Held
     /// because hiding a cluster has to hide its container too — an empty glass
     /// group is a visible smudge over the mascot.
     private var leadingGroup: UIVisualEffectView?
     private var trailingGroup: UIVisualEffectView?
+    /// The same, for the two capsules at the bottom. Inside one container the
+    /// button and the month badge merge and separate as the button is pressed,
+    /// which is what makes them read as one control rather than as two panes
+    /// that happen to be adjacent.
+    private var deckGroup: UIVisualEffectView?
 
     private var currentToast: Toast?
-    private var meterTicks: [UIView] = []
     private var tabIds: [String] = []
     private var controlIds: [Int: String] = [:]
     /// The other direction of controlIds: id → the capsule, so a coachmark can
@@ -142,9 +152,10 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
         static let controlInset: CGFloat = 20
         static let controlTop: CGFloat = 8
         static let ctaHeight: CGFloat = 56
-        static let deckSpacing: CGFloat = 10
+        static let deckSpacing: CGFloat = 8
         static let deckBottomGap: CGFloat = 10
-        static let meterHeight: CGFloat = 3
+        /// Breathing room either side of the month badge's label.
+        static let badgePadding: CGFloat = 14
         /// What an un-spotlit surface fades to during the guided first play.
         /// Low enough to read as "not this one", high enough that the glass is
         /// still visibly glass rather than a grey hole.
@@ -156,7 +167,7 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
     /// Idempotent: the plugin's `configure` can be called on every launch of
     /// the web layer, including a live reload, and must not stack two decks.
     @discardableResult
-    func install(in parent: UIView, scrollView: UIScrollView? = nil) -> ChromeInsets {
+    func install(in parent: UIView) -> ChromeInsets {
         guard !installed else { return measure() }
         installed = true
 
@@ -173,9 +184,7 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
 
         buildTabBar()
         buildDeck()
-        buildTopBar()
         buildControls()
-        watchScroll(scrollView)
 
         host.onLayout = { [weak self] in
             guard let self else { return }
@@ -219,13 +228,18 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
         ])
     }
 
-    private func buildDeck() {
-        meter.axis = .horizontal
-        meter.distribution = .fillEqually
-        meter.spacing = 3
-        meter.translatesAutoresizingMaskIntoConstraints = false
-        meter.heightAnchor.constraint(equalToConstant: Metric.meterHeight).isActive = true
+    /**
+     The bottom deck: the button that moves time, and the month it moves.
 
+     It used to be a column of three — a twelve-tick meter, the button, a
+     caption reading MONTH 4 OF 12 — of which exactly one element was glass.
+     The meter and the caption were the same fact drawn twice in two materials
+     that are not the app's, stacked above and below the one control anybody
+     touches. What replaces them is a second capsule of the same material,
+     beside the button rather than around it, carrying the same fact in the
+     form the fact is actually about: where you are and where the tap takes you.
+     */
+    private func buildDeck() {
         let glass = GlassKit.panel(corner: Metric.ctaHeight / 2, interactive: true, tint: GlassKit.action)
         ctaGlass = glass
         glass.heightAnchor.constraint(equalToConstant: Metric.ctaHeight).isActive = true
@@ -250,74 +264,64 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
             ctaButton.bottomAnchor.constraint(equalTo: glass.contentView.bottomAnchor),
         ])
 
-        caption.translatesAutoresizingMaskIntoConstraints = false
-        caption.font = .systemFont(ofSize: 12, weight: .semibold)
-        caption.textColor = .tertiaryLabel
-        caption.textAlignment = .center
-        caption.adjustsFontSizeToFitWidth = true
-        caption.minimumScaleFactor = 0.85
+        // The month badge. Untinted glass beside the tinted capsule, so the one
+        // colour that asks you to do something stays on the one control that
+        // does something.
+        let badge = GlassKit.panel(corner: Metric.ctaHeight / 2, interactive: false, tint: nil)
+        monthGlass = badge
+        badge.heightAnchor.constraint(equalToConstant: Metric.ctaHeight).isActive = true
+        // The button takes whatever width is left; the badge is exactly as wide
+        // as what it says. Without both of these a long CTA title squeezes the
+        // badge into an ellipsis, which is the one thing it cannot afford to be.
+        badge.setContentHuggingPriority(.required, for: .horizontal)
+        badge.setContentCompressionResistancePriority(.required, for: .horizontal)
 
-        deck.axis = .vertical
+        monthLabel.translatesAutoresizingMaskIntoConstraints = false
+        monthLabel.isAccessibilityElement = true
+        badge.contentView.addSubview(monthLabel)
+        NSLayoutConstraint.activate([
+            monthLabel.centerYAnchor.constraint(equalTo: badge.contentView.centerYAnchor),
+            monthLabel.leadingAnchor.constraint(
+                equalTo: badge.contentView.leadingAnchor, constant: Metric.badgePadding),
+            monthLabel.trailingAnchor.constraint(
+                equalTo: badge.contentView.trailingAnchor, constant: -Metric.badgePadding),
+        ])
+
+        deck.axis = .horizontal
         deck.alignment = .fill
+        deck.distribution = .fill
         deck.spacing = Metric.deckSpacing
         deck.translatesAutoresizingMaskIntoConstraints = false
         deck.isHidden = true
-        deck.addArrangedSubview(meter)
         deck.addArrangedSubview(glass)
-        deck.addArrangedSubview(caption)
-        // The caption sits closer to its button than the button does to the
-        // meter: it is a label for the button, not a third element in a list.
-        deck.setCustomSpacing(6, after: glass)
+        deck.addArrangedSubview(badge)
 
-        host.addSubview(deck)
+        // Same treatment as the masthead cluster: a container where the OS has
+        // one, so the two capsules behave as one piece of glass.
+        let box: UIView
+        if let group = GlassKit.container(spacing: Metric.deckSpacing) {
+            deckGroup = group
+            host.addSubview(group)
+            group.contentView.addSubview(deck)
+            NSLayoutConstraint.activate([
+                deck.leadingAnchor.constraint(equalTo: group.contentView.leadingAnchor),
+                deck.trailingAnchor.constraint(equalTo: group.contentView.trailingAnchor),
+                deck.topAnchor.constraint(equalTo: group.contentView.topAnchor),
+                deck.bottomAnchor.constraint(equalTo: group.contentView.bottomAnchor),
+            ])
+            box = group
+        } else {
+            host.addSubview(deck)
+            box = deck
+        }
+
         NSLayoutConstraint.activate([
-            deck.leadingAnchor.constraint(equalTo: host.leadingAnchor, constant: Metric.sideMargin),
-            deck.trailingAnchor.constraint(
+            box.leadingAnchor.constraint(equalTo: host.leadingAnchor, constant: Metric.sideMargin),
+            box.trailingAnchor.constraint(
                 equalTo: host.trailingAnchor, constant: -Metric.sideMargin),
-            deck.bottomAnchor.constraint(
+            box.bottomAnchor.constraint(
                 equalTo: tabBar.topAnchor, constant: -Metric.deckBottomGap),
         ])
-    }
-
-    /**
-     The scroll edge.
-
-     iOS has done this for years and it is one of the few pieces of chrome that
-     is glass by right in design.md — "a sheet header once content scrolls
-     under it". Here the content is the whole masthead: as the mascot travels
-     up past the controls, a glass bar arrives behind them so the symbols never
-     end up sitting on a photograph.
-     */
-    private func buildTopBar() {
-        topBar.isUserInteractionEnabled = false
-        topBar.alpha = 0
-        host.addSubview(topBar)
-        NSLayoutConstraint.activate([
-            topBar.leadingAnchor.constraint(equalTo: host.leadingAnchor),
-            topBar.trailingAnchor.constraint(equalTo: host.trailingAnchor),
-            topBar.topAnchor.constraint(equalTo: host.topAnchor),
-            topBar.bottomAnchor.constraint(
-                equalTo: host.safeAreaLayoutGuide.topAnchor,
-                constant: Metric.controlTop * 2 + Metric.controlSize),
-        ])
-    }
-
-    /**
-     Reads the webview's own scroll position.
-
-     Key-value observation rather than the scroll view's delegate: Capacitor
-     owns that delegate, and taking it would break whatever else it does with
-     it. This only ever reads, and costs nothing when nothing is moving.
-     */
-    private func watchScroll(_ scrollView: UIScrollView?) {
-        guard let scrollView else { return }
-        scrollToken = scrollView.observe(\.contentOffset, options: [.new]) { [weak self] view, _ in
-            guard let self else { return }
-            let y = view.contentOffset.y + view.adjustedContentInset.top
-            let next = min(max((y - 12) / 44, 0), 1)
-            guard abs(next - self.topBar.alpha) > 0.01 else { return }
-            self.topBar.alpha = next
-        }
     }
 
     private func buildControls() {
@@ -417,7 +421,7 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
         trailingControls.isHidden = hidden || trailingControls.arrangedSubviews.isEmpty
         leadingGroup?.isHidden = leadingControls.isHidden
         trailingGroup?.isHidden = trailingControls.isHidden
-        topBar.isHidden = hidden
+        deckGroup?.isHidden = deck.isHidden
     }
 
     private func applyTabs(_ tabs: [ChromeTab], active: String?) {
@@ -473,37 +477,17 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
         ctaButton.isEnabled = cta.enabled
         ctaButton.accessibilityLabel = cta.title
 
-        caption.attributedText = NSAttributedString(
-            string: cta.caption,
+        // The badge takes the gold only at the gate, where the month it names
+        // is the one the whole year is pointed at.
+        monthLabel.attributedText = NSAttributedString(
+            string: cta.badge,
             attributes: [
-                .font: UIFont.systemFont(ofSize: 12, weight: .semibold),
-                .foregroundColor: UIColor.tertiaryLabel,
-                .kern: 1.3,
+                .font: UIFont.systemFont(ofSize: 13, weight: .bold),
+                .foregroundColor: prestige ? GlassKit.prestige : UIColor.label,
+                .kern: 0.8,
             ])
-
-        applyMeter(progress: cta.progress, total: cta.total, atGate: prestige)
-    }
-
-    private func applyMeter(progress: Int, total: Int, atGate: Bool) {
-        if meterTicks.count != total {
-            meterTicks.forEach { $0.removeFromSuperview() }
-            meterTicks = (0..<max(total, 0)).map { _ in
-                let tick = UIView()
-                tick.layer.cornerRadius = Metric.meterHeight / 2
-                tick.translatesAutoresizingMaskIntoConstraints = false
-                meter.addArrangedSubview(tick)
-                return tick
-            }
-        }
-        for (index, tick) in meterTicks.enumerated() {
-            let isGate = index == total - 1
-            if isGate {
-                tick.backgroundColor =
-                    atGate ? GlassKit.prestige : GlassKit.prestige.withAlphaComponent(0.35)
-            } else {
-                tick.backgroundColor = index < progress ? .secondaryLabel : .quaternaryLabel
-            }
-        }
+        monthLabel.accessibilityLabel = cta.badgeLabel
+        monthGlass?.isHidden = cta.badge.isEmpty
     }
 
     private func applyControls(_ controls: [ChromeControl]) {
@@ -571,6 +555,7 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
         }
 
         light(deck, spotlight == "advance")
+        if let deckGroup { light(deckGroup, spotlight == "advance") }
         light(tabBar, spotlight == "tabs")
 
         // A group is lit only when it holds the spotlight, and its unlit
@@ -597,7 +582,7 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
             view.alpha = 1
             view.isUserInteractionEnabled = true
         }
-        for view in [leadingGroup, trailingGroup].compactMap({ $0 }) {
+        for view in [leadingGroup, trailingGroup, deckGroup].compactMap({ $0 }) {
             view.alpha = 1
             view.isUserInteractionEnabled = true
         }
@@ -613,7 +598,7 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
         guard coaching, let spotlight = coachSpotlight else { return nil }
         let view: UIView?
         switch spotlight {
-        case "advance": view = deck.isHidden ? nil : deck
+        case "advance": view = deck.isHidden ? nil : (deckGroup ?? deck)
         case "tabs": view = tabBar.isHidden ? nil : tabBar
         default: view = controlViews[spotlight]
         }
@@ -728,6 +713,11 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
      Everything here is measured rather than assumed. `top` runs from the top
      of the page to the bottom of the control cluster; `bottom` from the top of
      the deck to the bottom of the screen, safe area included.
+
+     The deck lost a meter and a caption and got shorter by roughly 30pt. That
+     number appears nowhere: the log below simply gets 30pt more of itself,
+     because the reservation has always been what UIKit measured rather than
+     what anybody wrote down.
      */
     private func measure() -> ChromeInsets {
         var insets = ChromeInsets()
@@ -749,8 +739,11 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
             insets.tabBar = height - tabBar.frame.minY
         }
 
-        if !deck.isHidden, deck.frame.height > 0 {
-            insets.bottom = height - deck.frame.minY + Metric.deckBottomGap
+        // Off the container where there is one: inside a group the stack's own
+        // frame is relative to that group, not to the host.
+        let deckBox = deckGroup ?? deck
+        if !deck.isHidden, deckBox.frame.height > 0 {
+            insets.bottom = height - deckBox.frame.minY + Metric.deckBottomGap
         } else {
             insets.bottom = insets.tabBar
         }

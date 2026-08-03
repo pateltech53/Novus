@@ -71,10 +71,7 @@ public class NovusGlassPlugin: CAPPlugin, CAPBridgedPlugin {
                 self.chrome = controller
             }
 
-            // The webview's own scroll view goes in so the chrome can read the
-            // page's scroll position for the scroll-edge bar without the web
-            // layer posting an offset across the bridge sixty times a second.
-            let insets = controller.install(in: host, scrollView: self.bridge?.webView?.scrollView)
+            let insets = controller.install(in: host)
             // A first paint with the wrong ground is worse than a late one:
             // the webview's own background shows through for the frame before
             // the page has painted, and it must match the theme it is about
@@ -205,10 +202,6 @@ public class NovusGlassPlugin: CAPPlugin, CAPBridgedPlugin {
         object[key] as? String
     }
 
-    private static func int(_ object: JSObject, _ key: String, _ fallback: Int) -> Int {
-        (object[key] as? NSNumber)?.intValue ?? fallback
-    }
-
     private static func bool(_ object: JSObject, _ key: String, _ fallback: Bool) -> Bool {
         (object[key] as? NSNumber)?.boolValue ?? (object[key] as? Bool) ?? fallback
     }
@@ -233,11 +226,11 @@ public class NovusGlassPlugin: CAPPlugin, CAPBridgedPlugin {
 
         var cta: ChromeCta?
         if let raw = call.getObject("cta"), let title = str(raw, "title") {
+            let badge = str(raw, "badge") ?? ""
             cta = ChromeCta(
                 title: title,
-                caption: str(raw, "caption") ?? "",
-                progress: int(raw, "progress", 0),
-                total: max(int(raw, "total", 12), 1),
+                badge: badge,
+                badgeLabel: str(raw, "badgeLabel") ?? badge,
                 style: str(raw, "style") ?? "action",
                 enabled: bool(raw, "enabled", true),
                 locked: bool(raw, "locked", false))

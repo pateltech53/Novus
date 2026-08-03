@@ -27,10 +27,15 @@ export interface NativeTab {
 /** The primary call to action — the only control that moves time. */
 export interface NativeCta {
   title: string;
-  caption: string;
-  /** Filled ticks in the year meter drawn above the button. */
-  progress: number;
-  total: number;
+  /**
+   * The glass capsule beside the button: where the year is and where the tap
+   * takes it — "M4 → M5". It replaced a tick meter above the button and a
+   * caption below it, which said the same thing twice in two materials that
+   * were not the app's.
+   */
+  badge: string;
+  /** What that capsule reads as out loud. */
+  badgeLabel: string;
   /** `action` is the orange month button; `prestige` is the gold year gate. */
   style: "action" | "prestige";
   enabled: boolean;
@@ -91,7 +96,7 @@ export interface NativeRect {
 export interface ChromeInsets {
   /** Height of the masthead control strip, measured from the top of the page. */
   top: number;
-  /** Height of the whole bottom deck: meter, button, caption and tab bar. */
+  /** Height of the whole bottom deck: the capsules and the tab bar. */
   bottom: number;
   /** Just the tab bar, for surfaces that keep it and drop the rest. */
   tabBar: number;

@@ -35,3 +35,31 @@ export const MONTH_NAMES = [
   "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
   "JUL", "AUG", "SEP", "OCT", "NOV", "DEC",
 ];
+
+/** 1-based game month → an index MONTH_NAMES actually has. */
+const monthName = (m: number): string => MONTH_NAMES[Math.min(11, Math.max(0, m - 1))];
+
+/**
+ * Where the year is, and where one tap takes it — "MAY → JUN".
+ *
+ * This is the whole of what a twelve-tick meter above the advance button and a
+ * MONTH 4 OF 12 caption below it used to say between them: the same fact,
+ * drawn twice, in two materials that were not the app's. It is one capsule now,
+ * beside the button rather than wrapped around it, and it says the thing the
+ * button is actually about rather than the thing the calendar is.
+ *
+ * At the gate the next stop is not a month. Saying JAN there would promise a
+ * year that closes without a pitch, and the year does not close without one.
+ */
+export function monthBadge(month: number, year: number, atGate: boolean): string {
+  return atGate
+    ? `${monthName(month)} → FY${year + 1}`
+    : `${monthName(month)} → ${monthName(month + 1)}`;
+}
+
+/** The same, spoken. An arrow is a picture; VoiceOver reads it as nothing. */
+export function monthBadgeLabel(month: number, year: number, atGate: boolean): string {
+  return atGate
+    ? `${monthName(month)}. Closing fiscal year ${year}.`
+    : `${monthName(month)}. Advances to ${monthName(month + 1)}.`;
+}
