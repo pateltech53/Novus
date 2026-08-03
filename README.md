@@ -121,6 +121,16 @@ so `PublicBrief` in `lib/ai/types.ts` is inferred and marked as such.
 Adapters are pure functions today; when they go live they must move behind route
 handlers so no key ever reaches the client.
 
+Three of them already have. Voices, transcription and cold-call verdicts run on
+ElevenLabs, Deepgram and OpenRouter through `app/api/{tts,stt,pitch}/route.ts`,
+where the keys stay — each is independent, and each falls back to a complete
+local path when its key is unset, so an unconfigured deploy loses polish and
+never function. `npm run test:ai` asserts the contracts without spending a
+request; `npm run test:ai -- --live` says whether your own keys work, which is
+the answer to "I set them and nothing happened."
+[docs/AI-SETUP.md](docs/AI-SETUP.md) covers the rest — the caps, the casting,
+and the one key that sends a child's voice to a third party.
+
 ## Persistence, accounts and money
 
 `localStorage` is the cache the game reads; Supabase is the durable copy behind
