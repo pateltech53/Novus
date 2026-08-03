@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 
 import { Glass, GlassScrim } from "@/components/ui/Glass";
@@ -20,8 +20,10 @@ import {
   type SubmitResult,
 } from "@/lib/leaderboard/client";
 import { tapeStatus } from "@/lib/leaderboard/recorder";
-import type { Board } from "@/lib/leaderboard/boards";
-import { useNativeGlassClose } from "@/components/native/useNativeOverlay";
+import { isBoard, type Board } from "@/lib/leaderboard/boards";
+import { useNativeOverlay, useNativeOverlayOwned } from "@/components/native/useNativeOverlay";
+import { NovusGlass } from "@/lib/native/glass";
+import { useResolvedTheme } from "@/lib/native/theme";
 
 /**
  * Still Standing — the two global boards.
@@ -83,9 +85,10 @@ const ENDED_LABEL: Record<string, string> = {
 };
 
 export function StillStandingScreen({ onClose }: { onClose: () => void }) {
-  // A real `UIGlassEffect` circle over the scrim; the CLOSE chip below is
-  // not rendered at all while it is up.
-  const native = useNativeGlassClose("Close the leaderboard", onClose);
+  // UIKit draws this screen's whole chrome when it can — see the
+  // useNativeOverlay declaration below. `native` gates every DOM control
+  // that would otherwise be drawn twice.
+  const native = useNativeOverlayOwned();
   const { run } = useGame();
   const [board, setBoard] = useState<Board>("survival");
   const [scope, setScope] = useState<BoardScope>("global");
@@ -140,12 +143,47 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
     setResult(out);
     setSubmitting(false);
     if (out.status === "verified" || out.status === "flagged") void load(board, scope);
+
+    /*
+     * On iOS the verdict also arrives as a glass note from the top — chrome
+     * explaining the board, which is the clause design.md admits toasts
+     * under. The panel below still carries the full result on every
+     * platform; the toast is the acknowledgment at the moment of the tap,
+     * where the dock button that caused it lives.
+     */
+    if (native && out.status !== "no-tape" && out.status !== "error") {
+      const toast =
+        out.status === "verified"
+          ? {
+              title: out.listed ? "On the board" : "Verified",
+              text:
+                out.peakValuation !== null && out.yearsSurvived !== null
+                  ? `${fmtMoney(out.peakValuation)} peak · ${out.yearsSurvived} ${
+                      out.yearsSurvived === 1 ? "year" : "years"
+                    }${out.listed ? "" : " — a person reads the name before it lists"}`
+                  : "The server replayed your run and the numbers stand.",
+              tone: "good" as const,
+            }
+          : out.status === "duplicate"
+            ? { text: "That run is already on the board.", tone: "neutral" as const }
+            : out.status === "flagged"
+              ? { text: "Submitted — a person will look at it before it lists.", tone: "neutral" as const }
+              : {
+                  title: "Not verified",
+                  text: out.message ?? "That run could not be verified against the engine.",
+                  tone: "bad" as const,
+                };
+      NovusGlass.toast(toast).catch(() => {
+        /* no bridge — the panel already says all of this */
+      });
+    }
+
     // The one refusal the player can act on: they have no board handle yet.
     if (out.reason === "needs-handle") {
       const offer = await fetchHandles();
       if (offer.ok) setHandles(offer.options);
     }
-  }, [run, submitting, board, scope, load]);
+  }, [run, submitting, board, scope, load, native]);
 
   const onPickHandle = useCallback(
     async (handle: string) => {
@@ -166,12 +204,97 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
     [onSubmit],
   );
 
-  const onReport = useCallback(async (entry: BoardRow) => {
-    setReported((prev) => new Set(prev).add(entry.id));
-    await reportEntry(entry.id);
-  }, []);
+  const onReport = useCallback(
+    async (entry: BoardRow) => {
+      setReported((prev) => new Set(prev).add(entry.id));
+      if (native) {
+        NovusGlass.toast({
+          text: "Reported. The row is down while a person looks at it.",
+          tone: "neutral",
+        }).catch(() => {});
+      }
+      await reportEntry(entry.id);
+    },
+    [native],
+  );
 
   const active = BOARDS.find((b) => b.id === board)!;
+
+  /*
+   * The board's chrome, drawn by UIKit in the real material.
+   *
+   * Everything that is chrome here goes native when native can have it — the
+   * design law's whole list, deliberately: the way out is a glass circle, the
+   * two boards are a real glass segmented control, the chapter cut is a
+   * second circle beside the close (a segmented control is one row, and the
+   * boards are the row), and the one thing this screen asks — submit the run
+   * — is a prominent button in the floating dock. The rows underneath stay
+   * solid on every platform: they are financial figures, and money is read
+   * on solid ground.
+   */
+  const resolvedTheme = useResolvedTheme();
+  const submitted = tape.submitted;
+  useNativeOverlay(
+    useMemo(
+      () => ({
+        mode: "shown" as const,
+        theme: resolvedTheme,
+        // No title plate: the sheet's own glass header already carries the
+        // name, and a second copy floating over the scrim is the same words
+        // twice.
+        title: null,
+        trailing: [
+          ...(hasChapter
+            ? [
+                {
+                  id: "scope",
+                  symbol: scope === "global" ? "person.3" : "globe",
+                  label:
+                    scope === "global"
+                      ? "Show only your chapter"
+                      : "Show everyone",
+                  style: "plain" as const,
+                },
+              ]
+            : []),
+          { id: "close", symbol: "xmark", label: "Close the leaderboard", style: "plain" as const },
+        ],
+        segments: BOARDS.map((b) => ({ id: b.id, title: b.label })),
+        activeSegment: board,
+        // The dock carries the screen's one ask, and only while it is
+        // genuinely askable. While the handle picker is up the ask has moved
+        // into the content — a dock that re-submits under it would answer a
+        // question the player is no longer being asked.
+        actions:
+          canSubmit && !handles
+            ? [
+                {
+                  id: "submit",
+                  title: submitting
+                    ? "VERIFYING…"
+                    : submitted
+                      ? "SUBMIT AGAIN"
+                      : "SUBMIT THIS RUN",
+                  label: "Submit this run to the board",
+                  style: "prominent" as const,
+                  enabled: !submitting,
+                },
+              ]
+            : [],
+      }),
+      [resolvedTheme, hasChapter, scope, board, canSubmit, handles, submitting, submitted],
+    ),
+    {
+      onAction: (id) => {
+        if (id === "close") onClose();
+        else if (id === "scope") setScope((s) => (s === "global" ? "chapter" : "global"));
+        else if (id === "submit") void onSubmit();
+      },
+      onSegment: (id) => {
+        if (isBoard(id)) setBoard(id);
+      },
+    },
+  );
 
   return (
     <motion.div
@@ -217,37 +340,43 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
             )}
           </div>
 
-          {/* A segmented control is chrome, so it belongs on the glass. The
-              active segment is weight and a neutral fill — never the accent,
-              which belongs to the one control that moves time. */}
-          <div
-            role="tablist"
-            aria-label="Board"
-            className="mt-3 grid grid-cols-2 gap-1 rounded-[var(--radius-pill)] bg-[var(--chip)] p-1"
-          >
-            {BOARDS.map((b) => (
-              <button
-                key={b.id}
-                role="tab"
-                type="button"
-                aria-selected={board === b.id}
-                onClick={() => setBoard(b.id)}
-                className={`nv-gc nv-flat rounded-[var(--radius-pill)] px-3 py-2 text-2xs font-bold tracking-[0.1em] ${
-                  board === b.id
-                    ? "nv-on text-[var(--text-primary)]"
-                    : "text-[var(--text-tertiary)]"
-                }`}
-              >
-                {b.label.toUpperCase()}
-              </button>
-            ))}
-          </div>
+          {/* A segmented control is chrome, so it belongs on the glass — and
+              when UIKit is drawing the chrome, it belongs to UIKit: the same
+              two boards ride the toolbar as a real glass segmented control
+              and this DOM copy is not rendered at all. The active segment is
+              weight and a neutral fill — never the accent, which belongs to
+              the one control that moves time. */}
+          {!native && (
+            <div
+              role="tablist"
+              aria-label="Board"
+              className="mt-3 grid grid-cols-2 gap-1 rounded-[var(--radius-pill)] bg-[var(--chip)] p-1"
+            >
+              {BOARDS.map((b) => (
+                <button
+                  key={b.id}
+                  role="tab"
+                  type="button"
+                  aria-selected={board === b.id}
+                  onClick={() => setBoard(b.id)}
+                  className={`nv-gc nv-flat rounded-[var(--radius-pill)] px-3 py-2 text-2xs font-bold tracking-[0.1em] ${
+                    board === b.id
+                      ? "nv-on text-[var(--text-primary)]"
+                      : "text-[var(--text-tertiary)]"
+                  }`}
+                >
+                  {b.label.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* The chapter cut. Offered only to accounts a chapter has claimed —
               for everyone else the board is global and there is nothing to
               choose. Same rows, same rules; the ranks are recomputed within
-              the classroom, so #1 here can be #300 out there. */}
-          {hasChapter && (
+              the classroom, so #1 here can be #300 out there. On iOS it is a
+              glass circle in the toolbar instead of this second pill row. */}
+          {!native && hasChapter && (
             <div
               role="tablist"
               aria-label="Who is on the board"
@@ -276,13 +405,25 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
               ))}
             </div>
           )}
+
+          {/* UIKit's segmented control names the boards but not the scope it
+              is cutting them by — that lives in a toolbar circle. One quiet
+              line keeps the two readable together when the chapter cut is
+              active. */}
+          {native && hasChapter && scope === "chapter" && (
+            <p className="mt-2 text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
+              MY CHAPTER ONLY
+            </p>
+          )}
         </Glass>
 
-        {/* ── Rows. Solid ground, every one. ────────────────────────────── */}
+        {/* ── Rows. Solid ground, every one. And behind the native dock the
+            padding grows by what UIKit measured, so the last row scrolls
+            clear of the glass instead of dying under it. ───────────────── */}
         <div
           ref={bodyRef}
           onScroll={onScroll}
-          className="min-h-0 flex-1 overflow-y-auto px-3 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))]"
+          className="min-h-0 flex-1 overflow-y-auto px-3 pt-2 pb-[max(1rem,env(safe-area-inset-bottom),var(--nv-overlay-bottom))]"
         >
           {loading && <Note>Reading the board…</Note>}
 
@@ -367,6 +508,10 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
                 submitting={submitting}
                 result={result}
                 onSubmit={onSubmit}
+                // When UIKit's dock carries SUBMIT THIS RUN, the panel keeps
+                // its explanation and its verdict and drops its button — one
+                // call to action, in the material that owns it.
+                dockOwned={native && canSubmit}
               />
             )}
           </div>
@@ -511,12 +656,17 @@ function SubmitPanel({
   submitting,
   result,
   onSubmit,
+  dockOwned = false,
 }: {
   canSubmit: boolean;
   submitted: boolean;
   submitting: boolean;
   result: SubmitResult | null;
   onSubmit: () => void;
+  /** True when the native dock carries the submit button, so this panel
+   *  must not render a second one. Removed, not hidden — a hidden button
+   *  still takes a tap on iOS. */
+  dockOwned?: boolean;
 }) {
   return (
     <div className="nv-card px-4 py-4">
@@ -557,14 +707,16 @@ function SubmitPanel({
         </div>
       )}
 
-      <button
-        type="button"
-        disabled={!canSubmit || submitting}
-        onClick={onSubmit}
-        className="nv-gc mt-3 flex h-14 w-full items-center justify-center rounded-[var(--radius-pill)] nv-t-action px-4 text-center text-sm font-extrabold leading-tight disabled:opacity-40"
-      >
-        {submitting ? "Verifying…" : submitted ? "Submit again" : "Submit this run"}
-      </button>
+      {!dockOwned && (
+        <button
+          type="button"
+          disabled={!canSubmit || submitting}
+          onClick={onSubmit}
+          className="nv-gc mt-3 flex h-14 w-full items-center justify-center rounded-[var(--radius-pill)] nv-t-action px-4 text-center text-sm font-extrabold leading-tight disabled:opacity-40"
+        >
+          {submitting ? "Verifying…" : submitted ? "Submit again" : "Submit this run"}
+        </button>
+      )}
 
       {!canSubmit && (
         <p className="mt-2 text-2xs leading-snug text-[var(--text-tertiary)]">

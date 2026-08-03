@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { API_CREDENTIALS, apiUrl } from "@/lib/native/origin";
+import { useNativeOverlay, useNativeOverlayOwned } from "@/components/native/useNativeOverlay";
+import { useResolvedTheme } from "@/lib/native/theme";
 import { openBillingPortal } from "@/lib/cloud/billing";
 import { CHAPTER_LICENCES, formatPrice, perSeatCents } from "@/lib/monetization";
 import { play } from "@/lib/sound";
@@ -272,11 +274,68 @@ export default function ChapterPage() {
     });
   };
 
+  /*
+   * The console's chrome, drawn by UIKit — the Settings pattern: a full page
+   * with its own ground, a floating glass toolbar the whole page scrolls
+   * under. The title rides the plate, the way back is a glass circle on the
+   * left, and the two page-level verbs — billing, refresh — are circles on
+   * the right once there is a chapter to act on. The forms and the roster
+   * stay DOM on every platform: they are content, and half of them carry
+   * addresses the way The Books carry figures.
+   */
+  const native = useNativeOverlayOwned();
+  const resolvedTheme = useResolvedTheme();
+  useNativeOverlay(
+    useMemo(
+      () => ({
+        mode: "shown" as const,
+        theme: resolvedTheme,
+        title: "Chapter",
+        leading: [
+          {
+            id: "back",
+            symbol: "chevron.backward",
+            label: "Back to Novus",
+            style: "plain" as const,
+          },
+        ],
+        trailing:
+          phase === "ready"
+            ? [
+                {
+                  id: "refresh",
+                  symbol: "arrow.clockwise",
+                  label: "Refresh the roster",
+                  style: "plain" as const,
+                  enabled: busy === null,
+                },
+                {
+                  id: "billing",
+                  symbol: "creditcard",
+                  label: "Manage billing",
+                  style: "plain" as const,
+                },
+              ]
+            : [],
+      }),
+      [resolvedTheme, phase, busy],
+    ),
+    {
+      onAction: (id) => {
+        if (id === "back") {
+          if (window.history.length > 1) window.history.back();
+          else window.location.assign("/");
+        } else if (id === "billing") void openBillingPortal();
+        else if (id === "refresh") void refresh();
+      },
+    },
+  );
+
   // ── Screens ───────────────────────────────────────────────────────────────
 
   if (phase !== "ready") {
     return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-[26rem] flex-col justify-center px-6 py-16">
+      <main className="mx-auto flex min-h-dvh w-full max-w-[26rem] flex-col justify-center px-6 pb-16 pt-[max(4rem,env(safe-area-inset-top),calc(var(--nv-overlay-top)+1rem))]">
         <p className="text-2xs font-bold tracking-[0.18em] text-[var(--color-prestige)]">
           NOVUS CHAPTER
         </p>
@@ -340,7 +399,7 @@ export default function ChapterPage() {
     : null;
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-6 pb-24 pt-[max(2.5rem,env(safe-area-inset-top))]">
+    <main className="mx-auto w-full max-w-3xl px-6 pb-[max(6rem,calc(var(--nv-overlay-bottom)+2rem))] pt-[max(2.5rem,env(safe-area-inset-top),calc(var(--nv-overlay-top)+0.75rem))]">
       {/* ── Masthead ────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
@@ -356,21 +415,26 @@ export default function ChapterPage() {
             {chapter?.status === "lapsed" ? " · licence lapsed" : ""}
           </p>
         </div>
-        <div className="flex gap-2">
-          <a
-            href="/"
-            className="nv-gc rounded-full px-4 py-2 text-2xs font-bold tracking-[0.1em] text-[var(--text-secondary)]"
-          >
-            BACK TO NOVUS
-          </a>
-          <button
-            type="button"
-            onClick={() => void openBillingPortal()}
-            className="nv-gc rounded-full px-4 py-2 text-2xs font-bold tracking-[0.1em] text-[var(--text-secondary)]"
-          >
-            MANAGE BILLING
-          </button>
-        </div>
+        {/* On iOS these two are glass circles in the toolbar (and the way
+            back is the leading chevron) — the DOM chips are not rendered at
+            all rather than hidden, so no invisible control can take a tap. */}
+        {native ? null : (
+          <div className="flex gap-2">
+            <a
+              href="/"
+              className="nv-gc rounded-full px-4 py-2 text-2xs font-bold tracking-[0.1em] text-[var(--text-secondary)]"
+            >
+              BACK TO NOVUS
+            </a>
+            <button
+              type="button"
+              onClick={() => void openBillingPortal()}
+              className="nv-gc rounded-full px-4 py-2 text-2xs font-bold tracking-[0.1em] text-[var(--text-secondary)]"
+            >
+              MANAGE BILLING
+            </button>
+          </div>
+        )}
       </div>
 
       {chapter?.status === "lapsed" && (
