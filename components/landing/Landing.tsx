@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
@@ -25,6 +25,8 @@ import { whenRestored } from "@/lib/cloud/sync";
 import { useSellsHere } from "@/lib/commerce";
 import { hasSavedRun, loadProfile } from "@/lib/engine/save";
 import { loadAccount } from "@/lib/account";
+import { entryRoute } from "@/lib/entry";
+import { isNative } from "@/lib/native/platform";
 
 /**
  * The front door.
@@ -45,6 +47,32 @@ import { loadAccount } from "@/lib/account";
 
 export function Landing() {
   const reduced = useReducedMotion();
+
+  /*
+   * The app must never sit here.
+   *
+   * capacitor.config.ts points the shell at /boot.html precisely so a cold
+   * start does not pay for a marketing page with a WebGL scene on it before it
+   * can work out which screen the player belongs on. That is one line of
+   * configuration, and configuration is a thing that can fail to apply — a
+   * clean build, a sync that did not run, a Capacitor default reasserting
+   * itself — and when it does the app opens on THIS page instead. Which is how
+   * a player ends up looking at CONTINUE AS <NAME> inside an app that was never
+   * meant to show it, on top of a scene it was never meant to load.
+   *
+   * So the page also knows the rule, and applies the same one boot.html does.
+   * `replace` rather than `push`: this is a wrong turn being corrected, and
+   * nobody should be able to press back into it. The trailing slash is not
+   * optional — the app's file server resolves a route by finding its
+   * index.html, and the export has no /play.html to fall back on.
+   *
+   * On the web this does nothing at all: "/" is the real front door there.
+   */
+  useEffect(() => {
+    if (!isNative()) return;
+    window.location.replace(`${entryRoute()}/`);
+  }, []);
+
   const rise = (delay: number) =>
     reduced
       ? {}
