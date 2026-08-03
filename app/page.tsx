@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Landing } from "@/components/landing/Landing";
 import {
+  FAQ,
   ORGANIZATION_ID,
   ORGANIZATION_NODE,
   OG_IMAGE,
@@ -93,39 +94,61 @@ export const metadata: Metadata = {
  * no aggregateRating: we have no ratings, and inventing them is both a
  * penalty and a lie.
  */
-const JSON_LD = jsonLd(WEBSITE_NODE, ORGANIZATION_NODE, {
-  "@type": "VideoGame",
-  "@id": `${SITE_ORIGIN}/#game`,
-  name: "Novus",
-  alternateName: "Novus Pitch",
-  url: SITE_ORIGIN,
-  description:
-    "A life sim for a company: run it month by month, then close each year by pitching out loud to five AI investors who have read your numbers.",
-  image: absoluteUrl(OG_IMAGE),
-  genre: ["Simulation", "Educational"],
-  gamePlatform: ["Web browser", "iOS", "Android"],
-  applicationCategory: "Game",
-  operatingSystem: "Any (web), iOS, Android",
-  inLanguage: "en-US",
-  offers: [
-    { "@type": "Offer", price: "0", priceCurrency: "USD", name: "Free" },
-    {
-      "@type": "Offer",
-      price: "6.99",
-      priceCurrency: "USD",
-      name: "Pro monthly",
-    },
-    {
-      "@type": "Offer",
-      price: "39.99",
-      priceCurrency: "USD",
-      name: "Pro yearly",
-    },
-  ],
-  author: { "@id": ORGANIZATION_ID },
-  publisher: { "@id": ORGANIZATION_ID },
-  isPartOf: { "@id": WEBSITE_ID },
-});
+const JSON_LD = jsonLd(
+  WEBSITE_NODE,
+  ORGANIZATION_NODE,
+  {
+    "@type": "VideoGame",
+    "@id": `${SITE_ORIGIN}/#game`,
+    name: "Novus",
+    alternateName: "Novus Pitch",
+    url: SITE_ORIGIN,
+    description:
+      "A life sim for a company: run it month by month, then close each year by pitching out loud to five AI investors who have read your numbers.",
+    image: absoluteUrl(OG_IMAGE),
+    genre: ["Simulation", "Educational"],
+    gamePlatform: ["Web browser", "iOS", "Android"],
+    applicationCategory: "Game",
+    operatingSystem: "Any (web), iOS, Android",
+    inLanguage: "en-US",
+    offers: [
+      { "@type": "Offer", price: "0", priceCurrency: "USD", name: "Free" },
+      {
+        "@type": "Offer",
+        price: "6.99",
+        priceCurrency: "USD",
+        name: "Pro monthly",
+      },
+      {
+        "@type": "Offer",
+        price: "39.99",
+        priceCurrency: "USD",
+        name: "Pro yearly",
+      },
+    ],
+    author: { "@id": ORGANIZATION_ID },
+    publisher: { "@id": ORGANIZATION_ID },
+    isPartOf: { "@id": WEBSITE_ID },
+  },
+  /*
+   * The FAQ, quoted from the same constant the page renders.
+   *
+   * Google's rule for this markup is that the answer here must be the answer a
+   * visitor can see — marking up text that is not on the page is what turns a
+   * rich result into a manual action. One source is the only way that stays
+   * true through an edit.
+   */
+  {
+    "@type": "FAQPage",
+    "@id": `${SITE_ORIGIN}/#faq`,
+    isPartOf: { "@id": WEBSITE_ID },
+    mainEntity: FAQ.map((item) => ({
+      "@type": "Question",
+      name: item.q,
+      acceptedAnswer: { "@type": "Answer", text: item.a },
+    })),
+  },
+);
 
 export default function Home() {
   return (

@@ -8,6 +8,7 @@ import { NativeShell } from "@/components/native/NativeShell";
 import { UpgradeProvider } from "@/components/upgrade/UpgradeProvider";
 import { AiStatusBanner } from "@/components/AiStatusBanner";
 import { THEME_COLOR_DARK } from "@/lib/brand";
+import { OG_IMAGE, SITE_NAME, SITE_ORIGIN } from "@/lib/seo";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 
 const urbanist = Urbanist({
@@ -62,10 +63,56 @@ const baloo = Baloo_2({
 export const metadata: Metadata = {
   // Resolves every relative OG/twitter image URL against the real origin —
   // without it, crawlers see a broken relative path and drop the card.
-  metadataBase: new URL("https://novuspitch.com"),
-  title: "Novus",
+  metadataBase: new URL(SITE_ORIGIN),
+  title: {
+    // Pages that set a plain string get the brand appended; the landing and
+    // download pages set `absolute` because their titles already carry it and
+    // "… | Novus | Novus" is how a good title becomes a truncated one.
+    default: "Novus — run a company, pitch it out loud",
+    template: "%s | Novus",
+  },
   description:
     "A life sim for a company. Tap through months for free. The year costs you a pitch.",
+  applicationName: SITE_NAME,
+  authors: [{ name: "The Novus team", url: SITE_ORIGIN }],
+  creator: "The Novus team",
+  publisher: SITE_NAME,
+  category: "education",
+  /*
+   * Defaults, so a page that sets no card still gets one.
+   *
+   * /privacy, /terms and /reset shipped with no OpenGraph or Twitter tags at
+   * all — a privacy link pasted into a message rendered as a bare URL. These
+   * are inherited and overridden per page, so the two that write their own are
+   * unaffected.
+   */
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    locale: "en_US",
+    url: SITE_ORIGIN,
+    images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: "Novus" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: [OG_IMAGE],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      // Lets Google use the full-size card image and an untruncated snippet.
+      // Without these it may pick a thumbnail and a 160-character clip.
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+  // Stops iOS turning "$6.99" and stray digit runs in the legal pages into
+  // tappable phone-number links.
+  formatDetection: { telephone: false, address: false, email: false },
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
