@@ -6,6 +6,7 @@ import { Sound } from "@/components/ui/Sound";
 import { CloudSync } from "@/components/CloudSync";
 import { NativeShell } from "@/components/native/NativeShell";
 import { UpgradeProvider } from "@/components/upgrade/UpgradeProvider";
+import { AiStatusBanner } from "@/components/AiStatusBanner";
 import { THEME_COLOR_DARK } from "@/lib/brand";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 
@@ -119,6 +120,9 @@ export default function RootLayout({
         <Motion>
           <UpgradeProvider>{children}</UpgradeProvider>
         </Motion>
+        {/* Last, so it draws above everything, and outside <Motion> because a
+            diagnostic a reduced-motion setting could hide is not a diagnostic. */}
+        <AiStatusBanner />
       </body>
     </html>
   );

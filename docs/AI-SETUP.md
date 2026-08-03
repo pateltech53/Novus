@@ -62,6 +62,14 @@ Where to get them:
 
 - **ElevenLabs** — elevenlabs.io → your profile → API key. Any tier, including
   free. The account needs at least one voice on it.
+
+  **Check the key's permissions.** ElevenLabs keys are scoped, and a key can be
+  issued that may synthesise speech but may not read the voice list — the two
+  are separate toggles. `/api/tts` asks for the list first, to cast each shark
+  from your own account, so a key without `voices_read` used to lose the voice
+  entirely. It no longer does: the route falls back to a premade voice and the
+  panel still speaks. But casting per character needs `voices_read`, so enable
+  both it and `text_to_speech` when you create the key.
 - **Deepgram** — console.deepgram.com → API keys. Read §3 before using this one
   in production.
 - **OpenRouter** — openrouter.ai → Keys. Add credit; a cold call costs a
@@ -78,6 +86,68 @@ npm run test:ai -- --live  # calls the real providers with your keys
 many voices the ElevenLabs account has, and whether the OpenRouter model id
 resolves. It is the check to run the moment a key is added, and the answer to
 "I set it and nothing happened."
+
+When ElevenLabs refuses, `--live` prints the provider's own reason rather than
+the status code, because HTTP 401 covers four unrelated problems:
+
+| What it says | What it means |
+| --- | --- |
+| `invalid_api_key` | The key is wrong. Re-copy it — and check for a typo in the variable NAME too. |
+| `missing_permissions` | The key is valid but scoped too narrowly. Enable `voices_read` and `text_to_speech`. |
+| `detected_unusual_activity` | The account is flagged. Free tiers get this from VPN and cloud IPs; it needs a paid plan or an appeal to ElevenLabs. |
+| `quota_exceeded` | The character quota for the period is spent. |
+
+### Asking a running deploy
+
+**`GET /api/ai` is the one to open.** All three providers, one URL, from a
+browser, a phone or `curl` — no keys, no redeploy, no log dig:
+
+```
+curl https://YOUR-HOST/api/ai
+```
+
+```json
+{
+  "summary": "1 of 3 configured provider(s) are FAILING — see below.",
+  "providers": {
+    "voice": {
+      "key": "ELEVENLABS_API_KEY", "configured": true, "ok": false, "http": 401,
+      "reason": "missing_permissions",
+      "detail": "The key is VALID but scoped too narrowly. Enable voices_read…"
+    },
+    "transcription": { "key": "DEEPGRAM_API_KEY", "ok": true, … },
+    "verdict":       { "key": "OPENROUTER_API_KEY", "ok": true, … }
+  }
+}
+```
+
+It reports whether each variable is set, whether the provider accepted it, and
+the provider's own machine-readable reason when it did not — plus the OpenRouter
+case that otherwise only surfaces at the first cold call, a valid key with no
+credit left. No key material, not even a length. Cached for a minute, so it
+cannot be used to generate load.
+
+The individual routes still answer too: `GET /api/tts` adds voice count and
+casting source, `GET /api/stt` reports whether audio would leave the device.
+
+### Seeing it fail from inside the app
+
+`/api/ai` is the *server*. It cannot tell you whether the app is reaching that
+server — and in the shipped iOS and Android builds, which are static bundles
+calling an absolute origin, that is a real and separate failure mode that a
+browser tab never reproduces.
+
+So when a feature falls back, an amber banner appears at the bottom of the
+screen naming the feature, the status, and what to do about it. Tap it to
+expand. It renders **only** when something has actually fallen back — a healthy
+deploy shows nothing — and on the web `window.__novusAi()` prints the same
+table.
+
+⚠️ **Set `NEXT_PUBLIC_AI_DEBUG=0` before putting the app in front of players.**
+The fallbacks are complete features and a twelve-year-old mid-pitch should not
+be shown a warning about someone else's API key. It is on by default because
+the failure it catches is one an operator cannot see any other way, and a
+diagnostic nobody remembers to switch on is the same as no diagnostic.
 
 ---
 

@@ -1,4 +1,5 @@
 import { apiUrl } from "@/lib/native/origin";
+import { reportFallback, reportLive } from "./report";
 import type { PitchTranscript, TranscriptWord } from "./types";
 
 /**
@@ -208,7 +209,13 @@ export async function transcribeAudio(
   try {
     const url = STT_ENDPOINT.startsWith("/") ? apiUrl(STT_ENDPOINT) : STT_ENDPOINT;
     // Asked before the recording is packed, let alone sent.
-    if (!(await sttConfigured(url))) return null;
+    if (!(await sttConfigured(url))) {
+      // The probe answered "no key". Reported as 501 because that is what the
+      // route would have said had we posted the audio — which is the whole
+      // point of the probe: we did not.
+      reportFallback("transcription", 501);
+      return null;
+    }
 
     const body = new FormData();
     body.append("audio", audio, "pitch.webm");
@@ -218,8 +225,10 @@ export async function transcribeAudio(
       // No key (501), a bad one (401), nothing deployed (404), or the budget
       // spent (429). None of those change before the session ends.
       if ([501, 401, 404, 429].includes(res.status)) sttDown = true;
+      reportFallback("transcription", res.status);
       return null;
     }
+    reportLive("transcription");
     const raw = (await res.json()) as { text?: string; words?: TranscriptWord[] };
     if (!raw.text) return null;
     return {
@@ -228,6 +237,7 @@ export async function transcribeAudio(
       words: raw.words ?? synthWords(raw.text, durationSeconds),
     };
   } catch {
+    reportFallback("transcription", 0);
     return null;
   }
 }

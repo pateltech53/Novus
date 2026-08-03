@@ -1,6 +1,7 @@
 import type { Industry, RunState } from "@/lib/engine/types";
 import { hashString, mulberry32 } from "@/lib/engine/rng";
 import { apiUrl } from "@/lib/native/origin";
+import { reportFallback, reportLive } from "./report";
 import { scorePitchContent, type ContentFinding } from "./pitch-content";
 
 /**
@@ -453,6 +454,7 @@ export async function judgePitch(
         }),
       });
       if (res.ok) {
+        reportLive("verdict");
         const raw = (await res.json()) as Partial<CallOutcome>;
         return {
           accepted: !!raw.accepted,
@@ -467,9 +469,11 @@ export async function judgePitch(
       // No key (501), a bad one (401), or nothing deployed (404). Permanent for
       // this session, so stop asking and let the local resolver take the calls.
       if ([501, 401, 404].includes(res.status)) endpointDown = true;
+      reportFallback("verdict", res.status);
     } catch {
       // Fall through. A cold call failing because a fetch failed would be the
       // worst possible way to lose one of three daily attempts.
+      reportFallback("verdict", 0);
     }
   }
   return resolveLocally(attempt, caller, state);
