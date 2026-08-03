@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  The privacy manifest.
+
+	  Required since May 2024 for any app that touches a "required reason" API,
+	  and the thing that answers ITMS-91053 ("Missing API declaration") — an
+	  email that arrives after a build has already uploaded and processed, which
+	  is the worst moment to discover a file is missing.
+
+	  ── This must agree with the App Store Connect nutrition label ────────────
+
+	  Two declarations of the same facts, in two places, filled in months apart:
+	  that is how they end up disagreeing, and a disagreement here is a question
+	  in review rather than an error at upload. docs/APP-STORE.md §6.1 carries
+	  the other half. Change one, change both.
+	-->
+
+	<!-- No advertising SDK, no analytics, no social pixel, nothing that follows
+	     a player off this app. That is what makes the App Tracking Transparency
+	     prompt unnecessary, and it is why this is false rather than merely
+	     unset. -->
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array>
+		<!-- The account. Settings › ACCOUNT signs in with an address, and Pro
+		     attaches to that account rather than to a device — which is the
+		     whole reason a subscription bought in a browser can reach a phone. -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeEmailAddress</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+
+		<!-- Game progress: the companies, the books, the life log. Synced to a
+		     signed-in account through /api/sync so a run survives a reinstall. -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeOtherUserContent</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+
+		<!--
+		  Audio, and precisely why it is here.
+
+		  It would be easy to leave this out on the grounds that the recording
+		  is transcribed and not stored, which is true: lib/ai/transcribe.ts
+		  posts to /api/stt for a transcript and nothing writes the audio down.
+		  But the pitch recording does leave the device whenever that endpoint
+		  has a key behind it, and a declaration that omits a transmission
+		  because the retention is short is the kind of fine distinction that
+		  reads as an omission in review.
+
+		  Not linked to the user: the audio is posted for transcription, not
+		  filed against an account.
+
+		  VIDEO is deliberately absent, and that is not an oversight — it never
+		  leaves the device at all. The delivery coach reads frames in memory
+		  and keeps only means and variances.
+		-->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeAudioData</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+	</array>
+
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<!-- Capacitor keeps its own bookkeeping in UserDefaults (the bridge's
+		     stored server state among it). CA92.1 is the reason code for an app
+		     reading and writing its own defaults, which is all that happens
+		     here — nothing is read from another app or from a group container. -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>CA92.1</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

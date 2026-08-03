@@ -34,6 +34,21 @@
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Novus listens while you pitch so it can score your delivery and coach it. Audio stays on your device.</string>
 
+	<!-- Live transcription. lib/ai/transcribe.ts reaches for the Web Speech API
+	     while the player is still talking, and inside a WKWebView that API is
+	     SFSpeechRecognizer wearing a browser's name — a TCC-protected resource.
+	     Without this string the request is refused before a prompt is ever
+	     shown, and the live path silently degrades to the server endpoint or to
+	     typing.
+
+	     Deliberately NOT "stays on your device", unlike the two above. The
+	     recogniser on this path is Apple's rather than ours and may send audio
+	     to Apple to do the work; transcribe.ts says so in its own privacy note.
+	     Video never leaves the device — speech is the one thing that might, and
+	     a usage string a reviewer reads must not claim otherwise. -->
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Novus turns your pitch into text while you speak, so the investor panel can judge what you said.</string>
+
 	<!-- Nothing in this app implements or links non-standard cryptography, so
 	     declaring it here answers the export-compliance question once instead
 	     of on every single upload. -->
