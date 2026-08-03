@@ -45,6 +45,7 @@ interface Member {
   name: string | null;
   origin: "registered" | "invited";
   inviteSentAt: string | null;
+  claimedAt: string | null;
   createdAt: string;
 }
 
@@ -81,9 +82,9 @@ function parseLines(text: string): string[][] {
 }
 
 const RESULT_LINE: Record<NonNullable<RowResult["action"]>, string> = {
-  invited: "invited — a set-password email is on its way",
+  invited: "invited — the claim email is on its way",
   granted: "already had an account — seat granted, no email needed",
-  resent: "sent the set-password email again",
+  resent: "email sent again",
 };
 
 export default function ChapterPage() {
@@ -390,9 +391,10 @@ export default function ChapterPage() {
           <h2 className="text-sm font-extrabold tracking-[0.08em]">INVITE BY EMAIL</h2>
           <p className="mt-1.5 text-xs leading-relaxed text-[var(--text-secondary)]">
             One address per line — add a name with a comma. Each new address
-            gets an account and the set-password email; an address that already
-            plays Novus just gets the seat. Pasting an address again resends
-            its email.
+            gets an invite email with a claim link: they confirm their email
+            and name, choose a password, and they are in. An address that
+            already plays Novus just gets the seat, no email. Pasting an
+            address again resends its email.
           </p>
           <textarea
             value={inviteText}
@@ -487,9 +489,13 @@ export default function ChapterPage() {
                   <p className="tnum truncate text-sm font-extrabold">{m.email}</p>
                   <p className="text-2xs text-[var(--text-tertiary)]">
                     {m.name ? `${m.name} · ` : ""}
-                    {m.origin === "invited" ? "invited" : "registered"}
+                    {m.origin === "invited"
+                      ? m.claimedAt
+                        ? "invited · claimed"
+                        : "invited · not claimed yet"
+                      : "registered"}
                     {m.inviteSentAt
-                      ? ` · link sent ${new Date(m.inviteSentAt).toLocaleDateString()}`
+                      ? ` · email sent ${new Date(m.inviteSentAt).toLocaleDateString()}`
                       : ""}
                   </p>
                   {rowNote?.email === m.email && (

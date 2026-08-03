@@ -64,6 +64,9 @@ export interface SeatRow {
   name: string | null;
   origin: "registered" | "invited";
   inviteSentAt: string | null;
+  /** When the invitee finished the claim page. Null while the invite email is
+   *  still the outstanding step (or for registered seats, always claimed). */
+  claimedAt: string | null;
   createdAt: string;
 }
 

@@ -10,31 +10,45 @@ product ids ship as in-code defaults — see `docs/STRIPE-SETUP.md` §2.
 
 ---
 
-## 1. What to run, in order
+## 1. What to run
 
-Chapters need two migrations on top of whatever the project already has:
+One file: **`supabase/APPLY-ALL.sql`** — the whole schema, 0001 → 0008, safe
+on any starting state. Paste it into the Supabase SQL editor of the NOVUS
+project and run it once: it creates whatever is missing, changes nothing
+that already exists, refuses outright if pasted into the wrong project, and
+ends by printing one `ok` row per migration.
 
-```
-supabase/migrations/0007_chapters.sql    # chapters, chapter_seats, grants
-supabase/migrations/0008_board_rank.sql  # my rank + the chapter board (needs 0007)
-```
-
-Paste each into the Supabase SQL editor (Database → SQL Editor), 0007 first.
-A fresh project needs the whole set in order: 0001 → 0008.
+`supabase/CHECK-SCHEMA.sql` is the read-only companion — it only reports
+which migrations a project has. The numbered files in `supabase/migrations/`
+remain the per-change source of truth; chapters specifically are 0007 and
+0008.
 
 `supabase/tests/chapters_test.sql` checks the schema against a local Postgres
-the same way `billing_test.sql` does.
+the same way `billing_test.sql` does (`npm run test:db`).
 
-## 2. The two Supabase settings this feature leans on
+## 2. The email setup
 
-1. **Redirect URL.** Authentication → URL Configuration must include
-   `https://<your-domain>/reset` — the same entry password reset already
-   requires (`docs/ACCOUNTS-SETUP.md` §4). Invites reuse that exact email.
-2. **Real SMTP.** Supabase's built-in mailer sends a handful of emails an
-   hour, which is fine for one forgotten password and useless for inviting a
-   classroom. Before inviting at volume, configure custom SMTP (Project
-   Settings → Auth → SMTP) or invites will land as per-row failures the
-   console reports and RESEND can retry later.
+**Invites are sent through Resend** (resend.com) — they are the app's own
+mail, at classroom volume, which is exactly what Supabase's built-in auth
+mailer is not for. Three steps:
+
+1. resend.com → create an API key → `RESEND_API_KEY`.
+2. Resend → Domains → verify your sending domain, then set `RESEND_FROM`
+   (e.g. `Novus <chapters@novuspitch.com>`). An unverified domain refuses
+   every send — the console shows the refusal per row.
+3. Supabase → Authentication → URL Configuration must include
+   `https://<your-domain>/reset` — the invite's claim step hands the student
+   a link that ends there (it is the same set-password page the ordinary
+   password reset uses).
+
+With Resend configured, **no chapter email touches Supabase's mailer at
+all**: the invite goes out through Resend, and the choose-your-password link
+is minted server-side (`auth.admin.generateLink`) and delivered through
+Resend too.
+
+With `RESEND_API_KEY`/`RESEND_FROM` unset, invites fall back to Supabase's
+own recovery email — zero extra setup, fine for a handful of seats, throttled
+far below classroom volume. The console reports each address either way.
 
 ## 3. How a chapter comes to exist
 
@@ -54,12 +68,16 @@ the same way `billing_test.sql` does.
 Two paths, both per-row (one typo fails one row, never the paste):
 
 - **INVITE BY EMAIL** — `email` or `email, name`, one per line. New
-  addresses get an account (random password, never shown) and the app's
-  existing password-reset email, which for a new account is simply "set your
-  password"; the link lands on `/reset` and the player ends up signed in
-  with the seat lit. Addresses that already have a Novus account are granted
-  the seat with **no email** — their password is their business. Re-pasting
-  an address resends its email; so does the RESEND button on the roster.
+  addresses get an account (random password, never shown) and a Resend
+  invite email whose link lands on `/join?code=<token>`: the student
+  confirms their email and name, and is handed straight into `/reset` to
+  choose a password — signed in at the end, seat lit. The token only exists
+  for accounts the invite itself created, so a claim can never open an
+  account somebody already owned. Addresses that already have a Novus
+  account are granted the seat with **no email** — their password is their
+  business. Re-pasting an address resends the right email for its state
+  (claim link while unclaimed, choose-a-password link after); so does the
+  RESEND button on the roster.
 - **REGISTER WITH PASSWORDS** — `email, password` or `email, password,
   name`, typed or imported from a CSV. Accounts work immediately; nothing is
   emailed. An address that already has an account is refused on this path —
@@ -91,6 +109,7 @@ shown there that the global board does not already show.
   `auth.users` — 0004's position stands.
 - Students never see each other's emails; a member's only view of the
   chapter is their own entitlement and the board toggle.
-- The invite email is Supabase's standard recovery mail. Customising its
-  copy (Auth → Email Templates) is optional and safe — the app only cares
-  where the link points.
+- The invite email is the app's own (lib/chapter/emails.ts) — plain HTML,
+  no images, no tracking pixel, nothing that phones home. In fallback mode
+  it is Supabase's standard recovery mail instead; customising that copy
+  (Auth → Email Templates) is optional and safe.

@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
@@ -10,6 +12,8 @@ import {
   seatMessage,
   type OwnedChapter,
 } from "@/lib/chapter/admin";
+import { inviteEmail, passwordEmail } from "@/lib/chapter/emails";
+import { resendConfigured, sendEmail } from "@/lib/email/resend";
 import { adminClient } from "@/lib/supabase/admin";
 import { SITE_URL, SUPABASE_SERVICE_ROLE_KEY } from "@/lib/stripe/config";
 import { SUPABASE_ANON_KEY, SUPABASE_URL, configured } from "@/lib/supabase/config";
@@ -27,32 +31,38 @@ export const dynamic = "force-dynamic";
  * reported per row:
  *
  *   · **New address** → the account is created with a random password, the
- *     seat and its entitlement are granted, and the address receives the
- *     app's EXISTING password-reset email (`resetPasswordForEmail` → /reset).
- *     For an account that has never had a password chosen, "reset" IS "set":
- *     the student clicks, picks a password on the page that already exists
- *     for exactly this, and lands in the game with the seat lit. No new email
- *     template, no new delivery machinery, no invite-token table to expire.
- *     → `action: "invited"`
+ *     seat and its entitlement are granted, and the address gets the invite
+ *     email through RESEND: a link to `/join?code=<token>`, where the
+ *     invitee confirms their email and name and is handed straight into the
+ *     existing set-password flow (/reset). → `action: "invited"`
  *
  *   · **Existing account** → the seat and entitlement are granted and NO
- *     email is sent — they have a password that works, and an unprompted
- *     "reset your password" mail teaches people to click unprompted reset
- *     mails. → `action: "granted"`
+ *     email is sent — they have a password that works, and no invite token
+ *     is minted for an account somebody already owns (the token is a
+ *     credential, and it must never open a door into a pre-existing
+ *     account). → `action: "granted"`
  *
- *   · **Already on this roster** → the set-password email is sent again and
- *     `invite_sent_at` refreshed. Re-pasting a list is therefore exactly the
- *     RESEND button, one address or the whole class at a time.
- *     → `action: "resent"`
+ *   · **Already on this roster** → the right email goes out again: the
+ *     invite link while the seat is unclaimed, a choose-your-password link
+ *     once it has been. Re-pasting a list is therefore exactly the RESEND
+ *     button, one address or the whole class at a time. → `action: "resent"`
  *
- * ── Why the reset email is safe to repurpose ───────────────────────────────
+ * ── Why Resend, and what happens without it ────────────────────────────────
  *
- * /api/auth/reset throttles it and refuses to vary its answer because it is
- * REACHABLE BY ANYONE about ANY address. This route is neither: it is behind
- * a session that provably owns a paid chapter, it can only send to addresses
- * that hold (or are being handed) a seat on that licence, and the seat cap
- * bounds the total. The account-existence answer it gives the caller —
- * "granted" vs "invited" — is one the roster's owner already has.
+ * Invites are the app's own mail — our subject line, our copy, classroom
+ * volume — which is precisely what Supabase's built-in auth mailer is not
+ * for (it throttles at a handful per hour). So invites go through Resend
+ * (lib/email/resend.ts). With RESEND_API_KEY unset the route falls back to
+ * Supabase's recovery email as the invite: no claim page, smaller volume,
+ * zero extra setup — the pre-Resend behaviour, kept working on purpose.
+ *
+ * ── Why this may send mail at all ──────────────────────────────────────────
+ *
+ * /api/auth/reset throttles hard and never varies its answer because it is
+ * reachable by ANYONE about ANY address. This route is neither: it sits
+ * behind a session that provably owns a paid chapter, it can only mail
+ * addresses that hold (or are being handed) a seat on that licence, and the
+ * seat cap bounds the total.
  */
 
 interface InviteRow {
@@ -148,17 +158,19 @@ async function inviteSeat(
   // Already seated here? Then this is a resend, not a second seat.
   const { data: existingSeat } = await db
     .from("chapter_seats")
-    .select("id")
+    .select("id, invite_token, created_by_invite, claimed_at")
     .eq("chapter_id", chapter.id)
     .eq("email", email)
     .maybeSingle();
   if (existingSeat) {
-    const sendError = await sendSetPasswordEmail(email);
+    const sendError = await resendForSeat(db, {
+      id: existingSeat.id as string,
+      email,
+      inviteToken: (existingSeat.invite_token as string | null) ?? null,
+      createdByInvite: existingSeat.created_by_invite === true,
+      claimedAt: (existingSeat.claimed_at as string | null) ?? null,
+    });
     if (sendError) return { email, ok: false, error: sendError };
-    await db
-      .from("chapter_seats")
-      .update({ invite_sent_at: new Date().toISOString() })
-      .eq("id", existingSeat.id);
     return { email, ok: true, action: "resent" };
   }
 
@@ -178,12 +190,17 @@ async function inviteSeat(
       .upsert({ id: userId, display_name: name ?? "Founder" }, { onConflict: "id", ignoreDuplicates: true });
     if (profileError) return { email, ok: false, error: `profile: ${profileError.message}` };
 
+    // No invite token, claimed from birth: there is nothing for the claim
+    // page to do for an account whose owner already holds its password —
+    // and no credential is minted that could reach into it.
     const { error: seatError } = await db.from("chapter_seats").insert({
       chapter_id: chapter.id,
       profile_id: userId,
       email,
       seat_name: name,
       origin: "invited",
+      created_by_invite: false,
+      claimed_at: new Date().toISOString(),
     });
     if (seatError) return { email, ok: false, error: seatMessage(seatError.message) };
 
@@ -199,16 +216,19 @@ async function inviteSeat(
   }
 
   // A fresh address: account with a password nobody knows, then the seat,
-  // then the email that lets its owner choose the real one.
+  // then the invite that lets its owner claim it and choose the real one.
   const { data: created, error: createError } = await db.auth.admin.createUser({
     email,
     password: randomPassword(),
+    // The seat email came from the admin, not the student, and may point at a
+    // mailbox that never confirms anything. The licence is the vouching.
     email_confirm: true,
   });
   if (createError || !created?.user) {
     return { email, ok: false, error: createError?.message ?? "could not create the account" };
   }
   const userId = created.user.id;
+  const token = randomUUID();
 
   const undo = async () => {
     await db.auth.admin.deleteUser(userId).catch(() => {
@@ -230,6 +250,8 @@ async function inviteSeat(
     email,
     seat_name: name,
     origin: "invited",
+    invite_token: token,
+    created_by_invite: true,
     invite_sent_at: new Date().toISOString(),
   });
   if (seatError) {
@@ -247,7 +269,7 @@ async function inviteSeat(
     return { email, ok: false, error: `grant: ${grantError.message}` };
   }
 
-  const sendError = await sendSetPasswordEmail(email);
+  const sendError = await sendInvite(email, token);
   if (sendError) {
     // The seat is real and lit; only the mail is missing. Said plainly so the
     // admin resends rather than re-inviting into "already on this roster".
@@ -258,19 +280,81 @@ async function inviteSeat(
 }
 
 /**
- * The app's existing reset-password email, pointed at the address a seat was
- * just granted to. Same call, same redirect, same /reset landing page as
- * app/api/auth/reset — the whole point is that this machinery already works.
- * Sent on the anon key: recovery mail needs no privilege, only the address.
+ * RESEND for a seat that already exists, choosing the email its state calls
+ * for: the claim link while there is still a claim to make, otherwise a
+ * choose-your-password link — which is also what a REGISTERED seat gets,
+ * and is safe for any seat because the link only ever travels to the
+ * account's own address.
  */
-async function sendSetPasswordEmail(email: string): Promise<string | null> {
+async function resendForSeat(
+  db: ReturnType<typeof adminClient>,
+  seat: {
+    id: string;
+    email: string;
+    inviteToken: string | null;
+    createdByInvite: boolean;
+    claimedAt: string | null;
+  },
+): Promise<string | null> {
+  let sendError: string | null;
+
+  if (seat.createdByInvite && !seat.claimedAt && seat.inviteToken) {
+    sendError = await sendInvite(seat.email, seat.inviteToken);
+  } else {
+    sendError = await sendPasswordLink(db, seat.email);
+  }
+  if (sendError) return sendError;
+
+  await db
+    .from("chapter_seats")
+    .update({ invite_sent_at: new Date().toISOString() })
+    .eq("id", seat.id);
+  return null;
+}
+
+/** The invite email, via Resend; the Supabase recovery mail when Resend (or
+ *  the absolute join URL it needs) is not configured. */
+async function sendInvite(email: string, token: string): Promise<string | null> {
+  if (resendConfigured() && SITE_URL) {
+    const message = inviteEmail(`${SITE_URL}/join?code=${token}`);
+    return sendEmail({ to: email, ...message });
+  }
+  return supabaseRecoveryEmail(email);
+}
+
+/**
+ * A choose-your-password email. With Resend the link is minted server-side
+ * (`admin.generateLink`) and delivered through our own mail — Supabase's
+ * mailer never runs. Without it, Supabase sends its own recovery email.
+ * Either way the link lands on /reset, the page that already exists for it.
+ */
+async function sendPasswordLink(
+  db: ReturnType<typeof adminClient>,
+  email: string,
+): Promise<string | null> {
+  if (resendConfigured()) {
+    const { data, error } = await db.auth.admin.generateLink({
+      type: "recovery",
+      email,
+      ...(SITE_URL ? { options: { redirectTo: `${SITE_URL}/reset` } } : {}),
+    });
+    const link = data?.properties?.action_link;
+    if (error || !link) return error?.message ?? "could not create the password link";
+    const message = passwordEmail(link);
+    return sendEmail({ to: email, ...message });
+  }
+  return supabaseRecoveryEmail(email);
+}
+
+/** The pre-Resend fallback: Supabase's own recovery email, on the anon key —
+ *  recovery mail needs no privilege, only the address. */
+async function supabaseRecoveryEmail(email: string): Promise<string | null> {
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   });
-  const origin = SITE_URL || "";
   try {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      ...(origin ? { redirectTo: `${origin}/reset` } : {}),
+      ...(SITE_URL ? { redirectTo: `${SITE_URL}/reset` } : {}),
     });
     return error ? error.message : null;
   } catch (e) {

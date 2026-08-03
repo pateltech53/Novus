@@ -104,14 +104,28 @@ create table public.chapter_seats (
   seat_name      text check (length(btrim(seat_name)) between 1 and 24),
 
   -- How the seat was filled: credentials typed by the admin, or an emailed
-  -- set-password link. Display only — both kinds behave identically.
+  -- invite. Display only — both kinds behave identically once claimed.
   origin         text not null check (origin in ('registered','invited')),
 
-  -- When the set-password email last went out, so the console can say "sent
+  -- When the invite email last went out, so the console can say "sent
   -- Tuesday" beside RESEND instead of nothing. Null for registered seats
-  -- until the admin sends one (RESEND works for those too — it is the same
-  -- reset email every account may ask for).
+  -- until the admin sends one.
   invite_sent_at timestamptz,
+
+  -- The claim link's credential: /join?code=<token>. Present only while the
+  -- seat has something to claim — set for accounts THIS feature created,
+  -- never for a pre-existing account, because the claim endpoint exchanges
+  -- the token (plus the matching email) for a set-password link, and that
+  -- must never be mintable against an account somebody already owns.
+  invite_token   uuid unique,
+
+  -- True when the invite path created the auth user itself. The flag the
+  -- claim endpoint checks before it will hand out a password link.
+  created_by_invite boolean not null default false,
+
+  -- When the invitee finished the claim page. Display, and the line between
+  -- "re-send the invite" and "send a choose-a-new-password email" on RESEND.
+  claimed_at     timestamptz,
 
   created_at     timestamptz not null default now(),
 

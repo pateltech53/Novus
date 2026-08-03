@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
 
   const { data: seatRows, error } = await session.supabase
     .from("chapter_seats")
-    .select("email, seat_name, origin, invite_sent_at, created_at")
+    .select("email, seat_name, origin, invite_sent_at, claimed_at, created_at")
     .eq("chapter_id", chapter.id)
     .order("created_at", { ascending: true });
   if (error) {
@@ -61,6 +61,7 @@ export async function GET(req: NextRequest) {
     name: (s.seat_name as string | null) ?? null,
     origin: s.origin as SeatRow["origin"],
     inviteSentAt: (s.invite_sent_at as string | null) ?? null,
+    claimedAt: (s.claimed_at as string | null) ?? null,
     createdAt: s.created_at as string,
   }));
 
