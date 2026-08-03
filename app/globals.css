@@ -1094,6 +1094,159 @@ textarea {
   box-shadow: none;
 }
 
+/* ══ The activity bar ══════════════════════════════════════════════════════
+ *
+ * ── What was wrong ───────────────────────────────────────────────────────
+ *
+ * The six tabs said `nv-gc nv-flat`, and `nv-flat` means "keep the tint and
+ * the press, drop the material" — a shape cut out of the bar rather than a
+ * pane of its own. On iOS that is what happened. Everywhere else it was not:
+ * the platform gate above hands every `.nv-gc` an opaque `--surface-overlay`
+ * and an `--e1`, and `:root:not([data-platform="ios"]) .nv-gc` is (0,3,0)
+ * against `.nv-gc.nv-flat:not(…)`'s (0,3,0) — a tie the later rule wins.
+ *
+ * So on the web each tab drew its own raised box, six of them, inside the
+ * bar's own hairline ring, inside the footer's `border-t`. Three nested
+ * rectangles to say one thing.
+ *
+ * ── What replaces it ─────────────────────────────────────────────────────
+ *
+ * A tab bar is one surface with six shapes cut out of it — the thing
+ * `UIGlassContainerEffect` does natively and `.nv-ggroup` does here. So the
+ * tabs stop being `.nv-gc` (they never used a tone, and the class was only
+ * ever pulling them into a fight over their own fill) and own their look
+ * outright, on every platform.
+ *
+ * The depth is the honest kind design.md §2 asks for: no gradient, no blur.
+ * A raised lozenge under the current tab with a lit top edge and a shadowed
+ * underside — the same asymmetry that makes a pane read as a solid — carried
+ * on a pseudo-element so the state crossfades on `opacity` rather than
+ * animating `box-shadow`.
+ *
+ * The accent is still not spent here. design.md §1.5 gives it to the one
+ * control that moves time, which is the capsule directly above this bar.
+ * Weight, ink and elevation say "here" without borrowing it.
+ */
+
+/*
+ * The tray.
+ *
+ * Off iOS the bar was `--surface-overlay` inside a full hairline ring, which
+ * is the outer box — and a ring is a drawn edge, not depth. What replaces it
+ * is the honest version: a surface a step lighter than the footer it sits in,
+ * a lit top face, and a soft cast upward onto the log. One raised object
+ * instead of six outlined ones, which is the whole correction.
+ *
+ * `--glass-drop` rather than an `--e` token: the elevation ramp casts
+ * downward and this is a bar pinned to the bottom of the screen. That token
+ * already exists for exactly this — what a bottom pane throws on the content
+ * behind it — and it re-points with the theme.
+ */
+:root:not([data-platform="ios"]) .nv-glass.nv-tabbar {
+  background: var(--surface);
+  box-shadow:
+    inset 0 1px 0 0 var(--glass-specular),
+    var(--glass-drop);
+}
+
+.nv-tab {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  border-radius: 0.875rem;
+  padding: 0.5rem 0;
+  background: transparent;
+  /* Secondary, not tertiary. Six controls in a row at the tertiary step read
+     as six disabled controls — the ink was doing the job the missing boxes
+     used to do badly. Primary stays reserved for the tab you are on. */
+  color: var(--text-secondary);
+  transition:
+    color 160ms var(--ease-out),
+    transform 140ms var(--ease-out);
+}
+
+/*
+ * The lozenge. Its own layer, and `opacity` is the only thing that moves —
+ * design.md §2: never animate `box-shadow`, fade a pseudo-element instead.
+ *
+ * `--glass-specular` and `--glass-underside` rather than new tokens: this is
+ * the same lit-top/shadowed-bottom pair every raised surface in the app uses,
+ * and it re-points with the theme for free.
+ */
+.nv-tab::before {
+  content: "";
+  position: absolute;
+  /* Inset horizontally rather than gapping the grid. Six tabs at 360px is
+     60px each and "COMPANY" at the 12px floor needs all of it — a gap and a
+     pad would have bought a 3px breathing space and truncated the label to
+     pay for it. The lozenge gives the space back out of its own box. */
+  inset: 0 3px;
+  z-index: -1;
+  border-radius: inherit;
+  opacity: 0;
+  background: var(--surface-elevated);
+  box-shadow:
+    inset 0 1px 0 0 var(--glass-specular),
+    inset 0 -1px 0 0 var(--glass-underside),
+    var(--e2);
+  transition: opacity 200ms var(--ease-out);
+}
+
+/*
+ * On iOS the bar is still real glass, and an opaque card floating on a lens
+ * reads as a sticker. There the lozenge is the material lighting up — the
+ * same tint `.nv-ggroup` gives its on-state child — and the shadow pair goes
+ * with it, because glass casts nothing inside itself.
+ */
+:root[data-platform="ios"] .nv-tab::before {
+  background: color-mix(in oklch, var(--n-11) 14%, transparent);
+  box-shadow: inset 0 1px 0 0 var(--glass-specular);
+}
+
+.nv-tab[aria-current="page"] {
+  color: var(--text-primary);
+}
+
+.nv-tab[aria-current="page"]::before {
+  opacity: 1;
+}
+
+/* The glyph rides up onto the raised face. One pixel — enough to read as the
+   icon sitting on top of the lozenge rather than inside it. */
+.nv-tab-glyph {
+  display: block;
+  transition: transform 200ms var(--ease-out);
+}
+
+.nv-tab[aria-current="page"] .nv-tab-glyph {
+  transform: translateY(-1px);
+}
+
+/* Press, not hover — design.md §Motion. Pressing a tab pushes it into the
+   shelf; the lozenge is what it lands on. */
+.nv-tab:active {
+  transform: scale(0.95);
+}
+
+@media (hover: hover) {
+  .nv-tab:hover {
+    color: var(--text-primary);
+  }
+  /* A ghost of the lozenge, so a pointer can see where a tab's edges are
+     before committing to it. */
+  .nv-tab:hover::before {
+    opacity: 0.5;
+  }
+  .nv-tab[aria-current="page"]:hover::before {
+    opacity: 1;
+  }
+}
+
 /*
  * Bottom fade on scrollable sheets, so content dissolves rather than being
  * guillotined by the edge. GRADIENT #3 OF 3.
