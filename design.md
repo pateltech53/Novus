@@ -14,7 +14,28 @@ The brief asks for *"liquid glass morphism + 3D"* and *"minimize gradients"* in 
 sentence. Those are in tension — liquid glass **is** stacked specular gradients over a blur.
 Apple's own guidance is the resolution:
 
-> **Glass is a material for the control layer. It is never a material for content.**
+> **Glass is a material for the control layer. It is never a material for
+> content. And it is the iOS app's, and nowhere else's.**
+
+### Glass ships on iOS only
+
+Liquid Glass is a material iOS renders. Everywhere else it is an approximation
+of one — and an approximation of a lens is not a cheaper lens, it is a
+different and worse thing that invites the one comparison it cannot win. So on
+Android and on the web the material is off, and those platforms get the solid,
+shadowed, well-lit panels this design system had before any of it: flat fill,
+real elevation, no blur, no crest, no sheen.
+
+Nothing else changes with it. Every layout, every tap target, every ink colour
+and every state is identical on all three platforms — the gate in
+`globals.css` moves two properties, the backdrop and the fill, and touches
+nothing that could make a screen behave differently depending on where it is
+running.
+
+`[data-platform="ios"]` is written on `<html>` by a blocking script in
+`<head>`, so a browser never paints a frame of glass before finding out it
+should not have. The tables below describe **the iOS app**; read them as
+"solid surface" anywhere else.
 
 | Layer | What is in it | Material |
 |---|---|---|
