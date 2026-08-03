@@ -48,15 +48,21 @@ export function TheBooks({
   ];
 
   /*
-   * Two-up on a phone, four-up from 440px.
+   * Two-up on a phone, four-up on the desktop rail — one card, one size.
    *
    * Four columns across 375px leaves ~85px a card, which at the 12px type
    * floor truncates "VALUATION" to "VALUATI…" — and a financial label you
    * cannot read is worse than one that takes a second row. The 8px type this
    * replaced fit, which is exactly why it was 8px.
+   *
+   * The two-up phone card and the four-up rail card land within pixels of
+   * the same width (~170px at 375px; ~165px in the desk's rail), which is
+   * what lets both compositions read the same display-size figures without a
+   * second set of sizes. The log is one row instead of half the column, and
+   * the ledger is what got the reclaimed room — on both.
    */
   return (
-    <div className="grid grid-cols-2 gap-1.5 px-3 pt-3 min-[440px]:grid-cols-4">
+    <div className="grid grid-cols-2 gap-2 px-3 pt-3 lg:grid-cols-4">
       {cols.map((col) => (
         <BookCard key={col.label} {...col} rookie={run.rookieMode} onTermTap={onTermTap} />
       ))}
@@ -113,15 +119,21 @@ function BookCard({
        * ring here would be a ring that never draws, on the one cue whose whole
        * job is to be seen.
        */
-      className={`nv-gc min-w-0 rounded-[var(--radius-row)] px-2 py-2 text-left ${
+      /*
+       * Display-size, everywhere. The figures were 12px — the legal floor
+       * spent on the four numbers the whole game runs on — because the log
+       * needed the rest of the column. The log is one row now, and this is
+       * where that room went.
+       */
+      className={`nv-gc min-w-0 rounded-[var(--radius-row)] px-3.5 py-3 text-left ${
         flash ? "outline outline-2 -outline-offset-2 outline-[var(--n-8)]" : ""
       }`}
     >
-      <span className="block truncate text-2xs font-bold tracking-[0.08em] text-[var(--text-tertiary)] sm:text-2xs sm:tracking-[0.12em]">
+      <span className="block truncate text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
         {label}
       </span>
       <span
-        className={`tnum mt-0.5 block truncate text-xs font-extrabold leading-tight sm:text-[0.9375rem] ${
+        className={`tnum mt-1 block truncate text-2xl font-extrabold leading-tight ${
           danger
             ? "text-[var(--alert)]"
             : good
@@ -133,7 +145,7 @@ function BookCard({
       </span>
       {rookie && gloss && (
         // Rookie Mode ADDS a plain-English line. The real term stays.
-        <span className="mt-0.5 block text-2xs leading-[1.25] text-[var(--text-tertiary)]">
+        <span className="mt-1 block text-sm leading-snug text-[var(--text-tertiary)]">
           {gloss.rookie}
         </span>
       )}

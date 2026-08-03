@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useGame } from "@/lib/state/GameProvider";
 import { HomeStage } from "@/components/HomeStage";
 import { TheBooks } from "@/components/TheBooks";
-import { LifeLog } from "@/components/LifeLog";
+import { LogButton, LogSheet } from "@/components/screens/LogSheet";
 import { AdvanceButton } from "@/components/AdvanceButton";
 import { DecisionSheet } from "@/components/DecisionSheet";
 import { PositioningSheet } from "@/components/PositioningSheet";
@@ -67,6 +67,8 @@ function PlayScreen() {
   const [showSettings, setShowSettings] = useState(false);
   const [showBoard, setShowBoard] = useState(false);
   const [dossier, setDossier] = useState(false);
+  /** The phone's log sheet. Desktop keeps the log inline and never sets this. */
+  const [logOpen, setLogOpen] = useState(false);
   const [term, setTerm] = useState<{ term: string; detail?: string } | null>(null);
 
   /*
@@ -189,6 +191,7 @@ function PlayScreen() {
     !showSettings &&
     !showBoard &&
     !dossier &&
+    !logOpen &&
     run.alive;
 
   const overlay =
@@ -199,6 +202,7 @@ function PlayScreen() {
     showSettings ||
     showBoard ||
     dossier ||
+    logOpen ||
     !!yearEnd ||
     !!autopsy ||
     !!game.tierUnlock ||
@@ -337,6 +341,7 @@ function PlayScreen() {
   useBackHandler(showSettings, () => setShowSettings(false));
   useBackHandler(showBoard, () => setShowBoard(false));
   useBackHandler(dossier, () => setDossier(false));
+  useBackHandler(logOpen, () => setLogOpen(false));
 
   if (!run) {
     return (
@@ -371,14 +376,16 @@ function PlayScreen() {
     /*
      * Two compositions, not one stretched.
      *
-     * Under 1024px this is the phone: stage, Books, log, then a sticky footer.
+     * Under 1024px this is the phone: stage, Books, the story row, then a
+     * sticky footer.
      *
      * At 1024px and up it becomes a centred two-column desk. The mascot is
      * promoted to a persistent left column — it stops being a banner you
-     * scroll past and becomes something present in the room. The Books dock to
-     * the top of the right rail where the reading actually happens, and the
-     * log takes the height it was always short of. Same components throughout;
-     * only the composition changes.
+     * scroll past and becomes something present in the room. The Books dock
+     * to the top of the right rail at the same display size the phone reads
+     * them at, the story sits under them as the same single row, and the
+     * footer holds the rail's foot. Same components throughout; only the
+     * composition changes.
      *
      * The previous behaviour was neither: it went full-bleed, so The Books
      * became a 1280px band of 8px labels and the CTA an ~800px slab.
@@ -406,17 +413,27 @@ function PlayScreen() {
         </div>
 
         {/*
-          The log takes the reserved space rather than a spacer taking it.
-          Glass refracts what is behind it, so what has to be behind the native
-          deck is scrolling content — a padded opaque band would leave the most
-          expensive material on the screen with nothing to show.
+          The story is one row, at every width.
+
+          The feed used to be the rest of this column — the whole lower half
+          of a phone, the reading length of the desktop rail — which buried
+          the ledger under a wall of prose. The row keeps the story one tap
+          away and the full feed opens as a sheet; the reclaimed room went to
+          the numbers, which read at display size on both compositions now.
+          The phone shipped this first and the desk followed on approval.
         */}
         <div
-          className="flex-1 overflow-y-auto pb-3"
+          className="px-3 pt-3"
+          // The native deck floats over the page's end; on a short phone the
+          // row is the page's end, so it reserves the deck's measured height.
           style={domChrome ? undefined : { paddingBottom: "var(--nv-chrome-bottom, 0px)" }}
         >
-          <LifeLog lines={run.log} />
+          <LogButton month={run.month} year={run.year} onOpen={() => setLogOpen(true)} />
         </div>
+
+        {/* What the desk rail keeps of its fixed height: clear surface. The
+            footer stays the column's last item, where it has always been. */}
+        <div aria-hidden="true" className="hidden lg:block lg:flex-1" />
 
         {domChrome ? (
           <>
@@ -517,6 +534,7 @@ function PlayScreen() {
       {showPro && <ProSheet onClose={() => setShowPro(false)} />}
       {showSettings && <SettingsScreen onClose={() => setShowSettings(false)} />}
       {showBoard && <StillStandingScreen onClose={() => setShowBoard(false)} />}
+      {logOpen && <LogSheet run={run} onClose={() => setLogOpen(false)} />}
 
       {/* Fires the moment a stage promotion opens a new tier. It sits above
           the year-end statement on purpose: the wardrobe is the reward for

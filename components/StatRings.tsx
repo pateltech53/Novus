@@ -25,7 +25,7 @@ export function StatRings({ run }: { run: RunState }) {
   ];
 
   return (
-    <div className="flex gap-5">
+    <div className="flex gap-6">
       {rings.map((ring) => (
         <Ring key={ring.label} {...ring} />
       ))}
@@ -51,8 +51,12 @@ function Ring({ label, value }: { label: string; value: number }) {
    */
   return (
     <div className="flex flex-col items-center gap-1" role="img" aria-label={`${label} ${pct} of 100`}>
-      <div className="relative h-16 w-16">
-      <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
+      {/* The ring is drawn at 64 and rendered at 72; the viewBox keeps the
+          geometry, so the stroke thickens with the scale rather than
+          thinning. One size on both compositions, like the rest of the
+          masthead. */}
+      <div className="relative h-18 w-18">
+      <svg width="100%" height="100%" viewBox="0 0 64 64" aria-hidden="true">
         <circle
           cx="32"
           cy="32"
@@ -76,7 +80,7 @@ function Ring({ label, value }: { label: string; value: number }) {
         />
       </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="tnum text-base font-extrabold text-[var(--n-11)]">{pct}</span>
+          <span className="tnum text-lg font-extrabold text-[var(--n-11)]">{pct}</span>
         </div>
       </div>
       <span className="text-2xs font-semibold tracking-[0.08em] text-[var(--n-8)]">

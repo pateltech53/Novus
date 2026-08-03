@@ -193,7 +193,15 @@ export function ScreenSheet({
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               {eyebrow ? (
-                <p className="truncate text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
+                /*
+                 * Wraps, never truncates. "FOOD & BEVERAGE · GARAGE" is 8px
+                 * wider than a 320px header can offer, and "TOYS &
+                 * COLLECTIBLES" is wider still — an ellipsis here was clipping
+                 * a company's own industry on exactly the screens §7 audits.
+                 * A second line costs the header 14px once, on the narrowest
+                 * phones, and only for the longest names.
+                 */
+                <p className="text-2xs font-bold leading-snug tracking-[0.12em] text-[var(--text-tertiary)]">
                   {eyebrow}
                 </p>
               ) : null}
