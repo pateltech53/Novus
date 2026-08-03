@@ -476,6 +476,14 @@ console.log("\n=== 5 · plausibility bounds ===");
     "a tape carrying a founder name is refused",
   );
 
+  // industryByCode ends in `.find(...)!`, so an unknown code throws rather than
+  // returning undefined. Refused before the ceiling reaches for its multiple.
+  eq(
+    checkBounds({ ...base, industry: "NOPE" }, claim, SIM_DATE).verdict,
+    "reject",
+    "an unknown industry is refused, not thrown on",
+  );
+
   eq(
     checkBounds(base, { ...claim, yearsSurvived: 61 }, SIM_DATE).verdict,
     "reject",

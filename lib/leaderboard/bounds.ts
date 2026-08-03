@@ -1,4 +1,4 @@
-import { industryByCode } from "@/lib/engine/constants";
+import { INDUSTRIES, industryByCode } from "@/lib/engine/constants";
 import { MAX_CALLS_PER_DAY } from "@/lib/ai/callers";
 import type { Industry } from "@/lib/engine/types";
 
@@ -113,6 +113,17 @@ export function checkBounds(
     return reject("seed-out-of-range");
   }
   if (tape.founderName !== "") return reject("founder-name-present");
+  /*
+   * Checked here, before `medianValuationAt` reaches for the multiple.
+   *
+   * `industryByCode` ends in `.find(...)!` — a non-null assertion over a lookup
+   * that can miss — so an unrecognised code THROWS rather than returning
+   * undefined. Without this line that throw happens inside the cheap gate,
+   * which turns a malformed submission into a 500 on a route whose entire job
+   * is to refuse malformed submissions politely. The database has the same
+   * constraint; this is the half that can explain itself.
+   */
+  if (!INDUSTRIES.some((i) => i.code === tape.industry)) return reject("unknown-industry");
   if (!Array.isArray(tape.entries)) return reject("no-entries");
   if (tape.entries.length === 0) return reject("empty-tape");
   if (tape.entries.length > MAX_TAPE_ENTRIES) return reject("tape-too-long");
