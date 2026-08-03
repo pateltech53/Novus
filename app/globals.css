@@ -976,24 +976,26 @@ textarea {
   }
 }
 
-/* ══ Glass is the iOS app's, and only the iOS app's ═══════════════════════
+/* ══ Glass is UIKit's, and only UIKit's ═══════════════════════════════════
  *
  * ── The decision ─────────────────────────────────────────────────────────
  *
  * Liquid Glass is a material iOS renders. Everywhere else it is an
  * approximation of one, and an approximation of a lens is not a cheaper lens —
- * it is a different, worse thing that invites the comparison it cannot win. On
- * a browser and on Android the material is now simply off, and those surfaces
- * are the solid, shadowed, well-lit panels the design system had before any of
- * this: flat fill, real elevation, no blur, no crest, no sheen.
- *
- * On iOS it is untouched — the UIKit chrome is the system's own Liquid Glass,
- * and the DOM layer inside the app keeps the material so a screen does not
- * change substance halfway down.
+ * it is a different, worse thing that invites the comparison it cannot win.
+ * That sentence used to end with "so the browser and Android are solid and
+ * the iOS DOM keeps the material." It no longer does: inside the iOS app the
+ * CSS material sat one row away from the native chrome's REAL Liquid Glass,
+ * which is the comparison above at its most direct, and the owner called it —
+ * the imitation reads as an imitation. So the DOM material is off everywhere,
+ * and every surface is the solid, shadowed, well-lit panel the design system
+ * had before any of this: flat fill, real elevation, no blur, no crest, no
+ * sheen. The only Liquid Glass in the app is what UIKit draws: the play
+ * chrome, the overlay toolbars and docks, the decision sheet.
  *
  * ── Why one gate instead of unwinding it ─────────────────────────────────
  *
- * Every control in the app now says `nv-gc`, and the honest way to read that
+ * Every control in the app says `nv-gc`, and the honest way to read that
  * class is "this is a control" rather than "this is glass". So the material is
  * withdrawn in one place instead of the ~170 call sites re-learning which
  * background they used to have. Two properties change — the backdrop and the
@@ -1001,9 +1003,12 @@ textarea {
  * on all three platforms, which is exactly the property a per-call-site revert
  * would have quietly destroyed.
  *
- * `[data-platform]` is written by a blocking script in <head>
- * (`lib/native/platform.ts`), so a browser never paints a frame of glass
- * before finding out it should not have.
+ * `[data-css-glass]` is written by nothing. The gate keeps its `:not()` shape
+ * so the fallback keeps the exact specificity every contest below was tuned
+ * against, and so re-opening the material ever again is one attribute rather
+ * than an archaeology dig. (`[data-platform]` is still written by
+ * lib/native/platform.ts — other things key off it; the material no longer
+ * does.)
  *
  * The specificity is deliberate: `:root:not(…)` plus a class is (0,3,0), which
  * clears `.nv-gc`, every tone, `nv-flat` and `[data-live-3d]`. The nested
@@ -1011,9 +1016,9 @@ textarea {
  * segment have to keep winning over the rule that solidified their parent.
  */
 
-:root:not([data-platform="ios"]) .nv-gc,
-:root:not([data-platform="ios"]) .nv-ggroup,
-:root:not([data-platform="ios"]) .nv-glass {
+:root:not([data-css-glass]) .nv-gc,
+:root:not([data-css-glass]) .nv-ggroup,
+:root:not([data-css-glass]) .nv-glass {
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   will-change: auto;
@@ -1021,42 +1026,42 @@ textarea {
 
 /* No crest, no sheen. A solid panel has an edge because it has elevation, not
    because light is bending through it. */
-:root:not([data-platform="ios"]) .nv-gc::before,
-:root:not([data-platform="ios"]) .nv-ggroup::before,
-:root:not([data-platform="ios"]) .nv-glass::before {
+:root:not([data-css-glass]) .nv-gc::before,
+:root:not([data-css-glass]) .nv-ggroup::before,
+:root:not([data-css-glass]) .nv-glass::before {
   display: none;
 }
 
 /* Each surface falls back to the fill it would have had. `--gc-solid` and
    `--glass-solid` already carry a tone's own colour, so an action button is
    the flat accent it always was rather than the neutral panel. */
-:root:not([data-platform="ios"]) .nv-gc {
+:root:not([data-css-glass]) .nv-gc {
   background: var(--gc-solid, var(--surface-overlay));
   box-shadow: var(--e1);
 }
 
-:root:not([data-platform="ios"]) .nv-ggroup {
+:root:not([data-css-glass]) .nv-ggroup {
   background: var(--surface);
   box-shadow: var(--e1);
 }
 
-:root:not([data-platform="ios"]) .nv-glass {
+:root:not([data-css-glass]) .nv-glass {
   background: var(--glass-solid, var(--surface-overlay));
 }
 
 /* A group is still one surface with controls cut out of it — that was never a
    glass idea, it is how a list of rows works. */
-:root:not([data-platform="ios"]) .nv-ggroup > .nv-gc {
+:root:not([data-css-glass]) .nv-ggroup > .nv-gc {
   background: transparent;
   box-shadow: none;
 }
 
-:root:not([data-platform="ios"]) .nv-ggroup > .nv-gc + .nv-gc {
+:root:not([data-css-glass]) .nv-ggroup > .nv-gc + .nv-gc {
   box-shadow: inset 0 1px 0 0 var(--hairline);
 }
 
-:root:not([data-platform="ios"]) .nv-ggroup > .nv-gc[data-on="true"],
-:root:not([data-platform="ios"]) .nv-ggroup > .nv-gc.nv-on {
+:root:not([data-css-glass]) .nv-ggroup > .nv-gc[data-on="true"],
+:root:not([data-css-glass]) .nv-ggroup > .nv-gc.nv-on {
   background: var(--surface-elevated);
 }
 
@@ -1071,13 +1076,13 @@ textarea {
  * UNSELECTED segments come out ringed and the selected one bare. Exactly
  * backwards, and stated before the selected rule so that one still wins.
  */
-:root:not([data-platform="ios"]) .nv-gseg > .nv-gc + .nv-gc {
+:root:not([data-css-glass]) .nv-gseg > .nv-gc + .nv-gc {
   box-shadow: none;
 }
 
 /* The selected segment is a raised surface rather than a lit pane. */
-:root:not([data-platform="ios"]) .nv-gseg > .nv-gc[data-on="true"],
-:root:not([data-platform="ios"]) .nv-gseg > .nv-gc.nv-on {
+:root:not([data-css-glass]) .nv-gseg > .nv-gc[data-on="true"],
+:root:not([data-css-glass]) .nv-gseg > .nv-gc.nv-on {
   background: var(--surface-elevated);
   box-shadow: var(--e1);
 }
@@ -1089,7 +1094,7 @@ textarea {
  * and a scrim that took one would not dim the game behind a sheet — it would
  * delete it. Stated after, so it wins.
  */
-:root:not([data-platform="ios"]) .nv-glass.nv-scrim {
+:root:not([data-css-glass]) .nv-glass.nv-scrim {
   background: var(--scrim);
   box-shadow: none;
 }
@@ -1100,10 +1105,11 @@ textarea {
  *
  * The six tabs said `nv-gc nv-flat`, and `nv-flat` means "keep the tint and
  * the press, drop the material" — a shape cut out of the bar rather than a
- * pane of its own. On iOS that is what happened. Everywhere else it was not:
- * the platform gate above hands every `.nv-gc` an opaque `--surface-overlay`
- * and an `--e1`, and `:root:not([data-platform="ios"]) .nv-gc` is (0,3,0)
- * against `.nv-gc.nv-flat:not(…)`'s (0,3,0) — a tie the later rule wins.
+ * pane of its own. When the material ran on iOS that is what happened there.
+ * Under the solid gate it was not: the gate hands every `.nv-gc` an opaque
+ * `--surface-overlay` and an `--e1`, and `:root:not([data-css-glass]) .nv-gc`
+ * is (0,3,0) against `.nv-gc.nv-flat:not(…)`'s (0,3,0) — a tie the later rule
+ * wins.
  *
  * So on the web each tab drew its own raised box, six of them, inside the
  * bar's own hairline ring, inside the footer's `border-t`. Three nested
@@ -1142,7 +1148,7 @@ textarea {
  * already exists for exactly this — what a bottom pane throws on the content
  * behind it — and it re-points with the theme.
  */
-:root:not([data-platform="ios"]) .nv-glass.nv-tabbar {
+:root:not([data-css-glass]) .nv-glass.nv-tabbar {
   background: var(--surface);
   box-shadow:
     inset 0 1px 0 0 var(--glass-specular),

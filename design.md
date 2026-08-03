@@ -17,25 +17,32 @@ Apple's own guidance is the resolution:
 > **Glass is a material for the control layer. It is never a material for
 > content. And it is the iOS app's, and nowhere else's.**
 
-### Glass ships on iOS only
+### Glass ships where UIKit draws it, and nowhere else
 
 Liquid Glass is a material iOS renders. Everywhere else it is an approximation
 of one — and an approximation of a lens is not a cheaper lens, it is a
-different and worse thing that invites the one comparison it cannot win. So on
-Android and on the web the material is off, and those platforms get the solid,
-shadowed, well-lit panels this design system had before any of it: flat fill,
-real elevation, no blur, no crest, no sheen.
+different and worse thing that invites the one comparison it cannot win.
+
+That reasoning first turned the material off on Android and the web. In
+August 2026 the owner applied it to its last holdout: inside the iOS app the
+CSS material sat in the same frame as the native chrome's real Liquid Glass —
+the comparison above at zero distance — and it read as what it is, an
+imitation. So the DOM material is off **everywhere**, and every DOM surface on
+every platform is the solid, shadowed, well-lit panel this design system had
+before any of it: flat fill, real elevation, no blur, no crest, no sheen.
+
+The only Liquid Glass in the app is what UIKit itself draws: the play
+screen's chrome, the overlay toolbars and docks, and the native decision
+sheet (the named exception below).
 
 Nothing else changes with it. Every layout, every tap target, every ink colour
 and every state is identical on all three platforms — the gate in
 `globals.css` moves two properties, the backdrop and the fill, and touches
 nothing that could make a screen behave differently depending on where it is
-running.
-
-`[data-platform="ios"]` is written on `<html>` by a blocking script in
-`<head>`, so a browser never paints a frame of glass before finding out it
-should not have. The tables below describe **the iOS app**; read them as
-"solid surface" anywhere else.
+running. The gate keys off `[data-css-glass]`, an attribute nothing writes,
+so the material's whole implementation stays one attribute away rather than
+deleted. The glass rows in the tables below describe **UIKit surfaces**; every
+DOM surface reads as "solid surface" on every platform.
 
 | Layer | What is in it | Material |
 |---|---|---|
@@ -241,6 +248,12 @@ honest version of the "3D" the brief asks for.
 ---
 
 ## 3 · Glass
+
+> **Status (Aug 2026): the CSS material is retired on every platform — see §0.**
+> This section remains as the spec of what the components render when the
+> `[data-css-glass]` gate is ever reopened, and of the vocabulary (tones,
+> shapes, groups) the solid fallback still uses. UIKit's own glass is governed
+> by docs/APP.md, not this section.
 
 One component: `components/ui/Glass.tsx`. Nobody hand-rolls `backdrop-filter` anywhere else.
 

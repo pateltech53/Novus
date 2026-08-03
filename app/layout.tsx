@@ -185,11 +185,10 @@ export default function RootLayout({
         {/* Blocking on purpose. Without it the page paints light and swaps to
             dark a frame later — the flash every themed app gets wrong once. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
-        {/* Blocking for the same reason, and it decides a bigger thing: glass
-            is the iOS app's material and nowhere else's, so every
-            backdrop-filter in globals.css is keyed off the attribute this
-            writes. Deciding it after hydration is one frame of glass on every
-            page load in a browser. */}
+        {/* Blocking for the same reason: which shell this is has to be known
+            before anything styled per shell paints. (It used to gate the CSS
+            glass; that material is retired — see globals.css — but the
+            attribute still answers "am I in the app?" before first paint.) */}
         <script dangerouslySetInnerHTML={{ __html: PLATFORM_INIT_SCRIPT }} />
       </head>
       {/* Themed via utilities rather than a raw `body` rule: utilities
