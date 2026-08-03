@@ -68,7 +68,6 @@ export function ScreenSheet({
   nativeSegments,
   activeSegment,
   onSegment,
-  nativeTitle,
   children,
 }: {
   /** The dialog's accessible name. */
@@ -101,21 +100,10 @@ export function ScreenSheet({
   nativeSegments?: NativeOverlaySegment[];
   activeSegment?: string;
   onSegment?: (id: string) => void;
-  /**
-   * The plain-text title, when `title` is a node.
-   *
-   * UIKit needs a string. A caller whose title is already a string does not
-   * need this; one that renders a company name beside a badge does.
-   */
-  nativeTitle?: string;
   children: React.ReactNode;
 }) {
   const native = useNativeOverlayOwned();
   const theme = useResolvedTheme();
-
-  // Declared for the callers that pass it and unused here on purpose: the
-  // plate stays empty for a sheet, and a caller should not have to know that.
-  void nativeTitle;
 
   useNativeOverlay(
     useMemo(
