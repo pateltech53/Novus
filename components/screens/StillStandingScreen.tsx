@@ -16,6 +16,7 @@ import {
   submitRun,
   type BoardPage,
   type BoardRow,
+  type BoardScope,
   type SubmitResult,
 } from "@/lib/leaderboard/client";
 import { tapeStatus } from "@/lib/leaderboard/recorder";
@@ -87,6 +88,7 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
   const native = useNativeGlassClose("Close the leaderboard", onClose);
   const { run } = useGame();
   const [board, setBoard] = useState<Board>("survival");
+  const [scope, setScope] = useState<BoardScope>("global");
   const [page, setPage] = useState<BoardPage | null>(null);
   const [loading, setLoading] = useState(true);
   const [scrolled, setScrolled] = useState(false);
@@ -95,6 +97,10 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
   const [handles, setHandles] = useState<string[] | null>(null);
   const [handleBusy, setHandleBusy] = useState(false);
   const [reported, setReported] = useState<Set<string>>(new Set());
+  /* Sticky across reloads: the toggle appearing and disappearing while pages
+     swap reads as the screen changing its mind. Once the server has said this
+     account belongs to a chapter, the toggle stays for the sheet's lifetime. */
+  const [hasChapter, setHasChapter] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -105,16 +111,17 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const load = useCallback(async (which: Board) => {
+  const load = useCallback(async (which: Board, where: BoardScope) => {
     setLoading(true);
-    const next = await fetchBoard(which);
+    const next = await fetchBoard(which, undefined, where);
     setPage(next);
+    if (next.chapterAvailable) setHasChapter(true);
     setLoading(false);
   }, []);
 
   useEffect(() => {
-    void load(board);
-  }, [board, load]);
+    void load(board, scope);
+  }, [board, scope, load]);
 
   // The header only becomes glass once there is something behind it to refract.
   // A blurred pane over a blank sheet is the cost of the material with none of
@@ -132,13 +139,13 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
     const out = await submitRun(run);
     setResult(out);
     setSubmitting(false);
-    if (out.status === "verified" || out.status === "flagged") void load(board);
+    if (out.status === "verified" || out.status === "flagged") void load(board, scope);
     // The one refusal the player can act on: they have no board handle yet.
     if (out.reason === "needs-handle") {
       const offer = await fetchHandles();
       if (offer.ok) setHandles(offer.options);
     }
-  }, [run, submitting, board, load]);
+  }, [run, submitting, board, scope, load]);
 
   const onPickHandle = useCallback(
     async (handle: string) => {
@@ -235,6 +242,40 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
               </button>
             ))}
           </div>
+
+          {/* The chapter cut. Offered only to accounts a chapter has claimed —
+              for everyone else the board is global and there is nothing to
+              choose. Same rows, same rules; the ranks are recomputed within
+              the classroom, so #1 here can be #300 out there. */}
+          {hasChapter && (
+            <div
+              role="tablist"
+              aria-label="Who is on the board"
+              className="mt-1.5 grid grid-cols-2 gap-1 rounded-[var(--radius-pill)] bg-[var(--chip)] p-1"
+            >
+              {(
+                [
+                  { id: "global" as BoardScope, label: "EVERYONE" },
+                  { id: "chapter" as BoardScope, label: "MY CHAPTER" },
+                ] as const
+              ).map((s) => (
+                <button
+                  key={s.id}
+                  role="tab"
+                  type="button"
+                  aria-selected={scope === s.id}
+                  onClick={() => setScope(s.id)}
+                  className={`nv-gc nv-flat rounded-[var(--radius-pill)] px-3 py-1.5 text-2xs font-bold tracking-[0.1em] ${
+                    scope === s.id
+                      ? "nv-on text-[var(--text-primary)]"
+                      : "text-[var(--text-tertiary)]"
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          )}
         </Glass>
 
         {/* ── Rows. Solid ground, every one. ────────────────────────────── */}
@@ -255,8 +296,9 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
 
           {!loading && page?.configured && page.rows.length === 0 && (
             <Note>
-              Nobody is on this board yet. Every name here waits on a person
-              reading it first, which is slow on purpose.
+              {scope === "chapter"
+                ? "Nobody from your chapter is on this board yet. A run has to be submitted — and read by a person — before it lists."
+                : "Nobody is on this board yet. Every name here waits on a person reading it first, which is slow on purpose."}
             </Note>
           )}
 
@@ -273,6 +315,45 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
                 />
               ))}
             </ul>
+          )}
+
+          {/* ── Where you stand ─────────────────────────────────────────────
+              The rank is the server's answer over the WHOLE board, so a player
+              whose row sits below the visible slice still gets a number — and
+              their own row, pinned, when the list above does not contain it. */}
+          {!loading && page?.configured && page.myRank && (
+            <div className="mt-3">
+              {page.myRow && !page.rows.some((r) => r.id === page.myRow?.id) && (
+                <>
+                  <p className="px-2 pb-1.5 text-2xs font-bold tracking-[0.16em] text-[var(--text-tertiary)]">
+                    YOUR PLACE
+                  </p>
+                  <ul>
+                    <Row
+                      row={page.myRow}
+                      board={board}
+                      mine
+                      reported={reported.has(page.myRow.id)}
+                      onReport={() => page.myRow && onReport(page.myRow)}
+                    />
+                  </ul>
+                </>
+              )}
+              <p className="tnum px-2 pt-2 text-xs font-bold text-[var(--text-secondary)]">
+                You are #{page.myRank.rank} of {page.myRank.total}
+                {scope === "chapter" ? " in your chapter" : " on this board"}.
+              </p>
+            </div>
+          )}
+
+          {/* Signed in, handle claimed, and still nowhere on this board — say
+              so, because a blank where your name should be reads as a bug. */}
+          {!loading && page?.configured && !page.myRank && page.myHandle && (
+            <p className="px-2 pt-3 text-2xs leading-relaxed text-[var(--text-tertiary)]">
+              {scope === "chapter"
+                ? "You are not on this board yet — submit a run below and it appears here once a person has read the name."
+                : "You are not on this board yet. Submit a run below."}
+            </p>
           )}
 
           {/* ── Submitting ─────────────────────────────────────────────── */}
