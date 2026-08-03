@@ -294,6 +294,27 @@ export function Landing() {
             >
               team@novuspitch.com
             </a>
+            {/* The two accounts, linked rather than only claimed.
+                lib/seo.ts lists them in the Organization's `sameAs`, and a
+                search engine treats that claim as evidence when the site
+                actually links out to them. `rel="me"` says the same thing in
+                the older, simpler vocabulary some crawlers still read. */}
+            <a
+              href="https://www.instagram.com/novuspitch/"
+              rel="me noopener"
+              target="_blank"
+              className="text-sm font-bold underline decoration-[var(--hairline)] underline-offset-4 transition-colors hover:decoration-[var(--text-primary)]"
+            >
+              Instagram
+            </a>
+            <a
+              href="https://www.tiktok.com/@novuspitch"
+              rel="me noopener"
+              target="_blank"
+              className="text-sm font-bold underline decoration-[var(--hairline)] underline-offset-4 transition-colors hover:decoration-[var(--text-primary)]"
+            >
+              TikTok
+            </a>
             {/* Both documents, from the front door. App Store Connect asks for
                 these two URLs and a reviewer follows them from here. */}
             <p className="text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">

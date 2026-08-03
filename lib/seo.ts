@@ -41,9 +41,14 @@ export const absoluteUrl = (path = "/"): string =>
  * it (`/` and `/download`), and a second copy that disagreed by one character
  * would read as two different organizations to a crawler rather than one.
  *
- * `logo` is what a knowledge panel renders. `sameAs` is deliberately empty:
- * it is for profiles this team actually controls, and listing one that does
- * not exist is worse than listing none.
+ * `logo` is what a knowledge panel renders. `sameAs` names the profiles this
+ * team actually controls — it is how a search engine connects the accounts to
+ * the site and treats the three as one brand. Only add a profile that exists
+ * and is ours: pointing it at someone else's account tells Google to associate
+ * this brand with them, which is worse than listing nothing.
+ *
+ * These are corroborated by real links in the landing footer. A `sameAs` the
+ * site does not also link to is a claim; one it does link to is evidence.
  */
 export const ORGANIZATION_ID = `${SITE_ORIGIN}/#team`;
 
@@ -54,6 +59,10 @@ export const ORGANIZATION_NODE = {
   url: SITE_ORIGIN,
   email: "team@novuspitch.com",
   logo: absoluteUrl("/icons/icon-512.png"),
+  sameAs: [
+    "https://www.instagram.com/novuspitch/",
+    "https://www.tiktok.com/@novuspitch",
+  ],
   description:
     "Five students who built Novus at the LaunchX Flagship program, San Diego, summer 2026.",
   member: [
