@@ -5,14 +5,32 @@
  * world, and the app is completely playable with the volume at zero: every cue
  * has a visual twin. Nothing here is load-bearing.
  *
+ * ── Why this is the Web Audio API and not <audio> ────────────────────────────
+ * It used to be a pool of HTMLAudioElements with `volume` set per cue. iOS
+ * ignores `HTMLMediaElement.volume` entirely — only the hardware rocker moves
+ * it — so on an iPhone every gain below was discarded and every cue played at
+ * 100%: clicks mixed to be felt-not-heard arrived at full blast, and the Tank's
+ * ambient bed, ducked to stay under dialogue, was the loudest thing in the
+ * room. GainNodes are honoured everywhere, so the mix below now means the same
+ * thing on a phone as on a laptop. Decoded buffers also start in the same
+ * frame as the tap (an element with `preload="none"` fetched its mp3 on first
+ * play, which is why first clicks used to arrive late or not at all), and
+ * overlapping plays no longer fight over one element's playhead.
+ *
  * ── Rules this file enforces ─────────────────────────────────────────────────
- * · Lazy. Nothing is fetched until the first time a cue actually fires, so the
- *   first paint never waits on 1.7 MB of audio.
+ * · Lazy. Nothing is fetched until a cue is first asked for — except that the
+ *   first real gesture warms the incidental band (click, tab, activity,
+ *   success), so the taps a player makes constantly never pay the first-fetch
+ *   cost. First paint still never waits on 1.7 MB of audio.
  * · Unlocked by a real gesture. Browsers refuse audio before the player has
  *   interacted; `unlock()` is called from the first pointerdown and every
- *   earlier request is silently dropped rather than throwing.
+ *   earlier request is silently dropped rather than throwing. Every later
+ *   play() nudges a suspended context awake, which is what recovers sound
+ *   after an iOS interruption — a phone call, Siri — without a listener.
  * · Muted by default until that gesture, and permanently mutable by the player.
- * · Ambient loops are ducked hard (0.18) so dialogue always wins.
+ * · Ambient loops are ducked hard (0.1) so dialogue always wins.
+ * · A cue is a moment. One that could not start promptly is dropped, never
+ *   played late — a click that lands a second after the tap reads as a bug.
  */
 
 export type Cue =
@@ -89,36 +107,116 @@ const GAIN: Record<Cue, number> = {
 
 const LOOPS: Cue[] = ["tank-ambient"];
 
+/** The cues warmed right after the unlock gesture — the ones that fire
+ *  constantly, whose first play must never be their first fetch. */
+const WARM: Cue[] = ["click", "tab", "activity", "success"];
+
+/** A one-shot whose buffer took longer than this to arrive is dropped. */
+const STALE_MS = 1500;
+
+/** Loop fade, in seconds, so the bed breathes in and out instead of popping. */
+const LOOP_FADE_S = 0.25;
+
 const STORAGE_KEY = "novus:sound:v1";
 
 let unlocked = false;
 let muted = false;
-const pool = new Map<Cue, HTMLAudioElement>();
+let ctx: AudioContext | null = null;
+let master: GainNode | null = null;
+
+/** Decoded audio, one in-flight promise per cue so nothing is fetched twice. */
+const buffers = new Map<Cue, Promise<AudioBuffer | null>>();
+/** Loops actually sounding, by cue, so stopLoop can find them. */
+const liveLoops = new Map<Cue, { src: AudioBufferSourceNode; gain: GainNode }>();
+/** Loops whose buffer is still arriving — a stopLoop in that window cancels
+ *  the start instead of racing it. */
+const pendingLoops = new Set<Cue>();
+/** One-shots currently sounding, so stopAll can silence a room it is leaving. */
+const oneShots = new Set<AudioBufferSourceNode>();
 
 if (typeof window !== "undefined") {
   muted = window.localStorage?.getItem(STORAGE_KEY) === "off";
 }
 
-function el(cue: Cue): HTMLAudioElement | null {
-  if (typeof Audio === "undefined") return null;
-  let a = pool.get(cue);
-  if (!a) {
-    a = new Audio(SRC[cue]);
-    a.preload = "none";
-    a.loop = LOOPS.includes(cue);
-    a.volume = (GAIN[cue] ?? 0.3) * MASTER;
-    pool.set(cue, a);
+/** Safari shipped the API prefixed for years; old WebKit still does. */
+function contextCtor(): (new () => AudioContext) | null {
+  if (typeof window === "undefined") return null;
+  const w = window as unknown as Record<string, unknown>;
+  return (w.AudioContext ?? w.webkitAudioContext) as (new () => AudioContext) | null;
+}
+
+function ensureContext(): AudioContext | null {
+  if (ctx) return ctx;
+  const Ctor = contextCtor();
+  if (!Ctor) return null;
+  try {
+    ctx = new Ctor();
+  } catch {
+    return null;
   }
-  return a;
+  master = ctx.createGain();
+  master.gain.value = muted ? 0 : MASTER;
+  master.connect(ctx.destination);
+  return ctx;
+}
+
+/** Nudge a suspended context awake. Called inside real gestures (every play()
+ *  runs in a click), which is what iOS requires after an interruption. */
+function wake(c: AudioContext): void {
+  if (c.state !== "running") {
+    try {
+      void c.resume().catch(() => {});
+    } catch {
+      /* not now — the next gesture will try again */
+    }
+  }
+}
+
+/**
+ * Both decodeAudioData forms, because iOS carried the callback-only version
+ * for a long time. A promise settles once, so the double wiring cannot
+ * double-resolve.
+ */
+function decode(c: AudioContext, bytes: ArrayBuffer): Promise<AudioBuffer> {
+  return new Promise((resolve, reject) => {
+    const maybe = c.decodeAudioData(bytes, resolve, reject);
+    if (maybe) void maybe.then(resolve).catch(reject);
+  });
+}
+
+/**
+ * The decoded buffer for a cue, fetched and decoded at most once. A load that
+ * FAILS is forgotten rather than cached, so one dropped request on a flaky
+ * phone network does not silence that cue for the rest of the session.
+ */
+function load(cue: Cue, c: AudioContext): Promise<AudioBuffer | null> {
+  let p = buffers.get(cue);
+  if (!p) {
+    p = fetch(SRC[cue])
+      .then((res) => (res.ok ? res.arrayBuffer() : Promise.reject(new Error())))
+      .then((bytes) => decode(c, bytes))
+      .catch(() => {
+        buffers.delete(cue);
+        return null;
+      });
+    buffers.set(cue, p);
+  }
+  return p;
 }
 
 /**
  * Call once from the first real user gesture. Before this, every play() is a
  * no-op — which is correct, not a bug: an autoplay rejection in the console on
- * page load is noise, and the player has not asked for sound yet.
+ * page load is noise, and the player has not asked for sound yet. This is also
+ * the one moment the AudioContext can be created already-permitted, and the
+ * moment the incidental band is warmed.
  */
 export function unlockSound(): void {
   unlocked = true;
+  const c = ensureContext();
+  if (!c) return;
+  wake(c);
+  if (!muted) for (const cue of WARM) void load(cue, c);
 }
 
 export function isMuted(): boolean {
@@ -132,40 +230,118 @@ export function setMuted(next: boolean): void {
   } catch {
     /* private mode */
   }
-  if (next) for (const a of pool.values()) a.pause();
+  if (master) master.gain.value = next ? 0 : MASTER;
+  if (next) stopAll();
 }
 
 /** Fire a cue. Safe to call from anywhere, including render-adjacent effects. */
 export function play(cue: Cue): void {
   if (!unlocked || muted) return;
-  const a = el(cue);
-  if (!a) return;
-  try {
-    if (!LOOPS.includes(cue)) a.currentTime = 0;
-    // Rejections are expected (tab hidden, no gesture yet) and are not errors
-    // the player should ever see.
-    void a.play().catch(() => {});
-  } catch {
-    /* ignore */
+  if (LOOPS.includes(cue)) {
+    startLoop(cue);
+    return;
   }
+  const c = ensureContext();
+  if (!c) return;
+  wake(c);
+  const asked = Date.now();
+  void load(cue, c).then((buffer) => {
+    if (!buffer || muted) return;
+    // Late is worse than silent, and a context that never woke would queue
+    // this to burst out whenever it finally does.
+    if (Date.now() - asked > STALE_MS || c.state !== "running") return;
+    try {
+      const src = c.createBufferSource();
+      src.buffer = buffer;
+      const gain = c.createGain();
+      gain.gain.value = GAIN[cue] ?? 0.3;
+      src.connect(gain);
+      gain.connect(master as GainNode);
+      oneShots.add(src);
+      src.onended = () => {
+        oneShots.delete(src);
+        try {
+          src.disconnect();
+          gain.disconnect();
+        } catch {
+          /* already gone */
+        }
+      };
+      src.start();
+    } catch {
+      /* a cue that cannot start is dropped, exactly as before */
+    }
+  });
 }
 
 /** Start a looping bed. Idempotent. */
 export function startLoop(cue: Cue): void {
   if (!LOOPS.includes(cue)) return;
-  play(cue);
+  if (!unlocked || muted) return;
+  if (liveLoops.has(cue) || pendingLoops.has(cue)) return;
+  const c = ensureContext();
+  if (!c) return;
+  wake(c);
+  pendingLoops.add(cue);
+  void load(cue, c).then((buffer) => {
+    // stopLoop while the buffer was arriving deletes the marker; a start that
+    // has been cancelled must stay cancelled.
+    if (!pendingLoops.delete(cue)) return;
+    if (!buffer || muted || liveLoops.has(cue)) return;
+    try {
+      const src = c.createBufferSource();
+      src.buffer = buffer;
+      src.loop = true;
+      const gain = c.createGain();
+      gain.gain.setValueAtTime(0, c.currentTime);
+      gain.gain.linearRampToValueAtTime(GAIN[cue] ?? 0.3, c.currentTime + LOOP_FADE_S);
+      src.connect(gain);
+      gain.connect(master as GainNode);
+      src.start();
+      liveLoops.set(cue, { src, gain });
+    } catch {
+      /* no bed is a normal way to be in the room */
+    }
+  });
 }
 
 export function stopLoop(cue: Cue): void {
-  const a = pool.get(cue);
-  if (!a) return;
-  a.pause();
-  a.currentTime = 0;
+  pendingLoops.delete(cue);
+  const live = liveLoops.get(cue);
+  if (!live || !ctx) return;
+  liveLoops.delete(cue);
+  const { src, gain } = live;
+  src.onended = () => {
+    try {
+      src.disconnect();
+      gain.disconnect();
+    } catch {
+      /* already gone */
+    }
+  };
+  try {
+    gain.gain.cancelScheduledValues(ctx.currentTime);
+    gain.gain.setValueAtTime(gain.gain.value, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0, ctx.currentTime + LOOP_FADE_S);
+    src.stop(ctx.currentTime + LOOP_FADE_S + 0.01);
+  } catch {
+    try {
+      src.stop();
+    } catch {
+      /* nothing to stop */
+    }
+  }
 }
 
 export function stopAll(): void {
-  for (const a of pool.values()) {
-    a.pause();
-    a.currentTime = 0;
+  for (const cue of [...liveLoops.keys()]) stopLoop(cue);
+  pendingLoops.clear();
+  for (const src of [...oneShots]) {
+    try {
+      src.stop();
+    } catch {
+      /* already ended */
+    }
   }
+  oneShots.clear();
 }

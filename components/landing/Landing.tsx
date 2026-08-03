@@ -381,13 +381,31 @@ function PricingSection() {
     // boot restore is still filling they answer for a player who is not this
     // one. Resolves immediately once that has landed.
     await whenRestored();
+    /*
+     * Playing starts at the gate now. PLAY FREE used to walk a visitor
+     * straight into the game with nothing for their companies to attach to —
+     * the one door on this page that skipped the account. Same handling as a
+     * signed-out plan press, because it is the same situation: say why, and
+     * put them in front of the form that fixes it. Sign-up keeps whatever
+     * this device has already played, so nothing is lost by being asked.
+     */
+    if (!loadAccount()) {
+      setBusy(null);
+      setError(
+        "Novus plays on a free account, so your companies are saved and can follow you to a new device. Create one below and you're in.",
+      );
+      document
+        .getElementById(ACCOUNT_ANCHOR)
+        ?.scrollIntoView({ block: "center", behavior: "smooth" });
+      return;
+    }
     // An open company wins over everything else — buying Pro must never be the
     // moment a player is handed a "found a new one" screen instead of the one
     // they already have (lib/entry.ts). Below that, a named account with an
     // onboarded profile skips straight to founding.
     const dest = hasSavedRun()
       ? "/play"
-      : loadAccount() && loadProfile()?.onboarded
+      : loadProfile()?.onboarded
         ? "/found"
         : "/welcome";
     router.push(dest);
@@ -440,7 +458,7 @@ function PricingSection() {
       setError(
         result.reason === "signed-out"
           ? `Pro attaches to a Novus account, so it survives a new phone — and this browser is not signed in to one. Create an account or sign in below and ${plan.label.toLowerCase()} checkout opens by itself.`
-          : "Pro attaches to a named account so it survives a new phone. Create one below — the free game does not need one.",
+          : "Pro attaches to a named account so it survives a new phone. Create one below — it costs nothing, and checkout opens by itself.",
       );
       // The gate is two sections further down and off-screen either way. A
       // message pointing at a form nobody can see is the same dead end in

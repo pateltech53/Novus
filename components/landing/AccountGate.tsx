@@ -44,10 +44,12 @@ const RETRY_AFTER_MS = 6000;
  * ── What did not change ────────────────────────────────────────────────────
  *
  * The privacy checkbox still gates creation, the name is still the player's
- * own invention, and none of this is required to PLAY. A player who never
- * makes an account still gets the whole free game on this device — the
- * localStorage path is unchanged and is still a supported way to run Novus.
- * The account is what makes progress portable and a purchase recoverable.
+ * own invention, and the localStorage path is unchanged — the game still
+ * reads and writes this device first, and the store builds still boot
+ * straight into it. What changed is the web's front door: PLAY FREE lands
+ * here now instead of walking in anonymously (see enter() in Landing.tsx),
+ * so every browser player has an account their companies can attach to. The
+ * account is what makes progress portable and a purchase recoverable.
  *
  * ── Four states ────────────────────────────────────────────────────────────
  *
@@ -564,7 +566,8 @@ export function AccountGate() {
           </FootLink>
           <p className="mx-auto mt-3 max-w-[21rem] text-center text-2xs leading-relaxed text-[var(--text-tertiary)]">
             An account keeps your companies when you switch device, and is what
-            a Pro subscription attaches to. The free game plays without one.
+            a Pro subscription attaches to. It costs nothing — the free game
+            stays the whole game.
           </p>
         </>
       )}

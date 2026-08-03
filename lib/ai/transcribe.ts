@@ -50,14 +50,23 @@ import type { PitchTranscript, TranscriptWord } from "./types";
  *
  * The privacy note above is unchanged and still exact: audio leaves the device
  * only when there is an endpoint AND that endpoint has a key behind it. With no
- * key the route answers 501, `sttDown` latches, and nothing is sent for the rest
- * of the session.
+ * key the route answers 501, `sttDownUntil` latches, and nothing is sent for
+ * the rest of the session.
  */
 const STT_ENDPOINT = process.env.NEXT_PUBLIC_STT_ENDPOINT || "/api/stt";
 
-/** Latches on the first refusal so a deploy whose key stops working does not
- *  post a fresh recording on every pitch for the rest of the session. */
-let sttDown = false;
+/**
+ * Until when the endpoint is considered down, epoch ms. Refusals that cannot
+ * heal mid-session — no key (501), a bad one (401), nothing deployed (404) —
+ * latch for the session (Infinity), so a broken deploy does not receive a
+ * fresh recording on every pitch. A spent budget (429) is different: budgets
+ * are windowed and refill, and on a phone one burst must not silence
+ * transcription for the rest of the sitting. It backs off instead.
+ */
+let sttDownUntil = 0;
+
+/** How long a 429 backs off before the next pitch may try the server again. */
+const RETRY_AFTER_MS = 10 * 60 * 1000;
 
 /**
  * Whether the endpoint has a key behind it — asked BEFORE any audio is sent,
@@ -79,10 +88,25 @@ let sttReady: Promise<boolean> | null = null;
 function sttConfigured(url: string): Promise<boolean> {
   if (!STT_ENDPOINT.startsWith("/")) return Promise.resolve(true);
   sttReady ??= fetch(url, { method: "GET" })
-    .then((res) => (res.ok ? res.json() : { configured: false }))
-    .then((body: { configured?: boolean }) => body.configured === true)
-    // A probe that fails is not permission to upload anyway.
-    .catch(() => false);
+    .then((res) => {
+      // Only a definitive answer is worth remembering. A non-2xx here is the
+      // origin having a moment, not the deploy's configuration.
+      if (!res.ok) {
+        sttReady = null;
+        return false;
+      }
+      return res
+        .json()
+        .then((body: { configured?: boolean }) => body.configured === true);
+    })
+    // A probe that fails is not permission to upload anyway — but it is also
+    // not the deploy's answer, so it is forgotten rather than cached. One
+    // dropped request on a phone network used to read "no key" and silence
+    // server transcription for the rest of the session.
+    .catch(() => {
+      sttReady = null;
+      return false;
+    });
   return sttReady;
 }
 
@@ -205,7 +229,7 @@ export async function transcribeAudio(
   audio: Blob | null,
   durationSeconds: number,
 ): Promise<PitchTranscript | null> {
-  if (!STT_ENDPOINT || !audio || sttDown) return null;
+  if (!STT_ENDPOINT || !audio || Date.now() < sttDownUntil) return null;
   try {
     const url = STT_ENDPOINT.startsWith("/") ? apiUrl(STT_ENDPOINT) : STT_ENDPOINT;
     // Asked before the recording is packed, let alone sent.
@@ -222,9 +246,11 @@ export async function transcribeAudio(
     body.append("durationSeconds", String(durationSeconds));
     const res = await fetch(url, { method: "POST", body });
     if (!res.ok) {
-      // No key (501), a bad one (401), nothing deployed (404), or the budget
-      // spent (429). None of those change before the session ends.
-      if ([501, 401, 404, 429].includes(res.status)) sttDown = true;
+      // No key (501), a bad one (401), nothing deployed (404) — none of those
+      // change before the session ends. A spent budget (429) refills, so it
+      // backs off rather than latching.
+      if ([501, 401, 404].includes(res.status)) sttDownUntil = Infinity;
+      else if (res.status === 429) sttDownUntil = Date.now() + RETRY_AFTER_MS;
       reportFallback("transcription", res.status);
       return null;
     }
