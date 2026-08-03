@@ -3,6 +3,18 @@
 /**
  * The ONLY place `backdrop-filter` appears in this app.
  *
+ * ── Status: the CSS material is retired ─────────────────────────────────────
+ *
+ * The gate in globals.css now applies the solid fallback on EVERY platform,
+ * iOS included — the owner's call: the only Liquid Glass in the app is what
+ * UIKit itself draws (the play chrome, overlay toolbars, the decision sheet),
+ * and a CSS impression of that material sitting next to the real thing reads
+ * as an impression. Everything below still describes the material these
+ * components were built to render, because the components, their layout and
+ * their vocabulary are unchanged — they all now resolve to the solid,
+ * shadowed panels of the fallback path. Re-opening the material is the
+ * `[data-css-glass]` attribute, deliberately written by nothing.
+ *
  * Glass is a material for the control layer. It is never a material for
  * content — cards, The Books, the ledger, the roster and anything carrying a
  * financial figure sit on solid ground. Money is read on solid ground.

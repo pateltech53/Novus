@@ -35,12 +35,15 @@ export function isAndroid(): boolean {
  *
  * ── Why this is a blocking script and not a `useEffect` ─────────────────────
  *
- * Liquid Glass is the iOS app's material and nowhere else's — `globals.css`
- * keys every backdrop-filter in the app off `[data-platform="ios"]`, so this
- * attribute is what decides whether a browser draws glass or a solid surface.
- * Deciding that after hydration means one frame of glass on every page load on
- * Android and the web, which is the flash this app already learned about once
- * with the theme.
+ * This attribute used to be what decided whether the DOM drew glass or a
+ * solid surface — `globals.css` keyed every backdrop-filter off
+ * `[data-platform="ios"]`, and deciding after hydration meant one frame of
+ * glass on every page load. The CSS material is retired now (the owner's
+ * call: the only Liquid Glass is UIKit's own chrome, and a DOM imitation one
+ * row away from it reads as exactly that), so the material no longer consumes
+ * this — but the attribute still answers "which shell am I in?" for anything
+ * styled per shell, and before-first-paint is still when that answer has to
+ * exist.
  *
  * Two signals, in order:
  *
@@ -52,8 +55,7 @@ export function isAndroid(): boolean {
  *   and cannot be wrong in the direction that matters: a browser is never on
  *   this protocol.
  *
- * Absent entirely on the web, which is what `:not([data-platform="ios"])`
- * wants — the default is no glass, and the app opts in.
+ * Absent entirely on the web.
  */
 export const PLATFORM_INIT_SCRIPT = `
 (function(){try{
