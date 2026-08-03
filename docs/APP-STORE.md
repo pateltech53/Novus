@@ -126,6 +126,14 @@ the in-game `ProSheet`, and the landing page's pricing card.
   Both are asked for at the moment of use, denial is handled
   (`PerformScreen` reads `NotAllowedError` and offers the typed path), and the
   game is completable without either.
+- **Speech recognition.** `lib/ai/transcribe.ts` reaches for the Web Speech API
+  for live transcription, and inside a WKWebView that is `SFSpeechRecognizer`
+  under a browser API's name — a TCC-protected resource that needs
+  `NSSpeechRecognitionUsageDescription` or the request is refused before a
+  prompt is ever shown. That string is now declared, and unlike the camera and
+  microphone ones it does **not** say "stays on your device": the recogniser on
+  that path is Apple's and may send audio to Apple. Refusal is survivable —
+  the server endpoint and the typed path both remain.
 - **Export compliance.** `ITSAppUsesNonExemptEncryption` is declared false, so
   the question is answered once rather than on every upload.
 - **Orientation and device family.** iPhone-only, portrait-only, and the layout
@@ -137,6 +145,14 @@ the in-game `ProSheet`, and the landing page's pricing card.
   first frame of the game rather than dismissed on a timer.
 - `LSApplicationCategoryType` now declares simulation games, matching the
   category the listing should select.
+- **Privacy manifest.** `ios/App/App/PrivacyInfo.xcprivacy` declares the three
+  data types the app collects, `NSPrivacyTracking = false`, and the one
+  required-reason API in play (`UserDefaults`, reason `CA92.1`, which is
+  Capacitor's own bookkeeping). Without it the upload draws an **ITMS-91053
+  "Missing API declaration"** email after the build has already processed —
+  which is the worst moment to find out a file is missing. It must keep
+  agreeing with the nutrition label below; the two are the same facts entered
+  twice, months apart, which is exactly how they drift.
 
 ---
 
@@ -144,11 +160,25 @@ the in-game `ProSheet`, and the landing page's pricing card.
 
 These cannot be done from the repository. Fill them in before submitting.
 
-1. **Privacy nutrition label.** Declare: *Contact Info → Email Address* (linked
-   to the user, for account management) and *User Content → Other User Content*
-   (game progress, linked, for app functionality). Purchases are handled by
-   Stripe on the web and are **not** collected by the app. Answer **No** to
-   tracking, on every data type.
+1. **Privacy nutrition label.** Must match `PrivacyInfo.xcprivacy` exactly —
+   a disagreement between the two is a question in review rather than an error
+   at upload. Declare:
+   - *Contact Info → Email Address* — linked to the user, for app functionality
+     (account management).
+   - *User Content → Other User Content* — game progress, linked, for app
+     functionality.
+   - *User Content → Audio Data* — **not** linked, for app functionality. This
+     one is easy to talk yourself out of, because the pitch recording is
+     transcribed and never stored. It still *leaves the device* whenever
+     `/api/stt` has a key behind it (see the privacy note in
+     `lib/ai/transcribe.ts`), and omitting a transmission on the grounds that
+     retention is short reads as an omission rather than a fine distinction.
+     **Video is deliberately not declared** — it genuinely never leaves the
+     device; the delivery coach reads frames in memory and keeps only means and
+     variances.
+
+   Purchases are handled by Stripe on the web and are **not** collected by the
+   app. Answer **No** to tracking, on every data type.
 2. **Age rating.** 12+ is the honest answer for simulated gambling-free business
    content with no violence; the app is used by minors and the terms say 13+, so
    do not rate it 4+ — a 4+ rating puts the app in scope for the Kids Category
@@ -164,8 +194,9 @@ These cannot be done from the repository. Fill them in before submitting.
    > subscription is bought on the web and attaches to a Novus account, so it
    > appears in the app when that account signs in (Settings › Account › Sign
    > in, then Novus Pro › Restore purchases). The whole game is playable
-   > without an account. The year-end pitch uses the camera and microphone;
-   > both are optional and the pitch can be typed instead.
+   > without an account. The year-end pitch uses the camera, the microphone
+   > and speech recognition to transcribe what is said; all three are optional
+   > and the pitch can be typed instead. Video never leaves the device.
 7. **A demo account** with Pro on it, in the review notes, if you want the Pro
    surfaces exercised.
 8. **Version.** `MARKETING_VERSION` in the Xcode project, `versionName` in
