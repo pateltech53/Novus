@@ -22,6 +22,7 @@ import {
   type SubscriptionPlan,
 } from "@/lib/monetization";
 import { goToCheckout } from "@/lib/cloud/billing";
+import { rememberPendingPro } from "@/lib/cloud/pending-pro";
 import { whenRestored } from "@/lib/cloud/sync";
 import { useSellsHere } from "@/lib/commerce";
 import { hasSavedRun, loadProfile } from "@/lib/engine/save";
@@ -43,6 +44,16 @@ import { loadAccount } from "@/lib/account";
  *   5. WHO — five students at LaunchX Flagship, San Diego 2026.
  *   6. The address: team@novuspitch.com.
  */
+
+/**
+ * The account form the pricing section sends a signed-out buyer to.
+ *
+ * The gate is rendered twice — hero and close — and this is the second one,
+ * because it is the one a player standing at the prices is nearest to. An
+ * anchor pointing three sections back up the page is a scroll a phone reads as
+ * having lost its place.
+ */
+const ACCOUNT_ANCHOR = "account";
 
 export function Landing() {
   const reduced = useReducedMotion();
@@ -275,7 +286,7 @@ export function Landing() {
           <p className="text-[2rem] font-extrabold leading-none tracking-[-0.03em] lg:text-[2.75rem]">
             Found something.
           </p>
-          <div className="mt-6 max-w-[24rem]">
+          <div id={ACCOUNT_ANCHOR} className="mt-6 max-w-[24rem] scroll-mt-6">
             <AccountGate />
           </div>
           <div className="mt-12 flex flex-col gap-3 border-t border-[var(--hairline)] pt-5 sm:flex-row sm:items-baseline sm:justify-between">
@@ -384,6 +395,22 @@ function PricingSection() {
    * see the long note on takePro() in app/welcome/page.tsx. Checkout when
    * Stripe is configured, the device-local grant when it is not, and no grant
    * at all when a configured checkout fails.
+   *
+   * ── The refusal this used not to have a name for ───────────────────────────
+   *
+   * `signed-out` had no branch, so a visitor with no session — which is EVERY
+   * visitor arriving from the App Store build, whose GET PRO link opens this
+   * section in a browser that has never held the app's cookie — pressed MONTHLY
+   * or YEARLY and was told "Checkout could not be opened. Nothing was charged."
+   * That sentence is for a checkout that broke. Nothing was broken: the server
+   * declined to sell a subscription to nobody, exactly as it should, and the one
+   * fact the player needed — make an account first — was the one thing the
+   * screen did not say.
+   *
+   * So it says it, and then does something about it: the plan is remembered, the
+   * page scrolls to the gate, and finishing sign-up or sign-in opens the
+   * checkout by itself (lib/cloud/pending-pro.ts). Pressing a price should not
+   * cost a player their place in the flow.
    */
   const choosePro = async (plan: SubscriptionPlan) => {
     if (busy) return;
@@ -404,9 +431,30 @@ function PricingSection() {
     }
 
     setBusy(null);
+
+    if (result.reason === "signed-out" || result.reason === "needs-account") {
+      rememberPendingPro(plan.id);
+      setError(
+        result.reason === "signed-out"
+          ? `Pro attaches to a Novus account, so it survives a new phone — and this browser is not signed in to one. Create an account or sign in below and ${plan.label.toLowerCase()} checkout opens by itself.`
+          : "Pro attaches to a named account so it survives a new phone. Create one below — the free game does not need one.",
+      );
+      // The gate is two sections further down and off-screen either way. A
+      // message pointing at a form nobody can see is the same dead end in
+      // politer words.
+      document
+        .getElementById(ACCOUNT_ANCHOR)
+        ?.scrollIntoView({ block: "center", behavior: "smooth" });
+      return;
+    }
+
+    // A real failure. The server's own words are carried through rather than
+    // swallowed: "STRIPE_PRICE_PRO_YEARLY … costs 3999 cents but the app
+    // displays 4999" is answerable from a screenshot. "Checkout could not be
+    // opened", on its own, is not — it was every failure this page had.
     setError(
-      result.reason === "needs-account"
-        ? "Pro attaches to an account so it survives a new phone. Create one above first — the free game does not need one."
+      result.message
+        ? `Checkout could not be opened. Nothing was charged. (${result.message})`
         : "Checkout could not be opened. Nothing was charged.",
     );
   };

@@ -143,6 +143,15 @@ export async function openProPurchase(): Promise<void> {
  * Says where the payment happens and how it gets back, because both halves are
  * surprising: the sale is not on this screen, and the thing that finishes it
  * here is Restore rather than another payment.
+ *
+ * ── And that the browser will ask who they are ──────────────────────────────
+ *
+ * The third surprise, and the one that was left out. `Browser.open` is a real
+ * Safari view with Safari's cookies — which is exactly what keeps this link
+ * legal, and exactly why it is a different session from the app's. Signing in
+ * inside the app does nothing for it. So everyone taking this link arrives at
+ * the prices signed out, and until they are told that, being refused at the
+ * moment they press a plan reads as the purchase being broken.
  */
 export const BUY_IN_BROWSER_NOTE =
-  "Pro is bought on the web and attaches to your Novus account, not to this device. The link opens your browser; come back and tap Restore, or it arrives on the next sync.";
+  "Pro is bought on the web and attaches to your Novus account, not to this device. The link opens your browser, which will ask you to sign in to that account first — being signed in here does not sign you in there. Then come back and tap Restore, or it arrives on the next sync.";

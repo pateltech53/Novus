@@ -215,6 +215,42 @@ one SKU's button, not the whole shop.
 whether it is in live or test mode. "I checked out and my card was not charged"
 is almost always test mode.
 
+### When checkout fails and the config looks fine
+
+`status` on its own only says which variables are **set**. Checkout fails for a
+second class of reason that a set variable hides: a price id pointing at the
+wrong amount or the wrong cadence, a product carrying two active prices, or a
+billing table that exists in `supabase/migrations/0003_billing.sql` and was
+never applied to the project this deploy actually talks to. Each of those is one
+500 from `/api/billing/checkout`, and all the player sees is "Checkout could not
+be opened."
+
+`?deep=1` runs those checks directly — the same `resolvePrice()` the checkout
+route runs, plus a service-role read of `entitlements` and `billing_customers`:
+
+```sh
+curl -s https://YOUR-SITE/api/billing/status?deep=1 | jq
+```
+
+```json
+{
+  "configured": true,
+  "prices": [{ "sku": "pro_yearly", "envVar": "STRIPE_PRICE_PRO_YEARLY", "ok": true }],
+  "tables": [{ "table": "billing_customers", "ok": true }],
+  "hint": "Billing is fully configured, every price verifies against Stripe, …"
+}
+```
+
+Anything with `"ok": false` carries the reason. Stripe ids are stripped from
+those reasons — the failure mode is what you need and the identifier adds
+nothing. It is opt-in because it costs a Stripe round trip per SKU and every
+pricing surface in the app calls this route on mount.
+
+If `deep` comes back clean and a player still cannot check out, the cause is the
+caller rather than the config: no account (`signedIn: false`), an anonymous
+session (`needsAccount`), or a subscription they already have (409). The pricing
+screens name all three now.
+
 Verify with test card `4242 4242 4242 4242`, any future expiry, any CVC.
 
 ---
