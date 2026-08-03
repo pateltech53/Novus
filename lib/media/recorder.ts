@@ -28,14 +28,30 @@ export function mediaSupported(): boolean {
 /** Camera + mic for a pitch; audio-only for the onboarding mic moment. */
 export async function requestCapture(opts: {
   video: boolean;
+  /**
+   * Open a microphone track too. Defaults to true, which is what every
+   * recording surface wants — but a surface that only SHOWS the player
+   * (The Tank's self-view) must pass false, and the reason is audible:
+   *
+   * A live mic with `echoCancellation` engages the platform's voice-processing
+   * pipeline, and that pipeline DUCKS playback — iOS drops the whole session to
+   * play-and-record levels, and every browser's echo canceller actively pumps
+   * any sound the app makes while the mic is open. Holding an unused mic for a
+   * whole panel session is why the sharks' voice rose and fell mid-sentence.
+   * Video-only capture leaves playback untouched.
+   */
+  audio?: boolean;
 }): Promise<MediaStream> {
   if (!mediaSupported()) throw new Error("unsupported");
   return navigator.mediaDevices.getUserMedia({
-    audio: {
-      echoCancellation: true,
-      noiseSuppression: true,
-      autoGainControl: false, // the level meter must see the real signal
-    },
+    audio:
+      opts.audio === false
+        ? false
+        : {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: false, // the level meter must see the real signal
+          },
     video: opts.video
       ? { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }
       : false,

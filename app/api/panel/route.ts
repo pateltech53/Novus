@@ -219,7 +219,24 @@ function turnBrief(body: PanelRequest, phase: string) {
       which_pitch_sections_they_covered: ctx?.coveredBeats,
     },
 
-    the_ask: ctx?.ask,
+    /*
+     * The founder's OWN numbers — they set the amount and the equity on their
+     * notes card, and `implied_valuation_usd` is the price those two numbers
+     * put on the whole company. Handed over explicitly so a shark can hold the
+     * founder to the valuation they just claimed, not merely to the cheque.
+     */
+    the_ask: ctx?.ask
+      ? {
+          amount_usd: ctx.ask.amountUsd,
+          equity_pct: ctx.ask.equityPct,
+          implied_valuation_usd:
+            ctx.ask.impliedValuationUsd ??
+            (ctx.ask.equityPct > 0
+              ? Math.round(ctx.ask.amountUsd / (ctx.ask.equityPct / 100))
+              : 0),
+          set_by: "the founder themselves — these are their chosen terms",
+        }
+      : undefined,
 
     founders_pitch_transcript:
       str(body.pitchTranscript, MAX_TRANSCRIPT) ||
@@ -352,7 +369,7 @@ interface PanelRequest {
     competitors?: unknown[];
     attackPoints?: { claim: string; question: string }[];
     fairValuation?: { low: number; high: number };
-    ask?: { amountUsd: number; equityPct: number };
+    ask?: { amountUsd: number; equityPct: number; impliedValuationUsd?: number };
     coveredBeats?: unknown[];
   };
   log?: unknown[];

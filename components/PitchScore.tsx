@@ -7,8 +7,10 @@ import { motion } from "framer-motion";
 import { SharkStage } from "@/components/SharkStage";
 import { SharkPanel, type TankOutcome } from "@/components/SharkPanel";
 import { TankDebrief } from "@/components/TankDebrief";
-import { chairLine } from "@/lib/ai/stub";
 import { speak } from "@/lib/ai/speech";
+import { getPlayerAsk } from "@/lib/ai/ask";
+import { CAST } from "@/lib/ai/panel-cast";
+import { fmtMoney } from "@/lib/engine/format";
 import type { PitchTranscript } from "@/lib/ai/types";
 import type { DeliveryCoaching } from "@/lib/ai/delivery-coach";
 import type { ContentFinding } from "@/lib/ai/pitch-content";
@@ -102,6 +104,13 @@ export function PitchScore({
   );
   const [debrief, setDebrief] = useState<TankDebriefData | null>(null);
   const [deal, setDeal] = useState<{ cashS?: number; equityPct?: number }>({});
+  /** What actually happened in the room, kept for the verdict line. */
+  const [tankFacts, setTankFacts] = useState<{
+    offers: number;
+    acceptedUsd: number | null;
+    acceptedPct: number | null;
+    acceptedFrom: string | null;
+  } | null>(null);
 
   /*
    * The verdict cue fires when the score is REACHED, not when this component
@@ -112,16 +121,26 @@ export function PitchScore({
    * verdict out loud over the top of the Tank's own opening — a spoiler and a
    * second voice, both at the worst possible moment. Keying it to the stage
    * makes it what it always read as: the sound of the number landing.
+   *
+   * The line itself is COMPOSED from this session, not drawn from a fixture.
+   * `chairLine("score_mid")` picked from four canned sentences, so a founder
+   * who never made an ask and a founder whose margin claim contradicted their
+   * own P&L heard the same words — a verdict that describes nothing convinces
+   * nobody. Every clause below traces to a finding, a beat, or an offer that
+   * actually happened.
    */
   useEffect(() => {
     if (stage !== "score") return;
     play(score >= 8 ? "celebrate" : score >= 5 ? "success" : "error");
-    const key = score >= 8 ? "score_high" : score >= 5 ? "score_mid" : "score_low";
-    void chairLine(key).then((line) => {
-      setVerdict(line);
-      void speak(line, "narrator");
+    const line = verdictLine({
+      score,
+      findings,
+      transcriptText: transcript.text,
+      tank: isYearGate ? tankFacts : null,
     });
-  }, [score, stage]);
+    setVerdict(line);
+    void speak(line, "narrator");
+  }, [score, stage, findings, transcript.text, tankFacts, isYearGate]);
 
   /**
    * The room finished. Build the report from the WHOLE session and show it.
@@ -133,6 +152,13 @@ export function PitchScore({
   const tankDone = useCallback(
     async (dealCashS: number | undefined, dealEquityPct: number | undefined, outcome: TankOutcome) => {
       setDeal({ cashS: dealCashS, equityPct: dealEquityPct });
+      // The facts the verdict line reads: how many bid, and what was signed.
+      setTankFacts({
+        offers: outcome.offers.length,
+        acceptedUsd: outcome.accepted?.amount_usd ?? null,
+        acceptedPct: outcome.accepted?.equity_pct ?? null,
+        acceptedFrom: outcome.acceptedFrom ? (CAST[outcome.acceptedFrom]?.name ?? null) : null,
+      });
       /*
        * Straight to the score, and the report is built while it is being read.
        * The debrief takes a real model call; starting it here means the player
@@ -146,6 +172,9 @@ export function PitchScore({
           run,
           pitchTranscript: transcript.text,
           askFloorUsd: 4 * S_UNIT[run.stage],
+          // The founder's own terms — the same ask the room was built from,
+          // so the report critiques the raise they actually made.
+          ask: getPlayerAsk(run),
         }),
         pitchTranscript: transcript.text,
         pitchDurationSeconds: transcript.durationSeconds,
@@ -332,6 +361,65 @@ export function PitchScore({
       </div>
     </motion.section>
   );
+}
+
+/**
+ * The verdict, in one or two sentences that are TRUE OF THIS SESSION.
+ *
+ * Voice v2 — second person, present tense, dry. The first clause names the
+ * sharpest thing the content scorer actually found (a contradiction beats a
+ * missing beat beats vagueness, because that is the order of expense); the
+ * second reports what the room did about it, when there was a room. Delivery —
+ * pace, fillers, nerves — is deliberately absent, as everywhere (Brand Law 5).
+ */
+function verdictLine(opts: {
+  score: number;
+  findings: ContentFinding[];
+  transcriptText: string;
+  tank: {
+    offers: number;
+    acceptedUsd: number | null;
+    acceptedPct: number | null;
+    acceptedFrom: string | null;
+  } | null;
+}): string {
+  const { score, findings, tank } = opts;
+  const count = (kind: ContentFinding["kind"]) => findings.filter((f) => f.kind === kind).length;
+  const covered = beatsCovered(opts.transcriptText);
+  const coveredCount = PITCH_FRAMEWORK.filter((b) => covered[b.n]).length;
+  const contradictions = count("contradiction");
+  const madeAsk = covered[7];
+
+  let pitch: string;
+  if (!opts.transcriptText.trim()) {
+    pitch = "Nothing came through, so the room judged silence. That is a microphone problem, not a valuation.";
+  } else if (contradictions > 0) {
+    pitch =
+      contradictions === 1
+        ? "Your own books disagreed with one of your claims — that is the expensive kind of wrong."
+        : `Your own books disagreed with you ${contradictions} times — that is what priced you.`;
+  } else if (score >= 8) {
+    pitch = `Structure, real numbers, ${coveredCount} of the seven beats. You argued a business, not a dream.`;
+  } else if (!madeAsk) {
+    pitch = "Two minutes on the company and you never made the ask. Rooms don't chase.";
+  } else if (coveredCount <= 3) {
+    pitch = `You covered ${coveredCount} of the seven beats. The room filled in the rest — on their numbers, not yours.`;
+  } else if (count("specific") === 0 && count("vague") > 0) {
+    pitch = "Not one hard number out loud. Without figures it's a story, and they price stories low.";
+  } else {
+    pitch = `${coveredCount} of seven beats, nothing contradicted. Solid — and the missing beats are where the questions came from.`;
+  }
+
+  if (!tank) return pitch;
+  if (tank.acceptedUsd != null) {
+    return `${pitch} You leave with ${fmtMoney(tank.acceptedUsd)} for ${tank.acceptedPct}%${
+      tank.acceptedFrom ? ` from ${tank.acceptedFrom}` : ""
+    }.`;
+  }
+  if (tank.offers > 0) {
+    return `${pitch} ${tank.offers === 1 ? "One offer" : `${tank.offers} offers`} on the table and you walked — a real answer, and it cost you only the money.`;
+  }
+  return `${pitch} Nobody bid. Every reason why is in the breakdown.`;
 }
 
 /**

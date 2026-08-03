@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { motion } from "framer-motion";
 
 import { GLOSSARY } from "@/lib/engine/constants";
+import { RookieToggle } from "@/components/ui/RookieToggle";
 
 /**
  * The guided first play.
@@ -47,6 +48,15 @@ export interface CoachStep {
    * never drift into three different definitions of "runway".
    */
   terms?: string[];
+  /**
+   * Render the live Rookie Mode switch inside this step's card.
+   *
+   * The tutorial is the one moment every player is guaranteed to meet the
+   * vocabulary question, so the answer is offered where the question happens —
+   * flipping it here takes effect immediately (the rookie definitions step
+   * appears right after) rather than being a setting discovered in week two.
+   */
+  rookieToggle?: boolean;
 }
 
 interface Rect {
@@ -284,6 +294,18 @@ export function Coachmarks({
             {step.body}
           </p>
 
+          {step.rookieToggle && (
+            <div
+              className="pointer-events-auto mt-3 border-t border-[var(--hairline)] pt-3"
+              /* The switch is its own control, not a step-completing tap — a
+                 flip must never be read by the overlay as "activate the target
+                 and advance". */
+              onClick={(e) => e.stopPropagation()}
+            >
+              <RookieToggle />
+            </div>
+          )}
+
           {step.terms && step.terms.length > 0 && (
             <dl className="mt-3 space-y-2 border-t border-[var(--hairline)] pt-3">
               {step.terms.map((term) => {
@@ -365,6 +387,25 @@ const BASE_STEPS: CoachStep[] = [
     mode: "ack",
     place: "below",
   },
+  /*
+   * Where the key terms live, taught as a place rather than a list.
+   *
+   * Players reported learning mid-Tank that the vocabulary had been explained
+   * all along — the coach card, the tappable rows, Rookie Mode — because
+   * nothing ever pointed at any of it. This step points, and carries the
+   * switch itself: the choice about HOW terms are explained is made here,
+   * where the question first comes up, with the rookie definitions step
+   * appearing immediately after for anyone who flips it on.
+   */
+  {
+    id: "key-terms",
+    target: "books",
+    title: "Every key term explains itself.",
+    body: "Anywhere you see a business word — on these Books, on your pitch notes, in The Tank — tap it and you get the meaning, once, when it matters. Want a plain-English line under every term as you go? That switch is Rookie Mode.",
+    mode: "ack",
+    place: "below",
+    rookieToggle: true,
+  },
   {
     id: "advance",
     target: "advance",
@@ -413,11 +454,11 @@ const BASE_STEPS: CoachStep[] = [
 /**
  * The four words on The Books, defined, for a player in Rookie Mode.
  *
- * It sits second — immediately after the step that points at them — because
- * the tutorial that follows talks in these terms ("look at runway", "read what
- * it COSTS you") and asking someone to act on a word they have not been given
- * is how a first play becomes a guessing game. The definitions come from
- * GLOSSARY, the same source the Books and the term coach read.
+ * It sits immediately after the key-terms step — the one carrying the switch —
+ * because the tutorial that follows talks in these terms ("look at runway",
+ * "read what it COSTS you") and asking someone to act on a word they have not
+ * been given is how a first play becomes a guessing game. The definitions come
+ * from GLOSSARY, the same source the Books and the term coach read.
  */
 const ROOKIE_TERMS_STEP: CoachStep = {
   id: "book-terms",
@@ -432,13 +473,18 @@ const ROOKIE_TERMS_STEP: CoachStep = {
 /**
  * The first-run script for this player.
  *
- * Rookie Mode adds one step. Everything else is identical, so the step numbers
- * a player sees ("STEP 2 OF 7") stay honest either way.
+ * Rookie Mode adds one step, and it is inserted AFTER the key-terms step that
+ * carries the switch. That ordering is load-bearing: flipping Rookie Mode on
+ * that step rebuilds this array (app/play memoises on `run.rookieMode`), and
+ * because the insertion point is behind the step being viewed, the current
+ * index still names the same step — the script grows ahead of the player,
+ * never underneath them. The step count shown ("STEP 2 OF 8") recomputes and
+ * stays honest either way.
  */
 export function firstRunSteps(rookieMode: boolean): CoachStep[] {
   if (!rookieMode) return BASE_STEPS;
-  const [books, ...rest] = BASE_STEPS;
-  return [books, ROOKIE_TERMS_STEP, ...rest];
+  const at = BASE_STEPS.findIndex((s) => s.id === "key-terms") + 1;
+  return [...BASE_STEPS.slice(0, at), ROOKIE_TERMS_STEP, ...BASE_STEPS.slice(at)];
 }
 
 /** The pro script, for callers that have no profile to read. */

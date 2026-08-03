@@ -466,8 +466,16 @@ export function PerformScreen() {
 
             {/* Read your own company back before the camera opens. Same card
                 that stays on screen through the take, so nothing about the
-                layout moves when the clock starts. */}
-            <PitchNotes run={run} variant="camera" defaultTab="company" className="mt-5" />
+                layout moves when the clock starts. On a year gate THE NUMBERS
+                carries the ask sliders — the raise is decided here, before the
+                room, not by the books on the founder's behalf. */}
+            <PitchNotes
+              run={run}
+              variant="camera"
+              defaultTab="company"
+              className="mt-5"
+              askControl={perform.kind === "yearEnd" ? "edit" : undefined}
+            />
 
             {/* The framing line is spoken while this is read. A player on
                 their fourth run has heard it three times. */}
@@ -600,6 +608,7 @@ export function PerformScreen() {
                   variant="camera"
                   defaultTab={phase === "recording" ? "numbers" : "order"}
                   className="mt-3"
+                  askControl={perform.kind === "yearEnd" ? "edit" : undefined}
                 />
                 <div className="h-3 shrink-0" aria-hidden="true" />
               </div>
