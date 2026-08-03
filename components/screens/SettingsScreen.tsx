@@ -8,7 +8,6 @@ import {
   GlassButton,
   GlassGroup,
   GlassRow,
-  GlassSegmented,
 } from "@/components/ui/Glass";
 import {
   useNativeOverlay,
@@ -107,32 +106,24 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
           { id: "done", symbol: "xmark", label: "Close settings", style: "plain" as const },
         ],
         /*
-         * The theme picker, as a real glass segmented control.
+         * No segmented control in the toolbar.
          *
-         * It belongs in the toolbar rather than in the page for the reason
-         * every other native surface in this app is where it is: the toolbar
-         * does not scroll. A UIKit view composites above the webview and
-         * cannot move with web content, so a control can only be native if it
-         * holds still — and this one is a three-way choice that is worth
-         * reaching without scrolling anyway.
+         * The theme picker was briefly a real glass one up here, on the
+         * reasoning that the toolbar is the only part of this screen that
+         * holds still and so the only part that CAN be native. That reasoning
+         * is still true and it was still the wrong call: a three-way choice
+         * about how the app looks is a setting, and a setting belongs in the
+         * list of settings under the heading that names it — not in the
+         * chrome, sixty points above the sentence explaining it, where it
+         * reads as a filter over the page rather than a row of it.
          *
-         * The selected segment is a lit piece of material inside a dimmer
-         * track, which is the distinction the system's own control draws. Not
-         * the accent: that belongs to the one control that asks you to act.
+         * It is the plain three-up picker in the page again, on every
+         * platform.
          */
-        segments: [
-          { id: "system", title: "System" },
-          { id: "light", title: "Light" },
-          { id: "dark", title: "Dark" },
-        ],
-        activeSegment: theme,
       }),
-      [resolved, theme],
+      [resolved],
     ),
-    {
-      onAction: onClose,
-      onSegment: (id) => pickTheme(id as ThemeChoice),
-    },
+    { onAction: onClose },
   );
 
   return (
@@ -169,21 +160,36 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
 
         {/* ── Appearance ─────────────────────────────────────────────────── */}
         <Section label="APPEARANCE">
-          {/* UIKit draws this in the toolbar when it owns the screen. Not
-              rendered rather than hidden — a hidden control still takes a tap
-              on iOS if the native view above it passes the touch through. */}
-          {native ? null : (
-            <GlassSegmented<ThemeChoice>
-              label="Theme"
-              value={theme}
-              onChange={pickTheme}
-              options={[
+          {/*
+            Three plain buttons, the same on iOS as everywhere else.
+            Deliberately NOT the control material: the selected one is a raised
+            surface with a shadow under it, which is what says "here" on a
+            picker that is part of a list rather than part of the chrome.
+          */}
+          <div role="radiogroup" aria-label="Theme" className="grid grid-cols-3 gap-2">
+            {(
+              [
                 { id: "system", label: "System" },
                 { id: "light", label: "Light" },
                 { id: "dark", label: "Dark" },
-              ]}
-            />
-          )}
+              ] as { id: ThemeChoice; label: string }[]
+            ).map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                role="radio"
+                aria-checked={theme === opt.id}
+                onClick={() => pickTheme(opt.id)}
+                className={`nv-press rounded-[var(--radius-row)] py-3 text-sm font-bold ${
+                  theme === opt.id
+                    ? "bg-[var(--surface-elevated)] text-[var(--text-primary)] shadow-[var(--e2)]"
+                    : "bg-[var(--surface)] text-[var(--text-tertiary)]"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
           <p className="mt-2 text-2xs leading-snug text-[var(--text-tertiary)]">
             System follows your phone. Both themes are built and shipped — dark
             is not a debug mode.
