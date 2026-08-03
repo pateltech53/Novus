@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
 import { useGame } from "@/lib/state/GameProvider";
+import { ScreenSheet } from "@/components/screens/ScreenSheet";
 import { activitiesFor, canAfford } from "@/lib/engine/activities";
 import { specForRun } from "@/lib/engine/industries/index";
 import { S_UNIT } from "@/lib/engine/constants";
@@ -36,105 +36,71 @@ export function ProductScreen({ onClose }: { onClose: () => void }) {
   const actions = activitiesFor("product", run);
 
   return (
-    <motion.div
-      className="fixed inset-0 z-50 flex items-end justify-center"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.18 }}
+    <ScreenSheet
+      label={`${run.companyName} — ${spec.reportLabel.toLowerCase()}`}
+      closeLabel="Close the product sheet"
+      onClose={onClose}
+      title={spec.nounPlural}
+      blurb="What you made, what you charged, and how each one is doing."
     >
-      <button
-        type="button"
-        aria-label="Close the product sheet"
-        onClick={onClose}
-        className="absolute inset-0 bg-[var(--scrim)]"
-      />
+      <div className="mt-4 px-5">
+        <ProductSheet />
+      </div>
 
-      <motion.section
-        role="dialog"
-        aria-modal="true"
-        aria-label={`${run.companyName} — ${spec.reportLabel.toLowerCase()}`}
-        className="relative flex max-h-[88dvh] w-full max-w-2xl flex-col overflow-y-auto rounded-t-[1.75rem] bg-[var(--sheet)] pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[var(--e3)]"
-        initial={{ y: "8%", opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
-      >
-        <div className="flex items-start justify-between gap-4 px-5 pt-5">
-          <div className="min-w-0">
-            <h2 className="text-xl font-extrabold tracking-[-0.01em]">
-              {spec.nounPlural}
-            </h2>
-            <p className="mt-1 text-sm leading-snug text-[var(--text-secondary)]">
-              What you made, what you charged, and how each one is doing.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="shrink-0 rounded-full bg-[var(--chip)] px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
-          >
-            CLOSE
-          </button>
-        </div>
-
-        <div className="mt-5 px-5">
-          <ProductSheet />
-        </div>
-
-        {actions.length > 0 && (
-          <>
-            <h3 className="px-5 pt-7 pb-2 text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
-              WHAT YOU CAN DO TODAY
-            </h3>
-            <ul className="space-y-2 px-3">
-              {actions.map((activity) => {
-                const affordable = canAfford(activity, run);
-                const used = spent.includes(activity.id);
-                const price =
-                  activity.costS !== undefined
-                    ? fmtMoney(activity.costS * S_UNIT[run.stage])
-                    : null;
-                return (
-                  <li key={activity.id}>
-                    <button
-                      type="button"
-                      disabled={!affordable || used}
-                      onClick={() => {
-                        runActivity(activity.id);
-                        setSpent((s) => [...s, activity.id]);
-                      }}
-                      className="nv-card flex w-full items-start justify-between gap-3 px-4 py-3.5 text-left transition-transform duration-150 enabled:active:scale-[0.985] disabled:opacity-45"
-                    >
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-[0.9375rem] font-semibold leading-snug">
-                          {activity.label}
-                        </span>
-                        {/* The qualitative signal. No effect preview — the cash
-                            cost is the only number allowed before committing. */}
-                        <span className="mt-0.5 block text-xs leading-snug text-[var(--text-secondary)]">
-                          {used
-                            ? "Done. The month has to move before you do that again."
-                            : !affordable
-                              ? `You don't have the ${price ?? "cash"}. That's the whole reason.`
-                              : activity.signal}
-                        </span>
+      {actions.length > 0 && (
+        <>
+          <h3 className="px-5 pt-7 pb-2 text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
+            WHAT YOU CAN DO TODAY
+          </h3>
+          <ul className="space-y-2 px-3">
+            {actions.map((activity) => {
+              const affordable = canAfford(activity, run);
+              const used = spent.includes(activity.id);
+              const price =
+                activity.costS !== undefined
+                  ? fmtMoney(activity.costS * S_UNIT[run.stage])
+                  : null;
+              return (
+                <li key={activity.id}>
+                  <button
+                    type="button"
+                    disabled={!affordable || used}
+                    onClick={() => {
+                      runActivity(activity.id);
+                      setSpent((s) => [...s, activity.id]);
+                    }}
+                    className="nv-card flex w-full items-start justify-between gap-3 px-4 py-3.5 text-left transition-transform duration-150 enabled:active:scale-[0.985] disabled:opacity-45"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[0.9375rem] font-semibold leading-snug">
+                        {activity.label}
                       </span>
-                      {price && (
-                        <span className="tnum shrink-0 rounded-md bg-[var(--chip)] px-1.5 py-0.5 text-2xs font-bold text-[var(--text-secondary)]">
-                          {price}
-                        </span>
-                      )}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </>
-        )}
+                      {/* The qualitative signal. No effect preview — the cash
+                          cost is the only number allowed before committing. */}
+                      <span className="mt-0.5 block text-xs leading-snug text-[var(--text-secondary)]">
+                        {used
+                          ? "Done. The month has to move before you do that again."
+                          : !affordable
+                            ? `You don't have the ${price ?? "cash"}. That's the whole reason.`
+                            : activity.signal}
+                      </span>
+                    </span>
+                    {price && (
+                      <span className="tnum shrink-0 rounded-md bg-[var(--chip)] px-1.5 py-0.5 text-2xs font-bold text-[var(--text-secondary)]">
+                        {price}
+                      </span>
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
 
-        <p className="px-5 pt-5 text-2xs tracking-[0.1em] text-[var(--text-tertiary)]">
-          NONE OF THIS ADVANCES TIME
-        </p>
-      </motion.section>
-    </motion.div>
+      <p className="px-5 pt-5 text-2xs tracking-[0.1em] text-[var(--text-tertiary)]">
+        NONE OF THIS ADVANCES TIME
+      </p>
+    </ScreenSheet>
   );
 }

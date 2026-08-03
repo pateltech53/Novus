@@ -478,9 +478,41 @@ async function boot(): Promise<void> {
   if (alreadyTried) return;
 
   const landed = await pullAndAdopt();
-  // A changed entitlement re-enters too, even with no save to restore: several
-  // screens read it once at mount. Same one-reload-per-tab guard.
-  if (landed.saves || landed.entitlements) markAndReload();
+
+  /*
+   * Only a RUN is worth re-entering the app for.
+   *
+   * ── What this used to do, and what it cost ─────────────────────────────
+   *
+   * `landed.saves || landed.entitlements` — so a legacy row, a prefs row or a
+   * changed entitlement reloaded the whole app too. Each of those is a real
+   * reason to want a fresh mount and none of them is worth what a reload costs
+   * on a device: it happens whenever the network answers, which is a second or
+   * two after launch, which is exactly when the player is pressing something.
+   * The reload takes the press with it, and the button reads as broken.
+   *
+   * That is not a new failure — it is the one `markAndReload` already documents
+   * for the web front door, where the fix was to skip the reload on "/". The
+   * reasoning there ended with "the shipped app is untouched: it boots straight
+   * to /play, /found or /welcome, so a restore there still re-enters exactly as
+   * before." Which is the bug: in the app those three screens are not a front
+   * door being passed through, they are where the player is standing.
+   *
+   * ── Why a run is different ─────────────────────────────────────────────
+   *
+   * A run is only ever adopted onto a device that has none (see pullAndAdopt).
+   * So a reload for one cannot interrupt a game in progress — there is no game
+   * in progress — and it is the case the restore exists for: a new phone,
+   * where the alternative is a player staring at onboarding they finished
+   * months ago.
+   *
+   * The other three do not need it. Entitlements announce themselves
+   * (`saveEntitlements` → `announce()`, which is why the closet and the
+   * industry grid pick up a purchase without one). Legacy is read by screens
+   * that mount after a run ends. Prefs reach the next screen the player opens.
+   * All three are visible on the next mount; none is worth a lost tap.
+   */
+  if (landed.run) markAndReload();
 }
 
 /**
@@ -492,8 +524,14 @@ async function boot(): Promise<void> {
  * empties this device on purpose (lib/cloud/auth.ts), so a route chosen from
  * localStorage a moment later is chosen for nobody.
  */
-async function pullAndAdopt(): Promise<{ saves: boolean; entitlements: boolean }> {
-  const nothing = { saves: false, entitlements: false };
+async function pullAndAdopt(): Promise<{
+  /** A company landed on a device that had none. The only one worth a reload. */
+  run: boolean;
+  legacy: boolean;
+  prefs: boolean;
+  entitlements: boolean;
+}> {
+  const nothing = { run: false, legacy: false, prefs: false, entitlements: false };
   if (typeof window === "undefined") return nothing;
 
   const hasLocalRun = !!window.localStorage.getItem("novus:run:v1");
@@ -515,10 +553,15 @@ async function pullAndAdopt(): Promise<{ saves: boolean; entitlements: boolean }
   const legacy = hasLocalLegacy ? undefined : cloud.legacy;
   const prefs = hasLocalProfile ? undefined : cloud.prefs;
 
-  if (!run && !legacy && !prefs) return { saves: false, entitlements };
+  if (!run && !legacy && !prefs) {
+    return { run: false, legacy: false, prefs: false, entitlements };
+  }
 
   adoptFromCloud({ run, legacy, prefs });
-  return { saves: true, entitlements };
+  // Reported per category rather than as one "saves" flag: the caller reloads
+  // for exactly one of them, and rolling three together is what made a prefs
+  // row cost the same as a company.
+  return { run: !!run, legacy: !!legacy, prefs: !!prefs, entitlements };
 }
 
 /**
@@ -566,17 +609,41 @@ export async function restoreForSignIn(): Promise<void> {
  * The screens that DO snapshot at mount (/play, /found, and everything they
  * hold) are reached by a navigation that mounts them fresh anyway.
  *
- * The shipped app is untouched: it boots at native/boot.html, which hands the
- * webview straight to /play, /found or /welcome, so a restore there still
- * re-enters exactly as before.
+ * ── And never on top of a player ───────────────────────────────────────────
+ *
+ * The paragraph above used to end by noting that the shipped app was untouched,
+ * because it boots straight to /play, /found or /welcome rather than to "/".
+ * That was the wrong conclusion drawn from the right observation: in the app
+ * those three screens are not somewhere the player is passing through, they are
+ * where the player is standing and pressing things. A restore that lands a
+ * second after launch reloads the screen out from under the press, and the
+ * player sees a button that did nothing — or, on /play, a white webview while
+ * the page re-parses.
+ *
+ * So the reload is off the table the moment anybody has touched the screen. It
+ * costs nothing to skip: every route this restore matters to reads its state at
+ * mount, and a player who is interacting is about to mount one — the tap they
+ * just made is the navigation. `capture: true` and `once: true` so the listener
+ * sees the press before any handler can stop it and then gets out of the way.
  */
+let touched = false;
+
+if (typeof window !== "undefined") {
+  const noticed = () => {
+    touched = true;
+  };
+  for (const event of ["pointerdown", "keydown", "touchstart"] as const) {
+    window.addEventListener(event, noticed, { capture: true, once: true, passive: true });
+  }
+}
+
 function markAndReload(): void {
   try {
     window.sessionStorage.setItem(RESTORED_FLAG, "1");
   } catch {
     return;
   }
-  if (onTheFrontDoor()) return;
+  if (onTheFrontDoor() || touched) return;
   window.location.reload();
 }
 

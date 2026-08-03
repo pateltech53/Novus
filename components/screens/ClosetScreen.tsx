@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useGame } from "@/lib/state/GameProvider";
 import { FounderPortrait } from "@/components/FounderAvatar";
+import { Glass } from "@/components/ui/Glass";
 import {
   TIERS,
   TITLES,
@@ -136,17 +137,29 @@ export function ClosetScreen({
       aria-modal="true"
       aria-label="The Closet"
     >
-      <div className="mx-auto w-full max-w-md px-5 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))]">
-        <div className="flex items-center justify-between">
+      {/*
+        Pinned, and glass — the wardrobe is the longest scroll in the app and
+        DONE used to leave with the first swipe. Full-bleed rather than inside
+        the column, so the ladder passes under a pane that reaches both edges
+        instead of under a strip with the page showing either side of it.
+      */}
+      <Glass
+        as="header"
+        className="sticky top-0 z-10 px-5 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3"
+      >
+        <div className="mx-auto flex w-full max-w-md items-center justify-between">
           <h1 className="text-xl font-extrabold tracking-[-0.01em]">The Closet</h1>
           <button
             type="button"
             onClick={onClose}
-            className="nv-press h-10 rounded-[var(--radius-pill)] px-4 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
+            className="nv-press h-10 rounded-[var(--radius-pill)] bg-[var(--chip)] px-4 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
           >
             DONE
           </button>
         </div>
+      </Glass>
+
+      <div className="mx-auto w-full max-w-md px-5 pt-4 pb-[max(2rem,env(safe-area-inset-bottom))]">
 
         {/* Who you are right now. */}
         <section className="mt-4 flex flex-col items-center rounded-[var(--radius-card)] bg-[var(--surface)] p-5 shadow-[var(--e2)]">

@@ -16,6 +16,7 @@ import {
   type Quote,
   type StockPosition,
 } from "@/lib/engine/market";
+import { Glass } from "@/components/ui/Glass";
 
 /**
  * RobinGhood — the brokerage app on the founder's phone.
@@ -78,73 +79,85 @@ export function RobinGhood({
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col bg-[var(--bg)]">
-      <header className="shrink-0 px-4 pt-4">
-        <div className="flex items-end justify-between gap-3">
-          <h1 className="min-w-0 truncate text-xl font-extrabold tracking-[-0.02em]">
-            RobinGhood
-          </h1>
-          <p className="tnum shrink-0 text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
-            {minute === null ? "TAPE" : `TAPE · ${clockOf(minute)}`}
+      {/*
+        Inside the scroller, not above it.
+
+        It was a `shrink-0` sibling of the list, which is a bar that reserves
+        its own height — nothing ever passed beneath it, so making it glass
+        would have refracted a flat colour and looked like a tinted rectangle.
+        Pinned inside the scroll container instead, the tape genuinely travels
+        under it, which is the thing the material is for and the clause
+        design.md allows a header glass under.
+      */}
+      <div className="min-h-0 flex-1 overflow-y-auto pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+        <Glass as="header" className="sticky top-0 z-10 px-4 pt-4 pb-3">
+          <div className="flex items-end justify-between gap-3">
+            <h1 className="min-w-0 truncate text-xl font-extrabold tracking-[-0.02em]">
+              RobinGhood
+            </h1>
+            <p className="tnum shrink-0 text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
+              {minute === null ? "TAPE" : `TAPE · ${clockOf(minute)}`}
+            </p>
+          </div>
+          <p className="mt-1 text-xs leading-snug text-[var(--text-secondary)]">
+            Real minutes, real prices. The tape moves whether you are watching or not.
           </p>
-        </div>
-        <p className="mt-1 text-xs leading-snug text-[var(--text-secondary)]">
-          Real minutes, real prices. The tape moves whether you are watching or not.
-        </p>
 
-        <div
-          role="tablist"
-          aria-label="RobinGhood sections"
-          className="mt-3 flex gap-1 rounded-[var(--radius-pill)] bg-[var(--chip)] p-1"
-        >
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              aria-selected={tab === t.id}
-              onClick={() => {
-                setTab(t.id);
-                closeDetail();
-              }}
-              className={`min-w-0 flex-1 truncate rounded-[var(--radius-pill)] px-2 py-2 text-2xs font-bold tracking-[0.12em] transition-colors duration-150 ${
-                tab === t.id
-                  ? "bg-[var(--card)] text-[var(--text)] shadow-[var(--e1)]"
-                  : "text-[var(--text-secondary)]"
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-      </header>
+          <div
+            role="tablist"
+            aria-label="RobinGhood sections"
+            className="mt-3 flex gap-1 rounded-[var(--radius-pill)] bg-[var(--chip)] p-1"
+          >
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                aria-selected={tab === t.id}
+                onClick={() => {
+                  setTab(t.id);
+                  closeDetail();
+                }}
+                className={`min-w-0 flex-1 truncate rounded-[var(--radius-pill)] px-2 py-2 text-2xs font-bold tracking-[0.12em] transition-colors duration-150 ${
+                  tab === t.id
+                    ? "bg-[var(--card)] text-[var(--text)] shadow-[var(--e1)]"
+                    : "text-[var(--text-secondary)]"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </Glass>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3">
-        {minute === null ? (
-          <p className="px-2 pt-6 text-sm text-[var(--text-secondary)]">Reading the tape…</p>
-        ) : detail ? (
-          <TickerDetail
-            symbol={detail}
-            minute={minute}
-            positions={run.positions}
-            buyingPower={run.brokerageCash}
-            onBack={closeDetail}
-            onBuy={onBuy}
-            onSell={onSell}
-          />
-        ) : tab === "portfolio" ? (
-          <PortfolioTab
-            minute={minute}
-            positions={run.positions}
-            buyingPower={run.brokerageCash}
-            companyCash={run.stats.cash}
-            onOpen={openDetail}
-            onTransfer={onTransfer}
-          />
-        ) : tab === "market" ? (
-          <MarketTab minute={minute} onOpen={openDetail} />
-        ) : (
-          <NewsTab minute={minute} onOpen={openDetail} />
-        )}
+        <div className="px-3 pt-3">
+          {minute === null ? (
+            <p className="px-2 pt-6 text-sm text-[var(--text-secondary)]">Reading the tape…</p>
+          ) : detail ? (
+            <TickerDetail
+              symbol={detail}
+              minute={minute}
+              positions={run.positions}
+              buyingPower={run.brokerageCash}
+              onBack={closeDetail}
+              onBuy={onBuy}
+              onSell={onSell}
+            />
+          ) : tab === "portfolio" ? (
+            <PortfolioTab
+              minute={minute}
+              positions={run.positions}
+              buyingPower={run.brokerageCash}
+              companyCash={run.stats.cash}
+              onOpen={openDetail}
+              onTransfer={onTransfer}
+            />
+          ) : tab === "market" ? (
+            <MarketTab minute={minute} onOpen={openDetail} />
+          ) : (
+            <NewsTab minute={minute} onOpen={openDetail} />
+          )}
+        </div>
       </div>
     </div>
   );
