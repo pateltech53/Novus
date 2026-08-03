@@ -105,6 +105,17 @@ export function OneTimeShelf({
     if (result.ok) return; // leaving for Stripe; keep the button busy
 
     setBusy(null);
+
+    // The operator's fork. A skip already granted and adopted the
+    // entitlements, and the write announced itself — the shelf's owned
+    // states update live; this line is just the receipt.
+    if (result.reason === "admin-cancel") return;
+    if (result.reason === "admin-skip") {
+      play("success");
+      setMessage("Granted without payment — admin skip. Nothing was charged.");
+      return;
+    }
+
     if (result.reason === "signed-out" || result.reason === "needs-account") {
       setMessage(
         "One-time buys attach to a Novus account, so they survive a new phone. Sign in or create one first — the free game does not need one.",

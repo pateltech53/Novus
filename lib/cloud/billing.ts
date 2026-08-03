@@ -1,3 +1,4 @@
+import { adminCheckoutChoice } from "@/lib/cloud/admin-skip";
 import { RESTORED_FLAG } from "@/lib/cloud/keys";
 import { API_CREDENTIALS, apiUrl } from "@/lib/native/origin";
 import {
@@ -70,8 +71,22 @@ export type CheckoutResult =
        * will not sell to one, because clearing the browser would destroy the
        * purchase with no way to prove it happened. The caller sends them to
        * sign up and back.
+       *
+       * The two `admin-*` reasons exist only for operator sessions
+       * (lib/cloud/admin-skip.ts): `admin-skip` means the item was GRANTED
+       * without payment — the entitlements are already adopted by the time
+       * the caller sees this, so it ends the flow as a success with no
+       * navigation — and `admin-cancel` means the admin closed the choice,
+       * which every surface treats as "nothing happened".
        */
-      reason: "not-configured" | "signed-out" | "needs-account" | "owned" | "error";
+      reason:
+        | "not-configured"
+        | "signed-out"
+        | "needs-account"
+        | "owned"
+        | "error"
+        | "admin-skip"
+        | "admin-cancel";
       message?: string;
     };
 
@@ -123,6 +138,15 @@ export async function goToCheckout(
   sku: CheckoutSku,
   industry?: string,
 ): Promise<CheckoutResult> {
+  // The operator's fork, and nobody else's: for an admin session this asks
+  // "test the real checkout, or skip payment?" through the globally mounted
+  // prompt. A skip has already granted and adopted the entitlements by the
+  // time it returns. For every other player the answer is null and nothing
+  // here happened.
+  const choice = await adminCheckoutChoice(sku, industry);
+  if (choice === "skipped") return { ok: false, reason: "admin-skip" };
+  if (choice === "cancel") return { ok: false, reason: "admin-cancel" };
+
   const result = await startCheckout(sku, industry);
   if (result.ok) window.location.href = result.url;
   return result;

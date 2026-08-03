@@ -4,6 +4,7 @@ import "./globals.css";
 import { Motion } from "@/components/ui/Motion";
 import { Sound } from "@/components/ui/Sound";
 import { CloudSync } from "@/components/CloudSync";
+import { AdminSkipPrompt } from "@/components/admin/AdminSkipPrompt";
 import { NativeShell } from "@/components/native/NativeShell";
 import { UpgradeProvider } from "@/components/upgrade/UpgradeProvider";
 import { AiStatusBanner } from "@/components/AiStatusBanner";
@@ -198,6 +199,9 @@ export default function RootLayout({
         <NativeShell />
         <Sound />
         <CloudSync />
+        {/* Renders nothing for players, ever — it wakes only when an admin
+            session presses a paid button (lib/cloud/admin-skip.ts). */}
+        <AdminSkipPrompt />
         {/* Outside <Motion> would put the upgrade sheet's spring beyond
             MotionConfig's reach, so a reduced-motion player would get the one
             animation in the app that ignored them. Inside, and the gates on

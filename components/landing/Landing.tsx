@@ -441,6 +441,17 @@ function PricingSection() {
     const result = await goToCheckout(plan.id);
     if (result.ok) return; // leaving for Stripe
 
+    // The operator's fork: a skip is a completed purchase (granted
+    // server-side, already adopted), so it enters exactly as `owned` does.
+    if (result.reason === "admin-cancel") {
+      setBusy(null);
+      return;
+    }
+    if (result.reason === "admin-skip") {
+      await enter();
+      return;
+    }
+
     if (result.reason === "not-configured") {
       grantProLocally(plan.id);
       await enter();
@@ -496,7 +507,16 @@ function PricingSection() {
     const result = await goToCheckout(licence.id);
     if (result.ok) return; // leaving for Stripe
 
+    // The operator's fork: a skipped licence is a live chapter, and success
+    // lands on the console it just opened — the same place a paid one lands.
+    if (result.reason === "admin-skip") {
+      window.location.assign("/chapter");
+      return;
+    }
+
     setBusy(null);
+
+    if (result.reason === "admin-cancel") return;
 
     if (result.reason === "signed-out" || result.reason === "needs-account") {
       setChapterError(

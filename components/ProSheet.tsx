@@ -117,6 +117,21 @@ export function ProSheet({ onClose }: { onClose: () => void }) {
     const result = await goToCheckout(plan.id);
     if (result.ok) return; // navigating to Stripe; leave the button busy
 
+    // The operator's fork (lib/cloud/admin-skip.ts). A skip has already
+    // granted server-side and adopted the entitlements — mirror the local
+    // path's screen updates without the local grant.
+    if (result.reason === "admin-cancel") {
+      setBusy(false);
+      return;
+    }
+    if (result.reason === "admin-skip") {
+      game.setPro(true);
+      setActive(true);
+      setBusy(false);
+      setMessage("Granted without payment — admin skip. Nothing was charged.");
+      return;
+    }
+
     if (result.reason === "not-configured") {
       grantProLocally(plan.id);
       game.setPro(true);

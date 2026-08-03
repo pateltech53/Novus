@@ -472,6 +472,17 @@ function PlansSheet({ onDone }: { onDone: () => void }) {
     const result = await goToCheckout(plan.id);
     if (result.ok) return; // navigating to Stripe; leave the button busy.
 
+    // The operator's fork: skipped means granted (server-side, already
+    // adopted), so continue exactly as a completed purchase would.
+    if (result.reason === "admin-cancel") {
+      setBusy(false);
+      return;
+    }
+    if (result.reason === "admin-skip") {
+      onDone();
+      return;
+    }
+
     if (result.reason === "not-configured") {
       grantProLocally(plan.id);
       onDone();
