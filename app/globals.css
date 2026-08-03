@@ -1368,3 +1368,40 @@ textarea {
     scroll-behavior: auto !important;
   }
 }
+
+/* ── Data-viz palette (the admin console's charts) ──────────────────────────
+   Two series colors, a five-step blue recency ramp, and chart chrome —
+   validated per mode with the dataviz six-checks (CVD ΔE, normal-vision
+   floor, lightness band, contrast) against the card surface each mode
+   actually renders charts on. Deliberately none of the brand-law colors:
+   CTA orange asks for action, solvency green is financial upside, prestige
+   gold is the year gate — a chart asks for none of those.
+   Light magenta sits below 3:1 on white by design; the relief is direct
+   labels and the AS-A-TABLE view every chart ships with. */
+:root,
+:root[data-theme="dark"] {
+  --viz-1: #3987e5;
+  --viz-2: #d55181;
+  /* "Strongest" is the step furthest from the surface — on a dark ground
+     that is the LIGHT end of the ramp, the mirror of the light theme. */
+  --viz-r1: #9ec5f4; /* seen today — strongest */
+  --viz-r2: #6da7ec;
+  --viz-r3: #3987e5;
+  --viz-r4: #256abf;
+  --viz-r5: #184f95; /* dormant — recedes */
+  --viz-grid: var(--n-5);
+  --viz-muted: var(--text-tertiary);
+}
+
+:root[data-theme="light"],
+:root:not([data-theme="dark"]) {
+  --viz-1: #2a78d6;
+  --viz-2: #e87ba4;
+  --viz-r1: #104281;
+  --viz-r2: #1c5cab;
+  --viz-r3: #2a78d6;
+  --viz-r4: #5598e7;
+  --viz-r5: #86b6ef;
+  --viz-grid: var(--n-5);
+  --viz-muted: var(--text-tertiary);
+}

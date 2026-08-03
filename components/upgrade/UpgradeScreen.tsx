@@ -6,6 +6,7 @@ import { play } from "@/lib/sound";
 import { billingStatus, goToCheckout, restorePurchases } from "@/lib/cloud/billing";
 import { useSellsHere } from "@/lib/commerce";
 import { BuyOnWeb, RestoreButton } from "@/components/upgrade/BuyOnWeb";
+import { OneTimeShelf } from "@/components/upgrade/OneTimeShelf";
 import { EXIT, SHEET_SPRING } from "@/components/ui/Motion";
 import { LegalSheet } from "@/components/LegalSheet";
 import { PRIVACY, TERMS, type LegalDocument } from "@/lib/legal/documents";
@@ -442,6 +443,29 @@ export function UpgradeScreen({
                 );
               })}
             </ul>
+
+            {/*
+              The smaller answer, beside the subscription rather than after a
+              refusal. A player at the run-slot gate may only want today's
+              second company, and a player at an industry gate may only want
+              the one industry — $1.99 or $2.99, once, is a real alternative
+              to a subscription and it belongs on the same screen. The row the
+              gate is about leads. Web only: in a store build the shelf is a
+              price with a way to pay it, which is exactly what may not be
+              here (lib/commerce.ts).
+            */}
+            {sellsHere === true && (
+              <OneTimeShelf
+                className="mt-5"
+                lead={
+                  gate?.id === "run_slots"
+                    ? "extra_run_slot"
+                    : gate?.id === "industries"
+                      ? "industry_pack"
+                      : undefined
+                }
+              />
+            )}
 
             {/* The promise travels with the argument on desktop and sits above
                 the pinned strip on phone — either way it is read before the

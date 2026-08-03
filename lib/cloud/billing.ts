@@ -55,7 +55,9 @@ export type CheckoutSku =
   | "pro_monthly"
   | "pro_yearly"
   | "industry_pack"
-  | "extra_run_slot";
+  | "extra_run_slot"
+  | "chapter_35"
+  | "chapter_100";
 
 /** What a checkout attempt can come back as. `url` means go there now. */
 export type CheckoutResult =
@@ -169,6 +171,9 @@ export function adoptEntitlements(server: Entitlements | null | undefined): bool
     local.extraRunSlots === server.extraRunSlots &&
     local.chapter === server.chapter &&
     local.intent === server.intent &&
+    // The admin overlay travels in the same object; a view switch in the
+    // console changes ONLY this field, and must still count as a change.
+    local.admin === server.admin &&
     sameSet(local.industryPacks, server.industryPacks) &&
     sameSet(local.cosmeticBundles, server.cosmeticBundles);
 

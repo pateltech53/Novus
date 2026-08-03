@@ -49,7 +49,7 @@ section 2 twice.
 
 ## 2. What to create in Stripe
 
-Four products. Dashboard → **Product catalogue → Add product**.
+Six products. Dashboard → **Product catalogue → Add product**.
 
 | Product name | Price | Billing | Env var for its price id |
 |---|---|---|---|
@@ -57,6 +57,13 @@ Four products. Dashboard → **Product catalogue → Add product**.
 | Novus Pro — Yearly | $39.99 | Recurring, yearly | `STRIPE_PRICE_PRO_YEARLY` |
 | Industry Pack | $2.99 | One-off | `STRIPE_PRICE_INDUSTRY_PACK` |
 | Extra Run Slot | $1.99 | One-off | `STRIPE_PRICE_EXTRA_RUN_SLOT` |
+| Novus Chapter — 35 seats | $299 | Recurring, yearly | `STRIPE_PRICE_CHAPTER_35` |
+| Novus Chapter — 100 seats | $599 | Recurring, yearly | `STRIPE_PRICE_CHAPTER_100` |
+
+The two chapter licences already exist in the live account — `lib/stripe/
+catalogue.ts` carries their product ids as defaults, so their env vars only
+need setting to point somewhere else (a test-mode copy, a new account). In
+test mode, create the two products and set the vars, exactly like the rest.
 
 All four in **USD** — every price in `lib/monetization.ts` is USD, and checkout
 refuses a price in another currency rather than showing a player a converted
@@ -87,16 +94,20 @@ Twelve near-identical products would be twelve places for the price to drift.
 
 ### What is deliberately not sold
 
-- **Chapter licences** ($299 / 35 seats, $599 / 100 seats). A chapter is seats a
-  teacher buys and hands to students, and there is no enrolment-code table to
-  hand them out with. The money would arrive and nothing would reach a
-  classroom. Do not create these products until the seat-code feature lands.
 - **Cosmetic bundles.** `lib/monetization.ts` prices them as a $1.99–$4.99
   shelf, and no bundle ids or per-bundle prices exist anywhere in the app. A
   single price id would have to invent them.
 
-Both still appear on the pricing screens as things Novus sells, which is
+They still appear on the pricing screens as things Novus sells, which is
 accurate — they are just not checkout buttons yet.
+
+Chapter licences used to be on this list because there was no seat table to
+deliver them with. There is now — `supabase/migrations/0007_chapters.sql` and
+the `/chapter` console — so both licences are ordinary subscription SKUs. The
+webhook creates the chapter; the buyer hands out seats by email or by pasted
+list; every seat is Pro for the year. The whole flow is documented in
+`docs/CHAPTERS.md`, including the two Supabase settings it leans on (the
+`/reset` redirect URL and real SMTP for invite volume).
 
 ### The guard you get for free
 
@@ -196,6 +207,11 @@ STRIPE_PRICE_PRO_MONTHLY=prod_...
 STRIPE_PRICE_PRO_YEARLY=prod_...
 STRIPE_PRICE_INDUSTRY_PACK=prod_...
 STRIPE_PRICE_EXTRA_RUN_SLOT=prod_...
+
+# Optional — the live product ids are the in-code defaults (see §2). Set only
+# to override, e.g. with test-mode copies.
+# STRIPE_PRICE_CHAPTER_35=prod_...
+# STRIPE_PRICE_CHAPTER_100=prod_...
 ```
 
 `scripts/stripe-prices.mjs` prints that block filled in from your account, and

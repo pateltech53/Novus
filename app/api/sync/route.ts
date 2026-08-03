@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { wireEntitlements, type EntitlementRow, type ProfileRoleRow } from "@/lib/admin/entitlements";
 import type { LegacyState, RunState } from "@/lib/engine/types";
-import type { Entitlements } from "@/lib/monetization";
 import { configured } from "@/lib/supabase/config";
 import { attachSession, sessionFromRequest, type Session } from "@/lib/supabase/route";
 
@@ -52,9 +52,12 @@ export async function GET(req: NextRequest) {
       .select("rookie_mode, onboarded, mic_calibration, updated_at")
       .eq("profile_id", session.userId)
       .maybeSingle(),
+    // role/admin_view feed the entitlement overlay below — a comped gift
+    // folds into `pro`, and an admin's account is derived at read time
+    // (lib/admin/entitlements.ts), never written into the entitlements table.
     session.supabase
       .from("profiles")
-      .select("display_name")
+      .select("display_name, role, admin_view")
       .eq("id", session.userId)
       .maybeSingle(),
     // Read-only to the player by RLS (0001), written only by the Stripe
@@ -63,7 +66,9 @@ export async function GET(req: NextRequest) {
     // would make Pro free, and this route runs as the player.
     session.supabase
       .from("entitlements")
-      .select("pro, extra_run_slots, industry_packs, cosmetic_bundles, chapter, intent")
+      .select(
+        "pro, extra_run_slots, industry_packs, cosmetic_bundles, chapter, intent, comp_pro, comp_until",
+      )
       .eq("profile_id", session.userId)
       .maybeSingle(),
   ]);
@@ -90,16 +95,11 @@ export async function GET(req: NextRequest) {
   // Absent until the player buys something, because nothing else creates a
   // row here. That absence is meaningful to the client: it means "no purchase
   // on record", which is what lets a device-local pre-billing grant survive.
-  const entitlements: Entitlements | null = entRow.data
-    ? {
-        pro: !!entRow.data.pro,
-        extraRunSlots: entRow.data.extra_run_slots ?? 0,
-        industryPacks: (entRow.data.industry_packs ?? []) as Entitlements["industryPacks"],
-        cosmeticBundles: entRow.data.cosmetic_bundles ?? [],
-        chapter: entRow.data.chapter ?? null,
-        intent: entRow.data.intent ?? null,
-      }
-    : null;
+  // (Admins are the one exception — wireEntitlements derives theirs.)
+  const entitlements = wireEntitlements(
+    (entRow.data as EntitlementRow | null) ?? null,
+    (profileRow.data as ProfileRoleRow | null) ?? null,
+  );
 
   return attachSession(
     NextResponse.json({

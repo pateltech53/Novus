@@ -5,7 +5,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { adminClient } from "@/lib/supabase/admin";
 import { stripe } from "@/lib/stripe/client";
 import { STRIPE_WEBHOOK_SECRET, billingConfigured } from "@/lib/stripe/config";
-import { isSkuId } from "@/lib/stripe/catalogue";
+import { isChapterSku, isSkuId } from "@/lib/stripe/catalogue";
+import { chapterFromSubscription, syncChapter } from "@/lib/stripe/chapter";
 import { customerId, profileForCustomer, syncSubscription } from "@/lib/stripe/subscription";
 
 export const runtime = "nodejs";
@@ -143,6 +144,19 @@ async function onCheckoutCompleted(
     const subId = typeof cs.subscription === "string" ? cs.subscription : cs.subscription?.id;
     if (!subId) throw new Error(`checkout ${cs.id}: subscription mode with no subscription`);
     const sub = await stripe().subscriptions.retrieve(subId);
+
+    // A chapter licence is a subscription too, but it buys a classroom, not
+    // the buyer: it must never set `pro` on the teacher's own entitlements.
+    // The session metadata answers first; the subscription's own metadata and
+    // price are the fallback, same as onSubscriptionChanged.
+    const metaSku = cs.metadata?.sku;
+    const licence =
+      isSkuId(metaSku) && isChapterSku(metaSku) ? metaSku : await chapterFromSubscription(sub);
+    if (licence) {
+      await syncChapter(db, profileId, sub, licence);
+      return;
+    }
+
     await syncSubscription(db, profileId, sub);
     return;
   }
@@ -186,6 +200,17 @@ async function onSubscriptionChanged(
     // replayed at a live database — retrying forever would not help.
     return;
   }
+
+  // Renewals, lapses and portal plan-changes for a classroom licence land
+  // here exactly like Pro's do, and take the chapter path for the same reason
+  // the checkout does: the licence's state belongs to the chapter row and its
+  // roster, never to the buyer's own `pro`.
+  const licence = await chapterFromSubscription(sub);
+  if (licence) {
+    await syncChapter(db, profileId, sub, licence);
+    return;
+  }
+
   await syncSubscription(db, profileId, sub);
 }
 

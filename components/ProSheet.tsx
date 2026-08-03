@@ -9,6 +9,7 @@ import { PRIVACY, TERMS, type LegalDocument } from "@/lib/legal/documents";
 import { billingStatus, goToCheckout, restorePurchases } from "@/lib/cloud/billing";
 import { useSellsHere } from "@/lib/commerce";
 import { BuyOnWeb, RestoreButton } from "@/components/upgrade/BuyOnWeb";
+import { OneTimeShelf } from "@/components/upgrade/OneTimeShelf";
 import { useNativeGlassClose } from "@/components/native/useNativeOverlay";
 import {
   CADENCE_SUFFIX,
@@ -306,6 +307,12 @@ export function ProSheet({ onClose }: { onClose: () => void }) {
           ) : sellsHere === false ? (
             <BuyOnWeb />
           ) : null}
+
+          {/* The one-time buys, under the subscription rather than behind a
+              gate: a slot or one industry is the smaller honest answer for a
+              player who does not want a plan. Web only, same as the plan
+              chips above. */}
+          {sellsHere === true && <OneTimeShelf className="mt-5" />}
 
           {/* Always available, on every platform and in both states: a player
               who paid on another device has to be able to get it back, and a
