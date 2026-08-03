@@ -45,12 +45,43 @@ const TYPES = {
   ".xml": "application/xml", ".wasm": "application/wasm", ".mjs": "text/javascript",
 };
 
+/**
+ * The shell's routing rule, not a reasonable one.
+ *
+ * This server used to resolve a directory to the index.html inside it, which
+ * is what a static file server does and what everyone assumed the app did.
+ * The app does not. `CapacitorRouter.route(for:)`, which every navigation in
+ * the iOS shell goes through, is this:
+ *
+ *     if pathUrl.pathExtension.isEmpty {
+ *         return basePath + "/index.html"
+ *     }
+ *     return basePath + path
+ *
+ * An extensionless path gets the bundle's ROOT index.html — the shell assumes
+ * one document and a client-side router, which is what nearly every Capacitor
+ * app is and what a Next static export is not. In this repo the root document
+ * is the marketing page, so "/play/" served the landing page, and so did every
+ * other route, and so did the redirect boot.html performs on launch.
+ *
+ * That bug survived three rounds of testing against this harness because the
+ * harness was kinder than the shell. It is not any more: the ios and android
+ * shells route the way the device does, and the browser keeps ordinary static
+ * file behaviour, because on the web that is genuinely what serves it.
+ */
+let shellRouting = false;
+
 const server = http.createServer(async (req, res) => {
   try {
     const url = decodeURIComponent(req.url.split("?")[0]);
-    let file = join(ROOT, url);
-    const s = await stat(file).catch(() => null);
-    if (!s || s.isDirectory()) file = join(file, "index.html");
+    let file;
+    if (shellRouting) {
+      file = extname(url) ? join(ROOT, url) : join(ROOT, "index.html");
+    } else {
+      file = join(ROOT, url);
+      const s = await stat(file).catch(() => null);
+      if (!s || s.isDirectory()) file = join(file, "index.html");
+    }
     const body = await readFile(file);
     res.writeHead(200, { "content-type": TYPES[extname(file)] || "application/octet-stream" });
     res.end(body);
@@ -432,8 +463,35 @@ for (const [shell, inject] of SHELLS) {
   const problems = [];
   const want = (condition, complaint) => { if (!condition) problems.push(complaint); };
 
+  // From here the server routes the way this shell really does.
+  shellRouting = !sells;
+  /** How this shell has to name a route to actually get it. See lib/native/href.ts. */
+  const at = (route) => `http://127.0.0.1:${PORT}${sells ? `${route}/` : `${route}/index.html`}`;
+
+  /*
+   * ── The cold launch ──────────────────────────────────────────────────────
+   *
+   * The one check that would have caught the bug this whole harness missed:
+   * open the app the way the shell opens it, and see which screen you get.
+   *
+   * boot.html reads localStorage and redirects, and under the shell's real
+   * routing that redirect had been landing on the bundle's root index.html —
+   * the marketing page — for every route, on every launch. Asserting on the
+   * ROUTE is not enough, because the URL bar said /play/ the whole time while
+   * the document was the landing page. So this asserts on what rendered.
+   */
+  if (!sells) {
+    await page.goto(`http://127.0.0.1:${PORT}/boot.html`, { waitUntil: "networkidle" });
+    await page.waitForTimeout(1200);
+    const landed = await page.evaluate(() => document.body.innerText.slice(0, 400));
+    want(
+      !landed.includes("CONTINUE AS") && !landed.includes("Keep a company alive"),
+      `the ${shell} build cold-launches onto the marketing page`,
+    );
+  }
+
   // ── The onboarding plans step: what a first cold start opens on ──────────
-  await page.goto(`http://127.0.0.1:${PORT}/welcome/`, { waitUntil: "networkidle" });
+  await page.goto(at("/welcome"), { waitUntil: "networkidle" });
   await page.waitForTimeout(700);
 
   if (!(await walkToPlans(page))) {
@@ -468,7 +526,7 @@ for (const [shell, inject] of SHELLS) {
     localStorage.setItem("novus:run:v1", JSON.stringify(s.run));
     localStorage.setItem("novus:profile:v1", JSON.stringify(s.profile));
   }, seed);
-  await page.goto(`http://127.0.0.1:${PORT}/play/`, { waitUntil: "networkidle" });
+  await page.goto(at("/play"), { waitUntil: "networkidle" });
   await page.waitForTimeout(900);
   await page.locator("button").filter({ hasText: /^(FREE|PRO)$/ }).first().click();
   await page.waitForTimeout(700);
@@ -502,7 +560,7 @@ for (const [shell, inject] of SHELLS) {
   // Six refused gates open this one, which makes it the most reachable pricing
   // surface in the app and the one a reviewer is most likely to find. Reached
   // here through the talent-pool gate on the team tab.
-  await page.goto(`http://127.0.0.1:${PORT}/play/`, { waitUntil: "networkidle" });
+  await page.goto(at("/play"), { waitUntil: "networkidle" });
   await page.waitForTimeout(900);
   const team = page
     .locator('nav[aria-label="Activities"] button')
@@ -554,6 +612,7 @@ for (const [shell, inject] of SHELLS) {
   } else {
     console.log(`✓ store rule · ${shell}${sells ? " (sells)" : " (sells nothing)"}`);
   }
+  shellRouting = false;
   await ctx.close();
 }
 

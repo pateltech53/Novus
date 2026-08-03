@@ -43,19 +43,33 @@
 
       Generated into the app bundle only; the web build never serves it.
     -->
+    <!--
+      Every target below names index.html, and it is not optional.
+
+      The shell serves navigations through CapacitorRouter.route(for:), which
+      returns the bundle's ROOT index.html for any path with no file extension
+      — it assumes a single-document SPA. This export is a document per route
+      and the root is the marketing page, so "/play/" did not open the play
+      screen, it opened the landing page. Including from here: this file was
+      the first redirect of every launch, so the app opened on a marketing page
+      it is never meant to show, and every way out of it came back.
+
+      "/play/index.html" has an extension, so the router returns it untouched.
+      See lib/native/href.ts, which is the same rule for the TypeScript side.
+    -->
     <script>
       (function () {
-        var target = "/welcome/";
+        var target = "/welcome/index.html";
         try {
           var theme = localStorage.getItem("novus:theme:v1");
           if (theme === "dark" || theme === "light") {
             document.documentElement.setAttribute("data-theme", theme);
           }
           if (localStorage.getItem("novus:run:v1")) {
-            target = "/play/";
+            target = "/play/index.html";
           } else {
             var raw = localStorage.getItem("novus:profile:v1");
-            if (raw && JSON.parse(raw).onboarded) target = "/found/";
+            if (raw && JSON.parse(raw).onboarded) target = "/found/index.html";
           }
         } catch (e) {
           /* First launch, or storage denied. Onboarding is the right answer. */
