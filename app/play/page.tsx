@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useGame } from "@/lib/state/GameProvider";
 import { HomeStage } from "@/components/HomeStage";
@@ -16,7 +16,7 @@ import { YearEndStatement } from "@/components/YearEndStatement";
 import { ChapterSeven } from "@/components/ChapterSeven";
 import { PerformScreen } from "@/components/PerformScreen";
 import { ProSheet } from "@/components/ProSheet";
-import { Coachmarks, FIRST_RUN_STEPS } from "@/components/Coachmarks";
+import { Coachmarks, firstRunSteps } from "@/components/Coachmarks";
 import { ImpactProvider, useImpact } from "@/components/ImpactLayer";
 import { CompanyScreen } from "@/components/screens/CompanyScreen";
 import { ProductScreen } from "@/components/screens/ProductScreen";
@@ -212,7 +212,20 @@ function PlayScreen() {
    * step declares its own native surface, so this file never carries a second
    * copy of the mapping.
    */
-  const coachTarget = coaching ? FIRST_RUN_STEPS[coachIndex]?.native ?? "" : null;
+  /**
+   * The script this player is being taught.
+   *
+   * Computed ONCE and read by everything below. The native-chrome mapping and
+   * the end-of-script check index into it, so a second call to firstRunSteps()
+   * would be a different array the moment Rookie Mode adds its step — lighting
+   * the wrong control, or ending the tutorial a step early.
+   */
+  const coachSteps = useMemo(
+    () => firstRunSteps(!!run?.rookieMode),
+    [run?.rookieMode],
+  );
+
+  const coachTarget = coaching ? coachSteps[coachIndex]?.native ?? "" : null;
 
   /**
    * A native control that is being taught completes its step when it fires.
@@ -225,10 +238,10 @@ function PlayScreen() {
   const completeCoachStep = useCallback(
     (surface: string) => {
       if (!coaching || coachTarget !== surface) return;
-      if (coachIndex >= FIRST_RUN_STEPS.length - 1) finishCoaching();
+      if (coachIndex >= coachSteps.length - 1) finishCoaching();
       else setCoachIndex((i) => i + 1);
     },
-    [coaching, coachTarget, coachIndex, finishCoaching],
+    [coaching, coachTarget, coachIndex, coachSteps.length, finishCoaching],
   );
 
   const onNativeControl = useCallback(
@@ -521,7 +534,7 @@ function PlayScreen() {
 
       {coaching && (
         <Coachmarks
-          steps={FIRST_RUN_STEPS}
+          steps={coachSteps}
           index={coachIndex}
           onAdvance={() => setCoachIndex((i) => i + 1)}
           onFinish={finishCoaching}

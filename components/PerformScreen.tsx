@@ -121,6 +121,16 @@ export function PerformScreen() {
   const rafRef = useRef<number>(0);
   const peakRef = useRef(0);
 
+  /*
+   * Whether the stream is live, as STATE.
+   *
+   * START TALKING was disabled on `!streamRef.current`, and a ref read during
+   * render is a value React never re-renders for. It happened to work only
+   * because setPhase("ready") re-rendered on the same tick — invisible until
+   * anything else set the stream without changing phase.
+   */
+  const [streamReady, setStreamReady] = useState(false);
+
   const cleanup = useCallback(() => {
     cancelAnimationFrame(rafRef.current);
     coachRef.current?.dispose();
@@ -129,6 +139,7 @@ export function PerformScreen() {
     meterRef.current = null;
     stopStream(streamRef.current);
     streamRef.current = null;
+    setStreamReady(false);
     stopSpeaking();
   }, []);
 
@@ -139,12 +150,25 @@ export function PerformScreen() {
     if (phase === "brief") void speak(spec.line, "narrator");
   }, [phase, spec.line]);
 
+  /*
+   * Opening the camera, and — the part that was missing — failing to.
+   *
+   * Every failure below used to land on `phase: "ready"`, which draws the
+   * camera view: a black rectangle, START TALKING disabled because there is no
+   * stream, and an error line. The OPEN THE CAMERA button lives on the brief,
+   * which is gone by then, so there was no way to try again. One dismissed
+   * permission prompt, one camera another tab still held, and the fiscal year
+   * could not be closed without reloading the page.
+   *
+   * Failures now return to the brief — the screen with the button on it — and
+   * carry the reason with them.
+   */
   const openCamera = useCallback(async () => {
     if (!mediaSupported()) {
       setError(
         "This browser can't open the camera. Try Chrome, Safari or Firefox — the pitch is the whole game.",
       );
-      setPhase("ready");
+      setPhase("brief");
       return;
     }
     setPhase("permission");
@@ -180,27 +204,64 @@ export function PerformScreen() {
         void coach.ready.then(setCoachArmed);
       }
 
+      setStreamReady(true);
       setPhase("ready");
       setError(null);
     } catch (err) {
+      // Whatever we did manage to open, close. A half-opened attempt that left
+      // the camera light on is the worst thing to leave behind on a screen
+      // about a teenager's camera.
+      cancelAnimationFrame(rafRef.current);
+      meterRef.current?.close();
+      meterRef.current = null;
+      stopStream(streamRef.current);
+      streamRef.current = null;
+      setStreamReady(false);
+
       const denied = err instanceof DOMException && err.name === "NotAllowedError";
+      const inUse = err instanceof DOMException && err.name === "NotReadableError";
       setError(
         denied
-          ? "The camera is blocked. Allow it in your browser's address bar — the year doesn't close without it."
-          : "Couldn't reach the camera. Check that nothing else is using it.",
+          ? "The camera is blocked. Allow it for this site — in the address bar on a computer, or in Settings on a phone — then try again."
+          : inUse
+            ? "Something else is using the camera. Close the other tab or app, then try again."
+            : "Couldn't reach the camera. Check that nothing else is using it, then try again.",
       );
-      setPhase("ready");
+      setPhase("brief");
     }
   }, []);
 
   const beginRecording = useCallback(() => {
     const stream = streamRef.current;
     if (!stream) return;
-    const { recorder, done } = startRecording(stream, true);
-    recorderRef.current = recorder;
-    doneRef.current = done;
-    coachRef.current?.start();
+    /*
+     * A throw here used to escape into the click handler, which is a button
+     * that does nothing — no error, no phase change, no clue. That is what
+     * START TALKING did on iOS Safari: `new MediaRecorder` refuses a container
+     * WebKit cannot encode, and every candidate ahead of mp4 is one of those.
+     *
+     * makeRecorder() now degrades through the containers and finally to audio
+     * only, so this should be unreachable. If it is ever reached, it says so on
+     * screen instead of pretending the tap never happened.
+     */
+    try {
+      const { recorder, done } = startRecording(stream, true);
+      recorderRef.current = recorder;
+      doneRef.current = done;
+    } catch {
+      setError(
+        "This browser won't record on this device. Try Safari or Chrome — or type your pitch when the box appears.",
+      );
+      return;
+    }
+    // The coach is an enhancement; it must never be why a take fails to start.
+    try {
+      coachRef.current?.start();
+    } catch {
+      /* the take is the point, not the coaching */
+    }
     setElapsed(0);
+    setError(null);
     setPhase("recording");
   }, []);
 
@@ -345,7 +406,26 @@ export function PerformScreen() {
       {phase === "brief" ? (
           <motion.section
             key="brief"
-            className="flex flex-1 flex-col px-6 pt-[max(2rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+            /*
+             * `overflow-y-auto` is what makes this brief reachable on a short
+             * screen.
+             *
+             * The stage is `fixed inset-0`, so the document itself never
+             * scrolls — deliberately, because a game screen that scrolls its
+             * whole self is one you can scroll away from. But nothing inside
+             * scrolled either, and this is the tallest section in the app: a
+             * title, the shark's line, four numbered beats and two buttons. On
+             * a laptop with browser chrome and a taskbar — about 560px of
+             * usable height — OPEN THE CAMERA laid out at y=541 in a 560px
+             * viewport with no scrollable ancestor. The fiscal year could not
+             * be closed at all.
+             *
+             * `min-h-0` is belt and braces: setting `overflow` to anything but
+             * `visible` already resolves this flex child's `min-height: auto`
+             * to zero, but the two are edited independently and stating the
+             * shrink means removing the overflow cannot quietly restore it.
+             */
+            className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pt-[max(2rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -384,12 +464,20 @@ export function PerformScreen() {
             <PitchNotes run={run} variant="camera" defaultTab="company" className="mt-5" />
 
             <div className="mt-auto pt-6">
+              {/* A failed attempt comes back here rather than stranding the
+                  player on a black screen, so this is where it says what went
+                  wrong — directly above the button that tries again. */}
+              {error && (
+                <p className="mb-3 text-sm leading-snug text-[var(--alert)]">
+                  {error}
+                </p>
+              )}
               <button
                 type="button"
                 onClick={openCamera}
                 className="w-full rounded-[var(--radius-card)] bg-[var(--action)] px-5 py-4 text-base font-extrabold tracking-[0.06em] text-[var(--n-11)] transition-colors duration-150 hover:bg-[var(--action-hover)] active:bg-[var(--action-press)]"
               >
-                OPEN THE CAMERA ▸
+                {error ? "TRY THE CAMERA AGAIN ▸" : "OPEN THE CAMERA ▸"}
               </button>
               <button
                 type="button"
@@ -559,7 +647,7 @@ export function PerformScreen() {
                 <button
                   type="button"
                   onClick={beginRecording}
-                  disabled={!streamRef.current}
+                  disabled={!streamReady}
                   className="mt-3 w-full rounded-[var(--radius-card)] bg-[var(--action)] px-5 py-4 text-base font-extrabold tracking-[0.06em] text-[var(--n-11)] transition-colors duration-150 hover:bg-[var(--action-hover)] active:bg-[var(--action-press)] disabled:cursor-not-allowed disabled:opacity-45"
                 >
                   START TALKING ▸
