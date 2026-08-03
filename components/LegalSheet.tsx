@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 
 import { useBackHandler } from "@/lib/native/back";
 import type { LegalDocument } from "@/lib/legal/documents";
+import { useNativeGlassClose } from "@/components/native/useNativeOverlay";
 
 /**
  * A legal document, read inside the app.
@@ -28,6 +29,9 @@ export function LegalSheet({
   doc: LegalDocument;
   onClose: () => void;
 }) {
+  // `chevron.backward`: this opens FROM another screen and dismissing
+  // returns you to it, which is a different gesture from closing.
+  const native = useNativeGlassClose("Back", onClose, "chevron.backward");
   useBackHandler(true, onClose);
 
   return (
@@ -46,7 +50,7 @@ export function LegalSheet({
         role="dialog"
         aria-modal="true"
         aria-label={doc.title}
-        className="relative flex max-h-[88dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-[1.75rem] bg-[var(--sheet)] shadow-[var(--e3)] sm:max-h-[82dvh] sm:rounded-[var(--radius-card)]"
+        className="relative flex max-h-[min(88dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] w-full max-w-2xl flex-col overflow-hidden rounded-t-[1.75rem] bg-[var(--sheet)] shadow-[var(--e3)] sm:max-h-[82dvh] sm:rounded-[var(--radius-card)]"
         initial={{ y: "6%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
@@ -62,13 +66,15 @@ export function LegalSheet({
               LAST UPDATED {doc.lastUpdated.toUpperCase()}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="nv-gc shrink-0 rounded-[var(--radius-pill)] px-3.5 py-2 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
-          >
-            CLOSE
-          </button>
+          {native ? null : (
+            <button
+              type="button"
+              onClick={onClose}
+              className="nv-gc shrink-0 rounded-[var(--radius-pill)] px-3.5 py-2 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
+            >
+              CLOSE
+            </button>
+          )}
         </header>
 
         <div className="overflow-y-auto overscroll-contain px-5 pt-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">

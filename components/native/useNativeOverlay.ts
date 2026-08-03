@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import {
   NovusGlass,
   type NativeOverlayState,
   type OverlayInsets,
 } from "@/lib/native/glass";
 import { useNativeChromeOwned } from "@/lib/native/chrome";
+import { useResolvedTheme } from "@/lib/native/theme";
 
 /**
  * A screen's chrome, drawn by UIKit in the real material.
@@ -163,6 +164,51 @@ export function useNativeOverlay(
     // state up to date, so it is correct the moment it is uncovered.
     if (top() === entry) flush();
   }, [owns, state]);
+}
+
+/**
+ * The way out of an overlay, drawn by UIKit.
+ *
+ * Almost every overlay in this app wants exactly this and nothing else: one
+ * glass circle, top right, that closes the thing. Eight of them declaring the
+ * same six-line state object is eight places for it to drift, and the drift is
+ * invisible — a screen whose close button is 2pt off, or whose theme is stale,
+ * or which forgot to withdraw its chrome on unmount.
+ *
+ * Returns whether UIKit took it, so the caller knows not to render its own.
+ * `false` off iOS, without the plugin, or on an old binary — in which case the
+ * DOM button is the way out, exactly as before.
+ *
+ * @param label What the button does, for VoiceOver. "Close the dossier".
+ * @param symbol `xmark` unless the gesture is genuinely "back" rather than
+ *   "close" — a screen inside a screen, where dismissing returns you to the one
+ *   underneath instead of to the board.
+ */
+export function useNativeGlassClose(
+  label: string,
+  onClose: () => void,
+  symbol: "xmark" | "chevron.backward" = "xmark",
+): boolean {
+  const owns = useNativeOverlayOwned();
+  const theme = useResolvedTheme();
+
+  useNativeOverlay(
+    useMemo(
+      () => ({
+        mode: "shown" as const,
+        theme,
+        // No title plate: every one of these overlays already carries its own
+        // heading inside the surface it names, and a second copy floating over
+        // the scrim would be the same words twice.
+        title: null,
+        trailing: [{ id: "close", symbol, label, style: "plain" as const }],
+      }),
+      [theme, label, symbol],
+    ),
+    { onAction: onClose },
+  );
+
+  return owns;
 }
 
 /**

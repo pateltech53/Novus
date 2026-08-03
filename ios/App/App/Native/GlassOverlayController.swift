@@ -114,6 +114,9 @@ final class GlassOverlayController: NSObject {
     private var lastInsets = OverlayInsets()
     private var current: OverlayState?
     private var segmentControls: [String: GlassControl] = [:]
+    /// What the row is currently built out of, so a selection change can
+    /// re-light the existing controls instead of replacing them.
+    private var segmentIds: [String] = []
 
     private enum Metric {
         static let sideMargin: CGFloat = 16
@@ -415,25 +418,43 @@ final class GlassOverlayController: NSObject {
         }
     }
 
-    private func applySegments(_ segments: [OverlaySegment], active: String?) {
-        segmentStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        segmentControls.removeAll()
+    /**
+     The filter row.
 
-        for segment in segments {
-            let on = segment.id == active
-            // The selected segment is the prominent one. That is the same
-            // distinction the system's own segmented control draws — a lit
-            // piece of material inside a dimmer track — rather than a colour
-            // swap, which would spend the accent on a filter.
-            let control = GlassKit.button(
-                prominent: on, tint: nil, ink: on ? .label : .secondaryLabel)
-            control.heightAnchor.constraint(equalToConstant: Metric.segmentHeight).isActive = true
-            control.set(title: segment.title, symbol: nil, size: 13, weight: .semibold)
-            control.setAccessibility(segment.title)
+     Rebuilt only when the segments themselves change, never when the selection
+     does — the same rule `applyTabs` follows on the play chrome, and here it is
+     load-bearing rather than an optimisation. Choosing a segment pushes a new
+     state back across the bridge with a new `activeSegment`, so a rebuild on
+     every selection would destroy the very control the player still has a
+     finger on, halfway through its press animation.
+     */
+    private func applySegments(_ segments: [OverlaySegment], active: String?) {
+        let ids = segments.map(\.id)
+        if ids != segmentIds {
+            segmentIds = ids
+            segmentStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+            segmentControls.removeAll()
+
+            for segment in segments {
+                let control = GlassKit.button(prominent: false, tint: nil, ink: .secondaryLabel)
+                control.heightAnchor
+                    .constraint(equalToConstant: Metric.segmentHeight).isActive = true
+                control.set(title: segment.title, symbol: nil, size: 13, weight: .semibold)
+                control.setAccessibility(segment.title)
+                control.onTap = { [weak self] in self?.onSegment?(segment.id) }
+                segmentControls[segment.id] = control
+                segmentStack.addArrangedSubview(control)
+            }
+        }
+
+        // The selected segment is the lit one — a piece of material inside a
+        // dimmer track, which is the distinction the system's own segmented
+        // control draws. Never a colour swap: that would spend the accent on a
+        // filter, and the accent belongs to the control that asks you to act.
+        for (id, control) in segmentControls {
+            let on = id == active
+            control.setProminent(on, ink: on ? .label : .secondaryLabel)
             control.button.accessibilityTraits = on ? [.button, .selected] : [.button]
-            control.onTap = { [weak self] in self?.onSegment?(segment.id) }
-            segmentControls[segment.id] = control
-            segmentStack.addArrangedSubview(control)
         }
     }
 

@@ -102,10 +102,33 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
         trailing: [
           { id: "done", symbol: "xmark", label: "Close settings", style: "plain" as const },
         ],
+        /*
+         * The theme picker, as a real glass segmented control.
+         *
+         * It belongs in the toolbar rather than in the page for the reason
+         * every other native surface in this app is where it is: the toolbar
+         * does not scroll. A UIKit view composites above the webview and
+         * cannot move with web content, so a control can only be native if it
+         * holds still — and this one is a three-way choice that is worth
+         * reaching without scrolling anyway.
+         *
+         * The selected segment is a lit piece of material inside a dimmer
+         * track, which is the distinction the system's own control draws. Not
+         * the accent: that belongs to the one control that asks you to act.
+         */
+        segments: [
+          { id: "system", title: "System" },
+          { id: "light", title: "Light" },
+          { id: "dark", title: "Dark" },
+        ],
+        activeSegment: theme,
       }),
-      [resolved],
+      [resolved, theme],
     ),
-    { onAction: onClose },
+    {
+      onAction: onClose,
+      onSegment: (id) => pickTheme(id as ThemeChoice),
+    },
   );
 
   return (
@@ -142,16 +165,21 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
 
         {/* ── Appearance ─────────────────────────────────────────────────── */}
         <Section label="APPEARANCE">
-          <GlassSegmented<ThemeChoice>
-            label="Theme"
-            value={theme}
-            onChange={pickTheme}
-            options={[
-              { id: "system", label: "System" },
-              { id: "light", label: "Light" },
-              { id: "dark", label: "Dark" },
-            ]}
-          />
+          {/* UIKit draws this in the toolbar when it owns the screen. Not
+              rendered rather than hidden — a hidden control still takes a tap
+              on iOS if the native view above it passes the touch through. */}
+          {native ? null : (
+            <GlassSegmented<ThemeChoice>
+              label="Theme"
+              value={theme}
+              onChange={pickTheme}
+              options={[
+                { id: "system", label: "System" },
+                { id: "light", label: "Light" },
+                { id: "dark", label: "Dark" },
+              ]}
+            />
+          )}
           <p className="mt-2 text-2xs leading-snug text-[var(--text-tertiary)]">
             System follows your phone. Both themes are built and shipped — dark
             is not a debug mode.

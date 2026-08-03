@@ -22,6 +22,7 @@ import {
   type SubscriptionPlan,
 } from "@/lib/monetization";
 import type { Gate } from "@/lib/upgrade";
+import { useNativeGlassClose } from "@/components/native/useNativeOverlay";
 
 /**
  * The upgrade screen — what the notification opens into.
@@ -78,6 +79,7 @@ export function UpgradeScreen({
   onClose: () => void;
 }) {
   const [plan, setPlan] = useState<SubscriptionPlan>(PRO_YEARLY);
+  const native = useNativeGlassClose("Close Novus Pro", onClose);
   const reduced = useReducedMotion();
 
   /** Whether this build may show a price at all. Null until the shell is known. */
@@ -350,7 +352,7 @@ export function UpgradeScreen({
         role="dialog"
         aria-modal="true"
         aria-label="Novus Pro"
-        className="relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[1.75rem] bg-[var(--sheet)] shadow-[var(--e4)] lg:max-h-[min(42rem,92dvh)] lg:max-w-4xl lg:rounded-[var(--radius-card)]"
+        className="relative flex max-h-[min(92dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] w-full flex-col overflow-hidden rounded-t-[1.75rem] bg-[var(--sheet)] shadow-[var(--e4)] lg:max-h-[min(42rem,92dvh)] lg:max-w-4xl lg:rounded-[var(--radius-card)]"
         initial={reduced ? { opacity: 0 } : { y: "8%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={reduced ? { opacity: 0, transition: EXIT } : { y: "6%", opacity: 0, transition: EXIT }}
@@ -360,13 +362,15 @@ export function UpgradeScreen({
           <p className="text-2xs font-bold tracking-[0.18em] text-[var(--color-prestige)]">
             NOVUS PRO
           </p>
-          <button
-            type="button"
-            onClick={onClose}
-            className="nv-gc nv-t-quiet -mr-1 -mt-1 shrink-0 rounded-full px-3 py-1.5 text-2xs font-bold tracking-[0.12em]"
-          >
-            CLOSE
-          </button>
+          {native ? null : (
+            <button
+              type="button"
+              onClick={onClose}
+              className="nv-gc nv-t-quiet -mr-1 -mt-1 shrink-0 rounded-full px-3 py-1.5 text-2xs font-bold tracking-[0.12em]"
+            >
+              CLOSE
+            </button>
+          )}
         </header>
 
         {/*

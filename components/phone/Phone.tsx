@@ -8,6 +8,7 @@ import { Glass, GlassScrim } from "@/components/ui/Glass";
 import { BeeMail, inboxFor } from "@/components/phone/BeeMail";
 import { LockScreen } from "@/components/phone/LockScreen";
 import { ColdCall } from "@/components/phone/ColdCall";
+import { useNativeGlassClose } from "@/components/native/useNativeOverlay";
 
 export type PhoneApp = "robinghood" | "beemail" | "linkedout" | "coldcall";
 /**
@@ -130,6 +131,9 @@ export function Phone({
   robinghood: React.ReactNode;
   linkedout: React.ReactNode;
 }) {
+  // PUT IT DOWN, as UIKit draws it. The phone is the one screen where a
+  // floating glass button has the frosted game itself to refract.
+  const native = useNativeGlassClose("Put the phone down", onClose);
   const { run, markMailRead } = useGame();
   /**
    * Always starts locked.
@@ -207,17 +211,19 @@ export function Phone({
         {/* The one control that is not part of the phone. It floats over the
             frosted game rather than over anything of its own, which is the one
             place on this screen where glass has something to refract. */}
-        <div className="flex justify-end pb-2">
-          <Glass className="overflow-hidden rounded-full">
-            <button
-              type="button"
-              onClick={onClose}
-              className="nv-gc nv-flat rounded-[var(--radius-pill)] px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-primary)]"
-            >
-              PUT IT DOWN
-            </button>
-          </Glass>
-        </div>
+        {native ? null : (
+          <div className="flex justify-end pb-2">
+            <Glass className="overflow-hidden rounded-full">
+              <button
+                type="button"
+                onClick={onClose}
+                className="nv-gc nv-flat rounded-[var(--radius-pill)] px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-primary)]"
+              >
+                PUT IT DOWN
+              </button>
+            </Glass>
+          </div>
+        )}
 
         <section
           role="dialog"
