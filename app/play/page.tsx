@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useGame } from "@/lib/state/GameProvider";
 import { HomeStage } from "@/components/HomeStage";
 import { TheBooks } from "@/components/TheBooks";
-import { LifeLog } from "@/components/LifeLog";
 import { LogButton, LogSheet } from "@/components/screens/LogSheet";
 import { AdvanceButton } from "@/components/AdvanceButton";
 import { DecisionSheet } from "@/components/DecisionSheet";
@@ -377,14 +376,16 @@ function PlayScreen() {
     /*
      * Two compositions, not one stretched.
      *
-     * Under 1024px this is the phone: stage, Books, log, then a sticky footer.
+     * Under 1024px this is the phone: stage, Books, the story row, then a
+     * sticky footer.
      *
      * At 1024px and up it becomes a centred two-column desk. The mascot is
      * promoted to a persistent left column — it stops being a banner you
-     * scroll past and becomes something present in the room. The Books dock to
-     * the top of the right rail where the reading actually happens, and the
-     * log takes the height it was always short of. Same components throughout;
-     * only the composition changes.
+     * scroll past and becomes something present in the room. The Books dock
+     * to the top of the right rail at the same display size the phone reads
+     * them at, the story sits under them as the same single row, and the
+     * footer holds the rail's foot. Same components throughout; only the
+     * composition changes.
      *
      * The previous behaviour was neither: it went full-bleed, so The Books
      * became a 1280px band of 8px labels and the CTA an ~800px slab.
@@ -412,32 +413,27 @@ function PlayScreen() {
         </div>
 
         {/*
-          One log, two presentations.
+          The story is one row, at every width.
 
-          On the phone the feed is compressed into a single glass row — the
-          latest line, truncated — and the full story opens as a sheet. The
-          feed used to be the whole lower half of the screen, which buried the
-          ledger under a wall of prose; the row gives the numbers the room and
-          keeps the story one tap away.
-
-          Desktop keeps the inline feed: the right rail is the reading column
-          the log was always short of, so there is nothing to compress. Same
-          `lg:` seam as the rest of this file's two compositions.
+          The feed used to be the rest of this column — the whole lower half
+          of a phone, the reading length of the desktop rail — which buried
+          the ledger under a wall of prose. The row keeps the story one tap
+          away and the full feed opens as a sheet; the reclaimed room went to
+          the numbers, which read at display size on both compositions now.
+          The phone shipped this first and the desk followed on approval.
         */}
         <div
-          className="px-3 pt-3 lg:hidden"
+          className="px-3 pt-3"
           // The native deck floats over the page's end; on a short phone the
           // row is the page's end, so it reserves the deck's measured height.
           style={domChrome ? undefined : { paddingBottom: "var(--nv-chrome-bottom, 0px)" }}
         >
           <LogButton month={run.month} year={run.year} onOpen={() => setLogOpen(true)} />
         </div>
-        <div
-          className="hidden flex-1 overflow-y-auto pb-3 lg:block"
-          style={domChrome ? undefined : { paddingBottom: "var(--nv-chrome-bottom, 0px)" }}
-        >
-          <LifeLog lines={run.log} />
-        </div>
+
+        {/* What the desk rail keeps of its fixed height: clear surface. The
+            footer stays the column's last item, where it has always been. */}
+        <div aria-hidden="true" className="hidden lg:block lg:flex-1" />
 
         {domChrome ? (
           <>
