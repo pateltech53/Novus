@@ -120,7 +120,38 @@ export const metadata: Metadata = {
     // Lets the stage run under the status bar instead of below a white band.
     statusBarStyle: "black-translucent",
   },
+  /*
+   * The tab icon. There was no favicon at all before this — no `app/icon.*`,
+   * no `/favicon.ico` — so every browser tab, bookmark and search result fell
+   * back to a blank page glyph.
+   *
+   * Four files, because no single format covers everything:
+   *
+   *   · favicon.ico     — requested BLIND, by browsers and crawlers that never
+   *                       read a <link> tag. Without it those requests 404.
+   *                       Holds 16/32/48 so Windows and the bookmark bar each
+   *                       get a size drawn for them rather than a downscale.
+   *   · favicon.svg     — what every current browser actually uses. One file,
+   *                       sharp at any density, ~340 bytes.
+   *   · favicon-32/96   — the raster fallback for anything that takes neither
+   *                       (older Safari, in-app webviews, link scrapers).
+   *   · apple-touch-icon— the home-screen tile, which predates all of this.
+   *
+   * Rasters before the SVG on purpose: a browser that understands SVG takes
+   * the later, better one, and a browser that does not never sees it.
+   *
+   * Declared here rather than by Next's `app/icon.*` file convention because
+   * an explicit `icons` object OVERRIDES that convention — having both would
+   * silently drop the convention files. One source of truth instead.
+   */
   icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "48x48" },
+      { url: "/icons/favicon-32.png", type: "image/png", sizes: "32x32" },
+      { url: "/icons/favicon-96.png", type: "image/png", sizes: "96x96" },
+      { url: "/icons/favicon.svg", type: "image/svg+xml", sizes: "any" },
+    ],
+    shortcut: "/favicon.ico",
     apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
   },
 };
