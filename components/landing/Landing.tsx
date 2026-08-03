@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
 import { LandingShark } from "@/components/landing/LandingShark";
 import { AccountGate } from "@/components/landing/AccountGate";
+import { Faq } from "@/components/landing/Faq";
 import { ScrollPhone } from "@/components/landing/ScrollPhone";
 import {
   CHAPTER_LICENCES,
@@ -77,7 +78,11 @@ export function Landing() {
       : {
           initial: { opacity: 0, y: 14 },
           animate: { opacity: 1, y: 0 },
-          transition: { duration: 0.4, delay, ease: [0.16, 1, 0.3, 1] as const },
+          transition: {
+            duration: 0.4,
+            delay,
+            ease: [0.16, 1, 0.3, 1] as const,
+          },
         };
 
   return (
@@ -169,9 +174,9 @@ export function Landing() {
                 you learn business by running one.
               </span>{" "}
               Set the prices. Make the hires. Sit with a bad quarter you caused.
-              And once a year, stand up — actually out loud, actually on camera —
-              and defend the whole thing to investors who have read your books.
-              Not a lecture about pitching. The pitch.
+              And once a year, stand up — actually out loud, actually on camera
+              — and defend the whole thing to investors who have read your
+              books. Not a lecture about pitching. The pitch.
             </p>
           </div>
         </div>
@@ -202,7 +207,10 @@ export function Landing() {
                   body: "The year ends when you pitch it — on camera, judged on what you say, never how you sound.",
                 },
               ].map((row) => (
-                <li key={row.title} className="border-t border-[var(--hairline)] pt-3">
+                <li
+                  key={row.title}
+                  className="border-t border-[var(--hairline)] pt-3"
+                >
                   <p className="text-sm font-extrabold">{row.title}</p>
                   <p className="mt-0.5 text-sm leading-relaxed text-[var(--text-secondary)]">
                     {row.body}
@@ -216,6 +224,9 @@ export function Landing() {
 
       {/* ── 4 · The price of everything ────────────────────────────────────── */}
       <PricingSection />
+
+      {/* ── 4b · The questions asked before anyone starts ─────────────────── */}
+      <Faq />
 
       {/* ── 5 · Who made this ─────────────────────────────────────────────── */}
       <section
@@ -478,7 +489,10 @@ function PricingSection() {
               </a>
             </p>
             {error ? (
-              <p role="alert" className="mt-2 text-xs leading-relaxed text-[var(--color-alert)]">
+              <p
+                role="alert"
+                className="mt-2 text-xs leading-relaxed text-[var(--color-alert)]"
+              >
                 {error}
               </p>
             ) : null}
@@ -549,13 +563,21 @@ function PricingSection() {
 
 /** Photos ship from files named by each person — no guessed mappings. */
 const TEAM = [
-  { name: "Yuvan", role: "Marketing & media", photo: "/landing/team/yuvan.webp" },
+  {
+    name: "Yuvan",
+    role: "Marketing & media",
+    photo: "/landing/team/yuvan.webp",
+  },
   {
     name: "Dhruv",
     role: "Coding, app building & operations",
     photo: "/landing/team/dhruv.webp",
   },
-  { name: "Zach", role: "Coding & app building", photo: "/landing/team/zach.webp" },
+  {
+    name: "Zach",
+    role: "Coding & app building",
+    photo: "/landing/team/zach.webp",
+  },
   { name: "Ana", role: "Customer research", photo: "/landing/team/ana.webp" },
   { name: "Monica", role: "Outreach", photo: "/landing/team/monica.webp" },
 ] as const;

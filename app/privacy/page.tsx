@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
+import { absoluteUrl } from "@/lib/seo";
 
 import { LegalPage } from "@/components/LegalPage";
 import { PRIVACY } from "@/lib/legal/documents";
 
 export const metadata: Metadata = {
-  title: "Privacy — Novus",
+  title: "Privacy",
   description:
     "How Novus handles your camera, microphone, account and payment data. Short version: your video never leaves your device, an account stores only your email and progress, we never see your card, and we don't sell anything about you.",
-  alternates: { canonical: "https://novuspitch.com/privacy" },
+  alternates: { canonical: absoluteUrl("/privacy") },
 };
 
 /**

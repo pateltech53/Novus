@@ -38,8 +38,70 @@ const TTS_ENDPOINT = process.env.NEXT_PUBLIC_TTS_ENDPOINT || "/api/tts";
 
 let cachedVoices: SpeechSynthesisVoice[] = [];
 let current: HTMLAudioElement | null = null;
-/** Flips to true after the first cloud failure so we stop hammering a dead route. */
+/** Flips to true after a SETTLED failure — no key, wrong key, spent budget.
+ *  A transient one uses `cloudRetryAt` instead; see speakCloud. */
 let cloudDown = false;
+/** When a transient failure may be retried. One blip must not cost a session. */
+let cloudRetryAt = 0;
+const RETRY_AFTER_MS = 20_000;
+
+/**
+ * ONE audio element, primed by a real tap, reused for every line.
+ *
+ * ── The iOS Safari bug this exists for ──────────────────────────────────────
+ *
+ * Every line was `new Audio(objectUrl)` then `.play()`. On a desktop browser
+ * that is fine. On iOS Safari it is refused: audio may only start from a user
+ * gesture, and by the time a line is ready we are several awaits past the tap
+ * that asked for it — the round trip to ElevenLabs is by itself long enough to
+ * lose the gesture. `play()` rejects with NotAllowedError, speakCloud reports
+ * failure, and the browser's synthesiser answers instead.
+ *
+ * The symptom on an iPhone was: keys configured, credits being spent, and the
+ * robot voice still talking. The cloud voice was working perfectly and being
+ * thrown away at the last step.
+ *
+ * The fix is the standard one. An element played once inside a gesture stays
+ * playable programmatically for the life of the page, so `unlockSpeech()` plays
+ * a few milliseconds of silence on the first tap and every line after that
+ * swaps this element's `src`. Desktop browsers do not need it and are unharmed.
+ */
+let player: HTMLAudioElement | null = null;
+/** True only once silence has ACTUALLY played. A rejected attempt is retried on
+ *  the next gesture rather than assumed to have worked. */
+let unlocked = false;
+
+/** 32 samples of 8 kHz silence. Inline so the unlock never waits on a fetch. */
+const SILENCE =
+  "data:audio/wav;base64,UklGRkQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YSAAAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==";
+
+/**
+ * Call from a real user gesture. Cheap, silent, and a no-op once it has worked.
+ * Wired to pointerdown, touchend and click in components/ui/Sound.tsx, because
+ * WebKit is particular about which of those counts.
+ */
+export function unlockSpeech(): void {
+  if (unlocked || typeof document === "undefined") return;
+  if (!player) {
+    const el = document.createElement("audio");
+    // Without this an iPhone takes any playback fullscreen, over the game.
+    el.setAttribute("playsinline", "");
+    el.preload = "auto";
+    el.src = SILENCE;
+    player = el;
+  }
+  const el = player;
+  void el.play().then(
+    () => {
+      unlocked = true;
+      el.pause();
+      el.currentTime = 0;
+    },
+    () => {
+      /* wrong kind of gesture for this browser; the next one tries again */
+    },
+  );
+}
 
 function voices(): SpeechSynthesisVoice[] {
   if (typeof window === "undefined" || !window.speechSynthesis) return [];
@@ -61,6 +123,8 @@ function reducedMotion(): boolean {
 async function speakCloud(text: string, speaker: Speaker): Promise<boolean> {
   const profile = voiceOf(speaker);
   if (!TTS_ENDPOINT || cloudDown) return false;
+  // A transient failure cools off rather than ending the session's voice.
+  if (cloudRetryAt && Date.now() < cloudRetryAt) return false;
   try {
     const res = await fetch(endpointUrl(TTS_ENDPOINT), {
       method: "POST",
@@ -83,21 +147,41 @@ async function speakCloud(text: string, speaker: Speaker): Promise<boolean> {
       // or nothing is deployed — all three are settled for this session too, and
       // re-asking once per line would be a request per sentence forever.
       if ([429, 402, 501, 401, 404].includes(res.status)) cloudDown = true;
+      // A 502 from a provider blip is a bad moment, not a bad deploy.
+      else cloudRetryAt = Date.now() + RETRY_AFTER_MS;
       reportFallback("voice", res.status);
       return false;
     }
     reportLive("voice");
+    cloudRetryAt = 0;
     const blob = await res.blob();
-    const audio = new Audio(URL.createObjectURL(blob));
+    // The unlocked element when there is one — see above; a fresh element only
+    // where no gesture ever reached us, which is the desktop case.
+    const audio = unlocked && player ? player : new Audio();
+    const url = URL.createObjectURL(blob);
+    audio.src = url;
     current = audio;
-    await audio.play();
-    await new Promise<void>((r) => {
-      audio.onended = () => r();
-      audio.onerror = () => r();
-    });
+    try {
+      await audio.play();
+      await new Promise<void>((r) => {
+        audio.onended = () => r();
+        audio.onerror = () => r();
+      });
+    } finally {
+      // One line is ~100 kB; twenty-three leaked across a panel is real memory
+      // on a phone that is also running a camera.
+      URL.revokeObjectURL(url);
+    }
     return true;
   } catch {
-    cloudDown = true;
+    /*
+     * A network failure, or audio that would not play. Transient by nature, so
+     * this cools off instead of latching: the old `cloudDown = true` here meant
+     * one tunnel, one wifi handover or one slow cold start switched the sharks
+     * to a synthesiser mid-panel and kept them there for the rest of the
+     * session. A blip should cost one line, not twenty-three.
+     */
+    cloudRetryAt = Date.now() + RETRY_AFTER_MS;
     // No response at all, so no status to read. In the shipped app this is
     // normally CORS or a wrong NEXT_PUBLIC_API_ORIGIN, which is exactly the
     // failure a browser tab never reproduces.

@@ -1,5 +1,17 @@
 import type { Metadata } from "next";
 import { Landing } from "@/components/landing/Landing";
+import {
+  FAQ,
+  ORGANIZATION_ID,
+  ORGANIZATION_NODE,
+  OG_IMAGE,
+  SITE_NAME,
+  SITE_ORIGIN,
+  WEBSITE_ID,
+  WEBSITE_NODE,
+  absoluteUrl,
+  jsonLd,
+} from "@/lib/seo";
 
 /**
  * "/" is the public front door, not a redirect. The Gate in /play still
@@ -17,7 +29,11 @@ import { Landing } from "@/components/landing/Landing";
  * finished; the rest is distribution.
  */
 export const metadata: Metadata = {
-  title: "Novus — run a company, pitch it out loud | novuspitch.com",
+  // Absolute: this title already names the brand, and the layout template
+  // would otherwise make it "… | novuspitch.com | Novus".
+  title: {
+    absolute: "Novus — run a company, pitch it out loud | novuspitch.com",
+  },
   description:
     "Novus is a life sim for a company. Run it month by month — hiring, pricing, product — then close each year by pitching out loud, on camera, to five AI investors who have read your numbers. Free to play. Built by five students at LaunchX San Diego 2026.",
   keywords: [
@@ -31,17 +47,17 @@ export const metadata: Metadata = {
     "startup game for students",
     "LaunchX",
   ],
-  alternates: { canonical: "https://novuspitch.com" },
+  alternates: { canonical: absoluteUrl("/") },
   openGraph: {
     type: "website",
-    url: "https://novuspitch.com",
-    siteName: "Novus",
+    url: absoluteUrl("/"),
+    siteName: SITE_NAME,
     title: "Novus — run a company, pitch it out loud",
     description:
       "You don't learn to ride a bike by watching videos. Run a company month by month, then defend it out loud to five investors who have read your numbers.",
     images: [
       {
-        url: "/og.png",
+        url: OG_IMAGE,
         width: 1200,
         height: 630,
         alt: "The Novus shark champion holding a trophy — keep a company alive, defend it out loud.",
@@ -53,7 +69,7 @@ export const metadata: Metadata = {
     title: "Novus — run a company, pitch it out loud",
     description:
       "A life sim for a company: run it month by month, then pitch it on camera to five investors who read your numbers.",
-    images: ["/og.png"],
+    images: [OG_IMAGE],
   },
   robots: {
     index: true,
@@ -68,59 +84,71 @@ export const metadata: Metadata = {
 };
 
 /**
- * Structured data. Two graphs: the game (what the page is about) and the
- * organization (who to attribute it to, with the address search engines
- * surface). Facts only — price, team, program — nothing invented.
+ * Structured data. Three nodes now, not two: the site itself, the organization
+ * that publishes it, and the game this page is about — cross-referenced by
+ * `@id` so a crawler reads one entity graph rather than three loose objects.
+ * The WebSite node is what sitelinks and a branded knowledge panel are built
+ * from, and it was the piece missing before.
+ *
+ * Facts only — price, team, program — nothing invented. In particular there is
+ * no aggregateRating: we have no ratings, and inventing them is both a
+ * penalty and a lie.
  */
-const JSON_LD = {
-  "@context": "https://schema.org",
-  "@graph": [
-    {
-      "@type": "VideoGame",
-      name: "Novus",
-      alternateName: "Novus Pitch",
-      url: "https://novuspitch.com",
-      description:
-        "A life sim for a company: run it month by month, then close each year by pitching out loud to five AI investors who have read your numbers.",
-      genre: ["Simulation", "Educational"],
-      gamePlatform: "Web browser",
-      applicationCategory: "Game",
-      operatingSystem: "Any (web)",
-      offers: [
-        { "@type": "Offer", price: "0", priceCurrency: "USD", name: "Free" },
-        {
-          "@type": "Offer",
-          price: "6.99",
-          priceCurrency: "USD",
-          name: "Pro monthly",
-        },
-        {
-          "@type": "Offer",
-          price: "39.99",
-          priceCurrency: "USD",
-          name: "Pro yearly",
-        },
-      ],
-      author: { "@id": "https://novuspitch.com/#team" },
-    },
-    {
-      "@type": "Organization",
-      "@id": "https://novuspitch.com/#team",
-      name: "Novus",
-      url: "https://novuspitch.com",
-      email: "team@novuspitch.com",
-      description:
-        "Five students who built Novus at the LaunchX Flagship program, San Diego, summer 2026.",
-      member: [
-        { "@type": "Person", name: "Yuvan" },
-        { "@type": "Person", name: "Dhruv" },
-        { "@type": "Person", name: "Zach" },
-        { "@type": "Person", name: "Ana" },
-        { "@type": "Person", name: "Monica" },
-      ],
-    },
-  ],
-};
+const JSON_LD = jsonLd(
+  WEBSITE_NODE,
+  ORGANIZATION_NODE,
+  {
+    "@type": "VideoGame",
+    "@id": `${SITE_ORIGIN}/#game`,
+    name: "Novus",
+    alternateName: "Novus Pitch",
+    url: SITE_ORIGIN,
+    description:
+      "A life sim for a company: run it month by month, then close each year by pitching out loud to five AI investors who have read your numbers.",
+    image: absoluteUrl(OG_IMAGE),
+    genre: ["Simulation", "Educational"],
+    gamePlatform: ["Web browser", "iOS", "Android"],
+    applicationCategory: "Game",
+    operatingSystem: "Any (web), iOS, Android",
+    inLanguage: "en-US",
+    offers: [
+      { "@type": "Offer", price: "0", priceCurrency: "USD", name: "Free" },
+      {
+        "@type": "Offer",
+        price: "6.99",
+        priceCurrency: "USD",
+        name: "Pro monthly",
+      },
+      {
+        "@type": "Offer",
+        price: "39.99",
+        priceCurrency: "USD",
+        name: "Pro yearly",
+      },
+    ],
+    author: { "@id": ORGANIZATION_ID },
+    publisher: { "@id": ORGANIZATION_ID },
+    isPartOf: { "@id": WEBSITE_ID },
+  },
+  /*
+   * The FAQ, quoted from the same constant the page renders.
+   *
+   * Google's rule for this markup is that the answer here must be the answer a
+   * visitor can see — marking up text that is not on the page is what turns a
+   * rich result into a manual action. One source is the only way that stays
+   * true through an edit.
+   */
+  {
+    "@type": "FAQPage",
+    "@id": `${SITE_ORIGIN}/#faq`,
+    isPartOf: { "@id": WEBSITE_ID },
+    mainEntity: FAQ.map((item) => ({
+      "@type": "Question",
+      name: item.q,
+      acceptedAnswer: { "@type": "Answer", text: item.a },
+    })),
+  },
+);
 
 export default function Home() {
   return (
@@ -128,7 +156,7 @@ export default function Home() {
       <script
         type="application/ld+json"
         // Serialised server-side; nothing user-controlled enters this object.
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
+        dangerouslySetInnerHTML={{ __html: JSON_LD }}
       />
       <Landing />
     </>

@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { motion } from "framer-motion";
 
+import { GLOSSARY } from "@/lib/engine/constants";
+
 /**
  * The guided first play.
  *
@@ -37,6 +39,14 @@ export interface CoachStep {
   mode: "tap" | "ack";
   /** Where the card sits relative to the hole. */
   place?: "above" | "below";
+  /**
+   * Words this step defines, in the player's own vocabulary.
+   *
+   * Rendered as a list under the body. The meanings come from GLOSSARY rather
+   * than being retyped here, so the tutorial, the Books and the term coach can
+   * never drift into three different definitions of "runway".
+   */
+  terms?: string[];
 }
 
 interface Rect {
@@ -46,18 +56,20 @@ interface Rect {
   height: number;
 }
 
-
 /**
  * The spotlight anchor is often a wrapper div (so the hole can hug a group of
  * controls). Clicking a div does nothing, so resolve down to the real control.
  */
 function activate(targetId: string): boolean {
-  const host = document.querySelector<HTMLElement>(`[data-coach="${targetId}"]`);
+  const host = document.querySelector<HTMLElement>(
+    `[data-coach="${targetId}"]`,
+  );
   if (!host) return false;
-  const control =
-    host.matches("button, a, input, [role='button']")
-      ? host
-      : host.querySelector<HTMLElement>("button:not(:disabled), a, [role='button']");
+  const control = host.matches("button, a, input, [role='button']")
+    ? host
+    : host.querySelector<HTMLElement>(
+        "button:not(:disabled), a, [role='button']",
+      );
   if (!control) return false;
   control.click();
   return true;
@@ -97,7 +109,7 @@ export function Coachmarks({
   const step = steps[index];
   const [domRect, setRect] = useState<Rect | null>(null);
   const native = !!step?.native && nativeChrome;
-  const rect = native ? nativeRect ?? null : domRect;
+  const rect = native ? (nativeRect ?? null) : domRect;
 
   // Track the target's box: it moves when the log grows or a sheet opens.
   // Deliberately NOT requestAnimationFrame — rAF is suspended while a tab is
@@ -106,7 +118,9 @@ export function Coachmarks({
     if (!step || (step.native && nativeChrome)) return;
 
     const measure = () => {
-      const el = document.querySelector<HTMLElement>(`[data-coach="${step.target}"]`);
+      const el = document.querySelector<HTMLElement>(
+        `[data-coach="${step.target}"]`,
+      );
       if (!el) {
         setRect(null);
         return;
@@ -128,8 +142,12 @@ export function Coachmarks({
     window.addEventListener("resize", measure);
     window.addEventListener("scroll", measure, true);
     const observer =
-      typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
-    const host = document.querySelector<HTMLElement>(`[data-coach="${step.target}"]`);
+      typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(measure)
+        : null;
+    const host = document.querySelector<HTMLElement>(
+      `[data-coach="${step.target}"]`,
+    );
     if (host && observer) observer.observe(host);
 
     return () => {
@@ -184,17 +202,39 @@ export function Coachmarks({
       }
     : null;
 
-  const place = step.place ?? (hole && hole.top > window.innerHeight * 0.55 ? "above" : "below");
+  const place =
+    step.place ??
+    (hole && hole.top > window.innerHeight * 0.55 ? "above" : "below");
 
   return (
-    <div className="fixed inset-0 z-[85]" onClick={onOverlayClick} role="presentation">
+    <div
+      className="fixed inset-0 z-[85]"
+      onClick={onOverlayClick}
+      role="presentation"
+    >
       {/* The scrim is drawn as four panels around the hole, so the control
           underneath stays genuinely visible and clickable. */}
       {hole ? (
         <>
-          <Scrim style={{ top: 0, left: 0, right: 0, height: Math.max(0, hole.top) }} />
-          <Scrim style={{ top: hole.top + hole.height, left: 0, right: 0, bottom: 0 }} />
-          <Scrim style={{ top: hole.top, left: 0, width: Math.max(0, hole.left), height: hole.height }} />
+          <Scrim
+            style={{ top: 0, left: 0, right: 0, height: Math.max(0, hole.top) }}
+          />
+          <Scrim
+            style={{
+              top: hole.top + hole.height,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+          />
+          <Scrim
+            style={{
+              top: hole.top,
+              left: 0,
+              width: Math.max(0, hole.left),
+              height: hole.height,
+            }}
+          />
           <Scrim
             style={{
               top: hole.top,
@@ -205,7 +245,12 @@ export function Coachmarks({
           />
           <motion.div
             className="pointer-events-none absolute rounded-[1.25rem] ring-4 ring-[var(--action)]"
-            style={{ top: hole.top, left: hole.left, width: hole.width, height: hole.height }}
+            style={{
+              top: hole.top,
+              left: hole.left,
+              width: hole.width,
+              height: hole.height,
+            }}
             animate={{ opacity: [0.55, 1, 0.55] }}
             transition={{ duration: 1.6, repeat: Infinity }}
           />
@@ -232,8 +277,38 @@ export function Coachmarks({
           <p className="text-2xs font-bold tracking-[0.16em] text-[var(--action)]">
             STEP {index + 1} OF {steps.length}
           </p>
-          <p className="mt-1 text-base font-extrabold leading-snug text-[var(--n-11)]">{step.title}</p>
-          <p className="mt-1 text-sm leading-snug text-[var(--n-8)]">{step.body}</p>
+          <p className="mt-1 text-base font-extrabold leading-snug text-[var(--n-11)]">
+            {step.title}
+          </p>
+          <p className="mt-1 text-sm leading-snug text-[var(--n-8)]">
+            {step.body}
+          </p>
+
+          {step.terms && step.terms.length > 0 && (
+            <dl className="mt-3 space-y-2 border-t border-[var(--hairline)] pt-3">
+              {step.terms.map((term) => {
+                const gloss = GLOSSARY[term];
+                if (!gloss) return null;
+                return (
+                  <div key={term}>
+                    <dt className="text-2xs font-bold tracking-[0.12em] text-[var(--n-11)]">
+                      {term.toUpperCase()}
+                    </dt>
+                    {/* The plain-English line first, because that is the one a
+                        rookie can act on, and the textbook definition under it
+                        — Rookie Mode ADDS a translation, it never replaces the
+                        real term. Same rule TheBooks follows. */}
+                    <dd className="text-sm leading-snug text-[var(--n-8)]">
+                      {capitalise(gloss.rookie)}
+                    </dd>
+                    <dd className="text-2xs leading-snug text-[var(--n-7)]">
+                      {gloss.pro}
+                    </dd>
+                  </div>
+                );
+              })}
+            </dl>
+          )}
 
           {/* A "tap it" step whose target could not be measured has no hole to
               tap and no control to activate, which would leave a first-time
@@ -263,6 +338,11 @@ export function Coachmarks({
   );
 }
 
+/** "money in the bank right now." → "Money in the bank right now." */
+function capitalise(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 function Scrim({ style }: { style: React.CSSProperties }) {
   return <div className="absolute bg-[var(--scrim)]" style={style} />;
 }
@@ -270,13 +350,18 @@ function Scrim({ style }: { style: React.CSSProperties }) {
 /**
  * The first-run script. Order matters: read the books, move time, make a
  * decision, then discover the depth behind the tabs.
+ *
+ * `firstRunSteps(rookieMode)` builds it, because one step exists only for a
+ * rookie: the four words on The Books, defined. A player who chose the pro
+ * vocabulary has said they do not need that, and a tutorial that explains
+ * "runway" to someone who came here knowing it is a tutorial they will skip.
  */
-export const FIRST_RUN_STEPS: CoachStep[] = [
+const BASE_STEPS: CoachStep[] = [
   {
     id: "books",
     target: "books",
     title: "These are The Books.",
-    body: "Cash, burn, runway, valuation. They never leave the screen, and every decision you make moves at least one of them. Tap them to see what each word means.",
+    body: "Cash, burn, runway, valuation. They never leave the screen, and every decision you make moves at least one of them. Tap any of them at any time to see what the word means.",
     mode: "ack",
     place: "below",
   },
@@ -324,3 +409,37 @@ export const FIRST_RUN_STEPS: CoachStep[] = [
     place: "above",
   },
 ];
+
+/**
+ * The four words on The Books, defined, for a player in Rookie Mode.
+ *
+ * It sits second — immediately after the step that points at them — because
+ * the tutorial that follows talks in these terms ("look at runway", "read what
+ * it COSTS you") and asking someone to act on a word they have not been given
+ * is how a first play becomes a guessing game. The definitions come from
+ * GLOSSARY, the same source the Books and the term coach read.
+ */
+const ROOKIE_TERMS_STEP: CoachStep = {
+  id: "book-terms",
+  target: "books",
+  title: "Four words, before anything moves.",
+  body: "These are the only four numbers on screen at all times. Every choice you make changes at least one.",
+  terms: ["cash", "burn rate", "runway", "valuation"],
+  mode: "ack",
+  place: "below",
+};
+
+/**
+ * The first-run script for this player.
+ *
+ * Rookie Mode adds one step. Everything else is identical, so the step numbers
+ * a player sees ("STEP 2 OF 7") stay honest either way.
+ */
+export function firstRunSteps(rookieMode: boolean): CoachStep[] {
+  if (!rookieMode) return BASE_STEPS;
+  const [books, ...rest] = BASE_STEPS;
+  return [books, ROOKIE_TERMS_STEP, ...rest];
+}
+
+/** The pro script, for callers that have no profile to read. */
+export const FIRST_RUN_STEPS = BASE_STEPS;

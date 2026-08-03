@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
+import { absoluteUrl } from "@/lib/seo";
 
 import { LegalPage } from "@/components/LegalPage";
 import { TERMS } from "@/lib/legal/documents";
 
 export const metadata: Metadata = {
-  title: "Terms of Use — Novus",
+  title: "Terms of Use",
   description:
     "The agreement behind Novus: your licence to play, what Novus Pro costs and how it renews, what nothing purchasable can ever buy, and how to end it all in one tap.",
-  alternates: { canonical: "https://novuspitch.com/terms" },
+  alternates: { canonical: absoluteUrl("/terms") },
 };
 
 /**

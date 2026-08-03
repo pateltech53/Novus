@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
 
+import { absoluteUrl } from "@/lib/seo";
+
 /**
  * Both outputs of this repo prerender this file: the web build has no reason
  * to defer it, and the static export the app ships from cannot. Saying so is
@@ -14,10 +16,12 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        // App states, not pages. See sitemap.ts.
-        disallow: ["/play", "/welcome", "/found"],
+        // App states, not pages. See sitemap.ts. /api is added because those
+        // routes answer only POST — a crawler hitting them gets a 405 that
+        // shows up in Search Console as a crawl error forever.
+        disallow: ["/play", "/welcome", "/found", "/reset", "/api/"],
       },
     ],
-    sitemap: "https://novuspitch.com/sitemap.xml",
+    sitemap: absoluteUrl("/sitemap.xml"),
   };
 }

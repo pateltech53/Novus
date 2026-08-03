@@ -64,48 +64,42 @@ export type VoiceKey = SharkId | "chair" | "narrator";
 
 export const VOICES: Record<VoiceKey, VoiceProfile> = {
   marcus: {
-    // Adam — deep, level, unhurried.
-    elevenVoiceId: "pNInz6obpgDQGcFmaJgB",
+    elevenVoiceId: "xzZRXG86mSM3naOyL9fa",
     rate: 0.94,
     pitch: 0.82,
     prefer: ["Daniel", "Google UK English Male", "Microsoft Guy"],
     direction: "Low, unhurried, never raises it. The pause before the number is the threat.",
   },
   serena: {
-    // Domi — bright and forward, the one that can carry an interruption.
-    elevenVoiceId: "AZnzlk1XvdvUeBnXmlld",
+    elevenVoiceId: "2qfp6zPuviqeCOZIE9RZ",
     rate: 1.08,
     pitch: 1.15,
     prefer: ["Samantha", "Google US English", "Microsoft Aria"],
     direction: "Fast, bright, leans forward. Interrupts because she is already three steps ahead.",
   },
   dev: {
-    // Antoni — even and conversational, an operator rather than a performer.
-    elevenVoiceId: "ErXwobaYiN019PkySvjV",
+    elevenVoiceId: "Dey7SsJGQxe5rLi7TlDb",
     rate: 1.0,
     pitch: 0.95,
     prefer: ["Rishi", "Google UK English Male", "Microsoft Ryan"],
     direction: "Even and practical. Asks the question a person who has built it would ask.",
   },
   lily: {
-    // Bella — soft, warm, and the warmth is not agreement.
-    elevenVoiceId: "EXAVITQu4vr4xnSDxMaL",
+    elevenVoiceId: "IMk6UKhh3TUTWOy0lm5b",
     rate: 0.98,
     pitch: 1.1,
     prefer: ["Karen", "Google US English", "Microsoft Michelle"],
     direction: "Warm, but the warmth is not agreement. Notices who you thanked.",
   },
   viktor: {
-    // Josh — deep and flat, reads a prognosis like a chart.
-    elevenVoiceId: "TxGEqnHWrfWFTfGW9XjX",
+    elevenVoiceId: "LAGBxLXnb0Y6n64yiOWj",
     rate: 0.88,
     pitch: 0.75,
     prefer: ["Alex", "Google UK English Male", "Microsoft Davis"],
     direction: "Quiet, flat, unhurried. Describes how this dies the way a doctor reads a chart.",
   },
   chair: {
-    // Rachel — calm, neutral, takes no side.
-    elevenVoiceId: "21m00Tcm4TlvDq8ikWAM",
+    elevenVoiceId: "VgQ3etxCiFKtKJpfkhX9",
     rate: 1.0,
     pitch: 1.0,
     prefer: ["Daniel", "Google US English"],
