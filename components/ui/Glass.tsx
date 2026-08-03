@@ -13,8 +13,8 @@
  * and its header once content scrolls under it, toasts, the year-gate banner,
  * the in-game phone's status bar and dock, and modal scrims.
  *
- * **Controls** — `GlassButton` and the rest, further down. Every button, chip,
- * row control, segmented control and field in the app. For a long time "the
+ * **Controls** — `GlassButton` and the rest, further down. Every button, chip
+ * and row control in the app. For a long time "the
  * control layer" was read as meaning *the chrome*, which left the app's ~170
  * buttons as flat fills sitting next to a material they were the clearest
  * example of. A button IS the control layer; see design.md §0.
@@ -190,7 +190,7 @@ interface GlassButtonProps
    * panel passes this.
    */
   flat?: boolean;
-  /** The selected segment, the equipped item, the current theme. */
+  /** The equipped item, the chosen row — a control the player is on. */
   on?: boolean;
   /** `button` unless a form genuinely wants a submit. Never defaulted to
    *  "submit": a bare <button> inside a <form> submits it, which is how a
@@ -228,38 +228,6 @@ export function GlassButton({
     >
       {children}
     </button>
-  );
-}
-
-/**
- * The same material on an anchor.
- *
- * Separate from `GlassButton` rather than polymorphic: a link and a button
- * take different props, mean different things to a screen reader, and the one
- * place this app has conflated them (a mailto rendered as a button) is the one
- * place VoiceOver announced the wrong verb.
- */
-export function GlassLink({
-  tone = "neutral",
-  shape = "block",
-  solid = false,
-  className = "",
-  children,
-  ...rest
-}: React.AnchorHTMLAttributes<HTMLAnchorElement> & {
-  tone?: GlassButtonTone;
-  shape?: GlassShape;
-  solid?: boolean;
-}) {
-  return (
-    <a
-      data-glass={solid ? "solid" : undefined}
-      data-tone={tone === "neutral" ? undefined : tone}
-      className={`nv-gc inline-flex items-center justify-center gap-2 font-bold ${SHAPE[shape]} ${className}`}
-      {...rest}
-    >
-      {children}
-    </a>
   );
 }
 
@@ -326,79 +294,6 @@ export function GlassRow({
         ) : null}
       </span>
     </GlassButton>
-  );
-}
-
-/**
- * A segmented control: a glass track with one glass segment lit inside it.
- *
- * `radiogroup` rather than `tablist` unless the caller says otherwise — most
- * of these choose a value rather than swapping a panel, and announcing a
- * filter as a tab is a lie a screen reader repeats on every option.
- */
-export function GlassSegmented<T extends string>({
-  options,
-  value,
-  onChange,
-  label,
-  solid = false,
-  className = "",
-}: {
-  options: ReadonlyArray<{ id: T; label: React.ReactNode }>;
-  value: T;
-  onChange: (id: T) => void;
-  /** What the whole group is choosing. "Theme", "Which assets". */
-  label: string;
-  solid?: boolean;
-  className?: string;
-}) {
-  return (
-    <div
-      role="radiogroup"
-      aria-label={label}
-      data-glass={solid ? "solid" : undefined}
-      className={`nv-ggroup nv-gseg ${className}`}
-    >
-      {options.map((opt) => (
-        <GlassButton
-          key={opt.id}
-          role="radio"
-          aria-checked={value === opt.id}
-          on={value === opt.id}
-          shape="bare"
-          solid={solid}
-          onClick={() => onChange(opt.id)}
-          className="h-9 px-3 text-xs"
-        >
-          {opt.label}
-        </GlassButton>
-      ))}
-    </div>
-  );
-}
-
-/**
- * A glass surface that is not a control — a card's ground, a panel, a banner.
- *
- * `Glass` renders the six tags glass panels are allowed on and nothing else,
- * which is right for chrome and wrong for the dozens of small boxes that now
- * want the material. This is the same four layers with no press and no tone
- * plumbing, for a box rather than a bar.
- */
-export function GlassPane({
-  solid = false,
-  className = "",
-  children,
-  ...rest
-}: React.HTMLAttributes<HTMLDivElement> & { solid?: boolean }) {
-  return (
-    <div
-      data-glass={solid ? "solid" : undefined}
-      className={`nv-ggroup rounded-[var(--radius-row)] ${className}`}
-      {...rest}
-    >
-      {children}
-    </div>
   );
 }
 

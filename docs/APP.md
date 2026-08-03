@@ -168,7 +168,7 @@ Every full-screen overlay in the app now hands its way out to UIKit —
 | Screen | Native |
 |---|---|
 | the six activity screens | close, via `ScreenSheet` |
-| settings | close, **and the theme picker as a real glass segmented control** |
+| settings | close, and the account's actions in the glass dock |
 | the company dossier | back / close (`chevron.backward` in the overlay variant) |
 | Still Standing | close |
 | the in-fiction phone | PUT IT DOWN |
@@ -179,12 +179,18 @@ Every full-screen overlay in the app now hands its way out to UIKit —
 
 Two of those are worth naming, because they are the pattern for the rest:
 
-**Settings' theme picker is in the toolbar**, not in the page. A UIKit view
-cannot move with web content, so a control can only be native if it holds
-still — and the toolbar is the only part of that screen that does. It is a
-real glass segmented control, and the selected piece re-lights in place rather
-than the row being rebuilt, because a rebuild would destroy the control the
-player still has a finger on.
+**Settings' theme picker is NOT in the toolbar**, and that is worth writing
+down because it was, briefly. The reasoning for putting it there was sound —
+the toolbar is the only part of that screen that holds still, so it is the only
+part that *can* be native — and it was still the wrong call. A three-way choice
+about how the app looks is a setting, and a setting belongs in the list of
+settings under the heading that names it, not in the chrome sixty points above
+the sentence explaining it, where it reads as a filter over the page rather
+than a row of it.
+
+`GlassOverlayController` keeps its segmented control. It has no caller today;
+`ScreenSheet.nativeSegments` is the handoff for the first screen whose filter
+genuinely is chrome.
 
 **The team screen's one action is in the dock.** Hiring has exactly one route,
 and the screen used to say so twice in two orange buttons because there was
