@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/native/origin";
 import type { PitchTranscript, TranscriptWord } from "./types";
 
 /**
@@ -40,7 +41,49 @@ import type { PitchTranscript, TranscriptWord } from "./types";
  * `pitch-content.ts` for where that line is drawn structurally.
  */
 
-const STT_ENDPOINT = process.env.NEXT_PUBLIC_STT_ENDPOINT;
+/**
+ * Defaults to this app's own `/api/stt`. It used to default to undefined, so a
+ * deploy that set DEEPGRAM_API_KEY got nothing: no file read that name, and
+ * this constant stayed empty, so `transcribeAudio` returned before it looked.
+ * Set NEXT_PUBLIC_STT_ENDPOINT only to send audio somewhere other than here.
+ *
+ * The privacy note above is unchanged and still exact: audio leaves the device
+ * only when there is an endpoint AND that endpoint has a key behind it. With no
+ * key the route answers 501, `sttDown` latches, and nothing is sent for the rest
+ * of the session.
+ */
+const STT_ENDPOINT = process.env.NEXT_PUBLIC_STT_ENDPOINT || "/api/stt";
+
+/** Latches on the first refusal so a deploy whose key stops working does not
+ *  post a fresh recording on every pitch for the rest of the session. */
+let sttDown = false;
+
+/**
+ * Whether the endpoint has a key behind it — asked BEFORE any audio is sent,
+ * and remembered for the session.
+ *
+ * Without this, defaulting `STT_ENDPOINT` to our own route would mean an
+ * unconfigured deploy received one recording per session: a 501 can only be
+ * returned after the request body is already on the wire. The claim this file
+ * makes, and the UI repeats, is that audio leaves the device only when a server
+ * endpoint is configured — so it is asked first and the recording stays here
+ * when the answer is no.
+ *
+ * Only for our own route. An operator who set NEXT_PUBLIC_STT_ENDPOINT to
+ * something else chose that endpoint deliberately and it need not implement a
+ * GET, so that path posts directly, exactly as it always did.
+ */
+let sttReady: Promise<boolean> | null = null;
+
+function sttConfigured(url: string): Promise<boolean> {
+  if (!STT_ENDPOINT.startsWith("/")) return Promise.resolve(true);
+  sttReady ??= fetch(url, { method: "GET" })
+    .then((res) => (res.ok ? res.json() : { configured: false }))
+    .then((body: { configured?: boolean }) => body.configured === true)
+    // A probe that fails is not permission to upload anyway.
+    .catch(() => false);
+  return sttReady;
+}
 
 // The DOM lib does not ship types for this yet; it is still prefixed in Safari.
 type SpeechRecognitionLike = {
@@ -161,13 +204,22 @@ export async function transcribeAudio(
   audio: Blob | null,
   durationSeconds: number,
 ): Promise<PitchTranscript | null> {
-  if (!STT_ENDPOINT || !audio) return null;
+  if (!STT_ENDPOINT || !audio || sttDown) return null;
   try {
+    const url = STT_ENDPOINT.startsWith("/") ? apiUrl(STT_ENDPOINT) : STT_ENDPOINT;
+    // Asked before the recording is packed, let alone sent.
+    if (!(await sttConfigured(url))) return null;
+
     const body = new FormData();
     body.append("audio", audio, "pitch.webm");
     body.append("durationSeconds", String(durationSeconds));
-    const res = await fetch(STT_ENDPOINT, { method: "POST", body });
-    if (!res.ok) return null;
+    const res = await fetch(url, { method: "POST", body });
+    if (!res.ok) {
+      // No key (501), a bad one (401), nothing deployed (404), or the budget
+      // spent (429). None of those change before the session ends.
+      if ([501, 401, 404, 429].includes(res.status)) sttDown = true;
+      return null;
+    }
     const raw = (await res.json()) as { text?: string; words?: TranscriptWord[] };
     if (!raw.text) return null;
     return {

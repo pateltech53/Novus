@@ -34,6 +34,13 @@ jobs:
       - name: Balance harness
         run: npm run sim 20 6
 
+      # The AI routes degrade silently by design — every one of them has a
+      # complete local fallback, so a broken contract looks exactly like an
+      # unconfigured deploy and nothing anywhere reports it. This is the only
+      # place that can. Stubs fetch: no keys, no network, no spend.
+      - name: AI route contracts
+        run: npm run test:ai
+
       - name: Web build
         run: npx next build
 

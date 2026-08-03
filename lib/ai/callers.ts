@@ -1,5 +1,6 @@
 import type { Industry, RunState } from "@/lib/engine/types";
 import { hashString, mulberry32 } from "@/lib/engine/rng";
+import { apiUrl } from "@/lib/native/origin";
 import { scorePitchContent, type ContentFinding } from "./pitch-content";
 
 /**
@@ -385,7 +386,18 @@ export interface CallOutcome {
   source: "api" | "local";
 }
 
-const ENDPOINT = process.env.NEXT_PUBLIC_PITCH_ENDPOINT;
+/**
+ * Defaults to this app's own `/api/pitch`. It used to default to undefined, so
+ * setting OPENROUTER_API_KEY changed nothing at all: no file read that name and
+ * this constant stayed empty, so every call went to the local resolver while
+ * looking exactly like a working deploy. Set NEXT_PUBLIC_PITCH_ENDPOINT only to
+ * send cold calls somewhere other than here.
+ */
+const ENDPOINT = process.env.NEXT_PUBLIC_PITCH_ENDPOINT || "/api/pitch";
+
+/** Latches when the endpoint says it has no model behind it, so a deploy
+ *  without a key spends one request per session rather than one per call. */
+let endpointDown = false;
 
 /**
  * Ask the model, fall back to the local resolver.
@@ -401,9 +413,9 @@ export async function judgePitch(
   const caller = callerById(attempt.callerId);
   if (!caller) return declined("Wrong number.", "local");
 
-  if (ENDPOINT) {
+  if (ENDPOINT && !endpointDown) {
     try {
-      const res = await fetch(ENDPOINT, {
+      const res = await fetch(ENDPOINT.startsWith("/") ? apiUrl(ENDPOINT) : ENDPOINT, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -452,6 +464,9 @@ export async function judgePitch(
           source: "api",
         };
       }
+      // No key (501), a bad one (401), or nothing deployed (404). Permanent for
+      // this session, so stop asking and let the local resolver take the calls.
+      if ([501, 401, 404].includes(res.status)) endpointDown = true;
     } catch {
       // Fall through. A cold call failing because a fetch failed would be the
       // worst possible way to lose one of three daily attempts.

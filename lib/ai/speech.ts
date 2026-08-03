@@ -1,3 +1,4 @@
+import { apiUrl } from "@/lib/native/origin";
 import { voiceOf } from "./voices";
 import type { SharkId } from "./types";
 
@@ -22,8 +23,17 @@ import type { SharkId } from "./types";
 
 export type Speaker = SharkId | "chair" | "narrator";
 
-/** Set once the hosted tier is live. Route handler, never a client-side key. */
-const TTS_ENDPOINT = process.env.NEXT_PUBLIC_TTS_ENDPOINT ?? "";
+/**
+ * Route handler, never a client-side key.
+ *
+ * Defaults to this app's own `/api/tts` rather than to "". It used to default
+ * to nothing, which meant a deploy could set ELEVENLABS_API_KEY and hear no
+ * difference whatsoever — the key was read by nobody and this constant was
+ * still empty, so `speakCloud` returned false before it ever looked. Pointing
+ * at our own route by default is what makes adding the key sufficient. Set
+ * NEXT_PUBLIC_TTS_ENDPOINT only to send voice somewhere other than here.
+ */
+const TTS_ENDPOINT = process.env.NEXT_PUBLIC_TTS_ENDPOINT || "/api/tts";
 
 let cachedVoices: SpeechSynthesisVoice[] = [];
 let current: HTMLAudioElement | null = null;
@@ -49,17 +59,29 @@ function reducedMotion(): boolean {
  */
 async function speakCloud(text: string, speaker: Speaker): Promise<boolean> {
   const profile = voiceOf(speaker);
-  if (!TTS_ENDPOINT || !profile.elevenVoiceId || cloudDown) return false;
+  if (!TTS_ENDPOINT || cloudDown) return false;
   try {
-    const res = await fetch(TTS_ENDPOINT, {
+    const res = await fetch(endpointUrl(TTS_ENDPOINT), {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ text, voiceId: profile.elevenVoiceId, speaker }),
+      // The id is sent when `voices.ts` names one and omitted when it does not.
+      // An empty string here used to abort the call entirely, which meant the
+      // cloud voice could never be reached without hand-editing that table
+      // first; the route resolves an unnamed speaker against the account
+      // instead, so casting is an improvement rather than a prerequisite.
+      body: JSON.stringify({
+        text,
+        speaker,
+        ...(profile.elevenVoiceId ? { voiceId: profile.elevenVoiceId } : {}),
+      }),
     });
     if (!res.ok) {
       // 429 means the day's cap is spent; that is a budget decision working as
-      // designed, so drop to the local voice for the rest of the session.
-      if (res.status === 429 || res.status === 402) cloudDown = true;
+      // designed, so drop to the local voice for the rest of the session. 501
+      // is the route saying there is no key, and 401/404 mean the key is wrong
+      // or nothing is deployed — all three are settled for this session too, and
+      // re-asking once per line would be a request per sentence forever.
+      if ([429, 402, 501, 401, 404].includes(res.status)) cloudDown = true;
       return false;
     }
     const blob = await res.blob();
@@ -108,6 +130,15 @@ export async function speak(text: string, speaker: Speaker = "chair"): Promise<v
   stopSpeaking();
   if (await speakCloud(text, speaker)) return;
   await speakLocal(text, speaker);
+}
+
+/**
+ * A relative endpoint has to become absolute in the shipped app, which is a
+ * static bundle with no server of its own. Same rule the auth, sync and billing
+ * calls already follow — see lib/native/origin.ts.
+ */
+function endpointUrl(endpoint: string): string {
+  return endpoint.startsWith("/") ? apiUrl(endpoint) : endpoint;
 }
 
 /** Barge-in: the player starting to talk cuts the shark off immediately. */
