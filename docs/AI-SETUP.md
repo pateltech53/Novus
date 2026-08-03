@@ -62,6 +62,14 @@ Where to get them:
 
 - **ElevenLabs** — elevenlabs.io → your profile → API key. Any tier, including
   free. The account needs at least one voice on it.
+
+  **Check the key's permissions.** ElevenLabs keys are scoped, and a key can be
+  issued that may synthesise speech but may not read the voice list — the two
+  are separate toggles. `/api/tts` asks for the list first, to cast each shark
+  from your own account, so a key without `voices_read` used to lose the voice
+  entirely. It no longer does: the route falls back to a premade voice and the
+  panel still speaks. But casting per character needs `voices_read`, so enable
+  both it and `text_to_speech` when you create the key.
 - **Deepgram** — console.deepgram.com → API keys. Read §3 before using this one
   in production.
 - **OpenRouter** — openrouter.ai → Keys. Add credit; a cold call costs a
@@ -78,6 +86,31 @@ npm run test:ai -- --live  # calls the real providers with your keys
 many voices the ElevenLabs account has, and whether the OpenRouter model id
 resolves. It is the check to run the moment a key is added, and the answer to
 "I set it and nothing happened."
+
+When ElevenLabs refuses, `--live` prints the provider's own reason rather than
+the status code, because HTTP 401 covers four unrelated problems:
+
+| What it says | What it means |
+| --- | --- |
+| `invalid_api_key` | The key is wrong. Re-copy it — and check for a typo in the variable NAME too. |
+| `missing_permissions` | The key is valid but scoped too narrowly. Enable `voices_read` and `text_to_speech`. |
+| `detected_unusual_activity` | The account is flagged. Free tiers get this from VPN and cloud IPs; it needs a paid plan or an appeal to ElevenLabs. |
+| `quota_exceeded` | The character quota for the period is spent. |
+
+### Asking a running deploy
+
+Both voice routes answer a GET, so a deploy can be questioned from a browser or
+`curl` without keys, a redeploy, or a log dig:
+
+```
+curl https://YOUR-HOST/api/tts   # {"configured":true,"voices":9,"source":"account",...}
+curl https://YOUR-HOST/api/stt   # {"configured":true}
+```
+
+`/api/tts` reports whether the key is set, how many voices it can see, which
+source the casting came from, and — when something is wrong — ElevenLabs' own
+status slug under `lastError`. That last field exists because a rejected key and
+an absent key sound identical from the sofa: both play the browser voice.
 
 ---
 

@@ -68,6 +68,32 @@ function check(label, condition, detail = "") {
 // here is "is this key good", and a route in the way only adds ways to be
 // confused about the answer.
 
+/**
+ * What ElevenLabs actually objected to.
+ *
+ * Its errors carry a slug in `detail.status`, and that slug is the difference
+ * between four unrelated problems that all present as HTTP 401.
+ */
+async function elevenDetail(res) {
+  try {
+    const body = await res.json();
+    if (typeof body?.detail === "string") return { message: body.detail };
+    return { status: body?.detail?.status, message: body?.detail?.message };
+  } catch {
+    return {};
+  }
+}
+
+const EXPLAIN_ELEVEN = {
+  invalid_api_key:
+    "The key itself is wrong — re-copy it from elevenlabs.io → Profile → API Keys.",
+  missing_permissions:
+    "The key is VALID but lacks a permission. Edit it and enable voices_read (and text_to_speech).",
+  detected_unusual_activity:
+    "ElevenLabs has flagged the account — free tiers get this from VPN or cloud IPs. It needs a paid plan or an appeal to them.",
+  quota_exceeded: "The character quota for this billing period is spent.",
+};
+
 if (live) {
   console.log("\nLive check — calling the real providers with your keys.\n");
 
@@ -80,10 +106,61 @@ if (live) {
       const res = await fetch("https://api.elevenlabs.io/v1/voices", {
         headers: { "xi-api-key": eleven },
       });
-      const body = res.ok ? await res.json() : null;
-      const count = body?.voices?.length ?? 0;
-      check("key accepted", res.ok, `HTTP ${res.status}`);
-      check(`${count} voice(s) on the account`, count > 0, "an account with no voices cannot speak");
+      if (res.ok) {
+        const body = await res.json();
+        const count = body?.voices?.length ?? 0;
+        check("key accepted", true);
+        check(`${count} voice(s) on the account`, count > 0, "an account with no voices cannot speak");
+      } else {
+        // HTTP 401 alone is not an answer: it covers a mistyped key, a valid key
+        // without `voices_read`, and a free tier flagged for unusual activity —
+        // and the fix is different for all three. The slug in the body says
+        // which, so print it rather than the status code that hides it.
+        const detail = await elevenDetail(res);
+        check(
+          "can list the account's voices",
+          false,
+          `HTTP ${res.status}` +
+            (detail.status ? ` · ${detail.status}` : "") +
+            (detail.message ? ` — ${detail.message}` : ""),
+        );
+        const hint = EXPLAIN_ELEVEN[detail.status];
+        if (hint) console.log(`    → ${hint}`);
+
+        // Listing and speaking are separate permissions, so the failure above
+        // does not settle whether the game has a voice. Ask the question that
+        // does, with two characters of speech, against a premade voice.
+        const spoke = await fetch(
+          "https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM",
+          {
+            method: "POST",
+            headers: {
+              "xi-api-key": eleven,
+              "content-type": "application/json",
+              accept: "audio/mpeg",
+            },
+            body: JSON.stringify({
+              text: "ok",
+              model_id: process.env.ELEVENLABS_MODEL || "eleven_turbo_v2_5",
+            }),
+          },
+        );
+        const spokeDetail = spoke.ok ? null : await elevenDetail(spoke);
+        check(
+          "can synthesise speech, which is what the panel actually needs",
+          spoke.ok,
+          spoke.ok
+            ? ""
+            : `HTTP ${spoke.status}` +
+                (spokeDetail?.status ? ` · ${spokeDetail.status}` : "") +
+                (spokeDetail?.message ? ` — ${spokeDetail.message}` : ""),
+        );
+        if (spoke.ok) {
+          console.log("    → The key speaks but cannot list voices. /api/tts handles this");
+          console.log("      by falling back to a premade voice, so the panel has a real");
+          console.log("      voice; add voices_read to cast per character from your account.");
+        }
+      }
     } catch (err) {
       check("reachable", false, String(err.message ?? err));
     }
@@ -200,6 +277,9 @@ if (unconfigured) {
   const probe = await stt.GET();
   check("the pre-upload probe reports not configured", (await probe.json()).configured === false);
 
+  const voiceProbe = await tts.GET();
+  check("the voice probe reports not configured", (await voiceProbe.json()).configured === false);
+
   globalThis.fetch = realFetch;
   console.log(`RESULT ${passes} ${failures}`);
   process.exit(0);
@@ -270,6 +350,63 @@ handler = (url) =>
   handler = () => Response.json({ voices: [] });
   const res = await fresh.POST(json("http://localhost/api/tts", { text: "hi", speaker: "chair" }));
   check("reports an account with no voices as 502, not 401", res.status === 502, `HTTP ${res.status}`);
+}
+
+{
+  // The regression this round exists to fix, and the reason a correctly
+  // configured deploy still played the browser voice.
+  //
+  // An ElevenLabs key carries granular permissions, and `voices_read` is a
+  // separate one from text-to-speech. A key that may SPEAK but may not LIST got
+  // a 401 at the voice lookup, which was the only source of a voice id, so the
+  // whole feature fell back — sounding exactly like a deploy with no key at all.
+  const fresh = await import(pathToFileURL(join(root, "app/api/tts/route.ts")).href + `?perm=${Date.now()}`);
+  handler = (url) =>
+    url.includes("/v1/voices")
+      ? Response.json(
+          { detail: { status: "missing_permissions", message: "missing the permission voices_read" } },
+          { status: 401 },
+        )
+      : new Response(new Uint8Array([1, 2, 3]), {
+          status: 200,
+          headers: { "content-type": "audio/mpeg" },
+        });
+  const res = await fresh.POST(json("http://localhost/api/tts", { text: "hi", speaker: "chair" }));
+  check("still speaks with a key that may synthesise but not list voices", res.status === 200, `HTTP ${res.status}`);
+  check("reaches synthesis with a premade voice to do it", lastRequest.url.includes("/v1/text-to-speech/"));
+}
+
+{
+  // A premade guess that is genuinely absent from the account answers 404, and
+  // that is the one refusal worth another attempt.
+  const fresh = await import(pathToFileURL(join(root, "app/api/tts/route.ts")).href + `?rotate=${Date.now()}`);
+  const tried = [];
+  handler = (url) => {
+    if (url.includes("/v1/voices")) return new Response("forbidden", { status: 403 });
+    tried.push(url);
+    return tried.length < 3
+      ? Response.json({ detail: { status: "voice_not_found" } }, { status: 404 })
+      : new Response(new Uint8Array([1]), { status: 200, headers: { "content-type": "audio/mpeg" } });
+  };
+  const res = await fresh.POST(json("http://localhost/api/tts", { text: "hi", speaker: "chair" }));
+  check(
+    "tries the next premade voice when one is not on the account",
+    res.status === 200 && tried.length === 3,
+    `HTTP ${res.status} after ${tried.length} attempt(s)`,
+  );
+  check("and does not try the same voice twice", new Set(tried).size === tried.length);
+}
+
+{
+  // The probe exists so that "the key is set but you hear the robot" is a
+  // question answerable from outside, without a redeploy or a log dig.
+  const fresh = await import(pathToFileURL(join(root, "app/api/tts/route.ts")).href + `?probe=${Date.now()}`);
+  handler = () =>
+    Response.json({ detail: { status: "invalid_api_key", message: "Invalid API key" } }, { status: 401 });
+  const body = await (await fresh.GET()).json();
+  check("the probe reports a key that is set but rejected", body.configured === true && body.listStatus === 401, JSON.stringify(body));
+  check("the probe names the provider's own reason", body.lastError?.status === "invalid_api_key", JSON.stringify(body.lastError));
+  check("the probe leaks no key material", !JSON.stringify(body).includes("test-eleven"));
 }
 
 // ── /api/stt ────────────────────────────────────────────────────────────────
