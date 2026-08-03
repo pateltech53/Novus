@@ -8,6 +8,7 @@ import {
   timeoutSignal,
 } from "@/lib/ai/server/providers";
 import { claimAiCall } from "@/lib/ai/server/limit";
+import { VOICES } from "@/lib/ai/voices";
 
 /**
  * POST /api/tts — the shark voices. ElevenLabs behind a route handler.
@@ -117,8 +118,29 @@ export async function POST(req: NextRequest) {
     let last = 502;
 
     for (const voiceId of candidates) {
+      /*
+       * The streaming endpoint, and why the query string matters more than it
+       * looks.
+       *
+       * The complaint was that a line appears on screen and the voice arrives
+       * noticeably later. Two things made that gap, and both are answered here:
+       *
+       *   · `/stream` returns audio while the sentence is still being
+       *     synthesised rather than after it. `optimize_streaming_latency=3`
+       *     tells ElevenLabs to favour first-byte time over the last few
+       *     percent of prosody — the right trade for dialogue somebody is
+       *     sitting and waiting on.
+       *   · `mp3_22050_32` is about a third of the bytes of the 44.1kHz default,
+       *     so what is generated also arrives sooner. Nobody is judging
+       *     fidelity through a phone speaker with a shark on screen.
+       *
+       * `speed` comes from lib/ai/voices.ts rather than from the request, for
+       * the same reason the voice id does: how a character speaks is casting,
+       * and casting is decided here, not by whatever can reach the endpoint.
+       */
       const res = await fetch(
-        `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}`,
+        `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}/stream` +
+          `?optimize_streaming_latency=3&output_format=mp3_22050_32`,
         {
           method: "POST",
           headers: {
@@ -131,7 +153,11 @@ export async function POST(req: NextRequest) {
             model_id: ELEVENLABS_MODEL,
             // Stability high enough that the same shark sounds like themselves
             // line to line, which is the whole reason for a per-character voice.
-            voice_settings: { stability: 0.5, similarity_boost: 0.75 },
+            voice_settings: {
+              stability: 0.5,
+              similarity_boost: 0.75,
+              speed: VOICES[speaker].speed,
+            },
           }),
           signal: timeoutSignal(),
         },

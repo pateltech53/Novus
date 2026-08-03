@@ -10,6 +10,7 @@ import { PitchNotes } from "@/components/PitchNotes";
 import { TermCoach } from "@/components/TermCoach";
 import { CAST, CHAIR, PANEL, type SeatState } from "@/lib/ai/panel-cast";
 import { speak, stopSpeaking } from "@/lib/ai/speech";
+import { SkipVoice } from "@/components/ui/SkipVoice";
 import { stanceQuestionFor } from "@/lib/engine/positioning";
 import type { SharkId, SharkOffer } from "@/lib/ai/types";
 import { fmtMoney } from "@/lib/engine/format";
@@ -61,7 +62,41 @@ import { hashString, mulberry32 } from "@/lib/engine/rng";
  */
 
 /** How many questions the room asks before it talks money. */
-const QUESTION_COUNT = 4;
+/*
+ * How many sharks get to ask something, and why this came down from four.
+ *
+ * Every question is a full round trip: the shark speaks, the player opens a
+ * mic and answers, the answer goes back for the next turn. Four of those, then
+ * five offers, then a counter, then every bidder coming back at you, is a room
+ * that outlasts the attention of the person it is for — the reported feeling
+ * was "they keep going back and forth".
+ *
+ * Three keeps every attack point that actually earned a question (the owners
+ * are taken in order, so the cut falls on the filler, not on the substance) and
+ * takes a whole answer-and-wait cycle out of the middle of the room.
+ */
+const QUESTION_COUNT = 3;
+
+/**
+ * How many bidders come back after the counter.
+ *
+ * Countering used to reopen EVERY offer on the table, so a good pitch — five
+ * bids — was punished with five more turns before the verdict. The best three
+ * offers are the only ones a founder would realistically be choosing between
+ * anyway; the rest stand as they are.
+ */
+const MAX_NEGOTIATIONS = 3;
+
+/**
+ * How many times a founder can ask for help on a question in one room.
+ *
+ * Three questions, three uses would mean help on all of them, which is being
+ * carried rather than coached. Two forces a choice about WHICH question is the
+ * one you cannot see your way into — and making that choice is most of the
+ * skill the room is trying to teach. See `components/panel/AnswerHelp.tsx` for
+ * what the help is allowed to contain, which is the more important limit.
+ */
+const COACH_USES = 2;
 
 type Step =
   | { kind: "chair"; text: string }
@@ -123,6 +158,7 @@ export function SharkPanel({
   const [notesOpen, setNotesOpen] = useState(false);
   const [term, setTerm] = useState<string | null>(null);
   const [cam, setCam] = useState<MediaStream | null>(null);
+  const [helpLeft, setHelpLeft] = useState(COACH_USES);
 
   const logRef = useRef<HTMLDivElement>(null);
   /** The stance question fires at most once per panel session. */
@@ -175,6 +211,51 @@ export function SharkPanel({
     };
   }
   const session = sessionRef.current;
+
+  /**
+   * The founder's own books, flattened, for the STUCK? hint.
+   *
+   * This is the whole reason the hint can be useful without writing anything:
+   * it is handed the same figures the player can see on their notes card, so
+   * the most it can do is say WHICH of them the question is about. It cannot
+   * invent one, because the prompt forbids it and because a number that is not
+   * in here is a number the model was never given.
+   *
+   * Deliberately not included: the attack points, the fair valuation range, and
+   * anything else in `ctx` that the sharks know and the founder does not.
+   * Handing those over would turn a hint into an answer key.
+   */
+  const helpFacts = useMemo<Record<string, string | number> | undefined>(() => {
+    if (!session) return undefined;
+    const c = session.ctx.company;
+    const m = session.ctx.metrics;
+    return {
+      company: c.name,
+      industry: c.industry,
+      stage: c.stage,
+      cash_in_bank: fmtMoney(c.cash),
+      monthly_burn: fmtMoney(c.burnMonthly),
+      runway_months: c.runwayMonths,
+      annual_revenue: fmtMoney(c.revenueAnnual),
+      monthly_revenue: fmtMoney(m.mrr),
+      gross_margin_pct: c.grossMarginPt,
+      net_margin_pct: c.netMarginPt,
+      paying_customers: m.payingCustomers,
+      revenue_per_customer: fmtMoney(m.arpu),
+      monthly_churn_pct: m.monthlyChurnPct,
+      retention_90_day_pct: m.retention90Pct,
+      growth_yoy_pct: m.growthYoyPct,
+      customer_lifetime_value: fmtMoney(m.ltv),
+      cost_to_acquire_customer: fmtMoney(m.cac),
+      ltv_to_cac_ratio: m.ltvCacRatio,
+      market_size: fmtMoney(m.tam),
+      market_share_pct: m.marketSharePct,
+      employees: c.employees,
+      your_equity_pct: c.founderEquityPct,
+      valuation: fmtMoney(c.valuation),
+      you_are_asking_for: `${fmtMoney(session.ctx.ask.amountUsd)} for ${session.ctx.ask.equityPct}%`,
+    };
+  }, [session]);
 
   /**
    * The running order.
@@ -508,7 +589,11 @@ export function SharkPanel({
       if (!session) return;
       counterRef.current = answer.text;
       setCountering(false);
-      const bidders = session.offersOnTable.map((o) => o.shark);
+      // The best offers first, then capped — see MAX_NEGOTIATIONS.
+      const bidders = [...session.offersOnTable]
+        .sort((a, b) => (b.offer?.amount_usd ?? 0) - (a.offer?.amount_usd ?? 0))
+        .slice(0, MAX_NEGOTIATIONS)
+        .map((o) => o.shark);
       setNegotiations(bidders);
     },
     [session],
@@ -593,6 +678,13 @@ export function SharkPanel({
           year={run.year}
         />
 
+        {/* Only on screen while something is actually being said. A player who
+            has heard enough can end the line here; opening the microphone ends
+            it too, which is the case that was breaking answers. */}
+        <div className="mt-2 flex justify-end">
+          <SkipVoice />
+        </div>
+
         {/*
           Your notes, in the room.
 
@@ -660,6 +752,14 @@ export function SharkPanel({
               onAnswer={answered}
               onDecline={declined}
               onLevel={setMicLevel}
+              /* Help exists on the QUESTIONS and not on the counter below:
+                 a question has a right answer sitting in your own numbers, and
+                 a counter is a decision about what you are willing to give up.
+                 Nobody can hint you into that one. */
+              shark={CAST[awaiting.shark]?.name ?? "an investor"}
+              helpFacts={helpFacts}
+              helpRemaining={helpLeft}
+              onHelpUsed={() => setHelpLeft((n) => n - 1)}
             />
           </div>
         )}

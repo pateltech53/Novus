@@ -15,6 +15,7 @@ import {
 } from "@/lib/media/recorder";
 import { tierForScore } from "@/lib/ai/stub";
 import { speak, stopSpeaking } from "@/lib/ai/speech";
+import { SkipVoice } from "@/components/ui/SkipVoice";
 import type { PitchTranscript } from "@/lib/ai/types";
 import { KNOBS } from "@/lib/engine/constants";
 import { LiveTranscriber, resolveTranscript } from "@/lib/ai/transcribe";
@@ -465,6 +466,12 @@ export function PerformScreen() {
                 that stays on screen through the take, so nothing about the
                 layout moves when the clock starts. */}
             <PitchNotes run={run} variant="camera" defaultTab="company" className="mt-5" />
+
+            {/* The framing line is spoken while this is read. A player on
+                their fourth run has heard it three times. */}
+            <div className="mt-4 flex justify-end">
+              <SkipVoice />
+            </div>
 
             <div className="mt-auto pt-6">
               {/* A failed attempt comes back here rather than stranding the
