@@ -35,6 +35,7 @@ const LABELS: Record<CheckoutSku, string> = {
   extra_run_slot: "Extra run slot",
   chapter_35: "Chapter — 35 seats",
   chapter_100: "Chapter — 100 seats",
+  chapter_custom: "Chapter — custom size",
 };
 
 type Phase = "choose" | "working" | "done" | "error";
@@ -106,12 +107,15 @@ export function AdminSkipPrompt() {
   const label =
     req.sku === "industry_pack" && req.industry
       ? `${LABELS[req.sku]} — ${req.industry}`
-      : LABELS[req.sku];
-  const isChapter = req.sku === "chapter_35" || req.sku === "chapter_100";
+      : req.sku === "chapter_custom" && req.seats
+        ? `Chapter — ${req.seats} seats (custom)`
+        : LABELS[req.sku];
+  const isChapter =
+    req.sku === "chapter_35" || req.sku === "chapter_100" || req.sku === "chapter_custom";
 
   const doSkip = async () => {
     setOpen((o) => (o ? { ...o, phase: "working", error: null } : o));
-    const result = await skipPurchase(req.sku, req.industry);
+    const result = await skipPurchase(req.sku, req.industry, req.seats);
     if (!result.ok) {
       setOpen((o) => (o ? { ...o, phase: "error", error: result.error } : o));
       return;

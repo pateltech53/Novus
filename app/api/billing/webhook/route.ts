@@ -5,7 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { adminClient } from "@/lib/supabase/admin";
 import { stripe } from "@/lib/stripe/client";
 import { STRIPE_WEBHOOK_SECRET, billingConfigured } from "@/lib/stripe/config";
-import { isChapterSku, isSkuId } from "@/lib/stripe/catalogue";
+import { isSkuId } from "@/lib/stripe/catalogue";
 import { chapterFromSubscription, syncChapter } from "@/lib/stripe/chapter";
 import { customerId, profileForCustomer, syncSubscription } from "@/lib/stripe/subscription";
 
@@ -149,11 +149,9 @@ async function onCheckoutCompleted(
     // the buyer: it must never set `pro` on the teacher's own entitlements.
     // The session metadata answers first; the subscription's own metadata and
     // price are the fallback, same as onSubscriptionChanged.
-    const metaSku = cs.metadata?.sku;
-    const licence =
-      isSkuId(metaSku) && isChapterSku(metaSku) ? metaSku : await chapterFromSubscription(sub);
-    if (licence) {
-      await syncChapter(db, profileId, sub, licence);
+    const chapter = await chapterFromSubscription(sub, cs.metadata);
+    if (chapter) {
+      await syncChapter(db, profileId, sub, chapter);
       return;
     }
 
@@ -205,9 +203,9 @@ async function onSubscriptionChanged(
   // here exactly like Pro's do, and take the chapter path for the same reason
   // the checkout does: the licence's state belongs to the chapter row and its
   // roster, never to the buyer's own `pro`.
-  const licence = await chapterFromSubscription(sub);
-  if (licence) {
-    await syncChapter(db, profileId, sub, licence);
+  const chapter = await chapterFromSubscription(sub);
+  if (chapter) {
+    await syncChapter(db, profileId, sub, chapter);
     return;
   }
 

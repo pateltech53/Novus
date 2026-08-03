@@ -1,5 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import {
+  CHAPTER_CUSTOM_MAX_SEATS,
+  CHAPTER_CUSTOM_MIN_SEATS,
+  customChapterPriceCents,
+  isCustomSeatCount,
+} from "@/lib/monetization";
 import { adminClient } from "@/lib/supabase/admin";
 import { attachSession, sessionFromRequest, withSession, type Session } from "@/lib/supabase/route";
 import { CATALOGUE, isChapterSku, isSellableIndustry, isSkuId, priceIdFor, type Sku } from "@/lib/stripe/catalogue";
@@ -34,6 +40,9 @@ export const dynamic = "force-dynamic";
  * · **Take a price id from the client.** The body names a SKU from a closed
  *   set. A route that accepted a price id would let anyone check out against
  *   the $0 price they made in their own test account and get a real grant.
+ *   The custom chapter takes one number from the client — the SEAT COUNT —
+ *   and never the price: the amount is computed here from that count, by the
+ *   same function the pricing screen displays with.
  *
  * ── What it does NOT decide ────────────────────────────────────────────────
  *
@@ -47,6 +56,8 @@ export const dynamic = "force-dynamic";
 interface Body {
   sku?: unknown;
   industry?: unknown;
+  /** `chapter_custom` only: how many seats the buyer chose. */
+  seats?: unknown;
 }
 
 const bad = (error: string, status = 400) => NextResponse.json({ error }, { status });
@@ -77,16 +88,32 @@ export async function POST(req: NextRequest) {
     return bad("bad json");
   }
 
-  if (!isSkuId(body.sku)) return bad("unknown sku");
-  const sku = CATALOGUE[body.sku];
+  // The buyer-sized licence is not a CATALOGUE entry: it has no configured
+  // Stripe price to resolve — the amount is computed from the seat count by
+  // the very function the pricing screen called (customChapterPriceCents),
+  // and handed to Stripe as price_data. The screen's number and the charged
+  // number cannot disagree, which is the invariant resolvePrice defends for
+  // every fixed SKU; here it holds by construction. The seat count itself is
+  // the one thing taken from the client, and it is bounded and priced
+  // server-side — never the price.
+  const customSeats = body.sku === "chapter_custom" ? body.seats : null;
+  if (customSeats !== null && !isCustomSeatCount(customSeats)) {
+    return bad(
+      `a custom chapter is ${CHAPTER_CUSTOM_MIN_SEATS} to ${CHAPTER_CUSTOM_MAX_SEATS} seats — whole numbers only`,
+    );
+  }
+  const custom = isCustomSeatCount(customSeats) ? customSeats : null;
 
-  if (!priceIdFor(sku)) return bad(`${sku.envVar} is not set`, 501);
+  if (custom === null && !isSkuId(body.sku)) return bad("unknown sku");
+  const sku = custom === null ? CATALOGUE[body.sku as Sku["id"]] : null;
+
+  if (sku && !priceIdFor(sku)) return bad(`${sku.envVar} is not set`, 501);
 
   // An industry pack without an industry is a $2.99 charge for nothing, and a
   // free industry is a charge for something already owned. Both are checked
   // before a customer is created, so a bad request leaves no debris in Stripe.
   let industry: string | null = null;
-  if (sku.needsIndustry) {
+  if (sku?.needsIndustry) {
     if (!isSellableIndustry(body.industry)) return bad("unknown or free industry");
     industry = body.industry;
   }
@@ -137,14 +164,20 @@ export async function POST(req: NextRequest) {
 
   const db = adminClient();
 
-  const owned = await alreadyOwns(db, session.userId, sku, industry);
+  const chapterPurchase = custom !== null || (sku !== null && isChapterSku(sku.id));
+
+  const owned = await alreadyOwns(db, session.userId, chapterPurchase, sku, industry);
   if (owned) return refuse(session, owned, 409);
 
   // Accepts either a price id or a product id, and refuses outright if the
-  // amount, currency or cadence disagrees with the pricing screens.
-  const resolved = await resolvePrice(sku);
-  if (!resolved.ok) return refuse(session, resolved.reason, 500);
-  const priceId = resolved.priceId;
+  // amount, currency or cadence disagrees with the pricing screens. The
+  // custom licence has nothing to resolve — its price is minted below.
+  let priceId = "";
+  if (sku) {
+    const resolved = await resolvePrice(sku);
+    if (!resolved.ok) return refuse(session, resolved.reason, 500);
+    priceId = resolved.priceId;
+  }
 
   let customer: string;
   try {
@@ -153,12 +186,39 @@ export async function POST(req: NextRequest) {
     return refuse(session, `customer: ${(e as Error).message}`, 500);
   }
 
+  const skuId = custom !== null ? "chapter_custom" : sku!.id;
+  // Travels on the session AND the subscription, so every later
+  // customer.subscription.* event knows the licence size with no lookup.
+  const seatsMetadata: Record<string, string> =
+    custom !== null ? { seats: String(custom) } : {};
+
   try {
     const checkout = await stripe().checkout.sessions.create(
       {
-        mode: sku.kind,
+        mode: custom !== null ? "subscription" : sku!.kind,
         customer,
-        line_items: [{ price: priceId, quantity: 1 }],
+        line_items: [
+          custom !== null
+            ? {
+                // One line at the quoted total (not per-seat × quantity), so
+                // the charge equals the rounded number the screen printed to
+                // the cent. product_data mints a product per checkout; the
+                // seat count in its name is what makes the invoice and the
+                // dashboard row legible, and custom licences are rare enough
+                // that the product list stays readable.
+                price_data: {
+                  currency: "usd",
+                  unit_amount: customChapterPriceCents(custom),
+                  recurring: { interval: "year" },
+                  product_data: {
+                    name: `Novus Chapter — ${custom} seats`,
+                    metadata: { novus_sku: "chapter_custom" },
+                  },
+                },
+                quantity: 1,
+              }
+            : { price: priceId, quantity: 1 },
+        ],
 
         // Both are read by the webhook. `client_reference_id` is the one Stripe
         // shows in the dashboard, which is what makes a support ticket
@@ -166,24 +226,29 @@ export async function POST(req: NextRequest) {
         client_reference_id: session.userId,
         metadata: {
           profile_id: session.userId,
-          sku: sku.id,
+          sku: skuId,
           ...(industry ? { industry } : {}),
+          ...seatsMetadata,
         },
 
         // Copied onto the subscription itself, so the three
         // customer.subscription.* events can identify the player — and tell a
         // chapter licence from Pro — without needing the checkout session
         // that started it all.
-        ...(sku.kind === "subscription"
-          ? { subscription_data: { metadata: { profile_id: session.userId, sku: sku.id } } }
+        ...(custom !== null || sku!.kind === "subscription"
+          ? {
+              subscription_data: {
+                metadata: { profile_id: session.userId, sku: skuId, ...seatsMetadata },
+              },
+            }
           : {}),
 
         // A licence buyer lands on the seat console their purchase just
         // opened; everyone else returns to the game.
-        success_url: isChapterSku(sku.id)
+        success_url: chapterPurchase
           ? `${SITE_URL}/chapter?purchase=ok`
           : `${SITE_URL}/found?purchase=ok`,
-        cancel_url: isChapterSku(sku.id)
+        cancel_url: chapterPurchase
           ? `${SITE_URL}/chapter?purchase=cancelled`
           : `${SITE_URL}/found?purchase=cancelled`,
 
@@ -204,18 +269,21 @@ export async function POST(req: NextRequest) {
   }
 }
 
-/** A refusal string when the player already has the thing, else null. */
+/** A refusal string when the player already has the thing, else null.
+ *  `sku` is null exactly when the purchase is the custom chapter, which the
+ *  `chapterPurchase` branch answers before it is needed. */
 async function alreadyOwns(
   db: ReturnType<typeof adminClient>,
   profileId: string,
-  sku: Sku,
+  chapterPurchase: boolean,
+  sku: Sku | null,
   industry: string | null,
 ): Promise<string | null> {
   // A chapter licence is owned as a chapter, not as an entitlement — and
   // holding personal Pro is no reason to refuse a teacher a classroom. One
   // live licence per owner: sizes are changed in the billing portal, where
   // the subscription already lives, not by stacking a second subscription.
-  if (isChapterSku(sku.id)) {
+  if (chapterPurchase) {
     const { data } = await db
       .from("chapters")
       .select("id")
@@ -227,6 +295,7 @@ async function alreadyOwns(
       ? "this account already runs a chapter — change its size from the billing portal"
       : null;
   }
+  if (!sku) return null;
 
   const { data } = await db
     .from("entitlements")

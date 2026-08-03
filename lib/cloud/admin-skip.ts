@@ -24,6 +24,8 @@ export type AdminChoice = "stripe" | "skipped" | "cancel";
 export interface AdminSkipRequest {
   sku: CheckoutSku;
   industry?: string;
+  /** chapter_custom only: the seat count the operator typed. */
+  seats?: number;
 }
 
 // ── Am I an operator? ───────────────────────────────────────────────────────
@@ -69,10 +71,11 @@ export function registerAdminSkipPrompt(fn: PromptFn): () => void {
 export async function adminCheckoutChoice(
   sku: CheckoutSku,
   industry?: string,
+  seats?: number,
 ): Promise<AdminChoice | null> {
   if (!prompt) return null;
   if (!(await isAdminAccount())) return null;
-  return prompt({ sku, industry });
+  return prompt({ sku, industry, seats });
 }
 
 // ── The skip itself ─────────────────────────────────────────────────────────
@@ -86,13 +89,18 @@ export async function adminCheckoutChoice(
 export async function skipPurchase(
   sku: CheckoutSku,
   industry?: string,
+  seats?: number,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
     const res = await fetch(apiUrl("/api/admin/skip"), {
       method: "POST",
       credentials: API_CREDENTIALS,
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ sku, ...(industry ? { industry } : {}) }),
+      body: JSON.stringify({
+        sku,
+        ...(industry ? { industry } : {}),
+        ...(seats !== undefined ? { seats } : {}),
+      }),
     });
     const body = (await res.json().catch(() => ({}))) as { error?: string };
     if (!res.ok) return { ok: false, error: body.error ?? `HTTP ${res.status}` };

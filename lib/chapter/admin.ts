@@ -3,7 +3,7 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 
 import type { Session } from "@/lib/supabase/route";
-import type { ChapterLicence } from "@/lib/monetization";
+import type { ChapterId } from "@/lib/monetization";
 
 /**
  * Shared plumbing for the chapter admin routes (app/api/chapter/*).
@@ -24,7 +24,7 @@ import type { ChapterLicence } from "@/lib/monetization";
 
 export interface OwnedChapter {
   id: string;
-  licence: ChapterLicence["id"];
+  licence: ChapterId;
   seats: number;
   status: "active" | "lapsed";
   currentPeriodEnd: string | null;
@@ -50,7 +50,7 @@ export async function ownedChapter(session: Session): Promise<OwnedChapter | nul
   const row = data.find((c) => c.status === "active") ?? data[0];
   return {
     id: row.id as string,
-    licence: row.licence as ChapterLicence["id"],
+    licence: row.licence as ChapterId,
     seats: row.seats as number,
     status: row.status as OwnedChapter["status"],
     currentPeriodEnd: (row.current_period_end as string | null) ?? null,

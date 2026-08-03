@@ -58,7 +58,10 @@ export type CheckoutSku =
   | "industry_pack"
   | "extra_run_slot"
   | "chapter_35"
-  | "chapter_100";
+  | "chapter_100"
+  // The buyer-sized licence. Sent with `seats`; the server computes the
+  // price from that count with the same function the screen displayed.
+  | "chapter_custom";
 
 /** What a checkout attempt can come back as. `url` means go there now. */
 export type CheckoutResult =
@@ -98,13 +101,18 @@ export type CheckoutResult =
 export async function startCheckout(
   sku: CheckoutSku,
   industry?: string,
+  seats?: number,
 ): Promise<CheckoutResult> {
   try {
     const res = await fetch(apiUrl("/api/billing/checkout"), {
       method: "POST",
       credentials: API_CREDENTIALS,
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ sku, ...(industry ? { industry } : {}) }),
+      body: JSON.stringify({
+        sku,
+        ...(industry ? { industry } : {}),
+        ...(seats !== undefined ? { seats } : {}),
+      }),
     });
     const body = (await res.json()) as {
       configured?: boolean;
@@ -137,17 +145,18 @@ export async function startCheckout(
 export async function goToCheckout(
   sku: CheckoutSku,
   industry?: string,
+  seats?: number,
 ): Promise<CheckoutResult> {
   // The operator's fork, and nobody else's: for an admin session this asks
   // "test the real checkout, or skip payment?" through the globally mounted
   // prompt. A skip has already granted and adopted the entitlements by the
   // time it returns. For every other player the answer is null and nothing
   // here happened.
-  const choice = await adminCheckoutChoice(sku, industry);
+  const choice = await adminCheckoutChoice(sku, industry, seats);
   if (choice === "skipped") return { ok: false, reason: "admin-skip" };
   if (choice === "cancel") return { ok: false, reason: "admin-cancel" };
 
-  const result = await startCheckout(sku, industry);
+  const result = await startCheckout(sku, industry, seats);
   if (result.ok) window.location.href = result.url;
   return result;
 }

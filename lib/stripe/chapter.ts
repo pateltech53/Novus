@@ -3,7 +3,7 @@ import "server-only";
 import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { CHAPTER_LICENCES, type ChapterLicence } from "@/lib/monetization";
+import { CHAPTER_LICENCES, type ChapterId } from "@/lib/monetization";
 import { CATALOGUE, isChapterSku, isSkuId } from "./catalogue";
 import { resolvePrice } from "./prices";
 import { grantsAccess, periodEnd } from "./subscription";
@@ -26,28 +26,70 @@ import { grantsAccess, periodEnd } from "./subscription";
  * customer id is shared — same buyer, same card, one portal.
  */
 
+/** A chapter subscription, decoded: which licence, and how many seats it
+ *  lights. For the fixed licences the seats ARE the licence; for
+ *  `chapter_custom` they are whatever number the buyer checked out with,
+ *  carried in the subscription's own metadata. */
+export interface ChapterSpec {
+  licence: ChapterId;
+  seats: number;
+}
+
 /**
- * Which licence a subscription is, or null when it is not a chapter at all.
+ * Which chapter a subscription buys, or null when it is not a chapter at all.
  *
- * Metadata first: checkout writes `sku` onto the subscription itself, so every
- * later `customer.subscription.*` event carries the answer with no lookup.
- * The price match is the fallback for subscriptions the dashboard created —
- * and it resolves each configured id through the same cache checkout uses,
- * because the env vars may hold product ids while the subscription's items
- * only ever name prices.
+ * Metadata first: checkout writes `sku` (and, for custom sizes, `seats`) onto
+ * the subscription itself, so every later `customer.subscription.*` event
+ * carries the answer with no lookup; `checkoutMetadata` lets the checkout
+ * handler offer the session's copy of the same fields first. The price match
+ * is the fallback for tier subscriptions the dashboard created — and it
+ * resolves each configured id through the same cache checkout uses, because
+ * the env vars may hold product ids while the subscription's items only ever
+ * name prices. A custom subscription can never match a configured price (its
+ * price is minted per checkout), so for it the metadata is the only truth —
+ * and a custom sku whose seats are unreadable is thrown rather than guessed,
+ * because writing a chapter row with an invented size is the one thing worse
+ * than retrying.
  */
 export async function chapterFromSubscription(
   sub: Stripe.Subscription,
-): Promise<ChapterLicence["id"] | null> {
-  const fromMetadata = sub.metadata?.sku;
-  if (isSkuId(fromMetadata) && isChapterSku(fromMetadata)) return fromMetadata;
+  checkoutMetadata?: Stripe.Metadata | null,
+): Promise<ChapterSpec | null> {
+  const fromMeta = (meta: Stripe.Metadata | null | undefined): ChapterSpec | null => {
+    const sku = meta?.sku;
+    if (isSkuId(sku) && isChapterSku(sku)) {
+      const licence = CHAPTER_LICENCES.find((l) => l.id === sku);
+      if (licence) return { licence: licence.id, seats: licence.seats };
+    }
+    if (sku === "chapter_custom") {
+      const seats = Number(meta?.seats);
+      // 1–500 is the database's own bound on chapters.seats (0007), wider
+      // than the 10–500 the pricing page offers on purpose: syncing what was
+      // genuinely sold beats refusing a row the schema would accept.
+      if (!Number.isInteger(seats) || seats < 1 || seats > 500) {
+        throw new Error(
+          `subscription ${sub.id} is chapter_custom with unusable seats metadata ` +
+            `(${meta?.seats ?? "unset"}) — cannot record the licence size`,
+        );
+      }
+      return { licence: "chapter_custom", seats };
+    }
+    return null;
+  };
+
+  const fromCheckout = fromMeta(checkoutMetadata);
+  if (fromCheckout) return fromCheckout;
+  const fromSub = fromMeta(sub.metadata);
+  if (fromSub) return fromSub;
 
   const priceIds = new Set(
     sub.items.data.map((item) => item.price?.id).filter((id): id is string => !!id),
   );
   for (const licence of CHAPTER_LICENCES) {
     const resolved = await resolvePrice(CATALOGUE[licence.id]);
-    if (resolved.ok && priceIds.has(resolved.priceId)) return licence.id;
+    if (resolved.ok && priceIds.has(resolved.priceId)) {
+      return { licence: licence.id, seats: licence.seats };
+    }
   }
   return null;
 }
@@ -68,11 +110,8 @@ export async function syncChapter(
   db: SupabaseClient,
   ownerProfileId: string,
   sub: Stripe.Subscription,
-  licenceId: ChapterLicence["id"],
+  spec: ChapterSpec,
 ): Promise<void> {
-  const licence = CHAPTER_LICENCES.find((l) => l.id === licenceId);
-  if (!licence) throw new Error(`unknown chapter licence ${licenceId}`);
-
   const active = grantsAccess(sub.status);
 
   const { data: chapter, error: upsertError } = await db
@@ -80,8 +119,8 @@ export async function syncChapter(
     .upsert(
       {
         owner_profile_id: ownerProfileId,
-        licence: licence.id,
-        seats: licence.seats,
+        licence: spec.licence,
+        seats: spec.seats,
         stripe_subscription_id: sub.id,
         status: active ? "active" : "lapsed",
         current_period_end: periodEnd(sub),

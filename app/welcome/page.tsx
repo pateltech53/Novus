@@ -14,6 +14,8 @@ import { LegalSheet } from "@/components/LegalSheet";
 import { PRIVACY, TERMS, type LegalDocument } from "@/lib/legal/documents";
 import {
   CADENCE_SUFFIX,
+  CHAPTER_CUSTOM_MAX_SEATS,
+  CHAPTER_CUSTOM_MIN_SEATS,
   CHAPTER_LICENCES,
   ONE_TIME_PURCHASES,
   PRO_FEATURES,
@@ -630,6 +632,17 @@ function PlansSheet({ onDone }: { onDone: () => void }) {
                     </span>
                   </li>
                 ))}
+                <li className="flex items-baseline justify-between gap-3 border-t border-[var(--hairline)] py-2">
+                  <span className="text-sm font-extrabold">
+                    Custom
+                    <span className="tnum ml-1 text-2xs font-bold text-[var(--text-tertiary)]">
+                      {CHAPTER_CUSTOM_MIN_SEATS}–{CHAPTER_CUSTOM_MAX_SEATS}
+                    </span>
+                  </span>
+                  <span className="tnum text-2xs text-[var(--text-tertiary)]">
+                    priced by size, on the pricing page
+                  </span>
+                </li>
               </ul>
               <p className="mt-1.5 text-xs leading-relaxed text-[var(--text-secondary)]">
                 One licence covers every seat for the year. No student is asked

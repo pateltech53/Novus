@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════════════
--- APPLY ALL · the complete Novus schema (0001 → 0010), idempotently
+-- APPLY ALL · the complete Novus schema (0001 → 0011), idempotently
 -- ═══════════════════════════════════════════════════════════════════════════
 --
 -- Paste the whole file into the Supabase SQL editor of the NOVUS project and
@@ -1787,6 +1787,83 @@ grant execute on function public.admin_stats()             to service_role;
 
 
 -- ═══════════════════════════════════════════════════════════════════════════
+-- 0011 · Custom chapters — a licence sized by the buyer
+-- ═══════════════════════════════════════════════════════════════════════════
+-- `chapter_custom`: a chapter whose seat count the buyer typed (the app
+-- offers 10–500), priced by lib/monetization.ts and sold through the same
+-- checkout, webhook and console as the fixed sizes. Two check constraints
+-- named the two fixed licences; both widen. admin_create_comp_chapter learns
+-- an optional p_seats so operators can comp custom sizes too. The full
+-- reasoning lives in supabase/migrations/0011_custom_chapters.sql.
+
+alter table public.chapters
+  drop constraint if exists chapters_licence_check;
+alter table public.chapters
+  add constraint chapters_licence_check
+  check (licence in ('chapter_35', 'chapter_100', 'chapter_custom'));
+
+alter table public.entitlements
+  drop constraint if exists entitlements_chapter_check;
+alter table public.entitlements
+  add constraint entitlements_chapter_check
+  check (chapter in ('chapter_35', 'chapter_100', 'chapter_custom'));
+
+-- The old three-argument signature is dropped rather than overloaded: two
+-- candidates differing only by a defaulted trailing parameter make every
+-- named-argument RPC call ambiguous. (0009 above recreated it; this section
+-- always runs after, so the script converges on the four-argument one.)
+drop function if exists public.admin_create_comp_chapter(uuid, text, timestamptz);
+
+create or replace function public.admin_create_comp_chapter(
+  p_owner   uuid,
+  p_licence text,
+  p_until   timestamptz default null,
+  p_seats   int default null
+)
+returns uuid
+language plpgsql
+set search_path = public, pg_temp
+as $$
+declare
+  v_seats int := case p_licence when 'chapter_35'  then 35
+                                when 'chapter_100' then 100 end;
+  v_id uuid;
+begin
+  if p_licence = 'chapter_custom' then
+    if p_seats is null or p_seats < 1 or p_seats > 500 then
+      raise exception 'a custom chapter needs p_seats between 1 and 500'
+        using errcode = '23514';
+    end if;
+    v_seats := p_seats;
+  elsif v_seats is null then
+    raise exception 'unknown licence %', p_licence using errcode = '23514';
+  elsif p_seats is not null and p_seats <> v_seats then
+    raise exception '% is % seats — p_seats is only for chapter_custom', p_licence, v_seats
+      using errcode = '23514';
+  end if;
+
+  if exists (select 1 from public.chapters c
+              where c.owner_profile_id = p_owner and c.status = 'active') then
+    raise exception 'already owns an active chapter' using errcode = '23505';
+  end if;
+
+  insert into public.chapters
+    (owner_profile_id, licence, seats, source, status, current_period_end, stripe_subscription_id)
+  values
+    (p_owner, p_licence, v_seats, 'comp', 'active', p_until, null)
+  returning id into v_id;
+
+  return v_id;
+end;
+$$;
+
+revoke execute on function public.admin_create_comp_chapter(uuid, text, timestamptz, int)
+  from public, anon, authenticated;
+grant execute on function public.admin_create_comp_chapter(uuid, text, timestamptz, int)
+  to service_role;
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
 -- The report — read this before closing the tab
 -- ═══════════════════════════════════════════════════════════════════════════
 
@@ -1837,5 +1914,12 @@ from (
       and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                    where n.nspname = 'public' and p.proname = 'admin_cohorts')
       and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-                   where n.nspname = 'public' and p.proname = 'admin_timeseries'))
+                   where n.nspname = 'public' and p.proname = 'admin_timeseries')),
+    ('0011 custom chapters',
+      exists (select 1 from pg_constraint c
+               where c.conname = 'chapters_licence_check'
+                 and pg_get_constraintdef(c.oid) like '%chapter_custom%')
+      and exists (select 1 from pg_constraint c
+                   where c.conname = 'entitlements_chapter_check'
+                     and pg_get_constraintdef(c.oid) like '%chapter_custom%'))
 ) as t(migration, present);

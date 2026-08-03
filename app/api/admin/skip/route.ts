@@ -2,6 +2,11 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { adminGate, audit } from "@/lib/admin/guard";
 import { INDUSTRIES } from "@/lib/engine/constants";
+import {
+  CHAPTER_CUSTOM_MAX_SEATS,
+  CHAPTER_CUSTOM_MIN_SEATS,
+  isCustomSeatCount,
+} from "@/lib/monetization";
 import { adminClient } from "@/lib/supabase/admin";
 import { crossSite, withSession } from "@/lib/supabase/route";
 
@@ -21,13 +26,14 @@ export const dynamic = "force-dynamic";
  *   industry_pack + industry → grant_industry_pack (0003, the webhook's own)
  *   extra_run_slot           → grant_extra_run_slot (0003, ditto)
  *   chapter_35 / chapter_100 → admin_create_comp_chapter (0009)
+ *   chapter_custom + seats   → admin_create_comp_chapter with p_seats (0011)
  *
  * Every skip writes an audit row, so "why does this account own that" is
  * always answerable.
  */
 
 const PRO_SKUS = ["pro_monthly", "pro_yearly"] as const;
-const CHAPTER_SKUS = ["chapter_35", "chapter_100"] as const;
+const CHAPTER_SKUS = ["chapter_35", "chapter_100", "chapter_custom"] as const;
 const CODES: readonly string[] = INDUSTRIES.map((i) => i.code);
 
 const bad = (status: number, error: string) =>
@@ -40,7 +46,7 @@ export async function POST(req: NextRequest) {
     return withSession(bad(403, "cross-site request refused"), gate.session);
   }
 
-  let body: { sku?: unknown; industry?: unknown };
+  let body: { sku?: unknown; industry?: unknown; seats?: unknown };
   try {
     body = (await req.json()) as typeof body;
   } catch {
@@ -71,10 +77,20 @@ export async function POST(req: NextRequest) {
   } else if (sku === "extra_run_slot") {
     ({ error } = await db.rpc("grant_extra_run_slot", { p_profile: self }));
   } else if ((CHAPTER_SKUS as readonly string[]).includes(sku)) {
+    if (sku === "chapter_custom" && !isCustomSeatCount(body.seats)) {
+      return withSession(
+        bad(
+          400,
+          `a custom chapter is ${CHAPTER_CUSTOM_MIN_SEATS} to ${CHAPTER_CUSTOM_MAX_SEATS} seats — whole numbers only`,
+        ),
+        gate.session,
+      );
+    }
     ({ error } = await db.rpc("admin_create_comp_chapter", {
       p_owner: self,
       p_licence: sku,
       p_until: null,
+      ...(sku === "chapter_custom" ? { p_seats: body.seats as number } : {}),
     }));
     if (error?.message.includes("already owns an active chapter")) {
       return withSession(
@@ -93,7 +109,11 @@ export async function POST(req: NextRequest) {
   await audit(gate.session, "checkout_skip", {
     target: self,
     targetEmail: gate.session.email,
-    detail: { sku, ...(typeof body.industry === "string" ? { industry: body.industry } : {}) },
+    detail: {
+      sku,
+      ...(typeof body.industry === "string" ? { industry: body.industry } : {}),
+      ...(typeof body.seats === "number" ? { seats: body.seats } : {}),
+    },
   });
 
   return withSession(NextResponse.json({ ok: true }), gate.session);

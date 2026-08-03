@@ -80,5 +80,12 @@ from (
       and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                    where n.nspname = 'public' and p.proname = 'admin_timeseries')
       and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-                   where n.nspname = 'public' and p.proname = 'admin_capture_daily'))
+                   where n.nspname = 'public' and p.proname = 'admin_capture_daily')),
+    ('0011 custom chapters', '0011_custom_chapters.sql',
+      exists (select 1 from pg_constraint c
+               where c.conname = 'chapters_licence_check'
+                 and pg_get_constraintdef(c.oid) like '%chapter_custom%')
+      and exists (select 1 from pg_constraint c
+                   where c.conname = 'entitlements_chapter_check'
+                     and pg_get_constraintdef(c.oid) like '%chapter_custom%'))
 ) as t(migration, file, present);
