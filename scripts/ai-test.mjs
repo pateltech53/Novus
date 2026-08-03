@@ -280,6 +280,15 @@ if (unconfigured) {
   const voiceProbe = await tts.GET();
   check("the voice probe reports not configured", (await voiceProbe.json()).configured === false);
 
+  const all = await import(pathToFileURL(join(root, "app/api/ai/route.ts")).href);
+  const overview = await (await all.GET()).json();
+  check(
+    "/api/ai says plainly that no keys are set, and that this is allowed",
+    /No AI keys are set/.test(overview.summary) && /supported state/.test(overview.summary),
+    overview.summary,
+  );
+  check("and contacts no provider to find that out", lastRequest === null);
+
   globalThis.fetch = realFetch;
   console.log(`RESULT ${passes} ${failures}`);
   process.exit(0);
@@ -564,6 +573,59 @@ const modelSays = (payload) => () =>
 {
   const res = await pitch.POST(json("http://localhost/api/pitch", { caller: {} }));
   check("refuses an incomplete call", res.status === 400, `HTTP ${res.status}`);
+}
+
+// ── /api/ai ─────────────────────────────────────────────────────────────────
+// The whole-picture endpoint. Exists because "the key is set and it still
+// sounds wrong" needed a redeploy to answer, three times running.
+console.log("\n/api/ai  ·  the one URL that answers everything");
+
+{
+  const fresh = await import(pathToFileURL(join(root, "app/api/ai/route.ts")).href + `?ok=${Date.now()}`);
+  handler = (url) => {
+    if (url.includes("elevenlabs")) return Response.json({ voices: [{ voice_id: "v-a" }] });
+    if (url.includes("deepgram")) return Response.json({ projects: [] });
+    return Response.json({ data: { limit_remaining: 5 } });
+  };
+  const body = await (await fresh.GET()).json();
+  check("reports all three providers", Object.keys(body.providers).length === 3, JSON.stringify(Object.keys(body.providers ?? {})));
+  check("says plainly that they are answering", /All 3 configured provider/.test(body.summary), body.summary);
+  check("names the variable that turns each one on", body.providers.voice.key === "ELEVENLABS_API_KEY");
+  check("counts the account's voices", /1 voice/.test(body.providers.voice.detail ?? ""), body.providers.voice.detail);
+}
+
+{
+  // The case that actually happened in production, and the reason this file
+  // grew an endpoint: a key that is set, rejected, and silent about why.
+  const fresh = await import(pathToFileURL(join(root, "app/api/ai/route.ts")).href + `?bad=${Date.now()}`);
+  handler = (url) => {
+    if (url.includes("elevenlabs")) {
+      return Response.json(
+        { detail: { status: "missing_permissions", message: "missing the permission voices_read" } },
+        { status: 401 },
+      );
+    }
+    if (url.includes("deepgram")) return Response.json({ projects: [] });
+    return Response.json({ data: { limit_remaining: 5 } });
+  };
+  const body = await (await fresh.GET()).json();
+  check("counts a rejected key as failing, in the summary", /1 of 3 configured provider\(s\) are FAILING/.test(body.summary), body.summary);
+  check("passes the provider's own slug through", body.providers.voice.reason === "missing_permissions", JSON.stringify(body.providers.voice));
+  check("turns the slug into an instruction", /voices_read/.test(body.providers.voice.detail ?? ""), body.providers.voice.detail);
+  check("leaks no key material", !JSON.stringify(body).includes("test-eleven"));
+}
+
+{
+  // A valid OpenRouter key with an empty wallet fails at the first cold call
+  // and nowhere earlier, which is a miserable way to find out.
+  const fresh = await import(pathToFileURL(join(root, "app/api/ai/route.ts")).href + `?broke=${Date.now()}`);
+  handler = (url) => {
+    if (url.includes("elevenlabs")) return Response.json({ voices: [{ voice_id: "v-a" }] });
+    if (url.includes("deepgram")) return Response.json({ projects: [] });
+    return Response.json({ data: { limit_remaining: 0 } });
+  };
+  const body = await (await fresh.GET()).json();
+  check("catches an OpenRouter key with no credit left", body.providers.verdict.ok === false, JSON.stringify(body.providers.verdict));
 }
 
 globalThis.fetch = realFetch;

@@ -99,18 +99,55 @@ the status code, because HTTP 401 covers four unrelated problems:
 
 ### Asking a running deploy
 
-Both voice routes answer a GET, so a deploy can be questioned from a browser or
-`curl` without keys, a redeploy, or a log dig:
+**`GET /api/ai` is the one to open.** All three providers, one URL, from a
+browser, a phone or `curl` — no keys, no redeploy, no log dig:
 
 ```
-curl https://YOUR-HOST/api/tts   # {"configured":true,"voices":9,"source":"account",...}
-curl https://YOUR-HOST/api/stt   # {"configured":true}
+curl https://YOUR-HOST/api/ai
 ```
 
-`/api/tts` reports whether the key is set, how many voices it can see, which
-source the casting came from, and — when something is wrong — ElevenLabs' own
-status slug under `lastError`. That last field exists because a rejected key and
-an absent key sound identical from the sofa: both play the browser voice.
+```json
+{
+  "summary": "1 of 3 configured provider(s) are FAILING — see below.",
+  "providers": {
+    "voice": {
+      "key": "ELEVENLABS_API_KEY", "configured": true, "ok": false, "http": 401,
+      "reason": "missing_permissions",
+      "detail": "The key is VALID but scoped too narrowly. Enable voices_read…"
+    },
+    "transcription": { "key": "DEEPGRAM_API_KEY", "ok": true, … },
+    "verdict":       { "key": "OPENROUTER_API_KEY", "ok": true, … }
+  }
+}
+```
+
+It reports whether each variable is set, whether the provider accepted it, and
+the provider's own machine-readable reason when it did not — plus the OpenRouter
+case that otherwise only surfaces at the first cold call, a valid key with no
+credit left. No key material, not even a length. Cached for a minute, so it
+cannot be used to generate load.
+
+The individual routes still answer too: `GET /api/tts` adds voice count and
+casting source, `GET /api/stt` reports whether audio would leave the device.
+
+### Seeing it fail from inside the app
+
+`/api/ai` is the *server*. It cannot tell you whether the app is reaching that
+server — and in the shipped iOS and Android builds, which are static bundles
+calling an absolute origin, that is a real and separate failure mode that a
+browser tab never reproduces.
+
+So when a feature falls back, an amber banner appears at the bottom of the
+screen naming the feature, the status, and what to do about it. Tap it to
+expand. It renders **only** when something has actually fallen back — a healthy
+deploy shows nothing — and on the web `window.__novusAi()` prints the same
+table.
+
+⚠️ **Set `NEXT_PUBLIC_AI_DEBUG=0` before putting the app in front of players.**
+The fallbacks are complete features and a twelve-year-old mid-pitch should not
+be shown a warning about someone else's API key. It is on by default because
+the failure it catches is one an operator cannot see any other way, and a
+diagnostic nobody remembers to switch on is the same as no diagnostic.
 
 ---
 

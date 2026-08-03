@@ -1,4 +1,5 @@
 import { apiUrl } from "@/lib/native/origin";
+import { reportFallback, reportLive } from "./report";
 import { voiceOf } from "./voices";
 import type { SharkId } from "./types";
 
@@ -82,8 +83,10 @@ async function speakCloud(text: string, speaker: Speaker): Promise<boolean> {
       // or nothing is deployed — all three are settled for this session too, and
       // re-asking once per line would be a request per sentence forever.
       if ([429, 402, 501, 401, 404].includes(res.status)) cloudDown = true;
+      reportFallback("voice", res.status);
       return false;
     }
+    reportLive("voice");
     const blob = await res.blob();
     const audio = new Audio(URL.createObjectURL(blob));
     current = audio;
@@ -95,6 +98,10 @@ async function speakCloud(text: string, speaker: Speaker): Promise<boolean> {
     return true;
   } catch {
     cloudDown = true;
+    // No response at all, so no status to read. In the shipped app this is
+    // normally CORS or a wrong NEXT_PUBLIC_API_ORIGIN, which is exactly the
+    // failure a browser tab never reproduces.
+    reportFallback("voice", 0);
     return false;
   }
 }
