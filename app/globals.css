@@ -123,6 +123,25 @@
   /* What the pane casts on the content behind it. */
   --glass-drop: 0 -1px 24px oklch(0 0 0 / 0.28);
 
+  /* ── What makes a control read as a LENS ──────────────────────────────────
+     A 1px crest is enough on a bar and not nearly enough on something the size
+     of a thumb: at that scale a translucent box just looks translucent. The
+     sheen is light landing on the upper half of a curved solid and falling
+     away — the single strongest cue that a control is made of glass rather
+     than of colour. Stronger on a tinted control, because it has to clear a
+     saturated ground to still read as light. */
+  --glass-sheen: oklch(1 0 0 / 0.14);
+  --glass-sheen-tinted: oklch(1 0 0 / 0.24);
+
+  /* How much of a tone's colour goes into the material.
+     Below 100% the screen behind genuinely shows through, which is the whole
+     difference between a tinted lens and an orange rectangle. Two values
+     because ink cuts both ways: white text can sit on a lens this thin, and
+     the dark ink prestige gold carries cannot — it needs a lighter ground
+     under it or the label disappears. */
+  --gc-mix: 68%;
+  --gc-mix-dark-ink: 84%;
+
   /* ── In-fiction phone app tints ───────────────────────────────────────────
      Deliberately OUTSIDE the Novus palette — these are other companies' brands
      inside the game world, and they should not match ours. Named, not inline. */
@@ -206,6 +225,23 @@
   --glass-specular: oklch(1 0 0 / 0.75);
   --glass-underside: oklch(0.2 0.01 85 / 0.09);
   --glass-drop: 0 -1px 20px oklch(0.2 0.01 85 / 0.1);
+
+  /* Brighter, because on a light ground the sheen is the only thing
+     separating the top of a control from the page behind it. */
+  --glass-sheen: oklch(1 0 0 / 0.55);
+  --glass-sheen-tinted: oklch(1 0 0 / 0.34);
+
+  /*
+   * A thicker tint than dark gets, and it is a legibility floor rather than a
+   * taste call.
+   *
+   * White ink on `#e35f00` at 68% over a near-white page lands around 2.6:1 —
+   * it fails AA outright, and it fails it on the one control on the screen
+   * that is asking you to do something. The lens gets thinner where the ground
+   * is dark and thicker where it is light, so the label holds in both.
+   */
+  --gc-mix: 88%;
+  --gc-mix-dark-ink: 93%;
 }
 
 /* ══ Base ══════════════════════════════════════════════════════════════════ */
@@ -367,6 +403,7 @@ textarea {
      4. a hairline ring, and a soft drop onto the content behind it */
 .nv-glass {
   position: relative;
+  --glass-sheen-panel: var(--glass-sheen);
   background: var(--glass-tint);
   box-shadow:
     inset 0 -1px 0 0 var(--glass-underside),
@@ -383,16 +420,16 @@ textarea {
 .nv-glass::before {
   content: "";
   position: absolute;
-  inset-inline: 0;
-  top: 0;
-  height: 1px;
+  inset: 0;
+  border-radius: inherit;
   pointer-events: none;
-  background: linear-gradient(
-    to right,
-    transparent,
-    var(--glass-specular),
-    transparent
-  );
+  /* Crest plus sheen — the same two layers `.nv-gc::before` draws, at a
+     panel's scale. Without the second one the advance capsule was a tinted
+     rectangle sitting beside a ledger that had become glass. */
+  background:
+    linear-gradient(to right, transparent, var(--glass-specular), transparent)
+      center top / 100% 1px no-repeat,
+    linear-gradient(to bottom, var(--glass-sheen-panel, transparent), transparent 60%);
 }
 
 /* ── Tinted glass ─────────────────────────────────────────────────────────
@@ -405,14 +442,16 @@ textarea {
    The accent rule is not relaxed by this. `action` belongs to the one control
    that moves time and to nothing else; `prestige` to the year gate. */
 .nv-glass[data-tone="action"] {
-  --glass-tint: color-mix(in oklch, var(--action) 82%, transparent);
+  --glass-tint: color-mix(in oklch, var(--action) var(--gc-mix), transparent);
+  --glass-sheen-panel: var(--glass-sheen-tinted);
   --glass-ring: oklch(1 0 0 / 0.24);
   --glass-specular: oklch(1 0 0 / 0.5);
   --glass-underside: oklch(0 0 0 / 0.2);
 }
 
 .nv-glass[data-tone="prestige"] {
-  --glass-tint: color-mix(in oklch, var(--color-prestige) 84%, transparent);
+  --glass-tint: color-mix(in oklch, var(--color-prestige) var(--gc-mix-dark-ink), transparent);
+  --glass-sheen-panel: var(--glass-sheen-tinted);
   --glass-ring: oklch(1 0 0 / 0.3);
   --glass-specular: oklch(1 0 0 / 0.6);
   --glass-underside: oklch(0 0 0 / 0.16);
@@ -463,6 +502,7 @@ textarea {
   --glass-underside: transparent;
   --glass-ring: transparent;
   --glass-drop: 0 0 0 0 transparent;
+  --glass-sheen-panel: transparent;
   /* Shallower than a control's 28px. This is measured in screens rather than
      in points, and the cost of a blur is its radius times its area. */
   -webkit-backdrop-filter: blur(18px) saturate(140%);
@@ -553,6 +593,7 @@ textarea {
   --gc-specular: var(--glass-specular);
   --gc-underside: var(--glass-underside);
   --gc-drop: var(--e1);
+  --gc-sheen: var(--glass-sheen);
   /* What the opaque fallback becomes. Reassigned per tone below, so a control
      that cannot blur is still the colour it was asking to be. */
   --gc-solid: var(--surface-overlay);
@@ -586,26 +627,38 @@ textarea {
   transition:
     transform 140ms var(--ease-out),
     filter 140ms var(--ease-out),
-    opacity 140ms var(--ease-out);
+    opacity 140ms var(--ease-out),
+    /* A tone that changes is a state that changed — the sound switch going
+       orange, a segment lighting up. Snapping there reads as a repaint;
+       easing reads as the material taking the colour. */
+    background-color 200ms var(--ease-out);
 }
 
-/* The crest. Part of GRADIENT #1 OF 3 — the specular sheen inside a glass
-   element — and the same one `.nv-glass::before` draws, at a control's scale.
-   Inset from the edges rather than full-bleed: a highlight that runs into a
-   rounded corner reads as a seam, and light does not land on a corner. */
+/*
+ * The lens. GRADIENT #1 OF 3 — the specular sheen inside a glass element — at
+ * a control's scale, and the reason these read as glass rather than as
+ * translucent boxes.
+ *
+ * Two layers on one pseudo-element, because they are one phenomenon:
+ *
+ *   · the **crest** — a bright hairline where the top face catches the light.
+ *     Inset from the edges rather than full-bleed: a highlight that runs into
+ *     a rounded corner reads as a seam, and light does not land on a corner.
+ *   · the **sheen** — light landing across the upper half of a curved solid
+ *     and falling away by the middle. A 1px crest is enough on a tab bar and
+ *     nowhere near enough on something the size of a thumb; without this a
+ *     control at button scale just looks see-through.
+ */
 .nv-gc::before {
   content: "";
   position: absolute;
-  inset-inline: 12%;
-  top: 0;
-  height: 1px;
+  inset: 0;
+  border-radius: inherit;
   pointer-events: none;
-  background: linear-gradient(
-    to right,
-    transparent,
-    var(--gc-specular),
-    transparent
-  );
+  background:
+    linear-gradient(to right, transparent, var(--gc-specular), transparent)
+      center top / 76% 1px no-repeat,
+    linear-gradient(to bottom, var(--gc-sheen), transparent 58%);
 }
 
 /*
@@ -640,32 +693,43 @@ textarea {
 }
 
 /*
- * A control that is already ON glass.
+ * The lens, without a backdrop pass of its own.
  *
- * The sheet headers, the phone's dock, the play screen's masthead: a button
- * sitting on one of those must not blur a second time. Two stacked
- * backdrop-filters do not composite into deeper glass — they composite into a
- * smudge, which is the exact artefact `ScreenSheet` deletes by drawing its
- * grabber solid.
+ * Everything that makes a control read as glass — the tint, the crest, the
+ * sheen, the rim, the press — and no blur. Two reasons to reach for it, and
+ * they are the same reason from two directions: there is nothing for a blur to
+ * do here.
  *
- * So this keeps the tint, the crest, the ring and the press, and drops only the
- * blur. It is the same distinction `UIGlassContainerEffect` draws natively: the
- * container is the material, and the controls inside it are shapes cut out of
- * it rather than panes of their own.
+ * **The control is already on glass.** A sheet header, the phone's dock, the
+ * play screen's masthead. Two stacked backdrop-filters do not composite into
+ * deeper glass, they composite into a smudge — the exact artefact `ScreenSheet`
+ * deletes by drawing its grabber solid. This is the same distinction
+ * `UIGlassContainerEffect` draws natively: the container is the material, and
+ * the controls inside it are shapes cut out of it rather than panes of their
+ * own.
+ *
+ * **The backdrop is one flat fill.** The life log is dozens of cards over a
+ * single colour, scrolling. A blur there resolves to the colour it started as,
+ * having re-rasterised its own patch of background on every frame to get
+ * there. Identical output, one compositor pass per card per frame.
  */
 .nv-gc[data-flat="true"],
 .nv-gc.nv-flat {
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
-  --gc-tint: color-mix(in oklch, var(--n-11) 10%, transparent);
   --gc-drop: none;
 }
 
-.nv-gc[data-flat="true"][data-tone],
-.nv-gc.nv-flat[class*="nv-t-"] {
-  /* A tone still wants its own colour, at the strength it would have had if
-     it were lensing something. */
-  background: var(--gc-solid);
+/*
+ * An untinted flat control needs a fill of its own, because it has no blur to
+ * give it one. A TINTED one already has a fill — its tone — and must keep it
+ * at the tone's own strength: forcing those solid was what made a gold CTA on
+ * a glass banner come out as a gold rectangle.
+ */
+.nv-gc[data-flat="true"]:not([data-tone]),
+.nv-gc.nv-flat:not([class*="nv-t-"]) {
+  --gc-tint: color-mix(in oklch, var(--n-11) 13%, transparent);
+  --gc-ring: color-mix(in oklch, var(--n-11) 20%, transparent);
 }
 
 /* ── Tones ────────────────────────────────────────────────────────────────
@@ -680,7 +744,8 @@ textarea {
 .nv-gc[data-tone="action"],
 .nv-gc.nv-t-action {
   color: var(--gc-ink);
-  --gc-tint: color-mix(in oklch, var(--action) 78%, transparent);
+  --gc-tint: color-mix(in oklch, var(--action) var(--gc-mix), transparent);
+  --gc-sheen: var(--glass-sheen-tinted);
   --gc-ink: var(--on-action);
   --gc-ring: oklch(1 0 0 / 0.28);
   --gc-specular: oklch(1 0 0 / 0.55);
@@ -692,7 +757,8 @@ textarea {
 .nv-gc[data-tone="prestige"],
 .nv-gc.nv-t-prestige {
   color: var(--gc-ink);
-  --gc-tint: color-mix(in oklch, var(--color-prestige) 80%, transparent);
+  --gc-tint: color-mix(in oklch, var(--color-prestige) var(--gc-mix-dark-ink), transparent);
+  --gc-sheen: var(--glass-sheen-tinted);
   --gc-ink: var(--on-prestige);
   --gc-ring: oklch(1 0 0 / 0.34);
   --gc-specular: oklch(1 0 0 / 0.62);
@@ -704,7 +770,8 @@ textarea {
 .nv-gc[data-tone="alert"],
 .nv-gc.nv-t-alert {
   color: var(--gc-ink);
-  --gc-tint: color-mix(in oklch, var(--alert) 74%, transparent);
+  --gc-tint: color-mix(in oklch, var(--alert) var(--gc-mix), transparent);
+  --gc-sheen: var(--glass-sheen-tinted);
   --gc-ink: var(--on-action);
   --gc-ring: oklch(1 0 0 / 0.26);
   --gc-specular: oklch(1 0 0 / 0.5);

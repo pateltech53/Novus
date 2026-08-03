@@ -51,7 +51,7 @@ export function TermCoach({
           onClick={onDismiss}
           className="nv-gc nv-flat flex w-full items-start gap-3 rounded-[var(--radius-row)] px-4 py-3 text-left"
         >
-          <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--n-6)] text-2xs font-extrabold text-[var(--text-primary)]">
+          <span className="nv-gc nv-flat mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-2xs font-extrabold text-[var(--text-primary)]">
             ?
           </span>
           <span className="min-w-0 flex-1">

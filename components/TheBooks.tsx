@@ -100,8 +100,21 @@ function BookCard({
       type="button"
       onClick={() => onTermTap?.(term)}
       aria-label={gloss ? `${label}: ${gloss.rookie}` : label}
-      className={`nv-card min-w-0 px-2 py-2 text-left transition-transform duration-200 active:scale-[0.97] ${
-        flash ? "ring-2 ring-[var(--n-8)]" : ""
+      /*
+       * The ledger is glass now, and that is a change to §0 rather than an
+       * exception to it — see design.md. Money used to be read on solid
+       * ground, full stop; it is read on a lens here, and what pays for that
+       * is everything below: the figure keeps `--text` at full strength and
+       * the label keeps its own colour. Nothing about a number got quieter to
+       * make room for a material.
+       *
+       * The change-flash is an `outline` rather than a `ring` because a ring
+       * IS a box-shadow, and the material declares box-shadow unlayered — a
+       * ring here would be a ring that never draws, on the one cue whose whole
+       * job is to be seen.
+       */
+      className={`nv-gc min-w-0 rounded-[var(--radius-row)] px-2 py-2 text-left ${
+        flash ? "outline outline-2 -outline-offset-2 outline-[var(--n-8)]" : ""
       }`}
     >
       <span className="block truncate text-2xs font-bold tracking-[0.08em] text-[var(--text-tertiary)] sm:text-2xs sm:tracking-[0.12em]">
