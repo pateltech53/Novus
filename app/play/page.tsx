@@ -27,6 +27,7 @@ import { Phone } from "@/components/phone/Phone";
 import type { PhoneApp } from "@/components/phone/Phone";
 import { TierUnlock } from "@/components/TierUnlock";
 import { SettingsScreen } from "@/components/screens/SettingsScreen";
+import { StillStandingScreen } from "@/components/screens/StillStandingScreen";
 import { RobinGhood } from "@/components/phone/RobinGhood";
 import { LinkedOut } from "@/components/phone/LinkedOut";
 import { deriveRunwayMonths } from "@/lib/engine/sim";
@@ -64,6 +65,7 @@ function PlayScreen() {
   const [phoneApp, setPhoneApp] = useState<PhoneApp | "home" | null>(null);
   const [showPro, setShowPro] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showBoard, setShowBoard] = useState(false);
   const [dossier, setDossier] = useState(false);
   const [term, setTerm] = useState<{ term: string; detail?: string } | null>(null);
 
@@ -185,6 +187,7 @@ function PlayScreen() {
     !phoneApp &&
     !showPro &&
     !showSettings &&
+    !showBoard &&
     !dossier &&
     run.alive;
 
@@ -194,6 +197,7 @@ function PlayScreen() {
     !!phoneApp ||
     showPro ||
     showSettings ||
+    showBoard ||
     dossier ||
     !!yearEnd ||
     !!autopsy ||
@@ -233,6 +237,7 @@ function PlayScreen() {
       if (id === "pro") setShowPro(true);
       else if (id === "dossier") setDossier(true);
       else if (id === "settings") setShowSettings(true);
+      else if (id === "board") setShowBoard(true);
       else if (id === "phone") setPhoneApp("home");
     },
     [completeCoachStep],
@@ -317,6 +322,7 @@ function PlayScreen() {
   useBackHandler(!!phoneApp, () => setPhoneApp(null));
   useBackHandler(showPro, () => setShowPro(false));
   useBackHandler(showSettings, () => setShowSettings(false));
+  useBackHandler(showBoard, () => setShowBoard(false));
   useBackHandler(dossier, () => setDossier(false));
 
   if (!run) {
@@ -373,6 +379,7 @@ function PlayScreen() {
           onOpenPhone={() => setPhoneApp("home")}
           onOpenPro={() => setShowPro(true)}
           onOpenSettings={() => setShowSettings(true)}
+          onOpenBoard={() => setShowBoard(true)}
           dossierOpen={dossier}
           onDossier={setDossier}
           nativeControls={!domChrome}
@@ -496,6 +503,7 @@ function PlayScreen() {
 
       {showPro && <ProSheet onClose={() => setShowPro(false)} />}
       {showSettings && <SettingsScreen onClose={() => setShowSettings(false)} />}
+      {showBoard && <StillStandingScreen onClose={() => setShowBoard(false)} />}
 
       {/* Fires the moment a stage promotion opens a new tier. It sits above
           the year-end statement on purpose: the wardrobe is the reward for

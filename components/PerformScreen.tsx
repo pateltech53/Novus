@@ -593,7 +593,11 @@ export function PerformScreen() {
                 isYearGate={perform.kind === "yearEnd"}
                 tutorialFloor={!!run.tutorial && run.year === 1}
                 onContinue={(dealCashS, dealEquityPct) =>
-                  game.submitPerform(score, dealCashS, dealEquityPct)
+                  // The words, not the number. `score` above is this client's
+                  // reading of them; the leaderboard rescores the transcript
+                  // server-side with the same `scorePitchContent` that produced
+                  // it, so nothing a devtools console can type reaches a rank.
+                  game.submitPerform(score, dealCashS, dealEquityPct, transcript.text)
                 }
               />
             </div>

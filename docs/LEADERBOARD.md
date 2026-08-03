@@ -7,8 +7,44 @@ Two boards, one submission path.
 | Survival | `years_survived desc` | **Still Standing** (already used in `ProSheet.tsx`, `PlansSheet.tsx`, `BeeMail.tsx`) |
 | Valuation | `peak_valuation desc` | none — pick one in copy, not here |
 
-This document is a plan. Nothing in it has been built. It assumes you read
-`docs/DO-NOT-TOUCH.md` first, because two of the changes it asks for land in protected files.
+**This is built.** It was a plan, and the plan was followed; what follows is now a description
+with the deviations marked. Read `docs/DO-NOT-TOUCH.md` first regardless — the engine is still
+protected, and none of the work below opened it.
+
+| What | Where |
+|---|---|
+| The tape — entry kinds, canonical JSON, hashing | `lib/leaderboard/tape.ts` |
+| The shared orchestration, and the replay | `lib/leaderboard/replay.ts` |
+| Bounds, moderation, handles, season pinning | `lib/leaderboard/{bounds,moderation,handles,season}.ts` |
+| The verifier | `lib/leaderboard/verify.ts` |
+| Routes | `app/api/leaderboard/{,submit,handle,report,moderate}/route.ts` |
+| The screen | `components/screens/StillStandingScreen.tsx` |
+| The recorder, wired at every commit site | `lib/leaderboard/recorder.ts`, `lib/state/GameProvider.tsx` |
+| Submission path, moderation queue, report | `supabase/migrations/0006_leaderboard_submit.sql` |
+| The tests | `scripts/leaderboard-test.mjs`, `supabase/tests/submit_test.sql` |
+
+### Four places the build deviates from this document, and why
+
+1. **The verifier does not just call `lib/engine`; it shares the ORCHESTRATION with the game.**
+   §1.1 argues for one copy of the engine. That argument is only true if the sequence around the
+   engine is shared too — a tap on ADVANCE MONTH is `advanceMonth()` plus four other calls, and a
+   verifier that made four of them would reject honest runs for a living. So `advanceTurn`,
+   `closeFiscalYear`, `buyStockAt` and friends live in `replay.ts` and `GameProvider` calls them.
+
+2. **The tape carries more entry kinds than §7.2 listed.** Activities, transfers, retire/refresh,
+   dismissals and the Pro toggle all reach the books, and a tape without them replays a different
+   company. `dismiss` is the subtle one: without it a later `choice` naming the second card arrives
+   at a table where the first is still face-up.
+
+3. **The year-end deal and every cold call are RE-DERIVED, not replayed.** `SharkPanel` and
+   `judgePitch` ask a model, and a model's answer is a different sentence every time. A board that
+   accepted it would rank a run by whether an API key happened to be deployed on the day it was
+   played — Brand Law 4 broken by an environment variable. The board replays the deterministic
+   ladder `scripts/simulate.mjs` balances the game against, and `resolveCallLocally` for calls.
+
+4. **The two §8.2 violations were already fixed** before this work started; §8.2 below is left as
+   the historical record and marked. What was missing was the assertions that stop them coming
+   back, and those now run in CI.
 
 ---
 
@@ -639,10 +675,12 @@ board makes that promise testable by anyone with a spreadsheet.
   the per-board unique constraint mean a second attempt has to be a genuinely better run.
 - **No Pro-only board and no Pro tie-break.** Ties break on survival, then date (§4.1).
 
-### 8.2 Two live violations in the engine that a valuation board would expose
+### 8.2 Two violations that were live when this was written — both now fixed
 
-These are real, they are in the code today, and a valuation board turns each into a broken promise.
-Neither is fixable from this document — both files belong to someone else.
+> **Historical.** Both were repaired in the engine before the board was built. They are left here
+> because the reasoning is what the CI assertions in §8.3 encode, and because a reader who finds
+> them again will want to know they were found once already. `npm run test:board` fails if either
+> comes back.
 
 **1. `lib/engine/people.ts` — the Pro talent pool is mechanically better.**
 
@@ -696,7 +734,10 @@ const bestFreeAsset = Math.max(...ASSET_CATALOG.filter((a) => !a.pro).map((a) =>
 if (bestFreeAsset < bestAsset) throw new Error("Brand Law 4: a Pro asset out-compounds every free one");
 ```
 
-Both of these fail today on the asset check. That is the point of writing them.
+Both now pass, and they run on every pull request — see the "Leaderboard replay + Brand Law 4"
+step in `.github/workflows/ci.yml`. The suite also samples a year of hiring pools and asserts that
+a free candidate can be as good as any Pro one, which is the version of this check that the
+`INDUSTRIES`/`ASSET_CATALOG` maxima cannot see.
 
 Simulation assertion, using the harness that already exists: run `sim 30 8 1` with `pro: true` and
 with `pro: false`. At a fixed seed the valuation and survival tables must be **identical**. This is
@@ -831,16 +872,30 @@ Making deletion easy is only possible because you collected almost nothing. That
 
 ---
 
-## 11 · Open items for the integrator
+## 11 · Open items — what is still not done
 
-- **Peak valuation** — no `RunState` field records it (§2). The server computes it during replay.
-  If you also want it on-screen live, that is an additive `peakValuation?: number` maintained in
-  `refreshBooks()` in `lib/engine/sim.ts`, which is protected and needs sign-off. The board must not
-  trust it either way.
-- **Tape recording** — `lib/state/GameProvider.tsx` needs an append at each input site.
-- **Brand Law 4 fixes** — `lib/engine/people.ts` and `lib/engine/holdings.ts` (§8.2).
-- **The valuation board's name** — "Still Standing" is taken by the survival board. Naming is a copy
-  decision.
-- **Dependency** — `@supabase/supabase-js`, roughly 45 kB gzipped for the auth and PostgREST paths.
-  Under the server-only design in §5 it never enters the browser bundle, so the client cost is zero.
-  Do not add `@supabase/ssr`; it exists for browser-side sessions and there are none here.
+Three of the five below were closed by the build. The two that remain are marked.
+
+- ✅ **Tape recording** — done. `lib/state/GameProvider.tsx` appends inside every mutation, before
+  `commit()`.
+- ✅ **Brand Law 4 fixes** — already repaired in the engine; the assertions that keep them repaired
+  now run in CI (§8.3).
+- ✅ **The valuation board's name** — "Peak Valuation". The screen is titled *Still Standing* and the
+  survival board keeps that name as its segment.
+- ✅ **Dependency** — no new one. `@supabase/supabase-js` was already here for saves and billing, and
+  `@supabase/ssr` is still not needed.
+
+**Still open:**
+
+- **Peak valuation on screen during a live run.** No `RunState` field records it (§2), and the
+  server computes it during replay, so the board is correct without one. A player cannot see their
+  own peak while playing. Closing that is an additive `peakValuation?: number` maintained in
+  `refreshBooks()` in `lib/engine/sim.ts` — protected, needs sign-off, and the board must not trust
+  it either way.
+
+- **The recorder and the shared orchestration can still drift.** `scripts/leaderboard-test.mjs`
+  drives the same functions `GameProvider` drives and proves a recorded tape replays to the company
+  that produced it — but its driver is not `GameProvider`. If somebody adds a mutation to the
+  provider and forgets the `record` call beside it, that suite still passes and the tape silently
+  stops describing the run. Sharing the orchestration shrinks the surface; it does not remove it.
+  The real fix is a provider-level test, which needs React in the harness.

@@ -476,7 +476,7 @@ export async function judgePitch(
       reportFallback("verdict", 0);
     }
   }
-  return resolveLocally(attempt, caller, state);
+  return resolveCallLocally(attempt, caller, state);
 }
 
 const declined = (reply: string, source: "api" | "local"): CallOutcome => ({
@@ -503,8 +503,21 @@ const declined = (reply: string, source: "api" | "local"): CallOutcome => ({
  *   4. Whether you used the time at all.
  *
  * Nothing reads how you sounded.
+ *
+ * ── Why this is exported ────────────────────────────────────────────────────
+ *
+ * It is also the LEADERBOARD's resolver. `judgePitch` above prefers the model,
+ * and a model's answer is a different sentence every time — so a board that
+ * accepted the cash it handed out would rank a run by whether an API key
+ * happened to be deployed on the day it was played. That is Brand Law 4 broken
+ * by an environment variable.
+ *
+ * This function is seeded on `coldcall:<seed>:<caller>:<year>:<month>` and
+ * reads the transcript through `scorePitchContent`, so it returns the same
+ * answer on every machine for every player. `lib/leaderboard/replay.ts` calls
+ * it under its exported name; nothing else outside this file should.
  */
-function resolveLocally(
+export function resolveCallLocally(
   attempt: PitchAttempt,
   caller: Caller,
   state: RunState,
