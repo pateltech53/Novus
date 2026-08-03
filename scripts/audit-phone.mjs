@@ -317,6 +317,14 @@ for (const [name, width, height] of SIZES) {
   // change what the next one is measured in.
   const overlays = [
     [
+      // The story sheet — the phone's whole log, behind the one glass row
+      // that replaced the inline feed.
+      "log",
+      async (p) => {
+        await p.click('button[aria-label^="Open the story so far"]');
+      },
+    ],
+    [
       "settings",
       async (p) => {
         await p.click('button[aria-label="Settings"]');

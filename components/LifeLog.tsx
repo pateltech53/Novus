@@ -23,10 +23,30 @@ import type { LogLine } from "@/lib/engine/types";
  * "just below the fold" as at the end, so following does not stall the first
  * time a long month pushes the anchor a line past the edge.
  */
-export function LifeLog({ lines }: { lines: LogLine[] }) {
+export function LifeLog({
+  lines,
+  startAtEnd = false,
+}: {
+  lines: LogLine[];
+  /**
+   * Open scrolled to the newest line. The phone's log sheet passes this: it
+   * answers "what just happened", so the latest month is the reading position
+   * and the beginning is one scroll up. The inline desktop log never does —
+   * it is part of a page whose scroll the player already owns.
+   */
+  startAtEnd?: boolean;
+}) {
   const endRef = useRef<HTMLDivElement>(null);
   const count = useRef(lines.length);
-  const atEnd = useRef(false);
+  const atEnd = useRef(startAtEnd);
+
+  useEffect(() => {
+    if (!startAtEnd) return;
+    // Instant, not smooth: this is the sheet's opening position, not a motion.
+    endRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+    // Mount only — re-running on line changes would fight the follow logic below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const el = endRef.current;

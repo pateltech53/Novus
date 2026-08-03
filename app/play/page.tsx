@@ -6,6 +6,7 @@ import { useGame } from "@/lib/state/GameProvider";
 import { HomeStage } from "@/components/HomeStage";
 import { TheBooks } from "@/components/TheBooks";
 import { LifeLog } from "@/components/LifeLog";
+import { LogButton, LogSheet } from "@/components/screens/LogSheet";
 import { AdvanceButton } from "@/components/AdvanceButton";
 import { DecisionSheet } from "@/components/DecisionSheet";
 import { PositioningSheet } from "@/components/PositioningSheet";
@@ -67,6 +68,8 @@ function PlayScreen() {
   const [showSettings, setShowSettings] = useState(false);
   const [showBoard, setShowBoard] = useState(false);
   const [dossier, setDossier] = useState(false);
+  /** The phone's log sheet. Desktop keeps the log inline and never sets this. */
+  const [logOpen, setLogOpen] = useState(false);
   const [term, setTerm] = useState<{ term: string; detail?: string } | null>(null);
 
   /*
@@ -189,6 +192,7 @@ function PlayScreen() {
     !showSettings &&
     !showBoard &&
     !dossier &&
+    !logOpen &&
     run.alive;
 
   const overlay =
@@ -199,6 +203,7 @@ function PlayScreen() {
     showSettings ||
     showBoard ||
     dossier ||
+    logOpen ||
     !!yearEnd ||
     !!autopsy ||
     !!game.tierUnlock ||
@@ -337,6 +342,7 @@ function PlayScreen() {
   useBackHandler(showSettings, () => setShowSettings(false));
   useBackHandler(showBoard, () => setShowBoard(false));
   useBackHandler(dossier, () => setDossier(false));
+  useBackHandler(logOpen, () => setLogOpen(false));
 
   if (!run) {
     return (
@@ -406,13 +412,28 @@ function PlayScreen() {
         </div>
 
         {/*
-          The log takes the reserved space rather than a spacer taking it.
-          Glass refracts what is behind it, so what has to be behind the native
-          deck is scrolling content — a padded opaque band would leave the most
-          expensive material on the screen with nothing to show.
+          One log, two presentations.
+
+          On the phone the feed is compressed into a single glass row — the
+          latest line, truncated — and the full story opens as a sheet. The
+          feed used to be the whole lower half of the screen, which buried the
+          ledger under a wall of prose; the row gives the numbers the room and
+          keeps the story one tap away.
+
+          Desktop keeps the inline feed: the right rail is the reading column
+          the log was always short of, so there is nothing to compress. Same
+          `lg:` seam as the rest of this file's two compositions.
         */}
         <div
-          className="flex-1 overflow-y-auto pb-3"
+          className="px-3 pt-3 lg:hidden"
+          // The native deck floats over the page's end; on a short phone the
+          // row is the page's end, so it reserves the deck's measured height.
+          style={domChrome ? undefined : { paddingBottom: "var(--nv-chrome-bottom, 0px)" }}
+        >
+          <LogButton month={run.month} year={run.year} onOpen={() => setLogOpen(true)} />
+        </div>
+        <div
+          className="hidden flex-1 overflow-y-auto pb-3 lg:block"
           style={domChrome ? undefined : { paddingBottom: "var(--nv-chrome-bottom, 0px)" }}
         >
           <LifeLog lines={run.log} />
@@ -517,6 +538,7 @@ function PlayScreen() {
       {showPro && <ProSheet onClose={() => setShowPro(false)} />}
       {showSettings && <SettingsScreen onClose={() => setShowSettings(false)} />}
       {showBoard && <StillStandingScreen onClose={() => setShowBoard(false)} />}
+      {logOpen && <LogSheet run={run} onClose={() => setLogOpen(false)} />}
 
       {/* Fires the moment a stage promotion opens a new tier. It sits above
           the year-end statement on purpose: the wardrobe is the reward for
