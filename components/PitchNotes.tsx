@@ -122,17 +122,24 @@ export function PitchNotes({
       </div>
 
       {/*
-        Shorter over the camera than in the room.
+        Shorter over the camera than in the room, but no longer a letterbox.
 
-        The camera screen gives the live view whatever is left after the
-        controls, so every pixel this card takes comes off the picture of the
-        founder's own face. 8rem is about five rows — enough to answer "what was
-        that number" at a glance, not enough to become something you read
-        instead of pitching. The panel has a scroll region of its own and can
-        afford the taller card.
+        8rem on stage and 14rem in the room was about five rows and eight. The
+        Numbers tab alone is longer than that, so the card cut off mid-figure
+        and the answer to "what was my churn" was behind a scroll inside a box
+        the size of a stamp — during a timed pitch, which is exactly when nobody
+        can afford to go looking for it.
+
+        The trade the old comment describes is real: every pixel here comes off
+        the founder's own face on the camera screen. So it is sized in viewport
+        units rather than fixed rem — a quarter of the screen while pitching, a
+        third in the room — which holds that trade on a phone and stops wasting
+        the space on a laptop, where the old fixed height was absurd.
       */}
       <div
-        className={`overflow-y-auto px-3 pb-3 pt-2.5 ${onStage ? "max-h-32" : "max-h-56"}`}
+        className={`overflow-y-auto px-3 pb-3 pt-2.5 ${
+          onStage ? "max-h-[26vh] min-h-[8rem]" : "max-h-[38vh] min-h-[14rem]"
+        }`}
       >
         {tab === "company" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2.5">

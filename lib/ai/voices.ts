@@ -51,6 +51,18 @@ export interface VoiceProfile {
    * `ELEVENLABS_VOICE_<CHARACTER>` — see `app/api/tts/route.ts`.
    */
   elevenVoiceId: string;
+  /**
+   * How fast this character talks, as an ElevenLabs `voice_settings.speed`.
+   *
+   * 1.0 is the model's own pace, which plays slower than television. The Tank
+   * is a room of people interrupting each other, and at 1.0 the gaps read as
+   * buffering rather than as menace. Marcus was the worst of it: his direction
+   * is "unhurried", so the character the player waits on longest was also the
+   * slowest to say anything. ElevenLabs accepts 0.7–1.2; these sit at the quick
+   * end of natural and keep the characters' pace RELATIVE to each other, which
+   * is what makes them sound like different people.
+   */
+  speed: number;
   /** Local speechSynthesis fallback shaping. */
   rate: number;
   pitch: number;
@@ -65,42 +77,48 @@ export type VoiceKey = SharkId | "chair" | "narrator";
 export const VOICES: Record<VoiceKey, VoiceProfile> = {
   marcus: {
     elevenVoiceId: "xzZRXG86mSM3naOyL9fa",
-    rate: 0.94,
+    speed: 1.18,
+    rate: 1.1,
     pitch: 0.82,
     prefer: ["Daniel", "Google UK English Male", "Microsoft Guy"],
     direction: "Low, unhurried, never raises it. The pause before the number is the threat.",
   },
   serena: {
     elevenVoiceId: "2qfp6zPuviqeCOZIE9RZ",
-    rate: 1.08,
+    speed: 1.12,
+    rate: 1.18,
     pitch: 1.15,
     prefer: ["Samantha", "Google US English", "Microsoft Aria"],
     direction: "Fast, bright, leans forward. Interrupts because she is already three steps ahead.",
   },
   dev: {
     elevenVoiceId: "Dey7SsJGQxe5rLi7TlDb",
-    rate: 1.0,
+    speed: 1.12,
+    rate: 1.12,
     pitch: 0.95,
     prefer: ["Rishi", "Google UK English Male", "Microsoft Ryan"],
     direction: "Even and practical. Asks the question a person who has built it would ask.",
   },
   lily: {
     elevenVoiceId: "IMk6UKhh3TUTWOy0lm5b",
-    rate: 0.98,
+    speed: 1.1,
+    rate: 1.1,
     pitch: 1.1,
     prefer: ["Karen", "Google US English", "Microsoft Michelle"],
     direction: "Warm, but the warmth is not agreement. Notices who you thanked.",
   },
   viktor: {
     elevenVoiceId: "LAGBxLXnb0Y6n64yiOWj",
-    rate: 0.88,
+    speed: 1.15,
+    rate: 1.02,
     pitch: 0.75,
     prefer: ["Alex", "Google UK English Male", "Microsoft Davis"],
     direction: "Quiet, flat, unhurried. Describes how this dies the way a doctor reads a chart.",
   },
   chair: {
     elevenVoiceId: "VgQ3etxCiFKtKJpfkhX9",
-    rate: 1.0,
+    speed: 1.1,
+    rate: 1.08,
     pitch: 1.0,
     prefer: ["Daniel", "Google US English"],
     direction: "Neutral host. Frames the round, keeps time, never takes a side.",
@@ -113,7 +131,8 @@ export const VOICES: Record<VoiceKey, VoiceProfile> = {
      * Sam: raspier, drier, unmistakably not the Chair.
      */
     elevenVoiceId: "yoZ06aMxZJJ28mfd3POQ",
-    rate: 0.97,
+    speed: 1.1,
+    rate: 1.08,
     pitch: 0.9,
     prefer: ["Daniel", "Google UK English Male", "Microsoft Guy"],
     direction: "Dry, close-mic'd. Sets the scene and gets out of the way.",

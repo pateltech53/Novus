@@ -213,14 +213,45 @@ function speakLocal(text: string, speaker: Speaker): Promise<void> {
   });
 }
 
+/*
+ * Whether a line is being spoken right now, and who can hear about it.
+ *
+ * The UI needs this for one reason: a shark talking over the player is the
+ * single most broken-feeling thing in the room, and the fix has two halves —
+ * the player must be able to CUT the voice off (a SKIP they can see), and the
+ * voice must cut ITSELF off when they start answering. Both need to know
+ * whether anything is speaking, and React cannot see a module-level variable.
+ */
+let speaking = false;
+const speakingListeners = new Set<(v: boolean) => void>();
+
+function setSpeaking(next: boolean): void {
+  if (speaking === next) return;
+  speaking = next;
+  for (const listener of speakingListeners) listener(next);
+}
+
+export const isSpeaking = (): boolean => speaking;
+
+/** Subscribe to speaking changes. Returns the unsubscribe. */
+export function onSpeakingChange(fn: (v: boolean) => void): () => void {
+  speakingListeners.add(fn);
+  return () => speakingListeners.delete(fn);
+}
+
 /** Speak a line as a specific character. Resolves when the line finishes. */
 export async function speak(text: string, speaker: Speaker = "chair"): Promise<void> {
   if (!text) return;
   // Someone who asked for less motion did not ask to be talked at either.
   if (reducedMotion()) return;
   stopSpeaking();
-  if (await speakCloud(text, speaker)) return;
-  await speakLocal(text, speaker);
+  setSpeaking(true);
+  try {
+    if (await speakCloud(text, speaker)) return;
+    await speakLocal(text, speaker);
+  } finally {
+    setSpeaking(false);
+  }
 }
 
 /**
@@ -232,7 +263,14 @@ function endpointUrl(endpoint: string): string {
   return endpoint.startsWith("/") ? apiUrl(endpoint) : endpoint;
 }
 
-/** Barge-in: the player starting to talk cuts the shark off immediately. */
+/**
+ * Barge-in: the player starting to talk cuts the shark off immediately.
+ *
+ * Also what SKIP calls, and what the answer turn calls the moment a microphone
+ * opens. A shark still finishing their question while the player is already
+ * answering it is both of them talking into the same silence — and on a phone
+ * the shark wins, because they are louder than the person holding it.
+ */
 export function stopSpeaking(): void {
   if (typeof window === "undefined") return;
   window.speechSynthesis?.cancel();
@@ -240,4 +278,5 @@ export function stopSpeaking(): void {
     current.pause();
     current = null;
   }
+  setSpeaking(false);
 }

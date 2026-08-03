@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import type { LevelMeter, Recording } from "@/lib/media/recorder";
+import { stopSpeaking } from "@/lib/ai/speech";
+import { AnswerHelp } from "@/components/panel/AnswerHelp";
 import {
   createLevelMeter,
   mediaSupported,
@@ -56,6 +58,10 @@ export function AnswerTurn({
   speakLabel = "ANSWER OUT LOUD",
   declineLabel = "SAY NOTHING",
   allowDecline = true,
+  shark = "an investor",
+  helpFacts,
+  helpRemaining = 0,
+  onHelpUsed,
 }: {
   question: string;
   /** The founder's actual words, however they arrived. */
@@ -68,6 +74,18 @@ export function AnswerTurn({
   speakLabel?: string;
   declineLabel?: string;
   allowDecline?: boolean;
+  /** Who asked, so the help can be told whose question it is. */
+  shark?: string;
+  /**
+   * The founder's own figures. Passed so the help can POINT at them and is
+   * never in a position to invent one — see components/panel/AnswerHelp.tsx.
+   * Absent means no help is offered at all, which is the counter-offer turn:
+   * naming your own number is the exercise there, and a hint would be the
+   * answer.
+   */
+  helpFacts?: Record<string, string | number>;
+  helpRemaining?: number;
+  onHelpUsed?: () => void;
 }) {
   const [mode, setMode] = useState<"choose" | "recording" | "transcribing" | "typing">("choose");
   const [seconds, setSeconds] = useState(0);
@@ -147,6 +165,16 @@ export function AnswerTurn({
        * recogniser gives words immediately and works offline.
        * `resolveTranscript` takes whichever turns out better.
        */
+      /*
+       * The room goes quiet the moment the microphone opens.
+       *
+       * The shark's question is spoken and the answer turn appears while that
+       * line is still playing, so a player who starts straight away is talking
+       * over them — into a mic that is now recording both. This is the barge-in
+       * half of the fix; the visible SKIP is the other.
+       */
+      stopSpeaking();
+
       const { recorder, done } = startRecording(stream, false);
       recorderRef.current = recorder;
       doneRef.current = done;
@@ -241,6 +269,17 @@ export function AnswerTurn({
           >
             Type it instead
           </button>
+          {/* Only before the microphone opens. Reading a hint while recording
+              is how a hint becomes a script being read aloud. */}
+          {helpFacts && onHelpUsed && (
+            <AnswerHelp
+              question={question}
+              shark={shark}
+              facts={helpFacts}
+              remaining={helpRemaining}
+              onUsed={onHelpUsed}
+            />
+          )}
           {allowDecline && (
             <button
               type="button"

@@ -20,18 +20,22 @@ import type { TankDebriefData } from "@/lib/ai/debrief-types";
 import { S_UNIT } from "@/lib/engine/constants";
 
 /**
- * THE VERDICT, AND THEN THE ROOM, AND THEN THE REPORT.
+ * THE ROOM, AND THEN THE VERDICT, AND THEN THE REPORT.
  *
- * ── The order changed, and the order was the bug ───────────────────────────
+ * ── The order changed twice, and the order was the bug both times ──────────
  *
- * This screen used to be the whole of the feedback: a score, sub-scores, line
- * edits, three priorities — and then, underneath it, a button into The Tank.
- * So the report a player read was written before the hardest part of the
- * exercise had happened. Nothing it said could possibly cover how they held up
- * under questioning, which is the half that actually teaches pitching.
+ * Originally this screen was the whole of the feedback — score, sub-scores,
+ * line edits, priorities — with a button into The Tank underneath it. So the
+ * report was written before the hardest part of the exercise had happened, and
+ * could say nothing about how the player held up under questioning.
  *
- * Now this screen is deliberately thin: what you said, whether it hit the seven
- * beats, and the door into the room. The full report is `TankDebrief`, after.
+ * The first fix made this screen thin and put the full report after the room.
+ * That left the SCORE still in front of it, which has the same shape of
+ * problem: a number on the opening two minutes, delivered before the room has
+ * asked a single question, that the room then spends ten turns contradicting.
+ *
+ * So for a year gate the order is now: the room, then this score, then
+ * `TankDebrief`. A performance with no room to face still opens here.
  *
  * ── The other bug: the feedback was somebody else's ────────────────────────
  *
@@ -80,18 +84,44 @@ export function PitchScore({
   onContinue: (dealCashS?: number, dealEquityPct?: number) => void;
 }) {
   const [verdict, setVerdict] = useState("");
-  const [stage, setStage] = useState<"score" | "panel" | "debrief">("score");
+  /*
+   * ── The order, changed again ──────────────────────────────────────────────
+   *
+   * It was score → room → report. The score is a verdict on the opening two
+   * minutes, and reading a verdict BEFORE the questioning tells a player how
+   * they did before the hardest part has happened — and worse, sets an
+   * expectation the room then contradicts.
+   *
+   * It is now room → score → report. You pitch, you get questioned, and only
+   * then does anything put a number on it; the full breakdown follows. A
+   * performance that is not a year gate has no room to face, so it opens on
+   * the score exactly as before.
+   */
+  const [stage, setStage] = useState<"score" | "panel" | "debrief">(
+    isYearGate ? "panel" : "score",
+  );
   const [debrief, setDebrief] = useState<TankDebriefData | null>(null);
   const [deal, setDeal] = useState<{ cashS?: number; equityPct?: number }>({});
 
+  /*
+   * The verdict cue fires when the score is REACHED, not when this component
+   * mounts.
+   *
+   * On a year gate this component now mounts straight into the room, and this
+   * effect used to run on mount: a celebration sting and the Chair reading the
+   * verdict out loud over the top of the Tank's own opening — a spoiler and a
+   * second voice, both at the worst possible moment. Keying it to the stage
+   * makes it what it always read as: the sound of the number landing.
+   */
   useEffect(() => {
+    if (stage !== "score") return;
     play(score >= 8 ? "celebrate" : score >= 5 ? "success" : "error");
     const key = score >= 8 ? "score_high" : score >= 5 ? "score_mid" : "score_low";
     void chairLine(key).then((line) => {
       setVerdict(line);
       void speak(line, "narrator");
     });
-  }, [score]);
+  }, [score, stage]);
 
   /**
    * The room finished. Build the report from the WHOLE session and show it.
@@ -103,7 +133,13 @@ export function PitchScore({
   const tankDone = useCallback(
     async (dealCashS: number | undefined, dealEquityPct: number | undefined, outcome: TankOutcome) => {
       setDeal({ cashS: dealCashS, equityPct: dealEquityPct });
-      setStage("debrief");
+      /*
+       * Straight to the score, and the report is built while it is being read.
+       * The debrief takes a real model call; starting it here means the player
+       * spends that time reading their number instead of watching a spinner,
+       * and it is usually finished before they press through.
+       */
+      setStage("score");
       const data = await buildDebrief({
         run,
         ctx: buildPanelContext({
@@ -282,15 +318,15 @@ export function PitchScore({
 
         <button
           type="button"
-          onClick={() => (isYearGate ? setStage("panel") : onContinue())}
+          onClick={() => (isYearGate ? setStage("debrief") : onContinue())}
           className="nv-gc mt-8 w-full rounded-[var(--radius-card)] nv-t-action px-5 py-4 text-base font-extrabold tracking-[0.06em]"
         >
-          {isYearGate ? "FACE THE PANEL ▸" : "BACK TO THE COMPANY ▸"}
+          {isYearGate ? "READ THE FULL BREAKDOWN ▸" : "BACK TO THE COMPANY ▸"}
         </button>
         {isYearGate && (
           <p className="mt-2 text-center text-2xs leading-snug tracking-[0.06em] text-[var(--n-7)]">
-            THE FULL BREAKDOWN COMES AFTER THE ROOM — HOW YOU ANSWERED MATTERS MORE
-            THAN HOW YOU OPENED
+            THIS SCORES THE TWO MINUTES YOU OPENED WITH · HOW YOU ANSWERED IN THE
+            ROOM IS IN THE BREAKDOWN
           </p>
         )}
       </div>

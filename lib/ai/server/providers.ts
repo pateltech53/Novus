@@ -78,6 +78,15 @@ export const AI_LIMITS = {
   debriefPerIp: numberFromEnv("NOVUS_AI_DEBRIEF_PER_IP", 40),
   /** Founding a company is rare and the call is tiny. */
   briefPerIp: numberFromEnv("NOVUS_AI_BRIEF_PER_IP", 30),
+  /**
+   * Answer help, capped hard on purpose.
+   *
+   * The client already allows three per room — see COACH_USES in
+   * components/panel/AnswerTurn.tsx — because a founder who can ask for help on
+   * every question is not being coached, they are being carried. This is the
+   * server's own ceiling behind that, for anyone who skips the client.
+   */
+  coachPerIp: numberFromEnv("NOVUS_AI_COACH_PER_IP", 60),
   /** Everyone, everywhere, per 24h. The wallet's limit rather than a player's. */
   ttsPerDay: numberFromEnv("NOVUS_AI_TTS_PER_DAY", 20_000),
   sttPerDay: numberFromEnv("NOVUS_AI_STT_PER_DAY", 4_000),
@@ -85,6 +94,7 @@ export const AI_LIMITS = {
   panelPerDay: numberFromEnv("NOVUS_AI_PANEL_PER_DAY", 20_000),
   debriefPerDay: numberFromEnv("NOVUS_AI_DEBRIEF_PER_DAY", 3_000),
   briefPerDay: numberFromEnv("NOVUS_AI_BRIEF_PER_DAY", 2_000),
+  coachPerDay: numberFromEnv("NOVUS_AI_COACH_PER_DAY", 3_000),
 } as const;
 
 function numberFromEnv(name: string, fallback: number): number {
