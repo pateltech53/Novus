@@ -43,6 +43,8 @@ interface ProviderStatus {
   /** Whether the provider accepted the key just now. Null when not configured. */
   ok: boolean | null;
   http?: number;
+  /** Working, but not fully: the feature runs on a lesser path than intended. */
+  degraded?: boolean;
   /** The provider's own machine-readable reason, when it sent one. */
   reason?: string;
   message?: string;
@@ -71,6 +73,7 @@ export async function GET() {
   const providers = { voice, transcription, verdict };
   const configured = Object.values(providers).filter((p) => p.configured).length;
   const working = Object.values(providers).filter((p) => p.ok === true).length;
+  const degraded = Object.values(providers).filter((p) => p.degraded).length;
 
   const body = {
     // The one-line answer, so the common case needs no interpretation.
@@ -78,7 +81,9 @@ export async function GET() {
       configured === 0
         ? "No AI keys are set on this deploy. All three features are using their local fallbacks, which is a supported state."
         : working === configured
-          ? `All ${working} configured provider(s) are answering.`
+          ? degraded > 0
+            ? `All ${working} configured provider(s) are answering, but ${degraded} is running degraded — see below.`
+            : `All ${working} configured provider(s) are answering.`
           : `${configured - working} of ${configured} configured provider(s) are FAILING — see below.`,
     providers,
     // Named so an operator reading this knows where the other half of the
@@ -119,17 +124,28 @@ async function checkElevenLabs(): Promise<ProviderStatus> {
       };
     }
     const { reason, message } = await elevenDetail(res);
+
+    // Listing and speaking are separate permissions, so a failed list does NOT
+    // settle whether the game has a voice — and saying "FAILING" while the
+    // sharks are audibly speaking is precisely the false alarm this endpoint
+    // exists to prevent. A diagnostic that cries wolf gets ignored, and then
+    // the next real failure is invisible again. So ask the question that
+    // actually decides it: two characters of speech against a premade voice.
+    const speaks = await canSynthesise();
+
     return {
       ...base,
-      ok: false,
+      ok: speaks,
+      degraded: speaks,
       http: res.status,
       reason,
       message,
       // HTTP 401 alone covers four unrelated problems with four different
       // fixes, which is exactly why this field is not just the status code.
-      detail:
-        reason === "missing_permissions"
-          ? "The key is VALID but scoped too narrowly. Enable voices_read and text_to_speech on it. /api/tts falls back to a premade voice meanwhile, so the panel should still speak."
+      detail: speaks
+        ? "The panel HAS a voice — synthesis works and /api/tts is using a premade voice. What is missing is casting: without voices_read it cannot read your account, so every shark shares one voice instead of getting their own. Enable voices_read on the key to fix that."
+        : reason === "missing_permissions"
+          ? "The key is valid but cannot list voices OR synthesise speech. Enable both voices_read and text_to_speech on it."
           : reason === "detected_unusual_activity"
             ? "ElevenLabs has flagged this account — free tiers get this from VPN and cloud IPs. It needs a paid plan or an appeal to them."
             : reason === "quota_exceeded"
@@ -138,6 +154,34 @@ async function checkElevenLabs(): Promise<ProviderStatus> {
     };
   } catch (err) {
     return { ...base, ok: false, detail: reachError(err) };
+  }
+}
+
+/**
+ * Can this key make sound at all?
+ *
+ * Two characters against a premade voice — the same fallback /api/tts uses when
+ * it cannot read the account — so the answer costs effectively nothing and is
+ * the one that matters. Everything else about ElevenLabs is casting.
+ */
+async function canSynthesise(): Promise<boolean> {
+  try {
+    const res = await fetch(
+      "https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM",
+      {
+        method: "POST",
+        headers: {
+          "xi-api-key": ELEVENLABS_API_KEY,
+          "content-type": "application/json",
+          accept: "audio/mpeg",
+        },
+        body: JSON.stringify({ text: "ok", model_id: ELEVENLABS_MODEL }),
+        signal: AbortSignal.timeout(15_000),
+      },
+    );
+    return res.ok;
+  } catch {
+    return false;
   }
 }
 

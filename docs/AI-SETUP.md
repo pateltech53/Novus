@@ -108,18 +108,26 @@ curl https://YOUR-HOST/api/ai
 
 ```json
 {
-  "summary": "1 of 3 configured provider(s) are FAILING — see below.",
+  "summary": "All 3 configured provider(s) are answering, but 1 is running degraded — see below.",
   "providers": {
     "voice": {
-      "key": "ELEVENLABS_API_KEY", "configured": true, "ok": false, "http": 401,
-      "reason": "missing_permissions",
-      "detail": "The key is VALID but scoped too narrowly. Enable voices_read…"
+      "key": "ELEVENLABS_API_KEY", "configured": true, "ok": true,
+      "degraded": true, "http": 401, "reason": "missing_permissions",
+      "detail": "The panel HAS a voice — synthesis works and /api/tts is using a
+                 premade voice. What is missing is casting…"
     },
     "transcription": { "key": "DEEPGRAM_API_KEY", "ok": true, … },
     "verdict":       { "key": "OPENROUTER_API_KEY", "ok": true, … }
   }
 }
 ```
+
+Note the `degraded` distinction. Listing voices and synthesising speech are
+separate ElevenLabs permissions, so a key that fails the first can still pass
+the second — the panel has a real voice, it just cannot cast a different one per
+shark. Reporting that as FAILING while the sharks are audibly talking is how a
+diagnostic teaches you to ignore it, so this endpoint synthesises two characters
+of speech before deciding.
 
 It reports whether each variable is set, whether the provider accepted it, and
 the provider's own machine-readable reason when it did not — plus the OpenRouter
