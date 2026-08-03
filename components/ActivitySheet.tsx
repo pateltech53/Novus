@@ -8,6 +8,7 @@ import { ProductSheet } from "@/components/ProductSheet";
 import { fmtMoney } from "@/lib/engine/format";
 import { S_UNIT } from "@/lib/engine/constants";
 import type { ActivityTab } from "@/components/ActivityBar";
+import { useNativeGlassClose } from "@/components/native/useNativeOverlay";
 
 const TAB_COPY: Record<ActivityTab, { title: string; line: string }> = {
   company: {
@@ -41,6 +42,7 @@ export function ActivitySheet({
   tab: ActivityTab | null;
   onClose: () => void;
 }) {
+  const native = useNativeGlassClose("Close", onClose);
   const { run, runActivity } = useGame();
   const [done, setDone] = useState<string[]>([]);
 
@@ -64,7 +66,7 @@ export function ActivitySheet({
             role="dialog"
             aria-modal="true"
             aria-label={TAB_COPY[tab].title}
-            className="relative flex max-h-[88dvh] w-full max-w-2xl flex-col overflow-y-auto rounded-t-[1.75rem] bg-[var(--sheet)] pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[var(--e3)]"
+            className="relative flex max-h-[min(88dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] w-full max-w-2xl flex-col overflow-y-auto rounded-t-[1.75rem] bg-[var(--sheet)] pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[var(--e3)]"
             initial={{ y: "8%", opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
@@ -78,13 +80,15 @@ export function ActivitySheet({
                   {TAB_COPY[tab].line}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={onClose}
-                className="nv-gc shrink-0 rounded-full px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
-              >
-                CLOSE
-              </button>
+              {native ? null : (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="nv-gc shrink-0 rounded-full px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
+                >
+                  CLOSE
+                </button>
+              )}
             </div>
 
             {/* The product tab is a screen, not a list of buttons: the portfolio,

@@ -20,6 +20,7 @@ import {
 } from "@/lib/leaderboard/client";
 import { tapeStatus } from "@/lib/leaderboard/recorder";
 import type { Board } from "@/lib/leaderboard/boards";
+import { useNativeGlassClose } from "@/components/native/useNativeOverlay";
 
 /**
  * Still Standing — the two global boards.
@@ -81,6 +82,9 @@ const ENDED_LABEL: Record<string, string> = {
 };
 
 export function StillStandingScreen({ onClose }: { onClose: () => void }) {
+  // A real `UIGlassEffect` circle over the scrim; the CLOSE chip below is
+  // not rendered at all while it is up.
+  const native = useNativeGlassClose("Close the leaderboard", onClose);
   const { run } = useGame();
   const [board, setBoard] = useState<Board>("survival");
   const [page, setPage] = useState<BoardPage | null>(null);
@@ -177,7 +181,7 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
         role="dialog"
         aria-modal="true"
         aria-label="Still Standing"
-        className="relative flex max-h-[88dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-[1.75rem] bg-[var(--sheet)] shadow-[var(--e3)]"
+        className="relative flex max-h-[min(88dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] w-full max-w-2xl flex-col overflow-hidden rounded-t-[1.75rem] bg-[var(--sheet)] shadow-[var(--e3)]"
         initial={{ y: "8%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
@@ -195,13 +199,15 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
                 {active.blurb}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="nv-gc nv-flat shrink-0 rounded-full px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
-            >
-              CLOSE
-            </button>
+            {native ? null : (
+              <button
+                type="button"
+                onClick={onClose}
+                className="nv-gc nv-flat shrink-0 rounded-full px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
+              >
+                CLOSE
+              </button>
+            )}
           </div>
 
           {/* A segmented control is chrome, so it belongs on the glass. The

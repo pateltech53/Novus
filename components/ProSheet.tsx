@@ -9,6 +9,7 @@ import { PRIVACY, TERMS, type LegalDocument } from "@/lib/legal/documents";
 import { billingStatus, goToCheckout, restorePurchases } from "@/lib/cloud/billing";
 import { useSellsHere } from "@/lib/commerce";
 import { BuyOnWeb, RestoreButton } from "@/components/upgrade/BuyOnWeb";
+import { useNativeGlassClose } from "@/components/native/useNativeOverlay";
 import {
   CADENCE_SUFFIX,
   MONTHLY_ANNUALISED_CENTS,
@@ -67,6 +68,7 @@ const ROWS: { label: string; free: string; pro: string }[] = [
 ];
 
 export function ProSheet({ onClose }: { onClose: () => void }) {
+  const native = useNativeGlassClose("Close Novus Pro", onClose);
   const game = useGame();
   const { run } = game;
   const sellsHere = useSellsHere();
@@ -181,7 +183,7 @@ export function ProSheet({ onClose }: { onClose: () => void }) {
         role="dialog"
         aria-modal="true"
         aria-label="Novus Pro"
-        className="relative flex max-h-[88dvh] w-full max-w-2xl flex-col overflow-y-auto rounded-t-[1.75rem] bg-[var(--sheet)] pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[var(--e3)] sm:max-h-[86dvh] sm:rounded-[var(--radius-card)]"
+        className="relative flex max-h-[min(88dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] w-full max-w-2xl flex-col overflow-y-auto rounded-t-[1.75rem] bg-[var(--sheet)] pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[var(--e3)] sm:max-h-[86dvh] sm:rounded-[var(--radius-card)]"
         initial={{ y: "6%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
@@ -195,13 +197,15 @@ export function ProSheet({ onClose }: { onClose: () => void }) {
               More to play with. Never an easier game.
             </h2>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="nv-gc shrink-0 rounded-full px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
-          >
-            CLOSE
-          </button>
+          {native ? null : (
+            <button
+              type="button"
+              onClick={onClose}
+              className="nv-gc shrink-0 rounded-full px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
+            >
+              CLOSE
+            </button>
+          )}
         </div>
 
         <table className="mt-5 w-full text-left">

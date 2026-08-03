@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useNativeGlassClose } from "@/components/native/useNativeOverlay";
 import { motion } from "framer-motion";
 import type { RunState, StageNum } from "@/lib/engine/types";
 import { fmtMoney, fmtMonths, fmtPct, MONTH_NAMES } from "@/lib/engine/format";
@@ -81,6 +82,24 @@ export function CompanyDossier({
 }) {
   const overlay = variant === "overlay";
 
+  /*
+   * The way out is UIKit's.
+   *
+   * A real `UIGlassEffect` circle over the scrim, and the DOM chip below is
+   * not rendered at all when it is up — a hidden button still takes a tap on
+   * iOS if the native view above it passes the touch through, and the player
+   * gets a dead zone nobody can see.
+   *
+   * `chevron.backward` in the overlay variant, where this sits ON another
+   * screen and dismissing returns you to it rather than to the board. The
+   * glyph is the difference between "close this" and "go back one".
+   */
+  const native = useNativeGlassClose(
+    overlay ? "Back" : "Close the dossier",
+    onClose,
+    overlay ? "chevron.backward" : "xmark",
+  );
+
   // Escape closes it. Mid-pitch that matters more than usual — the player is
   // on a clock and should not have to hunt for a target.
   useEffect(() => {
@@ -116,13 +135,13 @@ export function CompanyDossier({
         className={`relative flex w-full flex-col overflow-y-auto bg-[var(--sheet)] shadow-[var(--e3)] ${
           overlay
             ? "max-h-full max-w-md rounded-[var(--radius-card)] pb-4"
-            : "max-h-[88dvh] max-w-2xl rounded-t-[1.75rem] pb-[max(1rem,env(safe-area-inset-bottom))]"
+            : "max-h-[min(88dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] max-w-2xl rounded-t-[1.75rem] pb-[max(1rem,env(safe-area-inset-bottom))]"
         }`}
         initial={overlay ? { opacity: 0, scale: 0.98 } : { y: "8%", opacity: 0 }}
         animate={overlay ? { opacity: 1, scale: 1 } : { y: 0, opacity: 1 }}
         transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
       >
-        <Header run={run} overlay={overlay} onClose={onClose} />
+        <Header run={run} overlay={overlay} onClose={onClose} native={native} />
         <Body run={run} />
         <p className="px-4 pt-5 text-2xs leading-snug text-[var(--text-tertiary)]">
           {overlay
@@ -140,9 +159,12 @@ function Header({
   run,
   overlay,
   onClose,
+  native,
 }: {
   run: RunState;
   overlay: boolean;
+  /** UIKit drew the way out, so this must not draw a second one. */
+  native: boolean;
   onClose: () => void;
 }) {
   const industry = industryByCode(run.industry);
@@ -161,13 +183,15 @@ function Header({
           FY {run.year} · {month} · you own {fmtPct(run.founderEquityPct)}
         </p>
       </div>
-      <button
-        type="button"
-        onClick={onClose}
-        className="nv-gc shrink-0 rounded-full px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
-      >
-        {overlay ? "BACK" : "CLOSE"}
-      </button>
+      {native ? null : (
+        <button
+          type="button"
+          onClick={onClose}
+          className="nv-gc shrink-0 rounded-full px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
+        >
+          {overlay ? "BACK" : "CLOSE"}
+        </button>
+      )}
     </header>
   );
 }

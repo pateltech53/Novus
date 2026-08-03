@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import {
   NovusGlass,
+  type NativeOverlayButton,
   type NativeOverlayState,
   type OverlayInsets,
 } from "@/lib/native/glass";
 import { useNativeChromeOwned } from "@/lib/native/chrome";
+import { useResolvedTheme } from "@/lib/native/theme";
 
 /**
  * A screen's chrome, drawn by UIKit in the real material.
@@ -48,6 +50,17 @@ interface Entry {
 
 const stack: Entry[] = [];
 
+/**
+ * The dock's contents, when something other than the screen supplies them.
+ *
+ * One slot, because there is one dock. It overrides whatever `actions` the
+ * screen on top declared — a screen with both a dock of its own and a mounted
+ * contributor is a screen that has changed its mind about what its primary
+ * action is, and the more specific answer wins.
+ */
+let dock: { key: object; actions: NativeOverlayButton[]; onAction: (id: string) => void } | null =
+  null;
+
 /** The last thing pushed, serialised. The play screen's chrome hook diffs the
  *  same way and for the same reason: a screen re-renders far more often than
  *  its chrome changes, and a bridge call that says nothing is still a bridge
@@ -87,7 +100,12 @@ function attach(): Promise<void> {
         ) => Promise<{ remove: () => void }>
       )(event, fn);
     };
-    await add<{ id: string }>("overlayAction", (d) => top()?.handlers.onAction(d.id));
+    await add<{ id: string }>("overlayAction", (d) => {
+      // The dock's own ids go to whoever contributed them; everything else —
+      // the toolbar's close, a screen's own dock — goes to the screen.
+      if (dock?.actions.some((a) => a.id === d.id)) dock.onAction(d.id);
+      else top()?.handlers.onAction(d.id);
+    });
     await add<{ id: string }>("overlaySegment", (d) => top()?.handlers.onSegment?.(d.id));
     await add<OverlayInsets>("overlayInsets", writeOverlayInsets);
   })().catch(() => {
@@ -97,7 +115,9 @@ function attach(): Promise<void> {
 }
 
 function flush() {
-  const state = top()?.state ?? HIDDEN;
+  const base = top()?.state ?? HIDDEN;
+  const state =
+    dock && base.mode === "shown" ? { ...base, actions: dock.actions } : base;
   const key = JSON.stringify(state);
   if (key === lastSent) return;
   lastSent = key;
@@ -163,6 +183,114 @@ export function useNativeOverlay(
     // state up to date, so it is correct the moment it is uncovered.
     if (top() === entry) flush();
   }, [owns, state]);
+}
+
+/**
+ * The dock, contributed by a component that does not own the screen.
+ *
+ * ── Why this is not just a prop ─────────────────────────────────────────────
+ *
+ * A screen's chrome is declared by the screen. But the thing that belongs in
+ * the dock often is not the screen's to know: Settings' account actions depend
+ * on whether anyone is signed in, whether a request is in flight, and whether
+ * the player has tapped delete once already — and all three of those live in
+ * the section that draws the account, three components down.
+ *
+ * The obvious fix is to lift that state to the screen. The obvious fix is
+ * wrong: it moves four pieces of state and two async handlers away from the
+ * only code that uses them, so that a bar at the bottom of the screen can read
+ * them.
+ *
+ * The other obvious fix — have the section push its own overlay state — is
+ * worse. Registration is a stack and the section mounts *after* the screen, so
+ * its entry would land on top and take the toolbar with it. Closing Settings
+ * would stop being possible.
+ *
+ * So a contribution, not an entry: the screen keeps its toolbar and its
+ * segments, and whatever is mounted supplies the dock. One at a time, because
+ * there is one dock.
+ *
+ * @param actions Null when this component has nothing to put there, which
+ *   withdraws the dock rather than leaving the last thing it said.
+ */
+export function useNativeOverlayDock(
+  actions: NativeOverlayButton[] | null,
+  onAction: (id: string) => void,
+): boolean {
+  const owns = useNativeOverlayOwned();
+  const handlerRef = useRef(onAction);
+  handlerRef.current = onAction;
+  const keyRef = useRef<object>({});
+
+  const key = JSON.stringify(actions ?? null);
+
+  useEffect(() => {
+    if (!owns) return;
+    const mine = keyRef.current;
+    dock =
+      actions && actions.length > 0
+        ? { key: mine, actions, onAction: (id) => handlerRef.current(id) }
+        : dock?.key === mine
+          ? null
+          : dock;
+    flush();
+
+    return () => {
+      if (dock?.key === mine) dock = null;
+      flush();
+    };
+    // `key` rather than `actions`: a caller rebuilds this array every render,
+    // and re-registering sixty times a second to say the same thing is the
+    // cost this whole module is written to avoid.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [owns, key]);
+
+  return owns;
+}
+
+/**
+ * The way out of an overlay, drawn by UIKit.
+ *
+ * Almost every overlay in this app wants exactly this and nothing else: one
+ * glass circle, top right, that closes the thing. Eight of them declaring the
+ * same six-line state object is eight places for it to drift, and the drift is
+ * invisible — a screen whose close button is 2pt off, or whose theme is stale,
+ * or which forgot to withdraw its chrome on unmount.
+ *
+ * Returns whether UIKit took it, so the caller knows not to render its own.
+ * `false` off iOS, without the plugin, or on an old binary — in which case the
+ * DOM button is the way out, exactly as before.
+ *
+ * @param label What the button does, for VoiceOver. "Close the dossier".
+ * @param symbol `xmark` unless the gesture is genuinely "back" rather than
+ *   "close" — a screen inside a screen, where dismissing returns you to the one
+ *   underneath instead of to the board.
+ */
+export function useNativeGlassClose(
+  label: string,
+  onClose: () => void,
+  symbol: "xmark" | "chevron.backward" = "xmark",
+): boolean {
+  const owns = useNativeOverlayOwned();
+  const theme = useResolvedTheme();
+
+  useNativeOverlay(
+    useMemo(
+      () => ({
+        mode: "shown" as const,
+        theme,
+        // No title plate: every one of these overlays already carries its own
+        // heading inside the surface it names, and a second copy floating over
+        // the scrim would be the same words twice.
+        title: null,
+        trailing: [{ id: "close", symbol, label, style: "plain" as const }],
+      }),
+      [theme, label, symbol],
+    ),
+    { onAction: onClose },
+  );
+
+  return owns;
 }
 
 /**

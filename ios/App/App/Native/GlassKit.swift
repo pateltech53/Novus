@@ -288,6 +288,46 @@ final class GlassControl: UIView {
         button.configuration = config
     }
 
+    /**
+     Lights or dims this control in place.
+
+     For a segmented control, where the selected piece is prominent glass
+     inside a dimmer track and the selection changes under a finger. Swapping
+     the configuration keeps the same view — and keeping the same view is the
+     point: rebuilding the row on every tap destroys the control the player is
+     still touching, halfway through its own press animation.
+
+     A no-op on the pre-26 path, where there is no prominent variant to swap
+     to and the backing material is the same either way; the ink still changes,
+     which is what carries the state there.
+     */
+    func setProminent(_ on: Bool, ink: UIColor?) {
+        self.ink = ink
+
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, *) {
+            var next = on
+                ? UIButton.Configuration.prominentGlass()
+                : UIButton.Configuration.glass()
+            next.cornerStyle = .capsule
+            if let tint { next.baseBackgroundColor = tint }
+            if let ink { next.baseForegroundColor = ink }
+            // Carried over rather than re-derived: the caller set these once,
+            // and a configuration swap that dropped the title would blank the
+            // segment it was meant to light.
+            next.attributedTitle = button.configuration?.attributedTitle
+            next.image = button.configuration?.image
+            next.imagePadding = button.configuration?.imagePadding ?? 0
+            button.configuration = next
+            return
+        }
+        #endif
+
+        var next = button.configuration ?? UIButton.Configuration.plain()
+        next.baseForegroundColor = ink ?? .label
+        button.configuration = next
+    }
+
     func setEnabled(_ enabled: Bool) {
         button.isEnabled = enabled
         alpha = enabled ? 1 : 0.45

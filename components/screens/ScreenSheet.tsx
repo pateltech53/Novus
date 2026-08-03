@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { Glass, GlassButton, GlassScrim } from "@/components/ui/Glass";
 import { useNativeOverlay, useNativeOverlayOwned } from "@/components/native/useNativeOverlay";
 import { useResolvedTheme } from "@/lib/native/theme";
-import type { NativeOverlaySegment } from "@/lib/native/glass";
+import type { NativeOverlayButton, NativeOverlaySegment } from "@/lib/native/glass";
 
 /**
  * The shell every activity tab opens into.
@@ -68,6 +68,8 @@ export function ScreenSheet({
   nativeSegments,
   activeSegment,
   onSegment,
+  nativeActions,
+  onNativeAction,
   children,
 }: {
   /** The dialog's accessible name. */
@@ -100,6 +102,20 @@ export function ScreenSheet({
   nativeSegments?: NativeOverlaySegment[];
   activeSegment?: string;
   onSegment?: (id: string) => void;
+  /**
+   * The screen's one call to action, in a floating glass dock.
+   *
+   * iOS only, and for the same reason as everything else native here: a dock
+   * pinned above the safe area does not scroll, and a UIKit view can only
+   * exist where web content does not move under it. A screen that passes this
+   * must still render its own button for the web and Android — and must not
+   * render it when `native` says UIKit has one.
+   *
+   * At most one `prominent`. A dock with three prominent buttons in it is a
+   * screen with no call to action at all.
+   */
+  nativeActions?: NativeOverlayButton[];
+  onNativeAction?: (id: string) => void;
   children: React.ReactNode;
 }) {
   const native = useNativeOverlayOwned();
@@ -120,10 +136,16 @@ export function ScreenSheet({
         ],
         segments: nativeSegments ?? [],
         activeSegment: activeSegment ?? null,
+        actions: nativeActions ?? [],
       }),
-      [theme, closeLabel, nativeSegments, activeSegment],
+      [theme, closeLabel, nativeSegments, activeSegment, nativeActions],
     ),
-    { onAction: onClose, onSegment: (id) => onSegment?.(id) },
+    {
+      // `close` is the toolbar's; everything else is the dock's, and the dock
+      // belongs to the screen that declared it.
+      onAction: (id) => (id === "close" ? onClose() : onNativeAction?.(id)),
+      onSegment: (id) => onSegment?.(id),
+    },
   );
 
   return (
@@ -148,7 +170,7 @@ export function ScreenSheet({
          * put the sheet's grabber underneath a glass close button. Measured,
          * not guessed: the same rule the play screen's chrome is built on.
          */
-        className="relative flex max-h-[min(88dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] w-full max-w-2xl flex-col overflow-y-auto rounded-t-[1.75rem] bg-[var(--sheet)] pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[var(--e3)]"
+        className="relative flex max-h-[min(88dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] w-full max-w-2xl flex-col overflow-y-auto rounded-t-[1.75rem] bg-[var(--sheet)] pb-[max(1rem,env(safe-area-inset-bottom),var(--nv-overlay-bottom))] shadow-[var(--e3)]"
         initial={{ y: "8%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}

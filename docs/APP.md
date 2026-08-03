@@ -159,6 +159,58 @@ sheet screens cap their own height against it — `max-h-[min(88dvh,calc(100dvh
 - var(--nv-overlay-top) - 0.75rem))]` — which is 88dvh everywhere there is no
 toolbar, because the variable is 0 there.
 
+### What is actually native, screen by screen
+
+Every full-screen overlay in the app now hands its way out to UIKit —
+`useNativeGlassClose(label, onClose)` is one line and declares a real
+`UIGlassEffect` circle over the scrim:
+
+| Screen | Native |
+|---|---|
+| the six activity screens | close, via `ScreenSheet` |
+| settings | close, **and the theme picker as a real glass segmented control** |
+| the company dossier | back / close (`chevron.backward` in the overlay variant) |
+| Still Standing | close |
+| the in-fiction phone | PUT IT DOWN |
+| the Pro sheet, the upgrade screen | close |
+| a legal document | back — it opens *from* another screen |
+| an activity sheet | close |
+| the team screen | close, **and "Hire on LinkedOut" in the glass dock** |
+
+Two of those are worth naming, because they are the pattern for the rest:
+
+**Settings' theme picker is in the toolbar**, not in the page. A UIKit view
+cannot move with web content, so a control can only be native if it holds
+still — and the toolbar is the only part of that screen that does. It is a
+real glass segmented control, and the selected piece re-lights in place rather
+than the row being rebuilt, because a rebuild would destroy the control the
+player still has a finger on.
+
+**The team screen's one action is in the dock.** Hiring has exactly one route,
+and the screen used to say so twice in two orange buttons because there was
+nowhere fixed to put it. `UIButton.Configuration.prominentGlass()`, pinned
+above the safe area, reachable without scrolling the roster.
+
+### What stays CSS, and why it is not a shortfall
+
+A native view composites **above** the webview and cannot scroll with web
+content. So a surface can be native if and only if it holds still. That is the
+whole rule, and it is not a matter of effort:
+
+- **Can be native, and is**: the tab bar, the advance deck, the masthead
+  cluster, every screen's toolbar and dock, the decision sheet, toasts.
+- **Cannot be, and is CSS**: anything inline in a scroll — the ledger tiles,
+  the life log's cards, the dossier's stat tiles, a screen's body copy and the
+  controls inside it.
+
+Pushing scroll offsets across the bridge to chase the webview would put an
+async hop between a finger and a view that the webview itself is scrolling on
+its own compositor thread. It would visibly lag, and a lagging native overlay
+looks worse than a CSS one that is simply attached to the content. The way to
+make those genuinely native is to take them out of the webview entirely — a
+native scrolling region with the web layer drawing only the masthead — which
+is a different and much larger change.
+
 Registration is a **stack**, not a setter (`components/native/useNativeOverlay.ts`).
 Screens genuinely nest — settings opens a legal document over itself, the closet
 previews an item — and whichever is on top is the one whose chrome is on screen.

@@ -8,6 +8,7 @@ import { fmtMoney } from "@/lib/engine/format";
 import type { Employee } from "@/lib/engine/people";
 import { useUpgrade } from "@/components/upgrade/UpgradeProvider";
 import { ScreenSheet } from "@/components/screens/ScreenSheet";
+import { useNativeOverlayOwned } from "@/components/native/useNativeOverlay";
 
 /**
  * The team. A roster of named people with salaries, not a headcount integer —
@@ -75,6 +76,7 @@ export interface TeamScreenProps {
 }
 
 export function TeamScreen({ onClose, onFire, onOpenPhone }: TeamScreenProps) {
+  const native = useNativeOverlayOwned();
   const { run } = useGame();
   const upgrade = useUpgrade();
   /** Firing is two taps: the first one only admits you are thinking about it. */
@@ -109,6 +111,25 @@ export function TeamScreen({ onClose, onFire, onOpenPhone }: TeamScreenProps) {
       onClose={onClose}
       title="The team"
       blurb="Payroll leaves every month whether or not the month earned it."
+      /*
+       * The screen's one action, in a real glass dock.
+       *
+       * Hiring has exactly one route — LinkedOut, on the phone — and this
+       * screen said so twice, in two orange buttons, because there was nowhere
+       * fixed to put it. A dock pinned above the safe area is that place, it is
+       * `UIButton.Configuration.prominentGlass()`, and it is reachable without
+       * scrolling the roster.
+       */
+      nativeActions={[
+        {
+          id: "hire",
+          title: "Hire on LinkedOut",
+          symbol: "iphone",
+          label: "Hiring happens on LinkedOut. Open the phone.",
+          style: "prominent",
+        },
+      ]}
+      onNativeAction={onOpenPhone}
     >
       <div className="mt-4 grid grid-cols-2 gap-2 px-3">
         <StatCard label="HEADCOUNT" value={String(roster.length)} />
@@ -181,13 +202,17 @@ export function TeamScreen({ onClose, onFire, onOpenPhone }: TeamScreenProps) {
 
       {/* ── Hiring always points at the phone; LinkedOut owns it ──── */}
       <div className="mt-5 px-3">
-        <button
-          type="button"
-          onClick={onOpenPhone}
-          className="nv-gc flex h-14 w-full items-center justify-center rounded-[var(--radius-pill)] nv-t-action px-4 text-center text-sm font-extrabold leading-tight sm:text-[0.9375rem]"
-        >
-          Hiring happens on LinkedOut. Open the phone.
-        </button>
+        {/* UIKit's dock carries this when it is up. Not rendered rather than
+            hidden — a hidden button still takes a tap on iOS. */}
+        {native ? null : (
+          <button
+            type="button"
+            onClick={onOpenPhone}
+            className="nv-gc flex h-14 w-full items-center justify-center rounded-[var(--radius-pill)] nv-t-action px-4 text-center text-sm font-extrabold leading-tight sm:text-[0.9375rem]"
+          >
+            Hiring happens on LinkedOut. Open the phone.
+          </button>
+        )}
         {!run.pro && (
           // Content only, never outcomes: Pro widens the list, not the odds.
           // Tappable because it was already making the offer — it just had no
