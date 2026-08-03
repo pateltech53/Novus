@@ -304,4 +304,79 @@ update public.profiles set role = 'player', admin_view = null
 select test.eq((select public.player_allowance('90000000-0000-0000-0000-000000000001')), 1::bigint,
                'a demoted admin is a free player — nothing was written to revert');
 
+
+\echo ''
+\echo '=== 9. the analytics (0010) answer to the service role alone ==='
+set role authenticated;
+set request.jwt.claim.sub = '90000000-0000-0000-0000-000000000002';
+
+select test.throws('42501', $$
+  select * from public.admin_timeseries(7)
+$$, 'a player cannot read the time series');
+select test.throws('42501', $$
+  select * from public.admin_cohorts(4)
+$$, 'a player cannot read the cohorts');
+select test.throws('42501', $$
+  select public.admin_capture_daily()
+$$, 'a player cannot write the daily snapshot');
+select test.throws('42501', $$
+  select * from public.admin_last_seen()
+$$, 'a player cannot read last-seen times');
+select test.throws('42501', $$
+  select * from public.admin_daily
+$$, 'a player cannot read the daily table');
+
+
+\echo ''
+\echo '=== 10. the snapshot and the series ==='
+set role service_role;
+set request.jwt.claim.sub = '';
+
+select public.admin_capture_daily();
+select test.eq((select count(*) from public.admin_daily where day = current_date), 1::bigint,
+               'the capture writes today''s row');
+select test.eq((select count(*) from public.admin_timeseries(7)), 7::bigint,
+               'the series returns one row per day asked for');
+select test.ok((select t.actives is not null from public.admin_timeseries(7) t
+                where t.day = current_date),
+               'today''s actives are tracked once captured');
+select test.ok((select t.runs_started is not null from public.admin_timeseries(7) t
+                where t.day = current_date),
+               'today''s run starts are tracked once captured');
+
+select public.admin_capture_daily();
+select test.eq((select count(*) from public.admin_daily), 1::bigint,
+               'a second capture refreshes the row, never duplicates it');
+
+select test.ok((select public.admin_stats() ? 'activity'),
+               'the stats carry the recency histogram');
+
+
+\echo ''
+\echo '=== 11. cohorts: bounce and retention, from last-seen ==='
+-- Two accounts in the same three-weeks-ago cohort: one never came back after
+-- its first day, one was seen eleven days later. The whole point of the
+-- last-seen basis is that these classify correctly with no event log.
+set role postgres;
+insert into auth.users (id, email, created_at, last_sign_in_at) values
+  ('90000000-0000-0000-0000-00000000000b', 'bounce@example.com',
+   now() - interval '21 days', now() - interval '21 days'),
+  ('90000000-0000-0000-0000-00000000000c', 'return@example.com',
+   now() - interval '21 days', now() - interval '10 days');
+
+set role service_role;
+set request.jwt.claim.sub = '';
+select test.eq((select c.cohort from public.admin_cohorts(12) c
+                where c.week = date_trunc('week', now() - interval '21 days')::date), 2::bigint,
+               'the cohort counts both accounts');
+select test.eq((select c.bounced from public.admin_cohorts(12) c
+                where c.week = date_trunc('week', now() - interval '21 days')::date), 1::bigint,
+               'one bounced — never seen after day one');
+select test.eq((select c.retained_7 from public.admin_cohorts(12) c
+                where c.week = date_trunc('week', now() - interval '21 days')::date), 1::bigint,
+               'one retained at seven days');
+select test.eq((select c.retained_30 from public.admin_cohorts(12) c
+                where c.week = date_trunc('week', now() - interval '21 days')::date), 0::bigint,
+               'nobody has answered the thirty-day question yet');
+
 \echo '=== admin_test: all checks passed ==='

@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════════════
--- APPLY ALL · the complete Novus schema (0001 → 0009), idempotently
+-- APPLY ALL · the complete Novus schema (0001 → 0010), idempotently
 -- ═══════════════════════════════════════════════════════════════════════════
 --
 -- Paste the whole file into the Supabase SQL editor of the NOVUS project and
@@ -1567,6 +1567,226 @@ grant execute on function public.admin_stats()                                  
 
 
 -- ═══════════════════════════════════════════════════════════════════════════
+-- 0010 · Admin analytics — cohorts, time series, and the daily snapshot
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- ── admin_daily: one row of COUNTS per day, written lazily ─────────────────
+create table if not exists public.admin_daily (
+  day             date primary key,
+  accounts        int not null,
+  new_accounts    int not null,
+  active_1d       int not null,
+  active_7d       int not null,
+  active_30d      int not null,
+  runs_started    int not null,
+  pro_paid        int not null,
+  pro_comp        int not null,
+  seats           int not null,
+  chapters_active int not null,
+  saves_alive     int not null,
+  board_listed    int not null,
+  board_queue     int not null,
+  captured_at     timestamptz not null default now()
+);
+
+alter table public.admin_daily enable row level security;
+revoke all on public.admin_daily from anon, authenticated;
+
+-- ── The last-seen expression, once ─────────────────────────────────────────
+create or replace function public.admin_last_seen()
+returns table (id uuid, created_at timestamptz, last_seen timestamptz)
+language sql
+stable
+security definer
+set search_path = public, auth, pg_temp
+as $$
+  select
+    u.id,
+    u.created_at,
+    greatest(
+      coalesce(u.last_sign_in_at, u.created_at),
+      coalesce((select max(s.updated_at) from public.saves s where s.profile_id = u.id), u.created_at),
+      coalesce((select p.updated_at from public.preferences p where p.profile_id = u.id), u.created_at),
+      coalesce((select l.updated_at from public.legacy l where l.profile_id = u.id), u.created_at)
+    ) as last_seen
+  from auth.users u
+  where coalesce(u.is_anonymous, false) is false;
+$$;
+
+-- ── admin_timeseries ───────────────────────────────────────────────────────
+create or replace function public.admin_timeseries(p_days int default 60)
+returns table (
+  day          date,
+  signups      bigint,
+  submissions  bigint,
+  actives      int,
+  runs_started int
+)
+language sql
+stable
+security definer
+set search_path = public, auth, pg_temp
+as $$
+  with span as (
+    select generate_series(
+      current_date - (least(greatest(coalesce(p_days, 60), 7), 365) - 1),
+      current_date,
+      interval '1 day'
+    )::date as day
+  ),
+  signups as (
+    select u.created_at::date as day, count(*) as n
+      from auth.users u
+     where coalesce(u.is_anonymous, false) is false
+     group by 1
+  ),
+  submissions as (
+    select e.created_at::date as day, count(*) as n
+      from public.leaderboard_entries e
+     group by 1
+  )
+  select
+    span.day,
+    coalesce(signups.n, 0),
+    coalesce(submissions.n, 0),
+    d.active_1d,
+    d.runs_started
+  from span
+  left join signups     on signups.day = span.day
+  left join submissions on submissions.day = span.day
+  left join public.admin_daily d on d.day = span.day
+  order by span.day;
+$$;
+
+-- ── admin_cohorts ──────────────────────────────────────────────────────────
+create or replace function public.admin_cohorts(p_weeks int default 12)
+returns table (
+  week        date,
+  cohort      bigint,
+  bounced     bigint,
+  retained_7  bigint,
+  retained_30 bigint
+)
+language sql
+stable
+security definer
+set search_path = public, auth, pg_temp
+as $$
+  select
+    date_trunc('week', s.created_at)::date as week,
+    count(*) as cohort,
+    count(*) filter (where s.last_seen <  s.created_at + interval '1 day')  as bounced,
+    count(*) filter (where s.last_seen >= s.created_at + interval '7 days') as retained_7,
+    count(*) filter (where s.last_seen >= s.created_at + interval '30 days') as retained_30
+  from public.admin_last_seen() s
+  where s.created_at >= date_trunc('week', now())
+                        - (least(greatest(coalesce(p_weeks, 12), 1), 52) - 1) * interval '1 week'
+  group by 1
+  order by 1;
+$$;
+
+-- ── admin_capture_daily ────────────────────────────────────────────────────
+create or replace function public.admin_capture_daily()
+returns void
+language sql
+security definer
+set search_path = public, auth, pg_temp
+as $$
+  insert into public.admin_daily as d
+    (day, accounts, new_accounts, active_1d, active_7d, active_30d,
+     runs_started, pro_paid, pro_comp, seats, chapters_active,
+     saves_alive, board_listed, board_queue)
+  select
+    current_date,
+    (select count(*) from public.admin_last_seen()),
+    (select count(*) from public.admin_last_seen() s where s.created_at >= current_date),
+    (select count(*) from public.admin_last_seen() s where s.last_seen > now() - interval '1 day'),
+    (select count(*) from public.admin_last_seen() s where s.last_seen > now() - interval '7 days'),
+    (select count(*) from public.admin_last_seen() s where s.last_seen > now() - interval '30 days'),
+    coalesce((select sum(l.started) from public.run_ledger l
+               where l.day = (now() at time zone 'utc')::date), 0),
+    (select count(*) from public.entitlements e where e.pro),
+    (select count(*) from public.entitlements e
+      where e.comp_pro and (e.comp_until is null or e.comp_until > now())),
+    (select count(*) from public.chapter_seats),
+    (select count(*) from public.chapters c where c.status = 'active'),
+    (select count(*) from public.saves s where s.alive),
+    (select count(*) from public.leaderboard_entries l where l.listed),
+    (select count(*) from public.leaderboard_entries l where l.listed is false)
+  on conflict (day) do update set
+    accounts        = excluded.accounts,
+    new_accounts    = excluded.new_accounts,
+    active_1d       = excluded.active_1d,
+    active_7d       = excluded.active_7d,
+    active_30d      = excluded.active_30d,
+    runs_started    = excluded.runs_started,
+    pro_paid        = excluded.pro_paid,
+    pro_comp        = excluded.pro_comp,
+    seats           = excluded.seats,
+    chapters_active = excluded.chapters_active,
+    saves_alive     = excluded.saves_alive,
+    board_listed    = excluded.board_listed,
+    board_queue     = excluded.board_queue,
+    captured_at     = now();
+$$;
+
+-- ── admin_stats learns what "seen" means ───────────────────────────────────
+create or replace function public.admin_stats()
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public, auth, pg_temp
+as $$
+  with seen as (
+    select * from public.admin_last_seen()
+  )
+  select jsonb_build_object(
+    'accounts',       (select count(*) from seen),
+    'anonymous',      (select count(*) from auth.users u where coalesce(u.is_anonymous, false)),
+    'admins',         (select count(*) from public.profiles p where p.role = 'admin'),
+    'newWeek',        (select count(*) from seen s where s.created_at > now() - interval '7 days'),
+    'activeToday',    (select count(*) from seen s where s.last_seen > now() - interval '1 day'),
+    'activeWeek',     (select count(*) from seen s where s.last_seen > now() - interval '7 days'),
+    'activeMonth',    (select count(*) from seen s where s.last_seen > now() - interval '30 days'),
+    'activity',       (select jsonb_build_object(
+                        'd1',    count(*) filter (where s.last_seen >  now() - interval '1 day'),
+                        'd7',    count(*) filter (where s.last_seen <= now() - interval '1 day'
+                                              and s.last_seen >  now() - interval '7 days'),
+                        'd30',   count(*) filter (where s.last_seen <= now() - interval '7 days'
+                                              and s.last_seen >  now() - interval '30 days'),
+                        'd90',   count(*) filter (where s.last_seen <= now() - interval '30 days'
+                                              and s.last_seen >  now() - interval '90 days'),
+                        'older', count(*) filter (where s.last_seen <= now() - interval '90 days')
+                      ) from seen s),
+    'proPaid',        (select count(*) from public.entitlements e where e.pro),
+    'proComp',        (select count(*) from public.entitlements e
+                        where e.comp_pro and (e.comp_until is null or e.comp_until > now())),
+    'chapterSeats',   (select count(*) from public.chapter_seats),
+    'chaptersActive', (select count(*) from public.chapters c where c.status = 'active'),
+    'chaptersComp',   (select count(*) from public.chapters c
+                        where c.status = 'active' and c.source = 'comp'),
+    'savesAlive',     (select count(*) from public.saves s where s.alive),
+    'boardListed',    (select count(*) from public.leaderboard_entries l where l.listed),
+    'boardQueue',     (select count(*) from public.leaderboard_entries l where l.listed is false)
+  );
+$$;
+
+-- ── Grants ─────────────────────────────────────────────────────────────────
+revoke execute on function public.admin_last_seen()        from public, anon, authenticated;
+revoke execute on function public.admin_timeseries(int)    from public, anon, authenticated;
+revoke execute on function public.admin_cohorts(int)       from public, anon, authenticated;
+revoke execute on function public.admin_capture_daily()    from public, anon, authenticated;
+revoke execute on function public.admin_stats()            from public, anon, authenticated;
+
+grant execute on function public.admin_last_seen()         to service_role;
+grant execute on function public.admin_timeseries(int)     to service_role;
+grant execute on function public.admin_cohorts(int)        to service_role;
+grant execute on function public.admin_capture_daily()     to service_role;
+grant execute on function public.admin_stats()             to service_role;
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
 -- The report — read this before closing the tab
 -- ═══════════════════════════════════════════════════════════════════════════
 
@@ -1611,5 +1831,11 @@ from (
                    where table_schema = 'public' and table_name = 'entitlements'
                      and column_name = 'comp_pro')
       and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-                   where n.nspname = 'public' and p.proname = 'admin_list_users'))
+                   where n.nspname = 'public' and p.proname = 'admin_list_users')),
+    ('0010 admin analytics',
+      to_regclass('public.admin_daily') is not null
+      and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                   where n.nspname = 'public' and p.proname = 'admin_cohorts')
+      and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                   where n.nspname = 'public' and p.proname = 'admin_timeseries'))
 ) as t(migration, present);

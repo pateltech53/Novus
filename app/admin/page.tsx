@@ -1,8 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { API_CREDENTIALS, apiUrl } from "@/lib/native/origin";
+import { useNativeOverlay, useNativeOverlayOwned } from "@/components/native/useNativeOverlay";
+import { useResolvedTheme } from "@/lib/native/theme";
+import {
+  ChartShell,
+  DailyBars,
+  DualLines,
+  RecencyBars,
+  WeeklyPercentBars,
+  type WeeklyBar,
+} from "@/components/admin/charts";
 import { restorePurchases } from "@/lib/cloud/billing";
 import { INDUSTRIES } from "@/lib/engine/constants";
 import { CHAPTER_LICENCES } from "@/lib/monetization";
@@ -124,8 +134,11 @@ interface Stats {
   anonymous?: number;
   admins?: number;
   newWeek?: number;
+  activeToday?: number;
   activeWeek?: number;
   activeMonth?: number;
+  /** The last-seen histogram: within 1d / 1–7d / 7–30d / 30–90d / older. */
+  activity?: { d1: number; d7: number; d30: number; d90: number; older: number };
   proPaid?: number;
   proComp?: number;
   chapterSeats?: number;
@@ -134,6 +147,24 @@ interface Stats {
   savesAlive?: number;
   boardListed?: number;
   boardQueue?: number;
+}
+
+/** One admin_timeseries row. actives/runs are null before tracking began. */
+interface SeriesRow {
+  day: string;
+  signups: number;
+  submissions: number;
+  actives: number | null;
+  runs_started: number | null;
+}
+
+/** One admin_cohorts row — raw counts; percentages are derived here. */
+interface CohortRow {
+  week: string;
+  cohort: number;
+  bounced: number;
+  retained_7: number;
+  retained_30: number;
 }
 
 interface AuditRow {
@@ -182,6 +213,8 @@ export default function AdminPage() {
   const [email, setEmail] = useState<string | null>(null);
 
   const [stats, setStats] = useState<Stats>({});
+  const [series, setSeries] = useState<SeriesRow[]>([]);
+  const [cohorts, setCohorts] = useState<CohortRow[]>([]);
   const [auditTail, setAuditTail] = useState<AuditRow[]>([]);
 
   const [q, setQ] = useState("");
@@ -197,9 +230,16 @@ export default function AdminPage() {
   // ── Loads ─────────────────────────────────────────────────────────────────
 
   const loadStats = useCallback(async () => {
-    const body = await call<{ stats: Stats; audit: AuditRow[] }>("/api/admin/stats");
+    const body = await call<{
+      stats: Stats;
+      series: SeriesRow[];
+      cohorts: CohortRow[];
+      audit: AuditRow[];
+    }>("/api/admin/stats");
     if (body) {
       setStats(body.stats);
+      setSeries(body.series ?? []);
+      setCohorts(body.cohorts ?? []);
       setAuditTail(body.audit);
     }
   }, []);
@@ -376,11 +416,123 @@ export default function AdminPage() {
       [loadQueue, loadStats],
     );
 
+  const refreshAll = useCallback(async () => {
+    await Promise.all([loadStats(), loadUsers(q), loadQueue()]);
+  }, [loadStats, loadUsers, loadQueue, q]);
+
+  /*
+   * The console's chrome, drawn by UIKit — the same Liquid Glass treatment
+   * the chapter console gets: the title rides the glass plate, the way back
+   * is a circle on the left, refresh on the right once there is a console to
+   * refresh. The charts, the roster and the queue stay DOM on every
+   * platform: they are content. On the denied screen the plate says plain
+   * "Novus" — the 404 posture extends to the toolbar.
+   */
+  const native = useNativeOverlayOwned();
+  const resolvedTheme = useResolvedTheme();
+  useNativeOverlay(
+    useMemo(
+      () => ({
+        mode: "shown" as const,
+        theme: resolvedTheme,
+        title: phase === "ready" ? "Admin" : "Novus",
+        leading: [
+          {
+            id: "back",
+            symbol: "chevron.backward",
+            label: "Back to Novus",
+            style: "plain" as const,
+          },
+        ],
+        trailing:
+          phase === "ready"
+            ? [
+                {
+                  id: "refresh",
+                  symbol: "arrow.clockwise",
+                  label: "Refresh the console",
+                  style: "plain" as const,
+                  enabled: busy === null,
+                },
+              ]
+            : [],
+      }),
+      [resolvedTheme, phase, busy],
+    ),
+    {
+      onAction: (id) => {
+        if (id === "back") {
+          if (window.history.length > 1) window.history.back();
+          else window.location.assign("/");
+        } else if (id === "refresh") void refreshAll();
+      },
+    },
+  );
+
+  // ── Chart data, derived ───────────────────────────────────────────────────
+
+  const signupBars = useMemo(
+    () => series.map((r) => ({ day: r.day, value: r.signups })),
+    [series],
+  );
+  const submissionBars = useMemo(
+    () => series.map((r) => ({ day: r.day, value: r.submissions })),
+    [series],
+  );
+  const trackedLines = useMemo(
+    () => series.map((r) => ({ day: r.day, a: r.actives, b: r.runs_started })),
+    [series],
+  );
+
+  /*
+   * Retention percentages exist only for windows a cohort has fully lived
+   * through — conservatively dated from the END of the signup week, so a
+   * cohort is never asked "did they come back after 7 days" while its
+   * youngest member is five days old. Bounce needs every member to be at
+   * least a day old: the week's end plus one day.
+   */
+  const { retentionBars, bounceBars } = useMemo(() => {
+    const now = Date.now();
+    const DAY = 86400000;
+    const pct = (part: number, whole: number) => Math.round((part / whole) * 100);
+    const retention: WeeklyBar[] = [];
+    const bounce: WeeklyBar[] = [];
+    for (const c of cohorts) {
+      const weekEnd = new Date(`${c.week}T00:00:00`).getTime() + 7 * DAY;
+      const empty = c.cohort === 0;
+      retention.push({
+        week: c.week,
+        a: !empty && now >= weekEnd + 7 * DAY ? pct(c.retained_7, c.cohort) : null,
+        b: !empty && now >= weekEnd + 30 * DAY ? pct(c.retained_30, c.cohort) : null,
+        aDetail: `${c.retained_7} of ${c.cohort}`,
+        bDetail: `${c.retained_30} of ${c.cohort}`,
+      });
+      bounce.push({
+        week: c.week,
+        a: !empty && now >= weekEnd + 1 * DAY ? pct(c.bounced, c.cohort) : null,
+        aDetail: `${c.bounced} of ${c.cohort}`,
+      });
+    }
+    return { retentionBars: retention, bounceBars: bounce };
+  }, [cohorts]);
+
+  const recencyBuckets = useMemo(() => {
+    const a = stats.activity;
+    if (!a) return [];
+    return [
+      { label: "today", value: a.d1, color: "var(--viz-r1)" },
+      { label: "2–7 days", value: a.d7, color: "var(--viz-r2)" },
+      { label: "8–30 days", value: a.d30, color: "var(--viz-r3)" },
+      { label: "31–90 days", value: a.d90, color: "var(--viz-r4)" },
+      { label: "dormant", value: a.older, color: "var(--viz-r5)" },
+    ];
+  }, [stats.activity]);
+
   // ── Screens ───────────────────────────────────────────────────────────────
 
   if (phase !== "ready") {
     return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-[26rem] flex-col justify-center px-6 pb-16 pt-[max(4rem,env(safe-area-inset-top))]">
+      <main className="mx-auto flex min-h-dvh w-full max-w-[26rem] flex-col justify-center px-6 pb-16 pt-[max(4rem,env(safe-area-inset-top),calc(var(--nv-overlay-top)+1rem))]">
         <p className="text-2xs font-bold tracking-[0.18em] text-[var(--color-prestige)]">NOVUS</p>
         {phase === "loading" ? (
           <>
@@ -412,7 +564,7 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-6 pb-24 pt-[max(2.5rem,env(safe-area-inset-top))]">
+    <main className="mx-auto w-full max-w-4xl px-6 pb-[max(6rem,calc(var(--nv-overlay-bottom)+2rem))] pt-[max(2.5rem,env(safe-area-inset-top),calc(var(--nv-overlay-top)+0.75rem))]">
       {/* ── Masthead ────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
@@ -424,12 +576,17 @@ export default function AdminPage() {
           </h1>
           <p className="tnum mt-1 text-sm text-[var(--text-secondary)]">{email}</p>
         </div>
-        <a
-          href="/"
-          className="nv-gc rounded-full px-4 py-2 text-2xs font-bold tracking-[0.1em] text-[var(--text-secondary)]"
-        >
-          BACK TO NOVUS
-        </a>
+        {/* On iOS the way back is the toolbar's leading chevron and refresh
+            its trailing circle — the DOM chip is not rendered at all rather
+            than hidden, so no invisible control can take a tap. */}
+        {native ? null : (
+          <a
+            href="/"
+            className="nv-gc rounded-full px-4 py-2 text-2xs font-bold tracking-[0.1em] text-[var(--text-secondary)]"
+          >
+            BACK TO NOVUS
+          </a>
+        )}
       </div>
 
       {/* ── The view switch ─────────────────────────────────────────────── */}
@@ -452,7 +609,7 @@ export default function AdminPage() {
                 disabled={busy !== null}
                 className={`rounded-full px-4 py-2 text-2xs font-bold tracking-[0.1em] disabled:opacity-35 ${
                   view === v
-                    ? "bg-[var(--n-12)] text-[var(--n-1)]"
+                    ? "bg-[var(--text-primary)] text-[var(--n-1)]"
                     : "nv-gc text-[var(--text-secondary)]"
                 }`}
               >
@@ -475,6 +632,7 @@ export default function AdminPage() {
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Stat label="ACCOUNTS" value={stats.accounts} />
           <Stat label="NEW · 7 DAYS" value={stats.newWeek} />
+          <Stat label="ACTIVE TODAY" value={stats.activeToday} />
           <Stat label="ACTIVE · 7 DAYS" value={stats.activeWeek} />
           <Stat label="ACTIVE · 30 DAYS" value={stats.activeMonth} />
           <Stat label="PRO · PAID" value={stats.proPaid} />
@@ -482,7 +640,6 @@ export default function AdminPage() {
           <Stat label="CHAPTERS" value={stats.chaptersActive} sub={stats.chaptersComp ? `${stats.chaptersComp} comped` : undefined} />
           <Stat label="SEATS FILLED" value={stats.chapterSeats} />
           <Stat label="LIVE COMPANIES" value={stats.savesAlive} />
-          <Stat label="BOARD · LISTED" value={stats.boardListed} />
           <Stat label="BOARD · QUEUE" value={stats.boardQueue} />
           <Stat label="ADMINS" value={stats.admins} />
         </div>
@@ -501,6 +658,91 @@ export default function AdminPage() {
             </ul>
           </details>
         )}
+      </section>
+
+      {/* ── The charts ──────────────────────────────────────────────────── */}
+      <section className="mt-8">
+        <h2 className="text-sm font-extrabold tracking-[0.08em]">THE CHARTS</h2>
+        <div className="mt-3 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <ChartShell
+            title="SIGNUPS / DAY"
+            note="Accounts created, last 60 days."
+            table={{
+              head: ["day", "signups"],
+              rows: signupBars.filter((d) => d.value > 0).map((d) => [d.day, d.value]).reverse(),
+            }}
+          >
+            <DailyBars data={signupBars} />
+          </ChartShell>
+
+          <ChartShell
+            title="ACTIVE PLAYERS & RUNS / DAY"
+            note="Counted on each console visit — days nobody opened the console show as gaps, not zeros."
+            legend={[
+              { swatch: "var(--viz-1)", label: "active players" },
+              { swatch: "var(--viz-2)", label: "runs started" },
+            ]}
+            table={{
+              head: ["day", "active", "runs"],
+              rows: trackedLines
+                .filter((d) => d.a != null || d.b != null)
+                .map((d) => [d.day, d.a ?? "—", d.b ?? "—"])
+                .reverse(),
+            }}
+          >
+            <DualLines data={trackedLines} aLabel="active" bLabel="runs" />
+          </ChartShell>
+
+          <ChartShell
+            title="RETENTION BY SIGNUP WEEK"
+            note="Of each week's signups, the share seen again at least 7 and 30 days later. A dot means the cohort is too young to answer."
+            legend={[
+              { swatch: "var(--viz-1)", label: "back after 7d" },
+              { swatch: "var(--viz-2)", label: "back after 30d" },
+            ]}
+            table={{
+              head: ["week", "cohort", "7d", "30d"],
+              rows: cohorts
+                .map((c) => [c.week, c.cohort, `${c.retained_7}`, `${c.retained_30}`])
+                .reverse(),
+            }}
+          >
+            <WeeklyPercentBars data={retentionBars} aLabel="back after 7d" bLabel="back after 30d" />
+          </ChartShell>
+
+          <ChartShell
+            title="BOUNCE RATE BY SIGNUP WEEK"
+            note="Signed up and never seen again after their first day. Lower is better."
+            table={{
+              head: ["week", "cohort", "bounced"],
+              rows: cohorts.map((c) => [c.week, c.cohort, c.bounced]).reverse(),
+            }}
+          >
+            <WeeklyPercentBars data={bounceBars} aLabel="bounced" />
+          </ChartShell>
+
+          <ChartShell
+            title="WHEN PLAYERS WERE LAST SEEN"
+            note="Every account, by how recently it was seen — sign-ins, saves, and settings all count as seen."
+            table={{
+              head: ["bucket", "accounts"],
+              rows: recencyBuckets.map((b) => [b.label, b.value]),
+            }}
+          >
+            <RecencyBars buckets={recencyBuckets} />
+          </ChartShell>
+
+          <ChartShell
+            title="BOARD ENTRIES / DAY"
+            note="Leaderboard submissions, last 60 days."
+            table={{
+              head: ["day", "entries"],
+              rows: submissionBars.filter((d) => d.value > 0).map((d) => [d.day, d.value]).reverse(),
+            }}
+          >
+            <DailyBars data={submissionBars} />
+          </ChartShell>
+        </div>
       </section>
 
       {/* ── Accounts ────────────────────────────────────────────────────── */}
@@ -919,7 +1161,7 @@ function Chip({
         danger
           ? "border border-[var(--alert)] text-[var(--alert)]"
           : active
-            ? "bg-[var(--n-12)] text-[var(--n-1)]"
+            ? "bg-[var(--text-primary)] text-[var(--n-1)]"
             : "nv-gc text-[var(--text-secondary)]"
       }`}
     >

@@ -72,5 +72,13 @@ from (
                    where table_schema = 'public' and table_name = 'chapters'
                      and column_name = 'source')
       and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-                   where n.nspname = 'public' and p.proname = 'admin_list_users'))
+                   where n.nspname = 'public' and p.proname = 'admin_list_users')),
+    ('0010 admin analytics', '0010_admin_analytics.sql',
+      to_regclass('public.admin_daily') is not null
+      and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                   where n.nspname = 'public' and p.proname = 'admin_cohorts')
+      and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                   where n.nspname = 'public' and p.proname = 'admin_timeseries')
+      and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                   where n.nspname = 'public' and p.proname = 'admin_capture_daily'))
 ) as t(migration, file, present);

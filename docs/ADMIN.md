@@ -118,7 +118,32 @@ every table. Admins cannot be deleted from the console (demote in the
 dashboard first), and the caller cannot delete themselves (Settings has the
 self-serve path).
 
-## 7. The audit log
+## 7. The charts (0010)
+
+THE CHARTS band on the console: signups/day and board entries/day (exact,
+reconstructed from `created_at`), weekly cohort **retention** (back after
+7/30 days) and **bounce rate** (never seen after day one), the last-seen
+histogram, and a tracked actives & runs/day series.
+
+Two honesty rules baked in:
+
+- **"Seen" is more than sign-ins.** Sessions ride a refresh-token cookie, so
+  `last_sign_in_at` alone undercounts; `admin_last_seen()` folds in saves,
+  preferences and legacy timestamps.
+- **No per-player history is collected.** Actives/runs per day cannot be
+  reconstructed backwards, so `admin_daily` snapshots **counts only** (no
+  ids) each time the console loads — the line builds itself from the day
+  0010 lands, and days nobody opened the console show as gaps, not zeros.
+  Cohort windows a cohort has not lived through yet render as dots, never
+  as fake zeros.
+
+Charts follow the dataviz method: the two series hues and the recency ramp
+are validated for color-blind separation and contrast against both themes'
+card surfaces (see `--viz-*` in globals.css), every chart has hover
+tooltips and an AS-A-TABLE view, and none of the brand-law colors (CTA
+orange, solvency green, prestige gold) appear in a chart.
+
+## 8. The audit log
 
 Every grant, revoke, view switch, board decision and deletion writes a row
 to `admin_audit` — who, what, whom, when, with emails denormalised so the
@@ -126,7 +151,7 @@ log still reads after the account it is about is gone. No RLS policy and no
 grants: PostgREST cannot expose it to anyone. The console's overview shows
 the recent tail.
 
-## 8. Moderation, without the token
+## 9. Moderation, without the token
 
 The BOARD QUEUE band is `/api/leaderboard/moderate` re-authorised by the
 role instead of `NOVUS_MODERATOR_TOKEN`. Both doors end at
@@ -134,7 +159,7 @@ role instead of `NOVUS_MODERATOR_TOKEN`. Both doors end at
 The token route stays for curl and CI; the env var can now be retired at
 your leisure.
 
-## 9. What admin deliberately cannot do
+## 10. What admin deliberately cannot do
 
 Brand Law 4 holds for operators too. There is no code path here — console,
 route, or SQL function — that changes a score, a survival, a revive, a
