@@ -609,10 +609,34 @@ console.log("\n/api/ai  ·  the one URL that answers everything");
     return Response.json({ data: { limit_remaining: 5 } });
   };
   const body = await (await fresh.GET()).json();
-  check("counts a rejected key as failing, in the summary", /1 of 3 configured provider\(s\) are FAILING/.test(body.summary), body.summary);
+  check("counts a key that can do neither as failing", /1 of 3 configured provider\(s\) are FAILING/.test(body.summary), body.summary);
   check("passes the provider's own slug through", body.providers.voice.reason === "missing_permissions", JSON.stringify(body.providers.voice));
   check("turns the slug into an instruction", /voices_read/.test(body.providers.voice.detail ?? ""), body.providers.voice.detail);
   check("leaks no key material", !JSON.stringify(body).includes("test-eleven"));
+}
+
+{
+  // The state this deploy is actually in, and the one that must NOT read as a
+  // failure: the key cannot LIST voices but can SPEAK with them. The panel has
+  // a real voice; what it lacks is casting. Calling that "FAILING" while the
+  // sharks are audibly talking is the false alarm that gets a diagnostic
+  // ignored, and then the next real failure is invisible again.
+  const fresh = await import(pathToFileURL(join(root, "app/api/ai/route.ts")).href + `?degraded=${Date.now()}`);
+  handler = (url) => {
+    if (url.includes("/v1/voices")) {
+      return Response.json({ detail: { status: "missing_permissions" } }, { status: 401 });
+    }
+    if (url.includes("/v1/text-to-speech/")) {
+      return new Response(new Uint8Array([1, 2, 3]), { status: 200 });
+    }
+    if (url.includes("deepgram")) return Response.json({ projects: [] });
+    return Response.json({ data: { limit_remaining: 5 } });
+  };
+  const body = await (await fresh.GET()).json();
+  check("does not call a speaking key FAILING", !/FAILING/.test(body.summary), body.summary);
+  check("reports it as degraded instead", body.providers.voice.degraded === true && body.providers.voice.ok === true, JSON.stringify(body.providers.voice));
+  check("says the summary line out loud", /1 is running degraded/.test(body.summary), body.summary);
+  check("and explains that what is missing is casting, not voice", /casting/.test(body.providers.voice.detail ?? ""), body.providers.voice.detail);
 }
 
 {
