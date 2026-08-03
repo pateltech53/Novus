@@ -25,9 +25,12 @@ import { ScreenSheet } from "@/components/screens/ScreenSheet";
  * truncated, and a truncated line on a control is exactly the clipped text
  * the rule exists to keep out.
  *
- * `nv-flat` for the same reason the log's own raised rows are: it sits over
- * the page's one flat fill, where a backdrop pass would resolve to the colour
- * it started as. The material's tint, crest and press without the blur.
+ * Solid, deliberately — `nv-card`, not the glass control material. On iOS
+ * this row sits directly above the native deck, which is the system's own
+ * Liquid Glass; a CSS impression of that material one row away is exactly
+ * the comparison design.md §0 says an approximation cannot win. The owner
+ * said the same thing in fewer words. Real glass is the chrome's; this row
+ * is content, and content sits on solid ground.
  */
 export function LogButton({
   month,
@@ -43,7 +46,7 @@ export function LogButton({
       type="button"
       onClick={onOpen}
       aria-label={`Open the story so far — every month on record, up to month ${month} of fiscal year ${year}`}
-      className="nv-gc nv-flat flex h-12 w-full items-center justify-between gap-3 rounded-[var(--radius-row)] px-4 text-left"
+      className="nv-card flex h-12 w-full items-center justify-between gap-3 rounded-[var(--radius-row)] px-4 text-left transition-transform duration-150 active:scale-[0.985]"
     >
       <span className="text-2xs font-bold tracking-[0.12em] text-[var(--text)]">
         THE STORY SO FAR

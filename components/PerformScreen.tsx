@@ -115,6 +115,8 @@ export function PerformScreen() {
   const [coachArmed, setCoachArmed] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  /** The camera section, and therefore how far the self-view can be dragged. */
+  const cameraStageRef = useRef<HTMLElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const meterRef = useRef<LevelMeter | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -503,105 +505,147 @@ export function PerformScreen() {
         ) : phase === "permission" || phase === "ready" || phase === "recording" ? (
           <motion.section
             key="camera"
-            className="relative flex flex-1 flex-col"
+            ref={cameraStageRef}
+            className="relative flex flex-1 flex-col overflow-hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
           >
-            <div className="relative flex-1 overflow-hidden bg-black">
+            {/*
+              ── The camera is a window, not the wall ──────────────────────────
+
+              The live view used to fill the screen, which made the founder's
+              own face the biggest thing on it and squeezed everything they
+              actually pitch FROM — the company brief, the numbers, the order —
+              into a strip at the bottom. Backwards: the mirror is reassurance,
+              the notes are the job.
+
+              So the camera is a picture-in-picture now — the size of a video
+              call's self-view, draggable anywhere on the stage the way that
+              self-view is — and the column underneath is the shark and the
+              notes at reading size. The video element is the same one across
+              permission, ready and recording, because the stream binds to it
+              once, when the camera opens.
+            */}
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pt-[max(1rem,env(safe-area-inset-top))]">
+              <div className="mx-auto flex w-full max-w-2xl flex-col">
+                <SharkStage
+                  state={sharkState}
+                  level={level}
+                  className="pointer-events-none h-32 w-full shrink-0 sm:h-40"
+                />
+
+                {/* The consultable row. Reserves the PiP's home corner with
+                    padding so nothing starts underneath it. */}
+                <div className="mt-2 flex min-h-9 items-center gap-2 pr-36">
+                  {/* Your own books, mid-take. Opening it does not pause the
+                      clock — glancing at your numbers while pitching is a real
+                      skill and a real cost, same as in the room. */}
+                  <button
+                    type="button"
+                    data-opens
+                    onClick={() => setDossier(true)}
+                    aria-label="Company dossier"
+                    className="nv-gc flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--n-10)]"
+                  >
+                    <DossierGlyph />
+                  </button>
+
+                  {/* Tracking, live. Green dot = the face model is reading
+                      frames right now; EYES ON/AWAY flips as you look; the
+                      gesture count climbs as your hands move. Reported, never
+                      scored — the same line the post-pitch card draws. */}
+                  {phase === "recording" && liveTrack && (
+                    <div className="flex min-w-0 items-center gap-2 rounded-full bg-[var(--n-3)] px-3 py-1.5">
+                      <span
+                        aria-hidden="true"
+                        className={`h-2 w-2 shrink-0 rounded-full ${
+                          liveTrack.tracking && liveTrack.framesRead > 0
+                            ? "bg-[var(--solvency)]"
+                            : "bg-[var(--n-6)]"
+                        }`}
+                      />
+                      <span className="truncate text-2xs font-bold tracking-[0.08em] text-[var(--n-9)]">
+                        {/* "WARMING UP", not "TRACKER WARMING UP": beside the
+                            PiP's reserved corner a 375px row has ~140px for
+                            this pill, and the longer label truncated. */}
+                        {!liveTrack.tracking || liveTrack.framesRead === 0
+                          ? "WARMING UP"
+                          : liveTrack.eyesOn
+                            ? "EYES ON"
+                            : "EYES AWAY"}
+                        {liveTrack.tracking && liveTrack.gestures !== null &&
+                          ` · ${liveTrack.gestures} GESTURES`}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/*
+                  Your notes, at reading size, on the room the camera gave back
+                  — not behind the dossier button, which is still there for the
+                  full books.
+
+                  A founder pitching from memory is being tested on recall, and
+                  recall is not the skill. The numbers here are derived from the
+                  same stats the scorer checks claims against, so glancing down
+                  is what STOPS a player contradicting their own P&L rather
+                  than a way around the test. Opens on THE ORDER before the
+                  clock starts (what do I say first?) and on THE NUMBERS once
+                  it is running (what was that figure?).
+                */}
+                <PitchNotes
+                  run={run}
+                  variant="camera"
+                  defaultTab={phase === "recording" ? "numbers" : "order"}
+                  className="mt-3"
+                />
+                <div className="h-3 shrink-0" aria-hidden="true" />
+              </div>
+            </div>
+
+            {/* The self-view. Draggable within the stage, with the spring snap
+                a held object has; the clock rides on it because the clock is
+                about the take. Never glass — a live video needs no lens. */}
+            <motion.div
+              drag
+              dragConstraints={cameraStageRef}
+              dragElastic={0.08}
+              dragMomentum={false}
+              whileDrag={{ scale: 1.04 }}
+              aria-label="Your camera — drag to move"
+              className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] z-20 h-44 w-32 cursor-grab overflow-hidden rounded-[var(--radius-card)] bg-black shadow-[var(--e4)] ring-1 ring-white/25 active:cursor-grabbing sm:h-52 sm:w-40"
+              style={{ touchAction: "none" }}
+            >
               <video
                 ref={videoRef}
                 playsInline
                 muted
                 autoPlay
-                className="absolute inset-0 h-full w-full object-cover"
+                className="pointer-events-none h-full w-full object-cover"
                 style={{ transform: "scaleX(-1)" }}
               />
-              <SharkStage
-                state={sharkState}
-                level={level}
-                className="pointer-events-none absolute bottom-0 right-0 h-40 w-40"
-              />
-
               {phase === "recording" && (
-                <div className="absolute left-4 top-[max(1rem,env(safe-area-inset-top))] flex items-center gap-2 rounded-full bg-black/55 px-3 py-1.5">
-                  <span className="h-2 w-2 animate-pulse rounded-full bg-[var(--alert)]" />
-                  <span className="tnum text-xs font-bold text-[var(--n-11)]">
+                <div className="pointer-events-none absolute left-1.5 top-1.5 flex items-center gap-1.5 rounded-full bg-black/60 px-2 py-1">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--alert)]" />
+                  <span className="tnum text-2xs font-bold text-white">
                     {formatClock(elapsed)}
                   </span>
                 </div>
               )}
-
-              {/* Tracking, live. Green dot = the face model is reading frames
-                  right now; EYES ON/AWAY flips as you look; the gesture count
-                  climbs as your hands move. Reported, never scored — the same
-                  line the post-pitch card draws. */}
-              {phase === "recording" && liveTrack && (
-                <div className="absolute left-4 top-[calc(max(1rem,env(safe-area-inset-top))+2.6rem)] flex items-center gap-2 rounded-full bg-black/55 px-3 py-1.5">
-                  <span
-                    aria-hidden="true"
-                    className={`h-2 w-2 rounded-full ${
-                      liveTrack.tracking && liveTrack.framesRead > 0
-                        ? "bg-[var(--solvency)]"
-                        : "bg-[var(--n-6)]"
-                    }`}
-                  />
-                  <span className="text-2xs font-bold tracking-[0.08em] text-white/85">
-                    {!liveTrack.tracking || liveTrack.framesRead === 0
-                      ? "TRACKER WARMING UP"
-                      : liveTrack.eyesOn
-                        ? "EYES ON"
-                        : "EYES AWAY"}
-                    {liveTrack.tracking && liveTrack.gestures !== null &&
-                      ` · ${liveTrack.gestures} GESTURES`}
-                  </span>
-                </div>
-              )}
-
-              {/* Your own books, mid-take. Opening it does not pause the clock —
-                  glancing at your numbers while pitching is a real skill and a
-                  real cost, same as in the room. */}
-              <button
-                type="button"
-                data-opens
-                onClick={() => setDossier(true)}
-                aria-label="Company dossier"
-                className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white"
-              >
-                <DossierGlyph />
-              </button>
-
               {phase === "permission" && (
-                <p className="absolute inset-x-0 bottom-8 text-center text-sm text-[var(--n-10)]">
+                <p className="pointer-events-none absolute inset-x-2 bottom-2 text-center text-2xs leading-snug text-white/75">
                   Waiting for camera permission…
                 </p>
               )}
-            </div>
+            </motion.div>
 
-            <div className="shrink-0 px-6 pt-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+            <div className="shrink-0 px-6 pt-3 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+              <div className="mx-auto w-full max-w-2xl">
               {error && (
                 <p className="mb-3 text-sm leading-snug text-[var(--alert)]">{error}</p>
               )}
-
-              {/*
-                Your notes, on screen, the whole time — not behind the dossier
-                button, which is still there for the full books.
-
-                A founder pitching from memory is being tested on recall, and
-                recall is not the skill. The numbers here are derived from the
-                same stats the scorer checks claims against, so glancing down
-                is what STOPS a player contradicting their own P&L rather than
-                a way around the test. Opens on THE ORDER before the clock
-                starts (what do I say first?) and on THE NUMBERS once it is
-                running (what was that figure?).
-              */}
-              <PitchNotes
-                run={run}
-                variant="camera"
-                defaultTab={phase === "recording" ? "numbers" : "order"}
-                className="mb-3"
-              />
 
 
               {/*
@@ -629,7 +673,7 @@ export function PerformScreen() {
               )}
 
               {phase === "recording" && (heard || interim) && (
-                <div className="mb-3 max-h-24 overflow-y-auto rounded-[var(--radius-row)] bg-white/10 px-3 py-2">
+                <div className="mb-3 max-h-32 overflow-y-auto rounded-[var(--radius-row)] bg-white/10 px-3 py-2">
                   <p className="text-2xs font-bold tracking-[0.12em] text-white/55">
                     WHAT THEY HEARD
                   </p>
@@ -675,6 +719,7 @@ export function PerformScreen() {
                   AS IT IS READ · NOTHING SAVED, NOTHING SENT · NOT PART OF YOUR SCORE
                 </p>
               )}
+              </div>
             </div>
           </motion.section>
         ) : phase === "processing" ? (
