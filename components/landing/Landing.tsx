@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
@@ -25,8 +25,6 @@ import { whenRestored } from "@/lib/cloud/sync";
 import { useSellsHere } from "@/lib/commerce";
 import { hasSavedRun, loadProfile } from "@/lib/engine/save";
 import { loadAccount } from "@/lib/account";
-import { entryRoute } from "@/lib/entry";
-import { isNative } from "@/lib/native/platform";
 
 /**
  * The front door.
@@ -49,29 +47,29 @@ export function Landing() {
   const reduced = useReducedMotion();
 
   /*
-   * The app must never sit here.
+   * ── There used to be a redirect here, and it is not coming back ──────────
    *
-   * capacitor.config.ts points the shell at /boot.html precisely so a cold
-   * start does not pay for a marketing page with a WebGL scene on it before it
-   * can work out which screen the player belongs on. That is one line of
-   * configuration, and configuration is a thing that can fail to apply — a
-   * clean build, a sync that did not run, a Capacitor default reasserting
-   * itself — and when it does the app opens on THIS page instead. Which is how
-   * a player ends up looking at CONTINUE AS <NAME> inside an app that was never
-   * meant to show it, on top of a scene it was never meant to load.
+   * The app is meant to open at /boot.html, and a player who reaches THIS page
+   * inside the app has already gone somewhere they should not be. The obvious
+   * repair was for the page to notice and bounce itself to the entry route.
    *
-   * So the page also knows the rule, and applies the same one boot.html does.
-   * `replace` rather than `push`: this is a wrong turn being corrected, and
-   * nobody should be able to press back into it. The trailing slash is not
-   * optional — the app's file server resolves a route by finding its
-   * index.html, and the export has no /play.html to fall back on.
+   * It was shipped and it made the app worse: launches began hanging on the
+   * splash. Which is a specific failure worth writing down, because the
+   * redirect itself was not obviously at fault — `launchAutoHide` was false,
+   * so the launch screen had exactly one way to end, and that was
+   * `NativeShell` mounting and calling `SplashScreen.hide()`. A navigation
+   * during boot throws away the frame that was going to make that call. The
+   * next page does mount and does call it, so on paper it recovers; on a
+   * device, one more chance to not run the only code that can dismiss the
+   * launch screen is one chance too many.
    *
-   * On the web this does nothing at all: "/" is the real front door there.
+   * The backstop in capacitor.config.ts now means a missed dismissal is no
+   * longer fatal. This is still not the place to fix a wrong entry point: a
+   * page that navigates during its own boot is a race against the shell, and
+   * the entry point is the shell's to get right. What is left is the thing
+   * that actually hurt — CONTINUE AS being unable to navigate — and that is
+   * fixed where the tap is handled, which runs long after boot has settled.
    */
-  useEffect(() => {
-    if (!isNative()) return;
-    window.location.replace(`${entryRoute()}/`);
-  }, []);
 
   const rise = (delay: number) =>
     reduced

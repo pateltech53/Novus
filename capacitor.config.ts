@@ -66,10 +66,31 @@ const config: CapacitorConfig = {
 
   plugins: {
     SplashScreen: {
-      // Held until the first real frame of the game is on screen — see
-      // components/native/NativeShell.tsx. Auto-hiding on a timer is how you
-      // get a flash of empty background between the splash and the app.
-      launchAutoHide: false,
+      /*
+       * Held until the first real frame of the game is on screen — see
+       * components/native/NativeShell.tsx, which is still what normally ends
+       * it, within about two and a half seconds at the very worst.
+       *
+       * ── Why there is a backstop under that ────────────────────────────
+       *
+       * This was `launchAutoHide: false` with nothing else, on the reasoning
+       * that auto-hiding on a timer gives a flash of empty background between
+       * the splash and the app. True, and it left the launch screen with
+       * exactly one way to ever go away: JavaScript running. Anything that
+       * stops the bundle from booting — a sync that copied a stale `out/`, a
+       * chunk that fails to parse, a plugin that throws before the layout
+       * mounts — is then indistinguishable from a hang, because it IS one.
+       * The app opens on the launch screen and stays there, with nothing on
+       * screen to report what went wrong and no way to reach the console.
+       *
+       * Six seconds is more than twice the JS path's own ceiling, so in every
+       * healthy launch the splash is long gone before this can fire and there
+       * is no flash to trade away. It only ever fires on a launch that has
+       * already failed — and a visibly broken app you can attach a debugger
+       * to beats an infinite launch screen every time.
+       */
+      launchAutoHide: true,
+      launchShowDuration: 6000,
       backgroundColor: "#1c1d21",
       showSpinner: false,
       androidScaleType: "CENTER_CROP",
