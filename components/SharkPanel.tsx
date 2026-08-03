@@ -18,6 +18,7 @@ import { S_UNIT } from "@/lib/engine/constants";
 import { haptic } from "@/lib/haptics";
 import { play, startLoop, stopLoop } from "@/lib/sound";
 import { requestCapture, stopStream } from "@/lib/media/recorder";
+import { getPlayerAsk } from "@/lib/ai/ask";
 import { buildPanelContext } from "@/lib/ai/panel-context";
 import {
   sharkNegotiateTurn,
@@ -200,6 +201,9 @@ export function SharkPanel({
         // You raise to buy runway, not to match a valuation. The floor keeps a
         // pre-revenue garage from asking for nothing at all.
         askFloorUsd: 4 * S_UNIT[run.stage],
+        // The founder's own terms, set on the notes card before walking in.
+        // The room reads THESE — the sliders are what it reacts to.
+        ask: getPlayerAsk(run),
       }),
       pitchTranscript,
       score,
@@ -253,7 +257,7 @@ export function SharkPanel({
       employees: c.employees,
       your_equity_pct: c.founderEquityPct,
       valuation: fmtMoney(c.valuation),
-      you_are_asking_for: `${fmtMoney(session.ctx.ask.amountUsd)} for ${session.ctx.ask.equityPct}%`,
+      you_are_asking_for: `${fmtMoney(session.ctx.ask.amountUsd)} for ${session.ctx.ask.equityPct}% — which prices the company at ${fmtMoney(session.ctx.ask.impliedValuationUsd)}`,
     };
   }, [session]);
 
@@ -284,7 +288,7 @@ export function SharkPanel({
     while (questioners.length < QUESTION_COUNT && rest.length) questioners.push(rest.shift()!);
 
     return [
-      { kind: "chair", text: chairOpen(run.companyName, session.ctx.company.stage) },
+      { kind: "chair", text: chairOpen(run.companyName, session.ctx.company.stage, session.ctx.ask) },
       ...questioners.map((shark) => ({ kind: "question" as const, shark })),
       { kind: "chair", text: "That's the questions. Sharks — money, or no money." },
       // Everyone decides, including the ones who never asked anything.
@@ -296,11 +300,18 @@ export function SharkPanel({
   }, [run?.seed, run?.year, session]);
 
   // The founder's own return feed, small, in the corner — you are on the show.
-  // Video only: the mic belongs to the answer turn, which opens it per question.
+  /*
+   * Video only — and `audio: false` is the fix for the voice pumping up and
+   * down, not a nicety. `requestCapture` used to open a mic here regardless,
+   * and a mic held open with echo cancellation makes the platform duck and
+   * modulate all playback for as long as it lives — the whole panel session.
+   * The sharks' voice audibly rose and fell against it. The mic belongs to the
+   * answer turn, which opens it per question and closes it after.
+   */
   useEffect(() => {
     let stream: MediaStream | null = null;
     let cancelled = false;
-    void requestCapture({ video: true })
+    void requestCapture({ video: true, audio: false })
       .then((s) => {
         if (cancelled) return stopStream(s);
         stream = s;
@@ -708,6 +719,10 @@ export function SharkPanel({
             variant="panel"
             defaultTab="numbers"
             className="mt-2"
+            /* Locked: the session was built from the ask as the doors opened,
+               and the room is already questioning THAT ask. A slider that still
+               moved here would change nothing but the player's belief. */
+            askControl="locked"
             onTerm={(t) => {
               seenTermsRef.current = [...new Set([...seenTermsRef.current, t])];
               setTerm(t);
@@ -834,6 +849,11 @@ export function SharkPanel({
                           <span className="block text-2xs text-[var(--text-tertiary)]">
                             {offer.equity_pct}% · you keep {(100 - offer.equity_pct).toFixed(1)}%
                           </span>
+                          {/* And the price that ratio puts on the company —
+                              the same division the beat row spells out. */}
+                          <span className="block text-2xs text-[var(--text-tertiary)]">
+                            says you&rsquo;re worth {fmtMoney(offer.implied_valuation_usd)}
+                          </span>
                         </span>
                       </button>
                     </li>
@@ -880,9 +900,18 @@ export function SharkPanel({
  * decide — and spending a request and a second of latency on "welcome to the
  * Tank" would be paying for the least interesting sentence in the session. The
  * company's own name and stage go in, so it is still addressed to this founder.
+ *
+ * The ask is read into the record with its arithmetic done out loud. The
+ * founder chose those two numbers on their notes card; the Chair stating the
+ * valuation they imply is how the whole room — including the founder — starts
+ * from the same price.
  */
-function chairOpen(companyName: string, stage: string): string {
-  return `${companyName}, a ${stage.toLowerCase()}-stage company. You've made your pitch — now the panel has questions, and they've read your numbers. Answer them one at a time. When they're done asking, they'll decide.`;
+function chairOpen(
+  companyName: string,
+  stage: string,
+  ask: { amountUsd: number; equityPct: number; impliedValuationUsd: number },
+): string {
+  return `${companyName}, a ${stage.toLowerCase()}-stage company. The ask on the table: ${fmtMoney(ask.amountUsd)} for ${ask.equityPct}% — by your own math, a ${fmtMoney(ask.impliedValuationUsd)} company. The panel has questions, and they've read your numbers. Answer them one at a time. When they're done asking, they'll decide.`;
 }
 
 function chairClose(offerCount: number): string {
@@ -978,10 +1007,21 @@ function BeatRow({ beat }: { beat: Beat }) {
           <p className="mt-1.5 text-base font-semibold leading-snug">{beat.question}</p>
         )}
         {beat.offer && (
-          <p className="tnum mt-1.5 text-sm font-bold text-[var(--color-prestige)]">
-            {fmtMoney(beat.offer.amount_usd)} for {beat.offer.equity_pct}% ·{" "}
-            {fmtMoney(beat.offer.implied_valuation_usd)} post-money
-          </p>
+          <div className="mt-1.5">
+            <p className="tnum text-sm font-bold text-[var(--color-prestige)]">
+              {fmtMoney(beat.offer.amount_usd)} for {beat.offer.equity_pct}%
+            </p>
+            {/*
+              The offer's arithmetic, done in front of the player. "Post-money"
+              as a bare label taught nothing; cheque ÷ slice = what this shark
+              just said the whole company is worth, written as the division, is
+              the sentence the game exists to make second nature.
+            */}
+            <p className="tnum mt-0.5 text-2xs leading-snug text-[var(--text-tertiary)]">
+              Their math: {fmtMoney(beat.offer.amount_usd)} ÷ {beat.offer.equity_pct}% = they
+              believe the company is worth {fmtMoney(beat.offer.implied_valuation_usd)}.
+            </p>
+          </div>
         )}
         {beat.offer?.conditions && beat.offer.conditions.length > 0 && (
           <ul className="mt-1 space-y-0.5">

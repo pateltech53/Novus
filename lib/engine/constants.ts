@@ -176,6 +176,8 @@ export const GLOSSARY: Record<string, { pro: string; rookie: string }> = {
   ctr: { pro: "Clicks ÷ views on an ad", rookie: "of 100 who see it, how many click." },
   cwp: { pro: "Willingness to pay", rookie: "the most someone would pay before walking." },
   "market share": { pro: "Your % of the category", rookie: "your slice of everyone buying this thing." },
+  tam: { pro: "Total addressable market — the whole category in dollars", rookie: "if every possible customer bought, that's the pot." },
+  sam: { pro: "Serviceable addressable market — the slice you could realistically reach", rookie: "the part of the pot a company like yours can actually go after." },
   franchise: { pro: "Licensing your model", rookie: "letting others open your store and pay you for it." },
   "m&a": { pro: "Mergers & acquisitions", rookie: "companies buying companies." },
   roi: { pro: "Return ÷ investment", rookie: "what you got back for what you put in." },

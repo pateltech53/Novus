@@ -2,6 +2,7 @@ import type { RunState } from "@/lib/engine/types";
 import type { SharkId } from "./types";
 import { companyMetrics, briefIsUsable, beatsCovered, PITCH_FRAMEWORK } from "@/lib/engine/company-brief";
 import { STAGE_NAME, industryByCode } from "@/lib/engine/constants";
+import { fmtMoney } from "@/lib/engine/format";
 import { deriveRunwayMonths } from "@/lib/engine/sim";
 import { CAST } from "./panel-cast";
 
@@ -84,7 +85,14 @@ export interface PanelContext {
   competitors: { name: string; angle: string; scale: string }[];
   attackPoints: AttackPoint[];
   fairValuation: { low: number; high: number };
-  ask: { amountUsd: number; equityPct: number };
+  /**
+   * What the founder is asking for — their own numbers, set on the notes card
+   * (`lib/ai/ask.ts`), with `standardAsk` as the never-touched-the-sliders
+   * default. `impliedValuationUsd` is amount ÷ equity, carried explicitly so
+   * every reader — the model, the offline shark, the help card — sees the
+   * valuation the founder just claimed, not merely the two numbers it hides in.
+   */
+  ask: { amountUsd: number; equityPct: number; impliedValuationUsd: number };
   /** Which of the seven beats the pitch actually reached. */
   coveredBeats: { beat: string; covered: boolean }[];
 }
@@ -269,6 +277,30 @@ export function attackPointsFor(
     });
   }
 
+  /*
+   * The valuation the ask IMPLIES, checked against the fair band.
+   *
+   * The ask is the player's own two numbers now, and amount ÷ equity is a
+   * price on the whole company whether they realised it or not. Realising it
+   * is the point: a founder who slides to $200K for 2% has just said their
+   * garage is worth $10M, and the room telling them so — with the division
+   * shown — is the fastest way anyone learns what equity costs.
+   */
+  if (ask && ask.equityPct > 0) {
+    const implied = ask.amountUsd / (ask.equityPct / 100);
+    const fair = fairValuationRange(run);
+    if (implied > fair.high * 1.5) {
+      push({
+        id: "pricey",
+        claim: `The ask implies a ${fmtMoney(implied)} valuation against ${fmtMoney(s.valuation)} on the books.`,
+        question: `Run your own math with me: ${fmtMoney(ask.amountUsd)} for ${ask.equityPct}% says the whole company is worth ${fmtMoney(implied)}. Your books say ${fmtMoney(s.valuation)}. Which of those numbers is wrong?`,
+        owner: "viktor",
+        severity: 8,
+        term: "valuation",
+      });
+    }
+  }
+
   // ── What the pitch itself left out ─────────────────────────────────────
   /*
    * The most useful question in the room is often about the thing that was
@@ -351,14 +383,28 @@ export function buildPanelContext(opts: {
   run: RunState;
   pitchTranscript: string;
   askFloorUsd: number;
+  /**
+   * The founder's own ask, when they set one (`lib/ai/ask.ts`). Absent falls
+   * back to `standardAsk` — same behaviour every caller had before the ask
+   * became the player's to decide.
+   */
+  ask?: { amountUsd: number; equityPct: number };
 }): PanelContext {
   const { run } = opts;
   const s = run.stats;
   const deck = companyMetrics(run);
   const brief = run.brief;
   const covered = beatsCovered(opts.pitchTranscript);
-  // The ask is computed first: it is itself something the room can attack.
-  const ask = standardAsk(run, opts.askFloorUsd);
+  // The ask is resolved first: it is itself something the room can attack.
+  const chosen =
+    opts.ask && opts.ask.amountUsd > 0 && opts.ask.equityPct > 0
+      ? opts.ask
+      : standardAsk(run, opts.askFloorUsd);
+  const ask = {
+    amountUsd: Math.round(chosen.amountUsd),
+    equityPct: Number(chosen.equityPct.toFixed(1)),
+    impliedValuationUsd: Math.round(chosen.amountUsd / (chosen.equityPct / 100)),
+  };
 
   return {
     founderName: run.founderName || "the founder",

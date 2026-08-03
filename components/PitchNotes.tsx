@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import type { RunState } from "@/lib/engine/types";
 import {
@@ -11,6 +11,15 @@ import {
 } from "@/lib/engine/company-brief";
 import { GLOSSARY } from "@/lib/engine/constants";
 import { fmtMoney, fmtPct } from "@/lib/engine/format";
+import {
+  askBounds,
+  getPlayerAsk,
+  impliedValuation,
+  onAskChange,
+  setPlayerAsk,
+  type PlayerAsk,
+} from "@/lib/ai/ask";
+import { RookieToggle } from "@/components/ui/RookieToggle";
 
 /**
  * THE NOTES — what a founder would have brought into the room.
@@ -60,6 +69,7 @@ export function PitchNotes({
   defaultTab = "numbers",
   className = "",
   onTerm,
+  askControl,
 }: {
   run: RunState;
   /**
@@ -72,6 +82,17 @@ export function PitchNotes({
   className?: string;
   /** Tapping a term with a glossary entry asks the host to explain it. */
   onTerm?: (term: string) => void;
+  /**
+   * The ask block on THE NUMBERS, when this performance leads to The Tank.
+   *
+   * "edit" — sliders; the founder sets the amount and the equity, and the card
+   *          does the valuation math in front of them. Pre-room only.
+   * "locked" — the same numbers, read-only, once the room has heard them. A
+   *          slider that still moved mid-questioning would be a lie: the
+   *          session was built from the ask as it stood when the doors opened.
+   * Absent — no ask block at all, which is every non-pitch performance.
+   */
+  askControl?: "edit" | "locked";
 }) {
   const [tab, setTab] = useState<Tab>(defaultTab);
   // Derived from the books, so it is recomputed rather than remembered — a
@@ -192,12 +213,21 @@ export function PitchNotes({
 
         {tab === "numbers" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2.5">
-            <Rows rows={metrics.traction} onStage={onStage} onTerm={onTerm} />
+            {askControl && (
+              <AskBlock
+                run={run}
+                locked={askControl === "locked"}
+                onStage={onStage}
+                muted={muted}
+                body={body}
+              />
+            )}
+            <Rows rows={metrics.traction} onStage={onStage} onTerm={onTerm} rookie={run.rookieMode} />
             <div className="border-t border-[var(--hairline)] pt-2">
-              <Rows rows={metrics.benchmarks} onStage={onStage} onTerm={onTerm} />
+              <Rows rows={metrics.benchmarks} onStage={onStage} onTerm={onTerm} rookie={run.rookieMode} />
             </div>
             <div className="border-t border-[var(--hairline)] pt-2">
-              <Rows rows={metrics.market} onStage={onStage} onTerm={onTerm} />
+              <Rows rows={metrics.market} onStage={onStage} onTerm={onTerm} rookie={run.rookieMode} />
             </div>
             {/* The books themselves, so the deck and the P&L are one glance
                 apart. Claiming a margin the accounts contradict is the single
@@ -231,6 +261,17 @@ export function PitchNotes({
                 </ul>
               </div>
             )}
+
+            {/*
+              Rookie Mode, right where it earns its keep. The switch also lives
+              in Settings, but the moment a player realises they need the plain
+              lines is the moment a number on THIS card stops making sense —
+              sending them to another screen mid-pitch to find it is how the
+              option goes unused.
+            */}
+            <div className="border-t border-[var(--hairline)] pt-2">
+              <RookieToggle />
+            </div>
           </motion.div>
         )}
 
@@ -255,6 +296,105 @@ export function PitchNotes({
         )}
       </div>
     </section>
+  );
+}
+
+/**
+ * THE ASK — two sliders and the arithmetic they imply, done in the open.
+ *
+ * The amount and the equity are the founder's to set (`lib/ai/ask.ts`; the
+ * panel reads the same store when the room convenes). The third line is the
+ * whole reason this is on the numbers card rather than buried in a form:
+ * amount ÷ equity is the price you just put on the company, and watching that
+ * number move while you drag is how the relationship stops being abstract.
+ */
+function AskBlock({
+  run,
+  locked,
+  onStage,
+  muted,
+  body,
+}: {
+  run: RunState;
+  locked: boolean;
+  onStage: boolean;
+  muted: string;
+  body: string;
+}) {
+  const bounds = useMemo(() => askBounds(run), [run]);
+  const [ask, setAsk] = useState<PlayerAsk>(() => getPlayerAsk(run));
+  // The store is the truth (the panel reads it directly); this state is just
+  // React's view of it, refreshed on any write from any mount of this card.
+  useEffect(() => {
+    setAsk(getPlayerAsk(run));
+    return onAskChange(() => setAsk(getPlayerAsk(run)));
+  }, [run]);
+
+  const implied = impliedValuation(ask);
+  const value = onStage ? "text-[var(--n-11)]" : "text-[var(--text-primary)]";
+
+  return (
+    <div className="border-b border-[var(--hairline)] pb-2.5">
+      <p className={`text-2xs font-bold tracking-[0.12em] ${muted}`}>
+        {locked ? "YOUR ASK · ON THE TABLE" : "YOUR ASK · YOU DECIDE THIS"}
+      </p>
+
+      {locked ? (
+        <p className={`tnum mt-1 text-sm font-bold ${value}`}>
+          {fmtMoney(ask.amountUsd)} for {ask.equityPct}%
+        </p>
+      ) : (
+        <>
+          <div className="mt-1.5 flex items-baseline justify-between gap-3">
+            <span className={`${onStage ? "text-sm" : "text-2xs"} ${body}`}>Raising</span>
+            <span className={`tnum shrink-0 font-bold ${onStage ? "text-sm" : "text-xs"} ${value}`}>
+              {fmtMoney(ask.amountUsd)}
+            </span>
+          </div>
+          <input
+            type="range"
+            aria-label="How much you are asking for"
+            min={bounds.minUsd}
+            max={bounds.maxUsd}
+            step={bounds.stepUsd}
+            value={ask.amountUsd}
+            onChange={(e) => setPlayerAsk(run, { ...ask, amountUsd: Number(e.target.value) })}
+            className="mt-1 block h-6 w-full cursor-pointer accent-[var(--action)]"
+          />
+
+          <div className="mt-1.5 flex items-baseline justify-between gap-3">
+            <span className={`${onStage ? "text-sm" : "text-2xs"} ${body}`}>
+              For this slice of the company
+            </span>
+            <span className={`tnum shrink-0 font-bold ${onStage ? "text-sm" : "text-xs"} ${value}`}>
+              {ask.equityPct}%
+            </span>
+          </div>
+          <input
+            type="range"
+            aria-label="The equity percentage you are offering"
+            min={bounds.minPct}
+            max={bounds.maxPct}
+            step={bounds.stepPct}
+            value={ask.equityPct}
+            onChange={(e) => setPlayerAsk(run, { ...ask, equityPct: Number(e.target.value) })}
+            className="mt-1 block h-6 w-full cursor-pointer accent-[var(--action)]"
+          />
+        </>
+      )}
+
+      {/* The claim those two numbers make, with the division shown. The sharks
+          are handed exactly this figure and will hold you to it. */}
+      <p className={`tnum mt-1.5 text-2xs leading-snug ${body}`}>
+        {fmtMoney(ask.amountUsd)} ÷ {ask.equityPct}% — you&rsquo;re saying {run.companyName} is
+        worth <span className={`font-bold ${value}`}>{fmtMoney(implied)}</span>.
+      </p>
+      {!locked && (
+        <p className={`mt-0.5 text-2xs leading-snug ${muted}`}>
+          The panel sees this ask, and they&rsquo;ve read your books.
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -284,10 +424,13 @@ function Rows({
   rows,
   onStage,
   onTerm,
+  rookie = false,
 }: {
   rows: MetricRow[];
   onStage: boolean;
   onTerm?: (term: string) => void;
+  /** Rookie Mode: a plain-English line under every figure. The term stays. */
+  rookie?: boolean;
 }) {
   return (
     <dl className="space-y-1">
@@ -303,6 +446,15 @@ function Rows({
               : onStage
                 ? "text-[var(--n-11)]"
                 : "text-[var(--text-primary)]";
+        /*
+         * The plain line, per the Rookie Mode contract everywhere else: the
+         * glossary's rookie gloss where the row names a term, the row's own
+         * note otherwise — that note is already written in plain English and
+         * already about THIS company's figure, which beats a generic gloss.
+         */
+        const plain = rookie
+          ? (row.term && GLOSSARY[row.term]?.rookie) || row.note
+          : null;
         return (
           <div
             key={row.label}
@@ -329,6 +481,15 @@ function Rows({
                   {" "}?
                 </span>
               )}
+              {plain && (
+                <span
+                  className={`block text-2xs leading-snug ${
+                    onStage ? "text-[var(--n-7)]" : "text-[var(--text-tertiary)]"
+                  }`}
+                >
+                  {capitalise(plain)}
+                </span>
+              )}
             </dt>
             <dd className={`tnum shrink-0 font-bold ${onStage ? "text-sm" : "text-xs"} ${tone}`}>
               {row.value}
@@ -339,6 +500,9 @@ function Rows({
     </dl>
   );
 }
+
+/** "money in the bank right now." → "Money in the bank right now." */
+const capitalise = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 function Inline({
   label,

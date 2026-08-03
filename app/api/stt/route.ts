@@ -71,8 +71,14 @@ const MAX_BYTES = 10 * 1024 * 1024;
 
 /** Same list `synthWords` uses in transcribe.ts, so a word is a filler by the
  *  same rule whether the timings came from Deepgram or were synthesised. The
- *  figure it feeds is reported to the player and never scored (Brand Law 5). */
-const FILLER = /^(um+|uh+|er+|erm+|like|basically|literally|actually|honestly)$/i;
+ *  figure it feeds is reported to the player and never scored (Brand Law 5).
+ *  The sound-shaped entries cover everything Deepgram's filler_words feature
+ *  can emit — um, uh, ah/aah, hmm, mhmm, mm-mm, uh-uh, uh-huh, nuh-uh — as the
+ *  regex runs on the word stripped of punctuation ("uh-huh" arrives as
+ *  "uhhuh"). Missing "aah" here meant a hesitation Deepgram faithfully kept
+ *  was displayed as an ordinary word and never counted. */
+const FILLER =
+  /^(um+|uh+|er+|erm+|a+h+|hm+|m+hm+|mm+|uh+huh|uhuh|nuhuh|like|basically|literally|actually|honestly)$/i;
 
 export async function POST(req: NextRequest) {
   if (!DEEPGRAM_API_KEY) {

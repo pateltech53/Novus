@@ -493,16 +493,23 @@ export function companyMetrics(state: RunState): CompanyMetrics {
       },
     ],
     market: [
+      /*
+       * TAM and SAM by their trade names, glossary-wired. The sharks say
+       * "TAM" out loud; a founder whose notes said only "total addressable
+       * market" had never been shown that the two are the same thing.
+       */
       {
-        label: "Total addressable market",
+        label: "TAM — total addressable market",
         value: fmtDollars(tam),
         note: `everyone buying ${industry.name.toLowerCase()}, worldwide`,
+        term: "tam",
         tone: "flat",
       },
       {
-        label: "Serviceable market",
+        label: "SAM — serviceable market",
         value: fmtDollars(sam),
         note: "the slice a company your shape could actually reach",
+        term: "sam",
         tone: "flat",
       },
       {

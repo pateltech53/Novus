@@ -280,7 +280,11 @@ export function synthWords(text: string, durationSeconds: number): TranscriptWor
   const parts = text.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return [];
   const per = (durationSeconds || parts.length / 2.5) / parts.length;
-  const FILLER = /^(um+|uh+|er+|erm+|like|basically|literally|actually|honestly)$/i;
+  // Kept identical to the list in app/api/stt/route.ts — a word must be a
+  // filler by the same rule whichever path produced it. The sound-shaped
+  // entries (ah/aah, hmm, mhmm, uh-huh…) match with punctuation stripped.
+  const FILLER =
+    /^(um+|uh+|er+|erm+|a+h+|hm+|m+hm+|mm+|uh+huh|uhuh|nuhuh|like|basically|literally|actually|honestly)$/i;
   return parts.map((w, i) => ({
     w,
     start: Number((i * per).toFixed(2)),
