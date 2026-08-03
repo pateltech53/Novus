@@ -10,7 +10,11 @@ import {
   GlassRow,
   GlassSegmented,
 } from "@/components/ui/Glass";
-import { useNativeOverlay, useNativeOverlayOwned } from "@/components/native/useNativeOverlay";
+import {
+  useNativeOverlay,
+  useNativeOverlayDock,
+  useNativeOverlayOwned,
+} from "@/components/native/useNativeOverlay";
 import { useResolvedTheme } from "@/lib/native/theme";
 import { LegalSheet } from "@/components/LegalSheet";
 import { loadTheme, saveTheme, type ThemeChoice } from "@/lib/theme";
@@ -145,7 +149,7 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
       {/* Centred column on desktop rather than a stretched sheet. The top pad
           clears the native toolbar where there is one, and is the plain safe
           area everywhere else — `--nv-overlay-top` is 0 off iOS. */}
-      <div className="mx-auto w-full max-w-lg px-5 pt-[max(1.25rem,env(safe-area-inset-top),var(--nv-overlay-top))] pb-[max(2.5rem,env(safe-area-inset-bottom))]">
+      <div className="mx-auto w-full max-w-lg px-5 pt-[max(1.25rem,env(safe-area-inset-top),var(--nv-overlay-top))] pb-[max(2.5rem,env(safe-area-inset-bottom),calc(var(--nv-overlay-bottom)+1rem))]">
         <div className="flex items-center justify-between">
           {/* UIKit draws both of these when it owns the screen. Not rendered
               rather than hidden: a hidden button still takes a tap on iOS. */}
@@ -439,6 +443,44 @@ function AccountSection() {
     leave();
   };
 
+  /*
+   * The account's own controls, in the native glass dock.
+   *
+   * Both of these are destructive-adjacent and both keep their two-tap
+   * confirmation — the dock does not make them easier to hit by accident, it
+   * makes them reachable without scrolling past everything else in Settings to
+   * find them. `delete` only takes the red ground on the SECOND tap, which is
+   * the same rule the DOM button below follows: `danger` is red ink asking a
+   * question, `destructive` is red ground carrying out the answer.
+   *
+   * Null when signed out — there is nothing to sign out OF, and a dock that
+   * kept saying so would be a bar at the bottom of the screen advertising an
+   * action that cannot run.
+   */
+  const nativeDock = useNativeOverlayDock(
+    account?.email
+      ? [
+          {
+            id: "acct-signout",
+            title: "Sign out",
+            label: "Sign out of this account",
+            style: "plain" as const,
+            enabled: !busy,
+          },
+          {
+            id: "acct-delete",
+            title: confirmDelete ? "Yes, delete" : "Delete account",
+            label: confirmDelete
+              ? "Confirm — delete my account for good"
+              : "Delete my account",
+            style: confirmDelete ? ("destructive" as const) : ("plain" as const),
+            enabled: !busy,
+          },
+        ]
+      : null,
+    (id) => (id === "acct-signout" ? void leaveAccount() : void remove()),
+  );
+
   // Nothing until the device has been read: a sign-in form that flashes for a
   // frame in front of a signed-in player reads as having been signed out.
   if (!ready) return null;
@@ -460,13 +502,17 @@ function AccountSection() {
               account keeps its copy.
             </p>
 
-            <GlassButton
-              onClick={() => void leaveAccount()}
-              disabled={busy}
-              className="mt-3 text-sm"
-            >
-              Sign out
-            </GlassButton>
+            {/* UIKit's dock carries this when it is up. Not rendered rather
+                than hidden — a hidden button still takes a tap on iOS. */}
+            {nativeDock ? null : (
+              <GlassButton
+                onClick={() => void leaveAccount()}
+                disabled={busy}
+                className="mt-3 text-sm"
+              >
+                Sign out
+              </GlassButton>
+            )}
           </div>
 
           {/* Deletion is its own card, below the ordinary controls, in the
@@ -487,16 +533,22 @@ function AccountSection() {
                 THIS CANNOT BE UNDONE.
               </p>
             )}
-            <GlassButton
-              tone={confirmDelete ? "alert" : "danger"}
-              onClick={() => void remove()}
-              disabled={busy}
-              className={`mt-2.5 text-sm ${
-                confirmDelete ? "font-extrabold tracking-[0.04em]" : ""
-              }`}
-            >
-              {confirmDelete ? "Yes, delete my account" : "Delete my account"}
-            </GlassButton>
+            {nativeDock ? null : (
+              <GlassButton
+                tone={confirmDelete ? "alert" : "danger"}
+                onClick={() => void remove()}
+                disabled={busy}
+                className={`mt-2.5 text-sm ${
+                  confirmDelete ? "font-extrabold tracking-[0.04em]" : ""
+                }`}
+              >
+                {confirmDelete ? "Yes, delete my account" : "Delete my account"}
+              </GlassButton>
+            )}
+            {/* The way back out of the confirmation stays in the page on every
+                platform. The dock holds two controls and the second tap is one
+                of them; a third would make the row that carries "delete
+                everything" the busiest thing on the screen. */}
             {confirmDelete && (
               <GlassButton
                 tone="quiet"
