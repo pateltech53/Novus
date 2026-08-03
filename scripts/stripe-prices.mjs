@@ -73,6 +73,21 @@ const EXPECTED = [
     cents: cents("extra_run_slot", /id:\s*"extra_run_slot"[\s\S]*?priceCents:\s*(\d+)/),
     recurring: null,
   },
+  // Anchored on `seats:` so the match is the CHAPTER_LICENCES entry itself —
+  // the id also appears in the ChapterLicence type union, where a lazy
+  // [\s\S]*? would skip forward and read the WRONG licence's price.
+  {
+    env: "STRIPE_PRICE_CHAPTER_35",
+    what: "Novus Chapter — 35 seats",
+    cents: cents("chapter_35", /id:\s*"chapter_35",\s*seats:\s*\d+,\s*priceCents:\s*(\d+)/),
+    recurring: "year",
+  },
+  {
+    env: "STRIPE_PRICE_CHAPTER_100",
+    what: "Novus Chapter — 100 seats",
+    cents: cents("chapter_100", /id:\s*"chapter_100",\s*seats:\s*\d+,\s*priceCents:\s*(\d+)/),
+    recurring: "year",
+  },
 ];
 
 // ── Ask Stripe ──────────────────────────────────────────────────────────────
@@ -97,7 +112,7 @@ try {
 }
 
 if (prices.data.length === 0) {
-  console.error("No active prices in this account. Create the four products first —");
+  console.error("No active prices in this account. Create the six products first —");
   console.error("docs/STRIPE-SETUP.md §2 has the table.");
   process.exit(1);
 }

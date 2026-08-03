@@ -53,6 +53,7 @@ const SUITES = [
   "accounts_test.sql",
   "throttle_test.sql",
   "submit_test.sql",
+  "chapters_test.sql",
 ];
 
 /** Every migration, in the order their filenames give. */

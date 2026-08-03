@@ -1,8 +1,10 @@
 import {
+  CHAPTER_LICENCES,
   PRO_MONTHLY,
   PRO_YEARLY,
   PRO_INDUSTRY_CODES,
   ONE_TIME_PURCHASES,
+  type ChapterLicence,
   type Cents,
 } from "@/lib/monetization";
 import type { Industry } from "@/lib/engine/types";
@@ -27,23 +29,31 @@ import type { Industry } from "@/lib/engine/types";
  *
  * ── What is not sold here ──────────────────────────────────────────────────
  *
- * · **Chapter licences.** 35 and 100 seats, bought by a teacher and handed to
- *   students — and there is no enrolment-code table to hand them out with. The
- *   money would arrive and nothing would reach a classroom. They ship with
- *   seat codes; see supabase/migrations/0003_billing.sql.
  * · **Cosmetic bundles.** ONE_TIME_PURCHASES prices them as a $1.99–$4.99
  *   shelf rather than one SKU, and no bundle ids or per-bundle prices exist
  *   anywhere in the app yet. A single price id would have to invent them.
  *
- * Both stay out until the thing they sell is real. Brand Law 4 already governs
+ * They stay out until the thing they sell is real. Brand Law 4 already governs
  * what may be sold at all; this is the narrower rule that we only sell what we
  * can actually deliver.
+ *
+ * Chapter licences used to be on that list, for the same reason — no seat
+ * table to deliver them with. supabase/migrations/0007_chapters.sql is that
+ * table, app/chapter is the console that hands the seats out, and the two
+ * licences are ordinary subscription SKUs below now. Their `defaultId` is the
+ * live Stripe product for each; see the note on that field.
  */
 
 /** One-time or recurring. Decides Checkout's `mode`, and little else. */
 export type SkuKind = "subscription" | "payment";
 
-export type SkuId = "pro_monthly" | "pro_yearly" | "industry_pack" | "extra_run_slot";
+export type SkuId =
+  | "pro_monthly"
+  | "pro_yearly"
+  | "industry_pack"
+  | "extra_run_slot"
+  | "chapter_35"
+  | "chapter_100";
 
 export interface Sku {
   id: SkuId;
@@ -51,6 +61,16 @@ export interface Sku {
   /** The env var holding this SKU's Stripe price id. Named in error messages
    *  so a misconfigured deploy says which line of .env.local is missing. */
   envVar: string;
+  /**
+   * Used when the env var is unset. Only the chapter licences carry one — the
+   * ids of the two products actually created in the live Stripe account — so
+   * they sell without another deploy-time variable to forget. This is safe
+   * where a hardcoded id normally is not because resolvePrice() still fetches
+   * the price and refuses on any amount/currency/cadence mismatch, and a
+   * test-mode key simply fails to resolve a live product id: the button
+   * disables, nothing mischarges. Setting the env var overrides it.
+   */
+  defaultId?: string;
   /** What lib/monetization.ts says this costs. The screen's number. */
   expectedCents: Cents;
   /** Set when the SKU is meaningless without an argument — which industry. */
@@ -65,6 +85,12 @@ const oneTime = (id: "industry_pack" | "extra_run_slot"): Cents => {
   // without someone having deleted the entry the checkout route still offers.
   if (!found) throw new Error(`monetization.ts has no one-time purchase "${id}"`);
   return found.priceCents;
+};
+
+const licence = (id: ChapterLicence["id"]): ChapterLicence => {
+  const found = CHAPTER_LICENCES.find((l) => l.id === id);
+  if (!found) throw new Error(`monetization.ts has no chapter licence "${id}"`);
+  return found;
 };
 
 export const CATALOGUE: Readonly<Record<SkuId, Sku>> = {
@@ -97,10 +123,30 @@ export const CATALOGUE: Readonly<Record<SkuId, Sku>> = {
     expectedCents: oneTime("extra_run_slot"),
     label: "Extra Run Slot",
   },
+  chapter_35: {
+    id: "chapter_35",
+    kind: "subscription",
+    envVar: "STRIPE_PRICE_CHAPTER_35",
+    defaultId: "prod_V0RQl8TDKC3JKu",
+    expectedCents: licence("chapter_35").priceCents,
+    label: "Novus Chapter — 35 seats",
+  },
+  chapter_100: {
+    id: "chapter_100",
+    kind: "subscription",
+    envVar: "STRIPE_PRICE_CHAPTER_100",
+    defaultId: "prod_V0RRsSw8Z2z0hD",
+    expectedCents: licence("chapter_100").priceCents,
+    label: "Novus Chapter — 100 seats",
+  },
 };
 
 export const isSkuId = (v: unknown): v is SkuId =>
   typeof v === "string" && Object.prototype.hasOwnProperty.call(CATALOGUE, v);
+
+/** The two SKUs that buy a classroom rather than a personal plan. */
+export const isChapterSku = (id: SkuId): id is ChapterLicence["id"] =>
+  id === "chapter_35" || id === "chapter_100";
 
 /**
  * The configured price id for a SKU, or "" when that env var is unset.
@@ -110,8 +156,16 @@ export const isSkuId = (v: unknown): v is SkuId =>
  * that sells subscriptions but has not set up the run-slot price yet is a
  * normal intermediate state, and it should disable one button rather than the
  * whole checkout.
+ *
+ * An empty or whitespace value falls through to `defaultId` where one exists,
+ * so `STRIPE_PRICE_CHAPTER_35=` in a dashboard does not silently disable the
+ * licence the code ships an id for.
  */
-export const priceIdFor = (sku: Sku): string => process.env[sku.envVar] ?? "";
+export const priceIdFor = (sku: Sku): string => {
+  const configured = process.env[sku.envVar];
+  if (configured && configured.trim()) return configured.trim();
+  return sku.defaultId ?? "";
+};
 
 /**
  * Every industry that may be sold as a pack: the eight behind Pro. Selling a
