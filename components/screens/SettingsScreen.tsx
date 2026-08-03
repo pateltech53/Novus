@@ -28,6 +28,7 @@ import {
   signOut,
 } from "@/lib/cloud/auth";
 import { openBillingPortal, restorePurchases } from "@/lib/cloud/billing";
+import { isAdminAccount } from "@/lib/cloud/admin-skip";
 import { restoreForSignIn } from "@/lib/cloud/sync";
 import { isPro, loadEntitlements } from "@/lib/monetization";
 import { MANAGE_SUBSCRIPTION_NOTE, storefront, useSellsHere } from "@/lib/commerce";
@@ -241,6 +242,9 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
 
         {/* ── Pro: status, restore, and where it is managed ──────────────── */}
         <ProSection />
+
+        {/* ── The operator's door — exists only for an admin account ──────── */}
+        <AdminSection />
 
         {/* ── The one destructive thing about the game itself ─────────────── */}
         {run && (
@@ -663,6 +667,59 @@ function AccountSection() {
           {notice}
         </p>
       ) : null}
+    </Section>
+  );
+}
+
+// ── Operator ─────────────────────────────────────────────────────────────────
+
+/**
+ * The one place the app links to /admin.
+ *
+ * The console is deliberately linked from nowhere public — on the web an
+ * operator types the URL, but the app has no address bar, so without this row
+ * the console simply does not exist on a phone. It appears only when the
+ * signed-in account's role says admin (one cached request per tab, a fast 404
+ * for anyone else — see lib/cloud/admin-skip.ts), and it asks nothing at all
+ * for a player with no account.
+ *
+ * The navigation names the file (appPath): a document navigation in the shell
+ * resolves extensionless paths to the bundle's ROOT index.html — the
+ * marketing page — which is both the wrong screen and, in a store build, one
+ * the app must not show (lib/native/href.ts has the whole story).
+ */
+function AdminSection() {
+  const [admin, setAdmin] = useState(false);
+
+  useEffect(() => {
+    if (!loadAccount()?.email) return;
+    let alive = true;
+    void isAdminAccount().then((yes) => {
+      if (alive && yes) setAdmin(true);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  if (!admin) return null;
+
+  return (
+    <Section label="OPERATOR">
+      <GlassGroup>
+        <GlassRow
+          label="Admin console"
+          onClick={() => {
+            window.location.href =
+              storefront() === "web" ? "/admin" : appPath("/admin");
+          }}
+        />
+      </GlassGroup>
+      <p className="mt-2 text-2xs leading-snug text-[var(--text-tertiary)]">
+        Only this account sees this row. Users, gifts, chapters, the board
+        queue, the numbers — and the view switch that plays this account as
+        free or Pro.
+      </p>
     </Section>
   );
 }

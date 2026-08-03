@@ -5,6 +5,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { API_CREDENTIALS, apiUrl } from "@/lib/native/origin";
 import { useNativeOverlay, useNativeOverlayOwned } from "@/components/native/useNativeOverlay";
 import { useResolvedTheme } from "@/lib/native/theme";
+import { appPath } from "@/lib/native/href";
+import { entryRoute } from "@/lib/entry";
+import { storefront } from "@/lib/commerce";
 import {
   ChartShell,
   DailyBars,
@@ -179,6 +182,17 @@ type View = "free" | "pro" | "all";
 type Phase = "loading" | "denied" | "ready";
 
 // ── Plumbing ────────────────────────────────────────────────────────────────
+
+/**
+ * Where BACK TO NOVUS goes. On the web that is the front page. In the app it
+ * must not be: "/" is the marketing landing with prices and checkout on it,
+ * which a store build is not allowed to show (lib/commerce.ts) — and an
+ * extensionless document navigation would resolve to it anyway
+ * (lib/native/href.ts). So the app goes to the ordinary entry route, by
+ * filename.
+ */
+const homeHref = (): string =>
+  storefront() === "web" ? "/" : appPath(entryRoute());
 
 async function call<T>(path: string, init?: RequestInit): Promise<T | null> {
   try {
@@ -463,7 +477,7 @@ export default function AdminPage() {
       onAction: (id) => {
         if (id === "back") {
           if (window.history.length > 1) window.history.back();
-          else window.location.assign("/");
+          else window.location.assign(homeHref());
         } else if (id === "refresh") void refreshAll();
       },
     },
@@ -552,7 +566,7 @@ export default function AdminPage() {
               There is nothing at this address for this account.
             </p>
             <a
-              href="/"
+              href={homeHref()}
               className="nv-gc mt-6 flex h-14 w-full items-center justify-center rounded-[var(--radius-pill)] nv-t-action px-6 text-[1.0625rem] font-extrabold tracking-[0.04em] shadow-[var(--e3)]"
             >
               BACK TO NOVUS
@@ -581,7 +595,7 @@ export default function AdminPage() {
             than hidden, so no invisible control can take a tap. */}
         {native ? null : (
           <a
-            href="/"
+            href={homeHref()}
             className="nv-gc rounded-full px-4 py-2 text-2xs font-bold tracking-[0.1em] text-[var(--text-secondary)]"
           >
             BACK TO NOVUS
