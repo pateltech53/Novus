@@ -95,6 +95,17 @@ export function PitchNotes({
     : "bg-[var(--surface-elevated)] text-[var(--text-primary)]";
   const muted = onStage ? "text-[var(--n-7)]" : "text-[var(--text-tertiary)]";
   const body = onStage ? "text-[var(--n-9)]" : "text-[var(--text-secondary)]";
+  /*
+   * Reading size on stage, dense in the room.
+   *
+   * The camera variant was 12px throughout — the floor, spent on the words a
+   * founder is actively pitching from — because the live view once owned the
+   * whole screen and these notes were a strip at the bottom of it. The camera
+   * is a picture-in-picture now and the notes ARE the screen, so they read at
+   * body size. The panel keeps its density: in The Tank the notes share the
+   * room with the sharks, and there they really are the glanced-at card.
+   */
+  const bodySize = onStage ? "text-sm" : "text-2xs";
 
   return (
     <section
@@ -122,23 +133,18 @@ export function PitchNotes({
       </div>
 
       {/*
-        Shorter over the camera than in the room, but no longer a letterbox.
+        Sized in viewport units rather than fixed rem, so the card holds its
+        share of a phone and stops wasting a laptop.
 
-        8rem on stage and 14rem in the room was about five rows and eight. The
-        Numbers tab alone is longer than that, so the card cut off mid-figure
-        and the answer to "what was my churn" was behind a scroll inside a box
-        the size of a stamp — during a timed pitch, which is exactly when nobody
-        can afford to go looking for it.
-
-        The trade the old comment describes is real: every pixel here comes off
-        the founder's own face on the camera screen. So it is sized in viewport
-        units rather than fixed rem — a quarter of the screen while pitching, a
-        third in the room — which holds that trade on a phone and stops wasting
-        the space on a laptop, where the old fixed height was absurd.
+        The stage cap was a quarter of the screen when the live view owned the
+        rest — every pixel here came off the founder's own face. The camera is
+        a picture-in-picture now, so the trade has reversed: these notes are
+        what the screen is FOR while pitching, and they take the reading share
+        of it. The room keeps its third — there the sharks own the rest.
       */}
       <div
         className={`overflow-y-auto px-3 pb-3 pt-2.5 ${
-          onStage ? "max-h-[26vh] min-h-[8rem]" : "max-h-[38vh] min-h-[14rem]"
+          onStage ? "max-h-[42vh] min-h-[10rem]" : "max-h-[38vh] min-h-[14rem]"
         }`}
       >
         {tab === "company" && (
@@ -151,10 +157,10 @@ export function PitchNotes({
                   </p>
                 )}
                 {brief!.whatItDoes && (
-                  <NoteLine label="What it does" text={brief!.whatItDoes} muted={muted} body={body} />
+                  <NoteLine label="What it does" text={brief!.whatItDoes} muted={muted} body={body} size={bodySize} />
                 )}
                 {brief!.usp && (
-                  <NoteLine label="What makes it different" text={brief!.usp} muted={muted} body={body} />
+                  <NoteLine label="What makes it different" text={brief!.usp} muted={muted} body={body} size={bodySize} />
                 )}
                 {brief!.whyCustomers && (
                   <NoteLine
@@ -162,10 +168,11 @@ export function PitchNotes({
                     text={brief!.whyCustomers}
                     muted={muted}
                     body={body}
+                    size={bodySize}
                   />
                 )}
                 {brief!.mission && (
-                  <NoteLine label="What it is for" text={brief!.mission} muted={muted} body={body} />
+                  <NoteLine label="What it is for" text={brief!.mission} muted={muted} body={body} size={bodySize} />
                 )}
               </>
             ) : (
@@ -174,7 +181,7 @@ export function PitchNotes({
                * hurry. Say what is missing and where it would have come from,
                * rather than showing an empty box that reads as broken.
                */
-              <p className={`text-2xs leading-snug ${body}`}>
+              <p className={`${bodySize} leading-snug ${body}`}>
                 You didn&rsquo;t write a brief when you founded {run.companyName}, so
                 there&rsquo;s nothing here but the numbers. Next company, fill in what
                 it does and what makes it different — you get asked both, every time.
@@ -198,7 +205,7 @@ export function PitchNotes({
             <div
               className="flex flex-wrap gap-x-4 gap-y-1 border-t border-[var(--hairline)] pt-2"
             >
-              <Inline label="Cash" value={fmtMoney(run.stats.cash)} muted={muted} />
+              <Inline label="Cash" value={fmtMoney(run.stats.cash)} muted={muted} size={bodySize} />
               <Inline
                 label="Burn/mo"
                 value={
@@ -207,16 +214,17 @@ export function PitchNotes({
                     : fmtMoney(run.stats.burnMonthly)
                 }
                 muted={muted}
+                size={bodySize}
               />
-              <Inline label="Revenue/yr" value={fmtMoney(run.stats.revenueAnnual)} muted={muted} />
-              <Inline label="You own" value={fmtPct(run.founderEquityPct)} muted={muted} />
+              <Inline label="Revenue/yr" value={fmtMoney(run.stats.revenueAnnual)} muted={muted} size={bodySize} />
+              <Inline label="You own" value={fmtPct(run.founderEquityPct)} muted={muted} size={bodySize} />
             </div>
             {metrics.competitors.length > 0 && (
               <div className="border-t border-[var(--hairline)] pt-2">
                 <p className={`text-2xs font-bold tracking-[0.12em] ${muted}`}>WHO ELSE DOES THIS</p>
                 <ul className="mt-1 space-y-1">
                   {metrics.competitors.map((c) => (
-                    <li key={c.name} className={`text-2xs leading-snug ${body}`}>
+                    <li key={c.name} className={`${bodySize} leading-snug ${body}`}>
                       <span className="font-bold">{c.name}</span> · {c.angle} · {c.scale}
                     </li>
                   ))}
@@ -236,8 +244,10 @@ export function PitchNotes({
                   {beat.n}
                 </span>
                 <span className="min-w-0">
-                  <span className="block text-xs font-bold leading-snug">{beat.title}</span>
-                  <span className={`block text-2xs leading-snug ${muted}`}>{beat.prompt}</span>
+                  <span className={`block font-bold leading-snug ${onStage ? "text-sm" : "text-xs"}`}>
+                    {beat.title}
+                  </span>
+                  <span className={`block ${bodySize} leading-snug ${muted}`}>{beat.prompt}</span>
                 </span>
               </li>
             ))}
@@ -253,16 +263,19 @@ function NoteLine({
   text,
   muted,
   body,
+  size = "text-2xs",
 }: {
   label: string;
   text: string;
   muted: string;
   body: string;
+  /** The body line's type size — reading size on stage, dense in the room. */
+  size?: string;
 }) {
   return (
     <div>
       <p className={`text-2xs font-bold tracking-[0.12em] ${muted}`}>{label.toUpperCase()}</p>
-      <p className={`mt-0.5 text-2xs leading-snug ${body}`}>{text}</p>
+      <p className={`mt-0.5 ${size} leading-snug ${body}`}>{text}</p>
     </div>
   );
 }
@@ -306,7 +319,7 @@ function Rows({
             }
           >
             <dt
-              className={`min-w-0 text-2xs leading-snug ${
+              className={`min-w-0 leading-snug ${onStage ? "text-sm" : "text-2xs"} ${
                 onStage ? "text-[var(--n-8)]" : "text-[var(--text-secondary)]"
               }`}
             >
@@ -317,7 +330,9 @@ function Rows({
                 </span>
               )}
             </dt>
-            <dd className={`tnum shrink-0 text-xs font-bold ${tone}`}>{row.value}</dd>
+            <dd className={`tnum shrink-0 font-bold ${onStage ? "text-sm" : "text-xs"} ${tone}`}>
+              {row.value}
+            </dd>
           </div>
         );
       })}
@@ -325,9 +340,19 @@ function Rows({
   );
 }
 
-function Inline({ label, value, muted }: { label: string; value: string; muted: string }) {
+function Inline({
+  label,
+  value,
+  muted,
+  size = "text-2xs",
+}: {
+  label: string;
+  value: string;
+  muted: string;
+  size?: string;
+}) {
   return (
-    <span className="text-2xs">
+    <span className={size}>
       <span className={`font-bold ${muted}`}>{label} </span>
       <span className="tnum font-bold">{value}</span>
     </span>

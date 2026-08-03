@@ -29,11 +29,10 @@ export function LifeLog({
 }: {
   lines: LogLine[];
   /**
-   * Open scrolled to the newest line. The story sheet — this component's one
-   * mounting place since the feed left the play screen — passes it: the
-   * sheet answers "what just happened", so the latest month is the reading
-   * position and the beginning is one scroll up. Anything that ever renders
-   * this inline again should not, because that scroll belongs to the player.
+   * Open scrolled to the newest line. The phone's log sheet passes this: it
+   * answers "what just happened", so the latest month is the reading position
+   * and the beginning is one scroll up. The inline desktop log never does —
+   * it is part of a page whose scroll the player already owns.
    */
   startAtEnd?: boolean;
 }) {

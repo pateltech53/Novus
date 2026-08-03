@@ -188,17 +188,17 @@ export function HomeStage({
             sold it. */}
         <FounderAvatar avatar={run.avatar} size={168} priority />
 
-        {/* Display-size: the identity is this surface's title on the phone
-            and the left column's on the desk, and it reads the same on both. */}
-        <h1 className="mt-1 text-center text-[1.75rem] font-extrabold leading-tight text-[var(--n-11)]">
+        {/* Display-size on the phone, where the identity is the page's title;
+            the desktop column keeps the size it was composed at (`lg:`). */}
+        <h1 className="mt-1 text-center text-[1.75rem] font-extrabold leading-tight text-[var(--n-11)] lg:text-[1.4375rem]">
           {run.companyName}
         </h1>
-        <p className="mt-1 text-center text-sm font-semibold text-[var(--n-7)]">
+        <p className="mt-1 text-center text-sm font-semibold text-[var(--n-7)] lg:mt-0.5 lg:text-xs">
           {founderName || "Founder"} &nbsp;|&nbsp; {fmtMoney(run.stats.valuation)}{" "}
           &nbsp;|&nbsp; FY {run.year} · {STAGE_NAME[run.stage]}
         </p>
 
-        <div className="mt-5">
+        <div className="mt-5 lg:mt-4">
           <StatRings run={run} />
         </div>
       </div>
