@@ -50,6 +50,9 @@ from (
     ('0007 chapters', '0007_chapters.sql',
       to_regclass('public.chapters') is not null
       and to_regclass('public.chapter_seats') is not null
+      and exists (select 1 from information_schema.columns
+                   where table_schema = 'public' and table_name = 'chapter_seats'
+                     and column_name = 'invite_token')
       and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                    where n.nspname = 'public' and p.proname = 'grant_chapter_seat')),
     ('0008 board rank', '0008_board_rank.sql',
