@@ -64,9 +64,9 @@ export function ActivityBar({
             // px-0 and no letter-spacing: six tabs at 320px leaves ~53px each, and
             // the 12px type floor is not negotiable, so the horizontal budget has
             // to come out of the padding and the tracking instead.
-            className={`nv-press flex min-w-0 flex-col items-center gap-1 rounded-lg px-0 py-1.5 ${
+            className={`nv-gc nv-flat flex min-w-0 flex-col items-center gap-1 rounded-lg px-0 py-1.5 ${
               isActive
-                ? "bg-[var(--surface-elevated)] font-bold text-[var(--text-primary)]"
+                ? "nv-on font-bold text-[var(--text-primary)]"
                 : "text-[var(--text-tertiary)]"
             }`}
           >

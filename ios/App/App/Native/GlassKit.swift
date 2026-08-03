@@ -108,6 +108,34 @@ enum GlassKit {
     }
 
     /**
+     A glass button, made the way Apple makes one.
+
+     `UIButton.Configuration.glass()` and `.prominentGlass()` are iOS 26's own
+     Liquid Glass button configurations — the real material, with the real
+     specular edge, the real interactive deformation, and the system's own
+     metrics for how much padding a capsule of a given size wants. Reaching for
+     them rather than putting a plain button on top of a `panel()` matters for
+     one reason beyond fidelity: the system knows how a glass button behaves
+     when it is next to another one, when it is disabled, and when the phone is
+     in an accessibility contrast mode, and every one of those is a behaviour
+     that would otherwise have to be reimplemented and would be reimplemented
+     slightly wrong.
+
+     Before iOS 26 the configurations do not exist, so it falls back to the
+     same thing every other surface here falls back to: a real
+     `.systemThinMaterial` view with a plain button over it. Older material,
+     never a hand-rolled one.
+
+     - Parameters:
+        - prominent: the filled, tinted variant — a screen's one call to
+          action. Plain glass for everything else, because a screen with three
+          prominent buttons on it has no call to action at all.
+     */
+    static func button(prominent: Bool, tint: UIColor?, ink: UIColor?) -> GlassControl {
+        GlassControl(prominent: prominent, tint: tint, ink: ink)
+    }
+
+    /**
      A full-bleed backdrop.
 
      Deliberately NOT `UIGlassEffect`. Liquid Glass is a material for discrete
@@ -123,6 +151,174 @@ enum GlassKit {
         let view = UIVisualEffectView(effect: UIBlurEffect(style: .systemThinMaterial))
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
+    }
+}
+
+/**
+ One glass button, on both sides of iOS 26.
+
+ A view rather than a `UIButton` because the two paths are genuinely different
+ shapes: on iOS 26 the button IS the glass and there is nothing behind it; on
+ anything older the material is a `UIVisualEffectView` and the button is a
+ transparent tap target laid over it. Wrapping both in one type is what lets
+ every caller write the same four lines and never branch on the OS again.
+
+ The press is animated here rather than left to the configuration, so a
+ pre-26 button and an iOS 26 one respond to a finger identically — and so the
+ whole app presses on the same 0.96 the web build uses on its own controls.
+ */
+final class GlassControl: UIView {
+
+    let button = UIButton(type: .system)
+    /// The material, on the fallback path only. nil on iOS 26, where the
+    /// button is the material.
+    private var backing: UIVisualEffectView?
+    private let prominent: Bool
+    private var tint: UIColor?
+    private var ink: UIColor?
+
+    /// What a tap means. Set by the caller; the id is what crosses the bridge.
+    var onTap: (() -> Void)?
+
+    /// Per-control rather than shared. A generator is not `Sendable`, and a
+    /// static one is a concurrency diagnostic waiting for the day this target
+    /// moves to Swift 6 — for a saving of a few bytes on a view that already
+    /// owns a compositing pass.
+    private let feedback = UIImpactFeedbackGenerator(style: .light)
+
+    init(prominent: Bool, tint: UIColor?, ink: UIColor?) {
+        self.prominent = prominent
+        self.tint = tint
+        self.ink = ink
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, *) {
+            var config = prominent
+                ? UIButton.Configuration.prominentGlass()
+                : UIButton.Configuration.glass()
+            config.cornerStyle = .capsule
+            if let tint { config.baseBackgroundColor = tint }
+            if let ink { config.baseForegroundColor = ink }
+            button.configuration = config
+        } else {
+            installBacking()
+        }
+        #else
+        installBacking()
+        #endif
+
+        button.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(button)
+        NSLayoutConstraint.activate([
+            button.leadingAnchor.constraint(equalTo: leadingAnchor),
+            button.trailingAnchor.constraint(equalTo: trailingAnchor),
+            button.topAnchor.constraint(equalTo: topAnchor),
+            button.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+
+        button.addTarget(self, action: #selector(tapped), for: .touchUpInside)
+        button.addTarget(self, action: #selector(pressDown), for: .touchDown)
+        button.addTarget(
+            self, action: #selector(pressUp),
+            for: [.touchUpInside, .touchUpOutside, .touchCancel])
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    /// The pre-26 path: a real material with a transparent button over it.
+    private func installBacking() {
+        let view = GlassKit.panel(corner: 0, interactive: true, tint: prominent ? tint : nil)
+        backing = view
+        addSubview(view)
+        NSLayoutConstraint.activate([
+            view.leadingAnchor.constraint(equalTo: leadingAnchor),
+            view.trailingAnchor.constraint(equalTo: trailingAnchor),
+            view.topAnchor.constraint(equalTo: topAnchor),
+            view.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+        var config = UIButton.Configuration.plain()
+        config.baseForegroundColor = ink ?? .label
+        button.configuration = config
+    }
+
+    /// Capsule on the fallback path, where the corner is this view's own
+    /// rather than the configuration's. A no-op on iOS 26.
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        backing?.layer.cornerRadius = bounds.height / 2
+    }
+
+    // ── Content ──────────────────────────────────────────────────────────────
+
+    /**
+     What the button says and shows.
+
+     Titles go through `AttributedString` so the app's own weight and tracking
+     survive — a configuration's plain `title` picks up the system body font,
+     which is not the font any other control in this app is set in.
+     */
+    func set(title: String?, symbol: String?, size: CGFloat, weight: UIFont.Weight) {
+        var config = button.configuration ?? UIButton.Configuration.plain()
+
+        if let title, !title.isEmpty {
+            var text = AttributedString(title)
+            text.font = .systemFont(ofSize: size, weight: weight)
+            text.kern = 0.4
+            config.attributedTitle = text
+        } else {
+            config.attributedTitle = nil
+        }
+
+        if let symbol, !symbol.isEmpty {
+            config.image = UIImage(
+                systemName: symbol,
+                // Stated rather than inherited: an image configuration that
+                // follows the body text style comes out wider than the circle
+                // holding it at a large accessibility size.
+                withConfiguration: UIImage.SymbolConfiguration(
+                    pointSize: size, weight: .semibold))
+            config.imagePadding = (title?.isEmpty == false) ? 6 : 0
+        } else {
+            config.image = nil
+        }
+
+        button.configuration = config
+    }
+
+    func setEnabled(_ enabled: Bool) {
+        button.isEnabled = enabled
+        alpha = enabled ? 1 : 0.45
+    }
+
+    func setAccessibility(_ label: String) {
+        button.accessibilityLabel = label
+    }
+
+    // ── Input ────────────────────────────────────────────────────────────────
+
+    @objc private func tapped() {
+        onTap?()
+    }
+
+    /// The same 0.96 the CSS control material presses on, so a native screen
+    /// and a web one do not feel like they came from different apps.
+    @objc private func pressDown() {
+        feedback.prepare()
+        UIView.animate(withDuration: 0.12, delay: 0, options: [.curveEaseOut, .allowUserInteraction])
+        {
+            self.transform = CGAffineTransform(scaleX: 0.96, y: 0.96)
+        }
+    }
+
+    @objc private func pressUp() {
+        feedback.impactOccurred()
+        UIView.animate(withDuration: 0.16, delay: 0, options: [.curveEaseOut, .allowUserInteraction])
+        {
+            self.transform = .identity
+        }
     }
 }
 

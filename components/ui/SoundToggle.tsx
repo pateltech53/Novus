@@ -35,7 +35,7 @@ export function SoundToggle() {
       onClick={toggle}
       // The switch must not click when you use it to turn clicking off.
       data-sfx="none"
-      className="nv-press flex w-full items-center justify-between rounded-[var(--radius-row)] bg-[var(--surface)] px-4 py-3.5 text-left"
+      className="nv-gc flex w-full items-center justify-between rounded-[var(--radius-row)] px-4 py-3.5 text-left"
     >
       <span className="min-w-0">
         <span className="block text-sm font-semibold text-[var(--text-primary)]">

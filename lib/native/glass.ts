@@ -111,6 +111,75 @@ export interface ChromeInsets {
   coach?: NativeRect | null;
 }
 
+/* ── The overlay chrome ────────────────────────────────────────────────────
+ *
+ * Everything that is not the play screen.
+ *
+ * `NativeChromeState` above describes the play screen and only ever the play
+ * screen, and every other screen in this app is a full-screen web overlay that
+ * made it go away. Which meant the deeper a player went, the less Liquid Glass
+ * there was: settings, the closet, the six activity screens, the phone, the
+ * panel and onboarding were all CSS approximations of a material sitting one
+ * view away in the same binary.
+ *
+ * This is the other half of the contract. A screen declares the chrome it
+ * wants — a way out, a title, a filter, the thing it is asking you to do — and
+ * UIKit draws it in the real material and reports what it took.
+ */
+
+/** One control in an overlay's chrome. */
+export interface NativeOverlayButton {
+  /** Comes back on `overlayAction`. Unique within the screen. */
+  id: string;
+  /** Shown where there is room for words. A dock button always has one. */
+  title?: string;
+  /** SF Symbol. The whole content of a top-cluster circle. */
+  symbol?: string;
+  /** What it reads as out loud. A glyph is not a name. */
+  label: string;
+  /**
+   * `plain` unless it is the thing the screen exists to ask.
+   *
+   * At most one `prominent` per screen — three prominent buttons is a screen
+   * with no call to action at all. `destructive` is the confirmed half of a
+   * two-tap delete, never the first tap.
+   */
+  style?: "plain" | "prominent" | "prestige" | "destructive";
+  enabled?: boolean;
+}
+
+export interface NativeOverlaySegment {
+  id: string;
+  title: string;
+}
+
+export interface NativeOverlayState {
+  /** `hidden` withdraws the whole thing and reserves nothing. */
+  mode: "shown" | "hidden";
+  theme: "light" | "dark";
+  /** The screen's name, on a glass plate between the two clusters. */
+  title?: string | null;
+  /** A small line above it. */
+  eyebrow?: string | null;
+  /** Top-left cluster. The way out lives here. */
+  leading?: NativeOverlayButton[];
+  /** Top-right cluster. */
+  trailing?: NativeOverlayButton[];
+  /** A glass segmented control under the toolbar. */
+  segments?: NativeOverlaySegment[];
+  activeSegment?: string | null;
+  /** The floating dock at the bottom. */
+  actions?: NativeOverlayButton[];
+}
+
+/** What an overlay's chrome reserves, in CSS pixels. */
+export interface OverlayInsets {
+  top: number;
+  bottom: number;
+}
+
+export const ZERO_OVERLAY_INSETS: OverlayInsets = { top: 0, bottom: 0 };
+
 export interface GlassCapabilities {
   /** False on Android, on the web, and if the plugin failed to load. */
   available: boolean;
@@ -165,6 +234,15 @@ export interface NovusGlassPlugin {
   configure(options: { theme: "light" | "dark"; tint: string }): Promise<ChromeInsets>;
   setChrome(state: NativeChromeState): Promise<ChromeInsets>;
   /**
+   * The chrome for a screen that is not the play screen.
+   *
+   * Declarative and idempotent, like `setChrome`: a screen pushes its whole
+   * chrome whenever any of it changes, and native works out what that means.
+   * A diffing protocol across a bridge is a second source of truth about what
+   * is on screen, and the two of them disagree eventually.
+   */
+  setOverlay(state: NativeOverlayState): Promise<OverlayInsets>;
+  /**
    * A glass note floated in from the top. Chrome, not content — it explains
    * the board rather than being part of it, which is what makes it one of the
    * surfaces design.md allows glass on. Presenting a second one replaces the
@@ -193,6 +271,18 @@ export interface NovusGlassPlugin {
   addListener(
     event: "insetsChanged",
     fn: (data: ChromeInsets) => void,
+  ): Promise<PluginListenerHandle>;
+  addListener(
+    event: "overlayAction",
+    fn: (data: { id: string }) => void,
+  ): Promise<PluginListenerHandle>;
+  addListener(
+    event: "overlaySegment",
+    fn: (data: { id: string }) => void,
+  ): Promise<PluginListenerHandle>;
+  addListener(
+    event: "overlayInsets",
+    fn: (data: OverlayInsets) => void,
   ): Promise<PluginListenerHandle>;
   addListener(
     event: "sheetChoice",

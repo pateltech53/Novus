@@ -154,7 +154,7 @@ export function TeamScreen({ onClose, onFire, onOpenPhone }: TeamScreenProps) {
             <button
               type="button"
               onClick={onOpenPhone}
-              className="mt-5 flex h-14 w-full items-center justify-center rounded-[var(--radius-pill)] bg-[var(--action)] px-4 text-center text-sm font-extrabold leading-tight text-[var(--n-11)] transition-transform duration-150 active:scale-[0.97] sm:text-[0.9375rem]"
+              className="nv-gc mt-5 flex h-14 w-full items-center justify-center rounded-[var(--radius-pill)] nv-t-action px-4 text-center text-sm font-extrabold leading-tight sm:text-[0.9375rem]"
             >
               Open the phone → LinkedOut to hire
             </button>
@@ -184,7 +184,7 @@ export function TeamScreen({ onClose, onFire, onOpenPhone }: TeamScreenProps) {
         <button
           type="button"
           onClick={onOpenPhone}
-          className="flex h-14 w-full items-center justify-center rounded-[var(--radius-pill)] bg-[var(--action)] px-4 text-center text-sm font-extrabold leading-tight text-[var(--n-11)] transition-transform duration-150 active:scale-[0.97] sm:text-[0.9375rem]"
+          className="nv-gc flex h-14 w-full items-center justify-center rounded-[var(--radius-pill)] nv-t-action px-4 text-center text-sm font-extrabold leading-tight sm:text-[0.9375rem]"
         >
           Hiring happens on LinkedOut. Open the phone.
         </button>
@@ -200,7 +200,7 @@ export function TeamScreen({ onClose, onFire, onOpenPhone }: TeamScreenProps) {
             // a 21px box is not a tap target however true its sentence is.
             // The padding is the hit area — npm run audit:phone measures this
             // one by hit-testing, and it failed at 430px before it existed.
-            className="nv-press mt-1.5 flex w-full flex-wrap items-center justify-center gap-1.5 py-2.5 text-center text-2xs leading-snug text-[var(--text-tertiary)]"
+            className="nv-gc nv-t-quiet mt-1.5 flex w-full flex-wrap items-center justify-center gap-1.5 rounded-[var(--radius-row)] px-3 py-2.5 text-center text-2xs leading-snug"
           >
             <span className="rounded-full bg-[var(--color-prestige)] px-1.5 py-0.5 text-2xs font-bold tracking-[0.1em] text-[var(--on-prestige)]">
               PRO
@@ -368,7 +368,7 @@ function RosterCard({
             <button
               type="button"
               onClick={onCancelFire}
-              className="flex-1 rounded-[var(--radius-pill)] bg-[var(--chip)] px-4 py-2.5 text-xs font-bold text-[var(--text-secondary)] transition-transform duration-150 active:scale-[0.97]"
+              className="nv-gc flex-1 rounded-[var(--radius-pill)] px-4 py-2.5 text-xs font-bold text-[var(--text-secondary)]"
             >
               Not today
             </button>

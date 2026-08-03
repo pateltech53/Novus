@@ -250,7 +250,7 @@ function PortfolioTab({
           <button
             type="button"
             onClick={() => setTransferOpen(true)}
-            className="mt-4 h-14 w-full rounded-[var(--radius-pill)] bg-[var(--action)] text-sm font-extrabold tracking-[0.06em] text-[var(--n-11)] transition-transform duration-150 active:scale-[0.97]"
+            className="nv-gc mt-4 h-14 w-full rounded-[var(--radius-pill)] nv-t-action text-sm font-extrabold tracking-[0.06em]"
           >
             MOVE MONEY IN
           </button>
@@ -264,7 +264,7 @@ function PortfolioTab({
             <button
               type="button"
               onClick={() => setTransferOpen((o) => !o)}
-              className="shrink-0 rounded-full bg-[var(--chip)] px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
+              className="nv-gc shrink-0 rounded-full px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
             >
               {transferOpen ? "CLOSE" : "MOVE MONEY IN"}
             </button>
@@ -384,7 +384,7 @@ function TransferPanel({
               key={o.f}
               type="button"
               onClick={() => onTransfer(o.amount)}
-              className="min-w-0 rounded-[var(--radius-row)] bg-[var(--action)] px-2 py-3 text-center transition-transform duration-150 active:scale-[0.97]"
+              className="nv-gc min-w-0 rounded-[var(--radius-row)] nv-t-action px-2 py-3 text-center"
             >
               <span className="tnum block truncate text-sm font-extrabold text-[var(--n-11)]">
                 {usd(o.amount, false)}
@@ -540,7 +540,7 @@ function TickerDetail({
       <button
         type="button"
         onClick={onBack}
-        className="rounded-full bg-[var(--chip)] px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
+        className="nv-gc rounded-full px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
       >
         ← BACK
       </button>
@@ -626,7 +626,7 @@ function TickerDetail({
               key={n}
               type="button"
               onClick={() => setShares(n)}
-              className="tnum flex-1 rounded-[var(--radius-pill)] bg-[var(--chip)] py-2 text-xs font-bold text-[var(--text-secondary)]"
+              className="nv-gc tnum flex-1 rounded-[var(--radius-pill)] py-2 text-xs font-bold text-[var(--text-secondary)]"
             >
               {n}
             </button>
@@ -634,7 +634,7 @@ function TickerDetail({
           <button
             type="button"
             onClick={() => setShares(Math.max(1, maxShares))}
-            className="flex-1 rounded-[var(--radius-pill)] bg-[var(--chip)] py-2 text-xs font-bold text-[var(--text-secondary)]"
+            className="nv-gc flex-1 rounded-[var(--radius-pill)] py-2 text-xs font-bold text-[var(--text-secondary)]"
           >
             MAX
           </button>
@@ -657,7 +657,7 @@ function TickerDetail({
             type="button"
             disabled={!canBuy}
             onClick={() => onBuy(ticker.symbol, shares)}
-            className="h-14 rounded-[var(--radius-pill)] bg-[var(--action)] text-sm font-extrabold tracking-[0.06em] text-[var(--n-11)] transition-transform duration-150 enabled:active:scale-[0.97] disabled:opacity-40"
+            className="nv-gc h-14 rounded-[var(--radius-pill)] nv-t-action text-sm font-extrabold tracking-[0.06em] disabled:opacity-40"
           >
             BUY
           </button>
@@ -665,7 +665,7 @@ function TickerDetail({
             type="button"
             disabled={!canSell}
             onClick={() => onSell(ticker.symbol, shares)}
-            className="h-14 rounded-[var(--radius-pill)] bg-[var(--chip)] text-sm font-extrabold tracking-[0.06em] text-[var(--text)] transition-transform duration-150 enabled:active:scale-[0.97] disabled:opacity-40"
+            className="nv-gc h-14 rounded-[var(--radius-pill)] text-sm font-extrabold tracking-[0.06em] text-[var(--text)] disabled:opacity-40"
           >
             SELL
           </button>
@@ -699,7 +699,7 @@ function Stepper({
         aria-label={`One fewer ${symbol} share`}
         disabled={value <= 1}
         onClick={() => onChange(Math.max(1, value - 1))}
-        className="h-11 w-11 shrink-0 rounded-full bg-[var(--chip)] text-lg font-extrabold text-[var(--text)] transition-transform duration-150 enabled:active:scale-[0.94] disabled:opacity-40"
+        className="nv-gc h-11 w-11 shrink-0 rounded-full text-lg font-extrabold text-[var(--text)] enabled:active:scale-[0.94] disabled:opacity-40"
       >
         −
       </button>
@@ -714,7 +714,7 @@ function Stepper({
         aria-label={`One more ${symbol} share`}
         disabled={value >= max}
         onClick={() => onChange(Math.min(max, value + 1))}
-        className="h-11 w-11 shrink-0 rounded-full bg-[var(--chip)] text-lg font-extrabold text-[var(--text)] transition-transform duration-150 enabled:active:scale-[0.94] disabled:opacity-40"
+        className="nv-gc h-11 w-11 shrink-0 rounded-full text-lg font-extrabold text-[var(--text)] enabled:active:scale-[0.94] disabled:opacity-40"
       >
         +
       </button>

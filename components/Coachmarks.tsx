@@ -318,7 +318,7 @@ export function Coachmarks({
           {step.mode === "ack" || !rect ? (
             <button
               type="button"
-              className="pointer-events-auto mt-3 h-11 w-full rounded-[var(--radius-pill)] bg-[var(--action)] text-sm font-extrabold tracking-[0.04em] text-[var(--n-11)] active:scale-[0.97]"
+              className="nv-gc pointer-events-auto mt-3 h-11 w-full rounded-[var(--radius-pill)] nv-t-action text-sm font-extrabold tracking-[0.04em]"
               onClick={(e) => {
                 e.stopPropagation();
                 if (index >= steps.length - 1) onFinish();

@@ -151,7 +151,7 @@ function ProGate() {
       <button
         type="button"
         onClick={() => upgrade.open("the_room")}
-        className="nv-press mx-auto mt-5 h-12 w-full max-w-[19rem] rounded-[var(--radius-pill)] bg-[var(--color-prestige)] text-2xs font-extrabold tracking-[0.14em] text-[var(--on-prestige)]"
+        className="nv-gc mx-auto mt-5 h-12 w-full max-w-[19rem] rounded-[var(--radius-pill)] nv-t-prestige text-2xs font-extrabold tracking-[0.14em]"
       >
         SEE WHAT PRO ADDS
       </button>
@@ -202,7 +202,7 @@ function Directory({
                 type="button"
                 disabled={remaining === 0}
                 onClick={() => onDial(c)}
-                className="nv-press flex w-full items-start gap-3 rounded-[var(--radius-row)] bg-[var(--surface)] px-3 py-3 text-left disabled:opacity-45"
+                className="nv-gc flex w-full items-start gap-3 rounded-[var(--radius-row)] px-3 py-3 text-left disabled:opacity-45"
               >
                 <span
                   aria-hidden="true"
@@ -419,14 +419,14 @@ function LiveCall({
           <button
             type="button"
             onClick={() => setMode("speaking")}
-            className="nv-press w-full rounded-[var(--radius-row)] bg-[var(--action)] px-4 py-3.5 text-sm font-extrabold tracking-[0.04em] text-[var(--on-action)]"
+            className="nv-gc w-full rounded-[var(--radius-row)] nv-t-action px-4 py-3.5 text-sm font-extrabold tracking-[0.04em]"
           >
             PITCH OUT LOUD
           </button>
           <button
             type="button"
             onClick={() => setMode("typing")}
-            className="nv-press w-full rounded-[var(--radius-row)] bg-[var(--surface)] px-4 py-3 text-sm font-semibold"
+            className="nv-gc w-full rounded-[var(--radius-row)] px-4 py-3 text-sm font-semibold"
           >
             I&rsquo;m somewhere quiet — type instead
           </button>
@@ -495,7 +495,7 @@ function LiveCall({
             // `spoken` reports how it was captured, not how it is judged. A typed
             // rescue is still the same pitch through the same scorer.
             onClick={() => finish(!showTyping)}
-            className="nv-press mt-3 w-full rounded-[var(--radius-row)] bg-[var(--n-4)] px-4 py-3 text-sm font-extrabold"
+            className="nv-gc mt-3 w-full rounded-[var(--radius-row)] px-4 py-3 text-sm font-extrabold"
           >
             THAT&rsquo;S MY PITCH
           </button>
@@ -515,7 +515,7 @@ function LiveCall({
           <button
             type="button"
             onClick={() => finish(false)}
-            className="nv-press mt-3 w-full rounded-[var(--radius-row)] bg-[var(--action)] px-4 py-3.5 text-sm font-extrabold tracking-[0.04em] text-[var(--on-action)]"
+            className="nv-gc mt-3 w-full rounded-[var(--radius-row)] nv-t-action px-4 py-3.5 text-sm font-extrabold tracking-[0.04em]"
           >
             SEND IT
           </button>
@@ -631,7 +631,7 @@ function Result({
       <button
         type="button"
         onClick={onBack}
-        className="nv-press mt-5 w-full rounded-[var(--radius-row)] bg-[var(--n-4)] px-4 py-3 text-sm font-extrabold"
+        className="nv-gc mt-5 w-full rounded-[var(--radius-row)] px-4 py-3 text-sm font-extrabold"
       >
         BACK TO THE ROOM
       </button>

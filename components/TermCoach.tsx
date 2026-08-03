@@ -49,7 +49,7 @@ export function TermCoach({
         <button
           type="button"
           onClick={onDismiss}
-          className="nv-press flex w-full items-start gap-3 px-4 py-3 text-left"
+          className="nv-gc nv-flat flex w-full items-start gap-3 rounded-[var(--radius-row)] px-4 py-3 text-left"
         >
           <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--n-6)] text-2xs font-extrabold text-[var(--text-primary)]">
             ?

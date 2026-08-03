@@ -192,7 +192,7 @@ export function ProSheet({ onClose }: { onClose: () => void }) {
           <button
             type="button"
             onClick={onClose}
-            className="nv-press shrink-0 rounded-full bg-[var(--chip)] px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
+            className="nv-gc shrink-0 rounded-full px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
           >
             CLOSE
           </button>
@@ -247,10 +247,10 @@ export function ProSheet({ onClose }: { onClose: () => void }) {
                       type="button"
                       aria-pressed={on}
                       onClick={() => setPlan(p)}
-                      className={`nv-press rounded-[var(--radius-card)] px-3 py-2 text-left ${
+                      className={`nv-gc rounded-[var(--radius-card)] px-3 py-2 text-left ${
                         on
-                          ? "bg-[var(--surface-elevated)] shadow-[var(--e2)]"
-                          : "bg-[var(--surface)]"
+                          ? "nv-on shadow-[var(--e2)]"
+                          : ""
                       }`}
                     >
                       <span
@@ -277,7 +277,7 @@ export function ProSheet({ onClose }: { onClose: () => void }) {
                 type="button"
                 onClick={() => void takePro()}
                 disabled={busy}
-                className="nv-press mt-3 h-14 w-full rounded-[var(--radius-pill)] bg-[var(--action)] text-base font-extrabold tracking-[0.04em] text-[var(--on-action)] shadow-[var(--e3)] disabled:opacity-60"
+                className="nv-gc mt-3 h-14 w-full rounded-[var(--radius-pill)] nv-t-action text-base font-extrabold tracking-[0.04em] shadow-[var(--e3)] disabled:opacity-60"
               >
                 {busy ? "OPENING…" : "CHOOSE PRO"}
               </button>

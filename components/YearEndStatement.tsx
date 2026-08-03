@@ -126,12 +126,12 @@ export function YearEndStatement({ summary }: { summary: YearEndSummary }) {
                     game.chooseAllocation(option.id);
                     setPicked(option.id);
                   }}
-                  className={`flex w-full items-baseline justify-between gap-4 border-b border-[var(--hairline)] px-1 py-3.5 text-left transition-colors duration-150 disabled:cursor-default ${
+                  className={`nv-gc flex w-full items-baseline justify-between gap-4 border-b border-[var(--hairline)] px-1 py-3.5 text-left disabled:cursor-default ${
                     allocated === option.id
                       ? "text-[var(--action)]"
                       : locked
-                        ? "opacity-40"
-                        : "hover:bg-[var(--card)] active:bg-[var(--chip)]"
+                        ?"opacity-40"
+                        :"hover:bg-[var(--card)] active:bg-[var(--chip)]"
                   }`}
                 >
                   <span className="text-[0.9375rem] font-semibold">{option.label}</span>
@@ -148,7 +148,7 @@ export function YearEndStatement({ summary }: { summary: YearEndSummary }) {
           type="button"
           onClick={game.closeYearEnd}
           disabled={!locked}
-          className="mt-8 w-full rounded-[var(--radius-card)] bg-[var(--action)] px-5 py-4 text-base font-extrabold tracking-[0.06em] text-[var(--n-11)] transition-colors duration-150 hover:bg-[var(--action-hover)] active:bg-[var(--action-press)] disabled:cursor-not-allowed disabled:opacity-40"
+          className="nv-gc mt-8 w-full rounded-[var(--radius-card)] nv-t-action px-5 py-4 text-base font-extrabold tracking-[0.06em] disabled:cursor-not-allowed disabled:opacity-40"
         >
           INTO YEAR {summary.year + 1} ▸
         </button>

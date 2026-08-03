@@ -432,7 +432,19 @@ const walkToPlans = async (page) => {
       await page.waitForTimeout(240);
     }
 
-    const cta = page.locator('button[class*="bg-[var(--action)]"]:not([disabled])');
+    /*
+     * The accent is a TONE on the material now, not a background utility.
+     *
+     * `nv-t-action` colours layer 2 of the glass — the web's half of
+     * `UIGlassEffect.tintColor` — so the orange no longer appears as a
+     * `bg-[var(--action)]` class anywhere a control uses it. Both are matched
+     * because "the accent belongs to the one control that asks you to do
+     * something" is the rule this walk depends on, and which class carries it
+     * is an implementation detail that has now changed once.
+     */
+    const cta = page.locator(
+      'button.nv-t-action:not([disabled]), button[class*="bg-[var(--action)]"]:not([disabled])',
+    );
     if (await cta.count()) {
       await cta.first().click().catch(() => {});
     } else {

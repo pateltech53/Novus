@@ -4,18 +4,29 @@
  * The ONLY place `backdrop-filter` appears in this app.
  *
  * Glass is a material for the control layer. It is never a material for
- * content — cards, The Books, decision sheets and anything carrying a financial
- * figure sit on solid ground. Money is read on solid ground.
+ * content — cards, The Books, the ledger, the roster and anything carrying a
+ * financial figure sit on solid ground. Money is read on solid ground.
  *
- * Sanctioned surfaces: the tab bar, a sheet's grabber and its header once
- * content scrolls under it, toasts, the year-gate banner, the in-game phone's
- * status bar and dock, and modal scrims. Nothing else.
+ * Two halves, and the second one arrived late:
  *
- * Four layers, in order:
+ * **Panels** — `Glass` and `GlassScrim`, below. The tab bar, a sheet's grabber
+ * and its header once content scrolls under it, toasts, the year-gate banner,
+ * the in-game phone's status bar and dock, and modal scrims.
+ *
+ * **Controls** — `GlassButton` and the rest, further down. Every button, chip,
+ * row control, segmented control and field in the app. For a long time "the
+ * control layer" was read as meaning *the chrome*, which left the app's ~170
+ * buttons as flat fills sitting next to a material they were the clearest
+ * example of. A button IS the control layer; see design.md §0.
+ *
+ * Four layers, in order, for both halves:
  *   1. backdrop-filter: blur + saturate
- *   2. a semi-transparent tint fill
+ *   2. a semi-transparent tint fill — where a tone colours the MATERIAL
  *   3. a 1px specular top edge      ← GRADIENT #1 OF 3
  *   4. an inset hairline ring
+ *
+ * and one thing only a control has: a press, which scales and brightens on the
+ * curve UIKit animates `UIGlassEffect.isInteractive` on.
  */
 
 /**
@@ -106,9 +117,294 @@ export function GlassScrim({
   );
 }
 
+/* ══ Controls ═════════════════════════════════════════════════════════════
+ *
+ * Glass for the things a thumb lands on.
+ *
+ * `Glass` above is a panel — a tab bar, a sheet header, a scrim. That was the
+ * whole vocabulary, which is why glass reached five surfaces in this app and
+ * then stopped: there was no way to say "this button is made of the material"
+ * without hand-rolling a blur, and a hand-rolled blur is exactly what the file
+ * header forbids. So the material grew a control half, in the one file allowed
+ * to own it.
+ *
+ * On iOS the play screen's chrome is still UIKit and still the system's own
+ * Liquid Glass — nothing here replaces that, and the DOM does not render those
+ * controls at all. This is every OTHER surface: the six activity screens, the
+ * closet, settings, the phone, the panel, onboarding, the year-end statement,
+ * Android, and the web.
+ *
+ * ── The tones ────────────────────────────────────────────────────────────
+ *
+ * A tone colours the material rather than painting over it, so a tinted
+ * control is still a lens. Which one to reach for:
+ *
+ *   `neutral`   the default. Anything that is not the screen's one CTA.
+ *   `action`    the ONE control on a screen that asks you to do something.
+ *   `prestige`  the year gate, and what the gold marks. Rare by design.
+ *   `alert`     a confirmed destructive action — red ground, white ink.
+ *   `danger`    an unconfirmed one — red ink on glass. The first tap.
+ *   `solvency`  financial upside, and never a CTA.
+ *   `quiet`     a cancel beside a confirm. Present, not asking.
+ */
+
+export type GlassButtonTone =
+  | "neutral"
+  | "action"
+  | "prestige"
+  | "alert"
+  | "danger"
+  | "solvency"
+  | "quiet";
+
+/**
+ * Shape presets, so a caller never has to remember which radius a pill is.
+ *
+ * `block` is a full-width control at the bottom of a card; `pill` is a chip
+ * sized to its own label; `circle` is an icon on its own; `row` is a list row,
+ * which is square-shouldered because it lives inside a `GlassGroup` that owns
+ * the corners for the whole stack.
+ */
+export type GlassShape = "block" | "pill" | "circle" | "row" | "bare";
+
+const SHAPE: Record<GlassShape, string> = {
+  block: "h-12 w-full rounded-[var(--radius-pill)] px-5",
+  pill: "h-9 rounded-[var(--radius-pill)] px-4",
+  circle: "h-10 w-10 rounded-full",
+  row: "h-12 w-full px-4",
+  bare: "",
+};
+
+interface GlassButtonProps
+  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "type"> {
+  tone?: GlassButtonTone;
+  shape?: GlassShape;
+  /** Force the opaque fallback. Mandatory over the WebGL canvas. */
+  solid?: boolean;
+  /**
+   * This control is already sitting on glass.
+   *
+   * Keeps the tint, the crest and the press; drops the blur. Two stacked
+   * backdrop-filters do not make deeper glass, they make a smudge — so a
+   * button on a sheet header, on the phone's dock, or inside any `Glass`
+   * panel passes this.
+   */
+  flat?: boolean;
+  /** The selected segment, the equipped item, the current theme. */
+  on?: boolean;
+  /** `button` unless a form genuinely wants a submit. Never defaulted to
+   *  "submit": a bare <button> inside a <form> submits it, which is how a
+   *  cancel control ends up posting the thing it was cancelling. */
+  type?: "button" | "submit";
+}
+
+/**
+ * A button made of glass.
+ *
+ * The press is CSS (`.nv-gc:active`) rather than `nv-press`, because the
+ * material brightens as it scales — `UIGlassEffect.isInteractive` deforms and
+ * brightens the lens under a finger, and a scale alone is only half of it.
+ */
+export function GlassButton({
+  tone = "neutral",
+  shape = "block",
+  solid = false,
+  flat = false,
+  on,
+  type = "button",
+  className = "",
+  children,
+  ...rest
+}: GlassButtonProps) {
+  return (
+    <button
+      type={type}
+      data-glass={solid ? "solid" : undefined}
+      data-flat={flat ? "true" : undefined}
+      data-tone={tone === "neutral" ? undefined : tone}
+      data-on={on ? "true" : undefined}
+      className={`nv-gc inline-flex items-center justify-center gap-2 font-bold ${SHAPE[shape]} ${className}`}
+      {...rest}
+    >
+      {children}
+    </button>
+  );
+}
+
+/**
+ * The same material on an anchor.
+ *
+ * Separate from `GlassButton` rather than polymorphic: a link and a button
+ * take different props, mean different things to a screen reader, and the one
+ * place this app has conflated them (a mailto rendered as a button) is the one
+ * place VoiceOver announced the wrong verb.
+ */
+export function GlassLink({
+  tone = "neutral",
+  shape = "block",
+  solid = false,
+  className = "",
+  children,
+  ...rest
+}: React.AnchorHTMLAttributes<HTMLAnchorElement> & {
+  tone?: GlassButtonTone;
+  shape?: GlassShape;
+  solid?: boolean;
+}) {
+  return (
+    <a
+      data-glass={solid ? "solid" : undefined}
+      data-tone={tone === "neutral" ? undefined : tone}
+      className={`nv-gc inline-flex items-center justify-center gap-2 font-bold ${SHAPE[shape]} ${className}`}
+      {...rest}
+    >
+      {children}
+    </a>
+  );
+}
+
+/**
+ * A cluster of controls that behave as one piece of material.
+ *
+ * The web's answer to `UIGlassContainerEffect`. A browser cannot merge two
+ * backdrops the way iOS 26 does, but it can do the thing merging is for: one
+ * pane of glass with several controls in it. The group carries the blur once
+ * and its children carry a hairline, which is both what a list of rows should
+ * look like and the reason a thirteen-row settings screen costs one compositor
+ * pass rather than thirteen.
+ */
+export function GlassGroup({
+  solid = false,
+  className = "",
+  children,
+  ...rest
+}: React.HTMLAttributes<HTMLDivElement> & { solid?: boolean }) {
+  return (
+    <div
+      data-glass={solid ? "solid" : undefined}
+      className={`nv-ggroup rounded-[var(--radius-row)] ${className}`}
+      {...rest}
+    >
+      {children}
+    </div>
+  );
+}
+
+/**
+ * A list row inside a `GlassGroup`. Label on the left, whatever the row is
+ * telling you on the right, 48px tall because that is what a thumb is.
+ */
+export function GlassRow({
+  label,
+  detail,
+  chevron = true,
+  className = "",
+  ...rest
+}: Omit<GlassButtonProps, "shape" | "children"> & {
+  label: React.ReactNode;
+  /** The value, or a chevron's worth of "there is more through here". */
+  detail?: React.ReactNode;
+  chevron?: boolean;
+}) {
+  return (
+    <GlassButton
+      shape="row"
+      className={`justify-between text-left text-sm ${className}`}
+      {...rest}
+    >
+      <span className="min-w-0 truncate font-semibold">{label}</span>
+      <span className="flex shrink-0 items-center gap-1.5">
+        {detail ? (
+          <span className="truncate text-2xs font-bold text-[var(--text-tertiary)]">
+            {detail}
+          </span>
+        ) : null}
+        {chevron ? (
+          <span aria-hidden className="text-[var(--text-tertiary)]">
+            ›
+          </span>
+        ) : null}
+      </span>
+    </GlassButton>
+  );
+}
+
+/**
+ * A segmented control: a glass track with one glass segment lit inside it.
+ *
+ * `radiogroup` rather than `tablist` unless the caller says otherwise — most
+ * of these choose a value rather than swapping a panel, and announcing a
+ * filter as a tab is a lie a screen reader repeats on every option.
+ */
+export function GlassSegmented<T extends string>({
+  options,
+  value,
+  onChange,
+  label,
+  solid = false,
+  className = "",
+}: {
+  options: ReadonlyArray<{ id: T; label: React.ReactNode }>;
+  value: T;
+  onChange: (id: T) => void;
+  /** What the whole group is choosing. "Theme", "Which assets". */
+  label: string;
+  solid?: boolean;
+  className?: string;
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label={label}
+      data-glass={solid ? "solid" : undefined}
+      className={`nv-ggroup nv-gseg ${className}`}
+    >
+      {options.map((opt) => (
+        <GlassButton
+          key={opt.id}
+          role="radio"
+          aria-checked={value === opt.id}
+          on={value === opt.id}
+          shape="bare"
+          solid={solid}
+          onClick={() => onChange(opt.id)}
+          className="h-9 px-3 text-xs"
+        >
+          {opt.label}
+        </GlassButton>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * A glass surface that is not a control — a card's ground, a panel, a banner.
+ *
+ * `Glass` renders the six tags glass panels are allowed on and nothing else,
+ * which is right for chrome and wrong for the dozens of small boxes that now
+ * want the material. This is the same four layers with no press and no tone
+ * plumbing, for a box rather than a bar.
+ */
+export function GlassPane({
+  solid = false,
+  className = "",
+  children,
+  ...rest
+}: React.HTMLAttributes<HTMLDivElement> & { solid?: boolean }) {
+  return (
+    <div
+      data-glass={solid ? "solid" : undefined}
+      className={`nv-ggroup rounded-[var(--radius-row)] ${className}`}
+      {...rest}
+    >
+      {children}
+    </div>
+  );
+}
+
 /*
- * The `.nv-glass` rules live in app/globals.css alongside the tokens they
- * consume. They were briefly a <style> block in this file, for co-location —
- * which shipped a component whose CSS was never mounted, so every glass
- * surface rendered as a plain transparent div.
+ * The `.nv-glass` and `.nv-gc` rules live in app/globals.css alongside the
+ * tokens they consume. They were briefly a <style> block in this file, for
+ * co-location — which shipped a component whose CSS was never mounted, so
+ * every glass surface rendered as a plain transparent div.
  */

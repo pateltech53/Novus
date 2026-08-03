@@ -91,7 +91,7 @@ export default function WelcomePage() {
         return (
           <FieldStep
             key="name"
-            label="What should the shark call you?"
+            label="What should the shark call you? "
             value={name}
             onChange={setName}
             placeholder="Your name"
@@ -104,7 +104,7 @@ export default function WelcomePage() {
         return (
           <FieldStep
             key="age"
-            label="How old are you?"
+            label="How old are you? "
             value={age}
             onChange={(v) => setAge(v.replace(/\D/g, "").slice(0, 2))}
             placeholder="Age"
@@ -554,10 +554,10 @@ function PlansSheet({ onDone }: { onDone: () => void }) {
                           play("click");
                           setPlan(p);
                         }}
-                        className={`nv-press rounded-[var(--radius-card)] px-3 py-2 text-left ${
+                        className={`nv-gc rounded-[var(--radius-card)] px-3 py-2 text-left ${
                           on
-                            ? "bg-[var(--surface-elevated)] shadow-[var(--e2)]"
-                            : "bg-[var(--surface)]"
+                            ? "nv-on shadow-[var(--e2)]"
+                            : ""
                         }`}
                       >
                         <span
@@ -708,7 +708,7 @@ function PlansSheet({ onDone }: { onDone: () => void }) {
         <button
           type="button"
           onClick={onDone}
-          className="nv-press mt-2.5 h-14 w-full rounded-[var(--radius-pill)] bg-[var(--surface-elevated)] text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--text-primary)]"
+          className="nv-gc mt-2.5 h-14 w-full rounded-[var(--radius-pill)] nv-on text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--text-primary)]"
         >
           CONTINUE FREE
         </button>

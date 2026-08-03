@@ -230,14 +230,14 @@ export function AnswerTurn({
           <button
             type="button"
             onClick={beginRecording}
-            className="nv-press h-14 w-full rounded-[var(--radius-pill)] bg-[var(--action)] text-base font-extrabold tracking-[0.04em] text-[var(--on-action)] shadow-[var(--e3)]"
+            className="nv-gc h-14 w-full rounded-[var(--radius-pill)] nv-t-action text-base font-extrabold tracking-[0.04em] shadow-[var(--e3)]"
           >
             {speakLabel}
           </button>
           <button
             type="button"
             onClick={() => setMode("typing")}
-            className="nv-press h-12 w-full rounded-[var(--radius-pill)] bg-[var(--surface-overlay)] text-sm font-bold tracking-[0.04em] text-[var(--text-primary)]"
+            className="nv-gc h-12 w-full rounded-[var(--radius-pill)] text-sm font-bold tracking-[0.04em] text-[var(--text-primary)]"
           >
             Type it instead
           </button>
@@ -289,7 +289,7 @@ export function AnswerTurn({
           <button
             type="button"
             onClick={() => void finish()}
-            className="nv-press mt-4 h-14 w-full rounded-[var(--radius-pill)] bg-[var(--action)] text-base font-extrabold tracking-[0.04em] text-[var(--on-action)] shadow-[var(--e3)]"
+            className="nv-gc mt-4 h-14 w-full rounded-[var(--radius-pill)] nv-t-action text-base font-extrabold tracking-[0.04em] shadow-[var(--e3)]"
           >
             THAT&rsquo;S MY ANSWER
           </button>
@@ -316,7 +316,7 @@ export function AnswerTurn({
             type="button"
             disabled={!typed.trim()}
             onClick={() => onAnswer({ text: typed.trim(), spoken: false, seconds: 0 })}
-            className="nv-press mt-3 h-14 w-full rounded-[var(--radius-pill)] bg-[var(--action)] text-base font-extrabold tracking-[0.04em] text-[var(--on-action)] shadow-[var(--e3)] disabled:opacity-40"
+            className="nv-gc mt-3 h-14 w-full rounded-[var(--radius-pill)] nv-t-action text-base font-extrabold tracking-[0.04em] shadow-[var(--e3)] disabled:opacity-40"
           >
             THAT&rsquo;S MY ANSWER
           </button>

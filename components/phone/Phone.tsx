@@ -212,7 +212,7 @@ export function Phone({
             <button
               type="button"
               onClick={onClose}
-              className="nv-press px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-primary)]"
+              className="nv-gc nv-flat rounded-[var(--radius-pill)] px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-primary)]"
             >
               PUT IT DOWN
             </button>

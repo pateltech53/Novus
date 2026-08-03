@@ -84,7 +84,7 @@ export function UpgradeNotice({
               type="button"
               onClick={onDismiss}
               aria-label="Dismiss"
-              className="nv-press -mr-1 -mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-full text-[var(--text-tertiary)]"
+              className="nv-gc nv-flat nv-t-quiet -mr-1 -mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-full"
             >
               <CloseGlyph />
             </button>
@@ -93,7 +93,7 @@ export function UpgradeNotice({
           <button
             type="button"
             onClick={onOpen}
-            className="nv-press mt-3 h-11 w-full rounded-[var(--radius-pill)] bg-[var(--color-prestige)] text-2xs font-extrabold tracking-[0.14em] text-[var(--on-prestige)]"
+            className="nv-gc nv-flat mt-3 h-11 w-full rounded-[var(--radius-pill)] nv-t-prestige text-2xs font-extrabold tracking-[0.14em]"
           >
             SEE WHAT PRO ADDS
           </button>

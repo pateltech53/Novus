@@ -164,7 +164,7 @@ function Header({
       <button
         type="button"
         onClick={onClose}
-        className="nv-press shrink-0 rounded-full bg-[var(--chip)] px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
+        className="nv-gc shrink-0 rounded-full px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
       >
         {overlay ? "BACK" : "CLOSE"}
       </button>

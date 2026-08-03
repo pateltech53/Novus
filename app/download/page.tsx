@@ -113,7 +113,7 @@ export default function DownloadPage() {
                 {IOS_APP_URL ? (
                   <a
                     href={IOS_APP_URL}
-                    className="nv-press flex h-12 items-center justify-center rounded-[var(--radius-pill)] bg-[var(--action)] text-sm font-extrabold tracking-[0.04em] text-[var(--on-action)] shadow-[var(--e2)]"
+                    className="nv-gc flex h-12 items-center justify-center rounded-[var(--radius-pill)] nv-t-action text-sm font-extrabold tracking-[0.04em] shadow-[var(--e2)]"
                   >
                     DOWNLOAD ON THE APP STORE
                   </a>
@@ -121,7 +121,7 @@ export default function DownloadPage() {
                 {TESTFLIGHT_URL ? (
                   <a
                     href={TESTFLIGHT_URL}
-                    className="nv-press flex h-12 items-center justify-center rounded-[var(--radius-pill)] bg-[var(--surface-overlay)] text-sm font-bold text-[var(--text-primary)]"
+                    className="nv-gc flex h-12 items-center justify-center rounded-[var(--radius-pill)] text-sm font-bold text-[var(--text-primary)]"
                   >
                     Join the TestFlight beta
                   </a>
@@ -149,7 +149,7 @@ export default function DownloadPage() {
 
             <a
               href={ANDROID_APK_URL}
-              className="nv-press mt-5 flex h-12 items-center justify-center rounded-[var(--radius-pill)] bg-[var(--action)] text-sm font-extrabold tracking-[0.04em] text-[var(--on-action)] shadow-[var(--e2)]"
+              className="nv-gc mt-5 flex h-12 items-center justify-center rounded-[var(--radius-pill)] nv-t-action text-sm font-extrabold tracking-[0.04em] shadow-[var(--e2)]"
             >
               DOWNLOAD THE APK
             </a>
@@ -183,7 +183,7 @@ export default function DownloadPage() {
           </div>
           <Link
             href="/play"
-            className="nv-press flex h-12 shrink-0 items-center justify-center rounded-[var(--radius-pill)] bg-[var(--surface-overlay)] px-6 text-sm font-extrabold tracking-[0.04em] text-[var(--text-primary)]"
+            className="nv-gc flex h-12 shrink-0 items-center justify-center rounded-[var(--radius-pill)] px-6 text-sm font-extrabold tracking-[0.04em] text-[var(--text-primary)]"
           >
             PLAY NOW
           </Link>

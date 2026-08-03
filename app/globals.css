@@ -235,6 +235,12 @@ body {
   --nv-chrome-bottom: 0px;
   --nv-chrome-tabbar: 0px;
   --nv-keyboard: 0px;
+  /* The same contract for a screen's own chrome — the glass toolbar over it and
+     the glass dock under it, both measured by UIKit after layout. Zero
+     everywhere the DOM draws its own, which is the web, Android, and any iOS
+     screen that declared no native chrome. */
+  --nv-overlay-top: 0px;
+  --nv-overlay-bottom: 0px;
 }
 
 /*
@@ -481,6 +487,425 @@ textarea {
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .nv-glass[data-tone] {
     background: var(--glass-solid, var(--surface-overlay));
+  }
+}
+
+/* ══ Glass controls ═══════════════════════════════════════════════════════
+ *
+ * The material every tappable thing in this app is made of.
+ *
+ * ── Why this exists ──────────────────────────────────────────────────────
+ *
+ * `.nv-glass` above is a *panel* material — a tab bar, a sheet header, a
+ * scrim. It was the whole vocabulary, so glass reached five surfaces and
+ * stopped, and every one of the app's ~170 buttons stayed a flat fill. On iOS
+ * that gap is wider still: the native chrome owns the play screen and hands
+ * every other screen back to the DOM, so opening Settings or the closet left a
+ * Liquid Glass app looking like a flat one.
+ *
+ * This is the control half of the material. Same four layers as the panel,
+ * tuned for something the size of a thumb and something a thumb actually
+ * touches:
+ *
+ *   1. backdrop-filter: blur + saturate + a touch of brightness
+ *   2. a tint fill, which is where a tone colours the material rather than
+ *      painting over it
+ *   3. a specular crest and a shadowed underside — the asymmetry that makes a
+ *      control read as a lozenge of solid glass rather than a blurred box
+ *   4. a hairline ring, and a drop onto whatever is behind it
+ *
+ * plus the one thing a panel never needs: a press. `UIGlassEffect` deforms
+ * under a finger; a browser cannot deform a backdrop, so the analogue is a
+ * scale and a brightening on the same curve UIKit uses, which is what makes
+ * the CSS control and the UIKit control feel like they came from one app.
+ *
+ * ── What it costs, and what that bought ──────────────────────────────────
+ *
+ * Every `backdrop-filter` is a compositor pass over its own area. Thirteen of
+ * them on the settings screen is not thirteen tab bars — they are thumb-sized
+ * and the backdrop under them is static — but it is not free either, so:
+ *
+ *   · the blur is 18px, not the panel's 28
+ *   · `will-change` is deliberately NOT set. The panel declares it because a
+ *     tab bar re-rasterises a scrolling log every frame; promoting seventeen
+ *     buttons to their own layers each is how you run a phone out of VRAM
+ *   · a list of rows uses `.nv-ggroup`, which blurs ONCE for the whole group
+ *     and gives its children a hairline instead of a material each
+ *   · `data-glass="solid"` is the escape hatch, and it is mandatory over the
+ *     WebGL canvas — compositing a backdrop-filter on top of a live canvas is
+ *     the iOS Safari jank source design.md names
+ *
+ * Money is still read on solid ground: `.nv-gc` is for the control, and a
+ * figure inside one carries `.tnum` on a `--gc-ink` that is a full-strength
+ * label colour, never a secondary.
+ */
+
+.nv-gc {
+  /* Every knob is a custom property so a tone re-points the material rather
+     than overriding the rules — the same discipline `UIGlassEffect.tintColor`
+     enforces natively. */
+  --gc-blur: 18px;
+  --gc-sat: 180%;
+  --gc-bright: 1.05;
+  --gc-tint: var(--glass-tint);
+  --gc-ink: var(--text-primary);
+  --gc-ring: var(--glass-ring);
+  --gc-specular: var(--glass-specular);
+  --gc-underside: var(--glass-underside);
+  --gc-drop: var(--e1);
+  /* What the opaque fallback becomes. Reassigned per tone below, so a control
+     that cannot blur is still the colour it was asking to be. */
+  --gc-solid: var(--surface-overlay);
+
+  position: relative;
+  isolation: isolate;
+  background: var(--gc-tint);
+  /*
+   * Deliberately NOT `color: var(--gc-ink)` here.
+   *
+   * These rules are unlayered and Tailwind's utilities live in
+   * `@layer utilities`, so an unlayered declaration beats a `text-…` class no
+   * matter what order they are written in. A base ink on this rule would
+   * therefore repaint every label the sweep left alone — the gold PRO chip,
+   * the tertiary captions, the alert-coloured rows — with no way for the call
+   * site to say otherwise. An untinted control keeps whatever colour it had.
+   *
+   * A TONE is different: it owns its ink, because it owns the ground that ink
+   * has to be legible on. White on the orange, ink on the gold. Those set
+   * `color` in their own rules below, and overriding them from a call site is
+   * exactly the mistake worth losing.
+   */
+  box-shadow:
+    inset 0 -1px 0 0 var(--gc-underside),
+    inset 0 0 0 1px var(--gc-ring),
+    var(--gc-drop);
+  -webkit-backdrop-filter: blur(var(--gc-blur)) saturate(var(--gc-sat))
+    brightness(var(--gc-bright));
+  backdrop-filter: blur(var(--gc-blur)) saturate(var(--gc-sat))
+    brightness(var(--gc-bright));
+  transition:
+    transform 140ms var(--ease-out),
+    filter 140ms var(--ease-out),
+    opacity 140ms var(--ease-out);
+}
+
+/* The crest. Part of GRADIENT #1 OF 3 — the specular sheen inside a glass
+   element — and the same one `.nv-glass::before` draws, at a control's scale.
+   Inset from the edges rather than full-bleed: a highlight that runs into a
+   rounded corner reads as a seam, and light does not land on a corner. */
+.nv-gc::before {
+  content: "";
+  position: absolute;
+  inset-inline: 12%;
+  top: 0;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--gc-specular),
+    transparent
+  );
+}
+
+/*
+ * The press.
+ *
+ * `UIGlassEffect.isInteractive` deforms the lens under a finger and brightens
+ * what it is refracting. No browser can deform a backdrop, so this is the
+ * closest honest analogue: the same 0.96 and the same brightening, on
+ * `--ease-out`, which is the curve the UIKit side animates on. Transform and
+ * filter only — nothing here can trigger layout.
+ */
+.nv-gc:active:not(:disabled),
+.nv-gc[data-pressed="true"] {
+  transform: scale(0.96);
+  filter: brightness(1.09) saturate(1.04);
+}
+
+.nv-gc:disabled,
+.nv-gc[aria-disabled="true"] {
+  opacity: 0.45;
+}
+
+/* A control the player is currently on. Not a hover state — this is the
+   selected segment, the chosen theme, the equipped item. */
+.nv-gc[data-on="true"],
+.nv-gc.nv-on {
+  --gc-tint: color-mix(in oklch, var(--n-11) 16%, var(--glass-tint));
+  --gc-ring: color-mix(in oklch, var(--n-11) 26%, transparent);
+  --gc-specular: color-mix(in oklch, var(--n-11) 42%, transparent);
+  --gc-drop: var(--e2);
+  --gc-solid: var(--surface-elevated);
+}
+
+/*
+ * A control that is already ON glass.
+ *
+ * The sheet headers, the phone's dock, the play screen's masthead: a button
+ * sitting on one of those must not blur a second time. Two stacked
+ * backdrop-filters do not composite into deeper glass — they composite into a
+ * smudge, which is the exact artefact `ScreenSheet` deletes by drawing its
+ * grabber solid.
+ *
+ * So this keeps the tint, the crest, the ring and the press, and drops only the
+ * blur. It is the same distinction `UIGlassContainerEffect` draws natively: the
+ * container is the material, and the controls inside it are shapes cut out of
+ * it rather than panes of their own.
+ */
+.nv-gc[data-flat="true"],
+.nv-gc.nv-flat {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  --gc-tint: color-mix(in oklch, var(--n-11) 10%, transparent);
+  --gc-drop: none;
+}
+
+.nv-gc[data-flat="true"][data-tone],
+.nv-gc.nv-flat[class*="nv-t-"] {
+  /* A tone still wants its own colour, at the strength it would have had if
+     it were lensing something. */
+  background: var(--gc-solid);
+}
+
+/* ── Tones ────────────────────────────────────────────────────────────────
+   The web's half of `UIGlassEffect.tintColor`: the colour goes INTO layer 2,
+   so a tinted control is still a lens with the screen showing through it and
+   never an opaque rectangle that happens to have a blur behind it.
+
+   The accent rule is unchanged by there being more glass. `action` belongs to
+   the one control that asks you to do something on a given screen, and
+   `prestige` to the year gate and what the gold marks. */
+
+.nv-gc[data-tone="action"],
+.nv-gc.nv-t-action {
+  color: var(--gc-ink);
+  --gc-tint: color-mix(in oklch, var(--action) 78%, transparent);
+  --gc-ink: var(--on-action);
+  --gc-ring: oklch(1 0 0 / 0.28);
+  --gc-specular: oklch(1 0 0 / 0.55);
+  --gc-underside: oklch(0 0 0 / 0.22);
+  --gc-drop: var(--e2);
+  --gc-solid: var(--action);
+}
+
+.nv-gc[data-tone="prestige"],
+.nv-gc.nv-t-prestige {
+  color: var(--gc-ink);
+  --gc-tint: color-mix(in oklch, var(--color-prestige) 80%, transparent);
+  --gc-ink: var(--on-prestige);
+  --gc-ring: oklch(1 0 0 / 0.34);
+  --gc-specular: oklch(1 0 0 / 0.62);
+  --gc-underside: oklch(0 0 0 / 0.16);
+  --gc-drop: var(--e2);
+  --gc-solid: var(--color-prestige);
+}
+
+.nv-gc[data-tone="alert"],
+.nv-gc.nv-t-alert {
+  color: var(--gc-ink);
+  --gc-tint: color-mix(in oklch, var(--alert) 74%, transparent);
+  --gc-ink: var(--on-action);
+  --gc-ring: oklch(1 0 0 / 0.26);
+  --gc-specular: oklch(1 0 0 / 0.5);
+  --gc-drop: var(--e2);
+  --gc-solid: var(--alert);
+}
+
+/* The alert colour as ink rather than as ground: a destructive control that
+   has not been confirmed yet. Reads as dangerous without looking pressed. */
+.nv-gc[data-tone="danger"],
+.nv-gc.nv-t-danger {
+  color: var(--gc-ink);
+  --gc-tint: color-mix(in oklch, var(--alert) 16%, var(--glass-tint));
+  --gc-ink: var(--alert);
+  --gc-ring: color-mix(in oklch, var(--alert) 34%, transparent);
+  --gc-solid: var(--surface-overlay);
+}
+
+.nv-gc[data-tone="solvency"],
+.nv-gc.nv-t-solvency {
+  color: var(--gc-ink);
+  --gc-tint: color-mix(in oklch, var(--solvency) 20%, var(--glass-tint));
+  --gc-ink: var(--solvency);
+  --gc-ring: color-mix(in oklch, var(--solvency) 34%, transparent);
+  --gc-solid: var(--surface-overlay);
+}
+
+/* Present but not asking. A cancel beside a confirm, a "keep going" under a
+   "yes, end it" — glass with almost nothing in it, so the pair reads as one
+   loud control and one quiet one rather than as two buttons. */
+.nv-gc[data-tone="quiet"],
+.nv-gc.nv-t-quiet {
+  color: var(--gc-ink);
+  --gc-tint: color-mix(in oklch, var(--glass-tint) 55%, transparent);
+  --gc-ink: var(--text-secondary);
+  --gc-ring: color-mix(in oklch, var(--glass-ring) 70%, transparent);
+  --gc-drop: 0 0 0 0 transparent;
+  --gc-solid: var(--surface);
+}
+
+/* ── The group ────────────────────────────────────────────────────────────
+ *
+ * The web's answer to `UIGlassContainerEffect`, and the reason a settings
+ * screen does not cost thirteen compositor passes.
+ *
+ * iOS 26 merges neighbouring glass so a cluster reads as one piece of material
+ * rather than as separate panes that happen to be adjacent. A browser cannot
+ * merge two backdrops — but it can do the thing merging is FOR, which is to
+ * have one piece of material with several controls in it. So the group carries
+ * the blur once, and its children get a hairline and a press and no material
+ * of their own.
+ */
+.nv-ggroup {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: var(--glass-tint);
+  box-shadow:
+    inset 0 -1px 0 0 var(--glass-underside),
+    inset 0 0 0 1px var(--glass-ring),
+    var(--e1);
+  -webkit-backdrop-filter: blur(22px) saturate(180%) brightness(1.05);
+  backdrop-filter: blur(22px) saturate(180%) brightness(1.05);
+}
+
+.nv-ggroup::before {
+  content: "";
+  position: absolute;
+  inset-inline: 8%;
+  top: 0;
+  height: 1px;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--glass-specular),
+    transparent
+  );
+}
+
+/* A child of a group is a control WITHOUT a material — that is the whole
+   point of the group. It keeps the press and the divider and nothing else. */
+.nv-ggroup > .nv-gc {
+  background: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.nv-ggroup > .nv-gc::before {
+  display: none;
+}
+
+.nv-ggroup > .nv-gc + .nv-gc {
+  box-shadow: inset 0 1px 0 0 var(--glass-ring);
+}
+
+/* Inside a group there is no shadow to press into, so the press is the
+   material lighting up under the finger rather than the control moving. */
+.nv-ggroup > .nv-gc:active:not(:disabled) {
+  transform: none;
+  background: color-mix(in oklch, var(--n-11) 12%, transparent);
+}
+
+.nv-ggroup > .nv-gc[data-on="true"] {
+  background: color-mix(in oklch, var(--n-11) 14%, transparent);
+}
+
+/* ── Segmented control ────────────────────────────────────────────────────
+   A glass track with a glass thumb in it. The track is the group's material;
+   the selected segment is the only child that gets one of its own, which is
+   exactly how the system's own segmented control separates from its track. */
+.nv-gseg {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius-pill);
+}
+
+.nv-gseg > .nv-gc {
+  flex: 1 1 0;
+  border-radius: var(--radius-pill);
+}
+
+/*
+ * No divider between segments.
+ *
+ * The group's row divider is `inset 0 1px 0 0` — a hairline along the top edge,
+ * which is right for a stack of list rows and wrong here twice over. On a pill
+ * it follows the radius and reads as an arc, and on a segmented control it
+ * lands on every child except the first, so the two UNSELECTED segments came
+ * out ringed and the selected one bare. Exactly backwards.
+ */
+.nv-gseg > .nv-gc + .nv-gc {
+  box-shadow: none;
+}
+
+/*
+ * The selected segment is the only one made of anything.
+ *
+ * That is the distinction the system's own segmented control draws: a lit piece
+ * of material sliding inside a dimmer track, rather than a colour swap — which
+ * would spend the accent on a filter, and the accent belongs to the one control
+ * that asks you to do something.
+ */
+.nv-gseg > .nv-gc[data-on="true"],
+.nv-gseg > .nv-gc.nv-on {
+  background: color-mix(in oklch, var(--n-11) 15%, var(--glass-tint));
+  box-shadow:
+    inset 0 -1px 0 0 var(--glass-underside),
+    inset 0 0 0 1px var(--glass-ring),
+    var(--e1);
+  color: var(--text-primary);
+}
+
+/*
+ * Anywhere there are live pixels behind the glass.
+ *
+ * design.md's standing rule: never composite a backdrop-filter over a live
+ * WebGL canvas, because Safari re-rasterises the backdrop root every frame and
+ * the phones that most need to stay smooth are the ones that will not. A
+ * controls layer cannot be audited for this per button — a control three
+ * elements away from a canvas still shares its stacking context — so the
+ * screens that run one mark themselves and every control inside them goes
+ * opaque without any of them having to know why.
+ *
+ * `data-live-3d`, not `.nv-stage`: the stage class is also on the masthead and
+ * on onboarding, where the mascot is an `<Image>` and the glass is free.
+ */
+[data-live-3d] .nv-gc,
+[data-live-3d] .nv-ggroup {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: var(--gc-solid, var(--surface-overlay));
+}
+
+/* ── Fallbacks ────────────────────────────────────────────────────────────
+   Two of them, and both matter. `data-glass="solid"` is the deliberate opt-out
+   a caller reaches for over the WebGL canvas; the `@supports` block is for an
+   engine that cannot blur at all. Neither drops the edges — a solid control
+   still has a lit crest and a shadowed underside, and losing those is what
+   makes a fallback look like a different component rather than the same one
+   without a blur. */
+.nv-gc[data-glass="solid"],
+.nv-ggroup[data-glass="solid"] {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: var(--gc-solid, var(--surface-overlay));
+}
+
+@supports not
+  ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .nv-gc {
+    background: var(--gc-solid, var(--surface-overlay));
+  }
+  .nv-ggroup {
+    background: var(--surface);
+  }
+  .nv-ggroup > .nv-gc {
+    background: transparent;
   }
 }
 

@@ -33,7 +33,7 @@ export function BuyOnWeb({ className = "" }: { className?: string }) {
       <button
         type="button"
         onClick={() => void openProPurchase()}
-        className="nv-press flex h-14 w-full items-center justify-center gap-2 rounded-[var(--radius-pill)] bg-[var(--action)] text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--on-action)] shadow-[var(--e2)]"
+        className="nv-gc flex h-14 w-full items-center justify-center gap-2 rounded-[var(--radius-pill)] nv-t-action text-[1.0625rem] font-extrabold tracking-[0.04em] shadow-[var(--e2)]"
       >
         GET PRO
         <ExternalGlyph />
@@ -97,7 +97,7 @@ export function RestoreButton({
         type="button"
         onClick={onRestore}
         disabled={busy}
-        className="nv-press nv-tap relative rounded-[var(--radius-pill)] bg-[var(--chip)] px-4 py-2 text-2xs font-bold tracking-[0.08em] text-[var(--text-secondary)] disabled:opacity-60"
+        className="nv-gc nv-tap relative rounded-[var(--radius-pill)] px-4 py-2 text-2xs font-bold tracking-[0.08em] text-[var(--text-secondary)] disabled:opacity-60"
       >
         {busy ? "CHECKING…" : "RESTORE PURCHASE"}
       </button>

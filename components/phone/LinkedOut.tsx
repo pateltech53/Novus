@@ -236,7 +236,7 @@ function CandidateCard({
           onClick={() => upgrade.open("talent_pool")}
           aria-label={`${candidate.name} is in the Pro talent pool. See what Pro adds.`}
           aria-describedby={`${candidate.id}-why`}
-          className="nv-press mt-3.5 h-14 w-full rounded-[var(--radius-pill)] bg-[var(--color-prestige)] text-sm font-extrabold tracking-[0.04em] text-[var(--on-prestige)]"
+          className="nv-gc mt-3.5 h-14 w-full rounded-[var(--radius-pill)] nv-t-prestige text-sm font-extrabold tracking-[0.04em]"
         >
           SEE WHAT PRO ADDS
         </button>
@@ -251,7 +251,7 @@ function CandidateCard({
           data-sfx="none"
           aria-label={`Hire ${candidate.name}, ${candidate.role}`}
           aria-describedby={reason ? `${candidate.id}-why` : undefined}
-          className="mt-3.5 h-14 w-full rounded-[var(--radius-pill)] bg-[var(--action)] text-sm font-extrabold tracking-[0.04em] text-[var(--n-11)] transition-transform duration-150 enabled:active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
+          className="nv-gc mt-3.5 h-14 w-full rounded-[var(--radius-pill)] nv-t-action text-sm font-extrabold tracking-[0.04em] disabled:cursor-not-allowed disabled:opacity-40"
         >
           HIRE
         </button>

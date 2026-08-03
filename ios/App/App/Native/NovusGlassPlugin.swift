@@ -25,12 +25,14 @@ public class NovusGlassPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "capabilities", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "configure", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setChrome", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setOverlay", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "toast", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "presentSheet", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "dismissSheet", returnType: CAPPluginReturnPromise),
     ]
 
     private var chrome: GlassChromeController?
+    private var overlay: GlassOverlayController?
     private var sheet: GlassSheetController?
 
     // ── Methods ──────────────────────────────────────────────────────────────
@@ -71,7 +73,30 @@ public class NovusGlassPlugin: CAPPlugin, CAPBridgedPlugin {
                 self.chrome = controller
             }
 
+            // The overlay chrome installs alongside it and stays empty until a
+            // screen asks for something. Installing here rather than lazily on
+            // the first `setOverlay` is what keeps it ABOVE the play chrome:
+            // both are subviews of the same view, and z-order is insertion
+            // order, so a host added later than the tab bar is a host that
+            // draws over it.
+            let overlayController = self.overlay ?? GlassOverlayController()
+            if self.overlay == nil {
+                overlayController.onAction = { [weak self] id in
+                    self?.notifyListeners("overlayAction", data: ["id": id])
+                }
+                overlayController.onSegment = { [weak self] id in
+                    self?.notifyListeners("overlaySegment", data: ["id": id])
+                }
+                overlayController.onInsetsChanged = { [weak self] insets in
+                    self?.notifyListeners(
+                        "overlayInsets",
+                        data: ["top": Double(insets.top), "bottom": Double(insets.bottom)])
+                }
+                self.overlay = overlayController
+            }
+
             let insets = controller.install(in: host)
+            overlayController.install(in: host)
             // A first paint with the wrong ground is worse than a late one:
             // the webview's own background shows through for the frame before
             // the page has painted, and it must match the theme it is about
@@ -96,6 +121,28 @@ public class NovusGlassPlugin: CAPPlugin, CAPBridgedPlugin {
             }
             let insets = chrome.apply(state)
             call.resolve(Self.payload(insets))
+        }
+    }
+
+    /**
+     The chrome for a screen that is not the play screen.
+
+     Same contract as `setChrome`: the web layer says what it wants and gets
+     back the number of points UIKit actually used. Declarative and idempotent
+     — a screen pushes its whole chrome on every change and the controller
+     works out what that means, because a diffing protocol across a bridge is
+     a second source of truth about what is on screen.
+     */
+    @objc func setOverlay(_ call: CAPPluginCall) {
+        let state = Self.parseOverlay(call)
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let overlay = self.overlay else {
+                call.reject("configure() has not run")
+                return
+            }
+            let insets = overlay.apply(state)
+            call.resolve(["top": Double(insets.top), "bottom": Double(insets.bottom)])
         }
     }
 
@@ -244,6 +291,38 @@ public class NovusGlassPlugin: CAPPlugin, CAPBridgedPlugin {
             cta: cta,
             controls: controls,
             coach: call.getString("coach"))
+    }
+
+    private static func overlayButtons(_ raw: [JSObject]?) -> [OverlayButton] {
+        (raw ?? []).compactMap { item in
+            guard let id = str(item, "id") else { return nil }
+            return OverlayButton(
+                id: id,
+                title: str(item, "title"),
+                symbol: str(item, "symbol"),
+                label: str(item, "label") ?? str(item, "title") ?? id,
+                style: str(item, "style") ?? "plain",
+                enabled: bool(item, "enabled", true))
+        }
+    }
+
+    private static func parseOverlay(_ call: CAPPluginCall) -> OverlayState {
+        let segments: [OverlaySegment] = (call.getArray("segments", JSObject.self) ?? [])
+            .compactMap { raw in
+                guard let id = str(raw, "id"), let title = str(raw, "title") else { return nil }
+                return OverlaySegment(id: id, title: title)
+            }
+
+        return OverlayState(
+            mode: call.getString("mode") ?? "hidden",
+            theme: call.getString("theme") ?? "dark",
+            title: call.getString("title"),
+            eyebrow: call.getString("eyebrow"),
+            leading: overlayButtons(call.getArray("leading", JSObject.self)),
+            trailing: overlayButtons(call.getArray("trailing", JSObject.self)),
+            segments: segments,
+            activeSegment: call.getString("activeSegment"),
+            actions: overlayButtons(call.getArray("actions", JSObject.self)))
     }
 
     private static func parseSheet(_ call: CAPPluginCall) -> SheetSpec? {
