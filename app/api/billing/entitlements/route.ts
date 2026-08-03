@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import type { Entitlements } from "@/lib/monetization";
+import { wireEntitlements, type EntitlementRow, type ProfileRoleRow } from "@/lib/admin/entitlements";
 import { configured } from "@/lib/supabase/config";
 import { attachSession, sessionFromRequest } from "@/lib/supabase/route";
 
@@ -29,23 +29,29 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ configured: true, signedIn: false }, { status: 200 });
   }
 
-  const { data } = await session.supabase
-    .from("entitlements")
-    .select("pro, extra_run_slots, industry_packs, cosmetic_bundles, chapter, intent")
-    .eq("profile_id", session.userId)
-    .maybeSingle();
+  const [entRow, profileRow] = await Promise.all([
+    session.supabase
+      .from("entitlements")
+      .select(
+        "pro, extra_run_slots, industry_packs, cosmetic_bundles, chapter, intent, comp_pro, comp_until",
+      )
+      .eq("profile_id", session.userId)
+      .maybeSingle(),
+    // The overlay's inputs: a comped gift folds into `pro`, and an admin's
+    // account is derived from `role`/`admin_view` rather than stored. Both
+    // decisions live in lib/admin/entitlements.ts, shared with /api/sync.
+    session.supabase
+      .from("profiles")
+      .select("role, admin_view")
+      .eq("id", session.userId)
+      .maybeSingle(),
+  ]);
 
   // Null until a purchase is recorded — nothing else creates a row here.
-  const entitlements: Entitlements | null = data
-    ? {
-        pro: !!data.pro,
-        extraRunSlots: data.extra_run_slots ?? 0,
-        industryPacks: (data.industry_packs ?? []) as Entitlements["industryPacks"],
-        cosmeticBundles: data.cosmetic_bundles ?? [],
-        chapter: data.chapter ?? null,
-        intent: data.intent ?? null,
-      }
-    : null;
+  const entitlements = wireEntitlements(
+    (entRow.data as EntitlementRow | null) ?? null,
+    (profileRow.data as ProfileRoleRow | null) ?? null,
+  );
 
   return attachSession(
     NextResponse.json({ configured: true, signedIn: true, entitlements }),
