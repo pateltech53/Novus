@@ -9,6 +9,7 @@ import {
   type AdminSkipRequest,
 } from "@/lib/cloud/admin-skip";
 import { restorePurchases, type CheckoutSku } from "@/lib/cloud/billing";
+import { appPath } from "@/lib/native/href";
 import { API_CREDENTIALS, apiUrl } from "@/lib/native/origin";
 import { play } from "@/lib/sound";
 
@@ -239,7 +240,10 @@ export function AdminSkipPrompt() {
               {isChapter && (
                 <button
                   type="button"
-                  onClick={() => window.location.assign("/chapter")}
+                  // By filename, for the shell's router — an extensionless
+                  // document navigation in the app resolves to the bundle
+                  // root, not to /chapter (lib/native/href.ts).
+                  onClick={() => window.location.assign(appPath("/chapter"))}
                   className="nv-gc h-12 w-full rounded-[var(--radius-pill)] nv-t-action text-sm font-extrabold tracking-[0.04em] shadow-[var(--e2)]"
                 >
                   OPEN THE SEAT CONSOLE

@@ -19,6 +19,8 @@ dashboard and nowhere else**, and unlocks three things:
    （按 `display_name` 搜，或先在 **Authentication → Users** 里按邮箱找到
    UUID），把 `role` 从 `player` 改成 `admin`。
 3. 用这个账号访问 `https://<你的域名>/admin` —— 控制台就在那里。
+   **手机 App 里**：游戏内打开 Settings（齿轮）→ 会多出一个只有管理员
+   账号可见的 **OPERATOR → Admin console** 行，点进去就是同一个控制台。
    降权同理：把 `role` 改回 `player`，一切立即恢复，无需清理任何数据。
 
 前提：`supabase/APPLY-ALL.sql`（0001 → 0010）已在 Novus 项目跑过，部署配置了
