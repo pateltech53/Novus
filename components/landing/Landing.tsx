@@ -10,18 +10,18 @@ import { Faq } from "@/components/landing/Faq";
 import { ScrollPhone } from "@/components/landing/ScrollPhone";
 import {
   CHAPTER_LICENCES,
-  ONE_TIME_PURCHASES,
   PRO_MONTHLY,
   PRO_YEARLY,
   YEARLY_SAVING_CENTS,
   formatPrice,
-  formatRange,
   grantProLocally,
   perSeatCents,
+  type ChapterLicence,
   type ProPlanId,
   type SubscriptionPlan,
 } from "@/lib/monetization";
 import { goToCheckout } from "@/lib/cloud/billing";
+import { OneTimeShelf } from "@/components/upgrade/OneTimeShelf";
 import { rememberPendingPro } from "@/lib/cloud/pending-pro";
 import { whenRestored } from "@/lib/cloud/sync";
 import { useSellsHere } from "@/lib/commerce";
@@ -369,8 +369,11 @@ function PricingSection() {
   const sells = useSellsHere();
 
   /** The plan whose checkout is opening, so only that button reads BUSY. */
-  const [busy, setBusy] = useState<ProPlanId | null>(null);
+  const [busy, setBusy] = useState<ProPlanId | ChapterLicence["id"] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** The chapter column's own error line — a teacher refused at 35 SEATS
+   *  should not read the message inside the Pro card two columns away. */
+  const [chapterError, setChapterError] = useState<string | null>(null);
 
   const enter = async () => {
     // Settled state first, exactly as AccountGate's CONTINUE does and for the
@@ -453,6 +456,52 @@ function PricingSection() {
     // displays 4999" is answerable from a screenshot. "Checkout could not be
     // opened", on its own, is not — it was every failure this page had.
     setError(
+      result.message
+        ? `Checkout could not be opened. Nothing was charged. (${result.message})`
+        : "Checkout could not be opened. Nothing was charged.",
+    );
+  };
+
+  /**
+   * A licence checkout, from the chapters column.
+   *
+   * Same shape as choosePro with two differences that matter: there is no
+   * device-local fallback (a classroom licence on one browser's localStorage
+   * would be a licence for nobody), and success lands on /chapter — the
+   * console the purchase just opened — rather than back in the game.
+   */
+  const chooseChapter = async (licence: ChapterLicence) => {
+    if (busy) return;
+    setBusy(licence.id);
+    setChapterError(null);
+
+    const result = await goToCheckout(licence.id);
+    if (result.ok) return; // leaving for Stripe
+
+    setBusy(null);
+
+    if (result.reason === "signed-out" || result.reason === "needs-account") {
+      setChapterError(
+        "A chapter attaches to the account that runs it. Create one or sign in below, then choose the licence again.",
+      );
+      document
+        .getElementById(ACCOUNT_ANCHOR)
+        ?.scrollIntoView({ block: "center", behavior: "smooth" });
+      return;
+    }
+    if (result.reason === "owned") {
+      setChapterError("This account already runs a chapter — open its console below.");
+      return;
+    }
+    if (result.reason === "not-configured") {
+      // No local-grant fallback for a licence. The mail address is the honest
+      // door on a deploy that cannot take the money.
+      setChapterError(
+        "This build cannot take payments. Email team@novuspitch.com and a person will set the chapter up.",
+      );
+      return;
+    }
+    setChapterError(
       result.message
         ? `Checkout could not be opened. Nothing was charged. (${result.message})`
         : "Checkout could not be opened. Nothing was charged.",
@@ -567,55 +616,79 @@ function PricingSection() {
             ) : null}
           </div>
 
-          {/* Chapters — the teacher's column. */}
+          {/* Chapters — the teacher's column, with real checkout on it. Every
+              seat is Pro for the year; the buyer lands on /chapter, hands the
+              seats out by email or by list, and no student is asked for a
+              card. */}
           <div className="flex flex-col rounded-[var(--radius-card)] bg-[var(--n-3)] p-6 shadow-[var(--e1)] ring-1 ring-[var(--hairline)]">
             <p className="text-sm font-extrabold tracking-[0.08em]">CHAPTERS</p>
             <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">
-              For classrooms and clubs — every seat gets Pro.
+              For classrooms and clubs — every seat gets Pro, handed out by
+              email from a console. No student is asked for a card.
             </p>
-            <dl className="mt-5 flex-1 space-y-3">
+            <div className="mt-5 flex-1 space-y-3">
               {CHAPTER_LICENCES.map((licence) => (
-                <div
-                  key={licence.id}
-                  className="flex items-baseline justify-between gap-3 border-t border-[var(--hairline)] pt-3"
-                >
-                  <dt className="text-sm font-bold">{licence.seats} seats</dt>
-                  <dd className="tnum text-right text-sm">
-                    <span className="font-extrabold">
-                      {formatPrice(licence.priceCents)}
-                    </span>
-                    <span className="text-2xs text-[var(--text-tertiary)]">
-                      {" "}
-                      / yr · {formatPrice(perSeatCents(licence))} a seat
-                    </span>
-                  </dd>
+                <div key={licence.id} className="border-t border-[var(--hairline)] pt-3">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <p className="text-sm font-bold">{licence.seats} seats</p>
+                    <p className="tnum text-right text-sm">
+                      <span className="font-extrabold">
+                        {formatPrice(licence.priceCents)}
+                      </span>
+                      <span className="text-2xs text-[var(--text-tertiary)]">
+                        {" "}
+                        / yr · {formatPrice(perSeatCents(licence))} a seat
+                      </span>
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void chooseChapter(licence)}
+                    disabled={busy !== null}
+                    className="nv-gc mt-2.5 w-full rounded-full nv-t-action px-4 py-2.5 text-sm font-extrabold tracking-[0.04em] disabled:opacity-60"
+                  >
+                    {busy === licence.id ? "OPENING…" : `START ${licence.seats} SEATS`}
+                  </button>
                 </div>
               ))}
-            </dl>
+            </div>
+
+            <p className="mt-4 text-2xs leading-relaxed text-[var(--text-tertiary)]">
+              Billed yearly by Stripe until cancelled. The buyer gets the seat
+              console at{" "}
+              <a className="underline underline-offset-4" href="/chapter">
+                novuspitch.com/chapter
+              </a>{" "}
+              — invite by email, or register a whole class from a list.
+            </p>
+            {chapterError ? (
+              <p
+                role="alert"
+                className="mt-2 text-xs leading-relaxed text-[var(--color-alert)]"
+              >
+                {chapterError}
+              </p>
+            ) : null}
             <a
-              href="mailto:team@novuspitch.com?subject=Novus%20chapter%20licence"
-              className="nv-gc mt-6 w-full rounded-full px-5 py-3 text-center text-sm font-extrabold tracking-[0.04em]"
+              href="/chapter"
+              className="mt-3 text-2xs font-bold tracking-[0.08em] text-[var(--text-tertiary)] underline underline-offset-4"
             >
-              EMAIL THE TEAM
+              ALREADY RUN ONE? OPEN YOUR CHAPTER
             </a>
           </div>
         </div>
 
-        {/* One-time buys — a shelf, not a column. Closet only, per the rule. */}
-        <div className="mt-6 flex flex-wrap items-baseline gap-x-6 gap-y-2">
-          {ONE_TIME_PURCHASES.map((item) => (
-            <p key={item.id} className="text-sm text-[var(--text-secondary)]">
-              <span className="font-bold text-[var(--text-primary)]">
-                {item.name}
-              </span>{" "}
-              <span className="tnum">
-                {item.maxPriceCents
-                  ? formatRange(item.priceCents, item.maxPriceCents)
-                  : formatPrice(item.priceCents)}
-              </span>
-            </p>
-          ))}
-        </div>
+        {/* One-time buys — a shelf, not a column, and since the buttons landed
+            an actual shop: a run slot or one industry, bought once, no
+            subscription anywhere near them. */}
+        <OneTimeShelf
+          className="mt-8 max-w-[38rem]"
+          onNeedsAccount={() =>
+            document
+              .getElementById(ACCOUNT_ANCHOR)
+              ?.scrollIntoView({ block: "center", behavior: "smooth" })
+          }
+        />
 
         <p className="mt-6 max-w-[34rem] text-xs leading-relaxed text-[var(--text-secondary)]">
           <span className="font-bold text-[var(--text-primary)]">
