@@ -430,6 +430,39 @@ textarea {
   }
 }
 
+/*
+ * ── The modal scrim ──────────────────────────────────────────────────────
+ *
+ * design.md has always listed the scrim as a glass surface and it was a flat
+ * fill: the game behind a sheet went DARK rather than out of focus. On iOS the
+ * decision sheet has had the real thing all along — `GlassKit.backdrop()`
+ * frosting the whole webview — and every other sheet in the app was the one
+ * that had not caught up.
+ *
+ * It keeps the scrim's own tint rather than only blurring. A scrim that lost
+ * its darkening would stop separating the sheet from the board, which is the
+ * job it was doing before it was also a lens.
+ *
+ * `background` is stated outright, not only as `--glass-tint`: the no-backdrop
+ * -filter fallback below reassigns `background` directly, and a scrim that
+ * fell back to an OPAQUE panel would not dim the game, it would delete it.
+ * Two classes beat one, so this wins wherever it lands in the file.
+ */
+.nv-glass.nv-scrim {
+  background: var(--scrim);
+  --glass-tint: var(--scrim);
+  /* No edges. A scrim is the absence of focus, not a pane with a rim — the
+     specular line alone would draw a bright hairline across the whole screen. */
+  --glass-specular: transparent;
+  --glass-underside: transparent;
+  --glass-ring: transparent;
+  --glass-drop: 0 0 0 0 transparent;
+  /* Shallower than a control's 28px. This is measured in screens rather than
+     in points, and the cost of a blur is its radius times its area. */
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+}
+
 /* A tinted surface that cannot blur is the flat accent it was before glass
    existed — never the neutral panel, which would drop the CTA's colour on the
    one engine that cannot show the material. */

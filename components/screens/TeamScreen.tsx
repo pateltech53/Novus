@@ -7,6 +7,7 @@ import { S_UNIT } from "@/lib/engine/constants";
 import { fmtMoney } from "@/lib/engine/format";
 import type { Employee } from "@/lib/engine/people";
 import { useUpgrade } from "@/components/upgrade/UpgradeProvider";
+import { ScreenSheet } from "@/components/screens/ScreenSheet";
 
 /**
  * The team. A roster of named people with salaries, not a headcount integer —
@@ -102,154 +103,119 @@ export function TeamScreen({ onClose, onFire, onOpenPhone }: TeamScreenProps) {
   const morale = Math.round(run.stats.morale);
 
   return (
-    <motion.div
-      className="fixed inset-0 z-50 flex items-end justify-center"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.18 }}
+    <ScreenSheet
+      label="The team"
+      closeLabel="Close the team screen"
+      onClose={onClose}
+      title="The team"
+      blurb="Payroll leaves every month whether or not the month earned it."
     >
-      <button
-        type="button"
-        aria-label="Close the team screen"
-        onClick={onClose}
-        className="absolute inset-0 bg-[var(--scrim)]"
-      />
+      <div className="mt-4 grid grid-cols-2 gap-2 px-3">
+        <StatCard label="HEADCOUNT" value={String(roster.length)} />
+        <StatCard
+          label="PAYROLL / MO"
+          value={fmtMoney(payrollMonthly)}
+          // Red once the bank can't cover three more payrolls — payroll is
+          // the bill that arrives whether or not the month went well.
+          danger={payrollMonthly > 0 && run.stats.cash < payrollMonthly * 3}
+        />
+        <StatCard
+          label="AVG PERFORMANCE"
+          value={avgPerformance === null ? "—" : String(avgPerformance)}
+          tone={avgPerformance === null ? undefined : toneFor(avgPerformance)}
+        />
+        <StatCard
+          label="AVG LOYALTY"
+          value={avgLoyalty === null ? "—" : String(avgLoyalty)}
+          tone={avgLoyalty === null ? undefined : toneFor(avgLoyalty)}
+        />
+      </div>
 
-      <motion.section
-        role="dialog"
-        aria-modal="true"
-        aria-label="The team"
-        className="relative flex max-h-[88dvh] w-full max-w-2xl flex-col overflow-y-auto rounded-t-[1.75rem] bg-[var(--sheet)] pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[var(--e3)]"
-        initial={{ y: "8%", opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
-      >
-        {/* ── Header ────────────────────────────────────────────────── */}
-        <div className="flex items-start justify-between gap-3 px-5 pt-5">
-          <div className="min-w-0">
-            <h2 className="text-xl font-extrabold tracking-[-0.01em]">
-              The team
-            </h2>
-            <p className="mt-1 text-sm leading-snug text-[var(--text-secondary)]">
-              Payroll leaves every month whether or not the month earned it.
+      <div className="mt-2 px-3">
+        <div className="nv-card px-4 py-3">
+          <Meter label="TEAM MORALE" value={morale} />
+          <p className="mt-2 text-xs leading-snug text-[var(--text-secondary)]">
+            {moraleLine(morale)}
+          </p>
+        </div>
+      </div>
+
+      {/* ── Roster ────────────────────────────────────────────────── */}
+      {roster.length === 0 ? (
+        <div className="mt-4 px-3">
+          <div className="nv-card px-5 py-6 text-center">
+            <p className="text-[1.0625rem] font-extrabold leading-snug">
+              You are the whole company. That is not a long-term plan.
             </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="shrink-0 rounded-full bg-[var(--chip)] px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
-          >
-            CLOSE
-          </button>
-        </div>
-
-        <div className="mt-4 grid grid-cols-2 gap-2 px-3">
-          <StatCard label="HEADCOUNT" value={String(roster.length)} />
-          <StatCard
-            label="PAYROLL / MO"
-            value={fmtMoney(payrollMonthly)}
-            // Red once the bank can't cover three more payrolls — payroll is
-            // the bill that arrives whether or not the month went well.
-            danger={payrollMonthly > 0 && run.stats.cash < payrollMonthly * 3}
-          />
-          <StatCard
-            label="AVG PERFORMANCE"
-            value={avgPerformance === null ? "—" : String(avgPerformance)}
-            tone={avgPerformance === null ? undefined : toneFor(avgPerformance)}
-          />
-          <StatCard
-            label="AVG LOYALTY"
-            value={avgLoyalty === null ? "—" : String(avgLoyalty)}
-            tone={avgLoyalty === null ? undefined : toneFor(avgLoyalty)}
-          />
-        </div>
-
-        <div className="mt-2 px-3">
-          <div className="nv-card px-4 py-3">
-            <Meter label="TEAM MORALE" value={morale} />
-            <p className="mt-2 text-xs leading-snug text-[var(--text-secondary)]">
-              {moraleLine(morale)}
+            <p className="mt-2 text-sm leading-snug text-[var(--text-secondary)]">
+              Every hire is a monthly cost you cannot un-sign. It is still
+              cheaper than being the only person who knows anything.
             </p>
-          </div>
-        </div>
-
-        {/* ── Roster ────────────────────────────────────────────────── */}
-        {roster.length === 0 ? (
-          <div className="mt-4 px-3">
-            <div className="nv-card px-5 py-6 text-center">
-              <p className="text-[1.0625rem] font-extrabold leading-snug">
-                You are the whole company. That is not a long-term plan.
-              </p>
-              <p className="mt-2 text-sm leading-snug text-[var(--text-secondary)]">
-                Every hire is a monthly cost you cannot un-sign. It is still
-                cheaper than being the only person who knows anything.
-              </p>
-              <button
-                type="button"
-                onClick={onOpenPhone}
-                className="mt-5 flex h-14 w-full items-center justify-center rounded-[var(--radius-pill)] bg-[var(--action)] px-4 text-center text-sm font-extrabold leading-tight text-[var(--n-11)] transition-transform duration-150 active:scale-[0.97] sm:text-[0.9375rem]"
-              >
-                Open the phone → LinkedOut to hire
-              </button>
-            </div>
-          </div>
-        ) : (
-          <ul className="mt-4 space-y-2 px-3">
-            {roster.map((e) => (
-              <RosterCard
-                key={e.id}
-                employee={e}
-                salaryMonthly={e.salaryS * S}
-                confirming={confirming === e.id}
-                onAskFire={() => setConfirming(e.id)}
-                onCancelFire={() => setConfirming(null)}
-                onConfirmFire={() => {
-                  setConfirming(null);
-                  onFire(e.id);
-                }}
-              />
-            ))}
-          </ul>
-        )}
-
-        {/* ── Hiring always points at the phone; LinkedOut owns it ──── */}
-        <div className="mt-5 px-3">
-          <button
-            type="button"
-            onClick={onOpenPhone}
-            className="flex h-14 w-full items-center justify-center rounded-[var(--radius-pill)] bg-[var(--action)] px-4 text-center text-sm font-extrabold leading-tight text-[var(--n-11)] transition-transform duration-150 active:scale-[0.97] sm:text-[0.9375rem]"
-          >
-            Hiring happens on LinkedOut. Open the phone.
-          </button>
-          {!run.pro && (
-            // Content only, never outcomes: Pro widens the list, not the odds.
-            // Tappable because it was already making the offer — it just had no
-            // way to accept it, which is a sentence about a product rather than
-            // a route to one.
             <button
               type="button"
-              onClick={() => upgrade.open("talent_pool")}
-              // py-2.5 rather than nothing: two lines of 2xs is a 21px box, and
-              // a 21px box is not a tap target however true its sentence is.
-              // The padding is the hit area — npm run audit:phone measures this
-              // one by hit-testing, and it failed at 430px before it existed.
-              className="nv-press mt-1.5 flex w-full flex-wrap items-center justify-center gap-1.5 py-2.5 text-center text-2xs leading-snug text-[var(--text-tertiary)]"
+              onClick={onOpenPhone}
+              className="mt-5 flex h-14 w-full items-center justify-center rounded-[var(--radius-pill)] bg-[var(--action)] px-4 text-center text-sm font-extrabold leading-tight text-[var(--n-11)] transition-transform duration-150 active:scale-[0.97] sm:text-[0.9375rem]"
             >
-              <span className="rounded-full bg-[var(--color-prestige)] px-1.5 py-0.5 text-2xs font-bold tracking-[0.1em] text-[var(--on-prestige)]">
-                PRO
-              </span>
-              <span>
-                More candidates in the pool. The same people can still say no.
-              </span>
+              Open the phone → LinkedOut to hire
             </button>
-          )}
+          </div>
         </div>
+      ) : (
+        <ul className="mt-4 space-y-2 px-3">
+          {roster.map((e) => (
+            <RosterCard
+              key={e.id}
+              employee={e}
+              salaryMonthly={e.salaryS * S}
+              confirming={confirming === e.id}
+              onAskFire={() => setConfirming(e.id)}
+              onCancelFire={() => setConfirming(null)}
+              onConfirmFire={() => {
+                setConfirming(null);
+                onFire(e.id);
+              }}
+            />
+          ))}
+        </ul>
+      )}
 
-        <p className="px-5 pt-4 text-2xs tracking-[0.1em] text-[var(--text-tertiary)]">
-          NONE OF THIS ADVANCES TIME
-        </p>
-      </motion.section>
-    </motion.div>
+      {/* ── Hiring always points at the phone; LinkedOut owns it ──── */}
+      <div className="mt-5 px-3">
+        <button
+          type="button"
+          onClick={onOpenPhone}
+          className="flex h-14 w-full items-center justify-center rounded-[var(--radius-pill)] bg-[var(--action)] px-4 text-center text-sm font-extrabold leading-tight text-[var(--n-11)] transition-transform duration-150 active:scale-[0.97] sm:text-[0.9375rem]"
+        >
+          Hiring happens on LinkedOut. Open the phone.
+        </button>
+        {!run.pro && (
+          // Content only, never outcomes: Pro widens the list, not the odds.
+          // Tappable because it was already making the offer — it just had no
+          // way to accept it, which is a sentence about a product rather than
+          // a route to one.
+          <button
+            type="button"
+            onClick={() => upgrade.open("talent_pool")}
+            // py-2.5 rather than nothing: two lines of 2xs is a 21px box, and
+            // a 21px box is not a tap target however true its sentence is.
+            // The padding is the hit area — npm run audit:phone measures this
+            // one by hit-testing, and it failed at 430px before it existed.
+            className="nv-press mt-1.5 flex w-full flex-wrap items-center justify-center gap-1.5 py-2.5 text-center text-2xs leading-snug text-[var(--text-tertiary)]"
+          >
+            <span className="rounded-full bg-[var(--color-prestige)] px-1.5 py-0.5 text-2xs font-bold tracking-[0.1em] text-[var(--on-prestige)]">
+              PRO
+            </span>
+            <span>
+              More candidates in the pool. The same people can still say no.
+            </span>
+          </button>
+        )}
+      </div>
+
+      <p className="px-5 pt-4 text-2xs tracking-[0.1em] text-[var(--text-tertiary)]">
+        NONE OF THIS ADVANCES TIME
+      </p>
+    </ScreenSheet>
   );
 }
 

@@ -355,6 +355,22 @@ for (const [name, width, height] of SIZES) {
 // how a gate that returns false everywhere passes its own test while quietly
 // taking the checkout button off the web.
 const PRICE = /\$\s?\d/;
+/**
+ * Is there an in-app plan picker on screen?
+ *
+ * A price alone stopped separating a browser from a store build when the link
+ * out to the web started carrying one (lib/commerce.ts). What still separates
+ * them is whether a player can CHOOSE a plan and pay for it here.
+ *
+ * Asked of the DOM rather than of the text, and the difference is not
+ * pedantry: the link-out's own price line reads "$39.99 A YEAR · $6.99 A
+ * MONTH", so any regex looking for the chips' wording finds the sentence that
+ * exists precisely because there are no chips.
+ */
+const picker = (page) =>
+  page.evaluate(() => !!document.querySelector('[aria-label="Billing period"]'));
+/** Restore, in either voice — it is a small chip in the app and a row in Settings. */
+const RESTORE = /RESTORE PURCHASE|Restore purchase/i;
 
 // The globals @capacitor/core reads to decide the platform (getPlatformId in
 // its dist bundle). addInitScript hands the function its `arg`, never `window`,
@@ -427,18 +443,23 @@ for (const [shell, inject] of SHELLS) {
     const text = await page.evaluate(() => document.body.innerText);
     await page.screenshot({ path: join(SHOTS, `shell-${shell}-plans.png`) });
 
-    want(PRICE.test(text) === sells, sells
-      ? "no price on the plans step in a browser"
-      : `a price is on the plans step in the ${shell} build`);
+    // A price is fine everywhere now: a store build states what Pro costs on
+    // the link that leaves for the browser. What may not be here is a way to
+    // PAY — the plan chips and the checkout button that opens Stripe.
+    want(PRICE.test(text), "no price on the plans step");
+    want((await picker(page)) === sells, sells
+      ? "no plan picker in a browser"
+      : `a plan picker is on the plans step in the ${shell} build`);
     want(text.includes("CHOOSE PRO") === sells, sells
       ? "no CHOOSE PRO in a browser"
       : `CHOOSE PRO is in the ${shell} build`);
     want(text.includes("TERMS OF USE") && text.includes("PRIVACY"),
       "the plans step is missing its terms/privacy links");
+    want(text.includes("CONTINUE FREE"), "no way past the plans step");
     if (!sells) {
-      want(text.includes("START PLAYING"), `no way past the plans step in the ${shell} build`);
-      want(text.includes("Nothing is sold inside this app"),
-        `the ${shell} build does not say what replaced the prices`);
+      want(text.includes("GET PRO"), `no way to buy Pro at all in the ${shell} build`);
+      want(text.includes("opens your browser"),
+        `the ${shell} build does not say where the payment happens`);
     }
   }
 
@@ -459,15 +480,21 @@ for (const [shell, inject] of SHELLS) {
   await page.screenshot({ path: join(SHOTS, `shell-${shell}-pro.png`) });
 
   want(sheet.length > 0, "the Pro sheet did not open");
-  want(PRICE.test(sheet) === sells, sells
-    ? "no price in the Pro sheet in a browser"
-    : `a price is in the Pro sheet in the ${shell} build`);
+  want(PRICE.test(sheet), "no price in the Pro sheet");
+  want((await picker(page)) === sells, sells
+    ? "no plan picker in the Pro sheet in a browser"
+    : `a plan picker is in the Pro sheet in the ${shell} build`);
   want(sheet.includes("CHOOSE PRO") === sells, sells
     ? "no CHOOSE PRO in the Pro sheet in a browser"
     : `CHOOSE PRO is in the Pro sheet in the ${shell} build`);
-  // Required on every platform: with nothing sold in the app, restoring is the
-  // only way Pro can ever appear on a phone.
-  want(sheet.includes("Restore purchases"), "the Pro sheet has no Restore purchases");
+  if (!sells) {
+    want(sheet.includes("GET PRO"), `no way to buy Pro from the Pro sheet in the ${shell} build`);
+    want(sheet.includes("opens your browser"),
+      `the Pro sheet does not say where the payment happens in the ${shell} build`);
+  }
+  // Required on every platform. It is how a purchase made anywhere — and in a
+  // store build every purchase is made somewhere else — reaches this device.
+  want(RESTORE.test(sheet), "the Pro sheet has no Restore");
   want(sheet.includes("TERMS OF USE") && sheet.includes("PRIVACY"),
     "the Pro sheet is missing its terms/privacy links");
 
@@ -498,14 +525,19 @@ for (const [shell, inject] of SHELLS) {
       await page.screenshot({ path: join(SHOTS, `shell-${shell}-upgrade.png`) });
 
       want(upgrade.includes("KEEP PLAYING FREE"), "the upgrade screen did not open");
-      want(PRICE.test(upgrade) === sells, sells
-        ? "no price on the upgrade screen in a browser"
-        : `a price is on the upgrade screen in the ${shell} build`);
-      want(upgrade.includes("GET PRO") === sells, sells
-        ? "no GET PRO on the upgrade screen in a browser"
-        : `GET PRO is on the upgrade screen in the ${shell} build`);
-      want(upgrade.includes("Restore purchases"),
-        "the upgrade screen has no Restore purchases");
+      want(PRICE.test(upgrade), "no price on the upgrade screen");
+      // GET PRO is on both, and means two different things: in a browser it
+      // opens Stripe, in a store build it opens Safari. The chips are what
+      // separate them — an in-app plan picker only exists where checkout does.
+      want(upgrade.includes("GET PRO"), "no GET PRO on the upgrade screen");
+      want((await picker(page)) === sells, sells
+        ? "no plan picker on the upgrade screen in a browser"
+        : `a plan picker is on the upgrade screen in the ${shell} build`);
+      if (!sells) {
+        want(upgrade.includes("opens your browser"),
+          `the upgrade screen does not say where the payment happens in the ${shell} build`);
+      }
+      want(RESTORE.test(upgrade), "the upgrade screen has no Restore");
       want(upgrade.includes("TERMS OF USE") && upgrade.includes("PRIVACY"),
         "the upgrade screen is missing its terms/privacy links");
     } else {

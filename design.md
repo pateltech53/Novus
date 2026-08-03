@@ -179,6 +179,13 @@ Four layers, in order:
 sheet grabber and sheet header when content scrolls under it · toasts, the term-on-first-use note
 and the year-gate banner · the in-game phone's status bar and dock · modal scrims.
 
+**"When content scrolls under it" is a requirement, not a description.** Every one of the six
+activity screens now pins its header (`ScreenSheet`, and RobinGhood's own) *inside* the scroll
+container, so the roster, the ledger and the tape genuinely pass beneath a pane. Where a header is
+a `shrink-0` sibling that reserves its own height, nothing ever travels under it and the glass
+refracts a flat fill — a tinted rectangle wearing the material's cost. RobinGhood's header was
+exactly that and moved into the scroller to earn it.
+
 **Tint.** `Glass.tsx` takes `tone="action" | "prestige"`, which colours layer 2 rather than
 painting a fill over the stack — the web's half of `UIGlassEffect.tintColor`. It adds no gradient:
 the specular edge is still gradient #1, brightened to clear a saturated pane. The accent rule is

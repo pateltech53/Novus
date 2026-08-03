@@ -15,6 +15,7 @@ import {
 import { fmtMoney, fmtMonths, fmtPct, MONTH_NAMES } from "@/lib/engine/format";
 import { deriveRunwayMonths } from "@/lib/engine/sim";
 import type { RunState } from "@/lib/engine/types";
+import { ScreenSheet } from "@/components/screens/ScreenSheet";
 
 /**
  * The company's full detail sheet — the thing a founder would actually pull up
@@ -77,243 +78,218 @@ export function CompanyScreen({ onClose }: { onClose: () => void }) {
   const actions = activitiesFor("company", run);
 
   return (
-    <motion.div
-      className="fixed inset-0 z-50 flex items-end justify-center"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.18 }}
+    <ScreenSheet
+      label={`${run.companyName} — company detail`}
+      closeLabel="Close the company sheet"
+      onClose={onClose}
+      eyebrow={`${industry.name.toUpperCase()} · ${STAGE_NAME[run.stage].toUpperCase()}`}
+      title={run.companyName}
     >
-      <button
-        type="button"
-        aria-label="Close the company sheet"
-        onClick={onClose}
-        className="absolute inset-0 bg-[var(--scrim)]"
-      />
+      {/*
+        The dateline and the founder's stake.
 
-      <motion.section
-        role="dialog"
-        aria-modal="true"
-        aria-label={`${run.companyName} — company detail`}
-        className="relative flex max-h-[88dvh] w-full max-w-2xl flex-col overflow-y-auto rounded-t-[1.75rem] bg-[var(--sheet)] pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[var(--e3)]"
-        initial={{ y: "8%", opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
-      >
-        {/* ── 1 · Header ────────────────────────────────────────────── */}
-        <header className="flex items-start justify-between gap-3 px-5 pt-5">
-          <div className="min-w-0">
-            <p className="text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
-              {industry.name.toUpperCase()} · {STAGE_NAME[run.stage].toUpperCase()}
+        These were the third line of the header until the header became
+        glass. Equity is a financial figure and money is read on solid
+        ground — the rule does not bend for a surface being chrome. So they
+        moved down one element, onto the sheet, where the rest of the
+        numbers on this screen already live.
+      */}
+      <p className="tnum px-5 pt-4 text-sm text-[var(--text-secondary)]">
+        Fiscal year {run.year} · {MONTH_NAMES[Math.min(11, Math.max(0, run.month - 1))]} · you
+        own{" "}
+        <span className="font-bold text-[var(--text)]">
+          {fmtPct(run.founderEquityPct)}
+        </span>
+      </p>
+      {run.rookieMode && (
+        // The real term stays above; this only ADDS a translation.
+        <p className="px-5 pt-1 text-xs leading-snug text-[var(--text-tertiary)]">
+          Equity — {GLOSSARY["equity"].rookie}
+        </p>
+      )}
+
+      {/* ── 2 · The Books ─────────────────────────────────────────── */}
+      <SectionLabel>THE BOOKS</SectionLabel>
+      <div className="px-3">
+        <div
+          className={`nv-card px-4 py-3 ${
+            run.stats.cash < 0 ? "ring-1 ring-[var(--alert)]/40" : ""
+          }`}
+        >
+          <p className="text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
+            CASH
+          </p>
+          <p
+            className="tnum mt-0.5 truncate text-2xl font-extrabold leading-none"
+            style={{ color: run.stats.cash < 0 ? BAD : "var(--text)" }}
+          >
+            {fmtMoney(run.stats.cash)}
+          </p>
+          {run.rookieMode && (
+            <p className="mt-1 text-xs text-[var(--text-tertiary)]">
+              {GLOSSARY["cash"].rookie}
             </p>
-            <h2 className="mt-1 truncate text-xl font-extrabold tracking-[-0.01em]">
-              {run.companyName}
-            </h2>
-            <p className="tnum mt-1 text-sm text-[var(--text-secondary)]">
-              Fiscal year {run.year} · {MONTH_NAMES[Math.min(11, Math.max(0, run.month - 1))]} · you
-              own{" "}
-              <span className="font-bold text-[var(--text)]">
-                {fmtPct(run.founderEquityPct)}
-              </span>
-            </p>
-            {run.rookieMode && (
-              // The real term stays above; this only ADDS a translation.
-              <p className="mt-1 text-xs leading-snug text-[var(--text-tertiary)]">
-                Equity — {GLOSSARY["equity"].rookie}
-              </p>
-            )}
-          </div>
+          )}
+        </div>
+
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <BookTile
+            label="BURN / MO"
+            term="burn rate"
+            value={profitable ? `+${fmtMoney(-burn)}` : fmtMoney(burn)}
+            tone={profitable ? "good" : "neutral"}
+            rookie={run.rookieMode}
+          />
+          <BookTile
+            label="RUNWAY"
+            term="runway"
+            value={fmtMonths(runway)}
+            tone={runway < 4 ? "bad" : "neutral"}
+            rookie={run.rookieMode}
+          />
+          <BookTile
+            label="VALUATION"
+            term="valuation"
+            value={fmtMoney(run.stats.valuation)}
+            tone="neutral"
+            rookie={run.rookieMode}
+          />
+          <BookTile
+            label="NET MARGIN"
+            term="net margin"
+            value={fmtPct(run.stats.netMarginPt, true)}
+            tone={run.stats.netMarginPt >= 0 ? "good" : "bad"}
+            rookie={run.rookieMode}
+          />
+        </div>
+      </div>
+
+      {/* ── 3 + 4 · Full stat sheet, with the Rookie Mode toggle ──── */}
+      <SectionLabel>THE STAT SHEET</SectionLabel>
+      <div className="px-3">
+        <div className="nv-card flex items-center justify-between gap-3 px-4 py-3">
+          <span className="min-w-0">
+            <span className="block text-[0.9375rem] font-semibold leading-snug">
+              Rookie Mode
+            </span>
+            <span className="mt-0.5 block text-xs leading-snug text-[var(--text-secondary)]">
+              Adds a plain-English line under every term. The real word stays.
+            </span>
+          </span>
           <button
             type="button"
-            onClick={onClose}
-            className="shrink-0 rounded-full bg-[var(--chip)] px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)] transition-transform duration-150 active:scale-[0.97]"
-          >
-            CLOSE
-          </button>
-        </header>
-
-        {/* ── 2 · The Books ─────────────────────────────────────────── */}
-        <SectionLabel>THE BOOKS</SectionLabel>
-        <div className="px-3">
-          <div
-            className={`nv-card px-4 py-3 ${
-              run.stats.cash < 0 ? "ring-1 ring-[var(--alert)]/40" : ""
+            role="switch"
+            aria-checked={run.rookieMode}
+            aria-label="Rookie Mode"
+            onClick={() => setRookieMode(!run.rookieMode)}
+            className={`nv-tap relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 ${
+              run.rookieMode ? "bg-[var(--action)]" : "bg-[var(--chip)]"
             }`}
           >
-            <p className="text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
-              CASH
-            </p>
-            <p
-              className="tnum mt-0.5 truncate text-2xl font-extrabold leading-none"
-              style={{ color: run.stats.cash < 0 ? BAD : "var(--text)" }}
-            >
-              {fmtMoney(run.stats.cash)}
-            </p>
-            {run.rookieMode && (
-              <p className="mt-1 text-xs text-[var(--text-tertiary)]">
-                {GLOSSARY["cash"].rookie}
-              </p>
-            )}
-          </div>
-
-          <div className="mt-2 grid grid-cols-2 gap-2">
-            <BookTile
-              label="BURN / MO"
-              term="burn rate"
-              value={profitable ? `+${fmtMoney(-burn)}` : fmtMoney(burn)}
-              tone={profitable ? "good" : "neutral"}
-              rookie={run.rookieMode}
-            />
-            <BookTile
-              label="RUNWAY"
-              term="runway"
-              value={fmtMonths(runway)}
-              tone={runway < 4 ? "bad" : "neutral"}
-              rookie={run.rookieMode}
-            />
-            <BookTile
-              label="VALUATION"
-              term="valuation"
-              value={fmtMoney(run.stats.valuation)}
-              tone="neutral"
-              rookie={run.rookieMode}
-            />
-            <BookTile
-              label="NET MARGIN"
-              term="net margin"
-              value={fmtPct(run.stats.netMarginPt, true)}
-              tone={run.stats.netMarginPt >= 0 ? "good" : "bad"}
-              rookie={run.rookieMode}
-            />
-          </div>
-        </div>
-
-        {/* ── 3 + 4 · Full stat sheet, with the Rookie Mode toggle ──── */}
-        <SectionLabel>THE STAT SHEET</SectionLabel>
-        <div className="px-3">
-          <div className="nv-card flex items-center justify-between gap-3 px-4 py-3">
-            <span className="min-w-0">
-              <span className="block text-[0.9375rem] font-semibold leading-snug">
-                Rookie Mode
-              </span>
-              <span className="mt-0.5 block text-xs leading-snug text-[var(--text-secondary)]">
-                Adds a plain-English line under every term. The real word stays.
-              </span>
-            </span>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={run.rookieMode}
-              aria-label="Rookie Mode"
-              onClick={() => setRookieMode(!run.rookieMode)}
-              className={`nv-tap relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 ${
-                run.rookieMode ? "bg-[var(--action)]" : "bg-[var(--chip)]"
+            <span
+              aria-hidden="true"
+              className={`absolute top-1 h-5 w-5 rounded-full bg-[var(--card)] shadow-[var(--e1)] transition-[left] duration-200 ${
+                run.rookieMode ? "left-6" : "left-1"
               }`}
-            >
-              <span
-                aria-hidden="true"
-                className={`absolute top-1 h-5 w-5 rounded-full bg-[var(--card)] shadow-[var(--e1)] transition-[left] duration-200 ${
-                  run.rookieMode ? "left-6" : "left-1"
-                }`}
-              />
-            </button>
-          </div>
-
-          {/* Sound effects live beside Rookie Mode: both are how the player
-              wants to be spoken to, rather than anything about the company. */}
-          <div className="mt-2">
-            <SoundToggle />
-          </div>
-
-          <ul className="mt-2 space-y-2">
-            {rows.map((row) => {
-              const tone = row.tone ?? "neutral";
-              return (
-                <li key={row.key} className="nv-card px-4 py-3">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <span className="min-w-0 truncate text-[0.9375rem] font-semibold">
-                      {row.label}
-                    </span>
-                    <span
-                      className="tnum shrink-0 text-[0.9375rem] font-extrabold"
-                      style={{ color: TONE_TEXT[tone] }}
-                    >
-                      {row.value}
-                    </span>
-                  </div>
-                  {row.bar !== undefined && (
-                    <Bar value={row.bar} tone={tone} label={`${row.label} out of 100`} />
-                  )}
-                  {run.rookieMode && (
-                    <p className="mt-1.5 text-xs leading-snug text-[var(--text-tertiary)]">
-                      {plainLine(row)}
-                    </p>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+            />
+          </button>
         </div>
 
-        {/* ── 5 · Actions ───────────────────────────────────────────── */}
-        <SectionLabel>WHAT YOU CAN DO TODAY</SectionLabel>
-        <ul className="space-y-2 px-3">
-          {actions.map((activity) => {
-            const affordable = canAfford(activity, run);
-            const used = spent.includes(activity.id);
-            const price =
-              activity.costS !== undefined
-                ? fmtMoney(activity.costS * S_UNIT[run.stage])
-                : null;
+        {/* Sound effects live beside Rookie Mode: both are how the player
+            wants to be spoken to, rather than anything about the company. */}
+        <div className="mt-2">
+          <SoundToggle />
+        </div>
+
+        <ul className="mt-2 space-y-2">
+          {rows.map((row) => {
+            const tone = row.tone ?? "neutral";
             return (
-              <li key={activity.id}>
-                <button
-                  type="button"
-                  disabled={!affordable || used}
-                  onClick={() => {
-                    runActivity(activity.id);
-                    setSpent((s) => [...s, activity.id]);
-                  }}
-                  className="nv-card flex w-full items-start justify-between gap-3 px-4 py-3.5 text-left transition-transform duration-150 enabled:active:scale-[0.985] disabled:opacity-45"
-                >
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[0.9375rem] font-semibold leading-snug">
-                      {activity.label}
-                    </span>
-                    <span className="mt-0.5 block text-xs leading-snug text-[var(--text-secondary)]">
-                      {used
-                        ? "Done. The month has to move before you do that again."
-                        : !affordable
-                          ? `You don't have the ${price ?? "cash"}. That's the whole reason.`
-                          : activity.signal}
-                    </span>
+              <li key={row.key} className="nv-card px-4 py-3">
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="min-w-0 truncate text-[0.9375rem] font-semibold">
+                    {row.label}
                   </span>
-                  {/*
-                    Only the cash cost lives in the chip now.
-                    It used to hold `activity.known` — "Cash −2S · Quality +5" —
-                    which fit a 45%-wide box fine. Addendum A §7.1 replaced that
-                    field with a qualitative `signal` ("Costs real money. Nobody
-                    claps."), and a sentence in a chip that narrow wraps to four
-                    or five lines and shoves the row apart. The signal moved up to
-                    the description line where it has the width to be a sentence,
-                    and the chip kept the one number a player is allowed to see
-                    before committing: the money leaving the account.
-                  */}
-                  {price && (
-                    <span className="tnum shrink-0 rounded-md bg-[var(--chip)] px-1.5 py-0.5 text-2xs font-bold text-[var(--text-secondary)]">
-                      {price}
-                    </span>
-                  )}
-                </button>
+                  <span
+                    className="tnum shrink-0 text-[0.9375rem] font-extrabold"
+                    style={{ color: TONE_TEXT[tone] }}
+                  >
+                    {row.value}
+                  </span>
+                </div>
+                {row.bar !== undefined && (
+                  <Bar value={row.bar} tone={tone} label={`${row.label} out of 100`} />
+                )}
+                {run.rookieMode && (
+                  <p className="mt-1.5 text-xs leading-snug text-[var(--text-tertiary)]">
+                    {plainLine(row)}
+                  </p>
+                )}
               </li>
             );
           })}
         </ul>
+      </div>
 
-        <p className="px-5 pt-4 text-xs text-[var(--text-tertiary)]">
-          None of this advances time.
-        </p>
-      </motion.section>
-    </motion.div>
+      {/* ── 5 · Actions ───────────────────────────────────────────── */}
+      <SectionLabel>WHAT YOU CAN DO TODAY</SectionLabel>
+      <ul className="space-y-2 px-3">
+        {actions.map((activity) => {
+          const affordable = canAfford(activity, run);
+          const used = spent.includes(activity.id);
+          const price =
+            activity.costS !== undefined
+              ? fmtMoney(activity.costS * S_UNIT[run.stage])
+              : null;
+          return (
+            <li key={activity.id}>
+              <button
+                type="button"
+                disabled={!affordable || used}
+                onClick={() => {
+                  runActivity(activity.id);
+                  setSpent((s) => [...s, activity.id]);
+                }}
+                className="nv-card flex w-full items-start justify-between gap-3 px-4 py-3.5 text-left transition-transform duration-150 enabled:active:scale-[0.985] disabled:opacity-45"
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[0.9375rem] font-semibold leading-snug">
+                    {activity.label}
+                  </span>
+                  <span className="mt-0.5 block text-xs leading-snug text-[var(--text-secondary)]">
+                    {used
+                      ? "Done. The month has to move before you do that again."
+                      : !affordable
+                        ? `You don't have the ${price ?? "cash"}. That's the whole reason.`
+                        : activity.signal}
+                  </span>
+                </span>
+                {/*
+                  Only the cash cost lives in the chip now.
+                  It used to hold `activity.known` — "Cash −2S · Quality +5" —
+                  which fit a 45%-wide box fine. Addendum A §7.1 replaced that
+                  field with a qualitative `signal` ("Costs real money. Nobody
+                  claps."), and a sentence in a chip that narrow wraps to four
+                  or five lines and shoves the row apart. The signal moved up to
+                  the description line where it has the width to be a sentence,
+                  and the chip kept the one number a player is allowed to see
+                  before committing: the money leaving the account.
+                */}
+                {price && (
+                  <span className="tnum shrink-0 rounded-md bg-[var(--chip)] px-1.5 py-0.5 text-2xs font-bold text-[var(--text-secondary)]">
+                    {price}
+                  </span>
+                )}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+
+      <p className="px-5 pt-4 text-xs text-[var(--text-tertiary)]">
+        None of this advances time.
+      </p>
+    </ScreenSheet>
   );
 }
 

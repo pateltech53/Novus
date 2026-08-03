@@ -68,6 +68,44 @@ export function Glass({
   );
 }
 
+/**
+ * The scrim behind a modal, and the tap target that closes it.
+ *
+ * One of the five sanctioned surfaces, and the one that spent the longest not
+ * actually being glass: it was a flat fill, so the game behind a sheet went
+ * dark rather than out of focus. On iOS the decision sheet has had the real
+ * material since it was written — `GlassKit.backdrop()` frosting the whole
+ * webview — and this is every other sheet in the app catching up.
+ *
+ * Two elements rather than one, because `Glass` renders the tags glass is
+ * allowed on and `button` is deliberately not among them. The pane is
+ * `aria-hidden`; the button over it carries the label and the tap.
+ *
+ * NEVER over the WebGL canvas — compositing a full-screen backdrop-filter on
+ * top of a live canvas is the iOS Safari jank source design.md names. Every
+ * caller here opens over `/play`, whose masthead is an `<Image>`.
+ */
+export function GlassScrim({
+  label,
+  onClose,
+}: {
+  /** What the tap does, for a screen reader. "Close the team screen". */
+  label: string;
+  onClose: () => void;
+}) {
+  return (
+    <div className="absolute inset-0">
+      <Glass className="nv-scrim absolute inset-0" aria-hidden="true" />
+      <button
+        type="button"
+        aria-label={label}
+        onClick={onClose}
+        className="absolute inset-0 h-full w-full"
+      />
+    </div>
+  );
+}
+
 /*
  * The `.nv-glass` rules live in app/globals.css alongside the tokens they
  * consume. They were briefly a <style> block in this file, for co-location —

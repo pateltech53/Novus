@@ -16,6 +16,7 @@ import { S_UNIT, STAGE_NAME } from "@/lib/engine/constants";
 import type { StageNum } from "@/lib/engine/types";
 import { fmtMoney, fmtPct } from "@/lib/engine/format";
 import { useUpgrade } from "@/components/upgrade/UpgradeProvider";
+import { ScreenSheet } from "@/components/screens/ScreenSheet";
 
 /**
  * Assets — the long game. Everything on this screen is revalued at the close of
@@ -136,49 +137,22 @@ export function AssetsScreen({
   const gainPct = totalPaid > 0 ? (gain / totalPaid) * 100 : 0;
 
   return (
-    <motion.div
-      className="fixed inset-0 z-50 flex items-end justify-center"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.18 }}
-    >
-      <button
-        type="button"
-        aria-label="Close assets"
-        onClick={onClose}
-        className="absolute inset-0 bg-[var(--scrim)]"
-      />
-
-      <motion.section
-        role="dialog"
-        aria-modal="true"
-        aria-label="Assets"
-        className="relative flex max-h-[88dvh] w-full max-w-2xl flex-col overflow-y-auto rounded-t-[1.75rem] bg-[var(--sheet)] pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[var(--e3)]"
-        initial={{ y: "8%", opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
-      >
-        <header className="flex items-start justify-between gap-4 px-5 pt-5">
-          <div className="min-w-0">
-            <h2 className="text-xl font-extrabold tracking-[-0.01em]">Assets</h2>
-            <p className="mt-1 text-sm leading-snug text-[var(--text-secondary)]">
-              {TAB_LINE[kind]}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="shrink-0 rounded-full bg-[var(--chip)] px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]"
-          >
-            CLOSE
-          </button>
-        </header>
-
-        {/* Segmented control — two ledgers that never mix. */}
+    <ScreenSheet
+      label="Assets"
+      closeLabel="Close assets"
+      onClose={onClose}
+      title="Assets"
+      blurb={TAB_LINE[kind]}
+      /*
+       * Pinned with the header rather than under it. It is the control that
+       * decides which of the two ledgers below you are reading, and a control
+       * that scrolls away is one you have to go back and find.
+       */
+      subnav={
         <div
           role="tablist"
           aria-label="Asset ledger"
-          className="mx-5 mt-4 flex gap-1 rounded-full bg-[var(--chip)] p-1"
+          className="flex gap-1 rounded-full bg-[var(--chip)] p-1"
         >
           {TABS.map((tab) => {
             const active = tab.kind === kind;
@@ -205,111 +179,111 @@ export function AssetsScreen({
             );
           })}
         </div>
-
-        <div
-          role="tabpanel"
-          id={`assets-panel-${kind}`}
-          aria-labelledby={`assets-tab-${kind}`}
-          className="px-3"
-        >
-          {/* ── Portfolio summary ─────────────────────────────────────────── */}
-          <section className="nv-card mt-4 p-4" aria-label="Portfolio">
-            <p className="text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
-              {kind === "company" ? "COMPANY HOLDINGS" : "PERSONAL HOLDINGS"}
-            </p>
-            <p className="tnum mt-1 truncate text-3xl font-extrabold leading-none tracking-[-0.02em]">
-              {fmtMoney(totalValue)}
-            </p>
-            <p className="mt-1.5 text-xs leading-snug text-[var(--text-secondary)]">
-              {owned.length === 0
-                ? "Nothing owned yet. Everything below moves in value at the close of each fiscal year."
-                : `${owned.length} ${owned.length === 1 ? "asset" : "assets"}, revalued at the close of every fiscal year.`}
-            </p>
-
-            <div className="mt-3 grid grid-cols-2 gap-2 border-t border-[var(--hairline)] pt-3">
-              <Figure label="PAID IN" value={fmtMoney(totalPaid)} />
-              <Figure
-                label="UNREALISED"
-                value={
-                  totalPaid > 0
-                    ? `${signed(gain)} · ${fmtPct(gainPct, true)}`
-                    : "—"
-                }
-                color={totalPaid > 0 ? (gain >= 0 ? UP : DOWN) : undefined}
-              />
-            </div>
-          </section>
-
-          {/* ── Owned ─────────────────────────────────────────────────────── */}
-          <SectionHeading
-            title="OWNED"
-            note="Sell any of it back to cash. The upkeep goes with it."
-          />
-          {owned.length === 0 ? (
-            <EmptyLine
-              text={
-                kind === "company"
-                  ? "The company owns nothing. Every month you pay rent, you are buying someone else an asset."
-                  : "You own nothing. Everything you have is one bad quarter away from being nothing."
-              }
-            />
-          ) : (
-            <ul className="mt-2 space-y-2">
-              {owned.map(({ holding, def }) => (
-                <OwnedCard
-                  key={holding.id}
-                  holding={holding}
-                  def={def}
-                  arming={confirmSell === holding.id}
-                  onSell={() => sell(holding.id)}
-                />
-              ))}
-            </ul>
-          )}
-
-          {/* ── For sale ──────────────────────────────────────────────────── */}
-          <SectionHeading
-            title="FOR SALE"
-            note="Prices are set at this stage. Appreciation compounds; depreciation does too."
-          />
-          {forSale.length === 0 ? (
-            <EmptyLine text="Nothing left to buy at this stage. Grow the company and the catalogue grows with it." />
-          ) : (
-            <ul className="mt-2 space-y-2">
-              {forSale.map((def) => (
-                <ForSaleCard
-                  key={def.id}
-                  def={def}
-                  sUnit={S}
-                  cash={run.stats.cash}
-                  pro={run.pro}
-                  onBuy={() => onBuy(def.id)}
-                />
-              ))}
-            </ul>
-          )}
-
-          {/* ── Later ─────────────────────────────────────────────────────── */}
-          {horizon.length > 0 && (
-            <>
-              <SectionHeading
-                title="LATER"
-                note="The catalogue grows with the company. Stage is the gate — no price skips it."
-              />
-              <ul className="mt-2 space-y-2">
-                {horizon.map((def) => (
-                  <HorizonCard key={def.id} def={def} />
-                ))}
-              </ul>
-            </>
-          )}
-
-          <p className="px-2 pt-5 text-2xs leading-[1.6] tracking-[0.08em] text-[var(--text-tertiary)]">
-            HOLDINGS ARE REVALUED ONCE A FISCAL YEAR · SELLING RETURNS TODAY&rsquo;S VALUE, NOT WHAT YOU PAID
+      }
+    >
+      <div
+        role="tabpanel"
+        id={`assets-panel-${kind}`}
+        aria-labelledby={`assets-tab-${kind}`}
+        className="px-3"
+      >
+        {/* ── Portfolio summary ─────────────────────────────────────────── */}
+        <section className="nv-card mt-4 p-4" aria-label="Portfolio">
+          <p className="text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
+            {kind === "company" ? "COMPANY HOLDINGS" : "PERSONAL HOLDINGS"}
           </p>
-        </div>
-      </motion.section>
-    </motion.div>
+          <p className="tnum mt-1 truncate text-3xl font-extrabold leading-none tracking-[-0.02em]">
+            {fmtMoney(totalValue)}
+          </p>
+          <p className="mt-1.5 text-xs leading-snug text-[var(--text-secondary)]">
+            {owned.length === 0
+              ? "Nothing owned yet. Everything below moves in value at the close of each fiscal year."
+              : `${owned.length} ${owned.length === 1 ? "asset" : "assets"}, revalued at the close of every fiscal year.`}
+          </p>
+
+          <div className="mt-3 grid grid-cols-2 gap-2 border-t border-[var(--hairline)] pt-3">
+            <Figure label="PAID IN" value={fmtMoney(totalPaid)} />
+            <Figure
+              label="UNREALISED"
+              value={
+                totalPaid > 0
+                  ? `${signed(gain)} · ${fmtPct(gainPct, true)}`
+                  : "—"
+              }
+              color={totalPaid > 0 ? (gain >= 0 ? UP : DOWN) : undefined}
+            />
+          </div>
+        </section>
+
+        {/* ── Owned ─────────────────────────────────────────────────────── */}
+        <SectionHeading
+          title="OWNED"
+          note="Sell any of it back to cash. The upkeep goes with it."
+        />
+        {owned.length === 0 ? (
+          <EmptyLine
+            text={
+              kind === "company"
+                ? "The company owns nothing. Every month you pay rent, you are buying someone else an asset."
+                : "You own nothing. Everything you have is one bad quarter away from being nothing."
+            }
+          />
+        ) : (
+          <ul className="mt-2 space-y-2">
+            {owned.map(({ holding, def }) => (
+              <OwnedCard
+                key={holding.id}
+                holding={holding}
+                def={def}
+                arming={confirmSell === holding.id}
+                onSell={() => sell(holding.id)}
+              />
+            ))}
+          </ul>
+        )}
+
+        {/* ── For sale ──────────────────────────────────────────────────── */}
+        <SectionHeading
+          title="FOR SALE"
+          note="Prices are set at this stage. Appreciation compounds; depreciation does too."
+        />
+        {forSale.length === 0 ? (
+          <EmptyLine text="Nothing left to buy at this stage. Grow the company and the catalogue grows with it." />
+        ) : (
+          <ul className="mt-2 space-y-2">
+            {forSale.map((def) => (
+              <ForSaleCard
+                key={def.id}
+                def={def}
+                sUnit={S}
+                cash={run.stats.cash}
+                pro={run.pro}
+                onBuy={() => onBuy(def.id)}
+              />
+            ))}
+          </ul>
+        )}
+
+        {/* ── Later ─────────────────────────────────────────────────────── */}
+        {horizon.length > 0 && (
+          <>
+            <SectionHeading
+              title="LATER"
+              note="The catalogue grows with the company. Stage is the gate — no price skips it."
+            />
+            <ul className="mt-2 space-y-2">
+              {horizon.map((def) => (
+                <HorizonCard key={def.id} def={def} />
+              ))}
+            </ul>
+          </>
+        )}
+
+        <p className="px-2 pt-5 text-2xs leading-[1.6] tracking-[0.08em] text-[var(--text-tertiary)]">
+          HOLDINGS ARE REVALUED ONCE A FISCAL YEAR · SELLING RETURNS TODAY&rsquo;S VALUE, NOT WHAT YOU PAID
+        </p>
+      </div>
+    </ScreenSheet>
   );
 }
 

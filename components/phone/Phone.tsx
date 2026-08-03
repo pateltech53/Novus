@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useGame } from "@/lib/state/GameProvider";
 import { MONTH_NAMES } from "@/lib/engine/format";
+import { Glass, GlassScrim } from "@/components/ui/Glass";
 import { BeeMail, inboxFor } from "@/components/phone/BeeMail";
 import { LockScreen } from "@/components/phone/LockScreen";
 import { ColdCall } from "@/components/phone/ColdCall";
@@ -195,12 +196,7 @@ export function Phone({
       animate={{ opacity: 1 }}
       transition={{ duration: 0.18 }}
     >
-      <button
-        type="button"
-        aria-label="Put the phone down"
-        onClick={onClose}
-        className="absolute inset-0 bg-[var(--scrim)]"
-      />
+      <GlassScrim label="Put the phone down" onClose={onClose} />
 
       <motion.div
         className="relative w-full max-w-sm px-3 py-3"
@@ -208,14 +204,19 @@ export function Phone({
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
       >
+        {/* The one control that is not part of the phone. It floats over the
+            frosted game rather than over anything of its own, which is the one
+            place on this screen where glass has something to refract. */}
         <div className="flex justify-end pb-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-full bg-[var(--card)] px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)] shadow-[var(--e1)] transition-transform duration-150 active:scale-[0.97]"
-          >
-            PUT IT DOWN
-          </button>
+          <Glass className="overflow-hidden rounded-full">
+            <button
+              type="button"
+              onClick={onClose}
+              className="nv-press px-3 py-1.5 text-2xs font-bold tracking-[0.12em] text-[var(--text-primary)]"
+            >
+              PUT IT DOWN
+            </button>
+          </Glass>
         </div>
 
         <section
@@ -363,7 +364,16 @@ function HomeScreen({
       {/* The dock. Mail and The Room are the two apps you reach for, so they get
           the thumb-reachable row. */}
       <div className="relative mt-auto px-4 pb-3">
-        <div className="rounded-[1.6rem] bg-white/22 px-3 py-3 backdrop-blur-xl">
+        {/*
+          One of the five surfaces design.md names, and the last place in the
+          app still hand-rolling a `backdrop-blur`. Routed through the one
+          component now — with the dock's own white tint kept, because this is
+          another company's OS inside the game world and its glass should not
+          re-point with our theme.
+        */}
+        <Glass
+          className="rounded-[1.6rem] px-3 py-3 [--glass-ring:oklch(1_0_0_/_0.18)] [--glass-specular:oklch(1_0_0_/_0.5)] [--glass-tint:oklch(1_0_0_/_0.22)] [--glass-underside:oklch(0_0_0_/_0.12)]"
+        >
           <ul className="grid grid-cols-4 gap-x-3">
             {dock.map((app) => (
               <AppIcon
@@ -374,7 +384,7 @@ function HomeScreen({
               />
             ))}
           </ul>
-        </div>
+        </Glass>
       </div>
     </motion.div>
   );
