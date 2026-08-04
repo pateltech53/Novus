@@ -40,7 +40,7 @@ music: calm warm minimal underscore, patient, apple tutorial feel
 - duration: 5.973s
 - poster: 5s
 - transition_in: cut
-- status: outline
+- status: animated
 - src: compositions/frames/01-welcome.html
 - type: product_intro
 - persuasion: Orientation — what this video is and exactly what you'll see
@@ -64,7 +64,7 @@ keyMessage: This guide plays one full year of Novus.
 - duration: 7.275s
 - poster: 6s
 - transition_in: push-slide LEFT
-- status: outline
+- status: animated
 - src: compositions/frames/02-founding.html
 - asset_candidates: assets/03-found-1.png — founding paperwork blank; assets/03-found-2.png — name typed + industry selected; assets/03-found-3.png — company brief drafted
 - type: feature_showcase
@@ -89,7 +89,7 @@ keyMessage: Name it, pick the industry, start in the garage with $25K.
 - duration: 11.072s
 - poster: 8s
 - transition_in: push-slide LEFT
-- status: outline
+- status: animated
 - src: compositions/frames/03-play-screen.html
 - asset_candidates: assets/04-play.png — the play screen: mascot stage, stat rings, ledger, ADVANCE capsule, tab bar
 - type: feature_showcase
@@ -116,7 +116,7 @@ keyMessage: Mascot, rings, and the books — the whole company on one screen.
 - duration: 8.491s
 - poster: 6s
 - transition_in: push-slide LEFT
-- status: outline
+- status: animated
 - src: compositions/frames/04-advance.html
 - asset_candidates: assets/clip-advance.webm — ADVANCE pressed, JAN→FEB turning, the event card arriving
 - type: feature_showcase
@@ -141,7 +141,7 @@ keyMessage: Time moves only when you press advance.
 - duration: 10.283s
 - poster: 7s
 - transition_in: push-slide LEFT
-- status: outline
+- status: animated
 - src: compositions/frames/05-decisions.html
 - asset_candidates: assets/clip-decision.webm — the decision card read, choices hovered, first choice committed; assets/07-decision-1.png — the Price Tag Panic card with tradeoffs
 - type: feature_showcase
@@ -166,7 +166,7 @@ keyMessage: Every choice has a cost, and the game remembers.
 - duration: 7.893s
 - poster: 6s
 - transition_in: push-slide LEFT
-- status: outline
+- status: animated
 - src: compositions/frames/06-books.html
 - asset_candidates: assets/07-decision-3.png — decision committed, ledger updated ($23K cash); assets/08-months-1.png — later-month event with the life-log deltas (Revenue +3%, Energy −2)
 - type: feature_showcase
@@ -191,7 +191,7 @@ keyMessage: The books are the story your decisions wrote.
 - duration: 7.595s
 - poster: 7s
 - transition_in: zoom-through
-- status: outline
+- status: animated
 - src: compositions/frames/07-gate.html
 - asset_candidates: assets/09-gate-button.png — month 12, the capsule turned gold: CLOSE THE YEAR; assets/09-gate.png — the year gate: Pitch me, the four beats, OPEN THE CAMERA
 - type: feature_showcase
@@ -216,7 +216,7 @@ keyMessage: The year closes with a pitch, on camera.
 - duration: 8.171s
 - poster: 8s
 - transition_in: blur-crossfade
-- status: outline
+- status: animated
 - src: compositions/frames/08-pitch.html
 - asset_candidates: assets/clip-pitch.webm — CLOSE THE YEAR → gate → camera live → REC running; assets/10-pitch-2.png — recording live with timer, coach line, typed pitch
 - type: feature_showcase
@@ -241,7 +241,7 @@ keyMessage: You talk; Novus listens to the words and the numbers.
 - duration: 7.211s
 - poster: 7s
 - transition_in: crossfade
-- status: outline
+- status: animated
 - src: compositions/frames/09-sharks.html
 - asset_candidates: assets/11-panel-1.png — the Tank, Chair reads the ask; assets/11-panel-2.png — a shark's question; assets/11-panel-3.png — five offers on the table with their math; assets/11-panel-4.png — offer selected, SIGN IT
 - type: feature_showcase
@@ -267,7 +267,7 @@ keyMessage: Five sharks question, score, and decide.
 - duration: 8.171s
 - poster: 7s
 - transition_in: push-slide LEFT
-- status: outline
+- status: animated
 - src: compositions/frames/10-year-two.html
 - asset_candidates: assets/12-verdict-1.png — the Tank debrief: PITCH 6/10 · DEAL 7/10 · OVERALL B; assets/12-verdict-2.png — year-end statement: YEAR 1 SURVIVED, 5.8/10; assets/12-verdict-3.png — Year 2 begins, valuation with the deal on the books
 - type: benefit_highlight
@@ -292,7 +292,7 @@ keyMessage: Survive to year two, or learn the hard way — both are the game.
 - duration: 5.611s
 - poster: 6s
 - transition_in: zoom-through
-- status: outline
+- status: animated
 - src: compositions/frames/11-close.html
 - asset_candidates: assets/novus-mark.svg — the fin+wave brand mark; assets/mascot-waving-alpha.webm — keyed mascot waving
 - type: cta
