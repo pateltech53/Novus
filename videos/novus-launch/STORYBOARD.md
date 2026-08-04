@@ -1,6 +1,6 @@
 ---
 format: 1920x1080
-duration: 75s
+duration: 45s
 message: "Novus makes you the founder — live every month of a startup, then defend the year on camera to a live shark panel."
 arc: Feature-Benefit Cascade (Apple-introducing) — hook → introducing → run it → live with it → the gate → the tank → stakes → free → lockup
 audience: sim-game players and startup-curious viewers
@@ -43,7 +43,7 @@ music: minimal confident cinematic tech underscore, slow build, apple keynote fe
 - duration: 4.757s
 - poster: 5s
 - transition_in: cut
-- status: outline
+- status: animated
 - src: compositions/frames/01-hook.html
 - type: hook
 - persuasion: Negative contrast — the passive ways of learning dismissed one by one, the active way kept
@@ -68,7 +68,7 @@ keyMessage: Watching isn't learning. Running one is.
 - duration: 3.328s
 - poster: 5s
 - transition_in: zoom-through
-- status: outline
+- status: animated
 - src: compositions/frames/02-introducing.html
 - asset_candidates: assets/logo-96f27616.svg — the NOVUS header wordmark SVG
 - type: product_intro
@@ -94,7 +94,7 @@ keyMessage: Novus is a life sim for a company.
 - duration: 5.248s
 - poster: 6s
 - transition_in: zoom-through
-- status: outline
+- status: animated
 - src: compositions/frames/03-run-it.html
 - asset_candidates: assets/play.webp — real play screen render with stat rings and ledger tiles; assets/months.mp4 — months advancing motion clip
 - type: feature_showcase
@@ -121,7 +121,7 @@ keyMessage: Your whole company, one month at a time.
 - duration: 5.632s
 - poster: 5s
 - transition_in: push-slide LEFT
-- status: outline
+- status: animated
 - src: compositions/frames/04-live-with-it.html
 - asset_candidates: assets/choices.mp4 — decision card weighed and committed, motion clip
 - type: feature_showcase
@@ -147,7 +147,7 @@ keyMessage: Decisions compound; you live with yours.
 - duration: 4.736s
 - poster: 6s
 - transition_in: push-slide LEFT
-- status: outline
+- status: animated
 - src: compositions/frames/05-the-gate.html
 - asset_candidates: assets/tank.webp — the year-gate "Pitch me" screen render
 - type: feature_showcase
@@ -174,7 +174,7 @@ keyMessage: The year only closes when you defend it.
 - duration: 5.611s
 - poster: 6s
 - transition_in: blur-crossfade
-- status: outline
+- status: animated
 - src: compositions/frames/06-the-tank.html
 - asset_candidates: assets/tank-set.webp — five shark investors at THE TANK panel desk, navy studio hero plate
 - type: feature_showcase
@@ -200,7 +200,7 @@ keyMessage: You pitch on camera to five sharks who know your numbers.
 - duration: 4.693s
 - poster: 5s
 - transition_in: crossfade
-- status: outline
+- status: animated
 - src: compositions/frames/07-stakes.html
 - asset_candidates: assets/mascot-celebrate.mp4 — mascot celebrating, upside pane
 - type: benefit_highlight
@@ -226,7 +226,7 @@ keyMessage: The stakes are real: growth or Chapter 7.
 - duration: 3.563s
 - poster: 4s
 - transition_in: crossfade
-- status: outline
+- status: animated
 - src: compositions/frames/08-free.html
 - type: benefit_highlight
 - persuasion: Risk reversal — nothing withheld, stated flatly
@@ -249,7 +249,7 @@ keyMessage: The whole game is free.
 - duration: 6.059s
 - poster: 7s
 - transition_in: zoom-through
-- status: outline
+- status: animated
 - src: compositions/frames/09-lockup.html
 - asset_candidates: assets/logo-96f27616.svg — the NOVUS wordmark SVG
 - type: cta

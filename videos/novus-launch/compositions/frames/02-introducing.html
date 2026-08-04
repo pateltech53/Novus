@@ -1,0 +1,390 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Urbanist";
+      src: url(assets/fonts/Urbanist-Variable.woff2) format("woff2");
+      font-weight: 100 900;
+      font-style: normal;
+      font-display: block;
+    }
+    @font-face {
+      font-family: "IBM Plex Mono";
+      src: url(assets/fonts/IBMPlexMono-500.woff2) format("woff2");
+      font-weight: 500;
+      font-style: normal;
+      font-display: block;
+    }
+
+    #root {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      container-type: size;
+      font-family: "Urbanist", sans-serif;
+    }
+
+    /* ---- full-bleed navy stage (licensed vignette) ---- */
+    .nv02-bg {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(120% 120% at 50% 42%, #10263f 0%, #081527 78%);
+    }
+
+    .nv02-stage {
+      position: absolute;
+      inset: 0;
+    }
+
+    /* ---- Scene 1 — mono eyebrow, alone against the void ---- */
+    .nv02-eyebrow {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 15.1cqh;
+      text-align: center;
+      font-family: "IBM Plex Mono", monospace;
+      font-weight: 500;
+      font-size: 1.06cqw;
+      letter-spacing: 0.42em;
+      padding-left: 0.42em; /* optical re-center for trailing tracking */
+      color: #b9b6b1;
+      text-transform: uppercase;
+    }
+    .nv02-ch {
+      display: inline-block;
+      will-change: transform, opacity;
+    }
+
+    /* ---- Scene 2 — the film's one Liquid-Glass pane, dead-center ---- */
+    .nv02-jitter {
+      position: absolute;
+      left: 27cqw;
+      top: 24.2cqh;
+      width: 46cqw;
+      aspect-ratio: 16 / 7;
+    }
+    .nv02-pane {
+      position: absolute;
+      inset: 0;
+      border-radius: 28px;
+      background: rgba(255, 255, 255, 0.08);
+      -webkit-backdrop-filter: blur(24px) saturate(1.8);
+      backdrop-filter: blur(24px) saturate(1.8);
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+        0 24px 56px rgba(0, 0, 0, 0.36);
+      transform-origin: 50% 50%;
+      will-change: transform, opacity;
+    }
+    .nv02-pane::before {
+      /* 1px specular top edge — the lit crest */
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 1px;
+      border-radius: inherit;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.32), transparent);
+    }
+
+    /* one finite glint sweeping the lit crest */
+    .nv02-glintrail {
+      position: absolute;
+      top: 0;
+      left: 24px;
+      right: 24px;
+      height: 2px;
+      overflow: hidden;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .nv02-glint {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 22%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.95), transparent);
+      will-change: transform;
+    }
+
+    /* the header lockup inside the pane: mark + name */
+    .nv02-lockup {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 2.4cqw;
+    }
+    .nv02-mark {
+      height: 10.4cqw;
+      width: auto;
+    }
+    .nv02-mark .nv02-mp {
+      fill: #ffffff;
+      fill-opacity: 0;
+      stroke: #ffffff;
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .nv02-mark .nv02-ms {
+      fill: none;
+      stroke: #ffffff;
+      stroke-width: 5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .nv02-name {
+      font-family: "Urbanist", sans-serif;
+      font-weight: 800;
+      font-size: 9cqw;
+      line-height: 0.9;
+      letter-spacing: -0.035em;
+      text-transform: lowercase;
+      color: #ffffff;
+      will-change: transform, opacity;
+    }
+
+    /* ---- Scenes 3-4 — the sub-line beneath the pane ---- */
+    .nv02-subline {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 63.7cqh;
+      display: flex;
+      justify-content: center;
+      gap: 0.55em;
+      font-family: "Urbanist", sans-serif;
+      font-weight: 400;
+      font-size: 1.9cqw;
+      line-height: 1.5;
+      color: #b9b6b1;
+      text-transform: lowercase;
+    }
+    .nv02-w {
+      display: inline-block;
+      will-change: transform, opacity;
+    }
+    .nv02-em {
+      display: inline-block;
+      transform-origin: 50% 50%;
+      text-shadow: 0 0 0 rgba(255, 255, 255, 0);
+      will-change: transform, color;
+    }
+  </style>
+
+  <div id="root" data-composition-id="02-introducing" data-duration="3.728" data-width="1920" data-height="1080">
+    <div class="clip nv02-bg" data-start="0" data-duration="3.728" data-track-index="0"></div>
+
+    <div class="clip nv02-stage" data-start="0" data-duration="3.728" data-track-index="1">
+      <!-- Scene 1: "INTRODUCING" — mono label, centered upper third -->
+      <div class="nv02-eyebrow" id="nv02-eyebrow"
+        ><span class="nv02-ch">I</span><span class="nv02-ch">N</span><span class="nv02-ch">T</span
+        ><span class="nv02-ch">R</span><span class="nv02-ch">O</span><span class="nv02-ch">D</span
+        ><span class="nv02-ch">U</span><span class="nv02-ch">C</span><span class="nv02-ch">I</span
+        ><span class="nv02-ch">N</span><span class="nv02-ch">G</span></div
+      >
+
+      <!-- Scene 2: the Liquid-Glass pane carrying the wordmark lockup -->
+      <div class="nv02-jitter" id="nv02-jitter">
+        <div class="nv02-pane" id="nv02-pane">
+          <div class="nv02-lockup">
+            <svg
+              class="nv02-mark"
+              id="nv02-mark"
+              viewBox="0 0 150 168"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              preserveAspectRatio="xMidYMid meet"
+            >
+              <path id="nv02-p3" class="nv02-mp" d="M46 80h58c6 0 10 4 10 10v46c0 7-5 12-12 12H48c-7 0-12-5-12-12V90c0-6 4-10 10-10Z" />
+              <ellipse id="nv02-p2" class="nv02-mp" cx="75" cy="56" rx="33" ry="28" />
+              <path id="nv02-p1" class="nv02-mp" d="M75 4c0 0-8 14-10 25h20C83 18 75 4 75 4Z" />
+              <path id="nv02-p4" class="nv02-mp" d="M36 98 14 111l22 13V98Z" />
+              <path id="nv02-p5" class="nv02-mp" d="M114 98l22 13-22 13V98Z" />
+              <path id="nv02-p6" class="nv02-mp" d="M53 118h44v8a22 22 0 0 1-44 0v-8Z" />
+              <path id="nv02-ps" class="nv02-ms" d="M53 120h-9a9 9 0 0 0 11 12M97 120h9a9 9 0 0 1-11 12" />
+              <rect id="nv02-p8" class="nv02-mp" x="71" y="146" width="8" height="8" />
+              <rect id="nv02-p9" class="nv02-mp" x="60" y="154" width="30" height="7" rx="2" />
+            </svg>
+            <div class="nv02-name" id="nv02-name">novus</div>
+          </div>
+          <div class="nv02-glintrail" id="nv02-glintrail">
+            <div class="nv02-glint" id="nv02-glint"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scenes 3-4: "a life sim — for a company." -->
+      <div class="nv02-subline" id="nv02-subline">
+        <span class="nv02-w">a</span>
+        <span class="nv02-w">life</span>
+        <span class="nv02-w">sim</span>
+        <span class="nv02-w">&mdash;</span>
+        <span class="nv02-w">for</span>
+        <span class="nv02-w"><span class="nv02-em" id="nv02-em-a" data-word="a2">a</span></span>
+        <span class="nv02-w"><span class="nv02-em" id="nv02-em-co" data-word="company">company.</span></span>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/vendor/gsap.min.js"></script>
+  <script>
+    (function () {
+      var DUR = 3.328;
+
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+      window.__timelines["02-introducing"] = tl;
+
+      /* ---------- Scene 1 (0.0-0.7): "INTRODUCING" alone, staggered, long-tail settle ---------- */
+      var chars = document.querySelectorAll("#nv02-eyebrow .nv02-ch");
+      chars.forEach(function (el, i) {
+        tl.fromTo(
+          el,
+          { opacity: 0, y: 10 },
+          { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" },
+          0.06 + i * 0.028
+        );
+      });
+
+      /* ---------- Scene 2 (0.62-1.9): glass pane pops (smooth, no overshoot) ---------- */
+      tl.fromTo(
+        "#nv02-pane",
+        { scale: 0.94, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 0.55, ease: "power3.out" },
+        0.62
+      );
+      /* eyebrow demotes to 40% above the pane */
+      tl.to("#nv02-eyebrow", { opacity: 0.4, duration: 0.4, ease: "power2.out" }, 0.66);
+
+      /* the mark self-draws its strokes (svg-path-draw: measured dash, staggered ~75%) */
+      var DRAW_ORDER = [
+        "nv02-p3", "nv02-p2", "nv02-p1", "nv02-p4", "nv02-p5",
+        "nv02-p6", "nv02-ps", "nv02-p8", "nv02-p9"
+      ];
+      var DRAW_START = 0.75;
+      var SEG_DUR = 0.3;
+      var SEG_STAGGER = 0.05;
+      DRAW_ORDER.forEach(function (id, i) {
+        var p = document.getElementById(id);
+        var len = p.getTotalLength() * 1.05;
+        p.style.strokeDasharray = String(len);
+        p.style.strokeDashoffset = String(len);
+        var at = DRAW_START + i * SEG_STAGGER;
+        tl.to(p, { strokeDashoffset: 0, duration: SEG_DUR, ease: "power2.out" }, at);
+        if (p.classList.contains("nv02-mp")) {
+          /* draw-then-fill: fill fades only after this segment's stroke lands */
+          tl.to(p, { fillOpacity: 1, duration: 0.25, ease: "power1.out" }, at + SEG_DUR * 0.95);
+        }
+      });
+
+      /* companion name fades in only after the last stroke settles */
+      tl.fromTo(
+        "#nv02-name",
+        { opacity: 0, y: 14 },
+        { opacity: 1, y: 0, duration: 0.35, ease: "power3.out" },
+        1.5
+      );
+
+      /* the lit crest glints once, left to right — finite, no loop */
+      var PANE_W = 0.46 * 1920 - 48; /* rail width in px */
+      var GLINT_AT = 1.68;
+      var GLINT_SWEEP = 0.42;
+      tl.fromTo("#nv02-glintrail", { opacity: 0 }, { opacity: 1, duration: 0.1, ease: "power1.out" }, GLINT_AT);
+      tl.fromTo(
+        "#nv02-glint",
+        { x: -0.25 * PANE_W },
+        { x: 1.05 * PANE_W, duration: GLINT_SWEEP, ease: "power1.inOut" },
+        GLINT_AT
+      );
+      tl.to("#nv02-glintrail", { opacity: 0, duration: 0.16, ease: "power1.in" }, GLINT_AT + GLINT_SWEEP - 0.14);
+
+      /* ---------- Scenes 3-4: sub-line per-word (dynamic-content-sequencing reducer) ---------- */
+      var BASE = 0.1;
+      var SEC_PER_CHAR = 0.03;
+      function wordStarts(words, phraseStart) {
+        var cum = phraseStart;
+        return words.map(function (w) {
+          var start = cum;
+          cum += BASE + w.length * SEC_PER_CHAR;
+          return start;
+        });
+      }
+      var wordEls = document.querySelectorAll("#nv02-subline > .nv02-w");
+      /* phrase 1 on "A life sim" (~1.55s), phrase 2 on "for a company" (~2.42s) */
+      var starts = wordStarts(["a", "life", "sim"], 1.55).concat(
+        wordStarts(["—", "for", "a", "company."], 2.42)
+      );
+      wordEls.forEach(function (el, i) {
+        tl.fromTo(
+          el,
+          { opacity: 0, y: 12 },
+          { opacity: 1, y: 0, duration: 0.32, ease: "power3.out" },
+          starts[i]
+        );
+      });
+
+      /* ---------- asr-keyword-glow (restrained): final two words step up to full ink ---------- */
+      var TIMINGS = {
+        a2: { start: 2.8, end: DUR + 1 }, /* sustain to frame end — steps up and holds */
+        company: { start: 2.94, end: DUR + 1 }
+      };
+      var ATTACK_DUR = 0.2;
+      var MAX_BLUR = 14;
+      var MAX_SCALE_BOOST = 0.045;
+      var REST_RGB = { r: 185, g: 182, b: 177 };
+      var ACTIVE_RGB = { r: 255, g: 255, b: 255 };
+      function envelope(time, start, end) {
+        if (time < start) return 0;
+        if (time < end) return Math.min((time - start) / ATTACK_DUR, 1);
+        return 1; /* end beyond frame — release never runs */
+      }
+      function lerpCh(a, b, t) {
+        return Math.round(a + (b - a) * t);
+      }
+
+      var emWords = document.querySelectorAll("#nv02-subline .nv02-em");
+      var jitterEl = document.getElementById("nv02-jitter");
+      var JITTER_START = 2.75;
+
+      var driver = { t: 0 };
+      tl.to(
+        driver,
+        {
+          t: DUR,
+          duration: DUR,
+          ease: "none", /* linear — t maps 1:1 to frame time */
+          onUpdate: function () {
+            var t = driver.t;
+            emWords.forEach(function (el) {
+              var timing = TIMINGS[el.dataset.word];
+              if (!timing) return;
+              var env = envelope(t, timing.start, timing.end);
+              el.style.color =
+                "rgb(" +
+                lerpCh(REST_RGB.r, ACTIVE_RGB.r, env) + "," +
+                lerpCh(REST_RGB.g, ACTIVE_RGB.g, env) + "," +
+                lerpCh(REST_RGB.b, ACTIVE_RGB.b, env) + ")";
+              el.style.textShadow =
+                "0 0 " + (MAX_BLUR * env).toFixed(2) + "px rgba(255,255,255," + (0.32 * env).toFixed(3) + ")";
+              el.style.transform = "scale(" + (1 + MAX_SCALE_BOOST * env).toFixed(4) + ")";
+            });
+            /* Scene 4 hold: pane still, subtle jitter only (deterministic sine of t) */
+            if (t > JITTER_START) {
+              var amp = 1.6 * Math.min(1, (t - JITTER_START) / 0.45);
+              var y = amp * Math.sin((t - JITTER_START) * Math.PI * 2 * 0.9);
+              jitterEl.style.transform = "translateY(" + y.toFixed(2) + "px)";
+            } else {
+              jitterEl.style.transform = "translateY(0px)";
+            }
+          }
+        },
+        0
+      );
+    })();
+  </script>
+</template>

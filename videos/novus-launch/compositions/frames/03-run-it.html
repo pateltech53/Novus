@@ -1,0 +1,439 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Urbanist";
+      src: url(assets/fonts/Urbanist-Variable.woff2) format("woff2");
+      font-weight: 100 900;
+      font-style: normal;
+      font-display: block;
+    }
+    @font-face {
+      font-family: "IBM Plex Mono";
+      src: url(assets/fonts/IBMPlexMono-500.woff2) format("woff2");
+      font-weight: 500;
+      font-style: normal;
+      font-display: block;
+    }
+
+    #root {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      container-type: size;
+      font-family: "Urbanist", sans-serif;
+    }
+
+    /* ---- depth layer 1: the navy stage + deepening vignette ---- */
+    .nv03-bg {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(120% 120% at 50% 42%, #10263f 0%, #081527 78%);
+    }
+    .nv03-deepen {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(115% 125% at 72% 42%, rgba(8, 21, 39, 0) 34%, rgba(4, 11, 21, 0.6) 100%);
+      opacity: 0;
+      will-change: opacity;
+    }
+
+    .nv03-stage {
+      position: absolute;
+      inset: 0;
+    }
+
+    /* ---- depth layer 2: the glass-framed device (play.webp face) ---- */
+    .nv03-device {
+      position: absolute;
+      left: 1352px;
+      top: 47px;
+      width: 384px;
+      height: 801px;
+      will-change: transform;
+    }
+    .nv03-pane {
+      position: absolute;
+      inset: 0;
+      border-radius: 28px;
+      background: rgba(255, 255, 255, 0.08);
+      -webkit-backdrop-filter: blur(24px) saturate(1.8);
+      backdrop-filter: blur(24px) saturate(1.8);
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+        0 24px 56px rgba(0, 0, 0, 0.36);
+    }
+    .nv03-pane::before {
+      /* 1px specular top edge — the lit crest */
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 1px;
+      border-radius: inherit;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.32), transparent);
+    }
+    .nv03-screen {
+      position: absolute;
+      inset: 13px;
+      border-radius: 15px;
+      overflow: hidden;
+      background: #edebe6;
+    }
+    .nv03-screen img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* ghost tiles over the on-screen ledger — the scale-swap outgoing halves */
+    .nv03-echo {
+      position: absolute;
+      border-radius: 13px;
+      background: rgba(11, 30, 54, 0.1);
+      box-shadow: inset 0 0 0 2px rgba(11, 30, 54, 0.5);
+      transform-origin: 50% 50%;
+      will-change: transform, opacity;
+    }
+    .nv03-echo-cash { left: 27px; top: 378px; width: 157px; height: 77px; }
+    .nv03-echo-burn { left: 195px; top: 378px; width: 163px; height: 77px; }
+    .nv03-echo-run  { left: 27px; top: 461px; width: 157px; height: 77px; }
+
+    /* ---- depth layer 3: the kicker ---- */
+    .nv03-kicker {
+      position: absolute;
+      left: 5.5cqw;
+      top: 10cqh;
+      font-family: "IBM Plex Mono", monospace;
+      font-weight: 500;
+      font-size: 1.05cqw;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: #ff6b00;
+      transform-origin: 0% 50%;
+      will-change: transform, opacity;
+    }
+
+    /* ---- Scene 2: word-chips (hiring / pricing / product) ---- */
+    .nv03-words {
+      position: absolute;
+      left: 5.5cqw;
+      top: 19cqh;
+      display: flex;
+      gap: 1.2cqw;
+    }
+    .nv03-wordchip {
+      font-family: "Urbanist", sans-serif;
+      font-weight: 600;
+      font-size: 2.8cqw;
+      line-height: 1.2;
+      text-transform: lowercase;
+      color: #b9b6b1;
+      padding: 0.45cqw 1.5cqw;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.035);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+      transform-origin: 50% 50%;
+      will-change: transform, opacity;
+    }
+
+    /* ---- Scene 3: ledger glass chips beside the device ---- */
+    .nv03-chip {
+      position: absolute;
+      top: 360px;
+      width: 300px;
+      height: 148px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.08);
+      -webkit-backdrop-filter: blur(24px) saturate(1.8);
+      backdrop-filter: blur(24px) saturate(1.8);
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+        0 14px 32px rgba(0, 0, 0, 0.32);
+      padding: 24px 26px;
+      transform-origin: 50% 50%;
+      will-change: transform, opacity;
+    }
+    .nv03-chip::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 1px;
+      border-radius: inherit;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.32), transparent);
+    }
+    .nv03-chip-cash { left: 106px; }
+    .nv03-chip-burn { left: 436px; }
+    .nv03-chip-run  { left: 766px; }
+
+    .nv03-chip-meta {
+      font-family: "IBM Plex Mono", monospace;
+      font-weight: 500;
+      font-size: 0.78cqw;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.55);
+      will-change: transform, opacity;
+    }
+    .nv03-figrow {
+      display: flex;
+      align-items: baseline;
+      margin-top: 12px;
+      font-family: "IBM Plex Mono", monospace;
+      font-weight: 500;
+      font-size: 2.95cqw;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1;
+      color: #ffffff;
+    }
+    .nv03-chip-cash .nv03-figrow { color: #3ddc97; }
+    .nv03-fig {
+      display: inline-block;
+      transform-origin: 0% 85%;
+      will-change: transform;
+    }
+    .nv03-fig-cash { min-width: 2ch; }
+    .nv03-fig-burn { min-width: 5ch; }
+    .nv03-fig-run  { min-width: 2ch; }
+    .nv03-prefix {
+      display: inline-block;
+      will-change: transform, opacity;
+    }
+    .nv03-suffix {
+      display: inline-block;
+      will-change: transform, opacity;
+    }
+
+    /* ---- Scene 4: the lead line ---- */
+    .nv03-lead {
+      position: absolute;
+      left: 5.5cqw;
+      top: 58cqh;
+      display: flex;
+      gap: 0.5em;
+      font-family: "Urbanist", sans-serif;
+      font-weight: 400;
+      font-size: 2cqw;
+      line-height: 1.5;
+      color: #ffffff;
+    }
+    .nv03-lw {
+      display: inline-block;
+      will-change: transform, opacity;
+    }
+  </style>
+
+  <div id="root" data-composition-id="03-run-it" data-duration="5.748" data-width="1920" data-height="1080">
+    <div class="clip nv03-bg" data-start="0" data-duration="5.748" data-track-index="0">
+      <div class="nv03-deepen" id="nv03-deepen"></div>
+    </div>
+
+    <div class="clip nv03-stage" data-start="0" data-duration="5.748" data-track-index="1">
+      <!-- Scene 1: the glass-framed device slides up from the bottom edge -->
+      <div class="nv03-device" id="nv03-device">
+        <div class="nv03-pane">
+          <div class="nv03-screen">
+            <img src="assets/play.webp" alt="" />
+          </div>
+          <div class="nv03-echo nv03-echo-cash" id="nv03-echo-cash"></div>
+          <div class="nv03-echo nv03-echo-burn" id="nv03-echo-burn"></div>
+          <div class="nv03-echo nv03-echo-run" id="nv03-echo-run"></div>
+        </div>
+      </div>
+
+      <!-- Scene 1: kicker, the frame's one action-orange element -->
+      <div class="nv03-kicker" id="nv03-kicker">RUN IT</div>
+
+      <!-- Scene 2: word-chips, one per spoken cue -->
+      <div class="nv03-words" id="nv03-words">
+        <div class="nv03-wordchip">hiring</div>
+        <div class="nv03-wordchip">pricing</div>
+        <div class="nv03-wordchip">product</div>
+      </div>
+
+      <!-- Scene 3: ledger chips lifted off the screen -->
+      <div class="nv03-chip nv03-chip-cash" id="nv03-chip-cash">
+        <div class="nv03-chip-meta" id="nv03-meta-cash">Cash</div>
+        <div class="nv03-figrow">
+          <span class="nv03-prefix" id="nv03-pre-cash">$</span
+          ><span class="nv03-fig nv03-fig-cash" id="nv03-fig-cash">0</span
+          ><span class="nv03-suffix" id="nv03-suf-cash">K</span>
+        </div>
+      </div>
+      <div class="nv03-chip nv03-chip-burn" id="nv03-chip-burn">
+        <div class="nv03-chip-meta" id="nv03-meta-burn">Burn</div>
+        <div class="nv03-figrow">
+          <span class="nv03-prefix" id="nv03-pre-burn">$</span
+          ><span class="nv03-fig nv03-fig-burn" id="nv03-fig-burn">0</span>
+        </div>
+      </div>
+      <div class="nv03-chip nv03-chip-run" id="nv03-chip-run">
+        <div class="nv03-chip-meta" id="nv03-meta-run">Runway</div>
+        <div class="nv03-figrow">
+          <span class="nv03-fig nv03-fig-run" id="nv03-fig-run">0</span
+          ><span class="nv03-suffix" id="nv03-suf-run">mo</span>
+        </div>
+      </div>
+
+      <!-- Scene 4: the lead line, per-word -->
+      <div class="nv03-lead" id="nv03-lead">
+        <span class="nv03-lw">Your</span>
+        <span class="nv03-lw">whole</span>
+        <span class="nv03-lw">company,</span>
+        <span class="nv03-lw">one</span>
+        <span class="nv03-lw">month</span>
+        <span class="nv03-lw">at</span>
+        <span class="nv03-lw">a</span>
+        <span class="nv03-lw">time.</span>
+      </div>
+    </div>
+
+    <!-- Scene 4: months.mp4 takes over the device face (hoisted to host root) -->
+    <!-- approved frame video hoisted by assemble-index -->
+  </div>
+
+  <script src="assets/vendor/gsap.min.js"></script>
+  <script>
+    (function () {
+      var DUR = 5.248;
+      /* Storyboard scenes were drafted on a ~9s grid; real VO is 5.248s —
+         windows mapped proportionally (x0.583):
+         S1 0-0.70 · S2 0.70-1.98 · S3 1.98-3.85 · S4 3.85-5.248 */
+
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+      window.__timelines["03-run-it"] = tl;
+
+      /* ---------- Scene 1 (0-0.70): device rises from the bottom edge, long-tail settle ---------- */
+      tl.fromTo(
+        "#nv03-device",
+        { y: 1040 },
+        { y: 0, duration: 0.68, ease: "power3.out" },
+        0.04
+      );
+      /* vignette deepens behind the device */
+      tl.fromTo("#nv03-deepen", { opacity: 0 }, { opacity: 1, duration: 0.6, ease: "power2.out" }, 0.15);
+      /* kicker lands top-left */
+      tl.fromTo(
+        "#nv03-kicker",
+        { opacity: 0, y: 14, scale: 1.05 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.45, ease: "power3.out" },
+        0.15
+      );
+
+      /* ---------- Scene 2 (0.70-1.98): word-chips, one per spoken cue ----------
+         dynamic-content-sequencing: starts reduced once from content length */
+      var W_BASE = 0.3;
+      var W_SPC = 0.014;
+      var wordText = ["hiring", "pricing", "product"];
+      var cum = 0.78;
+      var wordStarts = wordText.map(function (w) {
+        var s = cum;
+        cum += W_BASE + w.length * W_SPC;
+        return s;
+      });
+      var wordEls = document.querySelectorAll("#nv03-words .nv03-wordchip");
+      wordEls.forEach(function (el, i) {
+        tl.fromTo(
+          el,
+          { opacity: 0, y: 16, scale: 0.97 },
+          { opacity: 1, y: 0, scale: 1, duration: 0.34, ease: "power3.out" },
+          wordStarts[i]
+        );
+      });
+
+      /* ---------- Scene 3 (1.98-3.85): ledger chips lift off the screen ----------
+         scale-swap-transition per chip (echo = outgoing, glass chip = incoming),
+         then counting-dynamic-scale on the figure */
+      /* word-chips demote to 40% as the ledger takes focus */
+      tl.to("#nv03-words", { opacity: 0.4, duration: 0.4, ease: "power2.out" }, 2.0);
+
+      var EXIT_DUR = 0.3;
+      var OVERLAP = 0.15;
+      var ENTER_DUR = 0.5;
+      var COUNT_DUR = 0.72;
+      var START_SCALE = 0.55;
+
+      var CHIPS = [
+        { T: 2.02, echo: "#nv03-echo-cash", chip: "#nv03-chip-cash", fig: "nv03-fig-cash", target: 25, meta: ["#nv03-meta-cash", "#nv03-pre-cash"], suffix: "#nv03-suf-cash" },
+        { T: 2.62, echo: "#nv03-echo-burn", chip: "#nv03-chip-burn", fig: "nv03-fig-burn", target: 2000, meta: ["#nv03-meta-burn", "#nv03-pre-burn"], suffix: null },
+        { T: 3.18, echo: "#nv03-echo-run", chip: "#nv03-chip-run", fig: "nv03-fig-run", target: 12, meta: ["#nv03-meta-run"], suffix: "#nv03-suf-run" }
+      ];
+
+      CHIPS.forEach(function (c) {
+        var T = c.T;
+        /* outgoing: ghost tile flashes on the screen, then shrinks + fades (power2.in) */
+        tl.fromTo(c.echo, { opacity: 0 }, { opacity: 1, duration: 0.14, ease: "power1.out" }, T - 0.06);
+        tl.to(c.echo, { scale: 0.78, opacity: 0, duration: EXIT_DUR, ease: "power2.in" }, T + 0.08);
+
+        /* incoming: glass chip pops in from the device's direction (back.out) */
+        tl.fromTo(
+          c.chip,
+          { opacity: 0, scale: 0.7, x: 70 },
+          { opacity: 1, scale: 1, x: 0, duration: ENTER_DUR, ease: "back.out(1.6)" },
+          T + 0.08 + EXIT_DUR - OVERLAP
+        );
+
+        /* inner content after the container settles: label + prefix first */
+        c.meta.forEach(function (sel) {
+          tl.fromTo(sel, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" }, T + 0.42);
+        });
+
+        /* the count: value + scale share position and ease (no bounce on data) */
+        var figEl = document.getElementById(c.fig);
+        var state = { value: 0 };
+        tl.to(
+          state,
+          {
+            value: c.target,
+            duration: COUNT_DUR,
+            ease: "power3.out",
+            onUpdate: function () {
+              figEl.textContent = Math.round(state.value).toLocaleString("en-US");
+            }
+          },
+          T + 0.55
+        );
+        tl.fromTo(
+          figEl,
+          { scale: START_SCALE },
+          { scale: 1, duration: COUNT_DUR, ease: "power3.out" },
+          T + 0.55
+        );
+
+        /* suffix slides in only after the count lands — the number gets its own beat */
+        if (c.suffix) {
+          tl.fromTo(
+            c.suffix,
+            { opacity: 0, y: 12 },
+            { opacity: 1, y: 0, duration: 0.26, ease: "back.out(1.7)" },
+            T + 0.55 + COUNT_DUR
+          );
+        }
+      });
+
+      /* ---------- Scene 4 (3.85-5.248): lead line per word; device holds still ----------
+         (months.mp4 takes over the device face at 3.9 via the hoisted video clip) */
+      var L_BASE = 0.06;
+      var L_SPC = 0.008;
+      var leadText = ["Your", "whole", "company,", "one", "month", "at", "a", "time."];
+      var lcum = 3.95;
+      var leadStarts = leadText.map(function (w) {
+        var s = lcum;
+        lcum += L_BASE + w.length * L_SPC;
+        return s;
+      });
+      var leadEls = document.querySelectorAll("#nv03-lead .nv03-lw");
+      leadEls.forEach(function (el, i) {
+        tl.fromTo(
+          el,
+          { opacity: 0, y: 10 },
+          { opacity: 1, y: 0, duration: 0.3, ease: "power3.out" },
+          leadStarts[i]
+        );
+      });
+    })();
+  </script>
+</template>

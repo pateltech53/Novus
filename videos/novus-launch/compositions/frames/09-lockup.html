@@ -1,0 +1,520 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Urbanist";
+      src: url(assets/fonts/Urbanist-Variable.woff2) format("woff2");
+      font-weight: 100 900;
+      font-style: normal;
+      font-display: block;
+    }
+    @font-face {
+      font-family: "IBM Plex Mono";
+      src: url(assets/fonts/IBMPlexMono-500.woff2) format("woff2");
+      font-weight: 500;
+      font-style: normal;
+      font-display: block;
+    }
+
+    #root {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      container-type: size;
+      font-family: "Urbanist", sans-serif;
+    }
+
+    /* ---- full-bleed navy stage (the licensed vignette) ---- */
+    .nv09-bg {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(120% 120% at 50% 42%, #10263f 0%, #081527 78%);
+    }
+
+    .nv09-stage {
+      position: absolute;
+      inset: 0;
+    }
+
+    /* macro move: one slow settle into perfect stillness (the Apple hold) */
+    .nv09-zoom {
+      position: absolute;
+      inset: 0;
+      transform-origin: 50% 46%;
+      will-change: transform;
+    }
+
+    /* ---- Scene 1 — the Liquid-Glass pane carrying the lockup, dead-center ---- */
+    .nv09-pane {
+      position: absolute;
+      left: 33cqw; /* 34cqw wide, centered */
+      top: 19.5cqh;
+      width: 34cqw;
+      height: 14.875cqw;
+      border-radius: 28px;
+      background: rgba(255, 255, 255, 0.08);
+      -webkit-backdrop-filter: blur(24px) saturate(1.8);
+      backdrop-filter: blur(24px) saturate(1.8);
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+        0 24px 56px rgba(0, 0, 0, 0.36);
+      transform-origin: 50% 50%;
+      will-change: transform, opacity;
+    }
+    .nv09-pane::before {
+      /* 1px specular top edge — the lit crest */
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 1px;
+      border-radius: inherit;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.32), transparent);
+    }
+
+    .nv09-lockup {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1.8cqw;
+    }
+    .nv09-mark {
+      height: 7.7cqw;
+      width: auto;
+    }
+    .nv09-mark .nv09-mp {
+      fill: #ffffff;
+      fill-opacity: 0;
+      stroke: #ffffff;
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .nv09-mark .nv09-ms {
+      fill: none;
+      stroke: #ffffff;
+      stroke-width: 5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .nv09-name {
+      font-family: "Urbanist", sans-serif;
+      font-weight: 800;
+      font-size: 6.65cqw;
+      line-height: 0.9;
+      letter-spacing: -0.035em;
+      text-transform: lowercase;
+      color: #ffffff;
+      will-change: transform, opacity;
+    }
+
+    /* Scene 2 — one finite specular glint crossing the mark (band inside the pane) */
+    .nv09-glintwrap {
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      overflow: hidden;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .nv09-glintmove {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 26%;
+      will-change: transform;
+    }
+    .nv09-glintband {
+      position: absolute;
+      inset: -22% 0;
+      transform: skewX(-16deg); /* skew lives here — GSAP only touches the parent's x */
+      mix-blend-mode: screen;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.16) 42%,
+        rgba(255, 255, 255, 0.28) 50%,
+        rgba(255, 255, 255, 0.16) 58%,
+        transparent
+      );
+    }
+
+    /* ---- Scene 2 — the two tagline lines, per-word, muted ink ---- */
+    .nv09-taglines {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 51.3cqh;
+      text-align: center;
+      font-family: "Urbanist", sans-serif;
+      font-weight: 400;
+      font-size: 1.9cqw;
+      line-height: 1.55;
+      color: #b9b6b1;
+      text-transform: lowercase;
+    }
+    .nv09-tl {
+      display: flex;
+      justify-content: center;
+      gap: 0.5em;
+    }
+    .nv09-w {
+      display: inline-block;
+      will-change: transform, opacity;
+    }
+
+    /* ---- Scene 3 — the ONE action element: glass capsule filling with #FF6B00 ---- */
+    .nv09-pill {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 64.8cqh;
+      width: 14.5cqw;
+      height: 6cqh;
+      margin: 0 auto; /* margin-centered — GSAP owns the transform */
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.08);
+      -webkit-backdrop-filter: blur(24px) saturate(1.8);
+      backdrop-filter: blur(24px) saturate(1.8);
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+        0 24px 56px rgba(0, 0, 0, 0.36);
+      transform-origin: 50% 50%;
+      will-change: transform, opacity;
+    }
+    .nv09-pill::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 1px;
+      border-radius: inherit;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.32), transparent);
+      z-index: 2;
+    }
+    /* progress-fill register: width:100% is REQUIRED — a zero-width fill scaled
+       by any factor is still invisible. scaleX from a left origin, never width. */
+    .nv09-fill {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      background: #ff6b00; /* the film's last orange */
+      transform: scaleX(0);
+      transform-origin: left center;
+      will-change: transform;
+    }
+    .nv09-pill-label {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "IBM Plex Mono", monospace;
+      font-weight: 500;
+      font-size: 1.4cqw;
+      letter-spacing: 0.14em;
+      padding-left: 0.14em; /* optical re-center for trailing tracking */
+      text-transform: uppercase;
+      color: #ffffff; /* white until the fill arrives; flips to ink below */
+      will-change: transform, opacity;
+    }
+
+    /* ---- Scene 4 — the URL types in mono with a caret ---- */
+    .nv09-url {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 74.4cqh;
+      display: flex;
+      justify-content: center;
+      font-family: "IBM Plex Mono", monospace;
+      font-weight: 500;
+      font-size: 1.45cqw;
+      color: #ffffff;
+      will-change: opacity;
+    }
+    .nv09-urlbox {
+      display: flex;
+      align-items: center;
+      min-width: calc(14ch + 0.9ch); /* >= widest state + caret — stops edge jitter */
+      white-space: pre;
+    }
+    .nv09-urltext {
+      display: inline-block;
+      white-space: pre;
+    }
+    .nv09-caret {
+      display: inline-block; /* inline ignores width */
+      width: 0.55ch;
+      height: 1.25em;
+      margin-left: 3px; /* single-digit px — the caret feels attached */
+      background: #ffffff;
+    }
+  </style>
+
+  <div id="root" data-composition-id="09-lockup" data-duration="6.059" data-width="1920" data-height="1080">
+    <div class="clip nv09-bg" data-start="0" data-duration="6.059" data-track-index="0"></div>
+
+    <div class="clip nv09-stage" data-start="0" data-duration="6.059" data-track-index="1">
+      <div class="nv09-zoom" id="nv09-zoom">
+        <!-- Scene 1: the stage is empty except the vignette; the lockup draws
+             itself on in glass, dead-center (~34% width) -->
+        <div class="nv09-pane" id="nv09-pane">
+          <div class="nv09-lockup">
+            <svg
+              class="nv09-mark"
+              id="nv09-mark"
+              viewBox="0 0 150 168"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              preserveAspectRatio="xMidYMid meet"
+            >
+              <path id="nv09-p1" class="nv09-mp" d="M46 80h58c6 0 10 4 10 10v46c0 7-5 12-12 12H48c-7 0-12-5-12-12V90c0-6 4-10 10-10Z" />
+              <ellipse id="nv09-p2" class="nv09-mp" cx="75" cy="56" rx="33" ry="28" />
+              <path id="nv09-p3" class="nv09-mp" d="M75 4c0 0-8 14-10 25h20C83 18 75 4 75 4Z" />
+              <path id="nv09-p4" class="nv09-mp" d="M36 98 14 111l22 13V98Z" />
+              <path id="nv09-p5" class="nv09-mp" d="M114 98l22 13-22 13V98Z" />
+              <path id="nv09-p6" class="nv09-mp" d="M53 118h44v8a22 22 0 0 1-44 0v-8Z" />
+              <path id="nv09-ps" class="nv09-ms" d="M53 120h-9a9 9 0 0 0 11 12M97 120h9a9 9 0 0 1-11 12" />
+              <rect id="nv09-p8" class="nv09-mp" x="71" y="146" width="8" height="8" />
+              <rect id="nv09-p9" class="nv09-mp" x="60" y="154" width="30" height="7" rx="2" />
+            </svg>
+            <div class="nv09-name" id="nv09-name">novus</div>
+          </div>
+          <!-- Scene 2 close: one finite specular glint crosses the mark -->
+          <div class="nv09-glintwrap" id="nv09-glintwrap">
+            <div class="nv09-glintmove" id="nv09-glintmove">
+              <div class="nv09-glintband"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scene 2: the two tagline lines, one per spoken cue, muted ink -->
+        <div class="nv09-taglines">
+          <div class="nv09-tl" id="nv09-tl1">
+            <span class="nv09-w">keep</span>
+            <span class="nv09-w">a</span>
+            <span class="nv09-w">company</span>
+            <span class="nv09-w">alive.</span>
+          </div>
+          <div class="nv09-tl" id="nv09-tl2">
+            <span class="nv09-w">defend</span>
+            <span class="nv09-w">it</span>
+            <span class="nv09-w">out</span>
+            <span class="nv09-w">loud.</span>
+          </div>
+        </div>
+
+        <!-- Scene 3: the ONE action element — glass capsule filling with action orange -->
+        <div class="nv09-pill" id="nv09-pill">
+          <div class="nv09-fill" id="nv09-fill"></div>
+          <div class="nv09-pill-label" id="nv09-pill-label">Play Free</div>
+        </div>
+
+        <!-- Scene 4: novuspitch.com types in mono; caret blinks twice and stops -->
+        <div class="nv09-url" id="nv09-url">
+          <div class="nv09-urlbox">
+            <span class="nv09-urltext" id="nv09-urltext"></span>
+            <span class="nv09-caret" id="nv09-caret"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/vendor/gsap.min.js"></script>
+  <script>
+    (function () {
+      var DUR = 6.059;
+
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+      window.__timelines["09-lockup"] = tl;
+
+      /* The packet's Scene windows (0-9s) are compressed onto the locked
+         6.059s duration, keyed to the VO cues:
+         S1 0.00-1.50  "Novus."                     — the mark draws itself on
+         S2 1.50-3.85  "Keep a company alive. Defend it out loud."
+         S3 3.85-4.55  "Play free at"               — the orange capsule
+         S4 4.45-6.059 "novuspitch dot com"         — the URL, then dead still */
+
+      /* ---------- macro move: one slow settle, decelerating into the Apple hold ---------- */
+      tl.fromTo(
+        "#nv09-zoom",
+        { scale: 1.016 },
+        { scale: 1, duration: 4.8, ease: "power1.out" },
+        0
+      );
+
+      /* ---------- Scene 1 (0.0-1.5): the glass pane materializes on the empty stage ---------- */
+      tl.fromTo(
+        "#nv09-pane",
+        { scale: 0.94, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 0.45, ease: "power3.out" },
+        0.04
+      );
+
+      /* the mark self-draws stroke-by-stroke (svg-path-draw: measured dash,
+         staggered so the eye reads one continuous pen) */
+      var DRAW_ORDER = [
+        "nv09-p1", "nv09-p2", "nv09-p3", "nv09-p4", "nv09-p5",
+        "nv09-p6", "nv09-ps", "nv09-p8", "nv09-p9"
+      ];
+      var DRAW_START = 0.22;
+      var SEG_DUR = 0.3;
+      var SEG_STAGGER = 0.1;
+      DRAW_ORDER.forEach(function (id, i) {
+        var p = document.getElementById(id);
+        var len = p.getTotalLength() * 1.05;
+        p.style.strokeDasharray = String(len);
+        p.style.strokeDashoffset = String(len);
+        var at = DRAW_START + i * SEG_STAGGER;
+        tl.to(p, { strokeDashoffset: 0, duration: SEG_DUR, ease: "power2.out" }, at);
+        if (p.classList.contains("nv09-mp")) {
+          /* draw-then-fill: the fill fades only after this segment's stroke lands */
+          tl.to(p, { fillOpacity: 1, duration: 0.25, ease: "power1.out" }, at + SEG_DUR * 0.95);
+        }
+      });
+
+      /* companion name fades in only after the last stroke settles */
+      tl.fromTo(
+        "#nv09-name",
+        { opacity: 0, y: 14 },
+        { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" },
+        1.4
+      );
+
+      /* ---------- Scene 2 (1.5-3.85): taglines per-word, one line per spoken cue ---------- */
+      var BASE = 0.1;
+      var SEC_PER_CHAR = 0.03;
+      function wordStarts(words, phraseStart) {
+        var cum = phraseStart;
+        return words.map(function (w) {
+          var start = cum;
+          cum += BASE + w.length * SEC_PER_CHAR;
+          return start;
+        });
+      }
+      /* line 1 on "Keep a company alive." (~1.58s), line 2 on "Defend it out loud." (~2.62s) */
+      var starts = wordStarts(["keep", "a", "company", "alive."], 1.58).concat(
+        wordStarts(["defend", "it", "out", "loud."], 2.62)
+      );
+      var wordEls = document.querySelectorAll(".nv09-tl .nv09-w");
+      wordEls.forEach(function (el, i) {
+        tl.fromTo(
+          el,
+          { opacity: 0, y: 12 },
+          { opacity: 1, y: 0, duration: 0.32, ease: "power3.out" },
+          starts[i]
+        );
+      });
+
+      /* the lockup completes as a unit: ONE finite specular glint crosses the mark */
+      var PANE_W = 0.34 * 1920; /* pane width in px */
+      var GLINT_AT = 3.35;
+      var GLINT_SWEEP = 0.5;
+      tl.fromTo(
+        "#nv09-glintwrap",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.12, ease: "power1.out" },
+        GLINT_AT
+      );
+      tl.fromTo(
+        "#nv09-glintmove",
+        { x: -0.35 * PANE_W },
+        { x: 1.15 * PANE_W, duration: GLINT_SWEEP, ease: "power1.inOut" },
+        GLINT_AT
+      );
+      tl.to(
+        "#nv09-glintwrap",
+        { opacity: 0, duration: 0.16, ease: "power1.in" },
+        GLINT_AT + GLINT_SWEEP - 0.14
+      );
+
+      /* ---------- Scene 3 (3.85-4.55): the ONE action element arrives ---------- */
+      tl.fromTo(
+        "#nv09-pill",
+        { opacity: 0, y: 20, scale: 0.96 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: "power3.out" },
+        3.85
+      );
+      /* stat-bars-and-fills, progress-fill register: scaleX from a left origin */
+      tl.fromTo(
+        "#nv09-fill",
+        { scaleX: 0 },
+        { scaleX: 1, duration: 0.55, ease: "power2.out" },
+        4.02
+      );
+      /* the label lands once the orange is behind it (ink on fire) */
+      tl.fromTo(
+        "#nv09-pill-label",
+        { opacity: 0, y: 4 },
+        { opacity: 1, y: 0, duration: 0.28, ease: "power2.out" },
+        4.32
+      );
+      /* ink-on-fire once the orange fill is behind the label */
+      tl.to("#nv09-pill-label", { color: "#111111", duration: 0.12, ease: "power1.out" }, 4.4);
+
+      /* ---------- Scene 4 (4.45-6.059): discrete-text-sequence URL + caret ---------- */
+      tl.fromTo(
+        "#nv09-url",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.2, ease: "power1.out" },
+        4.38
+      );
+
+      /* sparse states: keystroke cluster -> word-break pause -> bulk paste ".com" */
+      var SEQUENCE = [
+        { t: 0.0, text: "" },
+        { t: 4.53, text: "n" },
+        { t: 4.61, text: "no" },
+        { t: 4.7, text: "nov" },
+        { t: 4.78, text: "novu" },
+        { t: 4.86, text: "novus" },
+        { t: 5.14, text: "novuspitch" },
+        { t: 5.3, text: "novuspitch.com" }
+      ];
+      function textAt(time) {
+        for (var i = SEQUENCE.length - 1; i >= 0; i--) {
+          if (time >= SEQUENCE[i].t) return SEQUENCE[i].text;
+        }
+        return "";
+      }
+
+      /* caret: solid while typing, blinks exactly TWICE (sin square wave on the
+         timeline), then holds solid — dead still to the end */
+      var BLINK_START = 5.36;
+      var BLINK_WINDOW = 0.64; /* two full cycles */
+      function caretOpacity(time) {
+        if (time < BLINK_START || time >= BLINK_START + BLINK_WINDOW) return 1;
+        var p = ((time - BLINK_START) / BLINK_WINDOW) * Math.PI * 4;
+        return Math.sin(p) > 0 ? 0 : 1; /* first half-cycle goes dark = a blink */
+      }
+
+      var textEl = document.getElementById("nv09-urltext");
+      var caretEl = document.getElementById("nv09-caret");
+      var driver = { t: 0 };
+      tl.to(
+        driver,
+        {
+          t: DUR,
+          duration: DUR,
+          ease: "none", /* linear — t maps 1:1 to frame time */
+          onUpdate: function () {
+            textEl.textContent = textAt(driver.t);
+            caretEl.style.opacity = String(caretOpacity(driver.t));
+          }
+        },
+        0
+      );
+
+      /* ---------- final ~0.7s: the long Apple hold — no drift, no exit.
+         The root transition / film end owns the leave to black. ---------- */
+    })();
+  </script>
+</template>

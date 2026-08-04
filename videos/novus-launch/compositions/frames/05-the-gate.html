@@ -1,0 +1,359 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "IBM Plex Mono";
+      src: url(assets/fonts/IBMPlexMono-500.woff2) format("woff2");
+      font-weight: 500;
+      font-style: normal;
+      font-display: block;
+    }
+
+    #root {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      container-type: size;
+      font-family: "IBM Plex Mono", monospace;
+    }
+
+    /* ---- full-bleed navy stage (licensed vignette) ---- */
+    .nv05-bg {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(120% 120% at 50% 42%, #10263f 0%, #081527 78%);
+    }
+
+    .nv05-stage {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    /* ---- camera layer: the month counter world (pushed THROUGH) ---- */
+    .nv05-cam {
+      position: absolute;
+      inset: 0;
+      transform-origin: 50% 42%;
+      will-change: transform, opacity;
+      filter: url(#nv05-fA);
+    }
+
+    /* prestige-gold bloom BEHIND the digits (z1 under z2) */
+    .nv05-glow {
+      position: absolute;
+      left: calc(50% - 28cqw);
+      top: calc(42% - 28cqw);
+      width: 56cqw;
+      height: 56cqw;
+      z-index: 1;
+      border-radius: 50%;
+      background: radial-gradient(
+        closest-side,
+        rgba(255, 194, 75, 0.38) 0%,
+        rgba(255, 194, 75, 0.14) 34%,
+        rgba(8, 21, 39, 0) 70%
+      );
+      opacity: 0;
+      transform-origin: 50% 50%;
+      will-change: transform, opacity;
+    }
+
+    .nv05-counter {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 84cqh;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .nv05-kicker {
+      font-weight: 500;
+      font-size: 1.1cqw;
+      letter-spacing: 0.42em;
+      padding-left: 0.42em; /* optical re-center for trailing tracking */
+      text-transform: uppercase;
+      color: #b9b6b1;
+      margin-bottom: 1.6cqh;
+      will-change: transform, opacity;
+    }
+    .nv05-digits {
+      font-weight: 500;
+      font-size: 14cqw;
+      line-height: 1;
+      color: #ffffff;
+      font-feature-settings: "tnum" 1;
+      font-variant-numeric: tabular-nums;
+      width: 2ch; /* fixed measure — no shift as digits tick */
+      text-align: center;
+      transform-origin: 50% 50%;
+      will-change: transform;
+    }
+
+    /* ---- arriving layer: the year-gate screen (inverse zoom-through) ---- */
+    .nv05-arrive {
+      position: absolute;
+      inset: 0;
+      transform-origin: 50% 42.3%;
+      will-change: transform, opacity;
+      filter: url(#nv05-fB);
+    }
+
+    /* the one Liquid-Glass pane — the glass device frame */
+    .nv05-device {
+      position: absolute;
+      left: calc(50% - 9cqw);
+      top: 8.8cqh;
+      width: 18cqw;
+      padding: 10px;
+      border-radius: 28px;
+      background: rgba(255, 255, 255, 0.08);
+      -webkit-backdrop-filter: blur(24px) saturate(1.8);
+      backdrop-filter: blur(24px) saturate(1.8);
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+        0 24px 56px rgba(0, 0, 0, 0.36);
+    }
+    .nv05-device::before {
+      /* 1px specular top edge — the lit crest */
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 1px;
+      border-radius: inherit;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.32), transparent);
+    }
+    .nv05-shot {
+      position: relative;
+      border-radius: 20px;
+      overflow: hidden;
+    }
+    .nv05-shot img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+    /* the OPEN THE CAMERA capsule highlight, at the capsule's measured position */
+    .nv05-cap {
+      position: absolute;
+      left: 5.9%;
+      top: 84.3%;
+      width: 88.2%;
+      height: 7.3%;
+      border-radius: 999px;
+      background: #ffffff;
+      box-shadow: 0 0 22px 6px rgba(255, 194, 75, 0.55);
+      opacity: 0;
+      will-change: opacity;
+    }
+
+    /* the gate line, prestige-gold mono, beneath the device */
+    .nv05-gateline {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 78.8cqh;
+      display: flex;
+      justify-content: center;
+      gap: 0.95em;
+      font-weight: 500;
+      font-size: 1.5cqw;
+      line-height: 1.25;
+      letter-spacing: 0.32em;
+      text-transform: uppercase;
+      color: #ffc24b;
+    }
+    .nv05-gw {
+      display: inline-block;
+      will-change: transform, opacity;
+    }
+    .nv05-gw-sep {
+      opacity: 0.6;
+    }
+  </style>
+
+  <div id="root" data-composition-id="05-the-gate" data-duration="5.336" data-width="1920" data-height="1080">
+    <div class="clip nv05-bg" data-start="0" data-duration="5.336" data-track-index="0"></div>
+
+    <div class="clip nv05-stage" data-start="0" data-duration="5.336" data-track-index="1">
+      <svg width="0" height="0" aria-hidden="true" style="position: absolute">
+        <filter id="nv05-fA" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur id="nv05-fA-blur" in="SourceGraphic" stdDeviation="0 0" />
+        </filter>
+        <filter id="nv05-fB" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur id="nv05-fB-blur" in="SourceGraphic" stdDeviation="14 14" />
+        </filter>
+      </svg>
+
+      <!-- Scenes 1-3a: the counter world the camera pushes through -->
+      <div class="nv05-cam" id="nv05-cam">
+        <div class="nv05-glow" id="nv05-glow"></div>
+        <div class="nv05-counter">
+          <div class="nv05-kicker" id="nv05-kicker">MONTH</div>
+          <div class="nv05-digits" id="nv05-digits">01</div>
+        </div>
+      </div>
+
+      <!-- Scenes 3b-4: the year-gate screen arrives out of the push -->
+      <div class="nv05-arrive" id="nv05-arrive">
+        <div class="nv05-device">
+          <div class="nv05-shot">
+            <img src="assets/tank.webp" alt="" />
+            <div class="nv05-cap" id="nv05-cap"></div>
+          </div>
+        </div>
+        <div class="nv05-gateline" id="nv05-gateline">
+          <span class="nv05-gw">FISCAL</span>
+          <span class="nv05-gw">YEAR</span>
+          <span class="nv05-gw">1</span>
+          <span class="nv05-gw nv05-gw-sep">&middot;</span>
+          <span class="nv05-gw">THE</span>
+          <span class="nv05-gw">GATE</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/vendor/gsap.min.js"></script>
+  <script>
+    (function () {
+      var DUR = 4.736;
+      /* storyboard scene windows were drafted on an 8s grid; locked VO is 4.736s —
+         every beat below is the drafted time x 0.592 */
+      var SLAM_AT = 1.32; /* "— stops the clock." */
+      var PUSH_AT = 2.13; /* "The year doesn't close," */
+      var CUT_AT = 2.75; /* hard cut at peak velocity + peak blur */
+      var LINE_AT = 3.58; /* "until you pitch it." */
+
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+      window.__timelines["05-the-gate"] = tl;
+
+      var camEl = document.getElementById("nv05-cam");
+      var digitsEl = document.getElementById("nv05-digits");
+      var arriveEl = document.getElementById("nv05-arrive");
+      var blurANode = document.getElementById("nv05-fA-blur");
+      var blurBNode = document.getElementById("nv05-fB-blur");
+
+      /* ---------- camera: ONE writer (phase scale + micro-drift + slam shake) ---------- */
+      var cam = { s: 1 };
+      var drf = { p: 0 };
+      var shk = { p: 0 };
+      var SHAKE_AMP = 7;
+      function applyCam() {
+        var decay = Math.max(0, 1 - shk.p / (Math.PI * 2));
+        var sx = Math.sin(shk.p * 2.6) * SHAKE_AMP * decay;
+        var sy = Math.cos(shk.p * 2.2) * SHAKE_AMP * 0.55 * decay;
+        var dx = Math.sin(drf.p) * 3 + sx;
+        var dy = Math.sin(drf.p * 1.3) * 2 + sy;
+        camEl.style.transform =
+          "scale(" + cam.s + ") translate(" + dx.toFixed(2) + "px," + dy.toFixed(2) + "px)";
+      }
+      /* drift driver spans the whole frame — the every-frame writer */
+      tl.to(drf, { p: Math.PI * 2, duration: DUR, ease: "none", onUpdate: applyCam }, 0);
+
+      /* ---------- motion-blur envelopes (proxy-tweened SVG stdDeviation) ---------- */
+      var blurA = { v: 0 }; /* seed 0 — push leg: sharp start, smear peaks at the cut */
+      var writeA = function () {
+        /* compensate for camera scale so on-screen smear peaks ~20px full-frame */
+        var b = Math.min(24, blurA.v / cam.s);
+        blurANode.setAttribute("stdDeviation", b.toFixed(3) + " " + b.toFixed(3));
+      };
+      writeA();
+      var blurB = { v: 14 }; /* seed at PEAK — entrance shape: streaked at first visible frame */
+      var writeB = function () {
+        blurBNode.setAttribute("stdDeviation", blurB.v.toFixed(3) + " " + blurB.v.toFixed(3));
+      };
+      writeB();
+
+      /* ---------- Scene 1 (0-1.32): MONTH 01 -> 12, accelerating, glyph grows ---------- */
+      tl.fromTo(
+        "#nv05-kicker",
+        { opacity: 0, y: 8 },
+        { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" },
+        0.02
+      );
+      /* counting-dynamic-scale: value + scale share the SAME window and accelerating ease */
+      var count = { v: 1 };
+      tl.to(
+        count,
+        {
+          v: 12,
+          duration: SLAM_AT,
+          ease: "power2.in",
+          onUpdate: function () {
+            digitsEl.textContent = String(Math.round(count.v)).padStart(2, "0");
+          }
+        },
+        0
+      );
+      tl.fromTo(
+        "#nv05-digits",
+        { scale: 0.55 },
+        { scale: 1, duration: SLAM_AT, ease: "power2.in" },
+        0
+      );
+
+      /* ---------- Scene 2 (1.32-2.13): the SLAM at 12, gold bloom, dead-still beat ---------- */
+      /* one earned impact punch, then still */
+      tl.to("#nv05-digits", { scale: 1.06, duration: 0.09, ease: "power2.out" }, SLAM_AT);
+      tl.to("#nv05-digits", { scale: 1, duration: 0.26, ease: "power3.out" }, SLAM_AT + 0.09);
+      /* ambient-glow-bloom (bloom-and-hold): lands as ONE beat with the slam */
+      tl.fromTo(
+        "#nv05-glow",
+        { opacity: 0, scale: 0.82 },
+        { opacity: 0.32, scale: 1, duration: 0.26, ease: "power2.out" },
+        SLAM_AT
+      );
+      /* the gate's color claims the kicker */
+      tl.to("#nv05-kicker", { color: "#ffc24b", duration: 0.25, ease: "power2.out" }, SLAM_AT + 0.04);
+      /* brief decaying camera shake sells the hard stop */
+      tl.to(shk, { p: Math.PI * 2, duration: 0.3, ease: "none", onUpdate: applyCam }, SLAM_AT);
+      /* 1.62 -> 2.13: dead still (drift only, imperceptible) */
+
+      /* ---------- Scene 3 (2.13-3.55): push THROUGH the number -> gate screen arrives ---------- */
+      tl.to(cam, { s: 7.5, duration: CUT_AT - PUSH_AT, ease: "power3.in", onUpdate: applyCam }, PUSH_AT);
+      tl.to(blurA, { v: 20, duration: CUT_AT - PUSH_AT, ease: "power3.in", onUpdate: writeA }, PUSH_AT);
+      /* opacity on its own linear tween (cut-catalog), dying into the cut */
+      tl.to(camEl, { opacity: 0.15, duration: 0.4, ease: "none" }, CUT_AT - 0.4);
+      tl.set(camEl, { opacity: 0 }, CUT_AT);
+
+      /* inverse zoom-through entry: oversized, blurred, retracting into the focal plane */
+      gsap.set(arriveEl, { opacity: 0, scale: 1.45 });
+      tl.set(arriveEl, { opacity: 0 }, 0); /* guard: hidden for any seek before the cut */
+      tl.fromTo(
+        arriveEl,
+        { opacity: 0.15, scale: 1.45 },
+        { opacity: 1, scale: 1, duration: 0.72, ease: "expo.out", immediateRender: false },
+        CUT_AT
+      );
+      tl.to(blurB, { v: 0, duration: 0.72, ease: "expo.out", onUpdate: writeB }, CUT_AT);
+
+      /* ---------- Scene 4 (3.55-4.736): gate line word-per-cue + capsule brightens once ---------- */
+      var words = document.querySelectorAll("#nv05-gateline .nv05-gw");
+      words.forEach(function (el, i) {
+        var isSep = el.classList.contains("nv05-gw-sep");
+        tl.fromTo(
+          el,
+          { opacity: 0, y: 12 },
+          { opacity: isSep ? 0.6 : 1, y: 0, duration: 0.34, ease: "power3.out" },
+          LINE_AT + i * 0.13
+        );
+      });
+      /* the OPEN THE CAMERA capsule brightens once, restrained, on "pitch" */
+      tl.fromTo(
+        "#nv05-cap",
+        { opacity: 0 },
+        { opacity: 0.3, duration: 0.16, ease: "power2.out" },
+        4.05
+      );
+      tl.to("#nv05-cap", { opacity: 0, duration: 0.4, ease: "power1.in" }, 4.26);
+      /* holds — no exit; the root transition owns the seam out */
+    })();
+  </script>
+</template>
