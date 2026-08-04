@@ -783,7 +783,7 @@ function PlansSheet({ onDone, leaving }: { onDone: () => void; leaving: boolean 
           type="button"
           onClick={onDone}
           disabled={leaving}
-          className="nv-gc mt-2.5 h-14 w-full rounded-[var(--radius-pill)] nv-on text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--text-primary)] disabled:opacity-60"
+          className="nv-gc mt-2.5 h-14 w-full rounded-[var(--radius-card)] nv-on text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--text-primary)] disabled:opacity-60"
         >
           {leaving ? "OPENING…" : "CONTINUE FREE"}
         </button>

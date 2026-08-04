@@ -293,6 +293,29 @@ export interface PerformResult {
   transcriptId?: string;
 }
 
+/**
+ * One month's closing Books, kept so the ledger can draw a trend.
+ *
+ * Single-letter keys on purpose: this rides in every save and every cloud
+ * mirror, twelve of them per run, and `{"c":23000,"b":2000,"r":11.5,"v":23000}`
+ * is a third of what the spelled-out version costs for exactly the same data.
+ *
+ * `r` is clamped rather than derived on read: `deriveRunwayMonths` returns
+ * `Infinity` when burn is zero or negative, and `JSON.stringify(Infinity)` is
+ * `null` — a save that round-trips a runway into `null` is a crash waiting for
+ * the first profitable company.
+ */
+export interface LedgerSample {
+  /** Cash, dollars. */
+  c: number;
+  /** Monthly burn, dollars. Negative means the company is making money. */
+  b: number;
+  /** Runway in months, clamped to [0, 999] so it survives JSON. */
+  r: number;
+  /** Valuation, dollars. */
+  v: number;
+}
+
 export interface RunState {
   id: string;
   seed: number;
@@ -308,6 +331,20 @@ export interface RunState {
   stats: Stats;
   /** Trailing 4 quarterly revenues (dollars); revenueAnnual = their sum. */
   quarters: number[];
+  /**
+   * Rolling 12-month sample of The Books, oldest first, newest last.
+   *
+   * Written by `recordLedger` (lib/engine/ledger.ts) from the shared
+   * orchestration in lib/leaderboard/replay.ts — one entry per tap that moves
+   * time, one at the year close. Twelve is the whole fiscal year and also the
+   * whole sparkline; older months are dropped rather than kept for a chart
+   * nobody draws.
+   *
+   * Optional, and every reader must treat missing or short as normal: runs
+   * saved before this existed have none, and the balance harness and the phone
+   * audit both drive `advanceMonth` directly and so never produce any.
+   */
+  ledger?: LedgerSample[];
   /** Accumulated fixed-cost deltas from events, in S at current stage. */
   burnDeltaS: number;
   /** Multiplier on total burn from cost-surgery specials (burn_pct). */

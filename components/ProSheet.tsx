@@ -200,7 +200,7 @@ export function ProSheet({ onClose }: { onClose: () => void }) {
         role="dialog"
         aria-modal="true"
         aria-label="Novus Pro"
-        className="relative flex max-h-[min(88dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] w-full max-w-2xl flex-col overflow-y-auto rounded-t-[1.75rem] bg-[var(--sheet)] pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[var(--e3)] sm:max-h-[86dvh] sm:rounded-[var(--radius-card)]"
+        className="relative flex max-h-[min(88dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] w-full max-w-2xl flex-col overflow-y-auto rounded-t-[var(--radius-sheet)] bg-[var(--sheet)] pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[var(--e3)] sm:max-h-[86dvh] sm:rounded-[var(--radius-sheet)]"
         initial={{ y: "6%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ ...ENTER }}
@@ -304,7 +304,7 @@ export function ProSheet({ onClose }: { onClose: () => void }) {
                 type="button"
                 onClick={() => void takePro()}
                 disabled={busy}
-                className="nv-gc mt-3 h-14 w-full rounded-[var(--radius-pill)] nv-t-action text-base font-extrabold tracking-[0.04em] shadow-[var(--e3)] disabled:opacity-60"
+                className="nv-gc mt-3 h-14 w-full rounded-[var(--radius-card)] nv-t-action text-base font-extrabold tracking-[0.04em] shadow-[var(--e3)] disabled:opacity-60"
               >
                 {busy ? "OPENING…" : "CHOOSE PRO"}
               </button>

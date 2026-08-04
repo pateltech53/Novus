@@ -236,7 +236,7 @@ function CandidateCard({
           onClick={() => upgrade.open("talent_pool")}
           aria-label={`${candidate.name} is in the Pro talent pool. See what Pro adds.`}
           aria-describedby={`${candidate.id}-why`}
-          className="nv-gc mt-3.5 h-14 w-full rounded-[var(--radius-pill)] nv-t-prestige text-sm font-extrabold tracking-[0.04em]"
+          className="nv-gc mt-3.5 h-14 w-full rounded-[var(--radius-card)] nv-t-prestige text-sm font-extrabold tracking-[0.04em]"
         >
           SEE WHAT PRO ADDS
         </button>
@@ -251,7 +251,7 @@ function CandidateCard({
           data-sfx="none"
           aria-label={`Hire ${candidate.name}, ${candidate.role}`}
           aria-describedby={reason ? `${candidate.id}-why` : undefined}
-          className="nv-gc mt-3.5 h-14 w-full rounded-[var(--radius-pill)] nv-t-action text-sm font-extrabold tracking-[0.04em] disabled:cursor-not-allowed disabled:opacity-40"
+          className="nv-gc mt-3.5 h-14 w-full rounded-[var(--radius-card)] nv-t-action text-sm font-extrabold tracking-[0.04em] disabled:cursor-not-allowed disabled:opacity-40"
         >
           HIRE
         </button>
@@ -308,7 +308,7 @@ function Figure({
   danger?: boolean;
 }) {
   return (
-    <div className="min-w-0 rounded-[0.625rem] bg-[var(--chip)] px-2.5 py-2">
+    <div className="min-w-0 rounded-[var(--radius-row)] bg-[var(--chip)] px-2.5 py-2">
       <span className="block truncate text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
         {label}
       </span>

@@ -174,7 +174,7 @@ function Deltas({ deltas }: { deltas: NonNullable<LogLine["deltas"]> }) {
       {deltas.map((d, i) => (
         <span
           key={`${d.label}-${i}`}
-          className="tnum rounded-md px-1.5 py-0.5 text-2xs font-bold"
+          className="tnum rounded-[var(--radius-chip)] px-1.5 py-0.5 text-2xs font-bold"
           style={
             d.tone === "up"
               ? // Solvency green needs darkening to stay legible on white.

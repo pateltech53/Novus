@@ -576,7 +576,7 @@ export default function AdminPage() {
             </p>
             <a
               href={homeHref()}
-              className="nv-gc mt-6 flex h-14 w-full items-center justify-center rounded-[var(--radius-pill)] nv-t-action px-6 text-[1.0625rem] font-extrabold tracking-[0.04em] shadow-[var(--e3)]"
+              className="nv-gc mt-6 flex h-14 w-full items-center justify-center rounded-[var(--radius-card)] nv-t-action px-6 text-[1.0625rem] font-extrabold tracking-[0.04em] shadow-[var(--e3)]"
             >
               BACK TO NOVUS
             </a>

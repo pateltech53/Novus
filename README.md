@@ -7,9 +7,14 @@ panel of AI shark investors and survive their questions.
 Next.js App Router · TypeScript · Tailwind v4 · React Three Fiber · Framer Motion.
 
 **Look:** the visual design is taken from `Novus iOS App.html` (the iOS prototype
-v2) — its light palette, mascot-led masthead, stat rings and card language. Two
+v2) — its light palette, mascot-led masthead, stat rings and card language. Three
 deliberate departures: the mascot is the **live GLB** rather than a chroma-keyed
-video, and the whole thing sits on a real engine. Light is the default theme;
+video; the whole thing sits on a real engine; and the masthead is mascot-led only
+on the desktop rail — on a phone it is an identity **row** (portrait, then the
+company's name beside it), because a 168px character above a 28px title was
+taking 45% of the screen the game is actually played on. The height it gave back
+went to The Books, which now carry a month-over-month change and a twelve-month
+trend per figure, and a twelve-segment gauge on runway. Light is the default theme;
 the moon/sun control in the masthead switches to the prototype's dark palette.
 Onboarding, the camera and the panel stay on brand navy, as they do in the
 prototype.

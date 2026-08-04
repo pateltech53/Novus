@@ -273,7 +273,7 @@ export function Landing() {
           <ul className="mt-8 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:col-span-8 lg:mt-0 lg:grid-cols-5">
             {TEAM.map((member) => (
               <li key={member.name} className="min-w-0">
-                <div className="overflow-hidden rounded-[1.1rem] shadow-[var(--e1)] ring-1 ring-[var(--hairline)]">
+                <div className="overflow-hidden rounded-[var(--radius-card)] shadow-[var(--e1)] ring-1 ring-[var(--hairline)]">
                   <Image
                     src={member.photo}
                     alt={`${member.name} — ${member.role}`}
@@ -620,7 +620,7 @@ function PricingSection() {
               type="button"
               onClick={() => entering || goEnter(() => enter())}
               disabled={entering}
-              className="nv-gc mt-6 w-full rounded-full px-5 py-3 text-sm font-extrabold tracking-[0.04em] disabled:opacity-60"
+              className="nv-gc mt-6 w-full rounded-[var(--radius-card)] px-5 py-3 text-sm font-extrabold tracking-[0.04em] disabled:opacity-60"
             >
               {entering ? "OPENING…" : "PLAY FREE"}
             </button>
@@ -651,7 +651,7 @@ function PricingSection() {
                 type="button"
                 onClick={() => void choosePro(PRO_MONTHLY)}
                 disabled={busy !== null}
-                className="nv-gc w-full rounded-full nv-t-action px-4 py-3 text-sm font-extrabold tracking-[0.04em] disabled:opacity-60"
+                className="nv-gc w-full rounded-[var(--radius-card)] nv-t-action px-4 py-3 text-sm font-extrabold tracking-[0.04em] disabled:opacity-60"
               >
                 {busy === PRO_MONTHLY.id ? "OPENING…" : "MONTHLY"}
               </button>
@@ -659,7 +659,7 @@ function PricingSection() {
                 type="button"
                 onClick={() => void choosePro(PRO_YEARLY)}
                 disabled={busy !== null}
-                className="nv-gc w-full rounded-full nv-t-action px-4 py-3 text-sm font-extrabold tracking-[0.04em] disabled:opacity-60"
+                className="nv-gc w-full rounded-[var(--radius-card)] nv-t-action px-4 py-3 text-sm font-extrabold tracking-[0.04em] disabled:opacity-60"
               >
                 {busy === PRO_YEARLY.id ? "OPENING…" : "YEARLY"}
               </button>
@@ -721,7 +721,7 @@ function PricingSection() {
                     type="button"
                     onClick={() => void chooseChapter(licence.id)}
                     disabled={busy !== null}
-                    className="nv-gc mt-2.5 w-full rounded-full nv-t-action px-4 py-2.5 text-sm font-extrabold tracking-[0.04em] disabled:opacity-60"
+                    className="nv-gc mt-2.5 w-full rounded-[var(--radius-card)] nv-t-action px-4 py-2.5 text-sm font-extrabold tracking-[0.04em] disabled:opacity-60"
                   >
                     {busy === licence.id ? "OPENING…" : `START ${licence.seats} SEATS`}
                   </button>
@@ -769,13 +769,13 @@ function PricingSection() {
                         onChange={(e) => setCustomSeatsText(e.target.value)}
                         placeholder="Seats"
                         aria-label={`Custom seat count, ${CHAPTER_CUSTOM_MIN_SEATS} to ${CHAPTER_CUSTOM_MAX_SEATS}`}
-                        className="tnum w-full rounded-full border border-[var(--hairline)] bg-transparent px-4 py-2.5 text-sm font-bold placeholder:text-[var(--n-6)] focus:border-[var(--n-11)] focus-visible:outline-none!"
+                        className="tnum w-full rounded-[var(--radius-card)] border border-[var(--hairline)] bg-transparent px-4 py-2.5 text-sm font-bold placeholder:text-[var(--n-6)] focus:border-[var(--n-11)] focus-visible:outline-none!"
                       />
                       <button
                         type="button"
                         onClick={() => seats !== null && void chooseChapter("chapter_custom", seats)}
                         disabled={busy !== null || seats === null}
-                        className="nv-gc w-full rounded-full nv-t-action px-4 py-2.5 text-sm font-extrabold tracking-[0.04em] disabled:opacity-60"
+                        className="nv-gc w-full rounded-[var(--radius-card)] nv-t-action px-4 py-2.5 text-sm font-extrabold tracking-[0.04em] disabled:opacity-60"
                       >
                         {busy === "chapter_custom"
                           ? "OPENING…"

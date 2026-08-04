@@ -136,7 +136,7 @@ export function CompanyDossier({
         className={`relative flex w-full flex-col overflow-y-auto bg-[var(--sheet)] shadow-[var(--e3)] ${
           overlay
             ? "max-h-full max-w-md rounded-[var(--radius-card)] pb-4"
-            : "max-h-[min(88dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] max-w-2xl rounded-t-[1.75rem] pb-[max(1rem,env(safe-area-inset-bottom))]"
+            : "max-h-[min(88dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] max-w-2xl rounded-t-[var(--radius-sheet)] pb-[max(1rem,env(safe-area-inset-bottom))]"
         }`}
         initial={overlay ? { opacity: 0, scale: 0.98 } : { y: "8%", opacity: 0 }}
         animate={overlay ? { opacity: 1, scale: 1 } : { y: 0, opacity: 1 }}

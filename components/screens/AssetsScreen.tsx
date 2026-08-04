@@ -337,7 +337,7 @@ function OwnedCard({
             ? `Confirm sale of ${def.name} for ${fmtMoney(holding.value)}`
             : `Sell ${def.name} for ${fmtMoney(holding.value)}`
         }
-        className={`nv-gc mt-3 h-11 w-full rounded-[var(--radius-pill)] text-2xs font-extrabold tracking-[0.12em] ${
+        className={`nv-gc mt-3 h-11 w-full rounded-[var(--radius-card)] text-2xs font-extrabold tracking-[0.12em] ${
           arming
             ? "nv-t-action"
             :"border border-[var(--action)]/45 text-[var(--action)]"
@@ -388,7 +388,7 @@ function ForSaleCard({
           </p>
         </div>
         {def.pro && (
-          <span className="shrink-0 rounded-md bg-[var(--color-prestige)] px-1.5 py-0.5 text-2xs font-extrabold tracking-[0.12em] text-[var(--color-navy)]">
+          <span className="shrink-0 rounded-[var(--radius-chip)] bg-[var(--color-prestige)] px-1.5 py-0.5 text-2xs font-extrabold tracking-[0.12em] text-[var(--color-navy)]">
             PRO
           </span>
         )}
@@ -489,7 +489,7 @@ function HorizonCard({ def }: { def: AssetDef }) {
           </p>
         </div>
         {def.pro && (
-          <span className="shrink-0 rounded-md bg-[var(--color-prestige)] px-1.5 py-0.5 text-2xs font-extrabold tracking-[0.12em] text-[var(--color-navy)]">
+          <span className="shrink-0 rounded-[var(--radius-chip)] bg-[var(--color-prestige)] px-1.5 py-0.5 text-2xs font-extrabold tracking-[0.12em] text-[var(--color-navy)]">
             PRO
           </span>
         )}
@@ -568,7 +568,7 @@ function Figure({
 function Chip({ children, color }: { children: React.ReactNode; color?: string }) {
   return (
     <span
-      className="tnum rounded-md bg-[var(--chip)] px-1.5 py-0.5 text-2xs font-bold text-[var(--text-secondary)]"
+      className="tnum rounded-[var(--radius-chip)] bg-[var(--chip)] px-1.5 py-0.5 text-2xs font-bold text-[var(--text-secondary)]"
       style={color ? { color } : undefined}
     >
       {children}

@@ -769,7 +769,8 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
     func toast(title: String, text: String, tone: String) {
         currentToast?.dismissNow()
 
-        let glass = GlassKit.panel(corner: 20, interactive: false, tint: nil)
+        // A toast is a floating panel: `--radius-card`, not a sheet corner.
+        let glass = GlassKit.panel(corner: 14, interactive: false, tint: nil)
         let column = UIStackView()
         column.axis = .vertical
         column.spacing = 3

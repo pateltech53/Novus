@@ -313,7 +313,7 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
         role="dialog"
         aria-modal="true"
         aria-label="Still Standing"
-        className="relative flex max-h-[min(88dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] w-full max-w-2xl flex-col overflow-hidden rounded-t-[1.75rem] bg-[var(--sheet)] shadow-[var(--e3)]"
+        className="relative flex max-h-[min(88dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] w-full max-w-2xl flex-col overflow-hidden rounded-t-[var(--radius-sheet)] bg-[var(--sheet)] shadow-[var(--e3)]"
         initial={{ y: "8%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: "8%", opacity: 0, transition: EXIT }}
@@ -323,7 +323,7 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
         <Glass
           as="header"
           solid={!scrolled}
-          className="z-10 shrink-0 rounded-t-[1.75rem] px-5 pt-5 pb-3"
+          className="z-10 shrink-0 rounded-t-[var(--radius-sheet)] px-5 pt-5 pb-3"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
@@ -715,7 +715,7 @@ function SubmitPanel({
           type="button"
           disabled={!canSubmit || submitting}
           onClick={onSubmit}
-          className="nv-gc mt-3 flex h-14 w-full items-center justify-center rounded-[var(--radius-pill)] nv-t-action px-4 text-center text-sm font-extrabold leading-tight disabled:opacity-40"
+          className="nv-gc mt-3 flex h-14 w-full items-center justify-center rounded-[var(--radius-card)] nv-t-action px-4 text-center text-sm font-extrabold leading-tight disabled:opacity-40"
         >
           {submitting ? "Verifying…" : submitted ? "Submit again" : "Submit this run"}
         </button>

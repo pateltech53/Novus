@@ -397,7 +397,7 @@ export function Coachmarks({
             }}
           />
           <motion.div
-            className="pointer-events-none absolute rounded-[1.25rem] ring-4 ring-[var(--action)]"
+            className="pointer-events-none absolute rounded-[var(--radius-card)] ring-4 ring-[var(--action)]"
             style={{
               top: hole.top,
               left: hole.left,
@@ -439,7 +439,7 @@ export function Coachmarks({
          * content region scrolls and the button below it never leaves the screen.
          */}
         <div
-          className="flex flex-col overflow-hidden rounded-[1.25rem] bg-[var(--surface-overlay)] shadow-[var(--e4)]"
+          className="flex flex-col overflow-hidden rounded-[var(--radius-card)] bg-[var(--surface-overlay)] shadow-[var(--e4)]"
           style={{ maxHeight: cardMaxHeight }}
         >
           {/* The reading half scrolls; the button below never does. The fade
@@ -517,7 +517,7 @@ export function Coachmarks({
             {index > 0 && onBack && (
               <button
                 type="button"
-                className="nv-gc pointer-events-auto h-11 shrink-0 rounded-[var(--radius-pill)] px-4 text-sm font-extrabold tracking-[0.04em] text-[var(--n-9)]"
+                className="nv-gc pointer-events-auto h-11 shrink-0 rounded-[var(--radius-card)] px-4 text-sm font-extrabold tracking-[0.04em] text-[var(--n-9)]"
                 onClick={(e) => {
                   e.stopPropagation();
                   onBack();
@@ -529,7 +529,7 @@ export function Coachmarks({
             {step.mode === "ack" || !rect ? (
               <button
                 type="button"
-                className="nv-gc pointer-events-auto h-11 w-full flex-1 rounded-[var(--radius-pill)] nv-t-action text-sm font-extrabold tracking-[0.04em]"
+                className="nv-gc pointer-events-auto h-11 w-full flex-1 rounded-[var(--radius-card)] nv-t-action text-sm font-extrabold tracking-[0.04em]"
                 onClick={(e) => {
                   e.stopPropagation();
                   if (index >= steps.length - 1) onFinish();
@@ -573,7 +573,7 @@ const BASE_STEPS: CoachStep[] = [
     id: "books",
     target: "books",
     title: "These are The Books.",
-    body: "Cash, burn, runway, valuation. They never leave the screen, and every decision you make moves at least one of them. Tap any of them at any time to see what the word means.",
+    body: "Cash, burn, runway, valuation. They never leave the screen, and every decision you make moves at least one of them. Under each figure is what it did this month, and under that, where it has been for the last twelve. Tap any of them at any time to see what the word means.",
     mode: "ack",
     place: "below",
   },
@@ -609,7 +609,7 @@ const BASE_STEPS: CoachStep[] = [
     id: "decide",
     target: "books",
     title: "Decisions cost you something. Always.",
-    body: "Months bring choices, and there is no free option — every one spends cash, time, people, or goodwill. Read what it COSTS you, not which number is bigger. \u201cCheaper, and your support team eats it\u201d is a real answer when you have cash but no runway to spare.",
+    body: "Months bring choices, and there is no free option — every one spends cash, time, people, or goodwill. Every option's cost sits on its right, all in one column, so you can read down them rather than one at a time: red is money leaving, green is money arriving. Read what it COSTS you, not which number is bigger. \u201cCheaper, and your support team eats it\u201d is a real answer when you have cash but no runway to spare.",
     mode: "ack",
     place: "below",
   },
@@ -617,7 +617,7 @@ const BASE_STEPS: CoachStep[] = [
     id: "runway",
     target: "books",
     title: "When you are stuck, look at runway.",
-    body: "Runway is how many months your cash lasts at this burn. Under six, survival beats growth \u2014 take the cheap option and buy yourself time. Above twelve, you can afford to spend on something that pays back later.",
+    body: "Runway is how many months your cash lasts at this burn, and the bar under it is that same fact as distance \u2014 how close you are to none. Under six, survival beats growth: take the cheap option and buy yourself time. Above twelve, you can afford to spend on something that pays back later.",
     mode: "ack",
     place: "below",
   },

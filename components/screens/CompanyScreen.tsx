@@ -225,7 +225,7 @@ export function CompanyScreen({ onClose }: { onClose: () => void }) {
                   before committing: the money leaving the account.
                 */}
                 {price && (
-                  <span className="tnum shrink-0 rounded-md bg-[var(--chip)] px-1.5 py-0.5 text-2xs font-bold text-[var(--text-secondary)]">
+                  <span className="tnum shrink-0 text-2xs font-semibold text-[var(--text-primary)]">
                     {price}
                   </span>
                 )}
