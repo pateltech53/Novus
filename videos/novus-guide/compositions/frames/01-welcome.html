@@ -1,0 +1,298 @@
+<template>
+  <div
+    id="root"
+    data-composition-id="01-welcome"
+    data-duration="5.973"
+    data-width="1920"
+    data-height="1080"
+  >
+    <style>
+      @font-face {
+        font-family: "Urbanist";
+        src: url("assets/fonts/Urbanist-Variable.woff2") format("woff2");
+        font-weight: 100 900;
+        font-style: normal;
+        font-display: block;
+      }
+      @font-face {
+        font-family: "IBM Plex Mono";
+        src: url("assets/fonts/IBMPlexMono-500.woff2") format("woff2");
+        font-weight: 500;
+        font-style: normal;
+        font-display: block;
+      }
+
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+      }
+
+      /* full-bleed paper ground — its own clip layer, never on #root */
+      .w01-bg {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          120% 130% at 50% 38%,
+          #fcfcfa 52%,
+          #f5f3ef 82%,
+          #f2f0ec 100%
+        );
+      }
+
+      .w01-stage {
+        position: absolute;
+        inset: 0;
+        font-family: "Urbanist", sans-serif;
+        color: #232019;
+      }
+
+      .w01-kicker {
+        position: absolute;
+        left: 96px;
+        top: 88px;
+        font-family: "IBM Plex Mono", monospace;
+        font-weight: 500;
+        font-size: 22px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: #5f5c56;
+        font-feature-settings: "tnum";
+      }
+
+      .w01-left {
+        position: absolute;
+        left: 96px;
+        top: 318px;
+        width: 900px;
+      }
+
+      .w01-lockup {
+        display: flex;
+        align-items: center;
+        gap: 40px;
+      }
+
+      .w01-mark {
+        width: 172px;
+        height: 172px;
+        flex: 0 0 auto;
+      }
+      .w01-mark path {
+        fill: none;
+        stroke: #232019;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      #w01-fin {
+        stroke-width: 2.6;
+        fill: #232019;
+        fill-opacity: 0;
+      }
+      #w01-wave {
+        stroke-width: 4.5;
+      }
+
+      .w01-wordmark {
+        font-weight: 800;
+        font-size: 152px;
+        line-height: 1;
+        letter-spacing: -0.03em;
+        text-transform: lowercase;
+        color: #232019;
+      }
+
+      .w01-subline {
+        margin-top: 46px;
+        font-weight: 500;
+        font-size: 36px;
+        line-height: 1.4;
+        color: #5f5c56;
+      }
+      .w01-word {
+        display: inline-block;
+        white-space: pre;
+      }
+
+      .w01-promise {
+        margin-top: 30px;
+        font-weight: 700;
+        font-size: 46px;
+        line-height: 1.25;
+        letter-spacing: -0.02em;
+        color: #232019;
+      }
+      .w01-pseg {
+        display: inline-block;
+        white-space: pre;
+      }
+
+      /* the play screen — soft-shadow white card, elevation not glass */
+      .w01-shot {
+        position: absolute;
+        right: 96px;
+        top: 260px;
+        width: 768px;
+        height: 432px;
+        background: #ffffff;
+        border: 1px solid rgba(35, 32, 25, 0.08);
+        border-radius: 14px;
+        box-shadow:
+          0 2px 4px rgba(35, 32, 25, 0.08),
+          0 12px 32px rgba(35, 32, 25, 0.1);
+        overflow: hidden;
+      }
+      .w01-shot img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+    </style>
+
+    <div
+      class="clip w01-bg"
+      data-start="0"
+      data-duration="5.973"
+      data-track-index="0"
+    ></div>
+
+    <div
+      class="clip w01-stage"
+      data-start="0"
+      data-duration="5.973"
+      data-track-index="1"
+    >
+      <div class="w01-kicker" id="w01-kicker">NOVUS &middot; THE GUIDE</div>
+
+      <div class="w01-left">
+        <div class="w01-lockup">
+          <svg
+            class="w01-mark"
+            viewBox="0 0 64 64"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              id="w01-fin"
+              d="M40 9 C46 16 48 26 48 38 L16 38 C20 22 30 12 40 9 Z"
+            />
+            <path id="w01-wave" d="M10 47 q6 -5 12 0 t12 0 t12 0 t12 0" />
+          </svg>
+          <div class="w01-wordmark" id="w01-wordmark">novus</div>
+        </div>
+
+        <div class="w01-subline" id="w01-subline">
+          <span class="w01-word">a </span><span class="w01-word">life </span
+          ><span class="w01-word">simulator </span
+          ><span class="w01-word">for </span
+          ><span class="w01-word">running </span
+          ><span class="w01-word">a </span
+          ><span class="w01-word">company</span>
+        </div>
+
+        <div class="w01-promise" id="w01-promise">
+          <span class="w01-pseg">one full year. </span
+          ><span class="w01-pseg">screen by screen.</span>
+        </div>
+      </div>
+
+      <div class="w01-shot" id="w01-shot">
+        <img src="assets/04-play.png" alt="" />
+      </div>
+    </div>
+
+    <script src="assets/vendor/gsap.min.js"></script>
+    <script>
+      (function () {
+        /* svg-path-draw setup — measured lengths, never guessed */
+        document.querySelectorAll(".w01-mark path").forEach(function (p) {
+          var len = p.getTotalLength() * 1.02;
+          p.style.strokeDasharray = String(len);
+          p.style.strokeDashoffset = String(len);
+        });
+
+        var tl = gsap.timeline({ paused: true });
+
+        /* one slow push under the whole shot (spans the full duration) */
+        tl.fromTo(
+          ".w01-stage",
+          { scale: 1 },
+          { scale: 1.012, duration: 5.973, ease: "none", transformOrigin: "50% 42%" },
+          0
+        );
+
+        /* ---- Scene 1 (0–1.87s): kicker lands, ink lockup draws on ---- */
+        tl.fromTo(
+          "#w01-kicker",
+          { opacity: 0, y: -16 },
+          { opacity: 1, y: 0, duration: 0.55, ease: "power3.out" },
+          0.05
+        );
+
+        /* fin draws, then wave draws at ~75% overlap; fin fills after its stroke */
+        tl.to(
+          "#w01-fin",
+          { strokeDashoffset: 0, duration: 0.6, ease: "power2.out" },
+          0.25
+        );
+        tl.to(
+          "#w01-wave",
+          { strokeDashoffset: 0, duration: 0.55, ease: "power2.out" },
+          0.7
+        );
+        tl.to(
+          "#w01-fin",
+          { fillOpacity: 1, duration: 0.4, ease: "power1.out" },
+          0.85
+        );
+
+        /* wordmark fades in only after the last stroke settles */
+        tl.fromTo(
+          "#w01-wordmark",
+          { opacity: 0, x: -24 },
+          { opacity: 1, x: 0, duration: 0.5, ease: "power3.out" },
+          1.35
+        );
+
+        /* ---- Scene 2 (1.87–4.10s): sub-line per word, play screen rises ---- */
+        tl.fromTo(
+          ".w01-word",
+          { opacity: 0, y: 16 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.45,
+            ease: "power3.out",
+            stagger: 0.09,
+          },
+          1.9
+        );
+
+        tl.fromTo(
+          "#w01-shot",
+          { opacity: 0, y: 90 },
+          { opacity: 1, y: 0, duration: 1.0, ease: "power3.out" },
+          2.3
+        );
+
+        /* ---- Scene 3 (4.10–5.97s): the promise line lands in ink; hold ---- */
+        tl.fromTo(
+          ".w01-pseg",
+          { opacity: 0, y: 24 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.65,
+            ease: "power3.out",
+            stagger: 0.28,
+          },
+          4.15
+        );
+
+        window.__timelines = window.__timelines || {};
+        window.__timelines["01-welcome"] = tl;
+      })();
+    </script>
+  </div>
+</template>
