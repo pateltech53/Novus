@@ -401,19 +401,18 @@ function PlayScreen() {
      * The previous behaviour was neither: it went full-bleed, so The Books
      * became a 1280px band of 8px labels and the CTA an ~800px slab.
      *
-     * And the phone is a FIXED-HEIGHT flex column now, not a scrolling
-     * document. It used to be min-h-dvh with a fixed footer, which meant the
-     * page could always scroll — and scrolling slid The Books and the log up
-     * UNDER the ADVANCE MONTH bar, which players read as content stuck
-     * behind the button. h-dvh + overflow-hidden makes the screen the
-     * screen: masthead, books, log and the bar all share one viewport,
-     * nothing scrolls out from under anything, and on a phone too short to
-     * fit it all, the books region scrolls INSIDE itself while the bar
-     * stays put. Desktop keeps its own grid composition unchanged.
+     * The phone is a SCROLLING document with a fixed footer, on purpose and
+     * for the second time. A fixed-height no-scroll column was tried here and
+     * reverted within a day: on real phones the leftover space after the
+     * masthead squeezed The Books into a clipped strip — cash, burn, runway
+     * and valuation are the four numbers the whole game runs on, and a layout
+     * that crops them to avoid a scroll is the wrong trade. The masthead
+     * shrink tiers in globals.css (which stayed) do the fitting instead, and
+     * the measured spacer keeps the flow's end above the fixed bar.
      */
-    <main className="flex h-dvh flex-col overflow-hidden bg-[var(--bg)] lg:mx-auto lg:grid lg:h-auto lg:min-h-dvh lg:max-w-6xl lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:gap-6 lg:overflow-visible lg:px-6 lg:py-6">
+    <main className="min-h-dvh bg-[var(--bg)] lg:mx-auto lg:grid lg:min-h-dvh lg:max-w-6xl lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:gap-6 lg:px-6 lg:py-6">
       {/* Left column on desktop; masthead on phone. */}
-      <div className="shrink-0 lg:sticky lg:top-6 lg:self-start lg:overflow-hidden lg:rounded-[var(--radius-card)] lg:shadow-[var(--e2)]">
+      <div className="lg:sticky lg:top-6 lg:self-start lg:overflow-hidden lg:rounded-[var(--radius-card)] lg:shadow-[var(--e2)]">
         <HomeStage
           run={run}
           founderName={profile?.founderName ?? run.founderName}
@@ -430,11 +429,7 @@ function PlayScreen() {
       </div>
 
       {/* Right rail on desktop; the rest of the page on phone. */}
-      <div className="flex min-h-0 flex-1 flex-col lg:h-[calc(100dvh-3rem)] lg:flex-none lg:overflow-hidden lg:rounded-[var(--radius-card)] lg:bg-[var(--surface)] lg:shadow-[var(--e2)]">
-        {/* The reading region. It fits on almost every phone; where it cannot,
-            IT scrolls — never the page — so nothing ever slides under the
-            fixed bar below. */}
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain lg:min-h-fit lg:flex-none lg:overflow-visible">
+      <div className="flex min-h-0 flex-col lg:h-[calc(100dvh-3rem)] lg:overflow-hidden lg:rounded-[var(--radius-card)] lg:bg-[var(--surface)] lg:shadow-[var(--e2)]">
         <div data-coach="books">
           <TheBooks run={run} onTermTap={(t) => setTerm({ term: t })} />
         </div>
@@ -459,7 +454,6 @@ function PlayScreen() {
           style={domChrome ? undefined : { paddingBottom: "var(--nv-chrome-bottom, 0px)" }}
         >
           <LogButton month={run.month} year={run.year} onOpen={() => setLogOpen(true)} />
-        </div>
         </div>
         <div
           className="hidden flex-1 overflow-y-auto pb-3 lg:block"
