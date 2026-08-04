@@ -212,9 +212,36 @@ export function Coachmarks({
       }
     : null;
 
-  const place =
-    step.place ??
-    (hole && hole.top > window.innerHeight * 0.55 ? "above" : "below");
+  /*
+   * Which side of the spotlight the card sits on, and how tall it may be.
+   *
+   * The authored `place` is honoured when the space is there, but a tall card
+   * (the rookie "four words" step, four definitions and a button) against a
+   * spotlight near the top or bottom of a short phone is the reported break:
+   * anchored to the cramped side, its content and its GOT IT button fell off
+   * the screen. So we measure the room on each side and flip to the roomier one
+   * when the authored side is too tight — then cap the card to that room and let
+   * it scroll. The margin subtracts the safe area and any native chrome.
+   */
+  const vh = typeof window !== "undefined" ? window.innerHeight : 800;
+  const MARGIN = 16;
+  const spaceBelow = hole ? vh - (hole.top + hole.height + 14) - MARGIN : 0;
+  const spaceAbove = hole ? hole.top - 14 - MARGIN : 0;
+
+  let place = step.place ?? (spaceBelow >= spaceAbove ? "below" : "above");
+  if (hole) {
+    const roomHere = place === "below" ? spaceBelow : spaceAbove;
+    const roomThere = place === "below" ? spaceAbove : spaceBelow;
+    if (roomHere < 240 && roomThere > roomHere) {
+      place = place === "below" ? "above" : "below";
+    }
+  }
+
+  const cardMaxHeight = hole
+    ? place === "above"
+      ? `calc(${hole.top - 14}px - env(safe-area-inset-top, 0px) - var(--nv-chrome-top, 0px) - ${MARGIN}px)`
+      : `calc(100dvh - ${hole.top + hole.height + 14}px - env(safe-area-inset-bottom, 0px) - var(--nv-chrome-bottom, 0px) - ${MARGIN}px)`
+    : "78dvh";
 
   return (
     <div
@@ -283,77 +310,98 @@ export function Coachmarks({
         transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
         key={step.id}
       >
-        <div className="rounded-[1.25rem] bg-[var(--surface-overlay)] px-4 py-3.5 shadow-[var(--e4)]">
-          <p className="text-2xs font-bold tracking-[0.16em] text-[var(--action)]">
-            STEP {index + 1} OF {steps.length}
-          </p>
-          <p className="mt-1 text-base font-extrabold leading-snug text-[var(--n-11)]">
-            {step.title}
-          </p>
-          <p className="mt-1 text-sm leading-snug text-[var(--n-8)]">
-            {step.body}
-          </p>
-
-          {step.rookieToggle && (
-            <div
-              className="pointer-events-auto mt-3 border-t border-[var(--hairline)] pt-3"
-              /* The switch is its own control, not a step-completing tap — a
-                 flip must never be read by the overlay as "activate the target
-                 and advance". */
-              onClick={(e) => e.stopPropagation()}
-            >
-              <RookieToggle />
-            </div>
-          )}
-
-          {step.terms && step.terms.length > 0 && (
-            <dl className="mt-3 space-y-2 border-t border-[var(--hairline)] pt-3">
-              {step.terms.map((term) => {
-                const gloss = GLOSSARY[term];
-                if (!gloss) return null;
-                return (
-                  <div key={term}>
-                    <dt className="text-2xs font-bold tracking-[0.12em] text-[var(--n-11)]">
-                      {term.toUpperCase()}
-                    </dt>
-                    {/* The plain-English line first, because that is the one a
-                        rookie can act on, and the textbook definition under it
-                        — Rookie Mode ADDS a translation, it never replaces the
-                        real term. Same rule TheBooks follows. */}
-                    <dd className="text-sm leading-snug text-[var(--n-8)]">
-                      {capitalise(gloss.rookie)}
-                    </dd>
-                    <dd className="text-2xs leading-snug text-[var(--n-7)]">
-                      {gloss.pro}
-                    </dd>
-                  </div>
-                );
-              })}
-            </dl>
-          )}
-
-          {/* A "tap it" step whose target could not be measured has no hole to
-              tap and no control to activate, which would leave a first-time
-              player with a dimmed screen and no way forward. An unmeasurable
-              target falls back to an acknowledgeable one: a tutorial that can
-              be skipped beats a tutorial that traps. */}
-          {step.mode === "ack" || !rect ? (
-            <button
-              type="button"
-              className="nv-gc pointer-events-auto mt-3 h-11 w-full rounded-[var(--radius-pill)] nv-t-action text-sm font-extrabold tracking-[0.04em]"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (index >= steps.length - 1) onFinish();
-                else onAdvance();
-              }}
-            >
-              GOT IT
-            </button>
-          ) : (
-            <p className="mt-2.5 text-2xs font-bold tracking-[0.1em] text-[var(--action)]">
-              ↑ TAP IT TO CONTINUE
+        {/*
+         * The card is bounded to the space it actually has and scrolls inside
+         * it — the fix for the reported mobile break, where the rookie
+         * "four words" card (a title, four definitions and a button) was taller
+         * than a phone's Safari viewport, so the definitions and the GOT IT
+         * button fell under the browser toolbar with no way to reach them (the
+         * scrim outside the card is deliberately dead, so the page cannot
+         * scroll). maxHeight is the room between the card's anchor and the safe
+         * area / native chrome, set on THIS flex column (a definite value, so
+         * its scroll child can resolve) rather than the auto-height wrapper. The
+         * content region scrolls and the button below it never leaves the screen.
+         */}
+        <div
+          className="flex flex-col overflow-hidden rounded-[1.25rem] bg-[var(--surface-overlay)] shadow-[var(--e4)]"
+          style={{ maxHeight: cardMaxHeight }}
+        >
+          {/* The reading half scrolls; the button below never does. */}
+          <div className="pointer-events-auto min-h-0 flex-1 overflow-y-auto px-4 pt-3.5">
+            <p className="text-2xs font-bold tracking-[0.16em] text-[var(--action)]">
+              STEP {index + 1} OF {steps.length}
             </p>
-          )}
+            <p className="mt-1 text-base font-extrabold leading-snug text-[var(--n-11)]">
+              {step.title}
+            </p>
+            <p className="mt-1 text-sm leading-snug text-[var(--n-8)]">
+              {step.body}
+            </p>
+
+            {step.rookieToggle && (
+              <div
+                className="mt-3 border-t border-[var(--hairline)] pt-3"
+                /* The switch is its own control, not a step-completing tap — a
+                   flip must never be read by the overlay as "activate the target
+                   and advance". */
+                onClick={(e) => e.stopPropagation()}
+              >
+                <RookieToggle />
+              </div>
+            )}
+
+            {step.terms && step.terms.length > 0 && (
+              <dl className="mt-3 space-y-2 border-t border-[var(--hairline)] pt-3">
+                {step.terms.map((term) => {
+                  const gloss = GLOSSARY[term];
+                  if (!gloss) return null;
+                  return (
+                    <div key={term}>
+                      <dt className="text-2xs font-bold tracking-[0.12em] text-[var(--n-11)]">
+                        {term.toUpperCase()}
+                      </dt>
+                      {/* The plain-English line first, because that is the one a
+                          rookie can act on, and the textbook definition under it
+                          — Rookie Mode ADDS a translation, it never replaces the
+                          real term. Same rule TheBooks follows. */}
+                      <dd className="text-sm leading-snug text-[var(--n-8)]">
+                        {capitalise(gloss.rookie)}
+                      </dd>
+                      <dd className="text-2xs leading-snug text-[var(--n-7)]">
+                        {gloss.pro}
+                      </dd>
+                    </div>
+                  );
+                })}
+              </dl>
+            )}
+          </div>
+
+          {/* Pinned below the scroll region, so it is on screen no matter how
+              tall the content is. A "tap it" step whose target could not be
+              measured has no hole to tap and no control to activate, which would
+              leave a first-time player with a dimmed screen and no way forward.
+              An unmeasurable target falls back to an acknowledgeable one: a
+              tutorial that can be skipped beats a tutorial that traps. */}
+          <div className="shrink-0 px-4 pt-2 pb-3.5">
+            {step.mode === "ack" || !rect ? (
+              <button
+                type="button"
+                className="nv-gc pointer-events-auto h-11 w-full rounded-[var(--radius-pill)] nv-t-action text-sm font-extrabold tracking-[0.04em]"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (index >= steps.length - 1) onFinish();
+                  else onAdvance();
+                }}
+              >
+                GOT IT
+              </button>
+            ) : (
+              <p className="text-2xs font-bold tracking-[0.1em] text-[var(--action)]">
+                ↑ TAP IT TO CONTINUE
+              </p>
+            )}
+          </div>
         </div>
       </motion.div>
     </div>

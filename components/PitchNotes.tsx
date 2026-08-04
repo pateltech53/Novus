@@ -20,6 +20,7 @@ import {
   type PlayerAsk,
 } from "@/lib/ai/ask";
 import { RookieToggle } from "@/components/ui/RookieToggle";
+import { KeyTermsSheet } from "@/components/KeyTermsSheet";
 
 /**
  * THE NOTES — what a founder would have brought into the room.
@@ -95,6 +96,7 @@ export function PitchNotes({
   askControl?: "edit" | "locked";
 }) {
   const [tab, setTab] = useState<Tab>(defaultTab);
+  const [glossary, setGlossary] = useState(false);
   // Derived from the books, so it is recomputed rather than remembered — a
   // stale deck is exactly the contradiction this is meant to prevent.
   const metrics = useMemo(() => companyMetrics(run), [run]);
@@ -129,11 +131,12 @@ export function PitchNotes({
   const bodySize = onStage ? "text-sm" : "text-2xs";
 
   return (
+   <>
     <section
       className={`overflow-hidden rounded-[var(--radius-card)] ${surface} ${className}`}
       aria-label="Your notes"
     >
-      <div className="flex gap-1 border-b border-[var(--hairline)] px-2 pt-2 pb-2">
+      <div className="flex items-center gap-1 border-b border-[var(--hairline)] px-2 pt-2 pb-2">
         {TABS.map((t) => (
           <button
             key={t.id}
@@ -151,6 +154,17 @@ export function PitchNotes({
             {t.label}
           </button>
         ))}
+        {/* Every business word, on demand, without leaving the pitch. Blanking
+            on "dilution" mid-room used to mean guessing at it — and the scorer
+            catches a guessed number. This is the whole glossary, one tap away. */}
+        <button
+          type="button"
+          onClick={() => setGlossary(true)}
+          aria-label="Key terms and definitions"
+          className={`nv-gc shrink-0 rounded-[var(--radius-pill)] px-2.5 py-1.5 text-2xs font-extrabold tracking-[0.08em] ${muted}`}
+        >
+          TERMS?
+        </button>
       </div>
 
       {/*
@@ -296,6 +310,8 @@ export function PitchNotes({
         )}
       </div>
     </section>
+    {glossary && <KeyTermsSheet onClose={() => setGlossary(false)} />}
+   </>
   );
 }
 

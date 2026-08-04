@@ -377,8 +377,10 @@ export const TERMS: LegalDocument = {
           it keeps renewing until you cancel. Cancel at any time from your
           account, or by writing to us — you keep Pro until the end of the period
           you have already paid for, and nothing is taken after that. Chapter
-          licences for classrooms and clubs are annual and do not auto-renew;
-          we invoice them.
+          licences for classrooms and clubs are annual subscriptions billed the
+          same way &mdash; they renew automatically each year at the same price
+          until cancelled, and you can cancel at any time from your account or by
+          writing to us.
           <br />
           <br />
           <strong>Nothing is sold inside the iPhone or Android app.</strong> Pro

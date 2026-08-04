@@ -40,6 +40,20 @@ const MAX_CHARS = 800;
 const SPEAKERS = ["marcus", "serena", "dev", "lily", "viktor", "chair", "narrator"] as const;
 type Speaker = (typeof SPEAKERS)[number];
 
+/**
+ * Every voice id a legitimate request could carry: the seven cast in
+ * lib/ai/voices.ts, plus any the operator pinned through ELEVENLABS_VOICE_*.
+ * A client-sent `voiceId` outside this set is ignored — see the POST handler.
+ */
+const ALLOWED_VOICE_IDS = new Set<string>(
+  [
+    ...Object.values(VOICES).map((v) => v.elevenVoiceId),
+    ...SPEAKERS.map((s) => process.env[`ELEVENLABS_VOICE_${s.toUpperCase()}`]),
+  ]
+    .map((id) => (typeof id === "string" ? id.trim() : ""))
+    .filter((id) => id.length > 0),
+);
+
 export async function POST(req: NextRequest) {
   if (!ELEVENLABS_API_KEY) {
     return NextResponse.json(NOT_CONFIGURED, { status: 501 });
@@ -91,7 +105,21 @@ export async function POST(req: NextRequest) {
    * ELEVENLABS_VOICE_* variable the moment this shipped.
    */
   const configured = process.env[VOICE_ENV[speaker]]?.trim();
-  const explicit = typeof body.voiceId === "string" ? body.voiceId.trim() : "";
+  /*
+   * The client's voice id is honoured ONLY if it is one this deploy would ever
+   * legitimately use. Without this, `body.voiceId` was passed straight to
+   * ElevenLabs, turning the route into an open, unauthenticated TTS relay: any
+   * caller could synthesise arbitrary text in any voice on the operator's
+   * account — a public-library voice, or a private cloned one if its id leaked
+   * — and spend the account's character quota making impersonation audio.
+   *
+   * The only ids the real client ever sends are the seven cast in
+   * lib/ai/voices.ts (and whatever the operator pinned via ELEVENLABS_VOICE_*).
+   * Anything else is ignored and falls through to resolveVoice(speaker), exactly
+   * as if no id had been sent.
+   */
+  const sent = typeof body.voiceId === "string" ? body.voiceId.trim() : "";
+  const explicit = sent && ALLOWED_VOICE_IDS.has(sent) ? sent : "";
   const cast = configured
     ? { voiceId: configured, alternates: [] as string[], status: 200 }
     : explicit

@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { adminGate, audit, isUuid } from "@/lib/admin/guard";
+import { windDownOwnedChapters } from "@/lib/stripe/chapter";
+import { cancelActivePersonalPro } from "@/lib/stripe/subscription";
 import { adminClient } from "@/lib/supabase/admin";
 import { crossSite, withSession } from "@/lib/supabase/route";
 
@@ -123,12 +125,55 @@ export async function DELETE(
   }
 
   const email = target.data.user.email ?? null;
+
+  /*
+   * Wind down owned chapters BEFORE the cascade removes them. The cascade
+   * deletes the chapter and its seats, but each member's entitlements.chapter
+   * lives on the member's own profile — nothing clears it once the chapter row
+   * is gone, so a whole class would keep Pro-equivalent access forever. And a
+   * licence's Stripe subscription lives on the chapter, not billing_customers,
+   * so it would keep charging the school. This lapses every seat and cancels
+   * every live licence; any subscription it could not stop is surfaced to the
+   * operator to cancel in Stripe rather than silently stranded.
+   */
+  const { failedCancellations } = await windDownOwnedChapters(db, id, {
+    cancelSubscriptions: true,
+  });
+
+  // The personal Pro subscription lives on billing_customers, not chapters, so
+  // the wind-down above never touches it. Cancel it too, or a deleted
+  // subscriber's card keeps being charged with no account to serve. Unlike the
+  // self-serve path this warns rather than refuses — a support agent deleting an
+  // account on request should not be blocked by a Stripe hiccup, but must be
+  // told to finish the cancellation by hand.
+  const pro = await cancelActivePersonalPro(db, id);
+  const uncancelled = [
+    ...failedCancellations,
+    ...(pro.ok ? [] : pro.subscriptionId ? [pro.subscriptionId] : []),
+  ];
+
   const { error } = await db.auth.admin.deleteUser(id);
   if (error) {
     return withSession(bad(503, `delete failed: ${error.message}`), gate.session);
   }
 
-  await audit(gate.session, "account_delete", { target: id, targetEmail: email });
+  await audit(gate.session, "account_delete", {
+    target: id,
+    targetEmail: email,
+    detail: uncancelled.length ? { uncancelledSubscriptions: uncancelled } : {},
+  });
 
-  return withSession(NextResponse.json({ ok: true }), gate.session);
+  return withSession(
+    NextResponse.json({
+      ok: true,
+      ...(uncancelled.length
+        ? {
+            warning:
+              "The account was deleted, but a Stripe subscription could not be cancelled automatically — cancel it in the Stripe dashboard.",
+            uncancelledSubscriptions: uncancelled,
+          }
+        : {}),
+    }),
+    gate.session,
+  );
 }

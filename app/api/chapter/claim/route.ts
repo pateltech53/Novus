@@ -49,7 +49,25 @@ interface Body {
 const REFUSED =
   "That invite link and email do not match. Check the address the invite was sent to, or ask for the invite to be sent again.";
 
+const CLAIMED =
+  "This invite has already been used to set up the account. If you are locked out, use “Forgot password?” on the sign-in screen instead.";
+
 const UUID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * How long after the FIRST claim the invite link keeps working.
+ *
+ * The token is minted once, into the invite email, and used to mint a sign-in
+ * link. Without a limit it stayed a working credential for the life of the seat:
+ * long after the student claimed the account and chose a password, anyone who
+ * later saw that email — forwarded, a shared inbox, the teacher's Sent folder —
+ * could re-post the token and be handed a fresh sign-in link into the account,
+ * bypassing the password the student set. So the link keeps working only
+ * briefly after the first claim, which is all the legitimate "clicked it twice /
+ * the page refreshed" retry ever needs; after that the account is the student's
+ * and the door is a password reset, not this.
+ */
+const CLAIM_GRACE_MS = 60 * 60 * 1000;
 
 export async function POST(req: NextRequest) {
   if (crossSite(req)) {
@@ -102,6 +120,15 @@ export async function POST(req: NextRequest) {
   // account (never minted, but belt and braces), or the wrong address.
   if (!seat || seat.created_by_invite !== true || (seat.email as string) !== email) {
     return NextResponse.json({ error: REFUSED }, { status: 404 });
+  }
+
+  // Claimed, and past the retry window: the student has had the account long
+  // enough to have set their own password, so this link stops being a way in.
+  // A distinct message (the token+email already matched, so this discloses
+  // nothing an unknown-token refusal would hide) points them at password reset.
+  const claimedAt = seat.claimed_at as string | null;
+  if (claimedAt && Date.now() - new Date(claimedAt).getTime() > CLAIM_GRACE_MS) {
+    return NextResponse.json({ error: CLAIMED }, { status: 403 });
   }
 
   // The name they typed is the name on the account — this account was created

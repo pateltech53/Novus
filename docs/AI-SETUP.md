@@ -206,11 +206,12 @@ expand. It renders **only** when something has actually fallen back — a health
 deploy shows nothing — and on the web `window.__novusAi()` prints the same
 table.
 
-⚠️ **Set `NEXT_PUBLIC_AI_DEBUG=0` before putting the app in front of players.**
-The fallbacks are complete features and a twelve-year-old mid-pitch should not
-be shown a warning about someone else's API key. It is on by default because
-the failure it catches is one an operator cannot see any other way, and a
-diagnostic nobody remembers to switch on is the same as no diagnostic.
+The banner is on in `npm run dev` and **off in production builds** — the
+fallbacks are complete features, and a twelve-year-old mid-pitch (or an
+investor mid-demo) should not be shown a warning about someone else's API key.
+Set `NEXT_PUBLIC_AI_DEBUG=1` on a staging deploy to get it back in a production
+build, or `0` to silence it even in dev; `GET /api/ai` answers the same
+questions on any deploy either way.
 
 ---
 

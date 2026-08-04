@@ -85,6 +85,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(NOT_CONFIGURED, { status: 501 });
   }
 
+  // Reject an over-large upload from its declared size BEFORE reading the body.
+  // req.formData() buffers the whole request into memory first, so the size
+  // check below (which bounds what is forwarded to Deepgram) does nothing to
+  // bound what this server itself swallows — on a self-hosted Node deploy with
+  // no platform body cap, a few concurrent multi-hundred-MB posts would exhaust
+  // memory before any limit ran. Content-Length is advisory but it stops the
+  // honest-header case cheaply; the parse below is still the real gate.
+  const declared = Number(req.headers.get("content-length"));
+  if (Number.isFinite(declared) && declared > MAX_BYTES) {
+    return NextResponse.json({ error: "Recording too large." }, { status: 413 });
+  }
+
   let form: FormData;
   try {
     form = await req.formData();

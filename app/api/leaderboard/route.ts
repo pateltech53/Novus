@@ -112,7 +112,13 @@ export async function GET(req: NextRequest) {
     .limit(PAGE);
 
   if (error) {
-    return NextResponse.json({ ok: false, reason: "read-failed" }, { status: 503 });
+    // withSession re-attaches the refresh token sessionFromRequest rotated
+    // above (a no-op when there is no session): a transient board read error
+    // must not sign a browsing player out.
+    return withSession(
+      NextResponse.json({ ok: false, reason: "read-failed" }, { status: 503 }),
+      session,
+    );
   }
 
   /*

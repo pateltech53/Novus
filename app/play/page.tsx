@@ -14,6 +14,7 @@ import { STANCE_CHOICE_ORDER } from "@/lib/engine/positioning";
 import { ActivityBar, type ActivityTab } from "@/components/ActivityBar";
 import { TermCoach } from "@/components/TermCoach";
 import { YearEndStatement } from "@/components/YearEndStatement";
+import { StageGuide } from "@/components/StageGuide";
 import { ChapterSeven } from "@/components/ChapterSeven";
 import { PerformScreen } from "@/components/PerformScreen";
 import { ProSheet } from "@/components/ProSheet";
@@ -68,6 +69,7 @@ function PlayScreen() {
   const [showSettings, setShowSettings] = useState(false);
   const [showBoard, setShowBoard] = useState(false);
   const [dossier, setDossier] = useState(false);
+  const [stageGuide, setStageGuide] = useState(false);
   /** The phone's log sheet. Desktop keeps the log inline and never sets this. */
   const [logOpen, setLogOpen] = useState(false);
   const [term, setTerm] = useState<{ term: string; detail?: string } | null>(null);
@@ -192,6 +194,7 @@ function PlayScreen() {
     !showSettings &&
     !showBoard &&
     !dossier &&
+    !stageGuide &&
     !logOpen &&
     run.alive;
 
@@ -203,6 +206,7 @@ function PlayScreen() {
     showSettings ||
     showBoard ||
     dossier ||
+    stageGuide ||
     logOpen ||
     !!yearEnd ||
     !!autopsy ||
@@ -342,6 +346,7 @@ function PlayScreen() {
   useBackHandler(showSettings, () => setShowSettings(false));
   useBackHandler(showBoard, () => setShowBoard(false));
   useBackHandler(dossier, () => setDossier(false));
+  useBackHandler(stageGuide, () => setStageGuide(false));
   useBackHandler(logOpen, () => setLogOpen(false));
 
   if (!run) {
@@ -399,6 +404,7 @@ function PlayScreen() {
           onOpenPro={() => setShowPro(true)}
           onOpenSettings={() => setShowSettings(true)}
           onOpenBoard={() => setShowBoard(true)}
+          onOpenStageGuide={() => setStageGuide(true)}
           dossierOpen={dossier}
           onDossier={setDossier}
           nativeControls={!domChrome}
@@ -534,6 +540,8 @@ function PlayScreen() {
       )}
 
       {phoneApp && activity !== "market" && phoneNode(phoneApp)}
+
+      {stageGuide && <StageGuide run={run} onClose={() => setStageGuide(false)} />}
 
       {showPro && <ProSheet onClose={() => setShowPro(false)} />}
       {showSettings && <SettingsScreen onClose={() => setShowSettings(false)} />}

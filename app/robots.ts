@@ -18,8 +18,10 @@ export default function robots(): MetadataRoute.Robots {
         allow: "/",
         // App states, not pages. See sitemap.ts. /api is added because those
         // routes answer only POST — a crawler hitting them gets a 405 that
-        // shows up in Search Console as a crawl error forever.
-        disallow: ["/play", "/welcome", "/found", "/reset", "/api/"],
+        // shows up in Search Console as a crawl error forever. /admin is the
+        // operator console and /join carries an invite token in its URL —
+        // neither belongs in an index.
+        disallow: ["/play", "/welcome", "/found", "/reset", "/admin", "/join", "/api/"],
       },
     ],
     sitemap: absoluteUrl("/sitemap.xml"),

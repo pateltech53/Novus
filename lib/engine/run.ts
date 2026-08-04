@@ -362,8 +362,21 @@ export function closeYear(
   state.performs.push(perform);
 
   const revenue = state.stats.revenueAnnual;
-  const costsAnnual = state.stats.burnMonthly * 12 + revenue * (state.stats.grossMarginPt / 100);
-  const profit = revenue - Math.max(0, costsAnnual);
+  /*
+   * Profit shown on the Year End statement, defined exactly as the Books' net
+   * margin is (sim.ts refreshBooks): gross profit minus operating costs.
+   *
+   * The old formula was `revenue - (burn*12 + revenue*grossMargin)`. Because
+   * monthly burn already nets gross profit out of costs, that reduced to
+   * `revenue - opex` — it counted the whole of revenue as profit before opex
+   * instead of just the gross-margin slice of it, overstating profit by COGS
+   * (~45% of revenue at a 55% margin). A company visibly burning cash all year
+   * could be told it made a profit, in green. Gross profit is the right top
+   * line; opex is what burn becomes once the gross profit it nets is added back.
+   */
+  const grossProfitAnnual = revenue * (state.stats.grossMarginPt / 100);
+  const opexAnnual = state.stats.burnMonthly * 12 + grossProfitAnnual;
+  const profit = grossProfitAnnual - Math.max(0, opexAnnual);
   const valuationBefore = state.stats.valuation;
 
   if (dealCashS > 0) {

@@ -84,13 +84,22 @@ export default function ResetPage() {
 
     // The confirm route leaves the player signed in. Write the local account
     // cache to match, or the front door would read no account and offer
-    // CREATE ACCOUNT to someone who is already signed in.
+    // CREATE ACCOUNT to someone who is already signed in. confirmPasswordReset
+    // has just wiped this device (it may have belonged to another student), so
+    // this write lands on an empty device and the display name is the account's
+    // real one rather than the "Founder" placeholder.
     if (result.ok && result.email) {
       createAccount(result.displayName ?? "Founder", result.email);
     }
 
     setPhase("done");
-    setTimeout(() => router.push("/"), 1200);
+    // A full page load, not router.push(): the device was just emptied, and the
+    // account's own saves are pulled by restoreOnBoot when CloudSync remounts —
+    // which a client-side navigation never triggers. Same reason AccountGate
+    // reloads after signIn.
+    setTimeout(() => {
+      window.location.href = "/";
+    }, 1200);
   };
 
   return (

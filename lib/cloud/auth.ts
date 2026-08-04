@@ -42,6 +42,7 @@ interface AuthBody {
   configured?: boolean;
   signedIn?: boolean;
   needsConfirmation?: boolean;
+  deleted?: boolean;
   email?: string | null;
   displayName?: string | null;
   error?: string;
@@ -330,7 +331,12 @@ export async function deleteAccount(): Promise<{ ok: boolean; message?: string }
   if (!out) return { ok: false, message: "Could not reach the server. Check your connection." };
 
   const { res, body } = out;
-  if (!res.ok) {
+  // Only `deleted: true` is a real deletion. The route answers 200 for other
+  // states — no session, an unconfigured deploy — and treating any 2xx as
+  // success would wipe the device and tell the player their account is gone
+  // while it (and any subscription behind it) still exists. That is the one
+  // thing "delete my account" must never get wrong.
+  if (!res.ok || body.deleted !== true) {
     return {
       ok: false,
       message: body.error ?? "Could not delete the account. Try again.",
@@ -354,7 +360,21 @@ export async function requestPasswordReset(email: string): Promise<string> {
   );
 }
 
-/** Finish a reset, using the tokens the /reset page read out of its own URL. */
+/**
+ * Finish a reset, using the tokens the /reset page read out of its own URL.
+ *
+ * ── Why this WIPES the device, exactly like signIn ─────────────────────────
+ *
+ * Finishing a reset leaves the player signed in — it is a sign-in by another
+ * door. On the shared classroom machines this app is built for, the
+ * localStorage sitting here belongs to whoever played last, and leaving it in
+ * place breaks the same way signIn documents: the previous occupant's run is
+ * adopted, the front door routes into their company, and the first debounced
+ * write pushes their save up into the resetting player's account — overwriting
+ * the cloud save the reset was performed to get back to. So the device is
+ * emptied and the account's own copy is pulled on the full reload the /reset
+ * page does next (restoreOnBoot adopts the cloud save onto an empty device).
+ */
 export async function confirmPasswordReset(
   accessToken: string,
   refreshToken: string,
@@ -364,8 +384,23 @@ export async function confirmPasswordReset(
   if (!out) return fail("offline", "Could not reach the server. Check your connection.");
   const { res, body } = out;
   if (!res.ok) return fail("error", body.error ?? "Could not set that password.");
+
+  // Empty the device before the caller writes the new account cache, so a
+  // stranger's saves cannot be routed into the account that just signed in.
+  wipeDevice();
   forgetIdentity();
-  return { ok: true, email: body.email ?? null };
+
+  // Re-arm the sync layer, the same way signIn does: boot may have switched it
+  // off because this device had no account, and the full reload the page does
+  // next needs it live to pull the account's own saves.
+  try {
+    const { resume } = await import("@/lib/cloud/sync");
+    resume();
+  } catch {
+    /* the reload re-initialises the module anyway */
+  }
+
+  return { ok: true, email: body.email ?? null, displayName: body.displayName ?? null };
 }
 
 // ── Who is signed in ────────────────────────────────────────────────────────
