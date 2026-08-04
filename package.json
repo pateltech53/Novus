@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npm run events && next build",
+    "build": "npm run events && next build && node scripts/bundle-report.mjs --check",
+    "bundle": "node scripts/bundle-report.mjs",
     "start": "next start",
     "lint": "next lint",
     "events": "node scripts/parse-events.mjs && node scripts/validate-events.mjs && node scripts/validate-activities.mjs && node scripts/validate-tokens.mjs",

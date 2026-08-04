@@ -90,7 +90,7 @@ export function LockScreen({ onUnlock }: { onUnlock: () => void }) {
         aria-hidden="true"
         className="absolute inset-0 bg-cover bg-center"
         style={{
-          backgroundImage: "url(/phone/lock-wallpaper.png)",
+          backgroundImage: "url(/phone/lock-wallpaper.webp)",
           y: wallY,
           scale: wallScale,
         }}

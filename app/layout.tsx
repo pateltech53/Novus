@@ -43,6 +43,23 @@ const instrument = Instrument_Serif({
   subsets: ["latin"],
   variable: "--font-display-serif",
   weight: "400",
+  /*
+   * Not preloaded, because nothing renders in it.
+   *
+   * The paragraph above describes the intent; `welcome/page.tsx:252` records
+   * what happened to it — "This was the display serif at 40px for a while… in
+   * practice a lone serif field two taps into a dark app read as a different
+   * product." It came off the name field and never landed anywhere else, so
+   * `--font-display` is declared in `@theme` and consumed by zero rules and
+   * zero className. next/font still emitted a `<link rel="preload">` on every
+   * route for it: ~15 KB fetched at high priority, competing with the CSS, to
+   * draw no glyphs on any screen in the app.
+   *
+   * `preload: false` keeps the @font-face — the moment something DOES use
+   * `font-display`, the face is there and downloads on demand — while ending a
+   * guaranteed-wasted request on the critical path of every page.
+   */
+  preload: false,
 });
 
 /**
@@ -59,7 +76,22 @@ const instrument = Instrument_Serif({
 const baloo = Baloo_2({
   subsets: ["latin"],
   variable: "--font-bubble",
-  weight: ["600", "700", "800"],
+  /*
+   * 800 only. `LockScreen.tsx:136` sets `fontWeight: 800` explicitly and it is
+   * the sole consumer of this variable in the app — the date line above the
+   * clock is `font-semibold` on the UI sans, not on this. 600 and 700 were two
+   * self-hosted font files in every build and every store binary that no
+   * selector could reach.
+   */
+  weight: "800",
+  /*
+   * And not preloaded: one clock, on one surface, behind a lock screen the
+   * player has to open the in-game phone to reach — yet fetched up front on the
+   * landing page, the legal pages and the download page, none of which can
+   * render it. Scoped in intent since it was written (see above); this scopes
+   * the network cost to match.
+   */
+  preload: false,
 });
 
 export const metadata: Metadata = {

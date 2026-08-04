@@ -330,6 +330,32 @@ Affected files (20): `ActivityBar`, `ActivitySheet`, `AdvanceButton`, `Coachmark
 
 ## 5 · Bundle and assets
 
+> **⚠️ Superseded — re-measured 2026-08-04.** §5.1 and §5.2 below record the state at the
+> time of the original audit and are kept verbatim as the historical baseline. Both are now
+> wrong in ways that matter, so read this box first:
+>
+> **The GLB is not 23 MB and never lacked compression today.** `public/shark/shark.glb` is
+> **2,960,712 B** carrying `EXT_meshopt_compression` + `EXT_texture_webp` +
+> `KHR_mesh_quantization`. `SharkStage` also has `frameloop="demand"` now. Every "23 MB"
+> in §5.2, §5.4 and the P5 row of §6 is stale by roughly 8×, which is precisely why the
+> genuinely-still-true finding beside it — the 6.7 MB of dead mp4 — kept being read as
+> already-handled. It was not. **Those four files were deleted 2026-08-04.**
+>
+> **Route table, re-measured** (gzipped First Load JS, `npm run bundle`):
+>
+> | Route | Then | Now |
+> |---|---|---|
+> | `/` | 103 kB | 179 kB |
+> | `/found` | 476 kB | 322 kB |
+> | `/play` | 532 kB | 421 kB |
+> | `/welcome` | 418 kB | 182 kB |
+>
+> Do not hand-measure these again. `npm run bundle` prints the table and `npm run build`
+> now fails on a per-route budget (`scripts/bundle-report.mjs`); `npm run build:native`
+> fails on a bundle-size ceiling. The reason both of those exist is this section: every
+> asset finding in it was found once, written down, and shipped anyway, because nothing
+> in the build had an opinion about it.
+
 ### 5.1 `next build` route table
 
 | Route | Route size | **First Load JS** |

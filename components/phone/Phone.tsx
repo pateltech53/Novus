@@ -339,7 +339,7 @@ function HomeScreen({
   return (
     <motion.div
       className="relative flex h-full min-h-full flex-col bg-cover bg-center"
-      style={{ backgroundImage: "url(/phone/home-wallpaper.png)" }}
+      style={{ backgroundImage: "url(/phone/home-wallpaper.webp)" }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.22 }}

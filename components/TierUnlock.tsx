@@ -30,6 +30,7 @@ export function TierUnlock({
   const def = tierDef(tier);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [failed, setFailed] = useState(false);
+  const still = `/founder/${gender}-${tier}.webp`;
 
   useEffect(() => {
     haptic("yearClosed");
@@ -66,6 +67,22 @@ export function TierUnlock({
             <video
               ref={videoRef}
               src={tierVideoSrc(gender, tier)}
+              /*
+               * The still, as the poster.
+               *
+               * `.gitignore` keeps `public/founder/*.mp4` out of git — ~38 MB of
+               * source video — so NO clone, CI build or deploy has these clips.
+               * The `onError` below has therefore always been the live path in
+               * production, not the fallback: every unlock 404s, then swaps.
+               *
+               * Without a poster that swap is what the player sees — a black
+               * square for a network round-trip, then the still appearing. With
+               * one, the still is on screen in the first frame and the swap
+               * underneath it is invisible. Where the clips DO exist (a machine
+               * that ran make-characters.mjs against the raw renders) the video
+               * paints over the poster exactly as before.
+               */
+              poster={still}
               muted
               playsInline
               autoPlay
@@ -74,11 +91,7 @@ export function TierUnlock({
             />
           ) : (
             // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={`/founder/${gender}-${tier}.webp`}
-              alt=""
-              className="h-full w-full object-contain"
-            />
+            <img src={still} alt="" className="h-full w-full object-contain" />
           )}
         </div>
 

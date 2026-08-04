@@ -68,6 +68,49 @@ const nextConfig: NextConfig = {
                 },
               ],
             },
+            /*
+             * ── The static assets had no cache policy at all ─────────────────
+             *
+             * Next fingerprints everything it builds — `/_next/static/*` is
+             * immutable and already served that way. Nothing does that for
+             * `public/`, so all ~50 MB of it fell to the framework default of
+             * `public, max-age=0, must-revalidate`: the 2.9 MB shark mesh, the
+             * 2.7 MB of phone wallpaper and the 9.4 MB of onboarding video were
+             * re-validated on EVERY navigation. A returning player paid a
+             * conditional request per asset to be told nothing had changed.
+             *
+             * These files are content, not code, and they change when someone
+             * re-exports them — which is a deploy, and a deploy is the moment to
+             * rename the file. A week of `immutable` is the honest trade: the
+             * one class of mistake it can make is a re-exported asset under an
+             * unchanged name being stale for up to seven days, and the fix for
+             * that is the filename, not a shorter TTL.
+             *
+             * `/vendor/mediapipe` is excluded from `immutable` deliberately —
+             * it is a vendored copy of a versioned npm package, and the whole
+             * point of the sync check in `npm run check` is that it CAN drift.
+             *
+             * Side effect worth naming: with no Cache-Control on the source,
+             * Next's image optimiser caps its own output at `max-age=60`. Every
+             * `next/image` on the landing page was being re-optimised or
+             * re-fetched a minute later. This lifts that ceiling too.
+             */
+            {
+              source:
+                "/:dir(models|shark|onboarding|phone|sfx|founder|landing|sharks|icons)/:path*",
+              headers: [
+                {
+                  key: "Cache-Control",
+                  value: "public, max-age=604800, stale-while-revalidate=86400, immutable",
+                },
+              ],
+            },
+            {
+              source: "/vendor/:path*",
+              headers: [
+                { key: "Cache-Control", value: "public, max-age=604800, must-revalidate" },
+              ],
+            },
           ];
         },
       }),
