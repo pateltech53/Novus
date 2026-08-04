@@ -76,6 +76,7 @@ export function HomeStage({
   onOpenPro,
   onOpenSettings,
   onOpenBoard,
+  onOpenStageGuide,
   dossierOpen,
   onDossier,
   nativeControls = false,
@@ -87,6 +88,8 @@ export function HomeStage({
   onOpenSettings: () => void;
   /** Still Standing. A UIKit glass button on iOS; this one everywhere else. */
   onOpenBoard: () => void;
+  /** Opens the per-stage rookie guide from the stage line in the identity row. */
+  onOpenStageGuide: () => void;
   /*
    * The dossier used to own its own open state. It is lifted now because the
    * app's masthead controls are UIKit views on iOS, and a native button
@@ -195,7 +198,24 @@ export function HomeStage({
         </h1>
         <p className="mt-1 text-center text-sm font-semibold text-[var(--n-7)] lg:mt-0.5 lg:text-xs">
           {founderName || "Founder"} &nbsp;|&nbsp; {fmtMoney(run.stats.valuation)}{" "}
-          &nbsp;|&nbsp; FY {run.year} · {STAGE_NAME[run.stage]}
+          &nbsp;|&nbsp; FY {run.year} ·{" "}
+          {/* The stage is a way in, not just a label: it opens a plain-English
+              guide to what this stage is, what your Books are saying, and how to
+              level up. Rookie Mode (default on) underlines it so a new player
+              finds it; everyone can tap it. */}
+          <button
+            type="button"
+            onClick={onOpenStageGuide}
+            aria-label={`What ${STAGE_NAME[run.stage]} means`}
+            className={`nv-gc rounded-md px-1 font-semibold text-[var(--n-7)] ${
+              run.rookieMode
+                ? "underline decoration-dotted underline-offset-4 decoration-[var(--n-6)]"
+                : ""
+            }`}
+          >
+            {STAGE_NAME[run.stage]}
+            <span aria-hidden="true" className="ml-0.5 text-[var(--n-6)]">?</span>
+          </button>
         </p>
 
         <div className="mt-5 lg:mt-4">

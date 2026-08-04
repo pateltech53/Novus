@@ -349,27 +349,56 @@ function FoundPage() {
         makes anyone fill in a form.
       */}
       <section className="mt-8">
+        {/*
+          Made deliberately hard to miss. This is the one thing a first-time
+          player skips and then regrets in The Tank, so the toggle is a real
+          card with a title and an arrow rather than a line of 8px caps, and the
+          "let the AI do it" shortcut is the FIRST thing inside — a younger
+          player who doesn't want to write a paragraph sees the way out before
+          the blank fields.
+        */}
         <button
           type="button"
           onClick={() => setBriefOpen((v) => !v)}
-          className="flex w-full items-baseline justify-between gap-3 text-left"
+          className="nv-gc flex w-full items-center justify-between gap-3 rounded-[var(--radius-card)] nv-on px-4 py-3.5 text-left shadow-[var(--e1)] ring-1 ring-[var(--hairline)]"
         >
           <span className="min-w-0">
-            <span className="block text-2xs font-bold tracking-[0.16em] text-[var(--text-tertiary)]">
-              WHAT THE COMPANY IS
+            <span className="flex items-center gap-2">
+              <PencilGlyph />
+              <span className="text-[0.9375rem] font-extrabold tracking-[-0.01em] text-[var(--text-primary)]">
+                Tell the sharks what your company is
+              </span>
             </span>
-            <span className="mt-0.5 block text-2xs leading-snug text-[var(--text-tertiary)]">
-              The sharks will ask you all of this. Answer it now and it stays on
-              screen while you pitch.
+            <span className="mt-1 block text-2xs leading-snug text-[var(--text-secondary)]">
+              They ask you all of this on camera. Fill it in now — or let the AI
+              start it — and it stays on screen while you pitch.
             </span>
           </span>
-          <span className="shrink-0 text-2xs font-bold tracking-[0.12em] text-[var(--text-secondary)]">
-            {briefOpen ? "HIDE" : filledCount(brief) > 0 ? `${filledCount(brief)}/4` : "ADD"}
+          <span className="shrink-0 rounded-full bg-[var(--chip)] px-2.5 py-1 text-2xs font-extrabold tracking-[0.1em] text-[var(--text-secondary)]">
+            {briefOpen ? "HIDE" : filledCount(brief) > 0 ? `${filledCount(brief)}/4` : "ADD ›"}
           </span>
         </button>
 
         {briefOpen && (
           <div className="mt-3 space-y-3">
+            {/* The shortcut, first and unmissable. Not the accent colour — that
+                belongs to FOUND IT — but a full-width button with an icon and
+                plain copy a twelve-year-old reads as "press this if you're
+                stuck", which is exactly who needs it. */}
+            <button
+              type="button"
+              onClick={generate}
+              disabled={writing}
+              className="nv-gc flex h-12 w-full items-center justify-center gap-2 rounded-[var(--radius-pill)] nv-on text-2xs font-extrabold tracking-[0.08em] text-[var(--text-primary)] shadow-[var(--e1)] ring-1 ring-[var(--hairline)] disabled:opacity-50"
+            >
+              <SparkleGlyph />
+              {writing ? "WRITING A FIRST DRAFT…" : "NOT SURE? LET THE AI WRITE A FIRST DRAFT"}
+            </button>
+            <p className="text-2xs leading-snug text-[var(--text-tertiary)]">
+              It fills in the blanks only. Anything you have already written is
+              kept exactly as you wrote it, and you can edit every word after.
+            </p>
+
             <BriefField
               label="What kind of business is it? "
               hint="Burger shop. Study app. Sneaker label."
@@ -410,19 +439,6 @@ function FoundPage() {
               max={160}
               onChange={(v) => setField("mission", v)}
             />
-
-            <button
-              type="button"
-              onClick={generate}
-              disabled={writing}
-              className="nv-gc h-11 w-full rounded-[var(--radius-pill)] nv-on text-2xs font-extrabold tracking-[0.1em] text-[var(--text-primary)] shadow-[var(--e1)] disabled:opacity-50"
-            >
-              {writing ? "WRITING…" : "I DON'T KNOW — WRITE A FIRST DRAFT"}
-            </button>
-            <p className="text-2xs leading-snug text-[var(--text-tertiary)]">
-              It fills in the blanks only. Anything you have already written is
-              kept exactly as you wrote it, and you can edit every word after.
-            </p>
           </div>
         )}
       </section>
@@ -569,6 +585,30 @@ function LockGlyph() {
     <svg width="11" height="13" viewBox="0 0 13 15" fill="none" aria-hidden="true" className="shrink-0">
       <path d="M3 6V4a3.5 3.5 0 1 1 7 0v2" stroke="var(--text-tertiary)" strokeWidth="1.7" strokeLinecap="round" />
       <rect x="1.5" y="6" width="10" height="7.5" rx="1.6" fill="var(--text-tertiary)" />
+    </svg>
+  );
+}
+
+function PencilGlyph() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="shrink-0">
+      <path
+        d="M11.5 2.5l2 2L6 12l-2.6.6L4 10l7.5-7.5z"
+        stroke="var(--text-secondary)"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function SparkleGlyph() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="shrink-0">
+      <path
+        d="M8 1.5l1.3 3.9L13 6.7l-3.7 1.3L8 12l-1.3-4L3 6.7l3.7-1.3L8 1.5z"
+        fill="var(--text-secondary)"
+      />
     </svg>
   );
 }
