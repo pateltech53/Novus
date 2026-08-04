@@ -552,7 +552,7 @@ const BASE_STEPS: CoachStep[] = [
     id: "key-terms",
     target: "books",
     title: "Every key term explains itself.",
-    body: "Anywhere you see a business word — on these Books, on your pitch notes, in The Tank — tap it and you get the meaning, once, when it matters. Want a plain-English line under every term as you go? That switch is Rookie Mode — it lives here and on the ⓘ page this tour ends at.",
+    body: "Anywhere you see a business word — on these Books, on your pitch notes, in The Tank — tap it and you get the meaning, once, when it matters. Want a plain-English line under every term as you go? That switch is Rookie Mode — it lives here and on the book page this tour ends at.",
     mode: "ack",
     place: "below",
     rookieToggle: true,
@@ -627,16 +627,16 @@ const BASE_STEPS: CoachStep[] = [
   },
   /*
    * The tour ends ON the key terms page, not at a card about it. The step is
-   * a tap: pressing ⓘ opens the glossary — with the Rookie switch at the top
-   * — as the tutorial's last act, so every player has stood in the place
-   * confused players need to know exists.
+   * a tap: pressing the book opens the glossary — with the Rookie switch at
+   * the top — as the tutorial's last act, so every player has stood in the
+   * place confused players need to know exists.
    */
   {
     id: "info",
     target: "info",
     native: "keyterms",
     title: "Stuck on a word? It lives here.",
-    body: "This ⓘ is every term the game uses, searchable, in plain English — and the Rookie Mode switch is at the top of it. Tap it to finish the tour and have a look around.",
+    body: "This little book is every term the game uses, searchable, in plain English — and the Rookie Mode switch is at the top of it. Tap it to finish the tour and have a look around.",
     mode: "tap",
     place: "below",
   },
