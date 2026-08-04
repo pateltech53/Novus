@@ -27,10 +27,56 @@ import { Glass } from "@/components/ui/Glass";
 export function ActivityBar({
   active,
   onOpen,
+  layout = "bar",
 }: {
   active: ActivityTab | null;
   onOpen: (tab: ActivityTab) => void;
+  /**
+   * `bar` is the phone's six-across strip pinned to the bottom of the screen.
+   *
+   * `rail` is the desktop's vertical list, which lives in the left column under
+   * the company rather than across the foot of the page. A bottom tab bar is a
+   * phone idiom — it is where a thumb is — and on a 1440px screen it was
+   * spending the full width of the working column on six words while the left
+   * column sat half empty. The same six destinations, read as a list.
+   */
+  layout?: "bar" | "rail";
 }) {
+  if (layout === "rail") {
+    return (
+      <nav aria-label="Activities" className="flex flex-col gap-0.5 px-2 pb-2">
+        {TABS.map((tab) => {
+          const isActive = active === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              data-sfx="tab"
+              onClick={() => onOpen(tab.id)}
+              aria-current={isActive ? "page" : undefined}
+              /*
+               * Same ink rules as the bar: the accent belongs to the one
+               * control that moves time, so "here" is said with weight and a
+               * raised neutral face. `--radius-row` because a row inside a
+               * `--radius-card` panel is one step tighter than it.
+               */
+              className={`flex items-center gap-3 rounded-[var(--radius-row)] px-3 py-2.5 text-left transition-colors ${
+                isActive
+                  ? "bg-[var(--surface-elevated)] font-bold text-[var(--text-primary)]"
+                  : "text-[var(--text-secondary)] hover:bg-[var(--surface-elevated)]/60"
+              }`}
+            >
+              <span aria-hidden="true" className="shrink-0 [&>svg]:h-[19px] [&>svg]:w-[19px]">
+                {tab.glyph}
+              </span>
+              <span className="min-w-0 truncate text-sm">{tab.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+    );
+  }
+
   return (
     // One of the five sanctioned glass surfaces. It floats over scrolling
     // content, carries no financial figure, and never overlaps the canvas.

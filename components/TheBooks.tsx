@@ -219,16 +219,36 @@ function Gauge({ months, danger }: { months: number; danger: boolean }) {
  */
 function Spark({ points }: { points: number[] }) {
   /*
-   * Nothing to draw still occupies the row.
+   * Every figure carries a picture, from the first month.
    *
-   * Runway's slot is a gauge, which is derived from the live figure and so
-   * always draws; the other three are drawn from history and do not, until the
-   * third month. Returning null there made three cards one element shorter
-   * than the fourth, and the Rookie line under them stopped lining up across
-   * the row — visible on the very first screen a new player sees.
+   * This used to render nothing until the third month, so three of the four
+   * cards had a blank strip where the fourth had its gauge — and a player
+   * opening a run saved before the history existed saw four blank strips and
+   * reasonably concluded nothing had changed. A trend needs two points to be a
+   * trend; with fewer, the card draws its baseline instead, which says "this
+   * is where the line goes, and there is no line yet" rather than saying
+   * nothing at all.
    */
-  if (points.length === 0) {
-    return <span aria-hidden="true" className="mt-1.5 block h-4 lg:mt-1 lg:h-3" />;
+  if (points.length < 2) {
+    return (
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 100 24"
+        preserveAspectRatio="none"
+        className="mt-1.5 block h-4 w-full text-[var(--hairline)] lg:mt-1 lg:h-3"
+      >
+        <line
+          x1="0"
+          y1="12"
+          x2="100"
+          y2="12"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeDasharray="3 4"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+    );
   }
   const min = Math.min(...points);
   const max = Math.max(...points);
