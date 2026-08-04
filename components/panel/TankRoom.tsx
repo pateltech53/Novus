@@ -2,6 +2,7 @@
 
 import { memo, useEffect, useState, type RefObject } from "react";
 import { motion } from "framer-motion";
+import { ENTER } from "@/components/ui/Motion";
 import { PANEL, type SeatState } from "@/lib/ai/panel-cast";
 import type { SharkId } from "@/lib/ai/types";
 
@@ -95,7 +96,7 @@ export const TankRoom = memo(function TankRoom({
                 width: `${seat.w * 100}%`,
               }}
               animate={{ opacity: isSpeaking ? 1 : isOut ? 1 : 0.001 + lean }}
-              transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ ...ENTER }}
             >
               {isOut ? (
                 /*

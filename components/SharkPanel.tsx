@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { ENTER } from "@/components/ui/Motion";
 import { useGame } from "@/lib/state/GameProvider";
 import { FounderAvatar } from "@/components/FounderAvatar";
 import { TankRoom } from "@/components/panel/TankRoom";
@@ -758,7 +759,7 @@ export function SharkPanel({
                 key={i}
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                transition={ENTER}
               >
                 <BeatRow beat={beat} />
                 {beat.answer && <YourAnswer entry={beat.answer} run={run} />}

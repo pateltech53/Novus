@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { SHEET_SPRING } from "@/components/ui/Motion";
 import { tierDef, tierVideoSrc, type Gender, type Tier } from "@/lib/engine/avatar";
 import { haptic } from "@/lib/haptics";
 import { play } from "@/lib/sound";
@@ -60,7 +61,7 @@ export function TierUnlock({
         className="w-full max-w-sm overflow-hidden rounded-[var(--radius-card)] bg-[var(--surface)] shadow-[var(--e4)]"
         initial={{ scale: 0.94, y: 12 }}
         animate={{ scale: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 380, damping: 34 }}
+        transition={SHEET_SPRING}
       >
         <div className="relative aspect-square w-full bg-[var(--n-0)]">
           {!failed ? (

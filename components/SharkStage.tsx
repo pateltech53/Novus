@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useEffect, useState, type RefObject } from "react";
+import { useStill } from "@/components/ui/Motion";
 import dynamic from "next/dynamic";
 
 /**
@@ -61,7 +62,7 @@ export const SharkStage = memo(function SharkStage({
   active?: boolean;
 }) {
   const [webglOk, setWebglOk] = useState(true);
-  const reduced = usePrefersReducedMotion();
+  const reduced = useStill();
 
   useEffect(() => {
     try {
@@ -136,14 +137,3 @@ function SharkFallback({ state, className }: { state: SharkState; className?: st
   );
 }
 
-function usePrefersReducedMotion(): boolean {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(mq.matches);
-    const onChange = () => setReduced(mq.matches);
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, []);
-  return reduced;
-}

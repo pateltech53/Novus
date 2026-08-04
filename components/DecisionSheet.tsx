@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { haptic } from "@/lib/haptics";
 
 import { motion } from "framer-motion";
+import { ENTER, EXIT, SCRIM } from "@/components/ui/Motion";
 import type { Choice, GameEvent, Industry } from "@/lib/engine/types";
 import { GLOSSARY } from "@/lib/engine/constants";
 import { termsUsed } from "@/lib/ai/terms";
@@ -48,7 +49,8 @@ export function DecisionSheet({
       className="fixed inset-0 z-50 flex items-end justify-center"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.18 }}
+      exit={{ opacity: 0, transition: EXIT }}
+      transition={SCRIM}
     >
       <div className="absolute inset-0 bg-[var(--scrim)]" />
       <motion.section
@@ -58,7 +60,8 @@ export function DecisionSheet({
             className="relative flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-y-auto rounded-t-[1.75rem] bg-[var(--sheet)] pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[var(--e3)]"
         initial={{ y: "6%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+        exit={{ y: "6%", opacity: 0, transition: EXIT }}
+        transition={ENTER}
       >
             {isMarket ? (
               <MarketDateline />
@@ -140,7 +143,7 @@ export function DecisionSheet({
                       haptic("choice");
                       onChoose(i);
                     }}
-                    className="nv-card flex w-full flex-1 items-start justify-between gap-4 px-4 py-3.5 text-left transition-transform duration-150 active:scale-[0.985]"
+                    className="nv-card flex w-full flex-1 items-start justify-between gap-4 px-4 py-3.5 text-left nv-press-row"
                   >
                     <span className="flex-1 text-[0.9375rem] font-semibold leading-snug">
                       {choice.label}

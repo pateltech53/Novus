@@ -317,7 +317,7 @@ function PositionRow({
       type="button"
       onClick={() => onOpen(pos.symbol)}
       aria-label={`${ticker.name}, ${pos.shares} shares, ${signedUsd(pl)} unrealised`}
-      className="nv-card flex w-full items-center gap-3 px-4 py-3 text-left transition-transform duration-150 active:scale-[0.985]"
+      className="nv-card flex w-full items-center gap-3 px-4 py-3 text-left nv-press-row"
     >
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[0.9375rem] font-extrabold leading-tight">
@@ -457,7 +457,7 @@ function MarketRow({
       type="button"
       onClick={() => onOpen(t.symbol)}
       aria-label={`${t.name}, ${usd(q.price)}, ${signedPct(q.changePct)} in 24 hours`}
-      className="nv-card flex w-full items-center gap-2.5 px-3.5 py-3 text-left transition-transform duration-150 active:scale-[0.985]"
+      className="nv-card flex w-full items-center gap-2.5 px-3.5 py-3 text-left nv-press-row"
     >
       <span className="min-w-0 flex-1">
         <span className="flex min-w-0 items-center gap-1.5">
@@ -699,7 +699,7 @@ function Stepper({
         aria-label={`One fewer ${symbol} share`}
         disabled={value <= 1}
         onClick={() => onChange(Math.max(1, value - 1))}
-        className="nv-gc h-11 w-11 shrink-0 rounded-full text-lg font-extrabold text-[var(--text)] enabled:active:scale-[0.94] disabled:opacity-40"
+        className="nv-gc h-11 w-11 shrink-0 rounded-full text-lg font-extrabold text-[var(--text)] enabled:nv-press disabled:opacity-40"
       >
         −
       </button>
@@ -714,7 +714,7 @@ function Stepper({
         aria-label={`One more ${symbol} share`}
         disabled={value >= max}
         onClick={() => onChange(Math.min(max, value + 1))}
-        className="nv-gc h-11 w-11 shrink-0 rounded-full text-lg font-extrabold text-[var(--text)] enabled:active:scale-[0.94] disabled:opacity-40"
+        className="nv-gc h-11 w-11 shrink-0 rounded-full text-lg font-extrabold text-[var(--text)] enabled:nv-press disabled:opacity-40"
       >
         +
       </button>

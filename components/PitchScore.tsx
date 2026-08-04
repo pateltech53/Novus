@@ -4,6 +4,7 @@ import { play } from "@/lib/sound";
 
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { ENTER } from "@/components/ui/Motion";
 import { SharkStage } from "@/components/SharkStage";
 import { SharkPanel, type TankOutcome } from "@/components/SharkPanel";
 import { TankDebrief } from "@/components/TankDebrief";
@@ -229,7 +230,7 @@ export function PitchScore({
       className="flex-1 overflow-y-auto"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ ...ENTER }}
     >
       <div className="mx-auto w-full max-w-lg px-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))]">
         <SharkStage state={score >= 8 ? "celebrate" : "verdict"} className="h-36 w-full" />
@@ -263,12 +264,27 @@ export function PitchScore({
             <div key={d.label} className="flex items-center gap-3">
               <dt className="w-24 shrink-0 text-xs font-semibold text-[var(--n-8)]">{d.label}</dt>
               <dd className="flex flex-1 items-center gap-2">
+                {/*
+                  scaleX, not width — the last non-compositable animation left
+                  in the app.
+
+                  `width` is a layout property: animating it invalidates layout
+                  on every frame, for every one of these bars, on the screen the
+                  player is reading their score on. `transform` is compositor-
+                  only. design.md §5 has forbidden this since it was written
+                  ("Only transform and opacity animate. Never width…"); this was
+                  the one site still doing it.
+
+                  `origin-left` so the bar grows from its start rather than its
+                  middle, which is what `width` did.
+                */}
                 <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--n-5)]">
                   <motion.span
-                    className="block h-full rounded-full bg-[var(--n-2)]"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${d.score * 10}%` }}
-                    transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+                    className="block h-full origin-left rounded-full bg-[var(--n-2)]"
+                    style={{ width: "100%" }}
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: d.score / 10 }}
+                    transition={{ ...ENTER, duration: 0.5, delay: 0.1 }}
                   />
                 </span>
                 <span className="tnum w-6 text-right text-xs font-bold">{d.score}</span>

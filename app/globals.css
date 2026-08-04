@@ -1409,6 +1409,47 @@ textarea {
   animation-delay: var(--nv-rise-delay, 0ms);
 }
 
+/*
+ * Press. Two magnitudes, and design.md §6 asks for both to land within 50 ms.
+ *
+ * There were four, spread across seventeen call sites: `active:scale-[0.9]` on
+ * the phone's app tiles, `[0.94]`, `[0.97]`, and `[0.985]` on card rows —
+ * every one of them an arbitrary number written at the moment it was needed,
+ * and most of them on a 150 ms transition, which is three times too slow to
+ * read as a press rather than as an animation.
+ *
+ * The split is by SIZE, not importance. A small control has to move
+ * proportionally further to register the same amount of give, which is why one
+ * number could never cover both a 44pt button and a full-width row.
+ *
+ *   .nv-press      buttons, tiles, chips  — things you aim at
+ *   .nv-press-row  rows and cards         — things that are already wide
+ */
+.nv-press,
+.nv-press-row {
+  transition: transform 50ms var(--ease-out);
+  /* A press must never be the thing that makes a phone offer to zoom. */
+  touch-action: manipulation;
+}
+
+.nv-press:active {
+  transform: scale(0.96);
+}
+
+.nv-press-row:active {
+  transform: scale(0.985);
+}
+
+/* Motion is meaning here — it is the only confirmation a tap registered — so
+   reduced-motion keeps a press, it just stops it from travelling. */
+@media (prefers-reduced-motion: reduce) {
+  .nv-press:active,
+  .nv-press-row:active {
+    transform: none;
+    opacity: 0.7;
+  }
+}
+
 /* The stage box travels further than the type it sits beside. */
 .nv-rise-stage {
   animation-name: nvRiseStage;

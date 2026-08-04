@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { ENTER } from "@/components/ui/Motion";
 
 import { GLOSSARY } from "@/lib/engine/constants";
 import { RookieToggle } from "@/components/ui/RookieToggle";
@@ -419,7 +420,7 @@ export function Coachmarks({
         }
         initial={{ opacity: 0, y: place === "above" ? 10 : -10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ ...ENTER }}
         key={step.id}
       >
         {/*

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { ENTER, EXIT, SCRIM } from "@/components/ui/Motion";
 import { useGame } from "@/lib/state/GameProvider";
 import { MONTH_NAMES } from "@/lib/engine/format";
 import { Glass, GlassScrim } from "@/components/ui/Glass";
@@ -198,7 +199,8 @@ export function Phone({
       className="fixed inset-0 z-[60] flex items-center justify-center"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.18 }}
+      exit={{ opacity: 0, transition: EXIT }}
+      transition={SCRIM}
     >
       <GlassScrim label="Put the phone down" onClose={onClose} />
 
@@ -206,7 +208,8 @@ export function Phone({
         className="relative w-full max-w-sm px-3 py-3"
         initial={{ y: 18, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+        exit={{ y: 18, opacity: 0, transition: EXIT }}
+        transition={ENTER}
       >
         {/* The one control that is not part of the phone. It floats over the
             frosted game rather than over anything of its own, which is the one
@@ -290,7 +293,7 @@ export function Phone({
               type="button"
               onClick={() => (screen === "home" ? onClose() : setScreen("home"))}
               aria-label={screen === "home" ? "Put the phone down" : "Back to home screen"}
-              className="mx-auto flex h-8 w-full max-w-[10rem] items-center justify-center rounded-full transition-transform duration-150 active:scale-[0.97]"
+              className="mx-auto flex h-8 w-full max-w-[10rem] items-center justify-center rounded-full nv-press"
             >
               <span
                 aria-hidden="true"
@@ -417,7 +420,7 @@ function AppIcon({
           <span
             // iOS uses a squircle, not a rounded rect. 28% of the tile is the
             // closest a single border-radius gets to that curve.
-            className="flex aspect-square w-full items-center justify-center rounded-[28%] text-white shadow-[0_2px_10px_rgba(0,0,0,0.28)] transition-transform duration-150 active:scale-[0.9]"
+            className="flex aspect-square w-full items-center justify-center rounded-[28%] text-white shadow-[0_2px_10px_rgba(0,0,0,0.28)] nv-press"
             style={{ background: app.tint }}
           >
             {app.glyph}

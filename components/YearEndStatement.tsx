@@ -4,6 +4,7 @@ import { play } from "@/lib/sound";
 
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { ENTER } from "@/components/ui/Motion";
 import { allocationFlag, useGame } from "@/lib/state/GameProvider";
 import type { YearEndSummary } from "@/lib/engine/run";
 import { fmtMoney } from "@/lib/engine/format";
@@ -48,7 +49,7 @@ export function YearEndStatement({ summary }: { summary: YearEndSummary }) {
         className="mx-auto w-full max-w-lg px-6 pt-[max(2rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))]"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ ...ENTER }}
       >
         <p className="text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]">
           STATEMENT OF THE YEAR

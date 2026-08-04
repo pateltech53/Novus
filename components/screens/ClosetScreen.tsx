@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { SHEET_SPRING } from "@/components/ui/Motion";
 import { useGame } from "@/lib/state/GameProvider";
 import { FounderPortrait } from "@/components/FounderAvatar";
 import { Glass } from "@/components/ui/Glass";
@@ -129,7 +130,7 @@ export function ClosetScreen({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 12 }}
-      transition={{ type: "spring", stiffness: 380, damping: 34 }}
+      transition={SHEET_SPRING}
       // Full-bleed and opaque, so it is a modal whether or not it says so.
       // Settings, its twin, already carried these; this one did not, which
       // left a screen reader walking through the play screen underneath it.

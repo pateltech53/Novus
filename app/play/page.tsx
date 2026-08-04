@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, useMemo } from "react";
 import dynamic from "next/dynamic";
+import { AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useGame } from "@/lib/state/GameProvider";
 import { HomeStage } from "@/components/HomeStage";
@@ -487,6 +488,10 @@ function PlayScreen() {
 
   const phoneNode = (app: PhoneApp | "home") => (
     <Phone
+      /* One key for the phone regardless of which app it opens on: switching
+         apps happens INSIDE the device, so a per-app key would tear the phone
+         down and rebuild it every time the player tapped a different icon. */
+      key="phone"
       open
       initialApp={app === "home" ? undefined : app}
       onClose={() => {
@@ -656,10 +661,43 @@ function PlayScreen() {
         )
       )}
 
+      {/*
+        ── Every overlay on this screen, inside one AnimatePresence ──────────
+        │
+        │ Measured before this: eighteen overlays on /play and ZERO exits. This
+        │ file had no framer-motion import at all, so nothing was mounted that
+        │ could run an exit animation — which is why seven components already
+        │ shipped `exit` props that had never once executed. Everything on this
+        │ screen closed by vanishing between two frames, against design.md §5's
+        │ "exits ~0.66× entrances" and the §9 gate that checks it.
+        │
+        │ ── The failure this has to avoid ───────────────────────────────────
+        │
+        │ app/welcome/page.tsx:137 records what happened last time someone
+        │ reached for AnimatePresence here: "its exit never resolves when the
+        │ direct child is a component rather than a motion element, which
+        │ strands the whole flow on step one." That is the real trap — Framer
+        │ holds an exiting child mounted until something calls safeToRemove,
+        │ and only a `motion` element with an `exit` prop ever does. A child
+        │ with no exit anywhere in it is a child that never leaves, and the
+        │ overlay stays on screen forever.
+        │
+        │ So each of these is safe for one specific reason: the root of every
+        │ component below is a motion element that now carries an `exit`, and
+        │ each gets a stable `key` here. That is verified, not assumed —
+        │ scripts/exit-audit.mjs drives a real browser, opens each overlay,
+        │ closes it, and fails if the node is still in the DOM afterwards.
+        │
+        │ `mode` is deliberately NOT "wait": these are independent overlays,
+        │ not steps in a flow, and mode="wait" would make closing one delay
+        │ opening the next.
+        */}
+      <AnimatePresence>
       {/* ── Each tab is a full screen now, not a list of options ─────────── */}
-      {activity === "company" && <CompanyScreen onClose={() => setActivity(null)} />}
+      {activity === "company" && <CompanyScreen key="company" onClose={() => setActivity(null)} />}
       {activity === "team" && (
         <TeamScreen
+          key="team"
           onClose={() => setActivity(null)}
           onFire={game.fire}
           onOpenPhone={() => {
@@ -668,9 +706,10 @@ function PlayScreen() {
           }}
         />
       )}
-      {activity === "product" && <ProductScreen onClose={() => setActivity(null)} />}
+      {activity === "product" && <ProductScreen key="product" onClose={() => setActivity(null)} />}
       {activity === "assets" && (
         <AssetsScreen
+          key="assets"
           onClose={() => setActivity(null)}
           onBuy={game.buyHolding}
           onSell={game.sellHolding}
@@ -678,18 +717,19 @@ function PlayScreen() {
       )}
       {activity === "market" && phoneNode("robinghood")}
       {activity === "closet" && (
-        <ClosetScreen onClose={() => setActivity(null)} onChange={game.setAvatar} />
+        <ClosetScreen key="closet" onClose={() => setActivity(null)} onChange={game.setAvatar} />
       )}
 
       {phoneApp && activity !== "market" && phoneNode(phoneApp)}
 
-      {stageGuide && <StageGuide run={run} onClose={() => setStageGuide(false)} />}
-      {keyTerms && <KeyTermsSheet onClose={() => setKeyTerms(false)} />}
+      {stageGuide && <StageGuide key="stage-guide" run={run} onClose={() => setStageGuide(false)} />}
+      {keyTerms && <KeyTermsSheet key="key-terms" onClose={() => setKeyTerms(false)} />}
 
-      {showPro && <ProSheet onClose={() => setShowPro(false)} />}
-      {showSettings && <SettingsScreen onClose={() => setShowSettings(false)} />}
-      {showBoard && <StillStandingScreen onClose={() => setShowBoard(false)} />}
-      {logOpen && <LogSheet run={run} onClose={() => setLogOpen(false)} />}
+      {showPro && <ProSheet key="pro" onClose={() => setShowPro(false)} />}
+      {showSettings && <SettingsScreen key="settings" onClose={() => setShowSettings(false)} />}
+      {showBoard && <StillStandingScreen key="board" onClose={() => setShowBoard(false)} />}
+      {logOpen && <LogSheet key="log" run={run} onClose={() => setLogOpen(false)} />}
+      </AnimatePresence>
 
       {/* Fires the moment a stage promotion opens a new tier. It sits above
           the year-end statement on purpose: the wardrobe is the reward for

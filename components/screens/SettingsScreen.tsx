@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { SHEET_SPRING } from "@/components/ui/Motion";
 import { useGame } from "@/lib/state/GameProvider";
 import { SoundToggle } from "@/components/ui/SoundToggle";
 import { RookieToggle } from "@/components/ui/RookieToggle";
@@ -134,7 +135,7 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 12 }}
-      transition={{ type: "spring", stiffness: 380, damping: 34 }}
+      transition={SHEET_SPRING}
       role="dialog"
       aria-modal="true"
       aria-label="Settings"

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { ENTER, EXIT, SCRIM } from "@/components/ui/Motion";
 import { useGame } from "@/lib/state/GameProvider";
 import { activitiesFor, canAfford } from "@/lib/engine/activities";
 import { ProductSheet } from "@/components/ProductSheet";
@@ -54,7 +55,8 @@ export function ActivitySheet({
       className="fixed inset-0 z-50 flex items-end justify-center"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.18 }}
+      exit={{ opacity: 0, transition: EXIT }}
+      transition={SCRIM}
     >
           <button
             type="button"
@@ -69,7 +71,8 @@ export function ActivitySheet({
             className="relative flex max-h-[min(88dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] w-full max-w-2xl flex-col overflow-y-auto rounded-t-[1.75rem] bg-[var(--sheet)] pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[var(--e3)]"
             initial={{ y: "8%", opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
+            exit={{ y: "8%", opacity: 0, transition: EXIT }}
+            transition={ENTER}
           >
             <div className="flex items-start justify-between gap-4 px-5 pt-5">
               <div>
@@ -112,7 +115,7 @@ export function ActivitySheet({
                         runActivity(activity.id);
                         setDone((d) => [...d, activity.id]);
                       }}
-                      className="nv-card flex w-full items-start justify-between gap-3 px-4 py-3.5 text-left transition-transform duration-150 enabled:active:scale-[0.985] disabled:opacity-45"
+                      className="nv-card flex w-full items-start justify-between gap-3 px-4 py-3.5 text-left transition-transform duration-150 enabled:nv-press-row disabled:opacity-45"
                     >
                       <span className="min-w-0 flex-1">
                         <span className="block text-[0.9375rem] font-semibold leading-snug">

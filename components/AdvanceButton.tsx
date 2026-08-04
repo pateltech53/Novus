@@ -60,7 +60,7 @@ export function AdvanceButton({
               onOpenGate();
             }}
             disabled={disabled}
-            className="flex h-14 w-full items-center justify-center gap-2 text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--on-prestige)] transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.97] disabled:cursor-not-allowed"
+            className="flex h-14 w-full items-center justify-center gap-2 text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--on-prestige)] transition-transform duration-150 ease-[var(--ease-out)] nv-press disabled:cursor-not-allowed"
           >
             <LockGlyph />
             CLOSE THE YEAR
@@ -71,7 +71,7 @@ export function AdvanceButton({
             type="button"
             onClick={onAdvance}
             disabled={disabled}
-            className="flex h-14 w-full items-center justify-center gap-2 text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--on-action)] transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.97] disabled:cursor-not-allowed"
+            className="flex h-14 w-full items-center justify-center gap-2 text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--on-action)] transition-transform duration-150 ease-[var(--ease-out)] nv-press disabled:cursor-not-allowed"
           >
             ADVANCE MONTH
             <span aria-hidden="true">▸</span>

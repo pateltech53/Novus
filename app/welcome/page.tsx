@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { ENTER, SETTLE_SPRING } from "@/components/ui/Motion";
 import { FounderPortrait } from "@/components/FounderAvatar";
 import { play } from "@/lib/sound";
 import { LoopExplainer } from "@/components/LoopExplainer";
@@ -170,7 +171,7 @@ function Wave({ onNext }: { onNext: () => void }) {
           // Rises from below with a spring, like something stepping into frame.
           initial={{ opacity: 0, y: 28, scale: 0.94 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ type: "spring", stiffness: 260, damping: 26 }}
+          transition={SETTLE_SPRING}
         >
           <FounderPortrait gender="male" tier={5} size={272} priority />
         </motion.div>
@@ -179,7 +180,7 @@ function Wave({ onNext }: { onNext: () => void }) {
           className="mt-1 text-center text-[2rem] font-extrabold leading-[1.05] tracking-[-0.03em]"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.14, duration: 0.34, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ ...ENTER, delay: 0.14 }}
         >
           Run a company.
           <br />
@@ -201,7 +202,7 @@ function Wave({ onNext }: { onNext: () => void }) {
         className="w-full"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.34, duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ ...ENTER, delay: 0.34 }}
       >
         <PrimaryButton onClick={onNext}>START</PrimaryButton>
       </motion.div>
@@ -541,7 +542,7 @@ function PlansSheet({ onDone, leaving }: { onDone: () => void; leaving: boolean 
               initial={enter}
               animate={{ opacity: 1, y: 0 }}
               exit={reduced ? { opacity: 1 } : { opacity: 0, y: -6 }}
-              transition={{ duration: reduced ? 0 : 0.22, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ ...ENTER }}
             >
               <ul className="mt-4">
                 {PRO_FEATURES.map((f) => (
@@ -616,7 +617,7 @@ function PlansSheet({ onDone, leaving }: { onDone: () => void; leaving: boolean 
               initial={enter}
               animate={{ opacity: 1, y: 0 }}
               exit={reduced ? { opacity: 1 } : { opacity: 0, y: -6 }}
-              transition={{ duration: reduced ? 0 : 0.22, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ ...ENTER }}
             >
               <p className="mt-5 text-2xs font-bold tracking-[0.16em] text-[var(--text-tertiary)]">
                 A CHAPTER IS ONE CLASSROOM OR CLUB

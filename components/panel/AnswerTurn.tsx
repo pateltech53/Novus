@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { motion } from "framer-motion";
+import { ENTER } from "@/components/ui/Motion";
 import type { LevelMeter, Recording } from "@/lib/media/recorder";
 import { stopSpeaking } from "@/lib/ai/speech";
 import { AnswerHelp } from "@/components/panel/AnswerHelp";
@@ -261,7 +262,7 @@ export function AnswerTurn({
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+      transition={ENTER}
       className="rounded-[var(--radius-card)] bg-[var(--surface-elevated)] p-4 shadow-[var(--e3)]"
     >
       <p className="text-2xs font-bold tracking-[0.16em] text-[var(--text-tertiary)]">{label}</p>
