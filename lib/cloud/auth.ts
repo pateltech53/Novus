@@ -247,6 +247,21 @@ function wipeDevice(): void {
 }
 
 /**
+ * The account behind this device stopped existing while it was in use.
+ *
+ * The server-side half already happened — an admin deleted the account, or the
+ * session was revoked — so unlike signOut() there is no flush-first bargain to
+ * strike: there is no account left to receive a flush, and everything in
+ * localStorage belongs to a player the server no longer knows. Forget who was
+ * here and empty the device, exactly as sign-out would have.
+ */
+export function sessionLost(): void {
+  forgetLocalAccount();
+  forgetIdentity();
+  wipeDevice();
+}
+
+/**
  * Sign out here, and leave nothing behind.
  *
  * ── Why this wipes the device now, when it never used to ───────────────────

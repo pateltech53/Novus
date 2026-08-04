@@ -5,6 +5,7 @@ import { windDownOwnedChapters } from "@/lib/stripe/chapter";
 import { cancelActivePersonalPro } from "@/lib/stripe/subscription";
 import { adminClient } from "@/lib/supabase/admin";
 import { configured } from "@/lib/supabase/config";
+import { purgeAccountRows } from "@/lib/supabase/purge";
 import { crossSite, clearSession, sessionFromRequest, withSession } from "@/lib/supabase/route";
 
 export const runtime = "nodejs";
@@ -149,6 +150,12 @@ export async function POST(req: NextRequest) {
     // the player out of an account that still exists.
     return withSession(NextResponse.json({ error: error.message }, { status: 500 }), session);
   }
+
+  // Belt and braces behind the cascade: clear every table by name, so the
+  // policy's "the deletion is real" cannot be defeated by a production schema
+  // that drifted from the migrations. On a healthy schema this deletes nothing
+  // because the cascade already has.
+  await purgeAccountRows(db, session.userId);
 
   // The cookie now points at a user that does not exist. Clear it so the next
   // request starts clean rather than failing a refresh on every page load.

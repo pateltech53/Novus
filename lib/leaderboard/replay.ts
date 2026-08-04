@@ -33,7 +33,7 @@ import {
   type YearEndSummary,
 } from "@/lib/engine/run";
 import { deriveValuation, refreshBooks } from "@/lib/engine/sim";
-import { KNOBS, S_UNIT } from "@/lib/engine/constants";
+import { KNOBS, S_UNIT, TANK_REQUIRED_THROUGH_YEAR } from "@/lib/engine/constants";
 import type { GameEvent, PerformResult, RunState } from "@/lib/engine/types";
 import { scorePitchContent } from "@/lib/ai/pitch-content";
 import { callerById, consumeCall, resolveCallLocally } from "@/lib/ai/callers";
@@ -472,6 +472,27 @@ export function applyTapeEntry(
             : content.score;
 
       if (entry.kind === "yearEnd") {
+        /*
+         * A skipped Tank. Legal only once the pitch is optional (year 4 on) —
+         * a tape that skips an early gate is refused, because the first three
+         * years REQUIRE the room and a client that says otherwise is edited.
+         * Neutral close: 1.0×, no deal, no score for the flag to smuggle.
+         */
+        if (entry.skipped) {
+          if (state.year <= TANK_REQUIRED_THROUGH_YEAR) {
+            return skip("the first three years cannot skip the Tank");
+          }
+          const result: PerformResult = {
+            type: "pitch",
+            score: 5,
+            multiplier: 1,
+            year: state.year,
+          };
+          withFrozenClock(cursor.clockISO, () => closeFiscalYear(state, result, 0, 0));
+          cursor.yearsClosed += 1;
+          cursor.table = [];
+          break;
+        }
         const deal = dealFor(state, score);
         const result: PerformResult = {
           type: "pitch",

@@ -30,12 +30,15 @@ import type { CompanyBrief } from "@/lib/engine/company-brief";
 import { activityById, isAvailable } from "@/lib/engine/activities";
 import { callerById, consumeCall, type CallOutcome } from "@/lib/ai/callers";
 import { syncPositioning } from "@/lib/engine/positioning";
+import { TANK_REQUIRED_THROUGH_YEAR } from "@/lib/engine/constants";
 import {
   isPro,
   loadEntitlements,
   onEntitlementsChange,
   recordRunStart,
+  recordYearClose,
   runsRemainingToday,
+  yearClosesRemainingToday,
 } from "@/lib/monetization";
 import {
   ensurePortfolio,
@@ -196,6 +199,19 @@ interface GameContextValue {
   choose(index: number): void;
   dismissCard(): void;
   openYearGate(): void;
+  /**
+   * Close the year WITHOUT pitching — the Tank is optional from year 4 on.
+   * Neutral 1.0× close, no deal. A no-op in years 1–3, where the pitch is the
+   * gate; the replay verifier refuses early skips by the same rule.
+   */
+  skipYearGate(): void;
+  /**
+   * Leave a perform brief without recording anything. Nothing resolves: a
+   * year gate stays open, a held card stays held. Exists so a screen that
+   * REFUSES the perform (the free tier's daily year ration) has a way back
+   * that is not the camera.
+   */
+  cancelPerform(): void;
   /**
    * `transcript` is the player's own words, and it is what the leaderboard
    * verifies against — the server rescores it rather than believing `score`
@@ -519,6 +535,47 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setPerform({ kind: "yearEnd", performType: "pitch" });
   }, []);
 
+  /*
+   * Close the year with no pitch at all — the veteran's exit from the annual
+   * Tank. Years 1–3 still require the room (the loop is the lesson), so this
+   * is a hard no-op there; from year 4 it closes the books at a neutral 1.0×
+   * with no deal. The tape records the skip so the leaderboard verifier can
+   * replay the same close — and refuse a tape that skipped an early year.
+   */
+  const skipYearGate = useCallback(() => {
+    const state = runRef.current;
+    if (!state || state.year <= TANK_REQUIRED_THROUGH_YEAR) return;
+    // The daily ration gates skipped closes exactly like pitched ones — a
+    // skip is still a year of progress, and it must not be the way around
+    // the free tier's pace limit.
+    if (!state.pro && yearClosesRemainingToday() <= 0) return;
+    const working: RunState = structuredClone(state);
+    recordTap(working, {
+      t: "perform",
+      kind: "yearEnd",
+      performType: "pitch",
+      transcript: "",
+      skipped: true,
+    });
+    const result: PerformResult = { type: "pitch", score: 5, multiplier: 1, year: working.year };
+    const { summary, portfolioYear: pYear } = closeFiscalYear(working, result, 0, 0);
+    setPortfolioYear(pYear);
+    // The same legacy bookkeeping a pitched close does — a skipped year is
+    // still a year survived, and the badge is still earned.
+    const legacy = loadLegacy();
+    legacy.sharkRespect = working.stats.respect;
+    legacy.bestYear = Math.max(legacy.bestYear, summary.year);
+    if (!legacy.badges.includes(summary.badge)) legacy.badges.push(summary.badge);
+    saveLegacy(legacy);
+    recordYearClose();
+    commit(working);
+    setYearEnd(summary);
+    setAtGate(false);
+    setPerform(null);
+  }, [commit]);
+
+  const cancelPerform = useCallback(() => setPerform(null), []);
+
   const submitPerform = useCallback(
     (score: number, dealCashS = 0, dealEquityPct = 0, transcript = "") => {
       const state = runRef.current;
@@ -592,6 +649,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         legacy.bestYear = Math.max(legacy.bestYear, summary.year);
         if (!legacy.badges.includes(summary.badge)) legacy.badges.push(summary.badge);
         saveLegacy(legacy);
+        // One of today's ration, spent at the moment the year actually closes.
+        recordYearClose();
         commit(working);
         setYearEnd(summary);
         setAtGate(false);
@@ -1119,16 +1178,22 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
    * mount pass is safe because hydrate's effect is declared above this one and
    * effects run in order, so `runRef.current` is already the restored run.
    *
-   * Upward only. ProSheet's simulated switch turns `run.pro` off without
-   * touching entitlements, and syncing both directions would turn it straight
-   * back on the moment anything else wrote to the store.
+   * Both directions, and each for its own reason. Up: a purchase mid-run must
+   * open The Room without waiting for the next company. Down: a revoked Pro —
+   * an expired gift, an admin revoke, a lapsed subscription — must CLOSE it on
+   * the run that is already open; the heartbeat re-adopts entitlements while
+   * the tab is up, and this is where that answer reaches the live run. The
+   * down leg does not break ProSheet's simulated free switch: that switch
+   * flips `run.pro` without writing the entitlement store, so no event fires
+   * and nothing here runs until a real entitlement change arrives.
    */
   useEffect(() => {
     const sync = () => {
       const state = runRef.current;
-      if (!state || state.pro) return;
-      if (!isPro(loadEntitlements())) return;
-      setPro(true);
+      if (!state) return;
+      const entitled = isPro(loadEntitlements());
+      if (entitled === state.pro) return;
+      setPro(entitled);
     };
     sync();
     return onEntitlementsChange(sync);
@@ -1180,6 +1245,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       choose,
       dismissCard,
       openYearGate,
+      skipYearGate,
+      cancelPerform,
       submitPerform,
       chooseAllocation,
       closeYearEnd,
@@ -1215,7 +1282,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }),
     [
       hydrated, run, profile, queue, marketId, yearEnd, autopsy, perform, atGate, busy,
-      startRun, advance, choose, dismissCard, openYearGate, submitPerform,
+      startRun, advance, choose, dismissCard, openYearGate, skipYearGate, cancelPerform, submitPerform,
       chooseAllocation, closeYearEnd, setRookieMode, markTermSeen,
       advanceTutorial, abandonRun, saveProfileFields, choicesFor, runActivity,
       hire, fire, buyHolding, sellHolding, buyStock, sellStock,

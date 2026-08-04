@@ -228,6 +228,13 @@ export interface Limits {
   industries: number;
   /** Cold calls per real day in The Room. Zero means the room is closed. */
   coldCallsPerDay: number;
+  /**
+   * Fiscal years a player may CLOSE per real day, across all companies.
+   * The gate is at the year close, not the month: twelve months still play
+   * out, and it is closing the books that spends one. Rolls over on the UTC
+   * date, same clock the cold-call ration uses.
+   */
+  yearClosesPerDay: number;
 }
 
 export const FREE_LIMITS: Limits = {
@@ -235,6 +242,7 @@ export const FREE_LIMITS: Limits = {
   redoFailedRun: false,
   industries: 4,
   coldCallsPerDay: 0,
+  yearClosesPerDay: 4,
 };
 
 export const PRO_LIMITS: Limits = {
@@ -244,6 +252,9 @@ export const PRO_LIMITS: Limits = {
   // Matches the gate in lib/engine/activities.ts — three a real day, and
   // advancing the fiscal year does not refill them.
   coldCallsPerDay: 3,
+  // Effectively uncapped; 99 rather than Infinity for the same reason as
+  // ADMIN_LIMITS — every surface that formats it stays honest and finite.
+  yearClosesPerDay: 99,
 };
 
 /**
@@ -263,6 +274,7 @@ export const ADMIN_LIMITS: Limits = {
   redoFailedRun: true,
   industries: 12,
   coldCallsPerDay: 3,
+  yearClosesPerDay: 99,
 };
 
 /** The four codes anyone can found in, read off the industry table itself. */
@@ -419,6 +431,49 @@ export function saveEntitlements(next: Entitlements): void {
     // A full or blocked store must not take the screen down with it.
   }
   announce();
+}
+
+// ── The daily year-close ration ──────────────────────────────────────────────
+
+/**
+ * How many fiscal years this DEVICE has closed today, for the free tier's
+ * pace limit. Device-level rather than per-run on purpose: the limit is "four
+ * years of progress a day", and counting per company would make founding a
+ * second company the workaround. UTC date, the same clock as cold calls, so
+ * the two rations roll over together.
+ */
+const YEAR_CLOSE_KEY = "novus:yearcloses:v1";
+
+const utcDayISO = (d = new Date()) => d.toISOString().slice(0, 10);
+
+function yearClosesToday(): number {
+  if (!canStore()) return 0;
+  try {
+    const raw = localStorage.getItem(YEAR_CLOSE_KEY);
+    if (!raw) return 0;
+    const parsed = JSON.parse(raw) as { day?: string; closed?: number };
+    return parsed.day === utcDayISO() ? Math.max(0, parsed.closed ?? 0) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** Year closes left today under the CURRENT entitlements. Pro is ~unlimited. */
+export function yearClosesRemainingToday(e: Entitlements = loadEntitlements()): number {
+  return Math.max(0, limitsFor(e).yearClosesPerDay - yearClosesToday());
+}
+
+/** Spend one. Called by the game when a fiscal year actually closes. */
+export function recordYearClose(): void {
+  if (!canStore()) return;
+  try {
+    localStorage.setItem(
+      YEAR_CLOSE_KEY,
+      JSON.stringify({ day: utcDayISO(), closed: yearClosesToday() + 1 }),
+    );
+  } catch {
+    // A blocked store must not take the year-end screen down with it.
+  }
 }
 
 // ── Watching the receipt ─────────────────────────────────────────────────────

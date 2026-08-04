@@ -1,7 +1,7 @@
 import { apiUrl } from "@/lib/native/origin";
 import type { RunState } from "@/lib/engine/types";
 import { PITCH_FRAMEWORK, beatsCovered } from "@/lib/engine/company-brief";
-import { deliveryMetrics, scorePitchContent } from "./pitch-content";
+import { deliveryMetrics, scoreAnswer, scorePitchContent } from "./pitch-content";
 import { reportFallback, reportLive } from "./report";
 import { termsUsed } from "./terms";
 import { CAST } from "./panel-cast";
@@ -368,7 +368,10 @@ function localReport(input: DebriefInput): DebriefBody {
     attack_points_scorecard: ctx.attackPoints.slice(0, 8).map((a) => {
       const raised = input.answers.some((ans) => ans.question === a.question);
       const answeredIt = input.answers.some(
-        (ans) => ans.question === a.question && !ans.declined && ans.answer.trim(),
+        (ans) =>
+          ans.question === a.question &&
+          !ans.declined &&
+          scoreAnswer(a.question, ans.answer).quality > 0,
       );
       return {
         attack_point: a.claim,
@@ -380,21 +383,29 @@ function localReport(input: DebriefInput): DebriefBody {
             : "You were asked and you did not answer. That is the one that costs valuation.",
       };
     }),
-    qa_review: input.answers.map((a) => ({
-      question: a.question,
-      asked_by: a.askedBy,
-      answer_quality: (a.declined || !a.answer.trim()
-        ? "dodged"
-        : /\d/.test(a.answer)
-          ? "strong"
-          : "adequate") as "strong" | "adequate" | "dodged",
-      note:
-        a.declined || !a.answer.trim()
-          ? "No answer. In a real room, silence is priced."
-          : /\d/.test(a.answer)
-            ? "You answered with a figure. That is the answer this kind of question wants."
-            : "You answered, but without anything checkable in it. A number would have closed it.",
-    })),
+    qa_review: input.answers.map((a) => {
+      // The same rule the sharks price on: keyboard mash and non-words grade
+      // as dodged, so the debrief cannot call an answer fine that the room
+      // just refused to pay for.
+      const graded = a.declined ? "dodged" : scoreAnswer(a.question, a.answer).tier;
+      const quality = (graded === "shaky" ? "adequate" : graded) as
+        | "strong"
+        | "adequate"
+        | "dodged";
+      return {
+        question: a.question,
+        asked_by: a.askedBy,
+        answer_quality: quality,
+        note:
+          quality === "dodged"
+            ? a.declined || !a.answer.trim()
+              ? "No answer. In a real room, silence is priced."
+              : "That wasn't an answer to the question. The room prices it exactly like silence."
+            : quality === "strong"
+              ? "You answered with a figure. That is the answer this kind of question wants."
+              : "You answered, but without anything checkable in it. A number would have closed it.",
+      };
+    }),
     next_run_playbook: localPlaybook(input),
     grades: {
       deal_outcome: dealGrade,

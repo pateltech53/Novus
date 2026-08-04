@@ -242,15 +242,18 @@ export async function transcribeAudio(
     }
 
     const body = new FormData();
-    body.append("audio", audio, "pitch.webm");
+    body.append("audio", audio, audio.type.includes("mp4") ? "pitch.m4a" : "pitch.webm");
     body.append("durationSeconds", String(durationSeconds));
     const res = await fetch(url, { method: "POST", body });
     if (!res.ok) {
       // No key (501), a bad one (401), nothing deployed (404) — none of those
       // change before the session ends. A spent budget (429) refills, so it
-      // backs off rather than latching.
+      // backs off rather than latching. An oversized recording (413) or an
+      // upstream failure (502) also back off: the next take may be shorter and
+      // the upstream may recover, but re-uploading a recording per pitch into
+      // a failure that just happened is not worth a phone's data plan.
       if ([501, 401, 404].includes(res.status)) sttDownUntil = Infinity;
-      else if (res.status === 429) sttDownUntil = Date.now() + RETRY_AFTER_MS;
+      else if ([429, 413, 502].includes(res.status)) sttDownUntil = Date.now() + RETRY_AFTER_MS;
       reportFallback("transcription", res.status);
       return null;
     }

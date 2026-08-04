@@ -14,7 +14,8 @@ import {
 } from "@/lib/ai/callers";
 import { fmtMoney } from "@/lib/engine/format";
 import { S_UNIT } from "@/lib/engine/constants";
-import { LiveTranscriber } from "@/lib/ai/transcribe";
+import { LiveTranscriber, resolveTranscript } from "@/lib/ai/transcribe";
+import { startRecording, type Recording } from "@/lib/media/recorder";
 import { useUpgrade } from "@/components/upgrade/UpgradeProvider";
 
 /**
@@ -284,16 +285,44 @@ function LiveCall({
   const scribe = useRef<LiveTranscriber | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const recRef = useRef<{ recorder: MediaRecorder; done: Promise<Recording> } | null>(null);
 
   const finish = useCallback(
-    (spoken: boolean) => {
+    async (spoken: boolean) => {
       if (finishedRef.current) return;
       finishedRef.current = true;
       const elapsed = started.current ? (Date.now() - started.current) / 1000 : 0;
       // Whatever the transcriber captured, plus anything still mid-sentence.
       const said = scribe.current?.stop().text ?? "";
+      const rec = recRef.current;
+      recRef.current = null;
+      if (rec?.recorder.state === "recording") rec.recorder.stop();
       streamRef.current?.getTracks().forEach((tr) => tr.stop());
       streamRef.current = null;
+
+      /*
+       * The same three-path transcript the Tank pitch gets: server STT of the
+       * recording when a key is configured, else the browser's live words, else
+       * what was typed. This screen used to have only the last two, which on
+       * every browser without SpeechRecognition — Firefox, and the app's own
+       * webview — meant a Deepgram key changed nothing and a spoken call went
+       * to the judge empty. Raced against a deadline exactly like the pitch:
+       * `onstop` is not guaranteed to fire when tracks died mid-call, and a
+       * hung promise here would eat one of three daily calls.
+       */
+      const settled = rec
+        ? await Promise.race([
+            rec.done,
+            new Promise<null>((r) => setTimeout(() => r(null), 4000)),
+          ])
+        : null;
+      const tx = await resolveTranscript({
+        audio: settled?.blob ?? null,
+        liveText: said,
+        typedText: typed,
+        durationSeconds: elapsed,
+      });
+
       onDone({
         callerId: caller.id,
         seconds: Math.min(CALL_SECONDS, Math.round(elapsed)),
@@ -301,9 +330,7 @@ function LiveCall({
         // The transcript is the pitch. Spoken or typed, the same words go to the
         // same judge — a player who types must not be scored differently from one
         // who talks.
-        // Whichever actually has words. A player who spoke AND typed because the
-        // mic looked dead must not be punished for the belt and braces.
-        transcript: (said.trim() || typed.trim()) || undefined,
+        transcript: tx?.text.trim() || undefined,
       });
     },
     [caller.id, onDone, typed],
@@ -332,9 +359,19 @@ function LiveCall({
           videoRef.current.srcObject = stream;
           void videoRef.current.play().catch(() => {});
         }
+        // Record the MIC (never the camera — makeRecorder strips the video
+        // track) so a configured server STT can transcribe the call. Optional:
+        // a browser that won't record still has the live transcriber and typing.
+        try {
+          recRef.current = startRecording(stream, false);
+        } catch {
+          recRef.current = null;
+        }
       })
-      // A refused camera is not a failed call. The pitch is the words.
-      .catch(() => {});
+      // A refused camera is not a failed call. The pitch is the words — but a
+      // refused MIC means nothing will hear them, so stop pretending it might
+      // and show the typing box now rather than after 25 silent seconds.
+      .catch(() => setSttOk(false));
     return () => {
       cancelled = true;
     };

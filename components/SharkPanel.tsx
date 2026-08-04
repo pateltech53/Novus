@@ -19,6 +19,7 @@ import { haptic } from "@/lib/haptics";
 import { play, startLoop, stopLoop } from "@/lib/sound";
 import { requestCapture, stopStream } from "@/lib/media/recorder";
 import { getPlayerAsk } from "@/lib/ai/ask";
+import { scoreAnswer } from "@/lib/ai/pitch-content";
 import { buildPanelContext } from "@/lib/ai/panel-context";
 import {
   sharkNegotiateTurn,
@@ -559,9 +560,11 @@ export function SharkPanel({
        * whether it contained anything — never to how long it took or how it
        * sounded. The old version read `seconds >= 6` as engagement, which is
        * speech rhythm reaching an outcome and is exactly what Brand Law 5
-       * forbids.
+       * forbids. Keyboard mash counts as nothing arriving: a seat that leans
+       * in for "asdf asdf" tells the player the room isn't reading.
        */
-      setSeat(awaiting.shark, declined ? "skeptical" : "interested");
+      const substance = scoreAnswer(awaiting.question, answer.text).quality > 0;
+      setSeat(awaiting.shark, substance ? "interested" : "skeptical");
       haptic("choice");
     },
     [awaiting, session, setSeat],

@@ -17,7 +17,9 @@ import { tierForScore } from "@/lib/ai/stub";
 import { speak, stopSpeaking } from "@/lib/ai/speech";
 import { SkipVoice } from "@/components/ui/SkipVoice";
 import type { PitchTranscript } from "@/lib/ai/types";
-import { KNOBS } from "@/lib/engine/constants";
+import { KNOBS, TANK_REQUIRED_THROUGH_YEAR } from "@/lib/engine/constants";
+import { yearClosesRemainingToday } from "@/lib/monetization";
+import { useUpgrade } from "@/components/upgrade/UpgradeProvider";
 import { LiveTranscriber, resolveTranscript } from "@/lib/ai/transcribe";
 import { CompanyDossier, DossierGlyph } from "@/components/CompanyDossier";
 import { PitchNotes } from "@/components/PitchNotes";
@@ -74,6 +76,7 @@ const BRIEFS: Record<string, { title: string; beats: string[]; line: string }> =
  */
 export function PerformScreen() {
   const game = useGame();
+  const upgrade = useUpgrade();
   const { perform, run } = game;
   const spec = BRIEFS[perform?.performType ?? "pitch"] ?? BRIEFS.pitch;
 
@@ -248,7 +251,17 @@ export function PerformScreen() {
      * screen instead of pretending the tap never happened.
      */
     try {
-      const { recorder, done } = startRecording(stream, true);
+      /*
+       * AUDIO ONLY, deliberately, on a screen with a camera open. The blob's
+       * one consumer is `/api/stt`; the self-view and the delivery coach read
+       * the LIVE stream and never the recording. Recording video here did two
+       * bad things at once: a two-minute 720p take is 20–40MB, which `/api/stt`
+       * rejects at its 10MB cap — so server transcription failed on virtually
+       * every pitch — and the upload attempt itself broke the on-screen promise
+       * that the video never leaves the device. Audio-only is ~1MB for the
+       * full two minutes, sails under the cap, and keeps the promise literal.
+       */
+      const { recorder, done } = startRecording(stream, false);
       recorderRef.current = recorder;
       doneRef.current = done;
     } catch {
@@ -403,6 +416,16 @@ export function PerformScreen() {
 
   if (!perform || !run) return null;
 
+  /*
+   * The free tier's pace limit, applied where the year would close. Four
+   * fiscal years a real day; the fifth gate refuses here — before a camera
+   * opens, before anything records — and the refusal states the fact and the
+   * reopening time rather than nagging. `run.pro` is kept honest by the
+   * entitlement sync, so a revoked Pro is capped on its next gate too.
+   */
+  const yearRationSpent =
+    perform.kind === "yearEnd" && !run.pro && yearClosesRemainingToday() <= 0;
+
   return (
     <main
       data-live-3d
@@ -484,6 +507,30 @@ export function PerformScreen() {
             </div>
 
             <div className="mt-auto pt-6">
+              {yearRationSpent ? (
+                <>
+                  <p className="mb-3 text-sm leading-snug text-[var(--n-8)]">
+                    You&apos;ve closed four fiscal years today — that&apos;s the free
+                    pace. The books reopen tomorrow, or Pro closes as many as
+                    you can pitch.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => upgrade.open("year_pace")}
+                    className="nv-gc w-full rounded-[var(--radius-card)] nv-t-action px-5 py-4 text-base font-extrabold tracking-[0.06em]"
+                  >
+                    SEE PRO ▸
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => game.cancelPerform()}
+                    className="mt-2 w-full rounded-[var(--radius-card)] px-5 py-3 text-xs font-bold tracking-[0.06em] text-[var(--n-8)]"
+                  >
+                    BACK TO THE COMPANY
+                  </button>
+                </>
+              ) : (
+                <>
               {/* A failed attempt comes back here rather than stranding the
                   player on a black screen, so this is where it says what went
                   wrong — directly above the button that tries again. */}
@@ -508,6 +555,21 @@ export function PerformScreen() {
                 <DossierGlyph size={15} />
                 CHECK YOUR NUMBERS
               </button>
+              {/* The veteran's exit. Years 1–3 teach the loop and the gate is
+                  the pitch; from year 4 the Tank is upside you opt into, and
+                  skipping closes the books at a plain 1.0× with no deal. The
+                  copy says the cost so nobody discovers it on the statement. */}
+              {perform.kind === "yearEnd" && run.year > TANK_REQUIRED_THROUGH_YEAR && (
+                <button
+                  type="button"
+                  onClick={() => game.skipYearGate()}
+                  className="mt-2 w-full rounded-[var(--radius-card)] px-5 py-3 text-xs font-bold tracking-[0.06em] text-[var(--n-8)]"
+                >
+                  SKIP THE TANK THIS YEAR — CLOSE THE BOOKS, NO PITCH, NO DEAL
+                </button>
+              )}
+                </>
+              )}
             </div>
           </motion.section>
         ) : phase === "permission" || phase === "ready" || phase === "recording" ? (

@@ -148,6 +148,15 @@ export const KNOBS = {
 
 export const YEAR_END_MONTH = 12;
 
+/**
+ * The last year whose close REQUIRES facing The Tank. Years 1–3 teach the
+ * loop — pitch, defend, price — and cannot be closed without it. From year 4
+ * the pitch is a choice: skipping closes the books at a neutral 1.0× with no
+ * deal, so the Tank is upside a veteran opts into rather than a toll. The
+ * replay verifier enforces the same line, so a tape cannot skip year one.
+ */
+export const TANK_REQUIRED_THROUGH_YEAR = 3;
+
 // ── Rookie Mode glossary (GDD §12, verbatim rookie lines) ───────────────────
 
 export const GLOSSARY: Record<string, { pro: string; rookie: string }> = {
