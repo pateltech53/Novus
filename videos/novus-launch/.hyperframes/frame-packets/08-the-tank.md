@@ -1,4 +1,4 @@
-# Frame packet: 06-the-tank
+# Frame packet: 08-the-tank
 
 ## Project inputs
 
@@ -8,30 +8,29 @@
 
 ## Assigned storyboard block
 
-## Frame 6 — The Tank
+## Frame 8 — Pitching the sharks
 
-- scene: Slow cinematic push across the five-shark panel plate, depth-of-field pulling from shark to shark, ending centered on the desk.
-- voiceover: "Five investors. They've read your books. They heard your ums. Sixty seconds — out loud."
-- duration: 5.611s
+- scene: The five-shark TANK plate fills the frame under one slow continuous push; the in-app pitch clip rises in a glass device over it — the player mid-pitch — focus pulling shark to shark.
+- voiceover: "On camera. Out loud. To five sharks — who have read your books."
+- duration: 3.669s
 - poster: 6s
 - transition_in: blur-crossfade
 - status: outline
-- src: compositions/frames/06-the-tank.html
-- asset_candidates: assets/tank-set.webp — five shark investors at THE TANK panel desk, navy studio hero plate
+- src: compositions/frames/08-the-tank.html
 - type: feature_showcase
-- persuasion: Authority confrontation — the judges are real characters who have read your actual numbers
+- persuasion: Authority confrontation — the pitch is shown happening, the judges are characters who know your numbers
 - beat: awe + healthy fear
-- blueprint: camera-journey (Adapt — sub-shape B cursorless flight; keep the continuous motivated camera as the storyteller; the "world" is the tank plate and the legs are focus pulls across the panel)
+- blueprint: camera-journey (Adapt — sub-shape B cursorless flight over the plate; the one added element is the glass device carrying the real in-app pitch clip — the film SHOWS the pitching, not just the panel)
 - focal: assets/tank-set.webp
-- roles: tank-set.webp = background (full-bleed hero plate, NOT dimmed — it is the shot) 
+- roles: tank-set.webp = background (full-bleed hero plate, not dimmed — it is the shot) · tank.mp4 = cutout (the in-app pitch/tank clip in a glass device, lower-left, enters on "On camera")
 - sfx: riser, impact-bass-2
 
-Adapt: keep the continuous multi-leg camera journey; legs are expressed as one slow push + two focus pulls across the plate (no cuts), depth-of-field doing the storytelling.
-Scene 1 (0.0–2.4s): On "Five investors.", the tank plate fills the frame full-bleed, camera already moving — one continuous slow push toward the desk (`multi-phase-camera`, single unbroken move for the whole 9s); a soft depth-of-field blur (`depth-of-field-blur`) holds everything except the center shark. Mono kicker "THE TANK" bottom-left at label ramp (inside safe area, above caption band).
-Scene 2 (2.4–5.6s): On "They've read your books. They heard your ums.", the focus PULLS left then right across the panel (`depth-of-field-blur` refocusing leg by leg, one pull per spoken cue) — each shark sharpening as the line about them lands. On "ums", three tiny alert-red tick marks flicker at the frame's lower third and die (filler words, counted — 0.5s, gone).
-Scene 3 (5.6–9.0s): On "Sixty seconds — out loud.", focus returns to the full desk as the push completes its landing; the line "sixty seconds. out loud." reveals lower-center per-word in white h3 over the plate's darkest region. Camera settles to stillness for the final second — the held read before the stakes. No other motion.
+Adapt: keep the continuous motivated camera journey (one unbroken slow push, focus pulls as legs); the added glass device with the real pitch clip is the "action" the journey witnesses.
+Scene 1 (0.0–2.4s): On "On camera. Out loud.", the tank plate fills the frame, camera already pushing slowly toward the desk (`multi-phase-camera`, one unbroken move for all 9s); depth-of-field holds the sharks soft (`depth-of-field-blur`). The glass-framed device rises lower-left (≈17% width) playing tank.mp4 — the actual in-app pitch moment, the player's camera view. Mono kicker "THE PITCH" top-left.
+Scene 2 (2.4–6.0s): On "To five sharks —", focus pulls off the device onto the panel, sweeping left to right across the five sharks (`depth-of-field-blur` refocusing leg by leg); the device dims to 80% but keeps playing — the pitch continuing under their gaze.
+Scene 3 (6.0–9.0s): On "who have read your books.", focus settles on the full desk; the line "they've read your books." reveals lower-center per-word in white h3 over the plate's darkest region. The push completes and the camera settles to stillness for the final second. Nothing else moves.
 
-narrativeRole: The climax — the camera meets the panel. Everything the sim built is about to be judged.
+narrativeRole: The climax — the pitch itself, shown: your camera, your voice, their table.
 keyMessage: You pitch on camera to five sharks who know your numbers.
 
 ## Selected motion rule: depth-of-field-blur

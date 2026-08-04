@@ -10,27 +10,40 @@
     {
       "id": "02",
       "sfx": [
-        "chime",
-        "impact-bass-1"
+        "notification",
+        "impact-bass-2"
       ]
     },
     {
       "id": "03",
       "sfx": [
-        "whoosh-short",
-        "click-soft",
-        "sparkle"
+        "whoosh-cinematic",
+        "chime"
       ]
     },
     {
       "id": "04",
+      "sfx": [
+        "click",
+        "whoosh-short"
+      ]
+    },
+    {
+      "id": "05",
       "sfx": [
         "click-soft",
         "impact-bass-2"
       ]
     },
     {
-      "id": "05",
+      "id": "06",
+      "sfx": [
+        "pop",
+        "sparkle"
+      ]
+    },
+    {
+      "id": "07",
       "sfx": [
         "typing",
         "impact-bass-1",
@@ -38,22 +51,21 @@
       ]
     },
     {
-      "id": "06",
+      "id": "08",
       "sfx": [
         "riser",
         "impact-bass-2"
       ]
     },
     {
-      "id": "07",
+      "id": "09",
       "sfx": [
-        "chime",
-        "impact-bass-2",
-        "pop"
+        "click-soft",
+        "impact-bass-1"
       ]
     },
     {
-      "id": "09",
+      "id": "10",
       "sfx": [
         "whoosh-cinematic",
         "chime"

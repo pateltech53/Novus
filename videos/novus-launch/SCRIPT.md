@@ -1,7 +1,7 @@
 # SCRIPT — novus-launch (v2 — LEARN by DOING)
 
-**Voice:** am_michael (Kokoro, local) — calm, assured, unhurried; the Apple-keynote narrator register.
-**Voice settings:** speed 0.96
+**Voice:** af_heart (Kokoro, local) — the least synthetic local voice; warm, calm, keynote register.
+**Voice settings:** speed 0.95
 **Voice direction:** Reverent but plain. Short phrases, real pauses at the em-dashes. Never salesy — the confidence is in the calm.
 
 ---

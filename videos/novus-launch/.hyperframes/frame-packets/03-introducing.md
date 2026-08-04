@@ -1,4 +1,4 @@
-# Frame packet: 02-introducing
+# Frame packet: 03-introducing
 
 ## Project inputs
 
@@ -8,31 +8,31 @@
 
 ## Assigned storyboard block
 
-## Frame 2 — Introducing Novus
+## Frame 3 — Introducing Novus
 
-- scene: A mono eyebrow "introducing" over the huge NOVUS wordmark resolving inside one glass pane glinting on the navy stage.
-- voiceover: "Introducing Novus. A life sim — for a company."
-- duration: 3.328s
+- scene: The stage clears; the real fin mark draws itself on inside one glass pane, "novus" typesets beside it, the mascot waves in at the corner — "a life simulator for running a company."
+- voiceover: "Introducing Novus. A life simulator — for running a company."
+- duration: 3.776s
 - poster: 5s
 - transition_in: zoom-through
 - status: outline
-- src: compositions/frames/02-introducing.html
-- asset_candidates: assets/logo-96f27616.svg — the NOVUS header wordmark SVG
+- src: compositions/frames/03-introducing.html
 - type: product_intro
-- persuasion: Category announcement — names a new thing plainly, Apple-introducing grammar
-- beat: intrigue + reverence
-- blueprint: kinetic-type-beats (Adapt — "Introducing…" name-drop; keep the hard-cut beat chain, resolve on the wordmark inside the film's one glass pane instead of a flat logo)
-- focal: assets/logo-96f27616.svg
-- roles: logo-96f27616.svg = cutout (the hero lockup inside the pane)
-- sfx: chime, impact-bass-1
+- persuasion: Category announcement — the answer arrives with the brand's true mark, Apple-introducing grammar
+- beat: relief + intrigue
+- blueprint: logo-assemble-lockup (Adapt — the mark comes to exist: the fin's orange path fills on, the white wave draws through it; wordmark typesets beside; keep the cleared-stage → lockup signature)
+- focal: assets/novus-mark.svg
+- roles: novus-mark.svg = cutout (the hero mark inside the pane) · mascot-waving.mp4 = supporting (small corner cutout, enters on "life simulator")
+- sfx: whoosh-cinematic, chime
 
-Adapt: keep kinetic-type-beats' hard-cut beat → payoff chain; the payoff beat is a Liquid-Glass pane carrying the wordmark (the film's material introduced with the name).
-Scene 1 (0.0–1.6s): On "Introducing", the word appears alone — mono label ramp, uppercase, tracked, centered upper-third (Centered, small against the void; the emptiness is the reverence). Per-word staggered reveal, long-tail settle.
-Scene 2 (1.6–4.0s): On "Novus", one glass pane (≈46% width, 16:7) fades+scales up from 0.94 at dead-center (`spring-pop-entrance`, smooth register — no overshoot); the NOVUS wordmark SVG self-draws its strokes inside it (`svg-path-draw`), finishing as the specular top edge glints once left-to-right (the pane's lit crest — one finite sweep, not a loop). "introducing" demotes to 40% opacity above the pane.
-Scene 3 (4.0–5.6s): On "A life sim", a sub-line reveals beneath the pane per-word (`dynamic-content-sequencing`, lead ramp, muted ink): "a life sim" — pause — Scene 4 (5.6–7.0s): "— for a company." completes the line on its spoken cue, the two final words stepping up to full ink (`asr-keyword-glow`, restrained). Holds — pane still, subtle jitter only.
+Adapt: keep logo-assemble-lockup's cleared-stage → the-mark-draws-itself-on signature; the mark is the REAL favicon (orange fin + white wave), the wordmark is typeset Urbanist 800 lowercase — never the retired header SVG.
+Scene 1 (0.0–1.4s): On "Introducing", the word alone — mono label ramp, uppercase, tracked, centered upper-third; per-word reveal on a long-tail settle. Empty navy beneath it (the reverence is the emptiness).
+Scene 2 (1.4–3.6s): On "Novus", one glass pane (≈44% width) scales up from 0.94 dead-center (`spring-pop-entrance`, smooth); inside it the fin mark draws on — the orange fin path fills upward (`svg-path-draw`), then the white wave stroke draws through beneath it — and "novus" typesets beside the mark character-by-character (`discrete-text-sequence`, no caret). The pane's specular edge glints once.
+Scene 3 (3.6–5.4s): On "A life simulator", the sub-line reveals beneath the pane per-word (`dynamic-content-sequencing`, lead ramp, muted ink), while the mascot (mascot-waving.mp4, cutout, ≈14% width) enters at the lower-right corner and waves — the game's face arriving with the word "simulator".
+Scene 4 (5.4–7.0s): On "— for running a company.", the phrase completes at full ink (`asr-keyword-glow` restrained on "running"); everything holds — pane still, mascot's wave the only life.
 
-narrativeRole: The name-drop. The message's first half lands: you are the founder of a company that exists as a game.
-keyMessage: Novus is a life sim for a company.
+narrativeRole: The name-drop with the correct mark — and the category: a life simulator you run, not content you watch.
+keyMessage: Novus is a life simulator for running a company.
 
 ## Selected motion rule: asr-keyword-glow
 
@@ -164,6 +164,155 @@ function colorAt(env, isBrand) {
 ## See also
 
 `3d-text-depth-layers` (depth on the active word at peak) · `sine-wave-loop` (idle breathe between emphasis moments) · `context-sensitive-cursor` (typewriter matching the ASR cadence) · `/media-use` for `hyperframes transcribe` and caption rendering.
+
+## Selected motion rule: discrete-text-sequence
+
+---
+name: discrete-text-sequence
+description: Replace entire text states at frame thresholds for non-linear typing effects — typos, bulk additions, pauses, backspaces, simulated thinking.
+metadata:
+  tags: text, typing, discrete, threshold, non-linear, sequence
+---
+
+# Discrete Text Sequence
+
+Instead of character-by-character typewriter, replace entire string states at time thresholds — enabling non-linear effects (typos, backspaces, bulk paste, "thinking" gaps) that smooth per-char typing can't achieve. If your effect is "type each character, no edits", this rule is overkill — use the smooth-slice variation below.
+
+## How It Works
+
+The typing is authored as a sparse array of `{ t, text }` states; on every `onUpdate` a **reverse search** finds the latest entry whose `t` has passed and renders its text. Display jumps between states with no animation between them — the realism comes from the schedule shape: fast keystroke clusters (0.06–0.20s apart), pauses at word breaks (0.3–0.6s), a typo, backspaces peeling back to the fork, then a bulk paste replacing many chars in one entry. A block cursor blinks via a deterministic sin square wave on the same timeline.
+
+## Recipe
+
+```html
+<!-- inside a standard scene clip (hyperframes-core) -->
+<div class="terminal">
+  <div class="prompt">$</div>
+  <div class="text-wrap">
+    <span class="text" id="text"></span><span class="cursor" id="cursor">_</span>
+  </div>
+</div>
+```
+
+```css
+.terminal {
+  font-family: {monoFont}; /* monospace required — proportional jitters even in a fixed box */
+  display: flex;
+  align-items: baseline;
+  font-size: TERMINAL_FONT_SIZE;
+}
+.text-wrap {
+  display: inline-flex;
+  align-items: baseline;
+  min-width: TEXT_WRAP_MIN_WIDTH; /* ≥ widest state — stops right-edge jitter */
+  white-space: nowrap;
+}
+.cursor {
+  display: inline-block; /* inline ignores width */
+  width: CURSOR_WIDTH;
+}
+```
+
+```js
+// Each entry shows from its t until the NEXT entry's t.
+// Shape: keystrokes → typo → backspace to the fork → bulk paste → completion mark.
+const SEQUENCE = [
+  { t: 0.0, text: "" },
+  { t: T_K1, text: "{p1}" }, // first keystrokes (~3-5 chars, 0.1-0.2s apart)
+  { t: T_K2, text: "{p1 + ' ' + p2_typo}" }, // continuation containing a typo
+  { t: T_BS, text: "{p1 + ' ' + p2_partial}" }, // backspace(s) — peel back to the fork
+  { t: T_BULK, text: "{fullCorrectedText}" }, // bulk paste — many chars in one jump
+  { t: T_DONE, text: "{fullCorrectedText + ' ✓'}" }, // completion marker
+];
+
+// Reverse-search for the latest entry whose t has passed
+function textAt(time) {
+  for (let i = SEQUENCE.length - 1; i >= 0; i--) {
+    if (time >= SEQUENCE[i].t) return SEQUENCE[i].text;
+  }
+  return "";
+}
+
+const textEl = document.getElementById("text");
+const cursorEl = document.getElementById("cursor");
+
+const driver = { t: 0 };
+tl.to(
+  driver,
+  {
+    t: TOTAL_DURATION,
+    duration: TOTAL_DURATION,
+    ease: "none",
+    onUpdate: () => {
+      textEl.textContent = textAt(driver.t);
+    },
+  },
+  0,
+);
+
+// Cursor blink — deterministic sin square wave, never a CSS animation
+const blink = { p: 0 };
+tl.to(
+  blink,
+  {
+    p: Math.PI * 2 * BLINK_CYCLES,
+    duration: TOTAL_DURATION,
+    ease: "none",
+    onUpdate: () => {
+      cursorEl.style.opacity = Math.sin(blink.p) > 0 ? "1" : "0";
+    },
+  },
+  0,
+);
+```
+
+## Variations
+
+- **Smooth character slice** (continuous typewriter — no pauses, no edits): faster to author but uniformly "machine-typed", missing the human realism:
+
+```js
+const fullText = "{fullPhrase}";
+const len = { v: 0 };
+tl.to(
+  len,
+  {
+    v: fullText.length,
+    duration: TYPE_DUR,
+    ease: "power1.inOut",
+    onUpdate: () => {
+      textEl.textContent = fullText.substring(0, Math.floor(len.v));
+    },
+  },
+  0,
+);
+```
+
+- **Thinking pause** — hold one state for `THINK_HOLD_DUR` (0.8–2.0s; under 0.5s reads as a stutter, not thought) simply by leaving a gap before the next entry's `t`.
+- **State pulse on completion** — when the final state lands, `tl.to(".text", { scale: 1.03–1.08, duration: 0.15–0.3, yoyo: true, repeat: 1 }, T_DONE)`.
+- **Per-state color shift** — in `onUpdate`, branch on `driver.t` vs the milestones: success color after `T_DONE`, dim mid-edit, normal while typing.
+
+## Values
+
+| token               | range                                        | notes                                                                  |
+| ------------------- | -------------------------------------------- | ---------------------------------------------------------------------- |
+| TERMINAL_FONT_SIZE  | 48–96px                                      | full-bleed comps; smaller for terminal-style detail                    |
+| TEXT_WRAP_MIN_WIDTH | ≥ widest state                               | measure with a hidden probe after `document.fonts.ready` if unsure     |
+| milestone `t`s      | keystrokes 0.06–0.20s apart; pauses 0.3–0.6s | monotonically increasing; `T_DONE ≤ TOTAL_DURATION − ~1s` climax dwell |
+| TYPE_DUR (smooth)   | `chars × 0.06–0.12s`                         | fast → relaxed                                                         |
+| BLINK_CYCLES        | one cycle per 0.5–0.8s                       | `TOTAL_DURATION / 0.8 ≤ BLINK_CYCLES ≤ TOTAL_DURATION / 0.5`           |
+| CURSOR_WIDTH        | ~0.3× font size                              | gap to text single-digit px so the cursor feels attached               |
+
+## Critical Constraints
+
+- **Reverse-search the array each frame** — O(n) with small n (≤30 typical); don't index by frame, the sequence is sparse.
+- **`min-width` on the text wrap is mandatory** — without it the right edge jitters as state length changes.
+- **Discrete jumps must be INSTANT** — any transition on the text turns the jump into a smear and kills the "typing" feel.
+- **Cursor blink is sin/sequence-driven on the timeline**, `display: inline-block`, monospace font, `white-space: nowrap` (wrapping mid-state breaks the illusion; trailing spaces must survive).
+- **Discrete vs smooth** — use discrete only for non-linear states (typos, pauses, bulk paste); plain typing takes the smooth-slice variation.
+
+## See also
+
+`context-sensitive-cursor` (same SEQUENCE pattern + segment-colored cursor) · `3d-text-depth-layers` (discrete text with layered depth) · `counting-dynamic-scale` (discrete label beside a smooth counter) · `press-release-spring` (post-completion press beat).
 
 ## Selected motion rule: dynamic-content-sequencing
 

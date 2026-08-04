@@ -1,4 +1,4 @@
-# Frame packet: 09-lockup
+# Frame packet: 10-lockup
 
 ## Project inputs
 
@@ -8,31 +8,30 @@
 
 ## Assigned storyboard block
 
-## Frame 9 — Keep a company alive
+## Frame 10 — Lockup
 
-- scene: The stage clears, the NOVUS lockup draws itself on in glass, the tagline settles beneath, novuspitch.com holds to black.
-- voiceover: "Novus. Keep a company alive. Defend it out loud. Play free at novuspitch dot com."
-- duration: 6.059s
+- scene: A calm end-card chain: the fin mark + "novus" lockup, the tagline joining beneath, then the URL and the one orange pill — held to black.
+- voiceover: "Novus. Learn by doing. Start your company — at novuspitch dot com."
+- duration: 4.395s
 - poster: 7s
 - transition_in: zoom-through
 - status: outline
-- src: compositions/frames/09-lockup.html
-- asset_candidates: assets/logo-96f27616.svg — the NOVUS wordmark SVG
+- src: compositions/frames/10-lockup.html
 - type: cta
-- persuasion: Identity close — the brand line is the ask, Apple end-card grammar
+- persuasion: Identity close — the brand line is the ask, Apple end-card grammar, no price framing
 - beat: inevitability + invitation
-- blueprint: logo-assemble-lockup (Reproduce — the stage clears, the mark draws itself on, the lockup completes into the URL)
-- focal: assets/logo-96f27616.svg
-- roles: logo-96f27616.svg = cutout (the mark that draws itself on)
+- blueprint: titlecard-reveal (Reproduce — the appending card chain: lockup → +tagline → +CTA/URL, each near-still, terminating on the long held end card)
+- focal: assets/novus-mark.svg
+- roles: novus-mark.svg = cutout (the mark in the lockup)
 - sfx: whoosh-cinematic, chime
 
-Scene 1 (0.0–2.2s): On "Novus.", the navy stage is empty except the vignette; the NOVUS wordmark draws itself on stroke-by-stroke dead-center (`svg-path-draw`, Centered, ~34% width) — the mark coming to exist is the whole beat.
-Scene 2 (2.2–5.2s): On "Keep a company alive. Defend it out loud.", the two tagline lines reveal beneath the mark one per spoken cue (per-word staggered, lead ramp, muted ink), the lockup completing as a unit; one finite specular glint crosses the mark.
-Scene 3 (5.2–7.4s): On "Play free at", the ONE action element arrives — a glass pill capsule beneath the lockup filling with action orange `#FF6B00` (`stat-bars-and-fills`, progress-fill register) carrying "PLAY FREE" in mono; the film's last orange.
-Scene 4 (7.4–9.0s): On "novuspitch dot com", the URL "novuspitch.com" types beneath in mono with caret (`discrete-text-sequence`), caret blinks twice and stops; everything holds to the end — the long Apple hold, dead still.
+Scene 1 (0.0–2.4s): On "Novus.", the lockup card: the fin mark draws on dead-center (`svg-path-draw` — orange fin fills, white wave strokes through) with "novus" typesetting beside it — one restrained arrival, then still.
+Scene 2 (2.4–4.6s): On "Learn by doing.", the tagline appends beneath the lockup (slide-up crossfade, the chain's one move per card): "learn by doing." in lead ramp, "learn"/"doing" at full ink, "by" muted.
+Scene 3 (4.6–6.6s): On "Start your company —", the one orange element arrives: a glass pill beneath the lockup fills with action orange (`stat-bars-and-fills`, progress-fill register) carrying "START YOUR COMPANY" in mono ink-on-fire.
+Scene 4 (6.6–8.5s): On "at novuspitch dot com", "novuspitch.com" types beneath in mono with caret (`discrete-text-sequence`); caret blinks twice and stops. The full end card holds dead still to the final frame — the long Apple hold.
 
-narrativeRole: The lockup close — brand, tagline, one action. The film ends where every Apple intro ends: the name, held.
-keyMessage: Play it now at novuspitch.com.
+narrativeRole: The close — mark, tagline, one action. No price, no feature list; the name and the invitation.
+keyMessage: Start your company at novuspitch.com.
 
 ## Selected motion rule: discrete-text-sequence
 

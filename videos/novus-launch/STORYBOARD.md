@@ -41,7 +41,7 @@ music: minimal confident cinematic tech underscore, slow build, apple keynote fe
 
 - scene: Giant lowercase type: "you don't learn to ride a bike" — then "by watching videos of people riding bikes." lands and the word "watching" dims to a strikethrough gray.
 - voiceover: "You don't learn to ride a bike — by watching videos of people riding bikes."
-- duration: 7s
+- duration: 3.989s
 - poster: 5s
 - transition_in: cut
 - status: outline
@@ -65,7 +65,7 @@ keyMessage: Watching doesn't teach you to ride.
 
 - scene: Video-player and lecture-slide cards pile up around a small centered figure until they crowd the frame — the overwhelm of passive learning.
 - voiceover: "But that's how we teach business. Hours of lectures. Hours of videos. Watching — never doing."
-- duration: 8s
+- duration: 5.568s
 - poster: 6s
 - transition_in: crossfade
 - status: outline
@@ -90,11 +90,12 @@ keyMessage: Business is taught by watching — hours of it.
 
 - scene: The stage clears; the real fin mark draws itself on inside one glass pane, "novus" typesets beside it, the mascot waves in at the corner — "a life simulator for running a company."
 - voiceover: "Introducing Novus. A life simulator — for running a company."
-- duration: 7s
+- duration: 3.776s
 - poster: 5s
 - transition_in: zoom-through
 - status: outline
 - src: compositions/frames/03-introducing.html
+- asset_candidates: assets/novus-mark.svg — the real fin+wave brand mark; assets/mascot-waving.mp4 — mascot waving clip
 - type: product_intro
 - persuasion: Category announcement — the answer arrives with the brand's true mark, Apple-introducing grammar
 - beat: relief + intrigue
@@ -116,11 +117,12 @@ keyMessage: Novus is a life simulator for running a company.
 
 - scene: The real play screen floats as a glass-framed device; the ADVANCE MONTH capsule glows, the months clip takes the face, the month badge ticks forward.
 - voiceover: "Your company lives month to month. Nothing moves — until you press advance."
-- duration: 7.5s
+- duration: 4.437s
 - poster: 5s
 - transition_in: push-slide LEFT
 - status: outline
 - src: compositions/frames/04-advance.html
+- asset_candidates: assets/play.webp — real play screen render; assets/months.mp4 — months advancing motion clip
 - type: feature_showcase
 - persuasion: Show-don't-tell — the sim's one law demonstrated on the real interface
 - beat: control + agency
@@ -141,11 +143,12 @@ keyMessage: Months advance only when you decide.
 
 - scene: The decision-card clip plays in the glass device; pressure lines flank it; then the clip yields the frame to "you decide." typing into the center.
 - voiceover: "Every month brings a real scenario. A supplier squeezes. A rival copies. You decide."
-- duration: 8s
+- duration: 5.696s
 - poster: 5s
 - transition_in: push-slide LEFT
 - status: outline
 - src: compositions/frames/05-scenarios.html
+- asset_candidates: assets/choices.mp4 — decision card weighed and committed, motion clip
 - type: feature_showcase
 - persuasion: Concrete stakes — named problems, not abstract "challenges"
 - beat: tension + ownership
@@ -166,7 +169,7 @@ keyMessage: Real scenarios, every month — and you decide.
 
 - scene: Three ledger glass chips assemble; as the VO names each number, its figure flips — cash up in green, burn in white, runway down with a red tick — the consequences of Frame 5's decision.
 - voiceover: "And the game remembers. Every decision moves your numbers — cash, burn, runway."
-- duration: 7.5s
+- duration: 4.779s
 - poster: 5s
 - transition_in: push-slide LEFT
 - status: outline
@@ -191,11 +194,12 @@ keyMessage: Decisions move real numbers, both directions.
 
 - scene: A huge mono month counter ticks 01→12 and slams in prestige gold; the camera pushes through the digits into the real year-gate "Pitch me" screen.
 - voiceover: "Then month twelve — stops the clock. To close the year, you have to pitch."
-- duration: 7.5s
+- duration: 4.032s
 - poster: 6s
 - transition_in: zoom-through
 - status: outline
 - src: compositions/frames/07-the-gate.html
+- asset_candidates: assets/tank.webp — the year-gate "Pitch me" screen render
 - type: feature_showcase
 - persuasion: The one rule stated as law — scarcity of passage
 - beat: anticipation + weight
@@ -217,11 +221,12 @@ keyMessage: The year doesn't close until you pitch it.
 
 - scene: The five-shark TANK plate fills the frame under one slow continuous push; the in-app pitch clip rises in a glass device over it — the player mid-pitch — focus pulling shark to shark.
 - voiceover: "On camera. Out loud. To five sharks — who have read your books."
-- duration: 9s
+- duration: 3.669s
 - poster: 6s
 - transition_in: blur-crossfade
 - status: outline
 - src: compositions/frames/08-the-tank.html
+- asset_candidates: assets/tank-set.webp — five-shark TANK panel hero plate; assets/tank.mp4 — in-app pitch/tank motion clip
 - type: feature_showcase
 - persuasion: Authority confrontation — the pitch is shown happening, the judges are characters who know your numbers
 - beat: awe + healthy fear
@@ -242,7 +247,7 @@ keyMessage: You pitch on camera to five sharks who know your numbers.
 
 - scene: The stage empties; "you don't learn business by watching." dims and strikes — then the tagline lands huge: "learn by doing." and holds in silence.
 - voiceover: "Because you don't learn business by watching. You learn — by doing."
-- duration: 7s
+- duration: 3.477s
 - poster: 5s
 - transition_in: crossfade
 - status: outline
@@ -267,11 +272,12 @@ keyMessage: LEARN by DOING.
 
 - scene: A calm end-card chain: the fin mark + "novus" lockup, the tagline joining beneath, then the URL and the one orange pill — held to black.
 - voiceover: "Novus. Learn by doing. Start your company — at novuspitch dot com."
-- duration: 8.5s
+- duration: 4.395s
 - poster: 7s
 - transition_in: zoom-through
 - status: outline
 - src: compositions/frames/10-lockup.html
+- asset_candidates: assets/novus-mark.svg — the real fin+wave brand mark
 - type: cta
 - persuasion: Identity close — the brand line is the ask, Apple end-card grammar, no price framing
 - beat: inevitability + invitation

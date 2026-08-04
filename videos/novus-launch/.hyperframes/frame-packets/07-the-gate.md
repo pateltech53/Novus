@@ -1,4 +1,4 @@
-# Frame packet: 05-the-gate
+# Frame packet: 07-the-gate
 
 ## Project inputs
 
@@ -8,32 +8,31 @@
 
 ## Assigned storyboard block
 
-## Frame 5 — Month twelve stops the clock
+## Frame 7 — Month twelve stops the clock
 
-- scene: A huge mono month counter ticks 01→12 and slams; the year-gate screen rises in glass, prestige-gold gate line beneath.
-- voiceover: "Then month twelve — stops the clock. The year doesn't close, until you pitch it."
-- duration: 4.736s
+- scene: A huge mono month counter ticks 01→12 and slams in prestige gold; the camera pushes through the digits into the real year-gate "Pitch me" screen.
+- voiceover: "Then month twelve — stops the clock. To close the year, you have to pitch."
+- duration: 4.032s
 - poster: 6s
-- transition_in: push-slide LEFT
+- transition_in: zoom-through
 - status: outline
-- src: compositions/frames/05-the-gate.html
-- asset_candidates: assets/tank.webp — the year-gate "Pitch me" screen render
+- src: compositions/frames/07-the-gate.html
 - type: feature_showcase
-- persuasion: Scarcity/urgency — the one rule the whole game bends around, stated as law
+- persuasion: The one rule stated as law — scarcity of passage
 - beat: anticipation + weight
-- blueprint: dataviz-countup (Adapt — the count-up IS the hero and the camera pushes THROUGH it; the number is MONTH 01→12 and the landing is the gate screen, not a chart)
+- blueprint: dataviz-countup (Adapt — the counted number IS the hero and the camera pushes THROUGH it; the counter is MONTH 01→12, the landing is the real gate screen)
 - focal: assets/tank.webp
 - roles: tank.webp = cutout (the year-gate screen inside its glass device, the landing surface)
 - sfx: typing, impact-bass-1, sparkle
 
-Adapt: keep dataviz-countup's signature push-THROUGH the counted number; the counter is "MONTH 01…12" in mono, and the push-through lands on the real gate screen.
-Scene 1 (0.0–2.2s): On "Then month twelve", a huge mono counter "MONTH 01" dead-center (Centered, stat-value ramp at ~14cqw, tnum) ticks 01→12 accelerating (`counting-dynamic-scale` — the glyph grows as it climbs), ticks synced to an accelerating tick array; nothing else on the stage.
-Scene 2 (2.2–3.6s): On "— stops the clock.", the counter SLAMS at 12 (one earned hard stop, glow bloom `ambient-glow-bloom` in prestige gold behind the digits — the year gate's color claiming the moment); a 0.4s dead-still beat.
-Scene 3 (3.6–6.0s): On "The year doesn't close,", the camera pushes THROUGH the number (`multi-phase-camera` push + `motion-blur-streak` on the digits as they pass the lens — the signature move); the gate screen (tank.webp in its glass device frame, ≈24% width) arrives centered out of the push (inverse zoom-through seam, `cut-catalog.md` — "arriving at").
-Scene 4 (6.0–8.0s): On "until you pitch it.", the gate line reveals beneath the device in prestige gold mono, one word per spoken cue: "FISCAL YEAR 1 · THE GATE"; the device's OPEN THE CAMERA capsule brightens once, restrained, as the VO says "pitch". Holds.
+Adapt: keep dataviz-countup's signature push-THROUGH the counted number; identical machinery to v1's gate frame (it worked): counter, slam, push-through, gate screen.
+Scene 1 (0.0–2.2s): On "Then month twelve", the huge mono counter "MONTH 01" dead-center (stat-value ramp ~14cqw, tnum) ticks 01→12 accelerating (`counting-dynamic-scale`), ticks on an accelerating array; nothing else on stage.
+Scene 2 (2.2–3.4s): On "— stops the clock.", the counter SLAMS at 12; a restrained prestige-gold bloom breathes once behind the digits (`ambient-glow-bloom`, low opacity); a 0.4s dead-still beat.
+Scene 3 (3.4–5.8s): On "To close the year,", the camera pushes THROUGH the digits (`multi-phase-camera` + `motion-blur-streak`); the gate screen (tank.webp in its glass device, ≈18% width) arrives centered out of the push (inverse zoom-through seam).
+Scene 4 (5.8–7.5s): On "you have to pitch.", the gold mono gate line "FISCAL YEAR 1 · THE GATE" reveals beneath the device word-by-word; the OPEN THE CAMERA capsule brightens once as the VO says "pitch". Holds.
 
-narrativeRole: The twist beat — the message's second half. This is not another sim: the year is gated by a performance.
-keyMessage: The year only closes when you defend it.
+narrativeRole: The twist — this sim has a gate no other sim has: the year is closed by a performance, not a menu.
+keyMessage: The year doesn't close until you pitch it.
 
 ## Selected motion rule: ambient-glow-bloom
 
