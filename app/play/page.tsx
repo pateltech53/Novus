@@ -585,6 +585,7 @@ function PlayScreen() {
           steps={coachSteps}
           index={coachIndex}
           onAdvance={() => setCoachIndex((i) => i + 1)}
+          onBack={() => setCoachIndex((i) => Math.max(0, i - 1))}
           onFinish={finishCoaching}
           nativeChrome={nativeChromeOwned}
           nativeRect={nativeCoachRect}

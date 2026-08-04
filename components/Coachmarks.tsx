@@ -89,6 +89,7 @@ export function Coachmarks({
   steps,
   index,
   onAdvance,
+  onBack,
   onFinish,
   nativeChrome = false,
   nativeRect,
@@ -96,6 +97,8 @@ export function Coachmarks({
   steps: CoachStep[];
   index: number;
   onAdvance: () => void;
+  /** Step back one. Rendered only when there is a step behind to return to. */
+  onBack?: () => void;
   onFinish: () => void;
   /**
    * True only while UIKit is drawing the chrome.
@@ -469,11 +472,25 @@ export function Coachmarks({
               leave a first-time player with a dimmed screen and no way forward.
               An unmeasurable target falls back to an acknowledgeable one: a
               tutorial that can be skipped beats a tutorial that traps. */}
-          <div className="shrink-0 px-4 pt-2 pb-3.5">
+          <div className="flex shrink-0 items-center gap-2 px-4 pt-2 pb-3.5">
+            {/* Re-read what you just closed. A tutorial you can only move
+                forward through punishes a mis-tap with a lost explanation. */}
+            {index > 0 && onBack && (
+              <button
+                type="button"
+                className="nv-gc pointer-events-auto h-11 shrink-0 rounded-[var(--radius-pill)] px-4 text-sm font-extrabold tracking-[0.04em] text-[var(--n-9)]"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onBack();
+                }}
+              >
+                ‹ BACK
+              </button>
+            )}
             {step.mode === "ack" || !rect ? (
               <button
                 type="button"
-                className="nv-gc pointer-events-auto h-11 w-full rounded-[var(--radius-pill)] nv-t-action text-sm font-extrabold tracking-[0.04em]"
+                className="nv-gc pointer-events-auto h-11 w-full flex-1 rounded-[var(--radius-pill)] nv-t-action text-sm font-extrabold tracking-[0.04em]"
                 onClick={(e) => {
                   e.stopPropagation();
                   if (index >= steps.length - 1) onFinish();
@@ -483,7 +500,7 @@ export function Coachmarks({
                 GOT IT
               </button>
             ) : (
-              <p className="text-2xs font-bold tracking-[0.1em] text-[var(--action)]">
+              <p className="flex-1 text-2xs font-bold tracking-[0.1em] text-[var(--action)]">
                 ↑ TAP IT TO CONTINUE
               </p>
             )}
