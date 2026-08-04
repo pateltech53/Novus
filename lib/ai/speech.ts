@@ -70,6 +70,21 @@ let player: HTMLAudioElement | null = null;
 /** True only once silence has ACTUALLY played. A rejected attempt is retried on
  *  the next gesture rather than assumed to have worked. */
 let unlocked = false;
+/**
+ * The one element used when no gesture ever unlocked one (the desktop case).
+ * A MODULE element, not `new Audio()` per line: with a fresh element per line,
+ * `current` only tracked the newest, stopSpeaking() could not reach an older
+ * one still playing, and two overlapping copies of near-identical speech is
+ * the comb-filtered mess players heard as crackle.
+ */
+let fallbackPlayer: HTMLAudioElement | null = null;
+/**
+ * Settles the in-flight line's completion promise. stopSpeaking() calls it so
+ * an interrupted line's `finally` actually runs — before this, a barge-in left
+ * the old promise pending forever, its object URL unrevoked (real memory on a
+ * phone also running a camera) and `setSpeaking` stuck.
+ */
+let settleCurrent: (() => void) | null = null;
 
 /** 32 samples of 8 kHz silence. Inline so the unlock never waits on a fetch. */
 const SILENCE =
@@ -155,19 +170,23 @@ async function speakCloud(text: string, speaker: Speaker): Promise<boolean> {
     reportLive("voice");
     cloudRetryAt = 0;
     const blob = await res.blob();
-    // The unlocked element when there is one — see above; a fresh element only
-    // where no gesture ever reached us, which is the desktop case.
-    const audio = unlocked && player ? player : new Audio();
+    // The unlocked element when there is one — see above; the shared fallback
+    // element where no gesture ever reached us, which is the desktop case. One
+    // element either way, so a new line always displaces the old one instead
+    // of playing over it.
+    const audio = unlocked && player ? player : (fallbackPlayer ??= new Audio());
     const url = URL.createObjectURL(blob);
     audio.src = url;
     current = audio;
     try {
       await audio.play();
       await new Promise<void>((r) => {
+        settleCurrent = r;
         audio.onended = () => r();
         audio.onerror = () => r();
       });
     } finally {
+      settleCurrent = null;
       // One line is ~100 kB; twenty-three leaked across a panel is real memory
       // on a phone that is also running a camera.
       URL.revokeObjectURL(url);
@@ -276,7 +295,14 @@ export function stopSpeaking(): void {
   window.speechSynthesis?.cancel();
   if (current) {
     current.pause();
+    // A paused element still holding its src is a line waiting to resume;
+    // clear it so nothing can pick the old audio back up.
+    current.removeAttribute("src");
     current = null;
   }
+  // Settle the interrupted line's promise so its `finally` runs — the URL is
+  // revoked, the speaking flag drops, and the caller's await returns.
+  settleCurrent?.();
+  settleCurrent = null;
   setSpeaking(false);
 }

@@ -223,8 +223,19 @@ const AUDIBLE_FLOOR = 0.12;
 /** A gap shorter than this is a breath; longer than this is a pause, not a fade. */
 const DROPOUT_MIN_S = 1;
 const DROPOUT_MAX_S = 6;
+/**
+ * A touch-first device — where every cadence below halves. Every figure this
+ * coach reports is a share or a per-minute rate, so sampling slower changes
+ * NOTHING about what is reported; it only stops the measuring from being why
+ * the pitch stutters on the machine that is also running the camera, the
+ * recorder and the recogniser. Do not "save" the coach by loosening the
+ * abandon thresholds instead — that path deletes the whole card.
+ */
+const onPhone = () =>
+  typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches;
 /** Volume is cheap to sample, so it runs far faster than inference. */
 const VOLUME_INTERVAL_MS = 50;
+const VOLUME_INTERVAL_MOBILE_MS = 100;
 
 /** Head off the lens by more than this reads as looking elsewhere. */
 const FACING_DEG = 22;
@@ -240,11 +251,15 @@ const WRIST_VISIBLE = 0.5;
 const GESTURE_ON = 0.9;
 const GESTURE_OFF = 0.35;
 
-/** Target sampling rate for inference. Eight a second is plenty for coaching. */
+/** Target sampling rate for inference. Eight a second is plenty for coaching
+ *  on a desktop; four a second is plenty on a phone, where the GPU has a
+ *  camera pipeline to run as well. */
 const BASE_INTERVAL_MS = 125;
+const BASE_INTERVAL_MOBILE_MS = 250;
 const MAX_INTERVAL_MS = 500;
-/** Never occupy more than a fifth of wall-clock time. */
+/** Never occupy more than a fifth of wall-clock time (a tenth on phones). */
 const DUTY = 5;
+const DUTY_MOBILE = 9;
 /** Sustained cost above this and the camera side gives up rather than stutters. */
 const ABANDON_MS = 90;
 const ABANDON_STRIKES = 5;
@@ -459,20 +474,26 @@ export function createDeliveryCoach(options: DeliveryCoachOptions): DeliveryCoac
 
     // Pose is the optional half: five more megabytes, and all it buys is wrists
     // and a shoulder line. Loaded after the face model is already working so a
-    // slow download costs coverage rather than the whole card.
-    void (async () => {
-      try {
-        const model = await mod.PoseLandmarker.createFromOptions(fileset, {
-          baseOptions: { modelAssetPath: assets.pose, delegate: "GPU" },
-          runningMode: "VIDEO",
-          numPoses: 1,
-        });
-        if (disposed || visionDead) model.close();
-        else poseModel = model;
-      } catch {
-        // Hands and torso stay null. The card drops those rows.
-      }
-    })();
+    // slow download costs coverage rather than the whole card. On a phone it
+    // is not loaded at all — a second inference per tick on the device already
+    // running the camera is the wrong trade, and every consumer of the pose
+    // figures (gestures, sway, hands-in-shot) is null-tolerant end to end:
+    // the card simply drops those rows, exactly as it does on a slow network.
+    if (!onPhone()) {
+      void (async () => {
+        try {
+          const model = await mod.PoseLandmarker.createFromOptions(fileset, {
+            baseOptions: { modelAssetPath: assets.pose, delegate: "GPU" },
+            runningMode: "VIDEO",
+            numPoses: 1,
+          });
+          if (disposed || visionDead) model.close();
+          else poseModel = model;
+        } catch {
+          // Hands and torso stay null. The card drops those rows.
+        }
+      })();
+    }
   }
 
   function teardownModels() {
@@ -690,10 +711,14 @@ export function createDeliveryCoach(options: DeliveryCoachOptions): DeliveryCoac
     visionTimer = window.setTimeout(sampleVision, delay);
   }
 
+  /** The device's cadence floor and duty target, decided once per coach. */
+  const baseIntervalMs = onPhone() ? BASE_INTERVAL_MOBILE_MS : BASE_INTERVAL_MS;
+  const duty = onPhone() ? DUTY_MOBILE : DUTY;
+
   function sampleVision() {
     if (!running || disposed || visionDead || !faceModel || !video) return;
     if (video.readyState < 2 || video.videoWidth === 0) {
-      scheduleVision(BASE_INTERVAL_MS);
+      scheduleVision(baseIntervalMs);
       return;
     }
 
@@ -726,7 +751,7 @@ export function createDeliveryCoach(options: DeliveryCoachOptions): DeliveryCoac
       strikes = 0;
     }
 
-    scheduleVision(Math.min(MAX_INTERVAL_MS, Math.max(BASE_INTERVAL_MS, costEma * DUTY)));
+    scheduleVision(Math.min(MAX_INTERVAL_MS, Math.max(baseIntervalMs, costEma * duty)));
   }
 
   function abandonVision() {
@@ -757,7 +782,10 @@ export function createDeliveryCoach(options: DeliveryCoachOptions): DeliveryCoac
       running = true;
       startedAt = performance.now();
       openOwnMeter();
-      volumeTimer = window.setInterval(sampleVolume, VOLUME_INTERVAL_MS);
+      volumeTimer = window.setInterval(
+        sampleVolume,
+        onPhone() ? VOLUME_INTERVAL_MOBILE_MS : VOLUME_INTERVAL_MS,
+      );
       if (faceModel) scheduleVision(0);
     },
 

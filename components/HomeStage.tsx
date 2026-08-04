@@ -69,6 +69,16 @@ function GearGlyph() {
   );
 }
 
+function InfoGlyph() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <circle cx="9" cy="9" r="7.2" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="9" cy="5.6" r="1" fill="currentColor" />
+      <path d="M9 8.4v4.4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function HomeStage({
   run,
   founderName,
@@ -77,6 +87,7 @@ export function HomeStage({
   onOpenSettings,
   onOpenBoard,
   onOpenStageGuide,
+  onOpenKeyTerms,
   dossierOpen,
   onDossier,
   nativeControls = false,
@@ -90,6 +101,8 @@ export function HomeStage({
   onOpenBoard: () => void;
   /** Opens the per-stage rookie guide from the stage line in the identity row. */
   onOpenStageGuide: () => void;
+  /** The ⓘ button: every key term, searchable, with the Rookie switch on it. */
+  onOpenKeyTerms: () => void;
   /*
    * The dossier used to own its own open state. It is lifted now because the
    * app's masthead controls are UIKit views on iOS, and a native button
@@ -144,6 +157,18 @@ export function HomeStage({
           {run.pro ? "PRO" : "FREE"}
         </button>
         <div className="flex items-center gap-2">
+        {/* ⓘ — the key terms page, and the Rookie switch on it. First in the
+            row because it is the door a confused player is looking for, and
+            the tutorial points at it by name. */}
+        <button
+          type="button"
+          data-coach="info"
+          onClick={onOpenKeyTerms}
+          aria-label="Key terms — every word the game uses, explained"
+          className="nv-gc flex h-9 w-9 items-center justify-center rounded-[0.7rem] text-[var(--n-10)]"
+        >
+          <InfoGlyph />
+        </button>
         {/* The whole company, on one scroll. Sits with the gear and the phone
             because it is a thing you consult, not a move you make. */}
         <button

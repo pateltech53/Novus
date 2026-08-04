@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useGame } from "@/lib/state/GameProvider";
 import { SharkStage, type SharkState } from "@/components/SharkStage";
@@ -83,7 +83,19 @@ export function PerformScreen() {
   const [phase, setPhase] = useState<Phase>("brief");
   const [error, setError] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  /*
+   * The live mic level, QUANTISED. The rAF loop below reads the meter at
+   * 60fps, but `level` used to be set raw on every frame — 60 re-renders a
+   * second of this entire screen: the WebGL shark, the notes card, the
+   * draggable self-view, all reconciled per frame, which is most of the
+   * reported "very laggy after start pitching". The loop now writes the raw
+   * reading to `levelRef` (for anything that wants full rate without React)
+   * and commits state only when the 24-step quantised value changes — a
+   * handful of renders a second, visually identical through the meter's own
+   * 75ms transition.
+   */
   const [level, setLevel] = useState(0);
+  const levelRef = useRef(0);
   const [transcript, setTranscript] = useState<PitchTranscript | null>(null);
   const [score, setScore] = useState(0);
   /** What the mic heard, live, so the player can see what will be judged. */
@@ -151,9 +163,16 @@ export function PerformScreen() {
 
   useEffect(() => cleanup, [cleanup]);
 
-  // Read the shark's brief out loud while the player reads it.
+  // Read the shark's brief out loud while the player reads it — and stop the
+  // moment the brief is left. Without the cleanup the ~15s line played on
+  // through the camera opening, and opening an echo-cancelled mic flips the
+  // platform's audio session mid-utterance (iOS drops to play-and-record, the
+  // echo canceller starts pumping the in-flight audio) — which is the crackle
+  // players reported on the pitching instructions.
   useEffect(() => {
-    if (phase === "brief") void speak(spec.line, "narrator");
+    if (phase !== "brief") return;
+    void speak(spec.line, "narrator");
+    return () => stopSpeaking();
   }, [phase, spec.line]);
 
   /*
@@ -178,6 +197,10 @@ export function PerformScreen() {
       return;
     }
     setPhase("permission");
+    // The narration ends BEFORE the mic opens, never across it — opening an
+    // echo-cancelled microphone switches the platform audio session, and a
+    // line still playing through that switch is audibly mangled.
+    stopSpeaking();
     try {
       const stream = await requestCapture({ video: true });
       streamRef.current = stream;
@@ -186,10 +209,16 @@ export function PerformScreen() {
         await videoRef.current.play().catch(() => undefined);
       }
       meterRef.current = createLevelMeter(stream);
+      let lastStep = -1;
       const tick = () => {
         const value = meterRef.current?.read() ?? 0;
         peakRef.current = Math.max(peakRef.current, value);
-        setLevel(value);
+        levelRef.current = value;
+        const step = Math.round(value * 24);
+        if (step !== lastStep) {
+          lastStep = step;
+          setLevel(step / 24);
+        }
         rafRef.current = requestAnimationFrame(tick);
       };
       rafRef.current = requestAnimationFrame(tick);
@@ -203,8 +232,10 @@ export function PerformScreen() {
       if (deliveryCoachSupported()) {
         const coach = createDeliveryCoach({
           video: videoRef.current,
-          // The meter already running, rather than a second AudioContext.
-          readLevel: () => meterRef.current?.read() ?? 0,
+          // The rAF loop's own reading, rather than a second scan of the same
+          // analyser — the meter was being read by three consumers at once
+          // (this, the rAF, the live tracker), each a 1024-sample pass.
+          readLevel: () => levelRef.current,
         });
         coachRef.current = coach;
         void coach.ready.then(setCoachArmed);
@@ -854,7 +885,20 @@ export function PerformScreen() {
  * still hands its report to PitchScore, which carries it into the debrief.
  */
 
-function LevelMeterBar({ level, active }: { level: number; active: boolean }) {
+/*
+ * Animates TRANSFORM, not height. Height on 28 flex children invalidated the
+ * row's layout on every level change; scaleY is compositor-only, so the meter
+ * costs paint and nothing else. React.memo on top: the parent re-renders for
+ * the clock and the transcript too, and 28 spans do not need to reconcile for
+ * a tick of the clock.
+ */
+const LevelMeterBar = memo(function LevelMeterBar({
+  level,
+  active,
+}: {
+  level: number;
+  active: boolean;
+}) {
   const bars = 28;
   const lit = Math.round(level * bars);
   return (
@@ -865,7 +909,7 @@ function LevelMeterBar({ level, active }: { level: number; active: boolean }) {
         return (
           <span
             key={i}
-            className={`flex-1 rounded-[1px] transition-[height,background-color] duration-75 ${
+            className={`h-full flex-1 origin-bottom rounded-[1px] transition-[transform,background-color] duration-75 ${
               on
                 ? tooLoud
                   ? "bg-[var(--alert)]"
@@ -874,13 +918,13 @@ function LevelMeterBar({ level, active }: { level: number; active: boolean }) {
                     : "bg-[var(--text-secondary)]"
                 : "bg-[var(--n-5)]"
             }`}
-            style={{ height: on ? `${30 + (i / bars) * 70}%` : "22%" }}
+            style={{ transform: `scaleY(${on ? 0.3 + (i / bars) * 0.7 : 0.22})` }}
           />
         );
       })}
     </div>
   );
-}
+});
 
 const formatClock = (s: number) =>
   `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;

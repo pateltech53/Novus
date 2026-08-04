@@ -51,8 +51,19 @@ const BASE_Y = -0.06;
 const MODEL_SCALE = 1.1;
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
-/** Only these two states genuinely need a continuous 60fps loop. */
+/** Only these two states genuinely need a continuous fast loop. */
 const isLive = (s: SharkState) => s === "listening" || s === "celebrate";
+
+/**
+ * A touch-first device. On these, the mascot never gets the unthrottled 60fps
+ * loop: during a pitch the phone is ALSO running the camera, the recorder, the
+ * recogniser and the delivery models, and a 3MB mesh at 60fps with 2× DPR and
+ * antialiasing was competing with all of it for the GPU. Live states tick at
+ * 15fps through <Heartbeat/> instead — indistinguishable on a mascot a couple
+ * of hundred pixels tall, and a large slice of the reported pitch-screen lag.
+ */
+const coarsePointer = () =>
+  typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches;
 
 export default function SharkCanvas({
   state,
@@ -67,18 +78,20 @@ export default function SharkCanvas({
   tint?: string;
   suitTint?: string;
 }) {
+  const mobile = coarsePointer();
   return (
     <Canvas
       camera={{ position: [0, 0.15, 3.1], fov: 34 }}
-      gl={{ alpha: true, antialias: true }}
+      gl={{ alpha: true, antialias: !mobile }}
       style={{ background: "transparent" }}
-      dpr={[1, 2]}
+      dpr={mobile ? [1, 1.5] : [1, 2]}
       // Idle/thinking/verdict render on demand and are ticked slowly by
       // <Heartbeat/>, so a shark the player is not talking to does not burn
-      // the battery at 60fps while they read a decision sheet.
-      frameloop={isLive(state) && !reduced ? "always" : "demand"}
+      // the battery at 60fps while they read a decision sheet. On phones even
+      // the live states go through the heartbeat, at a faster tick.
+      frameloop={isLive(state) && !reduced && !mobile ? "always" : "demand"}
     >
-      <Heartbeat live={isLive(state)} reduced={reduced} />
+      <Heartbeat live={isLive(state)} reduced={reduced} mobile={mobile} />
       <ambientLight intensity={0.85} />
       <directionalLight position={[2.5, 3, 3]} intensity={1.5} />
       {/* Brand orange rim light — the mascot's signature edge, and the honest
@@ -104,11 +117,19 @@ export default function SharkCanvas({
  * mascot alive at a fifth of the cost. Backgrounded tabs and reduced-motion
  * stop it completely — a still shark is the correct reduced-motion answer.
  */
-function Heartbeat({ live, reduced }: { live: boolean; reduced: boolean }) {
+function Heartbeat({
+  live,
+  reduced,
+  mobile,
+}: {
+  live: boolean;
+  reduced: boolean;
+  mobile: boolean;
+}) {
   const invalidate = useThree((s) => s.invalidate);
 
   useEffect(() => {
-    if (live && !reduced) return; // "always" loop is already running
+    if (live && !reduced && !mobile) return; // "always" loop is already running
     if (reduced) {
       invalidate(); // paint one frame, then stay still
       return;
@@ -119,8 +140,9 @@ function Heartbeat({ live, reduced }: { live: boolean; reduced: boolean }) {
     };
     const start = () => {
       window.clearInterval(id);
-      // 12fps while visible; nothing at all while backgrounded.
-      id = window.setInterval(tick, document.visibilityState === "visible" ? 83 : 1000);
+      // 15fps for a live state on a phone, 12fps idle; nothing backgrounded.
+      const period = live ? 66 : 83;
+      id = window.setInterval(tick, document.visibilityState === "visible" ? period : 1000);
     };
     start();
     document.addEventListener("visibilitychange", start);
@@ -128,7 +150,7 @@ function Heartbeat({ live, reduced }: { live: boolean; reduced: boolean }) {
       window.clearInterval(id);
       document.removeEventListener("visibilitychange", start);
     };
-  }, [live, reduced, invalidate]);
+  }, [live, reduced, mobile, invalidate]);
 
   return null;
 }

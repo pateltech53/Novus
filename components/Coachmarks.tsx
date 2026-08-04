@@ -168,6 +168,62 @@ export function Coachmarks({
     };
   }, [step, nativeChrome]);
 
+  /*
+   * The page holds still while the tutorial speaks.
+   *
+   * /play is one scrolling document on a phone, and the overlay used to sit on
+   * top of it without pinning it: a drag on the scrim — or reaching the end of
+   * the card's own scroll — chained into the page, the spotlighted target
+   * drifted under the card's anchor, and the max-height maths below went
+   * negative, which is exactly the reported "text clips off and the screen
+   * scrolls down" break. So each step does the scrolling ITSELF, once: settle
+   * the target into the upper third where the card has room, then freeze the
+   * body until the step changes. The player reads a stationary screen, always.
+   */
+  useLayoutEffect(() => {
+    if (!step || typeof window === "undefined") return;
+
+    const el =
+      step.native && nativeChrome
+        ? null
+        : document.querySelector<HTMLElement>(`[data-coach="${step.target}"]`);
+    if (el) {
+      const r = el.getBoundingClientRect();
+      const vh = window.visualViewport?.height ?? window.innerHeight;
+      // Only move if the target sits outside the comfortable band — a page
+      // already showing it should not lurch on every step.
+      if (r.top < 64 || r.bottom > vh * 0.6) {
+        window.scrollTo({ top: Math.max(0, window.scrollY + r.top - vh * 0.22) });
+      }
+    }
+
+    const body = document.body;
+    const y = window.scrollY;
+    const prev = {
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      right: body.style.right,
+      width: body.style.width,
+    };
+    // position:fixed rather than overflow:hidden — iOS Safari ignores the
+    // latter on body, and the shipped app runs in exactly that engine.
+    body.style.position = "fixed";
+    body.style.top = `-${y}px`;
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.width = "100%";
+
+    return () => {
+      body.style.position = prev.position;
+      body.style.top = prev.top;
+      body.style.left = prev.left;
+      body.style.right = prev.right;
+      body.style.width = prev.width;
+      window.scrollTo({ top: y });
+    };
+  }, [step, nativeChrome]);
+
   // A tap inside the hole counts as completing the step.
   const onOverlayClick = useCallback(
     (e: React.MouseEvent) => {
@@ -223,7 +279,19 @@ export function Coachmarks({
    * when the authored side is too tight — then cap the card to that room and let
    * it scroll. The margin subtracts the safe area and any native chrome.
    */
-  const vh = typeof window !== "undefined" ? window.innerHeight : 800;
+  /*
+   * One viewport number for everything. The anchor used to be computed from
+   * `innerHeight` while the cap used `100dvh` — two different answers on iOS
+   * with toolbars showing — and the cap itself could go NEGATIVE for a target
+   * near a screen edge. A negative max-height is invalid CSS, the browser
+   * dropped the declaration entirely, and the card rendered at natural height
+   * with its text sheared off under the pinned button: the reported clip.
+   * `visualViewport` is the height the player can actually see.
+   */
+  const vh =
+    typeof window !== "undefined"
+      ? (window.visualViewport?.height ?? window.innerHeight)
+      : 800;
   const MARGIN = 16;
   const spaceBelow = hole ? vh - (hole.top + hole.height + 14) - MARGIN : 0;
   const spaceAbove = hole ? hole.top - 14 - MARGIN : 0;
@@ -232,15 +300,21 @@ export function Coachmarks({
   if (hole) {
     const roomHere = place === "below" ? spaceBelow : spaceAbove;
     const roomThere = place === "below" ? spaceAbove : spaceBelow;
-    if (roomHere < 240 && roomThere > roomHere) {
+    if (roomHere < 280 && roomThere > roomHere) {
       place = place === "below" ? "above" : "below";
     }
   }
 
-  const cardMaxHeight = hole
-    ? place === "above"
-      ? `calc(${hole.top - 14}px - env(safe-area-inset-top, 0px) - var(--nv-chrome-top, 0px) - ${MARGIN}px)`
-      : `calc(100dvh - ${hole.top + hole.height + 14}px - env(safe-area-inset-bottom, 0px) - var(--nv-chrome-bottom, 0px) - ${MARGIN}px)`
+  /*
+   * The room the card actually has, clamped to always be usable. Under 180px
+   * neither side can hold a readable card, so it stops hugging the hole and
+   * takes the screen instead — a centred, fully readable card beats an
+   * anchored, clipped one.
+   */
+  const room = place === "above" ? spaceAbove : spaceBelow;
+  const anchored = !!hole && room >= 180;
+  const cardMaxHeight = anchored
+    ? `${Math.round(Math.min(Math.max(200, room), vh * 0.78))}px`
     : "78dvh";
 
   return (
@@ -299,11 +373,11 @@ export function Coachmarks({
       <motion.div
         className="pointer-events-none absolute inset-x-4 mx-auto max-w-md"
         style={
-          hole
+          anchored && hole
             ? place === "above"
-              ? { bottom: window.innerHeight - hole.top + 14 }
+              ? { bottom: vh - hole.top + 14 }
               : { top: hole.top + hole.height + 14 }
-            : { top: "40%" }
+            : { top: "10%" }
         }
         initial={{ opacity: 0, y: place === "above" ? 10 : -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -326,8 +400,20 @@ export function Coachmarks({
           className="flex flex-col overflow-hidden rounded-[1.25rem] bg-[var(--surface-overlay)] shadow-[var(--e4)]"
           style={{ maxHeight: cardMaxHeight }}
         >
-          {/* The reading half scrolls; the button below never does. */}
-          <div className="pointer-events-auto min-h-0 flex-1 overflow-y-auto px-4 pt-3.5">
+          {/* The reading half scrolls; the button below never does. The fade
+              at its foot is the scroll affordance — on iOS there is no
+              persistent scrollbar, and clipped text with no cue reads as
+              broken, not scrollable. overscroll-contain keeps the card's own
+              scroll from ever chaining into the page behind it. */}
+          <div
+            className="pointer-events-auto min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-3.5"
+            style={{
+              maskImage:
+                "linear-gradient(to bottom, black calc(100% - 18px), transparent)",
+              WebkitMaskImage:
+                "linear-gradient(to bottom, black calc(100% - 18px), transparent)",
+            }}
+          >
             <p className="text-2xs font-bold tracking-[0.16em] text-[var(--action)]">
               STEP {index + 1} OF {steps.length}
             </p>
@@ -449,7 +535,7 @@ const BASE_STEPS: CoachStep[] = [
     id: "key-terms",
     target: "books",
     title: "Every key term explains itself.",
-    body: "Anywhere you see a business word — on these Books, on your pitch notes, in The Tank — tap it and you get the meaning, once, when it matters. Want a plain-English line under every term as you go? That switch is Rookie Mode.",
+    body: "Anywhere you see a business word — on these Books, on your pitch notes, in The Tank — tap it and you get the meaning, once, when it matters. Want a plain-English line under every term as you go? That switch is Rookie Mode — it lives here and on the ⓘ page this tour ends at.",
     mode: "ack",
     place: "below",
     rookieToggle: true,
@@ -488,6 +574,31 @@ const BASE_STEPS: CoachStep[] = [
     mode: "ack",
     place: "above",
   },
+  /*
+   * The two tabs players reported never finding, named individually. Both
+   * point at the same bar as the step above — there is nothing else to point
+   * at until the tab is opened — but each names its tab and what is behind
+   * it, because "everything lives down here" taught the bar and still left
+   * the first product unlaunched and the closet undiscovered.
+   */
+  {
+    id: "product",
+    target: "tabs",
+    native: "tabs",
+    title: "PRODUCT is where you launch what you sell.",
+    body: "Open it, press ADD, give it a name and a price. Everything else in the game — revenue, margin, the pitch itself — starts from having something on the shelf, so make this the first place you go.",
+    mode: "ack",
+    place: "above",
+  },
+  {
+    id: "closet",
+    target: "tabs",
+    native: "tabs",
+    title: "CLOSET is yours.",
+    body: "The fits you earn by surviving years and finishing runs. It changes how your founder looks in the room — and nothing else. Style is earned here, never bought advantage.",
+    mode: "ack",
+    place: "above",
+  },
   {
     id: "phone",
     target: "phone",
@@ -496,6 +607,21 @@ const BASE_STEPS: CoachStep[] = [
     body: "RobinGhood for the market, BeeMail for the mail you'd rather not open, LinkedOut for hiring. It runs on real time — the market moves while you're away.",
     mode: "ack",
     place: "above",
+  },
+  /*
+   * The tour ends ON the key terms page, not at a card about it. The step is
+   * a tap: pressing ⓘ opens the glossary — with the Rookie switch at the top
+   * — as the tutorial's last act, so every player has stood in the place
+   * confused players need to know exists.
+   */
+  {
+    id: "info",
+    target: "info",
+    native: "keyterms",
+    title: "Stuck on a word? It lives here.",
+    body: "This ⓘ is every term the game uses, searchable, in plain English — and the Rookie Mode switch is at the top of it. Tap it to finish the tour and have a look around.",
+    mode: "tap",
+    place: "below",
   },
 ];
 

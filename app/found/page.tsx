@@ -59,6 +59,8 @@ function FoundPage() {
    */
   const [brief, setBrief] = useState<CompanyBrief>(EMPTY_BRIEF);
   const [writing, setWriting] = useState(false);
+  /** AI first-drafts left for THIS founding. Three on every tier. */
+  const [drafts, setDrafts] = useState(3);
   const [briefOpen, setBriefOpen] = useState(false);
   const [lockedNote, setLockedNote] = useState<string | null>(null);
   /** Armed by the first tap on FOUND IT when a company is already open. */
@@ -174,7 +176,7 @@ function FoundPage() {
    * no model behind the route the offline writer answers instead.
    */
   const generate = async () => {
-    if (writing) return;
+    if (writing || drafts <= 0) return;
     setWriting(true);
     setBriefOpen(true);
     try {
@@ -186,6 +188,11 @@ function FoundPage() {
         draft: brief,
       });
       setBrief(written);
+      // One of three, spent whether the model or the offline writer answered —
+      // the ration is on the shortcut, not on which engine happened to serve
+      // it, and it is the same three on every tier: this button finishes a
+      // brief, and finishing is not something Pro buys more of.
+      setDrafts((d) => d - 1);
     } finally {
       setWriting(false);
     }
@@ -388,15 +395,22 @@ function FoundPage() {
             <button
               type="button"
               onClick={generate}
-              disabled={writing}
+              disabled={writing || drafts <= 0}
               className="nv-gc flex h-12 w-full items-center justify-center gap-2 rounded-[var(--radius-pill)] nv-on text-2xs font-extrabold tracking-[0.08em] text-[var(--text-primary)] shadow-[var(--e1)] ring-1 ring-[var(--hairline)] disabled:opacity-50"
             >
               <SparkleGlyph />
-              {writing ? "WRITING A FIRST DRAFT…" : "NOT SURE? LET THE AI WRITE A FIRST DRAFT"}
+              {writing
+                ? "WRITING A FIRST DRAFT…"
+                : drafts <= 0
+                  ? "THREE DRAFTS USED — THE REST IS YOURS TO WRITE"
+                  : drafts < 3
+                    ? `LET THE AI WRITE A FIRST DRAFT · ${drafts} LEFT`
+                    : "NOT SURE? LET THE AI WRITE A FIRST DRAFT"}
             </button>
             <p className="text-2xs leading-snug text-[var(--text-tertiary)]">
               It fills in the blanks only. Anything you have already written is
               kept exactly as you wrote it, and you can edit every word after.
+              Three drafts per company, on every plan.
             </p>
 
             <BriefField

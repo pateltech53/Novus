@@ -28,7 +28,7 @@ export const NATIVE_TABS: NativeTab[] = [
 
 /** Ids the masthead cluster can send back. Kept next to the tabs so the two
  *  vocabularies the native side knows about live in one file. */
-export type NativeControlId = "pro" | "dossier" | "settings" | "board" | "phone";
+export type NativeControlId = "pro" | "dossier" | "settings" | "board" | "phone" | "keyterms";
 
 export interface PlayChromeOptions {
   /**
@@ -84,6 +84,9 @@ export function usePlayChrome(options: PlayChromeOptions): boolean {
         style: pro ? "prestige" : "plain",
         leading: true,
       },
+      // The key terms page — every word the game uses, and the Rookie switch.
+      // First of the consultables, same position as the DOM row's ⓘ.
+      { id: "keyterms", symbol: "info.circle", label: "Key terms — every word explained" },
       { id: "dossier", symbol: "doc.text.magnifyingglass", label: "Company dossier" },
       /*
        * Still Standing gets a real Liquid Glass control, the same as everything
