@@ -1,5 +1,5 @@
 <template>
-  <div id="root" data-composition-id="04-advance" data-duration="4.437" data-width="1920" data-height="1080">
+  <div id="root" data-composition-id="04-advance" data-duration="4.937" data-width="1920" data-height="1080">
     <style>
       @font-face {
         font-family: "Urbanist";
@@ -207,14 +207,14 @@
       }
     </style>
 
-    <div class="clip adv04-ground" data-start="0" data-duration="4.437" data-track-index="0"></div>
+    <div class="clip adv04-ground" data-start="0" data-duration="4.937" data-track-index="0"></div>
 
-    <div class="clip adv04-stage" data-start="0" data-duration="4.437" data-track-index="1">
+    <div class="clip adv04-stage" data-start="0" data-duration="4.937" data-track-index="1">
       <div class="adv04-kicker" id="adv04-kicker">The Sim</div>
 
       <div class="adv04-headline">
-        <div class="adv04-line"><span class="adv04-line-inner" id="adv04-l1">months move</span></div>
-        <div class="adv04-line"><span class="adv04-line-inner adv04-line-muted" id="adv04-l2">when you do</span></div>
+        <div class="adv04-line"><span class="adv04-line-inner" id="adv04-l1" data-layout-allow-overlap>months move</span></div>
+        <div class="adv04-line"><span class="adv04-line-inner adv04-line-muted" id="adv04-l2" data-layout-allow-overlap>when you do</span></div>
       </div>
 
       <div class="adv04-ticker" data-layout-allow-overlap>
@@ -238,21 +238,7 @@
       <div class="adv04-months-card" id="adv04-months-card"></div>
     </div>
 
-    <video
-      class="clip"
-      data-frame-video="approved"
-      src="assets/months.mp4"
-      muted
-      playsinline
-      data-start="3.8"
-      data-duration="0.637"
-      data-track-index="2"
-      data-frame-video-x="1252"
-      data-frame-video-y="280"
-      data-frame-video-width="376"
-      data-frame-video-height="382"
-      data-frame-video-fit="cover"
-    ></video>
+    <!-- approved frame video hoisted by assemble-index -->
 
     <script src="assets/vendor/gsap.min.js"></script>
     <script>

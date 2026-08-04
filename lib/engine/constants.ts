@@ -148,6 +148,15 @@ export const KNOBS = {
 
 export const YEAR_END_MONTH = 12;
 
+/**
+ * The pitch is mandatory for this many fiscal years; from the next year on the
+ * gate offers "close quietly" — the year closes with a neutral multiplier
+ * (M = 1.0), no panel, no offers, no "Closed loud" badge. Product decision:
+ * by year four the player has proven they can perform; the ritual becomes a
+ * choice, not a toll.
+ */
+export const PITCH_REQUIRED_YEARS = 3;
+
 // ── Rookie Mode glossary (GDD §12, verbatim rookie lines) ───────────────────
 
 export const GLOSSARY: Record<string, { pro: string; rookie: string }> = {

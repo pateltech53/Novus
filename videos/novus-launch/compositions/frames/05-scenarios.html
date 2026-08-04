@@ -1,59 +1,56 @@
 <template>
-  <div id="root" data-composition-id="05-scenarios" data-duration="5.696" data-width="1920" data-height="1080">
+  <div id="root" data-composition-id="05-scenarios" data-duration="6.196" data-width="1920" data-height="1080">
 
     <!-- full-bleed white stage ground -->
-    <div class="clip" id="05-bg" data-start="0" data-duration="5.696" data-track-index="0"></div>
+    <div class="clip" id="sc05-bg" data-start="0" data-duration="6.196" data-track-index="0"></div>
 
     <!-- typed pivot line (below the device so the sliding bezel reveals it) -->
-    <div class="clip" id="05-typed" data-start="4.9" data-duration="0.796" data-track-index="1">
+    <div class="clip" id="sc05-typed" data-start="4.9" data-duration="1.296" data-track-index="1">
       <div class="typed-wrap">
-        <span class="typed-text" id="05-typed-text"></span><span class="typed-caret" id="05-typed-caret"></span>
+        <span class="typed-text" id="sc05-typed-text"></span><span class="typed-caret" id="sc05-typed-caret"></span>
       </div>
     </div>
 
     <!-- bezel device: near-black hardware card on white; carries flash + drawn check at the pivot -->
-    <div class="clip" id="05-device" data-start="0" data-duration="5.696" data-track-index="2">
-      <div class="dev-wrap" id="05-devwrap">
+    <div class="clip" id="sc05-device" data-start="0" data-duration="6.196" data-track-index="2">
+      <div class="dev-wrap" id="sc05-devwrap">
         <div class="dev-bezel">
           <div class="dev-screen">
             <svg class="dev-check-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-              <path id="05-check" d="M 48 104 L 88 146 L 156 62"/>
+              <path id="sc05-check" d="M 48 104 L 88 146 L 156 62"/>
             </svg>
-            <div class="dev-flash" id="05-flash"></div>
+            <div class="dev-flash" id="sc05-flash"></div>
           </div>
         </div>
       </div>
     </div>
 
     <!-- hoisted hero clip: decision card weighed and committed; window ends exactly at the "You decide." pivot (t=5.0) -->
-    <video data-frame-video="approved" src="assets/choices.mp4" muted playsinline preload="auto"
-      data-start="0.45" data-duration="4.55" data-track-index="3"
-      data-frame-video-x="740" data-frame-video-y="236" data-frame-video-width="440" data-frame-video-height="448"
-      data-frame-video-fit="cover"></video>
+    <!-- approved frame video hoisted by assemble-index -->
 
     <!-- left pressure line -->
-    <div class="clip" id="05-pressL-clip" data-start="2.4" data-duration="3.296" data-track-index="4">
-      <div class="press press-l" id="05-pressL">
+    <div class="clip" id="sc05-pressL-clip" data-start="2.4" data-duration="3.796" data-track-index="4">
+      <div class="press press-l" id="sc05-pressL">
         <svg class="press-tick" viewBox="0 0 40 56" xmlns="http://www.w3.org/2000/svg">
-          <path id="05-tickL" d="M 31 7 L 9 49"/>
+          <path id="sc05-tickL" d="M 31 7 L 9 49"/>
         </svg>
-        <div class="press-text" id="05-pressL-t">supplier squeezes</div>
+        <div class="press-text" id="sc05-pressL-t">supplier squeezes</div>
       </div>
     </div>
 
     <!-- right pressure line -->
-    <div class="clip" id="05-pressR-clip" data-start="3.74" data-duration="1.956" data-track-index="5">
-      <div class="press press-r" id="05-pressR">
+    <div class="clip" id="sc05-pressR-clip" data-start="3.74" data-duration="2.456" data-track-index="5">
+      <div class="press press-r" id="sc05-pressR">
         <svg class="press-tick" viewBox="0 0 40 56" xmlns="http://www.w3.org/2000/svg">
-          <path id="05-tickR" d="M 31 7 L 9 49"/>
+          <path id="sc05-tickR" d="M 31 7 L 9 49"/>
         </svg>
-        <div class="press-text" id="05-pressR-t">rival copies</div>
+        <div class="press-text" id="sc05-pressR-t">rival copies</div>
       </div>
     </div>
 
     <!-- mono kicker -->
-    <div class="clip" id="05-kicker-clip" data-start="0.15" data-duration="5.546" data-track-index="6">
-      <div class="kicker" id="05-kick">the scenarios</div>
+    <div class="clip" id="sc05-kicker-clip" data-start="0.15" data-duration="6.046" data-track-index="6">
+      <div class="kicker" id="sc05-kick">the scenarios</div>
     </div>
 
     <style>
@@ -206,7 +203,7 @@
     <script>
       (function () {
         // svg-path-draw setup: measured lengths, never guessed
-        ["05-tickL", "05-tickR", "05-check"].forEach(function (id) {
+        ["sc05-tickL", "sc05-tickR", "sc05-check"].forEach(function (id) {
           var p = document.getElementById(id);
           var len = p.getTotalLength() * 1.05;
           p.style.strokeDasharray = String(len);
@@ -219,34 +216,34 @@
 
         /* Scene 1 (0-2.4) — device rises center, screen dark; clip lights it at 0.45.
            "Every month brings a real scenario." */
-        tl.fromTo("#05-devwrap", { y: 70, opacity: 0 },
+        tl.fromTo("#sc05-devwrap", { y: 70, opacity: 0 },
           { y: 0, opacity: 1, duration: 0.4, ease: "power3.out" }, 0.05);
-        tl.fromTo("#05-kick", { y: 16, opacity: 0 },
+        tl.fromTo("#sc05-kick", { y: 16, opacity: 0 },
           { y: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, 0.2);
 
         /* Scene 2 (2.4-4.96) — pressure lines flank on their word cues */
         // "supplier" 2.43 / "squeezes" 2.99
-        tl.to("#05-tickL", { strokeDashoffset: 0, duration: 0.32, ease: "power2.out" }, 2.43);
-        tl.fromTo("#05-pressL-t", { y: 26, opacity: 0 },
+        tl.to("#sc05-tickL", { strokeDashoffset: 0, duration: 0.32, ease: "power2.out" }, 2.43);
+        tl.fromTo("#sc05-pressL-t", { y: 26, opacity: 0 },
           { y: 0, opacity: 1, duration: 0.45, ease: "power3.out" }, 2.5);
-        tl.to("#05-devwrap", { scale: 0.985, duration: 0.1, ease: "power2.out" }, 2.99);
-        tl.to("#05-devwrap", { scale: 1, duration: 0.18, ease: "power2.out" }, 3.09);
+        tl.to("#sc05-devwrap", { scale: 0.985, duration: 0.1, ease: "power2.out" }, 2.99);
+        tl.to("#sc05-devwrap", { scale: 1, duration: 0.18, ease: "power2.out" }, 3.09);
         // "rival" 3.77 / "copies" 4.22
-        tl.to("#05-tickR", { strokeDashoffset: 0, duration: 0.32, ease: "power2.out" }, 3.77);
-        tl.fromTo("#05-pressR-t", { y: 26, opacity: 0 },
+        tl.to("#sc05-tickR", { strokeDashoffset: 0, duration: 0.32, ease: "power2.out" }, 3.77);
+        tl.fromTo("#sc05-pressR-t", { y: 26, opacity: 0 },
           { y: 0, opacity: 1, duration: 0.45, ease: "power3.out" }, 3.85);
-        tl.to("#05-devwrap", { scale: 0.985, duration: 0.1, ease: "power2.out" }, 4.22);
-        tl.to("#05-devwrap", { scale: 1, duration: 0.18, ease: "power2.out" }, 4.32);
+        tl.to("#sc05-devwrap", { scale: 0.985, duration: 0.1, ease: "power2.out" }, 4.22);
+        tl.to("#sc05-devwrap", { scale: 1, duration: 0.18, ease: "power2.out" }, 4.32);
 
         /* Scene 3 pivot — "you" lands at 5.0; the clip window ends here.
            Commit flash + drawn check + slide-aside are ONE event on the bezel. */
-        tl.fromTo("#05-flash", { opacity: 0 },
+        tl.fromTo("#sc05-flash", { opacity: 0 },
           { opacity: 0.9, duration: 0.06, ease: "power1.in" }, 5.0);
-        tl.to("#05-flash", { opacity: 0, duration: 0.24, ease: "power2.out" }, 5.06);
-        tl.to("#05-check", { strokeDashoffset: 0, duration: 0.3, ease: "power2.out" }, 5.04);
-        tl.to("#05-devwrap", { x: -530, scale: 0.8, duration: 0.3, ease: "power2.inOut" }, 5.0);
-        tl.to("#05-pressL", { x: -60, opacity: 0, duration: 0.28, ease: "power2.in" }, 5.0);
-        tl.to("#05-pressR", { x: 60, opacity: 0, duration: 0.28, ease: "power2.in" }, 5.0);
+        tl.to("#sc05-flash", { opacity: 0, duration: 0.24, ease: "power2.out" }, 5.06);
+        tl.to("#sc05-check", { strokeDashoffset: 0, duration: 0.3, ease: "power2.out" }, 5.04);
+        tl.to("#sc05-devwrap", { x: -530, scale: 0.8, duration: 0.3, ease: "power2.inOut" }, 5.0);
+        tl.to("#sc05-pressL", { x: -60, opacity: 0, duration: 0.28, ease: "power2.in" }, 5.0);
+        tl.to("#sc05-pressR", { x: 60, opacity: 0, duration: 0.28, ease: "power2.in" }, 5.0);
 
         /* discrete-text-sequence — "you decide." types into the opened center.
            Keystrokes then a bulk paste on "decide." (5.17-5.78); caret blinks then stops. */
@@ -263,8 +260,8 @@
           }
           return "";
         }
-        var textEl = document.getElementById("05-typed-text");
-        var caretEl = document.getElementById("05-typed-caret");
+        var textEl = document.getElementById("sc05-typed-text");
+        var caretEl = document.getElementById("sc05-typed-caret");
         var driver = { t: 0 };
         tl.to(driver, {
           t: 5.696,

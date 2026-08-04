@@ -6,7 +6,7 @@ import type {
   PerformResult,
   RunState,
 } from "./types";
-import { KNOBS, STARTING_STATS, YEAR_END_MONTH } from "./constants";
+import { KNOBS, PITCH_REQUIRED_YEARS, STARTING_STATS, YEAR_END_MONTH } from "./constants";
 import { applyOutcome, resolveBranches, tickModifiersQuarter, tickPendingMonth } from "./effects";
 import {
   cashTick,
@@ -348,7 +348,27 @@ export interface YearEndSummary {
 }
 
 /**
- * Close the fiscal year — ONLY reachable after a scored camera performance.
+ * True when this run's current year may close WITHOUT a pitch: the first
+ * PITCH_REQUIRED_YEARS fiscal years are always pitched; after that the gate
+ * offers "close quietly" as well.
+ */
+export function pitchIsOptional(state: RunState): boolean {
+  return state.year > PITCH_REQUIRED_YEARS;
+}
+
+/**
+ * The neutral PerformResult for a quietly-closed year: score 5 lands the
+ * multiplier at exactly 1.0 (M = 0.4 + 0.12 × 5), so skipping neither helps
+ * nor hurts the books — it only forgoes the panel, its offers, and the
+ * "Closed loud" badge.
+ */
+export function makeSkippedPerform(year: number): PerformResult {
+  return { type: "pitch", score: 5, multiplier: 1.0, year, skipped: true };
+}
+
+/**
+ * Close the fiscal year — reachable after a scored camera performance, or
+ * (from year PITCH_REQUIRED_YEARS + 1 on) with a skipped-perform result.
  * Applies the deal/consequence multiplier, ages the company up, returns the
  * Year End summary for the results screen.
  */
@@ -411,9 +431,11 @@ export function closeYear(
   const badge =
     state.year === 1
       ? "Year 1: Survived"
-      : perform.score >= 8
-        ? `Year ${state.year}: Closed loud`
-        : `Year ${state.year}: Closed`;
+      : perform.skipped
+        ? `Year ${state.year}: Closed quietly`
+        : perform.score >= 8
+          ? `Year ${state.year}: Closed loud`
+          : `Year ${state.year}: Closed`;
 
   const summary: YearEndSummary = {
     year: state.year,

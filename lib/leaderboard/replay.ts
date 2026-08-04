@@ -26,6 +26,8 @@ import {
   applyAllocation,
   closeYear,
   createRun,
+  makeSkippedPerform,
+  pitchIsOptional,
   resolveAuto,
   resolveChoice,
   resolvePerformOnly,
@@ -446,6 +448,23 @@ export function applyTapeEntry(
     }
 
     case "perform": {
+      /*
+       * A quietly-closed year carries no transcript to rescore — but it is only
+       * legal where the live gate offers it (after PITCH_REQUIRED_YEARS), so
+       * the replay enforces the same rule and rebuilds the same neutral result
+       * the client used (score 5 → M = 1.0, no deal).
+       */
+      if (entry.skipped) {
+        if (entry.kind !== "yearEnd") return skip("only a year can be closed quietly");
+        if (!pitchIsOptional(state)) return skip("the first three years must be pitched");
+        withFrozenClock(cursor.clockISO, () =>
+          closeFiscalYear(state, makeSkippedPerform(state.year), 0, 0),
+        );
+        cursor.yearsClosed += 1;
+        cursor.table = [];
+        break;
+      }
+
       /*
        * §7.3 — rescore, do not accept.
        *

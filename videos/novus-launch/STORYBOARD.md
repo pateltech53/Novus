@@ -38,10 +38,10 @@ music: minimal confident cinematic tech underscore, slow build, apple keynote fe
 
 - scene: A thin black line-art bicycle draws itself on the white field beside the building line "you don't learn to ride a bike—"; on "watching videos", a small gray video-player card pops up and gets the red strike, not the bike.
 - voiceover: "You don't learn to ride a bike — by watching videos of people riding bikes."
-- duration: 3.989s
+- duration: 5.5s
 - poster: 3s
 - transition_in: cut
-- status: outline
+- status: animated
 - src: compositions/frames/01-bike.html
 - type: hook
 - persuasion: Universal analogy — a truth nobody argues with, planted before the product exists
@@ -66,7 +66,7 @@ keyMessage: Watching doesn't teach you to ride.
 - duration: 5.568s
 - poster: 4s
 - transition_in: crossfade
-- status: outline
+- status: animated
 - src: compositions/frames/02-lectures.html
 - type: pain_point
 - persuasion: Pain agitation — the analogy turned on the viewer's own education
@@ -91,7 +91,7 @@ keyMessage: Business is taught by watching — hours of it.
 - duration: 3.776s
 - poster: 3s
 - transition_in: zoom-through
-- status: outline
+- status: animated
 - src: compositions/frames/03-introducing.html
 - asset_candidates: assets/novus-mark.svg — the real fin+wave brand mark; assets/mascot-waving-alpha.webm — mascot waving, background REMOVED (transparent webm)
 - type: product_intro
@@ -118,7 +118,7 @@ keyMessage: Novus is a life simulator for running a company.
 - duration: 4.437s
 - poster: 3s
 - transition_in: push-slide LEFT
-- status: outline
+- status: animated
 - src: compositions/frames/04-advance.html
 - asset_candidates: assets/play.webp — real play screen render; assets/months.mp4 — months advancing motion clip
 - type: feature_showcase
@@ -144,7 +144,7 @@ keyMessage: Months advance only when you decide.
 - duration: 5.696s
 - poster: 4s
 - transition_in: push-slide LEFT
-- status: outline
+- status: animated
 - src: compositions/frames/05-scenarios.html
 - asset_candidates: assets/choices.mp4 — decision card weighed and committed, motion clip
 - type: feature_showcase
@@ -170,7 +170,7 @@ keyMessage: Real scenarios, every month — and you decide.
 - duration: 4.779s
 - poster: 3s
 - transition_in: push-slide LEFT
-- status: outline
+- status: animated
 - src: compositions/frames/06-remembers.html
 - type: feature_showcase
 - persuasion: Consequence made visible — the honest both-directions ledger, no sugarcoating
@@ -195,7 +195,7 @@ keyMessage: Decisions move real numbers, both directions.
 - duration: 4.032s
 - poster: 3s
 - transition_in: zoom-through
-- status: outline
+- status: animated
 - src: compositions/frames/07-the-gate.html
 - asset_candidates: assets/tank.webp — the year-gate "Pitch me" screen render
 - type: feature_showcase
@@ -222,7 +222,7 @@ keyMessage: The year doesn't close until you pitch it.
 - duration: 3.669s
 - poster: 2.5s
 - transition_in: blur-crossfade
-- status: outline
+- status: animated
 - src: compositions/frames/08-the-tank.html
 - asset_candidates: assets/tank-set.webp — five-shark TANK panel hero plate; assets/tank.mp4 — in-app pitch/tank motion clip
 - type: feature_showcase
@@ -247,7 +247,7 @@ keyMessage: You pitch on camera to five sharks who know your numbers.
 - duration: 3.477s
 - poster: 3s
 - transition_in: crossfade
-- status: outline
+- status: animated
 - src: compositions/frames/09-learn-by-doing.html
 - type: benefit_highlight
 - persuasion: Thesis closure — Frame 1's analogy cashed in as the brand's own law
@@ -271,7 +271,7 @@ keyMessage: LEARN by DOING.
 - duration: 4.395s
 - poster: 3.5s
 - transition_in: zoom-through
-- status: outline
+- status: animated
 - src: compositions/frames/10-lockup.html
 - asset_candidates: assets/novus-mark.svg — the real fin+wave brand mark
 - type: cta

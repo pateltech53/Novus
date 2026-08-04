@@ -1,9 +1,9 @@
 <template>
-  <div id="root" data-composition-id="08-the-tank" data-width="1920" data-height="1080" data-duration="3.669">
+  <div id="root" data-composition-id="08-the-tank" data-width="1920" data-height="1080" data-duration="4.169">
 
     <!-- Track 0 — the plate world: the film's one sanctioned full-bleed dark content.
          Camera push applies ONLY to this wrapper; stacked blur/sharp copies drive the rack focus. -->
-    <div class="clip f08tank-plate" data-start="0" data-duration="3.669" data-track-index="0">
+    <div class="clip f08tank-plate" data-start="0" data-duration="4.169" data-track-index="0">
       <div class="f08tank-world" id="f08tank-world" data-layout-allow-overflow>
         <div class="f08tank-backing"></div>
         <img class="f08tank-base" id="f08tank-base" src="assets/tank-set.webp" alt="">
@@ -12,23 +12,19 @@
     </div>
 
     <!-- Track 1 — static grade scrim (fixed to frame, not the camera) for chrome legibility -->
-    <div class="clip f08tank-scrim" data-start="0" data-duration="3.669" data-track-index="1"></div>
+    <div class="clip f08tank-scrim" data-start="0" data-duration="4.169" data-track-index="1"></div>
 
     <!-- Track 2 — near-black bezel ring, STATIC geometry; the camera never touches the device -->
-    <div class="clip f08tank-device" id="f08tank-device" data-start="0" data-duration="3.669" data-track-index="2"></div>
+    <div class="clip f08tank-device" id="f08tank-device" data-start="0" data-duration="4.169" data-track-index="2"></div>
 
     <!-- Track 3 — approved in-app pitch clip, hoisted by the assembler at static geometry -->
-    <video class="clip" data-frame-video="approved" src="assets/tank.mp4" muted playsinline
-      data-start="0.9" data-duration="2.769" data-track-index="3"
-      data-frame-video-x="96" data-frame-video-y="616"
-      data-frame-video-width="340" data-frame-video-height="224"
-      data-frame-video-fit="cover"></video>
+    <!-- approved frame video hoisted by assemble-index -->
 
     <!-- Track 4 — one-step dim over the clip during the rack -->
-    <div class="clip f08tank-devdim" id="f08tank-devdim" data-start="0" data-duration="3.669" data-track-index="4"></div>
+    <div class="clip f08tank-devdim" id="f08tank-devdim" data-start="0" data-duration="4.169" data-track-index="4"></div>
 
     <!-- Track 5 — chrome: white mono kicker + per-word h3 -->
-    <div class="clip f08tank-text" data-start="0" data-duration="3.669" data-track-index="5">
+    <div class="clip f08tank-text" data-start="0" data-duration="4.169" data-track-index="5">
       <div class="f08tank-kicker" id="f08tank-kicker">
         <span class="f08tank-stub"></span>
         <span class="f08tank-kicker-label">THE PITCH</span>

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useGame } from "@/lib/state/GameProvider";
+import { pitchIsOptional } from "@/lib/engine/run";
 import { SharkStage, type SharkState } from "@/components/SharkStage";
 import { PitchScore } from "@/components/PitchScore";
 import {
@@ -508,6 +509,18 @@ export function PerformScreen() {
                 <DossierGlyph size={15} />
                 CHECK YOUR NUMBERS
               </button>
+              {/* After three pitched years the ritual becomes a choice. Closing
+                  quietly is neutral by construction (M = 1.0): no panel, no
+                  offers, no loud badge — the label says exactly what happens. */}
+              {perform?.kind === "yearEnd" && run && pitchIsOptional(run) && (
+                <button
+                  type="button"
+                  onClick={() => game.skipYearPitch()}
+                  className="mt-2 w-full rounded-[var(--radius-card)] px-5 py-3 text-xs font-bold tracking-[0.06em] text-[var(--text-secondary)] underline-offset-4 hover:underline"
+                >
+                  CLOSE THE YEAR QUIETLY — SKIP THE PITCH
+                </button>
+              )}
             </div>
           </motion.section>
         ) : phase === "permission" || phase === "ready" || phase === "recording" ? (

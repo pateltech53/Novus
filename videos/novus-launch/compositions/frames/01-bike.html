@@ -1,9 +1,9 @@
 <template>
-  <div id="root" data-composition-id="01-bike" data-duration="3.989" data-width="1920" data-height="1080">
+  <div id="root" data-composition-id="01-bike" data-duration="6" data-width="1920" data-height="1080">
 
-    <div class="clip bike01-bg" data-start="0" data-duration="3.989" data-track-index="0"></div>
+    <div class="clip bike01-bg" data-start="0" data-duration="6" data-track-index="0"></div>
 
-    <div class="clip bike01-content" data-start="0" data-duration="3.989" data-track-index="1">
+    <div class="clip bike01-content" data-start="0" data-duration="6" data-track-index="1">
       <div id="bike01-stage">
 
         <!-- Left 55% — the building line -->
@@ -44,10 +44,7 @@
         <div id="bike01-card">
           <div class="bike01-play"><span class="bike01-tri"></span></div>
           <div class="bike01-track"><div id="bike01-progress-fill"></div></div>
-          <div id="bike01-strike">
-            <span class="bike01-strike-line" id="bike01-strike-fwd"></span>
-            <span class="bike01-strike-line" id="bike01-strike-bwd"></span>
-          </div>
+
         </div>
 
       </div>
@@ -211,9 +208,8 @@
         transform-origin: left center;
         will-change: transform;
       }
-      /* offset anchors so the two strokes cross as an X over the card */
-      #bike01-strike-fwd { top: 32%; }
-      #bike01-strike-bwd { top: 68%; }
+      /* one clean strike through the card — the same line frame 9 bookends */
+      #bike01-strike-fwd { top: 50%; }
     </style>
 
     <script src="assets/vendor/gsap.min.js"></script>
@@ -275,7 +271,7 @@
         tl.fromTo(
           "#bike01-card",
           { scale: 0, opacity: 0 },
-          { scale: 1, opacity: 1, duration: 0.55, ease: "power3.out" },
+          { scale: 1, opacity: 1, duration: 0.7, ease: "power3.out" },
           1.72
         );
         /* the video "plays" — progress creeps while the VO says "videos" */
@@ -288,24 +284,18 @@
 
         /* ————— Scene 3 (2.82–3.99s): on "people riding bikes", the alert-red
            strike (css-marker-patterns sketchout) crosses the CARD, not the bike ————— */
-        tl.fromTo(
-          "#bike01-strike-fwd",
-          { scaleX: 0, rotation: 12 },
-          { scaleX: 1, rotation: 12, duration: 0.32, ease: "power2.out" },
-          2.85
-        );
-        tl.fromTo(
-          "#bike01-strike-bwd",
-          { scaleX: 0, rotation: -12 },
-          { scaleX: 1, rotation: -12, duration: 0.32, ease: "power2.out" },
-          3.05
+        /* the card gives up — dims and desaturates while the bike stays bold ink */
+        tl.to(
+          "#bike01-card",
+          { opacity: 0.35, filter: "grayscale(1)", duration: 0.9, ease: "power2.inOut" },
+          3.0
         );
 
         /* macro move — imperceptible push-in across the whole shot, then dead still copy-wise */
         tl.fromTo(
           "#bike01-stage",
           { scale: 1 },
-          { scale: 1.018, duration: 3.989, ease: "none" },
+          { scale: 1.018, duration: 5.5, ease: "none" },
           0
         );
       })();

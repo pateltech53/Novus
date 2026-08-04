@@ -291,6 +291,12 @@ export interface PerformResult {
   multiplier: number; // M = 0.4 + 0.12 × score
   year: number;
   transcriptId?: string;
+  /**
+   * The year was closed WITHOUT a pitch (allowed after PITCH_REQUIRED_YEARS).
+   * A skipped close is neutral by construction: score 5 → M = 1.0, no deal,
+   * and the badge reads "Closed quietly" instead of a scored close.
+   */
+  skipped?: boolean;
 }
 
 export interface RunState {

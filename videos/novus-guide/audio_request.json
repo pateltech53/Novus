@@ -1,0 +1,57 @@
+{
+  "provider": "kokoro",
+  "speed": 0.95,
+  "lines": [
+    {
+      "id": "01",
+      "text": "This is Novus — a life simulator for running a company. Let's play one full year, screen by screen."
+    },
+    {
+      "id": "02",
+      "text": "You start by founding your company. Pick a name, pick an industry — and you begin in the garage, with twenty-five thousand in the bank."
+    },
+    {
+      "id": "03",
+      "text": "This is your company. Your mascot, up top. Three rings — brand, quality, morale. And the books: cash, burn, runway, valuation. Real words — because they're real numbers."
+    },
+    {
+      "id": "04",
+      "text": "Time only moves when you move it. Press advance month — and the month happens: revenue comes in, burn goes out, and something lands on your desk."
+    },
+    {
+      "id": "05",
+      "text": "Every month brings a scenario — a supplier squeezes, a rival copies, a critic calls. Each choice has a cost, and the game remembers. You decide — then you live with it."
+    },
+    {
+      "id": "06",
+      "text": "Watch the books after every call. Cash moves. Runway stretches — or shrinks. By month twelve, these numbers are your story."
+    },
+    {
+      "id": "07",
+      "text": "Then the year stops. To close it, you pitch — on camera. Sixty seconds: what you sell, who buys it, why you win, what you want."
+    },
+    {
+      "id": "08",
+      "text": "Your camera comes on. You talk. Novus listens — to your logic, your numbers, even your filler words. This is the part you can't skim."
+    },
+    {
+      "id": "09",
+      "text": "Five sharks have read your books. They question you, they score you — and they decide. An offer, a pass, or a hard lesson."
+    },
+    {
+      "id": "10",
+      "text": "Survive, and year two begins — bigger stage, harder problems. Fail, and Chapter Seven is real. Either way — you learned by doing."
+    },
+    {
+      "id": "11",
+      "text": "That's Novus. Your company, your calls, your pitch. Learn by doing — at novuspitch dot com."
+    }
+  ],
+  "bgm": {
+    "mode": "retrieve",
+    "query": "calm warm minimal underscore, patient, apple tutorial feel",
+    "blob": "Here is how Novus works, from founding your company to surviving the year — one full life, screen by screen.",
+    "arc": "Guided walkthrough — welcome → founding → the play screen → advancing a month → decisions → the books react → the year gate → the pitch → the sharks decide → year two or the lesson → close"
+  },
+  "voice": "af_heart"
+}

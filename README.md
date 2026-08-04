@@ -199,7 +199,9 @@ is sized to buy a year of runway rather than a fraction of valuation.
 - Real words only — burn rate, runway, dilution, Chapter 7. No coins, no XP.
 - Rookie Mode **adds** a plain-English line; the real term is always present.
 - Nothing purchasable touches score, survival, revives, or the leaderboard.
-- The year cannot close without a scored camera performance.
+- The year cannot close without a scored camera performance — for the first
+  three fiscal years. From year four the gate also offers "close quietly":
+  neutral by construction (M = 1.0), no panel, no offers, no loud badge.
 
 ## Not built yet
 

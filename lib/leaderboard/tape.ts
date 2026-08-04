@@ -77,6 +77,8 @@ export type TapeEntry =
       eventId?: string;
       choiceIndex?: number;
       transcript: string;
+      /** Year closed quietly — no pitch (valid only after PITCH_REQUIRED_YEARS). */
+      skipped?: true;
     }
   /** The year-end investment choice. */
   | { t: "allocation"; pick: Allocation }

@@ -19,6 +19,8 @@ import type {
 import {
   applyAllocation,
   createRun,
+  makeSkippedPerform,
+  pitchIsOptional,
   resolveChoice,
   resolvePerformOnly,
   visibleChoices,
@@ -209,6 +211,12 @@ interface GameContextValue {
     transcript?: string,
   ): void;
   chooseAllocation(pick: Allocation): void;
+  /**
+   * Close the year WITHOUT a pitch. Only offered after PITCH_REQUIRED_YEARS
+   * fiscal years (the gate hides it before then); neutral by construction —
+   * no deal, no panel, M = 1.0, badge "Closed quietly".
+   */
+  skipYearPitch(): void;
   closeYearEnd(): void;
   setRookieMode(on: boolean): void;
   markTermSeen(term: string): void;
@@ -618,6 +626,37 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     },
     [commit],
   );
+
+  const skipYearPitch = useCallback(() => {
+    const state = runRef.current;
+    if (!state || state.month < 12) return;
+    // The gate only offers this after PITCH_REQUIRED_YEARS — enforce it here
+    // too so no other caller can close year 1–3 quietly.
+    if (!pitchIsOptional(state)) return;
+    const working: RunState = structuredClone(state);
+    recordTap(working, {
+      t: "perform",
+      kind: "yearEnd",
+      performType: "pitch",
+      transcript: "",
+      skipped: true,
+    });
+    const { summary, portfolioYear: pYear } = closeFiscalYear(
+      working,
+      makeSkippedPerform(working.year),
+      0,
+      0,
+    );
+    setPortfolioYear(pYear);
+    const legacy = loadLegacy();
+    legacy.bestYear = Math.max(legacy.bestYear, summary.year);
+    if (!legacy.badges.includes(summary.badge)) legacy.badges.push(summary.badge);
+    saveLegacy(legacy);
+    commit(working);
+    setYearEnd(summary);
+    setAtGate(false);
+    setPerform(null);
+  }, [commit]);
 
   const closeYearEnd = useCallback(() => setYearEnd(null), []);
 
@@ -1182,6 +1221,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       openYearGate,
       submitPerform,
       chooseAllocation,
+      skipYearPitch,
       closeYearEnd,
       setRookieMode,
       markTermSeen,
@@ -1216,7 +1256,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     [
       hydrated, run, profile, queue, marketId, yearEnd, autopsy, perform, atGate, busy,
       startRun, advance, choose, dismissCard, openYearGate, submitPerform,
-      chooseAllocation, closeYearEnd, setRookieMode, markTermSeen,
+      chooseAllocation, skipYearPitch, closeYearEnd, setRookieMode, markTermSeen,
       advanceTutorial, abandonRun, saveProfileFields, choicesFor, runActivity,
       hire, fire, buyHolding, sellHolding, buyStock, sellStock,
       transferToBrokerage, setAvatar, setFounderName, setCompanyName, endRun, markMailRead, setPro, lastDeltas, tierUnlock, dismissTierUnlock,
