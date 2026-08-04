@@ -104,7 +104,7 @@
       }
       .bike01-word {
         display: inline-block;
-        margin-right: 0.20em;
+        margin-right: 0.04em;
         will-change: transform, opacity;
       }
 
@@ -121,10 +121,10 @@
       .bike01-stroke {
         fill: none;
         stroke: #111111;
-        stroke-width: 2.6;
+        /* svg is scaled 830/580 = 1.431x — 1.82 user units renders ~2.6px ink stroke */
+        stroke-width: 1.82;
         stroke-linecap: round;
         stroke-linejoin: round;
-        vector-effect: non-scaling-stroke;
       }
 
       /* — gray video-player card — */
@@ -202,7 +202,6 @@
       .bike01-strike-line {
         position: absolute;
         display: block;
-        top: 50%;
         left: 0;
         width: 100%;
         height: 6px;
@@ -212,6 +211,9 @@
         transform-origin: left center;
         will-change: transform;
       }
+      /* offset anchors so the two strokes cross as an X over the card */
+      #bike01-strike-fwd { top: 32%; }
+      #bike01-strike-bwd { top: 68%; }
     </style>
 
     <script src="assets/vendor/gsap.min.js"></script>
@@ -288,14 +290,14 @@
            strike (css-marker-patterns sketchout) crosses the CARD, not the bike ————— */
         tl.fromTo(
           "#bike01-strike-fwd",
-          { scaleX: 0, rotation: -9 },
-          { scaleX: 1, rotation: -9, duration: 0.32, ease: "power2.out" },
+          { scaleX: 0, rotation: 12 },
+          { scaleX: 1, rotation: 12, duration: 0.32, ease: "power2.out" },
           2.85
         );
         tl.fromTo(
           "#bike01-strike-bwd",
-          { scaleX: 0, rotation: 9 },
-          { scaleX: 1, rotation: 9, duration: 0.32, ease: "power2.out" },
+          { scaleX: 0, rotation: -12 },
+          { scaleX: 1, rotation: -12, duration: 0.32, ease: "power2.out" },
           3.05
         );
 
