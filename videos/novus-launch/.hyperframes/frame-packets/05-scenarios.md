@@ -10,25 +10,26 @@
 
 ## Frame 5 — Every month, a scenario
 
-- scene: The decision-card clip plays in the glass device; pressure lines flank it; then the clip yields the frame to "you decide." typing into the center.
+- scene: The decision-card clip plays in the bezel device on white; pressure lines flank it with red ticks; the device slides aside and "you decide." types into the center in ink.
 - voiceover: "Every month brings a real scenario. A supplier squeezes. A rival copies. You decide."
 - duration: 5.696s
-- poster: 5s
+- poster: 4s
 - transition_in: push-slide LEFT
 - status: outline
 - src: compositions/frames/05-scenarios.html
+- asset_candidates: assets/choices.mp4 — decision card weighed and committed, motion clip
 - type: feature_showcase
 - persuasion: Concrete stakes — named problems, not abstract "challenges"
 - beat: tension + ownership
-- blueprint: video-text-pivot (Reproduce — the clip slides aside and hands its weight to the typed line; the weight-transfer lands on "You decide.")
+- blueprint: video-text-pivot (Reproduce — the clip yields the frame to the typed line on "You decide."; same machinery as the dark build, restaged on white)
 - focal: assets/choices.mp4
-- roles: choices.mp4 = cutout (the playing hero clip inside the glass device frame)
+- roles: choices.mp4 = cutout (the playing hero clip inside the bezel device)
 - sfx: click-soft, impact-bass-2
 
-Scene 1 (0.0–2.2s): On "Every month brings a real scenario.", the glass-framed device (choices.mp4 playing — a decision card being weighed) rises center-frame (≈24% width, Centered); kicker "THE SCENARIOS" in mono above.
-Scene 2 (2.2–4.8s): On "A supplier squeezes. A rival copies.", two pressure lines reveal flanking the device (rule-of-thirds, h3 ramp, muted), one per spoken cue, each with a small alert-red tick that draws in (`svg-path-draw` — the damage color naming real problems).
-Scene 3 (4.8–6.6s): On "You decide.", the device SLIDES aside left and scales to 0.8 into the space the incoming line fills (the signature weight-transfer, one event): "you decide." types into the opened center (`discrete-text-sequence` with caret), h1 weight.
-Scene 4 (6.6–8.0s): The typed line holds; caret blinks twice and stops. Dead still — the decision is the viewer's.
+Scene 1 (0.0–2.4s): On "Every month brings a real scenario.", the bezel device (choices.mp4 playing) rises center; kicker "THE SCENARIOS" mono muted above.
+Scene 2 (2.4–4.8s): On "A supplier squeezes. A rival copies.", two pressure lines flank the device (rule-of-thirds, h3, ink), one per cue, each with a small alert-red tick (`svg-path-draw`, `#D92D20`).
+Scene 3 (4.8–5.4s): On "You decide.", the device slides aside left scaling to 0.8 (clip window ends at the pivot; the bezel carries a commit flash + drawn check as one event) and "you decide." types into the opened center in ink h1 (`discrete-text-sequence`, caret).
+Scene 4 (5.4–5.696s): Caret blinks and stops; dead still.
 
 narrativeRole: The sim's content — every month is a concrete business problem with the player's name on it.
 keyMessage: Real scenarios, every month — and you decide.

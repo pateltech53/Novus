@@ -10,119 +10,28 @@
 
 ## Frame 2 — But that's how we teach business
 
-- scene: Video-player and lecture-slide cards pile up around a small centered figure until they crowd the frame — the overwhelm of passive learning.
+- scene: Lecture-slide and video-player cards pile up around a small centered figure on the white field until they crowd it — the overwhelm of passive learning, in light gray.
 - voiceover: "But that's how we teach business. Hours of lectures. Hours of videos. Watching — never doing."
 - duration: 5.568s
-- poster: 6s
+- poster: 4s
 - transition_in: crossfade
 - status: outline
 - src: compositions/frames/02-lectures.html
 - type: pain_point
 - persuasion: Pain agitation — the analogy turned on the viewer's own education
 - beat: frustration + being buried
-- blueprint: overwhelm-surround (Adapt — keep the accumulate-then-close-in signature; the surfaces are abstract lecture-slide and video-player cards, the center is a lone student dot-avatar; no real brand logos)
+- blueprint: overwhelm-surround (Adapt — keep the accumulate-then-close-in signature; the surfaces are flat light-gray lecture/video cards with soft shadows on white; the center is a lone ink figure-dot labeled YOU)
 - focal: none — reconstructed abstract surfaces
 - roles: —
 - sfx: notification, impact-bass-2
 
-Adapt: keep overwhelm-surround's accumulation → close-in signature; the recognizable surfaces are abstract flat video-player cards (dark rounded rects with a play triangle and a progress bar) and lecture-slide cards (title bar + text lines) — deliberately generic, no invented brands.
-Scene 1 (0.0–1.6s): On "But that's how we teach business.", a small muted figure-dot with the mono label "YOU" sits alone dead-center on the navy void (Centered, tiny against emptiness — the inversion of Frame 1's big type).
-Scene 2 (1.6–4.6s): On "Hours of lectures." the first lecture-slide cards spring in around the figure (`spring-pop-entrance`, smooth register, staggered); on "Hours of videos." video-player cards join, their progress bars slowly filling (`stat-bars-and-fills`) — the pile grows on each spoken cue, 3 depth layers, cards overlapping (layered-depth, density rising past 60%).
-Scene 3 (4.6–8.0s): On "Watching — never doing.", the cards CLOSE IN a step toward the figure (`center-outward-expansion` reversed — the signature crowd-in), dimming to 70%; the line "watching — never doing." lands in white h3 over the pile's darkest region (upper-third), "never doing." at full weight. Hold on the claustrophobic crowd.
+Adapt: same shot as the dark build, inverted to the white stage — cards are `#FBFAF8`/`#F0EEEB` fills with the addendum card shadow and hairline; card text lines are muted gray bars; ink accents only.
+Scene 1 (0.0–1.8s): On "But that's how we teach business.", a small ink figure-dot with mono label "YOU" (`#6B6864`) alone dead-center on white.
+Scene 2 (1.8–4.2s): On "Hours of lectures." lecture-slide cards spring in around the figure (`spring-pop-entrance`, staggered, soft shadows); on "Hours of videos." video-player cards join, progress bars filling (`stat-bars-and-fills`, gray fills) — 3 depth layers, overlapping, density past 60%.
+Scene 3 (4.2–5.568s): On "Watching — never doing.", the cards CLOSE IN a step (the signature crowd-in), their shadows deepening slightly; the line "watching — never doing." lands in black h3 upper-third, "never doing." at full weight. Hold on the crowd.
 
 narrativeRole: Turns the bike truth into the viewer's own pain — business education is watching, and watching was just proven not to work.
 keyMessage: Business is taught by watching — hours of it.
-
-## Selected motion rule: center-outward-expansion
-
----
-name: center-outward-expansion
-description: Elements start clustered at screen center and expand outward to their final positions, driven by a shared progress value.
-metadata:
-  tags: expansion, scatter, center, reveal, layout, sync, burst
----
-
-# Center-Outward Expansion
-
-Elements begin at one shared center point and radiate outward to their final positions — the entry beat itself, or motion driven by another animation's progress (a counting number, a beat). Flat 2D cousin of [depth-scatter-assemble.md](depth-scatter-assemble.md) (per-element 3D cloud): here every element shares the SAME origin.
-
-## How It Works
-
-Each element carries its final offset as `data-target-x/y`. Its position lerps between center and target: `x = targetX × progress`. Self-centering is baked as `xPercent/yPercent: -50` so the tweened `x`/`y` are pure offsets from the stage center. Standalone burst = per-item staggered `fromTo`; driven burst = one shared proxy (see Variations).
-
-## Recipe
-
-```html
-<!-- inside a standard scene clip (hyperframes-core) -->
-<div class="burst-wrap">
-  <div class="burst-item" data-target-x="-360" data-target-y="-180">{itemA}</div>
-  <div class="burst-item" data-target-x="360" data-target-y="-180">{itemB}</div>
-  <div class="burst-item" data-target-x="0" data-target-y="360">{itemC}</div>
-</div>
-```
-
-```css
-.burst-wrap {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  display: grid;
-  place-items: center;
-}
-.burst-item {
-  position: absolute;
-  top: 50%;
-  left: 50%; /* GSAP xPercent/yPercent -50 bakes the centering; x/y tween the offset */
-  will-change: transform;
-}
-```
-
-```js
-document.querySelectorAll(".burst-item").forEach((el, i) => {
-  tl.fromTo(
-    el,
-    { xPercent: -50, yPercent: -50, x: 0, y: 0, scale: 0.6, opacity: 0 },
-    {
-      x: Number(el.dataset.targetX),
-      y: Number(el.dataset.targetY),
-      scale: 1,
-      opacity: 1,
-      duration: EXPAND_DUR,
-      ease: EXPAND_EASE,
-    },
-    ENTRY_AT + i * STAGGER,
-  );
-});
-```
-
-## Variations
-
-- **Synced to a driver (chord)**: when the burst shadows a counter / beat, drop the stagger and drive all items from ONE 0→1 proxy tween with the driver's exact duration AND ease; `onUpdate` writes `translate(-50%,-50%) translate(targetX*p, targetY*p)` per item — the two read as one beat.
-- **Partially-spread start**: with 6+ items the full cluster piles up — start from `{ x: targetX * START_PROGRESS, ... }`.
-- **Idle micro-float**: hand off to [sine-wave-loop.md](sine-wave-loop.md) after landing instead of freezing.
-
-## Values
-
-| token          | range                | notes                                                            |
-| -------------- | -------------------- | ---------------------------------------------------------------- |
-| ITEM_COUNT     | 3–8                  | > 8 = visual chaos mid-expansion; low counts want wider spread   |
-| EXPAND_DUR     | 1.0–1.8s             | must equal the driver's duration in the synced variant           |
-| EXPAND_EASE    | `power3.out` default | `power2.out` gentler, `expo.out` dramatic stop; NEVER `in` eases |
-| STAGGER        | 0.04–0.08s           | tighter = chord; looser = lazy arpeggio                          |
-| ENTRY_AT       | 0–0.5s               | a beat of compositional quiet before the burst                   |
-| START_PROGRESS | 0–0.5                | 0 = dramatic full cluster; ~0.3 avoids the pile-up               |
-
-## Critical Constraints
-
-- **Tween `x`/`y` over the baked `xPercent/yPercent: -50`** — mutating `left`/`top` fights the centering and causes pixel jitter.
-- **Out-easing only** — `in` easings read as items being sucked back mid-air.
-- **No other absolute-positioned siblings inside `.burst-wrap`** — they'd steal the centered baseline.
-- **❗ The burst IS the beat** — don't park a "real headline" label below it (the eye snaps to the label and ignores the burst). If a label is needed, reveal it post-burst in the same stack.
-- Synced variant: identical duration + ease as the driver, or the chord falls apart.
-
-## See also
-
-`counting-dynamic-scale` (the classic chord driver) · `depth-scatter-assemble` (3D per-element cloud) · `card-morph-anchor` (burst out of a morphed card) · `sine-wave-loop` (post-landing life).
 
 ## Selected motion rule: spring-pop-entrance
 

@@ -10,25 +10,25 @@
 
 ## Frame 8 — Pitching the sharks
 
-- scene: The five-shark TANK plate fills the frame under one slow continuous push; the in-app pitch clip rises in a glass device over it — the player mid-pitch — focus pulling shark to shark.
+- scene: The five-shark TANK plate fills the frame (the film's one dark moment — real set photography) under one slow push; the in-app pitch clip rides in a bezel device lower-left; focus pulls shark to shark.
 - voiceover: "On camera. Out loud. To five sharks — who have read your books."
 - duration: 3.669s
-- poster: 6s
+- poster: 2.5s
 - transition_in: blur-crossfade
 - status: outline
 - src: compositions/frames/08-the-tank.html
+- asset_candidates: assets/tank-set.webp — five-shark TANK panel hero plate; assets/tank.mp4 — in-app pitch/tank motion clip
 - type: feature_showcase
 - persuasion: Authority confrontation — the pitch is shown happening, the judges are characters who know your numbers
 - beat: awe + healthy fear
-- blueprint: camera-journey (Adapt — sub-shape B cursorless flight over the plate; the one added element is the glass device carrying the real in-app pitch clip — the film SHOWS the pitching, not just the panel)
+- blueprint: camera-journey (Adapt — sub-shape B cursorless flight; IDENTICAL to the dark build: one unbroken push, stacked blur/sharp plates for the rack focus, the hoisted pitch clip at static geometry in a bezel ring; the plate is the film's sanctioned full-bleed dark content)
 - focal: assets/tank-set.webp
-- roles: tank-set.webp = background (full-bleed hero plate, not dimmed — it is the shot) · tank.mp4 = cutout (the in-app pitch/tank clip in a glass device, lower-left, enters on "On camera")
+- roles: tank-set.webp = background (full-bleed hero plate — the one dark exception) · tank.mp4 = cutout (in-app pitch clip, bezel device lower-left)
 - sfx: riser, impact-bass-2
 
-Adapt: keep the continuous motivated camera journey (one unbroken slow push, focus pulls as legs); the added glass device with the real pitch clip is the "action" the journey witnesses.
-Scene 1 (0.0–2.4s): On "On camera. Out loud.", the tank plate fills the frame, camera already pushing slowly toward the desk (`multi-phase-camera`, one unbroken move for all 9s); depth-of-field holds the sharks soft (`depth-of-field-blur`). The glass-framed device rises lower-left (≈17% width) playing tank.mp4 — the actual in-app pitch moment, the player's camera view. Mono kicker "THE PITCH" top-left.
-Scene 2 (2.4–6.0s): On "To five sharks —", focus pulls off the device onto the panel, sweeping left to right across the five sharks (`depth-of-field-blur` refocusing leg by leg); the device dims to 80% but keeps playing — the pitch continuing under their gaze.
-Scene 3 (6.0–9.0s): On "who have read your books.", focus settles on the full desk; the line "they've read your books." reveals lower-center per-word in white h3 over the plate's darkest region. The push completes and the camera settles to stillness for the final second. Nothing else moves.
+Scene 1 (0.0–1.3s): On "On camera. Out loud.", the plate fills the frame, push already running; sharks soft (`depth-of-field-blur`); the bezel device rises lower-left with tank.mp4 cutting in; kicker "THE PITCH" in white mono (on the dark plate).
+Scene 2 (1.3–2.7s): On "To five sharks —", the rack-focus sweeps left→right across the panel (stacked blur/sharp plates); the device dims a step but keeps playing.
+Scene 3 (2.7–3.669s): On "who have read your books.", full-desk refocus; "they've read your books." reveals lower-center per-word in white h3; the push settles to stillness.
 
 narrativeRole: The climax — the pitch itself, shown: your camera, your voice, their table.
 keyMessage: You pitch on camera to five sharks who know your numbers.
@@ -147,135 +147,3 @@ Tokens: dark `{bgGradient}` so the sharp focal layer reads as lit and forward; h
 ## See also
 
 [multi-phase-camera.md](multi-phase-camera.md) (the push-in this rule's falloff accompanies) · [coordinate-target-zoom.md](coordinate-target-zoom.md) (zoom onto the focal core — the `constellation-hub` hook) · [viewport-change.md](viewport-change.md) (pan + rack across a tilted card plane) · [counting-dynamic-scale.md](counting-dynamic-scale.md) (hero metric counts up sharp — the `dataviz-countup` spotlight) · [3d-page-scroll.md](3d-page-scroll.md) (the parallax stack to rack between) · [sine-wave-loop.md](sine-wave-loop.md) (post-rack idle; keep both amplitudes tiny).
-
-## Selected motion rule: multi-phase-camera
-
----
-name: multi-phase-camera
-description: Sequential camera zoom with 2-3 distinct phases (pull-back / focus / push) plus continuous micro-drift for organic cinematic feel.
-metadata:
-  tags: camera, zoom, phase, drift, scale, cinematic
----
-
-# Multi-Phase Camera
-
-A camera wrapper around the ENTIRE scene that progresses through discrete zoom phases at scripted triggers, with continuous sine-driven micro-drift overlaid so the camera never feels static between phases. Distinct from a single linear zoom — multi-phase creates cinematic pacing (anticipation → reveal → settle).
-
-## How It Works
-
-The camera is one wrapping `<div>` whose `transform: scale() translate(x, y)` is composed from two channels inside a single `onUpdate` writer:
-
-1. **Phase scale** — a proxy object `{ scale }` stepped through phases at trigger times (`PHASE_1_SCALE` at t=0 → `PHASE_2_SCALE` at `PHASE_2_AT` → `PHASE_3_SCALE` at `PHASE_3_AT`).
-2. **Drift offset** — a continuous sine-based `translateX` / `translateY` (small amplitude, slow frequency) ADDED to the phase transform. X and Y run at slightly different frequencies (`DRIFT_FREQ_RATIO ≈ 1.3`) — equal frequencies produce a perfect diagonal that reads mechanical; ~1.3 gives an organic Lissajous.
-
-## Recipe
-
-```html
-<div class="camera" id="camera">
-  <div class="content">
-    <div class="hero">{Brand}</div>
-    <div class="tagline">{tagline}</div>
-    <div class="cta">{ctaText}</div>
-  </div>
-</div>
-```
-
-```css
-.scene {
-  overflow: hidden; /* REQUIRED — any phase scale < 1 exposes the content's edges */
-  background: {sceneBgColor}; /* background on .scene, NOT .camera — a camera-borne
-     background warps/translates with the transform and reveals the outer void */
-}
-.camera {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  transform-origin: 50% 50%; /* off-center origin creates phase-to-phase drift */
-  will-change: transform;
-}
-```
-
-```js
-const camera = document.getElementById("camera");
-
-// Three-phase scale plan: pullback → focus → push.
-const phase = { scale: PHASE_1_SCALE }; // Phase 1 is the initial value — no tween
-
-// Phase 2 — settle to neutral focus
-tl.to(phase, { scale: PHASE_2_SCALE, duration: PHASE_2_DUR, ease: PHASE_2_EASE }, PHASE_2_AT);
-
-// Phase 3 — slow push-in for the climax
-tl.to(phase, { scale: PHASE_3_SCALE, duration: PHASE_3_DUR, ease: PHASE_3_EASE }, PHASE_3_AT);
-
-// Drift driver — continuous sine motion overlaid on the phase scale.
-// The ONE writer of camera.style.transform.
-const drift = { p: 0 };
-tl.to(
-  drift,
-  {
-    p: Math.PI * 2 * DRIFT_CYCLES,
-    duration: TOTAL_DURATION, // spans the whole composition
-    ease: "none",
-    onUpdate: () => {
-      const dx = Math.sin(drift.p) * DRIFT_AMP_X;
-      const dy = Math.sin(drift.p * DRIFT_FREQ_RATIO) * DRIFT_AMP_Y;
-      camera.style.transform = `scale(${phase.scale}) translate(${dx}px, ${dy}px)`;
-    },
-  },
-  0,
-);
-
-// Content reveals happen INSIDE the camera frame (hero/tagline/cta beats).
-```
-
-## Phase Patterns
-
-| Pattern             | Scale sequence (1 → 2 → 3)        | Feel                            | When to use                   |
-| ------------------- | --------------------------------- | ------------------------------- | ----------------------------- |
-| **Focus-in**        | back → neutral → slight push      | Approach → settle → slight push | Default product reveal        |
-| **Dramatic reveal** | push → neutral → pull             | Wide → focus → settle back      | Hero shot with breathing room |
-| **Steady push**     | neutral → slight push → more push | Gradual forward momentum        | Continuous narrative push     |
-| **Bookend pull**    | neutral → strong push → neutral   | Settle → push → release         | CTA emphasis then release     |
-
-## Variations
-
-- **Phase trigger by content beat**: align a camera tween's start with a content tween's end (entry completes → push begins) rather than a fixed clock value.
-- **Camera shake (panic / impact)**: a brief higher-amplitude, higher-frequency drift tween over a short window — same `drift` mechanism with `SHAKE_AMP` / `SHAKE_CYCLES` / `SHAKE_DUR` at `SHAKE_AT`.
-- **Targeted zoom into an off-center element**: combine scale with counter-translation so the target lands at viewport center — divide the measured offset by the current scale before feeding it into the writer:
-
-```js
-const tRect = document.querySelector(".cta").getBoundingClientRect();
-const offsetX = (STAGE_W / 2 - (tRect.left + tRect.width / 2)) / phase.scale;
-const offsetY = (STAGE_H / 2 - (tRect.top + tRect.height / 2)) / phase.scale;
-// then in onUpdate: translate(offsetX + dx, offsetY + dy)
-```
-
-(Full counter-translate doctrine: [coordinate-target-zoom.md](coordinate-target-zoom.md).)
-
-## Values
-
-| token                       | range                                    | notes                                                                               |
-| --------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------- |
-| PHASE_1 / 2 / 3_SCALE       | 0.88–0.96 / 0.98–1.02 / 1.04–1.15        | tighter spread = subtler camera; scale < 1 REQUIRES `overflow: hidden` on `.scene`  |
-| PHASE_2_AT / PHASE_2_DUR    | 0.3–1.0s / 1.0–1.8s                      | longer DUR = slower settle, more cinematic                                          |
-| PHASE_3_AT / PHASE_3_DUR    | 2.0–4.0s / 1.0–2.0s                      | PHASE_3_AT ≥ PHASE_2_AT + PHASE_2_DUR or focus is preempted                         |
-| PHASE_2_EASE / PHASE_3_EASE | `power2.out` `power3.out` `power2.inOut` | spring/back easing on a camera feels uncomfortable; each later phase settles deeper |
-| TOTAL_DURATION              | = `data-duration`                        | the drift tween must span the whole composition                                     |
-| DRIFT_CYCLES                | 1–3                                      | 1 = one slow breath; high values read as mechanical wobble                          |
-| DRIFT_AMP_X / DRIFT_AMP_Y   | 2–8 px / 1–4 px                          | imperceptible per-frame, visible over time — if it reads as a shake, it's too much  |
-| DRIFT_FREQ_RATIO            | 1.2–1.5                                  | 1.0 = perfect diagonal (mechanical); ~1.3 = organic Lissajous                       |
-| HERO_AT (etc.)              | after Phase-2 settle lands               | a hero fading in mid-pull-back feels like it's flying away                          |
-
-## Critical Constraints
-
-- **Camera wraps EVERYTHING in the scene** — a per-element camera creates parallax bugs and breaks the "one viewpoint" read.
-- **One writer**: phase scale and drift compose inside the single drift `onUpdate`; nothing else touches `camera.style.transform`.
-- **`overflow: hidden` on `.scene`** — required whenever any phase scale < 1.
-- **`transform-origin: 50% 50%` on `.camera`** — off-center origin creates unpredictable phase-to-phase drift.
-- **Scene background on `.scene`, not `.camera`** — otherwise scaling/translating reveals the outer void.
-- **Hero reveal starts AFTER the initial pull-back ease lands** — otherwise the headline feels like it's flying away.
-
-## See also
-
-[coordinate-target-zoom.md](coordinate-target-zoom.md) (counter-translate math for the targeted variation) · [orbit-3d-entry.md](orbit-3d-entry.md) (orbit inside a drifting camera) · [counting-dynamic-scale.md](counting-dynamic-scale.md) (climax push synced to counter peak) · [3d-text-depth-layers.md](3d-text-depth-layers.md) (depth-stacked hero under camera moves) · [sine-wave-loop.md](sine-wave-loop.md) (element idle inside the camera).

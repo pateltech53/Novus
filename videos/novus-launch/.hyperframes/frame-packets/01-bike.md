@@ -10,24 +10,25 @@
 
 ## Frame 1 — The bike
 
-- scene: Giant lowercase type: "you don't learn to ride a bike" — then "by watching videos of people riding bikes." lands and the word "watching" dims to a strikethrough gray.
+- scene: A thin black line-art bicycle draws itself on the white field beside the building line "you don't learn to ride a bike—"; on "watching videos", a small gray video-player card pops up and gets the red strike, not the bike.
 - voiceover: "You don't learn to ride a bike — by watching videos of people riding bikes."
 - duration: 3.989s
-- poster: 5s
+- poster: 3s
 - transition_in: cut
 - status: outline
 - src: compositions/frames/01-bike.html
 - type: hook
 - persuasion: Universal analogy — a truth nobody argues with, planted before the product exists
 - beat: recognition + curiosity
-- blueprint: kinetic-type-beats (Reproduce — statement builds across full-screen beats; the dim-strike on "watching" is the payoff move)
-- focal: none — pure typography
+- blueprint: kinetic-type-beats (Adapt — the statement builds in beats, but the payoff element is drawn line art: the bike is the hero visual, the struck video-player card is the joke; keep the beat-chain → payoff signature)
+- focal: none — line-art SVG + typography, authored in-frame
 - roles: —
 - sfx: click-soft, riser
 
-Scene 1 (0.0–2.2s): Navy void, vignette only. "you don't learn to ride a bike" builds per-word (`dynamic-content-sequencing`), h1 ramp lowercase, dead-center (Centered, ~60% width); long-tail settle, nothing else on screen.
-Scene 2 (2.2–4.8s): On "by watching videos", the first line demotes upward to 60% scale and the second line lands beneath it beat-by-beat (`kinetic-beat-slam`, restrained): "by watching videos" — "of people riding bikes." (h2 ramp; two arrivals, each on its spoken cue).
-Scene 3 (4.8–7.0s): As the VO finishes, the word "watching" dims to `#B9B6B1` and a thin alert-red strike draws through it (`css-marker-patterns`, strikethrough register — the one red element, damage done to the idea); everything else holds dead still.
+Adapt: keep the beat-chain → payoff; the redesign (user feedback: the type-only version fell flat) gives the frame a drawn visual — a minimal single-stroke bicycle (two circles, frame lines, handlebar) self-drawing like an Apple line illustration.
+Scene 1 (0.0–1.3s): White field. Left 55%: "you don't learn to ride a bike —" builds per-word (`dynamic-content-sequencing`, h1 ramp, black ink, lowercase, asymmetric 55/45). Right 45%: a thin-stroke black line-art bicycle **draws itself** (`svg-path-draw` — wheels sweep on, frame strokes connect, ~2.5px stroke) finishing as the line completes.
+Scene 2 (1.3–2.9s): On "by watching videos", a small flat gray video-player card (rounded rect, play triangle, progress bar — `#F0EEEB` fill, hairline) pops up between the text and the bike (`spring-pop-entrance`, smooth), slightly overlapping the bike's front wheel — the wrong way to learn, literally in front of the bike.
+Scene 3 (2.9–3.989s): On "of people riding bikes.", the alert-red strike (`css-marker-patterns`) draws through the VIDEO CARD (not the bike); the bike stays clean black. Everything settles dead still.
 
 narrativeRole: Plants the film's thesis as a physical truth everyone already believes — before business is even mentioned.
 keyMessage: Watching doesn't teach you to ride.
@@ -395,142 +396,236 @@ Reference: `../../examples/messaging-multi-phrase.html`.
 
 `discrete-text-sequence` (per-entry typewriter on the body) · `context-sensitive-cursor` (cursor color per chapter) · `vertical-spring-ticker` (animated word swap instead of hard cut) · `scale-swap-transition` (visual morph between entries).
 
-## Selected motion rule: kinetic-beat-slam
+## Selected motion rule: spring-pop-entrance
 
 ---
-name: kinetic-beat-slam
-description: Percussive kinetic typography — short phrases slam in on a steady beat with distinct per-phrase entrances, optional rhythm chrome (metronome ticks, beat bar), then a locked finale.
+name: spring-pop-entrance
+description: The canonical entrance pop — an element (or staggered group) arrives by scaling 0 → 1 on a smooth long-tail settle (power3 default); bouncy overshoot is a rare, explicitly-playful exception. fromTo so it's correct at t=0 under seek.
 metadata:
-  tags: text, kinetic, typography, beat, rhythm, slam, percussive, punchy
+  tags: spring, entrance, pop, scale, power3, settle, stagger, reveal, arrival
 ---
 
-# Kinetic Beat Slam
+# Spring-Pop Entrance
 
-Short phrases hit one at a time on a **steady beat**, each with a _different_ entrance, then stack into a locked finale — the recipe for "punchy / rhythmic" text-forward pieces (taglines, manifestos, hype intros). The difference between generic and rhythmic is (1) one shared **onset array** driving every element, (2) **distinct** entrances per phrase rather than one reused helper, and (3) optional **rhythm chrome** that visibly keeps the beat.
+> **Smooth beats bouncy.** This entrance defaults to a smooth long-tail settle — `power3.out` (or `expo.out` for a faster front) — that decelerates cleanly into the resting size with **no overshoot**. Bouncy `back.out` is the **#1 instant turn-off** in agent-made videos and is almost never executed well; it is a rare, explicitly-playful exception (consumer / fun brand), never the default. When unsure, settle smoothly.
+
+THE entrance primitive: an element (or staggered group) arrives by springing from nothing — `scale: 0 → 1`, optional small `y` rise — and settles without bouncing. This is **arrival**, not reaction: distinct from [press-release-spring.md](press-release-spring.md) (a click/press → release feedback chain on an element that already rests on screen). Many blueprints used to borrow that rule to fake an entrance; reach for this instead.
 
 ## How It Works
 
-A single tempo grid — `PULSE` seconds per sub-beat, `BEATS = [t0, t1, t2, …]` on that grid — is the rhythmic spine; every phrase entrance, accent, and chrome tick reads its time from it, so the piece locks to one pulse instead of drifting hand-tuned offsets. Each phrase gets a different transform axis (scale+blur slam / side snap / rise+rotate) with short attacks (0.35–0.6s on the hit), then the stack holds with a finite low-amplitude breath.
+One `fromTo` carries the whole arrival: from `{ scale: 0, opacity: 0 }` (explicit, so t=0 is correct under seek) to `{ scale: 1, opacity: 1, ease: "power3.out" }`. For a **group**, the same `fromTo` runs per element at `i * STAGGER`, capped so the group reads as one arriving beat. The `scale` grow is load-bearing; the `y` rise is garnish — drop everything else and it must still read as a clean entrance. Let the ease produce the settle: never hand-key a `scale: 1.1` mid-state (it double-bounces against the curve).
 
 ## Recipe
 
 ```html
 <!-- inside a standard scene clip (hyperframes-core) -->
-<div class="kbs-stage">
-  <div class="kbs-line" id="p1"><span class="verb">Notice</span> more.</div>
-  <div class="kbs-line" id="p2"><span class="verb">Decide</span> faster.</div>
-  <div class="kbs-line" id="p3"><span class="verb">Act</span> now.</div>
+<div class="pop-hero" id="hero">{heroLabel}</div>
+
+<div class="pop-grid">
+  <div class="pop-item">{itemA}</div>
+  <div class="pop-item">{itemB}</div>
+  <div class="pop-item">{itemC}</div>
 </div>
-<!-- optional rhythm chrome -->
-<div class="kbs-metronome" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
 ```
 
 ```css
-.kbs-stage {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 120px 160px; /* title-safe margin */
+.pop-hero,
+.pop-item {
+  transform-origin: 50% 50%; /* in-place pop; move to the source point for the anchored variation */
+  will-change: transform;
 }
-.kbs-line {
-  font-family: "Archivo Black", "League Gothic", sans-serif; /* embedded display face */
-  font-size: 150px;
-  line-height: 0.96;
-  letter-spacing: -0.03em;
-  color: #f5f5f5;
-}
-.kbs-line .verb {
-  color: #ff5b2e; /* exactly one accent hue */
-}
-.kbs-metronome {
-  position: absolute;
-  bottom: 64px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 14px;
-}
-.kbs-metronome i {
-  width: 6px;
-  height: 28px;
-  background: #ff5b2e;
-  opacity: 0.25;
+.pop-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: GRID_GAP;
+  place-items: center;
 }
 ```
 
 ```js
-// ONE tempo grid drives everything — phrases AND the metronome read it.
-const PULSE = 0.4; // seconds per sub-beat
-const BEATS = [PULSE * 1, PULSE * 5, PULSE * 9]; // phrase onsets, on the grid
-
-// Distinct entrances per phrase (NOT one reused helper).
+// Single hero pop — smooth long-tail settle, no overshoot.
 tl.fromTo(
-  "#p1",
-  { scale: 1.5, filter: "blur(16px)", opacity: 0 },
-  { scale: 1, filter: "blur(0px)", opacity: 1, duration: 0.5, ease: "power4.out" },
-  BEATS[0],
-);
-tl.fromTo(
-  "#p2",
-  { x: -320, opacity: 0 },
-  { x: 0, opacity: 1, duration: 0.45, ease: "expo.out" },
-  BEATS[1],
-);
-tl.fromTo(
-  "#p3",
-  { y: 90, rotation: 6, opacity: 0 },
-  { y: 0, rotation: 0, opacity: 1, duration: 0.55, ease: "circ.out" },
-  BEATS[2],
+  "#hero",
+  { scale: 0, opacity: 0 },
+  { scale: 1, opacity: 1, duration: POP_DUR, ease: "power3.out" },
+  ENTRY_AT,
 );
 
-// Rhythm chrome: each tick flashes on the SAME grid, not a magic offset.
-gsap.utils.toArray(".kbs-metronome i").forEach((tick, i) => {
-  tl.to(tick, { opacity: 1, duration: 0.08, yoyo: true, repeat: 1, ease: "none" }, PULSE * (i + 1));
+// Staggered group pop — one arriving beat.
+gsap.utils.toArray(".pop-item").forEach((el, i) => {
+  tl.fromTo(
+    el,
+    { scale: 0, opacity: 0, y: Y_RISE },
+    { scale: 1, opacity: 1, y: 0, duration: POP_DUR, ease: "power3.out" },
+    GROUP_ENTRY_AT + i * STAGGER,
+  );
+});
+```
+
+## Variations
+
+- **Calm settle** (premium / enterprise): `power3.out`, no rotation, `Y_RISE` 0–12px — a weighted, confident landing for a hero wordmark or product shot.
+- **Firm settle** (everyday default): `power3.out` or `expo.out` for a punchier front, `Y_RISE` ~24px — cards, icons, callouts.
+- **Exact-physics settle**: when the settle IS the shot, swap the ease for `springEase({ response: 0.4 })` (critically damped) from `../adapters/gsap-easing-and-stagger.md` → Spring Eases; take `duration` from the helper.
+- **Origin-anchored pop**: a callout growing out of a specific point (marker, pointer tip) sets `transform-origin` to that point (e.g. `0% 100%`) so `scale: 0 → 1` reads as "emerging from the source", not "inflating in place".
+- **Pop into a held slot**: land the pop and hold still — no idle loop baked into the entrance. If the held frame genuinely needs life, hand off to [sine-wave-loop.md](sine-wave-loop.md) for subtle jitter on a separate later tween; prefer revealing the next element on its VO cue.
+- **Bouncy pop (RARE — explicitly-playful only)**: swap the ease for `back.out(OVERSHOOT)` and optionally settle a small `rotation: ROT_FROM → 0` so elements look hand-placed. Only for a deliberately playful register — never product / enterprise / serious tone:
+
+```js
+tl.fromTo(
+  el,
+  { scale: 0, opacity: 0, rotation: ROT_FROM },
+  { scale: 1, opacity: 1, rotation: 0, duration: POP_DUR, ease: `back.out(${OVERSHOOT})` },
+  GROUP_ENTRY_AT + i * STAGGER,
+);
+```
+
+Even here keep `OVERSHOOT ≤ ~2` — past that it reads as cartoon wobble. Better still: the baked spring at `dampingFraction: 0.6–0.7` (same adapters doc) gives ~5–10% overshoot that reads physical where `back.out` reads cartoon.
+
+## Values
+
+| token      | range                                     | notes                                                            |
+| ---------- | ----------------------------------------- | ---------------------------------------------------------------- |
+| EASE       | `power3.out` default; `expo.out` punchier | `back.out(OVERSHOOT)` only in the playful variant                |
+| POP_DUR    | 0.4–0.7s                                  | shorter = tight snap; hero must be visible by **t ≤ 0.5s**       |
+| STAGGER    | 0.04–0.08s                                | `min(0.06, 0.5 / ITEM_COUNT)` — self-caps the window             |
+| ITEM_COUNT | 3–9                                       | >9 makes the stagger vanish — switch to a wipe/sweep reveal      |
+| Y_RISE     | 0–32px                                    | small; never large enough to read as a slide-up                  |
+| ROT_FROM   | −10°–+10°                                 | playful variant only; alternate sign by index (`i % 2 ? 6 : -6`) |
+| ENTRY_AT   | 0–0.4s                                    | a beat of quiet, but keep the subject landing by t ≤ 0.5s        |
+
+## Critical Constraints
+
+- Default ease `power3.out` (no overshoot); `back.out` only in the explicitly-playful variant, and there `OVERSHOOT ≤ ~2`.
+- `ITEM_COUNT × STAGGER ≤ ~0.5s` — the group must land inside one beat.
+- Entrances state the collapsed from-state in `fromTo` — never rely on a CSS-hidden start (it renders visible before the tween claims it under seek).
+- `transform-origin: 50% 50%` for an in-place pop; the source point only for the anchored variation.
+- This is a finite arrival — idle motion on a held element is a separate, later `sine-wave-loop` tween.
+
+## See also
+
+`center-outward-expansion` (pop while radiating to slots) · `press-release-spring` (the click-feedback counterpart) · `sine-wave-loop` (post-arrival jitter, sparingly).
+
+## Selected motion rule: svg-path-draw
+
+---
+name: svg-path-draw
+description: Animate SVG paths drawing progressively using stroke-dasharray and stroke-dashoffset.
+metadata:
+  tags: svg, stroke, draw, path, reveal, icon, vector
+---
+
+# SVG Path Draw
+
+Reveals an SVG shape by animating its stroke as if a pen were tracing it. Two stroke properties together: **`stroke-dasharray = <pathLength>`** makes the entire path one dash; **`stroke-dashoffset`** starts at the path length (dash shifted fully out of view → invisible) and tweens to `0` (fully drawn). The length comes from the DOM API `path.getTotalLength()` — measured, never guessed.
+
+Works on anything with a stroke: `<path>`, `<circle>`, `<rect>`, `<line>`, `<polyline>`, `<polygon>`, `<ellipse>`.
+
+## Recipe
+
+```html
+<!-- inside a standard scene clip -->
+<svg class="logo-mark" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <path id="bar-left" d="M 60 40 L 60 160" />
+  <path id="bar-right" d="M 140 40 L 140 160" />
+  <path id="bar-mid" d="M 60 100 L 140 100" />
+</svg>
+```
+
+```css
+.logo-mark path {
+  fill: none; /* outline-only draw — a fill would appear immediately and ruin the reveal */
+  stroke: {accentColor};
+  stroke-width: 12;
+  stroke-linecap: round; /* softer endpoints */
+  stroke-linejoin: round;
+}
+```
+
+```js
+// Setup: measure each path and set its dash pattern. Real measured geometry, not a magic number.
+document.querySelectorAll(".logo-mark path").forEach((p) => {
+  const len = p.getTotalLength();
+  p.style.strokeDasharray = `${len}`;
+  p.style.strokeDashoffset = `${len}`;
 });
 
-// Finale hold: floor (not ceil) so the repeat never overshoots data-duration;
-// max(0,…) so a short hold never yields a negative repeat (GSAP reads negative as -1 = infinite).
-const holdStart = BEATS[2] + 0.7,
-  cycle = 1.6,
-  holdDur = SCENE_DURATION - holdStart;
+// Stagger draws so the eye reads continuous motion — each segment starts at
+// ~70-80% of the previous segment's duration, before it finishes.
 tl.to(
-  ".kbs-stage",
-  {
-    scale: 1.01,
-    duration: cycle / 2,
-    ease: "sine.inOut",
-    yoyo: true,
-    repeat: Math.max(0, Math.floor(holdDur / cycle) - 1),
-  },
-  holdStart,
+  "#bar-left",
+  { strokeDashoffset: 0, duration: SEGMENT_DRAW_DUR, ease: "power2.out" },
+  SEG_1_START,
+);
+tl.to(
+  "#bar-right",
+  { strokeDashoffset: 0, duration: SEGMENT_DRAW_DUR, ease: "power2.out" },
+  SEG_2_START,
+);
+tl.to(
+  "#bar-mid",
+  { strokeDashoffset: 0, duration: FINAL_SEGMENT_DUR, ease: "power2.out" },
+  SEG_3_START,
+);
+
+// Companion wordmark fades in only after the last stroke settles.
+tl.to(
+  ".brand-line",
+  { opacity: 1, duration: BRAND_FADE_DUR, ease: "power1.out" },
+  BRAND_FADE_START,
 );
 ```
 
 ## Variations
 
-- **Entrance easing by attack character** — `power4.out` hard slam ⭐ default hit · `expo.out` hardest snap (side-snaps, whip-ins) · `back.out(2)` overshoot pop (accents only, not body words) · `circ.out` heavy rise with momentum. Use **at least 3 distinct easings** across the piece.
-- **Rhythm chrome alternatives** — a center beat bar or a `// label` monospace tag pulsing on-beat instead of the 5-tick metronome; mark any decorative that must survive a shader transition per `../../transitions/overview.md`.
-- **Finale dressing** — stack + accent underline sweep ([css-marker-patterns](css-marker-patterns.md)); don't just leave the last phrase sitting.
+- **Ring starting at 12 o'clock** — `<circle>` / `<rect>` strokes start at 3 o'clock by default; rotate the element `-90deg` so a progress ring draws from the top:
+
+```html
+<circle
+  cx="100"
+  cy="100"
+  r="60"
+  id="ring"
+  style="transform-origin: 100px 100px; transform: rotate(-90deg)"
+/>
+```
+
+- **Linear (constant-speed) draw** — `ease: "none"` for a steady-rate "real pen" trace.
+- **Draw then fill** — for filled shapes, tween `fillOpacity: 0 → 1` AFTER the stroke completes (requires `fill-opacity: 0` initially and a real `fill` in CSS):
+
+```js
+tl.to(
+  "#path",
+  { strokeDashoffset: 0, duration: SEGMENT_DRAW_DUR, ease: "power2.out" },
+  SEG_1_START,
+);
+tl.to(
+  "#path",
+  { fillOpacity: 1, duration: FILL_FADE_DUR, ease: "power1.out" },
+  SEG_1_START + SEGMENT_DRAW_DUR,
+);
+```
 
 ## Values
 
-| token             | range                | notes                                                                                        |
-| ----------------- | -------------------- | -------------------------------------------------------------------------------------------- |
-| BEATS spacing     | 1.2–1.8s             | <0.8s frantic, >2.5s loses the pulse; keep spacing even — it's a beat                        |
-| entrance duration | 0.35–0.6s            | the hit must resolve before the next beat; exits ≤0.25s                                      |
-| accent hue        | exactly 1            | the verbs; the rest mono white / near-black                                                  |
-| display face      | 150px+, heavy weight | Archivo Black / League Gothic / Oswald — see `hyperframes-creative/references/typography.md` |
+| token             | range                                   | notes                                                                                              |
+| ----------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| SEGMENT_DRAW_DUR  | 0.3–0.8s                                | fast snap vs deliberate pen trace; >~1s feels sluggish for a logo reveal                           |
+| FINAL_SEGMENT_DUR | 60–80% of SEGMENT_DRAW_DUR              | proportional to segment length — a short connector at full duration reads slower than its siblings |
+| SEG_N_START       | previous start + 70–80% of its duration | reads as continuous motion, not N isolated animations                                              |
+| SEG_1_START       | 0–0.4s                                  | a small ~0.2s lead-in lets the viewer settle before motion                                         |
+| BRAND_FADE_START  | ≥ last stroke end (+ ~0.2s beat)        | earlier and the wordmark competes with the draw                                                    |
+| BRAND_FADE_DUR    | 0.3–0.8s                                | snap (urgent) vs glide (premium)                                                                   |
+
+Ease families are discrete choices: **stroke draws** use `power2.out` (a hand lifting at end of stroke) or `none` for constant speed — never `back.out` / `elastic.out` (pens don't bounce). **Fades** use `power1.out`.
 
 ## Critical Constraints
 
-- **One beat array, not scattered offsets** — every element times off `BEATS[]` / `PULSE`; this is the single biggest lever for "rhythmic".
-- **Different entrance per phrase** — a reused `punchIn()` for all lines is the flat-but-competent tell. Vary the motion axis, reuse the ease _family_.
-- **Finale repeat math**: `repeat: Math.max(0, Math.floor(dur / cycle) - 1)` — `Math.ceil` overshoots `data-duration` and trips the `gsap_repeat_ceil_overshoot` lint rule; a negative repeat is read by GSAP as `-1` (infinite).
-- **No banned exit animations between scenes** — in a montage the _transition_ is the exit (`../../transitions/overview.md`); only a final scene may fade out.
-- **Display font must be embedded** or it silently falls back at render — Anton / Bebas-as-literal are NOT embedded (`Bebas Neue` aliases to League Gothic; verify in `typography.md`).
+- **`fill: none`** for outline-only draws — otherwise the fill appears immediately.
+- **Dasharray/dashoffset = the measured `getTotalLength()`**, set at setup; requires the SVG in the DOM (inline SVG is fine; a loaded `<image>` SVG is not).
+- **Complex paths**: if `getTotalLength()` looks wrong, overestimate slightly (`len * 1.05`) — too large is invisible at animation start; too small clips the end.
+- **Stagger multi-path draws at ~70–80%** of the previous segment's duration.
 
 ## See also
 
-`3d-text-depth-layers` (extruded depth on the slammed words) · `css-marker-patterns` (finale underline/circle) · `sine-wave-loop` (the finale breath) · `../adapters/gsap-easing-and-stagger.md` (easing vocabulary).
+`svg-icon-enrichment` (internal parts animate after the outline draws) · `counting-dynamic-scale` (stroke draws an icon while a number counts up) · `hacker-flip-3d` (logo draws, wordmark decodes beneath).

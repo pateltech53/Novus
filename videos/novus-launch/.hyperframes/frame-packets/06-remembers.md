@@ -10,25 +10,25 @@
 
 ## Frame 6 — The game remembers
 
-- scene: Three ledger glass chips assemble; as the VO names each number, its figure flips — cash up in green, burn in white, runway down with a red tick — the consequences of Frame 5's decision.
+- scene: Three white ledger cards assemble on the white field; figures flip on their cues — cash up in green, burn in ink, runway down with a red tick.
 - voiceover: "And the game remembers. Every decision moves your numbers — cash, burn, runway."
 - duration: 4.779s
-- poster: 5s
+- poster: 3s
 - transition_in: push-slide LEFT
 - status: outline
 - src: compositions/frames/06-remembers.html
 - type: feature_showcase
 - persuasion: Consequence made visible — the honest both-directions ledger, no sugarcoating
 - beat: weight + respect
-- blueprint: grid-card-assemble (Adapt — live-populating data board variant: the chips assemble empty, then their figures flip states on each spoken cue; keep the staggered self-assembly signature)
-- focal: none — the ledger chips are built typography
+- blueprint: grid-card-assemble (Adapt — live-populating data board; three soft-shadowed white cards, staggered assembly, post-assembly figure flips; same machinery as the dark build, restaged on white)
+- focal: none — the ledger cards are built typography
 - roles: —
 - sfx: pop, sparkle
 
-Adapt: keep grid-card-assemble's staggered self-assembly + post-assembly status flips; three chips only (cash / burn / runway), figures in IBM Plex Mono tnum at full ink.
-Scene 1 (0.0–2.0s): On "And the game remembers.", the line lands centered (h2 ramp); beneath it three empty glass chips assemble in a row (`spring-pop-entrance`, staggered, smooth) — labels only: CASH · BURN · RUNWAY in mono.
-Scene 2 (2.0–5.2s): On "Every decision moves your numbers —", the headline demotes upward; then per spoken cue each chip's figure arrives and flips: "cash" → $25K counts up to $31K in solvency green (`counting-dynamic-scale`); "burn" → $2,000 lands in full white; "runway" → 12mo flips DOWN to 9mo with a small alert-red tick beside it (`stat-bars-and-fills`, a short bar draining) — the decision from Frame 5 had a cost.
-Scene 3 (5.2–7.5s): The three chips hold; one restrained keyword glow passes across "RUNWAY"'s label as the VO finishes (the number the whole game bends around). Still hold.
+Adapt: cards use the addendum card recipe (white fill, soft shadow, hairline); labels mono muted; figures mono tnum — CASH counts up in `#0E9F6E`, BURN lands in ink, RUNWAY flips 12mo→9mo with a `#D92D20` tick and a short draining bar.
+Scene 1 (0.0–1.6s): On "And the game remembers.", the line lands centered in ink h2; three empty white cards assemble beneath (`spring-pop-entrance`, staggered): CASH · BURN · RUNWAY.
+Scene 2 (1.6–4.2s): On "Every decision moves your numbers —", the headline demotes; per cue each card's figure arrives and flips: cash $25K→$31K green count-up (`counting-dynamic-scale`); burn $2,000 ink; runway 12mo→9mo with the red tick (`stat-bars-and-fills`).
+Scene 3 (4.2–4.779s): The cards hold; RUNWAY's label gets one restrained emphasis step. Still.
 
 narrativeRole: The sim's memory — decisions are not multiple-choice trivia; they compound into the books you will defend.
 keyMessage: Decisions move real numbers, both directions.

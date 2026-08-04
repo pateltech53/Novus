@@ -292,60 +292,53 @@ them. Catalogue numbers (No. 01) are decorative chrome and may be sequential.
 - **9:16 / 1:1 are guidance**; verify the one big line stays ≤78cqw and above the floor per ratio.
 - Bars, compare panels, and the dashed image placeholder are CSS-only; no external imagery is required.
 
-## Novus film addendum — the stage, the glass, and the auxiliary accents
+## Novus film addendum — THE WHITE STAGE (v3 restyle — READ FIRST, overrides everything above)
 
-This film is an Apple-"Introducing"-style launch. Three brand-mandated extensions to the
-remixed preset above (sources: the Novus repo `design.md` brand constants + the user's brief):
+The film is an Apple-promotional LIGHT piece: **white ground, black text.** The
+broadside registers above are retired; read every prose mention of "dark
+ground" through this addendum.
 
-### The stage is brand navy
+### The stage is white
 
-The film's dark register ground is **deep brand navy `#0B1E36`** (the game's own serious
-surface — onboarding, the pitch camera, and the shark panel all sit on it; the TANK hero
-render is this world). `ink-black #232019` survives only as the near-black under-vignette
-edge. One radial vignette per frame is licensed: `radial-gradient` from `#10263f` center to
-`#081527` edges — the brand's mascot-stage vignette at film scale. The warm light register
-(`#FFFFFF` / `#EDEBE6`) appears ONLY inside captured device screens — never as a frame ground.
+Frame ground: **`#FFFFFF`**, with an optional whisper of warmth toward the edges
+(`radial-gradient` center `#FFFFFF` → edge `#F7F5F2`) — barely perceptible, never
+a visible vignette. Ink is **`#111111`** (display + body), muted `#6B6864`,
+hairlines `rgba(17,17,17,0.10)`. NEVER a dark frame ground; dark exists only
+inside real content (the TANK plate, captured dark screens).
 
-### Glass is the film's material
+### Elevation, not glass
 
-Every panel that floats on the stage is a **Liquid-Glass pane** (mirrors the iOS app's real
-native chrome). One recipe, no variations:
+Floating panels are **soft-shadowed white cards** (the app's own light design
+language — flat fill, real elevation, no blur):
 
 ```css
-.pane {
-  background: rgba(255,255,255,0.08);            /* tint fill on navy */
-  -webkit-backdrop-filter: blur(24px) saturate(1.8);
-  backdrop-filter: blur(24px) saturate(1.8);
-  border-radius: 28px;                            /* pills: 999px for capsules */
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.07),   /* hairline ring */
-              0 24px 56px rgba(0,0,0,0.36);             /* ambient lift */
-}
-.pane::before { /* 1px specular top edge — the lit crest */
-  content:""; position:absolute; inset:0 0 auto 0; height:1px; border-radius:inherit;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.32), transparent);
+.card {
+  background: #ffffff;
+  border-radius: 28px;                    /* pills 999px */
+  box-shadow: 0 1px 0 rgba(17,17,17,0.06),
+              0 2px 4px rgba(17,17,17,0.07),
+              0 12px 32px rgba(17,17,17,0.10);
+  outline: 1px solid rgba(17,17,17,0.07); outline-offset: -1px;
 }
 ```
 
-Laws: never stack two blurred panes (one pane, several things cut out of it); a figure on
-glass keeps full-strength ink (`#FFFFFF`, `{solvency}`, or `{alert}` — never a muted step);
-figures are always IBM Plex Mono with `font-feature-settings:"tnum" 1`.
+Device frames: a near-black bezel card (`#1A1918`, radius 34px) reads as
+hardware on white — the one sanctioned dark element class.
 
-### The auxiliary accents and their laws (from the game's brand laws — enforced, not decorative)
+### Accents on white (light-ground values)
 
 ```yaml
-action:   "#FF6B00"   # the ONLY color that asks you to do something — max ONE element per frame
-solvency: "#3DDC97"   # financial UPSIDE only — count-ups, runway gains. Never a CTA.
-prestige: "#FFC24B"   # the year gate, stage-ups, badges. Rare by design.
-alert:    "#FF3333"   # filler words + financial damage only.
+action:   "#E35F00"   # the light-ground action orange — max ONE element per frame, only the thing that asks
+solvency: "#0E9F6E"   # financial upside TEXT on white (the brand green #3DDC97 fails on white as text; use it only as a fill/marker)
+prestige: "#B7791F"   # year-gate gold, text-grade on white (#FFC24B only as a fill/glow)
+alert:    "#D92D20"   # damage / filler words, text-grade on white
 ```
 
-On the navy stage use `#FF6B00` for action (the `#E35F00` in the frontmatter is the
-light-ground deepening — it belongs on white/cream surfaces only, i.e. inside captured screens).
-Broadside's "fire-orange as environment" register is retired for this film: orange is never a
-full-frame ground; the TANK/prestige moments may use `{prestige}` type on navy instead.
+Figures stay IBM Plex Mono tnum at full-strength `#111111` (or the semantic
+color above). Kickers: mono uppercase tracked `#6B6864`.
 
 ### Type at film scale
 
-Broadside's lowercase display law conveniently IS Apple's intro grammar ("introducing…") —
-keep it for the display ramp. Sentence case for leads. Every numeral in the film is
-IBM Plex Mono tnum at full-strength ink.
+Urbanist lowercase display (the broadside ramp sizes stand); ink `#111111`.
+Glow blooms are retired on white — emphasis is weight, scale, and the accent
+laws. The specular-glass grammar is replaced by stillness and shadow.
