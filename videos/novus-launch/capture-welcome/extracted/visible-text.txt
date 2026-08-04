@@ -1,0 +1,6 @@
+[h1] Run a company.
+[h1] Defend it out loud.
+[p] Months are free. The year costs you a pitch — on camera, to five investors who have read your numbers.
+[button] START
+[span] Shark voices is using the local fallback
+[span] why

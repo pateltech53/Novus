@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "preferences": {
+    "flow": {
+      "value": "automation",
+      "confirmed_in": [
+        "novus-launch"
+      ],
+      "updated_at": "2026-08-04T01:48:09.593Z"
+    },
+    "storyboard": {
+      "value": "no",
+      "confirmed_in": [
+        "novus-launch"
+      ],
+      "updated_at": "2026-08-04T01:48:09.711Z"
+    },
+    "style_preset.product-launch-video": {
+      "value": "broadside",
+      "confirmed_in": [
+        "novus-launch"
+      ],
+      "updated_at": "2026-08-04T01:55:23.368Z"
+    }
+  },
+  "sightings": {}
+}

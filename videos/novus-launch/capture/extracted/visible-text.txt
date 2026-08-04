@@ -1,0 +1,124 @@
+[p] NOVUS
+[p] FREE TO PLAY · PRO OPTIONAL
+[h1] Keep a company alive.
+[h1] Defend it out loud.
+[p] A life sim for a company. You make every call — who to hire, what to ship, which deal to walk past — and once a year the game stops and asks you to defend it: a pitch, out loud, to five investors who have read your numbers.
+[button] CREATE ACCOUNT
+[button] Already have an account? Sign in
+[p] An account keeps your companies when you switch device, and is what a Pro subscription attaches to. It costs nothing — the free game stays the whole game.
+[p] You don’t learn to ride a bike by watching videos of people riding bikes.
+[p] You get on. You wobble. You fall off in front of everyone, and you go again. That is how anyone has ever learned anything worth knowing — and it is exactly how business is not taught.
+[p] Novus is built on one belief:
+[span] you learn business by running one.
+[p] Set the prices. Make the hires. Sit with a bad quarter you caused. And once a year, stand up — actually out loud, actually on camera — and defend the whole thing to investors who have read your books. Not a lecture about pitching. The pitch.
+[h2] Your whole company,
+[h2] one month at a time.
+[p] Run it
+[p] Cash, burn, runway, valuation — live, and moved by every call you make.
+[p] Live with it
+[p] Suppliers squeeze, rivals copy, a critic books a table. Your industry, your problems.
+[p] Defend it
+[p] The year ends when you pitch it — on camera, judged on what you say, never how you sound.
+[h2] Free is the whole game.
+[p] Same twelve months, same pitch, same scoring, same board. Pro opens more of the world — never a better game.
+[p] FREE
+[li] Four industries, whole game
+[li] One company a day — no redo
+[li] The full pitch, scored the same
+[li] The wardrobe track banks progress
+[button] PLAY FREE
+[p] PRO
+[p] $6.99
+[span] / month
+[p] $39.99
+[p] A YEAR —
+[p] $43.89
+[p] LESS
+[li] All twelve industries
+[li] Three companies a day
+[li] The Room — cold-call real investors
+[li] Wear the wardrobe you earn
+[button] MONTHLY
+[button] YEARLY
+[p] Billed by Stripe. Both plans renew automatically —
+[p] $6.99
+[p] each month or
+[p] $39.99
+[p] each year — until you cancel, which you can do at any time from Settings.
+[a] Terms
+[p] CHAPTERS
+[p] For classrooms and clubs — every seat gets Pro, handed out by email from a console. No student is asked for a card.
+[p] seats
+[span] $299
+[span] / yr ·
+[span] $8.54
+[span] a seat
+[button] START 35 SEATS
+[p] 100
+[p] seats
+[span] $599
+[span] / yr ·
+[span] $5.99
+[span] a seat
+[button] START 100 SEATS
+[p] Custom size
+[span] 500
+[span] seats
+[button] START CUSTOM
+[p] Billed yearly by Stripe until cancelled. The buyer gets the seat console at
+[a] novuspitch.com/chapter
+[p] — invite by email, or register a whole class from a list.
+[a] ALREADY RUN ONE? OPEN YOUR CHAPTER
+[p] ONE-TIME, NO SUBSCRIPTION
+[p] Extra Run Slot
+[span] $1.99
+[span] ONCE
+[p] One more company running at the same time.
+[p] Industry Pack
+[span] $2.99
+[span] ONCE
+[p] One locked industry, kept for good.
+[p] Cosmetic Bundles
+[span] $1.99–$4.99
+[p] Wardrobe only. Changes how you look in the panel.
+[p] Earned in the Closet — not sold here yet.
+[span] Pro never buys a score, a survival, a revive, or a place on the board.
+[p] Those are earned or they are nothing. No card is taken yet — choosing Pro switches it on for this device until online accounts launch.
+[h2] Questions people ask.
+[dt] What is Novus?
+[dd] Novus is a business simulation game. You run a company month by month — hiring, pricing, product, the lot — and at the end of each fiscal year the game stops and asks you to pitch it out loud, on camera, to five investors who have read your numbers.
+[dt] Is Novus free?
+[dd] Yes. The whole game is free: twelve months, the full pitch, the same scoring and the same leaderboard. Novus Pro opens more of the world — extra industries, more runs a day — and never buys a score, a survival or a place on the board.
+[dt] Do I need a camera to play?
+[dd] You need one to close a fiscal year, because the pitch is the game. If your camera or microphone will not work, you can type your pitch instead and it is scored the same way — on what you said, not on how you sounded.
+[dt] What happens to my video?
+[dd] It never leaves your device. The delivery coach reads frames in memory on your own phone or laptop and keeps only averages. Audio is sent for transcription only when a transcription service is configured, and it is never stored. Nothing is uploaded, kept or shown to anyone.
+[dt] Is Novus scored on my accent or how confident I sound?
+[dd] No, and it cannot be. Accent, tone of voice, energy and speech rhythm are never scored anywhere in Novus. The score comes from what you said and whether your claims survive a look at your own books. Delivery figures like words per minute are reported back to you and are kept out of the code that grades.
+[dt] Can I play Novus on my phone?
+[dd] Yes. Novus runs in any modern browser on a phone, tablet or computer, and there are iOS and Android builds. Your company follows your account between devices.
+[dt] Who made Novus?
+[dd] Five students — Yuvan, Dhruv, Zach, Ana and Monica — at the LaunchX Flagship program in San Diego, summer 2026. Designed, coded and pitched in one summer.
+[h2] Built by five students.
+[p] Novus was designed and built at the
+[span] LaunchX Flagship program, San Diego, summer 2026
+[p] — designed, coded and pitched in one summer.
+[p] Yuvan
+[p] MARKETING & MEDIA
+[p] Dhruv
+[p] CODING, APP BUILDING & OPERATIONS
+[p] Zach
+[p] CODING & APP BUILDING
+[p] Ana
+[p] CUSTOMER RESEARCH
+[p] Monica
+[p] OUTREACH
+[p] Found something.
+[button] CREATE ACCOUNT
+[button] Already have an account? Sign in
+[p] An account keeps your companies when you switch device, and is what a Pro subscription attaches to. It costs nothing — the free game stays the whole game.
+[a] Get the app
+[a] team@novuspitch.com
+[a] Instagram
+[a] TERMS OF USE
+[p] Score, survival and the leaderboard are never for sale.

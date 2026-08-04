@@ -1,0 +1,176 @@
+{
+  "typography": [
+    {
+      "role": "display",
+      "fontFamily": "Urbanist",
+      "fontSize": "48px",
+      "fontWeight": "800",
+      "lineHeight": "49.92px",
+      "letterSpacing": "-1.44px",
+      "color": "oklch(0.245 0.014 85)",
+      "sampleText": "Keep a company alive.Defend it out loud."
+    },
+    {
+      "role": "body",
+      "fontFamily": "Urbanist",
+      "fontSize": "44px",
+      "fontWeight": "800",
+      "lineHeight": "49.28px",
+      "letterSpacing": "-0.88px",
+      "color": "oklch(0.245 0.014 85)",
+      "sampleText": "You don’t learn to ride a bike by watching videos of people "
+    },
+    {
+      "role": "heading",
+      "fontFamily": "Urbanist",
+      "fontSize": "30px",
+      "fontWeight": "800",
+      "lineHeight": "37.5px",
+      "letterSpacing": "-0.6px",
+      "color": "oklch(0.245 0.014 85)",
+      "sampleText": "Your whole company,one month at a time."
+    },
+    {
+      "role": "link",
+      "fontFamily": "Urbanist",
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "lineHeight": "20px",
+      "letterSpacing": "normal",
+      "color": "oklch(0.245 0.014 85)",
+      "sampleText": "Get the app"
+    }
+  ],
+  "spacing": {
+    "observed": [
+      2,
+      8,
+      10,
+      12,
+      16,
+      20,
+      24,
+      32,
+      40,
+      96
+    ],
+    "baseUnit": 8
+  },
+  "radius": [
+    "18px",
+    "999px",
+    "3.35544e+07px"
+  ],
+  "shadows": [
+    {
+      "value": "oklch(0.2 0.01 85 / 0.07) 0px 1px 2px 0px, oklch(0.2 0.01 85 / 0.05) 0px 1px 3px 0px",
+      "count": 8
+    },
+    {
+      "value": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklch(0.885 0.005 85) 0px 0px 0px 1px, oklch(0.2 0.01 85 / 0.07) 0px 1px 2px 0px, oklch(0.2 0.01 85 / 0.05) 0px 1px 3px 0px",
+      "count": 2
+    },
+    {
+      "value": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklch(0.245 0.014 85) 0px 0px 0px 1px, oklch(0.2 0.01 85 / 0.07) 0px 1px 3px 0px, oklch(0.2 0.01 85 / 0.06) 0px 3px 8px 0px",
+      "count": 1
+    }
+  ],
+  "buttons": [
+    {
+      "label": "CREATE ACCOUNT",
+      "background": "#E35F00",
+      "backgroundImage": "",
+      "backdropFilter": "",
+      "color": "oklch(0.99 0 0)",
+      "padding": "0px 24px",
+      "borderRadius": "999px",
+      "border": "0px solid oklch(0.99 0 0)",
+      "boxShadow": "oklch(0.2 0.01 85 / 0.07) 0px 1px 2px 0px, oklch(0.2 0.01 85 / 0.05) 0px 1px 3px 0px",
+      "fontSize": "17px",
+      "fontWeight": "800",
+      "height": "56px"
+    },
+    {
+      "label": "Already have an account? Sign in",
+      "background": "transparent",
+      "backgroundImage": "",
+      "backdropFilter": "",
+      "color": "oklch(0.6 0.008 85)",
+      "padding": "12px 8px",
+      "borderRadius": "0px",
+      "border": "0px solid oklch(0.6 0.008 85)",
+      "boxShadow": "none",
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "height": "44px"
+    },
+    {
+      "label": "PLAY FREE",
+      "background": "oklch(0.99 0.002 85)",
+      "backgroundImage": "",
+      "backdropFilter": "",
+      "color": "oklch(0.245 0.014 85)",
+      "padding": "12px 20px",
+      "borderRadius": "3.35544e+07px",
+      "border": "0px solid oklch(0.245 0.014 85)",
+      "boxShadow": "oklch(0.2 0.01 85 / 0.07) 0px 1px 2px 0px, oklch(0.2 0.01 85 / 0.05) 0px 1px 3px 0px",
+      "fontSize": "14px",
+      "fontWeight": "800",
+      "height": "44px"
+    },
+    {
+      "label": "MONTHLY",
+      "background": "#E35F00",
+      "backgroundImage": "",
+      "backdropFilter": "",
+      "color": "oklch(0.99 0 0)",
+      "padding": "12px 16px",
+      "borderRadius": "3.35544e+07px",
+      "border": "0px solid oklch(0.99 0 0)",
+      "boxShadow": "oklch(0.2 0.01 85 / 0.07) 0px 1px 2px 0px, oklch(0.2 0.01 85 / 0.05) 0px 1px 3px 0px",
+      "fontSize": "14px",
+      "fontWeight": "800",
+      "height": "44px"
+    }
+  ],
+  "cards": [
+    {
+      "label": "card",
+      "background": "oklch(1 0 0)",
+      "backgroundImage": "",
+      "backdropFilter": "",
+      "color": "oklch(0.245 0.014 85)",
+      "padding": "24px",
+      "borderRadius": "18px",
+      "border": "0px solid oklch(0.245 0.014 85)",
+      "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklch(0.885 0.005 85) 0px 0px 0px 1px, oklch(0.2 0.01 85 / 0.07) 0px 1px 2px 0px, oklch(0.2 0.01 85 / 0.05) 0px 1px 3px 0px",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "height": "546.75px"
+    }
+  ],
+  "nav": {
+    "label": "navigation",
+    "background": "transparent",
+    "backgroundImage": "radial-gradient(120% 78% at 50% 24%, oklch(1 0 0) 0%, rgba(0, 0, 0, 0) 68%), linear-gradient(oklch(0.955 0.006 85) 0%, oklch(0.905 0.01 85) 100%)",
+    "backdropFilter": "",
+    "color": "oklch(0.245 0.014 85)",
+    "padding": "0px",
+    "borderRadius": "0px",
+    "border": "0px solid oklch(0.245 0.014 85)",
+    "boxShadow": "none",
+    "fontSize": "16px",
+    "fontWeight": "400",
+    "height": "604px"
+  },
+  "chips": [],
+  "statCells": [],
+  "tabs": [],
+  "backgrounds": [
+    {
+      "value": "radial-gradient(120% 78% at 50% 24%, oklch(1 0 0) 0%, rgba(0, 0, 0, 0) 68%), linear-gradient(oklch(0.955 0.006 85) 0%, oklch(0.905 0.01 85) 100%)",
+      "area": 1159680
+    }
+  ],
+  "glass": []
+}

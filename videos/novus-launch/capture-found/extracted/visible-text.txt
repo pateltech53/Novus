@@ -1,0 +1,21 @@
+[p] THE PAPERWORK
+[h1] Name it. Then make it worth something.
+[legend] WHO IS FOUNDING IT
+[span] SHE
+[h2] WHAT BUSINESS ARE YOU IN
+[span] Food & Beverage
+[span] E-commerce / Retail
+[span] Tech App
+[span] Content / Creator
+[span] Fashion / Streetwear
+[span] Gaming
+[span] Fitness
+[span] Beauty
+[span] EdTech
+[span] Sustainability
+[span] Toys & Collectibles
+[span] Pet
+[span] WHAT THE COMPANY IS
+[span] The sharks will ask you all of this. Answer it now and it stays on screen while you pitch.
+[span] ADD
+[button] FOUND IT ▸

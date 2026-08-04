@@ -1,0 +1,67 @@
+{
+ "lines": [
+  {
+   "id": "01",
+   "sfx": [
+    "click-soft",
+    "riser"
+   ]
+  },
+  {
+   "id": "02",
+   "sfx": [
+    "chime",
+    "impact-bass-1"
+   ]
+  },
+  {
+   "id": "03",
+   "sfx": [
+    "whoosh-short",
+    "click-soft",
+    "sparkle"
+   ]
+  },
+  {
+   "id": "04",
+   "sfx": [
+    "click-soft",
+    "impact-bass-2"
+   ]
+  },
+  {
+   "id": "05",
+   "sfx": [
+    "typing",
+    "impact-bass-1",
+    "sparkle"
+   ]
+  },
+  {
+   "id": "06",
+   "sfx": [
+    "riser",
+    "impact-bass-2"
+   ]
+  },
+  {
+   "id": "07",
+   "sfx": [
+    "chime",
+    "impact-bass-2",
+    "pop"
+   ]
+  },
+  {
+   "id": "09",
+   "sfx": [
+    "whoosh-cinematic",
+    "chime"
+   ]
+  }
+ ],
+ "bgm": {
+  "mode": "generate",
+  "prompt": "minimal confident cinematic tech underscore, slow build, warm sub bass, sparse felt piano and soft synth pulses, elegant product launch film, no drums until midway, reverent"
+ }
+}

@@ -1,0 +1,99 @@
+{
+  "typography": [
+    {
+      "role": "display",
+      "fontFamily": "Urbanist",
+      "fontSize": "32px",
+      "fontWeight": "800",
+      "lineHeight": "33.6px",
+      "letterSpacing": "-0.96px",
+      "color": "oklch(0.245 0.014 85)",
+      "sampleText": "Run a company.Defend it out loud."
+    },
+    {
+      "role": "label",
+      "fontFamily": "Urbanist",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "lineHeight": "24px",
+      "letterSpacing": "normal",
+      "color": "oklch(0.245 0.014 85)",
+      "sampleText": "Run a company.Defend it out loud.Months are free. The year c"
+    },
+    {
+      "role": "body",
+      "fontFamily": "Urbanist",
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "lineHeight": "19.25px",
+      "letterSpacing": "normal",
+      "color": "oklch(0.475 0.01 85)",
+      "sampleText": "Months are free. The year costs you a pitch — on camera, to "
+    }
+  ],
+  "spacing": {
+    "observed": [
+      8,
+      12
+    ],
+    "baseUnit": 8
+  },
+  "radius": [],
+  "shadows": [
+    {
+      "value": "oklch(0.2 0.01 85 / 0.07) 0px 1px 2px 0px, oklch(0.2 0.01 85 / 0.05) 0px 1px 3px 0px",
+      "count": 1
+    }
+  ],
+  "buttons": [
+    {
+      "label": "START",
+      "background": "#E35F00",
+      "backgroundImage": "",
+      "backdropFilter": "",
+      "color": "oklch(0.99 0 0)",
+      "padding": "0px",
+      "borderRadius": "999px",
+      "border": "0px solid oklch(0.99 0 0)",
+      "boxShadow": "oklch(0.2 0.01 85 / 0.07) 0px 1px 2px 0px, oklch(0.2 0.01 85 / 0.05) 0px 1px 3px 0px",
+      "fontSize": "17px",
+      "fontWeight": "800",
+      "height": "56px"
+    },
+    {
+      "label": "Shark voices is using the local fallback",
+      "background": "transparent",
+      "backgroundImage": "",
+      "backdropFilter": "",
+      "color": "oklch(0.245 0.014 85)",
+      "padding": "8px 12px",
+      "borderRadius": "0px",
+      "border": "0px solid oklch(0.245 0.014 85)",
+      "boxShadow": "none",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "height": "35.5px"
+    }
+  ],
+  "cards": [],
+  "nav": null,
+  "chips": [],
+  "statCells": [],
+  "tabs": [],
+  "backgrounds": [
+    {
+      "value": "radial-gradient(120% 78% at 50% 24%, oklch(1 0 0) 0%, rgba(0, 0, 0, 0) 68%), linear-gradient(oklch(0.955 0.006 85) 0%, oklch(0.905 0.01 85) 100%)",
+      "area": 2073600
+    }
+  ],
+  "glass": [
+    {
+      "backdropFilter": "blur(8px)",
+      "background": "oklab(0.241991 0.00247179 0.0178032 / 0.95)",
+      "border": "1px solid oklab(0.828 0.0183479 0.188107 / 0.3)",
+      "borderRadius": "16px",
+      "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.1) 0px 4px 6px -4px",
+      "area": 16800
+    }
+  ]
+}
