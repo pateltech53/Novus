@@ -1,3 +1,4 @@
 node_modules/
 .npm-cache/
 assets/bgm/*.log
+renders/work-*/
