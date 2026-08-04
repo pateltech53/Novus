@@ -325,7 +325,17 @@ function BookCard({
        * rest of the screen. The log is one row now, and this is where that
        * room went. Every `lg:` below is the rail keeping the compact card.
        */
-      className={`nv-gc min-w-0 rounded-[var(--radius-row)] px-3.5 py-3 text-left lg:px-2 lg:py-2 ${
+      /*
+       * `flex flex-col justify-start` and not the default, because a <button>
+       * CENTRES its content vertically when the box is taller than what is in
+       * it — and these boxes are grid cells stretched to the tallest of the
+       * four. The Rookie lines wrap to different line counts ("months left
+       * before $0." is one line, "how fast the bank account shrinks." is two),
+       * so every tile was centring by a different amount and no two labels,
+       * figures or change lines in a row sat on the same baseline. Measured at
+       * 8px out on the desktop rail and 10px on a phone.
+       */
+      className={`nv-gc flex min-w-0 flex-col items-stretch justify-start rounded-[var(--radius-row)] px-3.5 py-3 text-left lg:px-2 lg:py-2 ${
         flash ? "outline outline-2 -outline-offset-2 outline-[var(--n-8)]" : ""
       }`}
     >
