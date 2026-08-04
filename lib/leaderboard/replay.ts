@@ -4,6 +4,7 @@ import { applyOutcome } from "@/lib/engine/effects";
 import { assetById, buyAsset, sellAsset } from "@/lib/engine/holdings";
 import { specFor, specForRun } from "@/lib/engine/industries/index";
 import { freezeEvent } from "@/lib/engine/interpolate";
+import { pushLedger, sampleLedger } from "@/lib/engine/ledger";
 import { makeLine } from "@/lib/engine/log";
 import { minuteOf, priceAt, tickerBySymbol } from "@/lib/engine/market";
 import { candidatePool, fire as fireEmployee, hire as hireCandidate } from "@/lib/engine/people";
@@ -182,6 +183,18 @@ export interface AdvanceTurn {
  * table.
  */
 export function advanceTurn(state: RunState, events: GameEvent[] = EVENTS): AdvanceTurn {
+  /*
+   * The Books as the player last saw them, read BEFORE time moves.
+   *
+   * Taken here and stored below rather than sampled after the tick, because
+   * "what changed this month" is measured against the screen you were looking
+   * at when you pressed the button. A sample taken afterwards is the live
+   * value, and every delta computed from it is zero.
+   *
+   * Held in a local until the gate is ruled out: a tap at month 12 does not
+   * move time, and a month that did not happen must not enter the history.
+   */
+  const before = sampleLedger(state);
   const result = advanceMonth(state, events);
   if (result.gate) return { cards: [], gate: true, died: false, marketEventId: null };
 
@@ -191,6 +204,15 @@ export function advanceTurn(state: RunState, events: GameEvent[] = EVENTS): Adva
     else cards.push(freezeEvent(ev, state));
   }
   syncPositioning(state);
+  /*
+   * Bank it, now that this is known to have been a real month.
+   *
+   * Here rather than inside the engine because sampling is an observation and
+   * `advanceMonth` is a rule; and here rather than in the provider because the
+   * server verifier replays through this same function, so the history it
+   * derives is identical to the client's by construction.
+   */
+  pushLedger(state, before);
   return {
     cards,
     gate: false,
@@ -259,7 +281,14 @@ export function closeFiscalYear(
   }
 
   positioningYearTick(state);
+  /*
+   * Month 12. `advanceMonth` reports the gate rather than advancing, so this is
+   * the only place the twelfth month ever enters the history — sampled before
+   * `closeYear` ages the company, for the same reason as above.
+   */
+  const beforeClose = sampleLedger(state);
   const summary = closeYear(state, perform, dealCashS, dealEquityPct);
+  pushLedger(state, beforeClose);
   return { summary, portfolioYear: pYear.rows.length > 0 ? pYear : null };
 }
 

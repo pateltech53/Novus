@@ -142,7 +142,7 @@ export function AnswerHelp({
       type="button"
       onClick={() => void ask()}
       disabled={busy}
-      className="nv-gc mt-2 h-11 w-full rounded-[var(--radius-pill)] text-sm font-bold tracking-[0.04em] text-[var(--text-secondary)] disabled:opacity-60"
+      className="nv-gc mt-2 h-11 w-full rounded-[var(--radius-card)] text-sm font-bold tracking-[0.04em] text-[var(--text-secondary)] disabled:opacity-60"
     >
       {busy ? "THINKING…" : `STUCK? · ${remaining} LEFT`}
     </button>

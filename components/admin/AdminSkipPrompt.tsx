@@ -173,21 +173,21 @@ export function AdminSkipPrompt() {
               <button
                 type="button"
                 onClick={() => finish("stripe")}
-                className="nv-gc h-12 w-full rounded-[var(--radius-pill)] nv-t-action text-sm font-extrabold tracking-[0.04em] shadow-[var(--e2)]"
+                className="nv-gc h-12 w-full rounded-[var(--radius-card)] nv-t-action text-sm font-extrabold tracking-[0.04em] shadow-[var(--e2)]"
               >
                 TEST THE REAL CHECKOUT
               </button>
               <button
                 type="button"
                 onClick={() => void doSkip()}
-                className="h-12 w-full rounded-[var(--radius-pill)] bg-[var(--text-primary)] text-sm font-extrabold tracking-[0.04em] text-[var(--n-1)]"
+                className="h-12 w-full rounded-[var(--radius-card)] bg-[var(--text-primary)] text-sm font-extrabold tracking-[0.04em] text-[var(--n-1)]"
               >
                 SKIP PAYMENT — GRANT NOW
               </button>
               <button
                 type="button"
                 onClick={() => finish("cancel")}
-                className="h-10 w-full rounded-[var(--radius-pill)] text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]"
+                className="h-10 w-full rounded-[var(--radius-card)] text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]"
               >
                 CANCEL
               </button>
@@ -208,14 +208,14 @@ export function AdminSkipPrompt() {
               <button
                 type="button"
                 onClick={() => void doSkip()}
-                className="h-12 w-full rounded-[var(--radius-pill)] bg-[var(--text-primary)] text-sm font-extrabold tracking-[0.04em] text-[var(--n-1)]"
+                className="h-12 w-full rounded-[var(--radius-card)] bg-[var(--text-primary)] text-sm font-extrabold tracking-[0.04em] text-[var(--n-1)]"
               >
                 TRY AGAIN
               </button>
               <button
                 type="button"
                 onClick={() => finish("cancel")}
-                className="h-10 w-full rounded-[var(--radius-pill)] text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]"
+                className="h-10 w-full rounded-[var(--radius-card)] text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]"
               >
                 CANCEL
               </button>
@@ -248,7 +248,7 @@ export function AdminSkipPrompt() {
                   // document navigation in the app resolves to the bundle
                   // root, not to /chapter (lib/native/href.ts).
                   onClick={() => window.location.assign(appPath("/chapter"))}
-                  className="nv-gc h-12 w-full rounded-[var(--radius-pill)] nv-t-action text-sm font-extrabold tracking-[0.04em] shadow-[var(--e2)]"
+                  className="nv-gc h-12 w-full rounded-[var(--radius-card)] nv-t-action text-sm font-extrabold tracking-[0.04em] shadow-[var(--e2)]"
                 >
                   OPEN THE SEAT CONSOLE
                 </button>
@@ -257,7 +257,7 @@ export function AdminSkipPrompt() {
                 <button
                   type="button"
                   onClick={() => void switchToProView()}
-                  className="nv-gc h-12 w-full rounded-[var(--radius-pill)] text-sm font-extrabold tracking-[0.04em]"
+                  className="nv-gc h-12 w-full rounded-[var(--radius-card)] text-sm font-extrabold tracking-[0.04em]"
                 >
                   SWITCH TO PRO VIEW
                 </button>
@@ -265,7 +265,7 @@ export function AdminSkipPrompt() {
               <button
                 type="button"
                 onClick={() => finish("skipped")}
-                className="h-12 w-full rounded-[var(--radius-pill)] bg-[var(--text-primary)] text-sm font-extrabold tracking-[0.04em] text-[var(--n-1)]"
+                className="h-12 w-full rounded-[var(--radius-card)] bg-[var(--text-primary)] text-sm font-extrabold tracking-[0.04em] text-[var(--n-1)]"
               >
                 DONE
               </button>

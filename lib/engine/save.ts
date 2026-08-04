@@ -55,6 +55,9 @@ function migrate(raw: Partial<RunState>): RunState {
   state.burnScale ??= 1;
   state.karma ??= 0;
   state.quarters ??= [0, 0, 0, 0];
+  // A run saved before the ledger existed has no history, and an empty history
+  // is a sparkline that does not draw — never a crash.
+  state.ledger ??= [];
   state.autopsyMagnets ??= [];
   state.unknownSpecials ??= [];
   state.recurring ??= [];

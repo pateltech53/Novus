@@ -37,7 +37,7 @@ const STAGE_COPY: Record<StageNum, StageCopy> = {
   },
   2: {
     what: "People are actually buying. Now you're spending to grow, and the numbers are in the tens of thousands.",
-    job: "Grow without running out of cash. Growing too fast is how good companies still die — watch your runway.",
+    job: "Grow without running out of cash. Growing too fast is how good companies still die — watch the runway bar on your Books empty.",
   },
   3: {
     what: "It's working. This stage is about doing more of what already works without breaking it. Money is in the hundreds of thousands.",
@@ -69,7 +69,8 @@ export function StageGuide({ run, onClose }: { run: RunState; onClose: () => voi
     {
       label: "CASH",
       value: fmtMoney(run.stats.cash),
-      reading: "The money in the bank right now. When it hits $0, the company is over.",
+      reading:
+        "The money in the bank right now. When it hits $0, the company is over. The line under it on your Books is the last twelve months of it.",
     },
     {
       label: "BURN",
@@ -77,21 +78,21 @@ export function StageGuide({ run, onClose }: { run: RunState; onClose: () => voi
       reading:
         burn <= 0
           ? "You're making money each month, not losing it. That plus sign is the goal."
-          : "How much cash you lose every month. Lower is safer; a plus sign means you're profitable.",
+          : "How much cash you lose every month. Lower is safer; a plus sign means you're profitable. It is the one figure where a rising number is bad news, so its change line goes red when it goes UP.",
     },
     {
       label: "RUNWAY",
       value: fmtMonths(runway),
       reading:
         runway < 6
-          ? "Months of cash left at this burn. Yours is short — take cheaper options and buy time."
-          : "Months of cash left at this burn. Under six, survival beats growth. Over twelve, you can invest.",
+          ? "Months of cash left at this burn, and the bar under it is the same fact drawn as distance. Yours is short — take cheaper options and buy time."
+          : "Months of cash left at this burn, and the bar under it is how close that is to none. Under six, survival beats growth. Over twelve, you can invest.",
     },
     {
       label: "VALUATION",
       value: fmtMoney(run.stats.valuation),
       reading:
-        "What the whole company is worth — mostly your yearly revenue times how good the business looks.",
+        "What the whole company is worth — mostly your yearly revenue times how good the business looks. The line under it on your Books is the last twelve months of that.",
     },
   ];
 
@@ -167,7 +168,7 @@ export function StageGuide({ run, onClose }: { run: RunState; onClose: () => voi
           <button
             type="button"
             onClick={() => setTerms(true)}
-            className="nv-gc mt-6 flex w-full items-center justify-center gap-2 rounded-[var(--radius-pill)] nv-on px-5 py-3 text-2xs font-extrabold tracking-[0.1em] text-[var(--text-primary)] shadow-[var(--e1)]"
+            className="nv-gc mt-6 flex w-full items-center justify-center gap-2 rounded-[var(--radius-card)] nv-on px-5 py-3 text-2xs font-extrabold tracking-[0.1em] text-[var(--text-primary)] shadow-[var(--e1)]"
           >
             SEE EVERY KEY TERM ▸
           </button>

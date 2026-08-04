@@ -700,7 +700,7 @@ function GateButton({
       // design.md §6, which is explicit that doing it globally breaks text
       // selection.
       style={{ touchAction:"manipulation", WebkitTapHighlightColor:"transparent" }}
-      className="nv-gc block h-14 w-full truncate rounded-[var(--radius-pill)] nv-t-action px-6 text-[1.0625rem] font-extrabold tracking-[0.04em] shadow-[var(--e3)] disabled:cursor-not-allowed disabled:opacity-35"
+      className="nv-gc block h-14 w-full truncate rounded-[var(--radius-card)] nv-t-action px-6 text-[1.0625rem] font-extrabold tracking-[0.04em] shadow-[var(--e3)] disabled:cursor-not-allowed disabled:opacity-35"
     >
       {children}
     </button>

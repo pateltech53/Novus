@@ -83,9 +83,16 @@ final class GlassSheetController: UIViewController, UIScrollViewDelegate {
     private let selection = UISelectionFeedbackGenerator()
 
     private enum Metric {
-        static let corner: CGFloat = 28
+        /// Matches `--radius-sheet` in app/globals.css. The DOM and the
+        /// native sheet are the same object on two platforms; a 28pt corner
+        /// beside a 22px one is a difference the player can see when they
+        /// switch device.
+        static let corner: CGFloat = 22
         static let side: CGFloat = 20
-        static let rowCorner: CGFloat = 16
+        /// Matches `--radius-row`. A choice row lives inside the sheet, so
+        /// it is one step tighter than it — concentric corners, the rule the
+        /// whole budget is built on.
+        static let rowCorner: CGFloat = 10
         static let headerHeight: CGFloat = 52
         static let maxHeightFraction: CGFloat = 0.92
     }
@@ -335,12 +342,19 @@ final class GlassSheetController: UIViewController, UIScrollViewDelegate {
 
         // ── Or the one thing there is to do ─────────────────────────────────
         //
-        // Tinted glass, matching the capsule that moves time on the play
-        // screen. It was a flat orange rectangle, which made the one card with
-        // no choices on it the one card whose primary control was not the same
-        // material as everything around it.
+        // Tinted glass, the same MATERIAL as the capsule that moves time on
+        // the play screen. It was a flat orange rectangle, which made the one
+        // card with no choices on it the one card whose primary control was
+        // not the same material as everything around it.
+        //
+        // Not the same SHAPE, though, and that is deliberate: the advance
+        // capsule is chrome floating over the app, while this is a full-width
+        // control sitting inside a 22pt sheet. At 27 it was rounder than the
+        // thing containing it, which is the one arrangement the radius budget
+        // rules out. 14 is `--radius-card`, which is what its DOM twin in
+        // components/DecisionSheet.tsx now draws.
         if let actionLabel = spec.actionLabel {
-            let glass = GlassKit.panel(corner: 27, interactive: true, tint: GlassKit.action)
+            let glass = GlassKit.panel(corner: 14, interactive: true, tint: GlassKit.action)
             glass.heightAnchor.constraint(equalToConstant: 54).isActive = true
 
             let button = UIButton(type: .system)
@@ -477,7 +491,7 @@ final class GlassSheetController: UIViewController, UIScrollViewDelegate {
         let bar = UIView()
         bar.translatesAutoresizingMaskIntoConstraints = false
         bar.backgroundColor = UIColor(red: 0.04, green: 0.12, blue: 0.21, alpha: 1)
-        bar.layer.cornerRadius = 12
+        bar.layer.cornerRadius = 14 // --radius-card
         bar.layer.cornerCurve = .continuous
 
         let left = label(

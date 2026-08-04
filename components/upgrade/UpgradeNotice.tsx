@@ -93,7 +93,7 @@ export function UpgradeNotice({
           <button
             type="button"
             onClick={onOpen}
-            className="nv-gc nv-flat mt-3 h-11 w-full rounded-[var(--radius-pill)] nv-t-prestige text-2xs font-extrabold tracking-[0.14em]"
+            className="nv-gc nv-flat mt-3 h-11 w-full rounded-[var(--radius-card)] nv-t-prestige text-2xs font-extrabold tracking-[0.14em]"
           >
             SEE WHAT PRO ADDS
           </button>

@@ -26,9 +26,28 @@ export function fmtPct(n: number, signed = false): string {
   return rounded < 0 ? `−${s}` : `+${s}`;
 }
 
+/**
+ * A signed money change — "+$3.2K", "−$2,000".
+ *
+ * This existed with two replaces that each swapped a string for itself, and no
+ * caller, so nothing ever noticed. It has one now: the ledger's
+ * month-over-month line. `fmtMoney` already renders its own U+2212 for a
+ * negative, so the sign is applied to the absolute value exactly once.
+ */
 export function fmtDelta(n: number): string {
-  const sign = n < 0 ? "−" : "+";
-  return `${sign}${fmtMoney(Math.abs(n)).replace("$", "$")}`.replace("+$", "+$");
+  return `${n < 0 ? "−" : "+"}${fmtMoney(Math.abs(n))}`;
+}
+
+/**
+ * A signed change in months — "+2mo", "−1mo".
+ *
+ * Not `fmtMonths`, which collapses anything over 99 to "∞": an infinity is a
+ * legitimate runway and a nonsense *change*, so a move into or out of the
+ * clamp is reported as the plain number of months it is worth.
+ */
+export function fmtMonthsDelta(m: number): string {
+  const whole = Math.round(m);
+  return `${whole < 0 ? "−" : "+"}${Math.abs(whole)}mo`;
 }
 
 export const MONTH_NAMES = [

@@ -33,7 +33,7 @@ export function BuyOnWeb({ className = "" }: { className?: string }) {
       <button
         type="button"
         onClick={() => void openProPurchase()}
-        className="nv-gc flex h-14 w-full items-center justify-center gap-2 rounded-[var(--radius-pill)] nv-t-action text-[1.0625rem] font-extrabold tracking-[0.04em] shadow-[var(--e2)]"
+        className="nv-gc flex h-14 w-full items-center justify-center gap-2 rounded-[var(--radius-card)] nv-t-action text-[1.0625rem] font-extrabold tracking-[0.04em] shadow-[var(--e2)]"
       >
         GET PRO
         <ExternalGlyph />

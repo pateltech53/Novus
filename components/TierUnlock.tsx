@@ -92,7 +92,7 @@ export function TierUnlock({
           <button
             type="button"
             onClick={onClose}
-            className="nv-gc mt-5 h-14 w-full rounded-[var(--radius-pill)] nv-t-action text-base font-extrabold tracking-[0.04em] shadow-[var(--e3)]"
+            className="nv-gc mt-5 h-14 w-full rounded-[var(--radius-card)] nv-t-action text-base font-extrabold tracking-[0.04em] shadow-[var(--e3)]"
           >
             WEAR IT ▸
           </button>

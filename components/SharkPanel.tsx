@@ -711,7 +711,7 @@ export function SharkPanel({
         <button
           type="button"
           onClick={() => setNotesOpen((v) => !v)}
-          className="nv-gc mt-2 flex w-full items-center justify-between rounded-[var(--radius-pill)] px-4 py-2 text-2xs font-bold tracking-[0.1em] text-[var(--text-secondary)]"
+          className="nv-gc mt-2 flex w-full items-center justify-between rounded-[var(--radius-card)] px-4 py-2 text-2xs font-bold tracking-[0.1em] text-[var(--text-secondary)]"
         >
           <span>YOUR NOTES · BRIEF, NUMBERS, THE ORDER</span>
           <span>{notesOpen ? "HIDE" : "OPEN"}</span>
@@ -802,7 +802,7 @@ export function SharkPanel({
           <button
             type="button"
             onClick={() => void step()}
-            className="nv-gc mt-5 h-14 w-full rounded-[var(--radius-pill)] nv-t-action text-base font-extrabold tracking-[0.04em] shadow-[var(--e3)]"
+            className="nv-gc mt-5 h-14 w-full rounded-[var(--radius-card)] nv-t-action text-base font-extrabold tracking-[0.04em] shadow-[var(--e3)]"
           >
             {nextLabel(upcoming)}
           </button>
@@ -873,7 +873,7 @@ export function SharkPanel({
             <button
               type="button"
               onClick={finish}
-              className="nv-gc mt-6 h-14 w-full rounded-[var(--radius-pill)] nv-t-action text-base font-extrabold tracking-[0.04em] shadow-[var(--e3)]"
+              className="nv-gc mt-6 h-14 w-full rounded-[var(--radius-card)] nv-t-action text-base font-extrabold tracking-[0.04em] shadow-[var(--e3)]"
             >
               {accepted ? "SIGN IT ▸" : offers.length > 0 ? "TAKE NO DEAL ▸" : "READ THE DEBRIEF ▸"}
             </button>

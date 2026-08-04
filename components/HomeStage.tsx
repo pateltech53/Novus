@@ -125,7 +125,7 @@ export function HomeStage({
 }) {
   return (
     <section
-      className="nv-masthead nv-stage relative overflow-hidden rounded-b-[1.75rem] px-5 pb-5"
+      className="nv-masthead nv-stage relative overflow-hidden rounded-b-[var(--radius-sheet)] px-5 pb-5"
       style={{
         paddingTop: nativeControls
           ? "max(var(--nv-chrome-top, 0px), env(safe-area-inset-top), 0.5rem)"
@@ -165,7 +165,7 @@ export function HomeStage({
           data-coach="info"
           onClick={onOpenKeyTerms}
           aria-label="Key terms — every word the game uses, explained"
-          className="nv-gc flex h-9 w-9 items-center justify-center rounded-[0.7rem] text-[var(--n-10)]"
+          className="nv-gc flex h-9 w-9 items-center justify-center rounded-[var(--radius-row)] text-[var(--n-10)]"
         >
           <InfoGlyph />
         </button>
@@ -176,7 +176,7 @@ export function HomeStage({
           data-opens
           onClick={() => onDossier(true)}
           aria-label="Company dossier"
-          className="nv-gc flex h-9 w-9 items-center justify-center rounded-[0.7rem] text-[var(--n-10)]"
+          className="nv-gc flex h-9 w-9 items-center justify-center rounded-[var(--radius-row)] text-[var(--n-10)]"
         >
           <DossierGlyph />
         </button>
@@ -184,7 +184,7 @@ export function HomeStage({
           type="button"
           onClick={onOpenBoard}
           aria-label="Still Standing — the global boards"
-          className="nv-gc flex h-9 w-9 items-center justify-center rounded-[0.7rem] text-[var(--n-10)]"
+          className="nv-gc flex h-9 w-9 items-center justify-center rounded-[var(--radius-row)] text-[var(--n-10)]"
         >
           <BoardGlyph />
         </button>
@@ -192,7 +192,7 @@ export function HomeStage({
           type="button"
           onClick={onOpenSettings}
           aria-label="Settings"
-          className="nv-gc flex h-9 w-9 items-center justify-center rounded-[0.7rem] text-[var(--n-10)]"
+          className="nv-gc flex h-9 w-9 items-center justify-center rounded-[var(--radius-row)] text-[var(--n-10)]"
         >
           <GearGlyph />
         </button>
@@ -201,7 +201,7 @@ export function HomeStage({
           data-coach="phone"
           onClick={onOpenPhone}
           aria-label="Open your phone"
-          className="nv-gc flex h-9 w-9 items-center justify-center rounded-[0.7rem] text-[var(--n-10)]"
+          className="nv-gc flex h-9 w-9 items-center justify-center rounded-[var(--radius-row)] text-[var(--n-10)]"
         >
           <PhoneGlyph />
         </button>
@@ -209,19 +209,38 @@ export function HomeStage({
       </div>
       )}
 
-      <div className="relative flex flex-col items-center">
+      {/*
+        ── The identity ────────────────────────────────────────────────────
+        On a phone this is a ROW: the founder at portrait scale on the left,
+        the company's name and line beside it. It used to be a centred hero —
+        a 168px character above a 28px title, ~45% of the screen, on the one
+        screen a player looks at three hundred times a session. The character
+        is the brand and it stays; what it stops being is the page.
+
+        The height that buys goes to The Books, which is where a game about
+        cash, burn, runway and valuation should be spending it.
+
+        `lg:` puts the centred column back, because the desktop rail was never
+        the problem: it is a 100dvh column with room for the full portrait.
+      */}
+      <div className="relative flex items-center gap-3.5 lg:flex-col lg:items-center lg:gap-0">
         {/* The player's own founder, not a generic mascot. This is the same
             character that sits in the panel, the Closet and the year-end
             statement — previously the avatar existed only on the screen that
-            sold it. */}
-        <FounderAvatar avatar={run.avatar} size={168} priority />
+            sold it. Its rendered size comes from `--nv-portrait-size`
+            (globals.css), so the breakpoint is one declaration rather than a
+            prop threaded through two components. */}
+        <FounderAvatar avatar={run.avatar} size={168} priority className="shrink-0" />
 
-        {/* Display-size on the phone, where the identity is the page's title;
-            the desktop column keeps the size it was composed at (`lg:`). */}
-        <h1 className="mt-1 text-center text-[1.75rem] font-extrabold leading-tight text-[var(--n-11)] lg:text-[1.4375rem]">
+        <div className="min-w-0 flex-1 lg:w-full lg:flex-none">
+        {/* Beside the portrait the title has ~245px rather than the full
+            width, so it steps down one notch and wraps to at most two lines
+            instead of truncating — a company name the player chose is not a
+            thing to put an ellipsis through. */}
+        <h1 className="line-clamp-2 text-[1.375rem] font-extrabold leading-tight text-[var(--n-11)] lg:mt-1 lg:text-center lg:text-[1.4375rem]">
           {run.companyName}
         </h1>
-        <p className="mt-1 text-center text-sm font-semibold text-[var(--n-7)] lg:mt-0.5 lg:text-xs">
+        <p className="mt-1 text-sm font-semibold text-[var(--n-7)] lg:mt-0.5 lg:text-center lg:text-xs">
           {founderName || "Founder"} &nbsp;|&nbsp; {fmtMoney(run.stats.valuation)}{" "}
           &nbsp;|&nbsp; FY {run.year} ·{" "}
           {/* The stage is a way in, not just a label: it opens a plain-English
@@ -232,7 +251,13 @@ export function HomeStage({
             type="button"
             onClick={onOpenStageGuide}
             aria-label={`What ${STAGE_NAME[run.stage]} means`}
-            className={`nv-gc rounded-md px-1 font-semibold text-[var(--n-7)] ${
+            // Drawn INLINE in a 14px line, so its own box was 20px tall — under the
+            // 30 a thumb needs, and `nv-tap` could not save it: that pseudo-element
+            // reaches 8px past the box and the audit probes 22px out, which is
+            // tuned for the 28px switches it was written for. An inline-flex with a
+            // real height is the honest fix; it costs the line 10px and nothing
+            // else. Caught by `npm run audit:phone` at 393 and 430px.
+            className={`nv-gc inline-flex h-[30px] items-center rounded-[var(--radius-chip)] px-1.5 align-middle font-semibold text-[var(--n-7)] ${
               run.rookieMode
                 ? "underline decoration-dotted underline-offset-4 decoration-[var(--n-6)]"
                 : ""
@@ -242,10 +267,14 @@ export function HomeStage({
             <span aria-hidden="true" className="ml-0.5 text-[var(--n-6)]">?</span>
           </button>
         </p>
-
-        <div className="mt-5 lg:mt-4">
-          <StatRings run={run} />
         </div>
+      </div>
+
+      {/* The three abilities sit under the identity row on a phone and under
+          the centred column on desktop — one place in both, so the coachmark
+          that points at the masthead points at the same shape either way. */}
+      <div className="mt-4 flex justify-center lg:mt-4">
+        <StatRings run={run} />
       </div>
 
       {/* Rendered through a portal because on desktop this component sits

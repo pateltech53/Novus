@@ -183,7 +183,7 @@ export function TeamScreen({ onClose, onFire, onOpenPhone }: TeamScreenProps) {
             <button
               type="button"
               onClick={onOpenPhone}
-              className="nv-gc mt-5 flex h-14 w-full items-center justify-center rounded-[var(--radius-pill)] px-4 text-center text-sm font-extrabold leading-tight text-[var(--text)] sm:text-[0.9375rem]"
+              className="nv-gc mt-5 flex h-14 w-full items-center justify-center rounded-[var(--radius-card)] px-4 text-center text-sm font-extrabold leading-tight text-[var(--text)] sm:text-[0.9375rem]"
             >
               Open the phone → LinkedOut to hire
             </button>
@@ -216,7 +216,7 @@ export function TeamScreen({ onClose, onFire, onOpenPhone }: TeamScreenProps) {
           <button
             type="button"
             onClick={onOpenPhone}
-            className="nv-gc flex h-14 w-full items-center justify-center rounded-[var(--radius-pill)] nv-t-action px-4 text-center text-sm font-extrabold leading-tight sm:text-[0.9375rem]"
+            className="nv-gc flex h-14 w-full items-center justify-center rounded-[var(--radius-card)] nv-t-action px-4 text-center text-sm font-extrabold leading-tight sm:text-[0.9375rem]"
           >
             Hiring happens on LinkedOut. Open the phone.
           </button>
@@ -358,7 +358,7 @@ function RosterCard({
       <p className="mt-3 text-xs leading-snug text-[var(--text-secondary)]">{e.bio}</p>
 
       <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-        <span className="min-w-0 rounded-md bg-[var(--chip)] px-1.5 py-0.5 text-2xs font-bold text-[var(--text-secondary)]">
+        <span className="min-w-0 rounded-[var(--radius-chip)] bg-[var(--chip)] px-1.5 py-0.5 text-2xs font-bold text-[var(--text-secondary)]">
           {auraLine}
         </span>
         <span className="text-2xs font-semibold text-[var(--text-tertiary)]">
@@ -367,7 +367,7 @@ function RosterCard({
         {e.loyalty < 35 && (
           // Loyalty is what a rival buys. Say so before it happens, not after.
           <span
-            className="rounded-md bg-[var(--alert)]/10 px-1.5 py-0.5 text-2xs font-bold tracking-[0.1em]"
+            className="rounded-[var(--radius-chip)] bg-[var(--alert)]/10 px-1.5 py-0.5 text-2xs font-bold tracking-[0.1em]"
             style={{ color: BAD }}
           >
             POACHABLE

@@ -271,7 +271,7 @@ export function UpgradeScreen({
         type="button"
         onClick={takePro}
         disabled={busy}
-        className="nv-gc mt-3 h-14 w-full rounded-[var(--radius-pill)] nv-t-action text-[1.0625rem] font-extrabold tracking-[0.04em] shadow-[var(--e2)] disabled:opacity-60"
+        className="nv-gc mt-3 h-14 w-full rounded-[var(--radius-card)] nv-t-action text-[1.0625rem] font-extrabold tracking-[0.04em] shadow-[var(--e2)] disabled:opacity-60"
       >
         {busy ? "OPENING…" : "GET PRO"}
       </button>
@@ -328,7 +328,7 @@ export function UpgradeScreen({
       <button
         type="button"
         onClick={onClose}
-        className="nv-gc mt-2.5 h-14 w-full rounded-[var(--radius-pill)] nv-on text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--text-primary)]"
+        className="nv-gc mt-2.5 h-14 w-full rounded-[var(--radius-card)] nv-on text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--text-primary)]"
       >
         KEEP PLAYING FREE
       </button>
@@ -365,7 +365,7 @@ export function UpgradeScreen({
         role="dialog"
         aria-modal="true"
         aria-label="Novus Pro"
-        className="relative flex max-h-[min(92dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] w-full flex-col overflow-hidden rounded-t-[1.75rem] bg-[var(--sheet)] shadow-[var(--e4)] lg:max-h-[min(42rem,92dvh)] lg:max-w-4xl lg:rounded-[var(--radius-card)]"
+        className="relative flex max-h-[min(92dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] w-full flex-col overflow-hidden rounded-t-[var(--radius-sheet)] bg-[var(--sheet)] shadow-[var(--e4)] lg:max-h-[min(42rem,92dvh)] lg:max-w-4xl lg:rounded-[var(--radius-sheet)]"
         initial={reduced ? { opacity: 0 } : { y: "8%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={reduced ? { opacity: 0, transition: EXIT } : { y: "6%", opacity: 0, transition: EXIT }}

@@ -88,7 +88,7 @@ export function KeyTermsSheet({ onClose }: { onClose: () => void }) {
                       {term.toUpperCase()}
                     </span>
                     {lead && (
-                      <span className="rounded-full bg-[var(--chip)] px-1.5 py-0.5 text-[0.5625rem] font-bold tracking-[0.1em] text-[var(--text-secondary)]">
+                      <span className="rounded-full bg-[var(--chip)] px-1.5 py-0.5 text-2xs font-bold tracking-[0.1em] text-[var(--text-secondary)]">
                         ON YOUR BOOKS
                       </span>
                     )}
