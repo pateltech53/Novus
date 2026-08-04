@@ -1,0 +1,478 @@
+<template>
+  <div id="root" data-composition-id="02-lectures" data-duration="5.568" data-width="1920" data-height="1080">
+    <style>
+      @font-face {
+        font-family: "Urbanist";
+        src: url("assets/fonts/Urbanist-Variable.woff2") format("woff2");
+        font-weight: 100 900;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "IBM Plex Mono";
+        src: url("assets/fonts/IBMPlexMono-500.woff2") format("woff2");
+        font-weight: 500;
+        font-style: normal;
+      }
+
+      #root {
+        position: absolute;
+        inset: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        font-family: "Urbanist", sans-serif;
+        container-type: size;
+      }
+
+      .clip { position: absolute; inset: 0; }
+
+      /* ---------- ground (full-bleed clip, never on #root) ---------- */
+      #f02l-bg {
+        background: radial-gradient(120% 120% at 50% 45%, #ffffff 55%, #f7f5f2 100%);
+        z-index: 0;
+      }
+
+      #f02l-stage { z-index: 1; }
+      #f02l-tagclip { z-index: 6; }
+
+      /* ---------- the lone figure ---------- */
+      .f02l-you {
+        position: absolute;
+        left: 900px;
+        top: 428px;
+        width: 120px;
+        height: 140px;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+      }
+      .f02l-youfig {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        transform-origin: 50% 50%;
+        will-change: transform;
+      }
+      .f02l-youhead {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #111111;
+      }
+      .f02l-youbody {
+        width: 44px;
+        height: 30px;
+        margin-top: 5px;
+        border-radius: 22px 22px 8px 8px;
+        background: #111111;
+      }
+      .f02l-youlabel {
+        margin-top: 12px;
+        font-family: "IBM Plex Mono", monospace;
+        font-weight: 500;
+        font-size: 14px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #6b6864;
+      }
+      .f02l-ring {
+        position: absolute;
+        left: 50%;
+        top: 22px;
+        width: 120px;
+        height: 120px;
+        margin-left: -60px;
+        margin-top: -30px;
+        border-radius: 50%;
+        border: 1px solid rgba(17, 17, 17, 0.18);
+        transform-origin: 50% 50%;
+        will-change: transform;
+        opacity: 0;
+      }
+
+      /* ---------- cards ---------- */
+      .f02l-card {
+        position: absolute;
+        border-radius: 20px;
+        outline: 1px solid rgba(17, 17, 17, 0.07);
+        outline-offset: -1px;
+        box-shadow:
+          0 1px 0 rgba(17, 17, 17, 0.06),
+          0 2px 4px rgba(17, 17, 17, 0.07),
+          0 12px 32px rgba(17, 17, 17, 0.1);
+        transform-origin: 50% 50%;
+        will-change: transform;
+      }
+      .f02l-fillA { background: #fbfaf8; }
+      .f02l-fillB { background: #f0eeeb; }
+      .f02l-back {
+        z-index: 1;
+        box-shadow:
+          0 1px 0 rgba(17, 17, 17, 0.05),
+          0 8px 20px rgba(17, 17, 17, 0.07);
+      }
+      .f02l-mid { z-index: 3; }
+      .f02l-front { z-index: 4; }
+
+      .f02l-shade {
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        z-index: 0;
+        opacity: 0;
+        box-shadow:
+          0 4px 10px rgba(17, 17, 17, 0.09),
+          0 24px 56px rgba(17, 17, 17, 0.16);
+      }
+      .f02l-cardbody {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        height: 100%;
+        padding: 20px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        border-radius: inherit;
+        overflow: hidden;
+      }
+      .f02l-chrome {
+        display: flex;
+        justify-content: space-between;
+        font-family: "IBM Plex Mono", monospace;
+        font-weight: 500;
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #6b6864;
+      }
+      .f02l-titlebar {
+        height: 20px;
+        width: 62%;
+        border-radius: 6px;
+        background: rgba(17, 17, 17, 0.16);
+        margin-top: 2px;
+        flex: none;
+      }
+      .f02l-line {
+        height: 11px;
+        border-radius: 6px;
+        background: rgba(17, 17, 17, 0.07);
+        flex: none;
+      }
+
+      .f02l-thumb {
+        flex: 1;
+        border-radius: 12px;
+        background: rgba(17, 17, 17, 0.05);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .f02l-play {
+        width: 46px;
+        height: 46px;
+        border-radius: 999px;
+        background: #ffffff;
+        box-shadow: 0 2px 6px rgba(17, 17, 17, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .f02l-play::after {
+        content: "";
+        display: block;
+        margin-left: 4px;
+        border-left: 14px solid rgba(17, 17, 17, 0.72);
+        border-top: 9px solid transparent;
+        border-bottom: 9px solid transparent;
+      }
+      .f02l-ctrl {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: none;
+      }
+      .f02l-track {
+        flex: 1;
+        height: 8px;
+        border-radius: 5px;
+        background: rgba(17, 17, 17, 0.08);
+        overflow: hidden;
+      }
+      .f02l-fill {
+        width: 100%;
+        height: 100%;
+        border-radius: 5px;
+        background: rgba(17, 17, 17, 0.3);
+        transform: scaleX(0);
+        transform-origin: left center;
+        will-change: transform;
+      }
+      .f02l-vtag {
+        font-family: "IBM Plex Mono", monospace;
+        font-weight: 500;
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #6b6864;
+        flex: none;
+      }
+
+      /* ---------- tag line ---------- */
+      .f02l-tagline {
+        position: absolute;
+        left: 0;
+        top: 84px;
+        width: 100%;
+        text-align: center;
+        font-size: 54px;
+        font-weight: 600;
+        line-height: 1.2;
+        color: #111111;
+        text-transform: lowercase;
+      }
+      .f02l-tagline span {
+        display: inline-block;
+        will-change: transform;
+      }
+      #f02l-tag2 { font-weight: 800; }
+    </style>
+
+    <!-- full-bleed white ground -->
+    <div class="clip" id="f02l-bg" data-start="0" data-duration="5.568" data-track-index="0"></div>
+
+    <!-- figure + card pile -->
+    <div class="clip" id="f02l-stage" data-start="0" data-duration="5.568" data-track-index="1" data-layout-allow-overlap>
+
+      <!-- Scene 1: the lone ink figure-dot, dead center -->
+      <div class="f02l-you">
+        <div class="f02l-ring" id="f02l-ring"></div>
+        <div class="f02l-youfig" id="f02l-youfig">
+          <div class="f02l-youhead"></div>
+          <div class="f02l-youbody"></div>
+        </div>
+        <div class="f02l-youlabel" id="f02l-youlabel">you</div>
+      </div>
+
+      <!-- Scene 2a: lecture-slide cards -->
+      <div class="f02l-card f02l-lec f02l-mid f02l-fillA" id="f02l-L1" data-ox="-300" data-oy="-170" data-layout-allow-overlap style="left:460px;top:200px;width:400px;height:260px">
+        <div class="f02l-shade"></div>
+        <div class="f02l-cardbody">
+          <div class="f02l-chrome"><span>lecture</span><span>01</span></div>
+          <div class="f02l-titlebar"></div>
+          <div class="f02l-line" style="width:86%"></div>
+          <div class="f02l-line" style="width:72%"></div>
+          <div class="f02l-line" style="width:80%"></div>
+          <div class="f02l-line" style="width:54%"></div>
+        </div>
+      </div>
+      <div class="f02l-card f02l-lec f02l-mid f02l-fillB" id="f02l-L2" data-ox="300" data-oy="-160" data-layout-allow-overlap style="left:1050px;top:205px;width:420px;height:270px">
+        <div class="f02l-shade"></div>
+        <div class="f02l-cardbody">
+          <div class="f02l-chrome"><span>lecture</span><span>02</span></div>
+          <div class="f02l-titlebar" style="width:54%"></div>
+          <div class="f02l-line" style="width:78%"></div>
+          <div class="f02l-line" style="width:88%"></div>
+          <div class="f02l-line" style="width:64%"></div>
+          <div class="f02l-line" style="width:70%"></div>
+        </div>
+      </div>
+      <div class="f02l-card f02l-lec f02l-back f02l-fillB" id="f02l-L5" data-ox="-90" data-oy="-280" data-layout-allow-overlap style="left:690px;top:102px;width:360px;height:235px">
+        <div class="f02l-shade"></div>
+        <div class="f02l-cardbody">
+          <div class="f02l-chrome"><span>lecture</span><span>03</span></div>
+          <div class="f02l-titlebar" style="width:58%"></div>
+          <div class="f02l-line" style="width:82%"></div>
+          <div class="f02l-line" style="width:68%"></div>
+          <div class="f02l-line" style="width:74%"></div>
+        </div>
+      </div>
+      <div class="f02l-card f02l-lec f02l-front f02l-fillA" id="f02l-L3" data-ox="-380" data-oy="175" data-layout-allow-overlap style="left:390px;top:550px;width:380px;height:250px">
+        <div class="f02l-shade"></div>
+        <div class="f02l-cardbody">
+          <div class="f02l-chrome"><span>lecture</span><span>04</span></div>
+          <div class="f02l-titlebar" style="width:66%"></div>
+          <div class="f02l-line" style="width:80%"></div>
+          <div class="f02l-line" style="width:58%"></div>
+          <div class="f02l-line" style="width:76%"></div>
+        </div>
+      </div>
+      <div class="f02l-card f02l-lec f02l-front f02l-fillB" id="f02l-L4" data-ox="390" data-oy="185" data-layout-allow-overlap style="left:1150px;top:555px;width:400px;height:260px">
+        <div class="f02l-shade"></div>
+        <div class="f02l-cardbody">
+          <div class="f02l-chrome"><span>lecture</span><span>05</span></div>
+          <div class="f02l-titlebar" style="width:50%"></div>
+          <div class="f02l-line" style="width:84%"></div>
+          <div class="f02l-line" style="width:70%"></div>
+          <div class="f02l-line" style="width:62%"></div>
+          <div class="f02l-line" style="width:78%"></div>
+        </div>
+      </div>
+
+      <!-- Scene 2b: video-player cards -->
+      <div class="f02l-card f02l-vid f02l-mid f02l-fillB" id="f02l-V1" data-ox="-520" data-oy="-10" data-layout-allow-overlap style="left:250px;top:370px;width:380px;height:240px">
+        <div class="f02l-shade"></div>
+        <div class="f02l-cardbody">
+          <div class="f02l-thumb"><div class="f02l-play"></div></div>
+          <div class="f02l-ctrl">
+            <div class="f02l-track"><div class="f02l-fill" data-pct="0.72"></div></div>
+            <div class="f02l-vtag">video / 01</div>
+          </div>
+        </div>
+      </div>
+      <div class="f02l-card f02l-vid f02l-mid f02l-fillA" id="f02l-V2" data-ox="520" data-oy="20" data-layout-allow-overlap style="left:1290px;top:400px;width:380px;height:240px">
+        <div class="f02l-shade"></div>
+        <div class="f02l-cardbody">
+          <div class="f02l-thumb"><div class="f02l-play"></div></div>
+          <div class="f02l-ctrl">
+            <div class="f02l-track"><div class="f02l-fill" data-pct="0.45"></div></div>
+            <div class="f02l-vtag">video / 02</div>
+          </div>
+        </div>
+      </div>
+      <div class="f02l-card f02l-vid f02l-back f02l-fillA" id="f02l-V5" data-ox="-625" data-oy="-262" data-layout-allow-overlap style="left:170px;top:136px;width:330px;height:205px">
+        <div class="f02l-shade"></div>
+        <div class="f02l-cardbody">
+          <div class="f02l-thumb"><div class="f02l-play"></div></div>
+          <div class="f02l-ctrl">
+            <div class="f02l-track"><div class="f02l-fill" data-pct="0.85"></div></div>
+            <div class="f02l-vtag">video / 03</div>
+          </div>
+        </div>
+      </div>
+      <div class="f02l-card f02l-vid f02l-back f02l-fillB" id="f02l-V6" data-ox="628" data-oy="-255" data-layout-allow-overlap style="left:1423px;top:143px;width:330px;height:205px">
+        <div class="f02l-shade"></div>
+        <div class="f02l-cardbody">
+          <div class="f02l-thumb"><div class="f02l-play"></div></div>
+          <div class="f02l-ctrl">
+            <div class="f02l-track"><div class="f02l-fill" data-pct="0.33"></div></div>
+            <div class="f02l-vtag">video / 04</div>
+          </div>
+        </div>
+      </div>
+      <div class="f02l-card f02l-vid f02l-front f02l-fillB" id="f02l-V3" data-ox="-165" data-oy="258" data-layout-allow-overlap style="left:620px;top:645px;width:350px;height:225px">
+        <div class="f02l-shade"></div>
+        <div class="f02l-cardbody">
+          <div class="f02l-thumb"><div class="f02l-play"></div></div>
+          <div class="f02l-ctrl">
+            <div class="f02l-track"><div class="f02l-fill" data-pct="0.60"></div></div>
+            <div class="f02l-vtag">video / 05</div>
+          </div>
+        </div>
+      </div>
+      <div class="f02l-card f02l-vid f02l-front f02l-fillA" id="f02l-V4" data-ox="185" data-oy="258" data-layout-allow-overlap style="left:970px;top:646px;width:350px;height:225px">
+        <div class="f02l-shade"></div>
+        <div class="f02l-cardbody">
+          <div class="f02l-thumb"><div class="f02l-play"></div></div>
+          <div class="f02l-ctrl">
+            <div class="f02l-track"><div class="f02l-fill" data-pct="0.52"></div></div>
+            <div class="f02l-vtag">video / 06</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scene 3: the landing line, upper third, over the pile -->
+    <div class="clip" id="f02l-tagclip" data-start="4.0" data-duration="1.568" data-track-index="2" data-layout-allow-overlap>
+      <div class="f02l-tagline" data-layout-allow-overlap>
+        <span id="f02l-tag1">watching&nbsp;&mdash;</span>
+        <span id="f02l-tag2">&nbsp;never doing.</span>
+      </div>
+    </div>
+
+    <script src="assets/vendor/gsap.min.js"></script>
+    <script>
+      (function () {
+        window.__timelines = window.__timelines || {};
+        var tl = gsap.timeline({ paused: true });
+        window.__timelines["02-lectures"] = tl;
+
+        /* ---- Scene 1 (0.0–1.87 · "But that's how we teach business.") ----
+           The lone ink figure-dot, spring-pop-entrance (calm settle, power3.out). */
+        tl.fromTo(
+          "#f02l-youfig",
+          { scale: 0, opacity: 0 },
+          { scale: 1, opacity: 1, duration: 0.55, ease: "power3.out" },
+          0.1
+        );
+        tl.fromTo(
+          "#f02l-youlabel",
+          { opacity: 0, y: 8 },
+          { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" },
+          0.42
+        );
+        /* one quiet "alone" ring pulse during the held beat */
+        tl.fromTo("#f02l-ring", { opacity: 0 }, { opacity: 0.45, duration: 0.2, ease: "power1.out" }, 0.8);
+        tl.to("#f02l-ring", { opacity: 0, duration: 0.75, ease: "power2.out" }, 1.0);
+        tl.fromTo("#f02l-ring", { scale: 0.85 }, { scale: 1.7, duration: 0.95, ease: "power2.out" }, 0.8);
+
+        /* ---- Scene 2a (1.87–3.06 · "Hours of lectures,") ----
+           Lecture-slide cards spring in, staggered, smooth settle. */
+        var lects = ["#f02l-L1", "#f02l-L2", "#f02l-L5", "#f02l-L3", "#f02l-L4"];
+        lects.forEach(function (sel, i) {
+          tl.fromTo(
+            sel,
+            { scale: 0, opacity: 0, y: 26 },
+            { scale: 1, opacity: 1, y: 0, duration: 0.55, ease: "power3.out" },
+            1.9 + i * 0.11
+          );
+        });
+
+        /* ---- Scene 2b (3.06–4.18 · "hours of videos,") ----
+           Video-player cards join; progress bars fill (stat-bars-and-fills, gray). */
+        var vids = ["#f02l-V1", "#f02l-V2", "#f02l-V5", "#f02l-V6", "#f02l-V3", "#f02l-V4"];
+        vids.forEach(function (sel, i) {
+          var at = 3.08 + i * 0.1;
+          tl.fromTo(
+            sel,
+            { scale: 0, opacity: 0, y: 26 },
+            { scale: 1, opacity: 1, y: 0, duration: 0.55, ease: "power3.out" },
+            at
+          );
+          var fill = document.querySelector(sel + " .f02l-fill");
+          if (fill) {
+            var pct = parseFloat(fill.getAttribute("data-pct")) || 0.5;
+            tl.fromTo(
+              fill,
+              { scaleX: 0 },
+              { scaleX: pct, duration: 0.85, ease: "power2.out" },
+              at + 0.3
+            );
+          }
+        });
+
+        /* ---- Scene 3 (4.18–5.568 · "watching, never doing.") ----
+           Signature close-in: every card steps toward the figure; shadows deepen. */
+        gsap.utils.toArray(".f02l-card").forEach(function (el) {
+          var ox = parseFloat(el.getAttribute("data-ox")) || 0;
+          var oy = parseFloat(el.getAttribute("data-oy")) || 0;
+          tl.to(el, { x: -ox * 0.14, y: -oy * 0.14, duration: 0.55, ease: "power2.inOut" }, 4.2);
+        });
+        tl.fromTo(
+          ".f02l-shade",
+          { opacity: 0 },
+          { opacity: 1, duration: 0.55, ease: "power2.inOut" },
+          4.2
+        );
+
+        /* the line lands: "watching —" on the word, "never doing." at full weight */
+        tl.fromTo(
+          "#f02l-tag1",
+          { opacity: 0, y: 26 },
+          { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" },
+          4.22
+        );
+        tl.fromTo(
+          "#f02l-tag2",
+          { opacity: 0, scale: 0.92 },
+          { opacity: 1, scale: 1, duration: 0.45, ease: "power3.out" },
+          4.92
+        );
+        /* hold on the crowd — no exit (non-final frame) */
+      })();
+    </script>
+  </div>
+</template>
