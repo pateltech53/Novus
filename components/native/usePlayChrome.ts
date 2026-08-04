@@ -85,8 +85,10 @@ export function usePlayChrome(options: PlayChromeOptions): boolean {
         leading: true,
       },
       // The key terms page — every word the game uses, and the Rookie switch.
-      // First of the consultables, same position as the DOM row's ⓘ.
-      { id: "keyterms", symbol: "info.circle", label: "Key terms — every word explained" },
+      // First of the consultables, same position as the DOM row's book. A
+      // book rather than info.circle: the dossier already reads as an ⓘ, and
+      // two of those in one cluster is a coin flip.
+      { id: "keyterms", symbol: "book", label: "Key terms — every word explained" },
       { id: "dossier", symbol: "doc.text.magnifyingglass", label: "Company dossier" },
       /*
        * Still Standing gets a real Liquid Glass control, the same as everything

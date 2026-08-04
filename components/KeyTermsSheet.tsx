@@ -57,7 +57,7 @@ export function KeyTermsSheet({ onClose }: { onClose: () => void }) {
       <div className="px-5 pb-5 pt-3">
         {/* The vocabulary switch lives WITH the vocabulary. Rookie Mode was a
             Settings row and a mid-tutorial card — both places you find after
-            you needed it. Here it sits on the page the ⓘ button opens, where
+            you needed it. Here it sits on the page the book button opens, where
             someone confused by a word already is. */}
         <div className="mb-3 rounded-[var(--radius-row)] bg-[var(--surface)] px-3.5 py-3 ring-1 ring-[var(--hairline)]">
           <RookieToggle />
