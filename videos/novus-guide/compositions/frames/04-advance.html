@@ -1,0 +1,219 @@
+<template>
+  <div
+    id="root"
+    data-composition-id="04-advance"
+    data-width="1920"
+    data-height="1080"
+    data-duration="8.491"
+  >
+    <style>
+      @font-face {
+        font-family: "Urbanist";
+        src: url("assets/fonts/Urbanist-Variable.woff2") format("woff2");
+        font-weight: 100 900;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "IBM Plex Mono";
+        src: url("assets/fonts/IBMPlexMono-500.woff2") format("woff2");
+        font-weight: 500;
+        font-style: normal;
+      }
+
+      #root {
+        position: absolute;
+        inset: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        font-family: "Urbanist", sans-serif;
+      }
+
+      /* paper ground — full-bleed clip layer, never on #root */
+      .f04adv-bg {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(ellipse 120% 90% at 50% 42%, #fcfcfa 55%, #f2f0ec 100%),
+          #fcfcfa;
+      }
+
+      /* content stage — carries the font-family; must NOT create a stacking
+         context (no transform/opacity/filter) so per-element z-index can
+         layer the callout above the hoisted footage */
+      .f04adv-stage {
+        position: absolute;
+        inset: 0;
+        font-family: "Urbanist", sans-serif;
+        color: #232019;
+      }
+
+      /* chapter kicker */
+      .f04adv-kicker {
+        position: absolute;
+        left: 260px;
+        top: 28px;
+        font-family: "IBM Plex Mono", monospace;
+        font-weight: 500;
+        font-size: 20px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #5f5c56;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* screen card — flat white mat, 14px radius, two-layer soft shadow,
+         hairline. The hoisted footage lands inset 14px inside it. Paints
+         BELOW the footage (z-index auto, earlier in host DOM order). */
+      .f04adv-card {
+        position: absolute;
+        left: 260px;
+        top: 70px;
+        width: 1400px;
+        height: 800px;
+        background: #ffffff;
+        border: 1px solid rgba(35, 32, 25, 0.08);
+        border-radius: 14px;
+        box-shadow:
+          0 2px 4px rgba(35, 32, 25, 0.08),
+          0 12px 32px rgba(35, 32, 25, 0.1);
+      }
+
+      /* ink outline callout — ONE at a time, drawn over the footage around
+         the ADVANCE MONTH capsule region (footage capsule ~x813 y926 w526 h58
+         at source scale, mapped through the 1372/1920 card scale). */
+      .f04adv-outline {
+        position: absolute;
+        left: 843px;
+        top: 734px;
+        width: 400px;
+        height: 65px;
+        z-index: 30;
+        pointer-events: none;
+      }
+      .f04adv-outline rect {
+        fill: none;
+        stroke: #232019;
+        stroke-width: 2px;
+        stroke-dasharray: 1;
+        stroke-dashoffset: 1;
+      }
+
+      /* muted line beneath the card */
+      .f04adv-line {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 870px;
+        text-align: center;
+        font-family: "Urbanist", sans-serif;
+        font-weight: 500;
+        font-size: 19px;
+        line-height: 1.2;
+        color: #5f5c56;
+        z-index: 5;
+      }
+    </style>
+
+    <!-- full-bleed paper ground -->
+    <div class="clip f04adv-bg" data-start="0" data-duration="8.491" data-track-index="0"></div>
+
+    <!-- the real advance capture — approved, hoisted to the host root by the
+         assembler. Starts 0.6s into the frame (its first settling seconds read
+         as a natural fade-in); duration runs to frame end so the last source
+         frame holds through the settle. -->
+    <video
+      data-frame-video="approved"
+      src="assets/clip-advance.webm"
+      muted
+      playsinline
+      preload="auto"
+      data-start="0.6"
+      data-duration="7.891"
+      data-track-index="1"
+      data-frame-video-x="274"
+      data-frame-video-y="84"
+      data-frame-video-width="1372"
+      data-frame-video-height="772"
+      data-frame-video-fit="cover"
+    ></video>
+
+    <div class="f04adv-stage">
+      <div class="f04adv-kicker" id="f04adv-kicker">03 &middot; THE MONTH</div>
+
+      <div class="f04adv-card" id="f04adv-card"></div>
+
+      <svg
+        class="f04adv-outline"
+        id="f04adv-outline"
+        viewBox="0 0 400 65"
+        aria-hidden="true"
+      >
+        <rect id="f04adv-outline-rect" x="3" y="3" width="394" height="59" rx="29.5" pathLength="1"></rect>
+      </svg>
+
+      <div class="f04adv-line" id="f04adv-line">the month happens to you</div>
+    </div>
+
+    <script src="assets/vendor/gsap.min.js"></script>
+    <script>
+      (function () {
+        window.__timelines = window.__timelines || {};
+        var tl = gsap.timeline({ paused: true });
+
+        /* Scene 1 (0.0–2.15s) — "Time only moves when you move it."
+           Kicker + screen card rise; the clip window opens at 0.6s. */
+        tl.fromTo(
+          "#f04adv-kicker",
+          { opacity: 0, y: 14 },
+          { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" },
+          0.1
+        );
+        tl.fromTo(
+          "#f04adv-card",
+          { opacity: 0, y: 44 },
+          { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" },
+          0.15
+        );
+
+        /* After the injected push-slide settles, clear its inert transform
+           residue on this frame's host wrapper so the callout's z-index can
+           paint above the hoisted footage (a leftover translate(0,0) would
+           trap the frame in its own stacking context). Visually a no-op; in
+           standalone preview the selector simply matches nothing. */
+        var f04advHost = document.getElementById("el-04-advance");
+        if (f04advHost) tl.set(f04advHost, { clearProps: "transform" }, 1.3);
+
+        /* Scene 2 (2.15–4.45s) — "Press advance month — and the month happens"
+           The ink outline draws around the ADVANCE capsule on its spoken cue
+           (VO speech burst at 2.15s); the press occurs in-footage (~4.15s
+           frame time) and the outline clears as the month turns. */
+        tl.fromTo(
+          "#f04adv-outline-rect",
+          { strokeDashoffset: 1 },
+          { strokeDashoffset: 0, duration: 0.7, ease: "power2.inOut" },
+          2.2
+        );
+        tl.to(
+          "#f04adv-outline",
+          { opacity: 0, duration: 0.45, ease: "power2.out" },
+          4.35
+        );
+
+        /* Scene 3 (4.85–8.491s) — "revenue comes in, burn goes out, and
+           something lands on your desk." The footage carries the story (the
+           event card slides in on-screen ~4.5–5.5s); the muted line reveals
+           under the card on "lands on your desk" (6.95s), then the shot holds
+           as the clip settles. */
+        tl.fromTo(
+          "#f04adv-line",
+          { opacity: 0, y: 10 },
+          { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" },
+          6.95
+        );
+
+        window.__timelines["04-advance"] = tl;
+      })();
+    </script>
+  </div>
+</template>
