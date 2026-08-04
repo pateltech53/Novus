@@ -26,10 +26,11 @@
  * still down, which is true, rather than as a loading widget, which is a
  * different and more annoying kind of lie.
  *
- * The structure below deliberately mirrors `app/play/page.tsx` — same flex
- * column, same `h-dvh` + `overflow-hidden`, same `lg:` grid seam — so the
+ * The structure below deliberately mirrors `app/play/page.tsx` — same
+ * `min-h-dvh` document, same fixed deck on phone, same `lg:` grid seam — so the
  * arrival is content filling into a layout that is already correct, not a
- * layout being replaced.
+ * layout being replaced. That mirroring is load-bearing: see the note on the
+ * <main> element about what happens when it drifts.
  */
 export function PlaySkeleton() {
   return (
@@ -38,7 +39,16 @@ export function PlaySkeleton() {
       // reader should hear the label below and then the real screen, never a
       // description of five empty rectangles.
       aria-busy="true"
-      className="flex h-dvh flex-col overflow-hidden bg-[var(--bg)] lg:mx-auto lg:grid lg:h-auto lg:min-h-dvh lg:max-w-6xl lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:gap-6 lg:overflow-visible lg:px-6 lg:py-6"
+      /*
+       * These classes track app/play/page.tsx's <main> exactly, and they have to
+       * be re-checked whenever that layout changes. They were written against
+       * the fixed-height `h-dvh` + `overflow-hidden` composition and went stale
+       * within a day, when "Give /play its scroll back" reverted it to a
+       * scrolling `min-h-dvh` document — leaving the skeleton mirroring a layout
+       * the screen no longer had, which is precisely the layout jump this
+       * component exists to prevent.
+       */
+      className="min-h-dvh bg-[var(--bg)] lg:mx-auto lg:grid lg:min-h-dvh lg:max-w-6xl lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:gap-6 lg:px-6 lg:py-6"
     >
       <p className="sr-only" role="status">
         Opening the books…
@@ -47,12 +57,12 @@ export function PlaySkeleton() {
       {/* Masthead on phone, left column at lg — where HomeStage lands. */}
       <div
         aria-hidden="true"
-        className="h-[32svh] min-h-[200px] shrink-0 bg-[var(--n-1)] lg:sticky lg:top-6 lg:h-[26rem] lg:self-start lg:overflow-hidden lg:rounded-[var(--radius-card)] lg:shadow-[var(--e2)]"
+        className="h-[32svh] min-h-[200px] bg-[var(--n-1)] lg:sticky lg:top-6 lg:h-[26rem] lg:self-start lg:overflow-hidden lg:rounded-[var(--radius-card)] lg:shadow-[var(--e2)]"
       />
 
       <div
         aria-hidden="true"
-        className="flex min-h-0 flex-1 flex-col lg:h-[calc(100dvh-3rem)] lg:flex-none lg:overflow-hidden lg:rounded-[var(--radius-card)] lg:bg-[var(--surface)] lg:shadow-[var(--e2)]"
+        className="flex min-h-0 flex-col lg:h-[calc(100dvh-3rem)] lg:overflow-hidden lg:rounded-[var(--radius-card)] lg:bg-[var(--surface)] lg:shadow-[var(--e2)]"
       >
         {/* The Books — same grid as TheBooks.tsx:65. */}
         <div className="grid grid-cols-2 gap-2 px-3 pt-3 lg:grid-cols-4 lg:gap-1.5">
@@ -74,11 +84,10 @@ export function PlaySkeleton() {
           ))}
         </div>
 
-        <div className="flex-1 lg:hidden" />
-
-        {/* The deck: ADVANCE MONTH, then the tab bar. Both keep their real
-            heights so the bar does not jump when the screen arrives. */}
-        <div className="shrink-0 border-t border-[var(--hairline)] bg-[var(--bg)] px-3 pt-2 lg:static lg:bg-[var(--surface)]">
+        {/* The deck: ADVANCE MONTH, then the tab bar, both at their real heights
+            so nothing jumps when the screen arrives. Fixed on phone exactly as
+            the real screen has it, static in the desktop rail. */}
+        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-[var(--hairline)] bg-[var(--bg)] px-3 pt-2 lg:static lg:bg-[var(--surface)]">
           <div className="h-14 rounded-[var(--radius-pill)] bg-[var(--n-1)]" />
           <div className="mx-auto mt-1.5 grid w-full max-w-2xl grid-cols-3 gap-2 pt-1 pb-[max(0.375rem,env(safe-area-inset-bottom))] min-[360px]:grid-cols-6">
             {[0, 1, 2, 3, 4, 5].map((i) => (
