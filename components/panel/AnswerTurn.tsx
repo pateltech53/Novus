@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { motion } from "framer-motion";
 import type { LevelMeter, Recording } from "@/lib/media/recorder";
 import { stopSpeaking } from "@/lib/ai/speech";
@@ -52,7 +52,7 @@ export function AnswerTurn({
   question,
   onAnswer,
   onDecline,
-  onLevel,
+  levelRef,
   maxSeconds = 45,
   label = "THEY ARE WAITING",
   speakLabel = "ANSWER OUT LOUD",
@@ -67,7 +67,12 @@ export function AnswerTurn({
   /** The founder's actual words, however they arrived. */
   onAnswer: (answer: { text: string; spoken: boolean; seconds: number }) => void;
   onDecline: () => void;
-  onLevel?: (level: number) => void;
+  /**
+   * Where the live mic level goes. A ref rather than a callback: the callback
+   * was `setMicLevel` on SharkPanel, so every quantised step re-rendered a
+   * 1041-line screen. TankRoom subscribes to this ref on its own rAF instead.
+   */
+  levelRef?: RefObject<number>;
   maxSeconds?: number;
   /** Overridden for the counter-offer turn, which is not a question. */
   label?: string;
@@ -116,8 +121,8 @@ export function AnswerTurn({
     meterRef.current = null;
     stopStream(streamRef.current);
     streamRef.current = null;
-    onLevel?.(0);
-  }, [onLevel]);
+    if (levelRef) levelRef.current = 0;
+  }, [levelRef]);
 
   useEffect(() => cleanup, [cleanup]);
 
@@ -174,7 +179,7 @@ export function AnswerTurn({
         const step = Math.round(value * 12);
         if (step !== lastStep) {
           lastStep = step;
-          onLevel?.(step / 12);
+          if (levelRef) levelRef.current = step / 12;
         }
         rafRef.current = requestAnimationFrame(pump);
       };
@@ -208,7 +213,7 @@ export function AnswerTurn({
       setErr("No microphone. You can type your answer instead — it is judged the same.");
       setMode("typing");
     }
-  }, [onLevel]);
+  }, [levelRef]);
 
   async function finish() {
     if (finishingRef.current) return;

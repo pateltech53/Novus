@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import type { LogLine } from "@/lib/engine/types";
 
 /**
@@ -86,7 +86,17 @@ export function LifeLog({
   );
 }
 
-function LogEntry({ line }: { line: LogLine }) {
+/*
+ * Memoised, because the log is APPEND-ONLY.
+ *
+ * `run.log` reached a measured median of 470 lines by year 10 (max 513), and
+ * every one of them re-rendered whenever this list did — for a new tail entry,
+ * for a scroll, for any commit that produced a fresh `run` object. A log line
+ * is immutable once written: `line` never changes identity for an entry that
+ * already exists, so memo collapses the whole reconciliation to the rows that
+ * are genuinely new.
+ */
+const LogEntry = memo(function LogEntry({ line }: { line: LogLine }) {
   if (line.kind === "month-rule") {
     return (
       <p className="flex items-center gap-2.5 pt-4 pb-0.5 text-2xs font-bold tracking-[0.14em] text-[var(--text-tertiary)] first:pt-0">
@@ -156,7 +166,7 @@ function LogEntry({ line }: { line: LogLine }) {
       {line.deltas && line.deltas.length > 0 && <Deltas deltas={line.deltas} />}
     </div>
   );
-}
+});
 
 function Deltas({ deltas }: { deltas: NonNullable<LogLine["deltas"]> }) {
   return (

@@ -153,7 +153,21 @@ export function SharkPanel({
   const [cursor, setCursor] = useState(0);
   const [thinking, setThinking] = useState(true);
   const [accepted, setAccepted] = useState<{ shark: SharkId; offer: SharkOffer } | null>(null);
-  const [micLevel, setMicLevel] = useState(0);
+  /*
+   * The Tank's mic level — a ref, so it never re-renders this component.
+   *
+   * AnswerTurn already quantises to 12 steps (see its note), which cut the
+   * original 60-a-second down to a handful. The handful was still landing on
+   * THIS component: a 1041-line screen holding the room, the beats list, the
+   * notes and the offers. `TankRoom` is memoised, but `micLevel` was in its
+   * prop list, so the memo could never bite either — the one prop that changed
+   * while the player spoke was the one that defeated it.
+   *
+   * The level now goes into a ref that AnswerTurn writes and TankRoom
+   * subscribes to on its own rAF, so speaking re-renders the room and nothing
+   * above it. The seat lean is unchanged.
+   */
+  const micLevelRef = useRef(0);
   const [awaiting, setAwaiting] = useState<{ question: string; shark: SharkId } | null>(null);
   const [countering, setCountering] = useState(false);
   const [seats, setSeats] = useState<Partial<Record<SharkId, SeatState>>>({});
@@ -553,7 +567,7 @@ export function SharkPanel({
         ),
       );
       setAwaiting(null);
-      setMicLevel(0);
+      micLevelRef.current = 0;
       stopSpeaking();
       /*
        * How they took it. The seat reacts to whether an answer arrived and
@@ -585,7 +599,7 @@ export function SharkPanel({
       ),
     );
     setAwaiting(null);
-    setMicLevel(0);
+    micLevelRef.current = 0;
     stopSpeaking();
     // Silence is a legitimate move, and it lands as one.
     setSeat(awaiting.shark, "skeptical");
@@ -687,7 +701,7 @@ export function SharkPanel({
         <TankRoom
           states={seats}
           speaking={(lastSpeaker(beats) as SharkId) ?? null}
-          micLevel={micLevel}
+          levelRef={micLevelRef}
           cameraStream={cam}
           year={run.year}
         />
@@ -769,7 +783,7 @@ export function SharkPanel({
               question={awaiting.question}
               onAnswer={answered}
               onDecline={declined}
-              onLevel={setMicLevel}
+              levelRef={micLevelRef}
               /* Help exists on the QUESTIONS and not on the counter below:
                  a question has a right answer sitting in your own numbers, and
                  a counter is a decision about what you are willing to give up.
@@ -792,7 +806,7 @@ export function SharkPanel({
               declineLabel="DON'T COUNTER"
               onAnswer={countered}
               onDecline={() => setCountering(false)}
-              onLevel={setMicLevel}
+              levelRef={micLevelRef}
             />
           </div>
         )}

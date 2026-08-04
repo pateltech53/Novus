@@ -127,10 +127,27 @@ export function Coachmarks({
   useLayoutEffect(() => {
     if (!step || (step.native && nativeChrome)) return;
 
+    /*
+     * The target, cached.
+     *
+     * `measure` ran a fresh `document.querySelector` every time, and it is
+     * called from four sources — a 200 ms interval, resize, a ResizeObserver,
+     * and a CAPTURE-phase scroll listener that sees every scroller on the
+     * page. The selector was being evaluated on every scroll event, and then
+     * `getBoundingClientRect` forced a synchronous layout on each one.
+     *
+     * The element is re-queried only when the cached one has left the document,
+     * which is the only case that can invalidate it.
+     */
+    let cached: HTMLElement | null = null;
+    const target = () => {
+      if (cached?.isConnected) return cached;
+      cached = document.querySelector<HTMLElement>(`[data-coach="${step.target}"]`);
+      return cached;
+    };
+
     const measure = () => {
-      const el = document.querySelector<HTMLElement>(
-        `[data-coach="${step.target}"]`,
-      );
+      const el = target();
       if (!el) {
         setRect(null);
         return;
@@ -147,23 +164,44 @@ export function Coachmarks({
       );
     };
 
+    /*
+     * Scroll is coalesced to one measurement per frame.
+     *
+     * This listener is on the capture phase, so it fires for every scroller on
+     * the page — and it called `measure` directly, meaning a forced synchronous
+     * layout per scroll event rather than per frame. Same guard as
+     * ScrollPhone.tsx:113.
+     *
+     * The note above about rAF still holds and is not contradicted here: the
+     * INTERVAL stays a timer, because it is the mechanism that has to keep
+     * working while the tab is hidden. Scroll events do not fire in a hidden
+     * tab at all, so coalescing this one through a frame gives up nothing.
+     */
+    let queued = 0;
+    const onScroll = () => {
+      if (queued) return;
+      queued = requestAnimationFrame(() => {
+        queued = 0;
+        measure();
+      });
+    };
+
     measure();
     const id = window.setInterval(measure, 200);
     window.addEventListener("resize", measure);
-    window.addEventListener("scroll", measure, true);
+    window.addEventListener("scroll", onScroll, true);
     const observer =
       typeof ResizeObserver !== "undefined"
         ? new ResizeObserver(measure)
         : null;
-    const host = document.querySelector<HTMLElement>(
-      `[data-coach="${step.target}"]`,
-    );
+    const host = target();
     if (host && observer) observer.observe(host);
 
     return () => {
       window.clearInterval(id);
+      if (queued) cancelAnimationFrame(queued);
       window.removeEventListener("resize", measure);
-      window.removeEventListener("scroll", measure, true);
+      window.removeEventListener("scroll", onScroll, true);
       observer?.disconnect();
     };
   }, [step, nativeChrome]);

@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { motion } from "framer-motion";
 import { useGame } from "@/lib/state/GameProvider";
 import { SharkStage, type SharkState } from "@/components/SharkStage";
@@ -84,17 +84,27 @@ export function PerformScreen() {
   const [error, setError] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
   /*
-   * The live mic level, QUANTISED. The rAF loop below reads the meter at
-   * 60fps, but `level` used to be set raw on every frame — 60 re-renders a
-   * second of this entire screen: the WebGL shark, the notes card, the
-   * draggable self-view, all reconciled per frame, which is most of the
-   * reported "very laggy after start pitching". The loop now writes the raw
-   * reading to `levelRef` (for anything that wants full rate without React)
-   * and commits state only when the 24-step quantised value changes — a
-   * handful of renders a second, visually identical through the meter's own
-   * 75ms transition.
+   * The live mic level. It does not enter React on this component at all.
+   *
+   * History, because the shape of this matters. The rAF loop below reads the
+   * meter at 60 fps. That reading was originally set as raw state on every
+   * frame — 60 re-renders a second of this entire screen — which was most of
+   * the reported "very laggy after start pitching". Quantising to 24 steps cut
+   * that to a handful of renders a second, and both consumers were memoised,
+   * so the wasted work was mostly discarded rather than done.
+   *
+   * "Mostly discarded" was still the wrong price. Re-rendering a ~900-line
+   * component several times a second reconciles everything in it that is NOT
+   * memoised, and the two things that were memoised hid how expensive one of
+   * them is: an R3F `<Canvas>` re-runs `configure()` + `root.render()` over the
+   * whole three.js subtree on every commit of its owner, because that layout
+   * effect carries no dependency array.
+   *
+   * So the level is a ref and nothing else. The capture loop writes it, the
+   * shark reads it inside useFrame at full rate, and `LiveLevelMeter` runs its
+   * own rAF and holds its own quantised state — so the only component that
+   * re-renders when you speak is the 28 spans that draw it.
    */
-  const [level, setLevel] = useState(0);
   const levelRef = useRef(0);
   const [transcript, setTranscript] = useState<PitchTranscript | null>(null);
   const [score, setScore] = useState(0);
@@ -209,16 +219,12 @@ export function PerformScreen() {
         await videoRef.current.play().catch(() => undefined);
       }
       meterRef.current = createLevelMeter(stream);
-      let lastStep = -1;
       const tick = () => {
         const value = meterRef.current?.read() ?? 0;
         peakRef.current = Math.max(peakRef.current, value);
         levelRef.current = value;
-        const step = Math.round(value * 24);
-        if (step !== lastStep) {
-          lastStep = step;
-          setLevel(step / 24);
-        }
+        // No setState here. The meter subscribes to `levelRef` itself and the
+        // shark reads it in useFrame — see the note on levelRef above.
         rafRef.current = requestAnimationFrame(tick);
       };
       rafRef.current = requestAnimationFrame(tick);
@@ -633,7 +639,7 @@ export function PerformScreen() {
               <div className="mx-auto flex w-full max-w-2xl flex-col">
                 <SharkStage
                   state={sharkState}
-                  level={level}
+                  levelRef={levelRef}
                   className="pointer-events-none h-32 w-full shrink-0 sm:h-40"
                 />
 
@@ -786,7 +792,7 @@ export function PerformScreen() {
                 </div>
               )}
 
-              <LevelMeterBar level={level} active={phase === "recording"} />
+              <LiveLevelMeter levelRef={levelRef} active={phase === "recording"} />
 
               {phase === "recording" ? (
                 <button
@@ -892,6 +898,56 @@ export function PerformScreen() {
  * the clock and the transcript too, and 28 spans do not need to reconcile for
  * a tick of the clock.
  */
+/**
+ * The meter, subscribed to the level itself.
+ *
+ * The quantised `level` used to be state on PerformScreen, which meant every
+ * step change re-rendered a ~900-line component — the take timer, the
+ * transcript, the notes card, the draggable self-view and the WebGL stage all
+ * reconciling so that 28 spans could change height. `LevelMeterBar` and the
+ * stage were both already memoised, so most of that work was thrown away, but
+ * the render itself still ran several times a second on the busiest screen in
+ * the app.
+ *
+ * Now the only component that re-renders when the mic level moves is the one
+ * that draws it. It reads the same `levelRef` the capture loop writes, on its
+ * own rAF, and quantises exactly as before — so the visible behaviour is
+ * unchanged and PerformScreen never learns the level exists.
+ *
+ * The loop is mounted only while `active`, so a meter that is not recording
+ * costs nothing at all.
+ */
+const LiveLevelMeter = memo(function LiveLevelMeter({
+  levelRef,
+  active,
+}: {
+  levelRef: RefObject<number>;
+  active: boolean;
+}) {
+  const [level, setLevel] = useState(0);
+
+  useEffect(() => {
+    if (!active) {
+      setLevel(0);
+      return;
+    }
+    let raf = 0;
+    let lastStep = -1;
+    const tick = () => {
+      const step = Math.round((levelRef.current ?? 0) * 24);
+      if (step !== lastStep) {
+        lastStep = step;
+        setLevel(step / 24);
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [active, levelRef]);
+
+  return <LevelMeterBar level={level} active={active} />;
+});
+
 const LevelMeterBar = memo(function LevelMeterBar({
   level,
   active,

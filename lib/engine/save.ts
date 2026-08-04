@@ -66,6 +66,8 @@ function migrate(raw: Partial<RunState>): RunState {
 
 export function loadRun(): RunState | null {
   if (!canStore()) return null;
+  // A held write must never be invisible to a read. See saveRun's note.
+  flushRun();
   try {
     const raw = localStorage.getItem(KEYS.run);
     return raw ? migrate(JSON.parse(raw) as Partial<RunState>) : null;
@@ -84,6 +86,7 @@ export function loadRun(): RunState | null {
  */
 export function hasSavedRun(): boolean {
   if (!canStore()) return false;
+  flushRun();
   try {
     const raw = localStorage.getItem(KEYS.run);
     if (!raw) return false;
@@ -93,13 +96,100 @@ export function hasSavedRun(): boolean {
   }
 }
 
+/*
+ * ── The write is coalesced. It is never deferred past anything that can lose
+ *    it. ───────────────────────────────────────────────────────────────────
+ *
+ * `GameProvider.commit()` is the sole write path for every decision, activity
+ * and month advance, and it called straight through to a synchronous
+ * `JSON.stringify` + `localStorage.setItem` of the entire run. Measured with
+ * the balance harness (8 runs × 10 years, seed 1, clock frozen): median
+ * 40,650 B, p95 83,191 B, max 90,010 B — and `setItem` blocks the main thread
+ * while it writes. That cost sat on the critical path of the one interaction
+ * the whole game is made of, and it grew all run, so year 9 taps were heavier
+ * than year 1 taps for a reason no player could see.
+ *
+ * Coalescing is safe here ONLY because losing a write is not. The rules:
+ *
+ *   · the cloud queue still runs on every call, unchanged — `queueRun` has
+ *     always had its own debounce and its own flush
+ *   · the local write is held for one short window, so a burst of commits
+ *     inside one interaction costs one serialisation instead of several
+ *   · every path that could end the page flushes SYNCHRONOUSLY first:
+ *     `visibilitychange` → hidden (which is what a Capacitor app backgrounding
+ *     fires), `pagehide`, and `beforeunload`
+ *   · `loadRun` and `hasSavedRun` flush before reading, so nothing in-process
+ *     can ever observe a stale device
+ *   · `clearRun` DROPS the pending write rather than flushing it. This one is
+ *     not an optimisation — without it, a debounced save from the run being
+ *     ended would land after the delete and resurrect a buried company.
+ */
+const SAVE_COALESCE_MS = 120;
+
+let pendingRun: RunState | null = null;
+let pendingTimer: number | null = null;
+
+/** Writes any held run immediately. Safe to call at any time, including twice. */
+export function flushRun(): void {
+  if (pendingTimer !== null) {
+    clearTimeout(pendingTimer);
+    pendingTimer = null;
+  }
+  const state = pendingRun;
+  pendingRun = null;
+  if (state === null || !canStore()) return;
+  try {
+    localStorage.setItem(KEYS.run, JSON.stringify(state));
+  } catch {
+    // A full or disabled store is the same answer it has always been here:
+    // the run lives in memory and the cloud queue is unaffected.
+  }
+}
+
+/**
+ * Drops a held write without performing it.
+ *
+ * Two callers, and both are cases where performing the write would be actively
+ * wrong rather than merely late: `clearRun` below (burying a company), and
+ * `wipeDevice` in lib/cloud/auth.ts (this device is being handed to a different
+ * player, on sign-in as well as sign-out). Everything else flushes.
+ */
+export function dropPendingRun(): void {
+  if (pendingTimer !== null) {
+    clearTimeout(pendingTimer);
+    pendingTimer = null;
+  }
+  pendingRun = null;
+}
+
+let flushHooksInstalled = false;
+function installFlushHooks(): void {
+  if (flushHooksInstalled || typeof window === "undefined") return;
+  flushHooksInstalled = true;
+  // `visibilitychange` is the one that matters on a phone: iOS does not
+  // reliably fire `beforeunload`, and a Capacitor app being backgrounded —
+  // or the player swiping up — surfaces here.
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") flushRun();
+  });
+  window.addEventListener("pagehide", flushRun);
+  window.addEventListener("beforeunload", flushRun);
+}
+
 export function saveRun(state: RunState) {
   queueRun(state);
   if (!canStore()) return;
-  localStorage.setItem(KEYS.run, JSON.stringify(state));
+  installFlushHooks();
+  pendingRun = state;
+  if (pendingTimer === null) {
+    pendingTimer = window.setTimeout(flushRun, SAVE_COALESCE_MS);
+  }
 }
 
 export function clearRun() {
+  // Before anything else: a held write from the run being ended must not be
+  // allowed to land after the removeItem below. See the note above.
+  dropPendingRun();
   // null is an instruction, not an absence: it deletes the cloud row too.
   // Without this a buried company would resurrect on the next device.
   queueRun(null);
