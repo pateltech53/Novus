@@ -737,7 +737,7 @@ function PlansSheet({ onDone }: { onDone: () => void }) {
         <button
           type="button"
           onClick={onDone}
-          className="nv-gc mt-2.5 h-14 w-full rounded-[var(--radius-pill)] nv-on text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--text-primary)]"
+          className="nv-gc mt-2.5 h-14 w-full rounded-[var(--radius-card)] nv-on text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--text-primary)]"
         >
           CONTINUE FREE
         </button>

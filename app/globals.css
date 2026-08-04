@@ -49,9 +49,31 @@
   --dur-enter: 280ms;
   --dur-exit: 180ms;
 
-  --radius-row: 1rem;
-  --radius-card: 1.125rem;
-  --radius-pill: 999px;
+  /*
+   * ── The radius budget · four steps, and they encode containment ──────────
+   *
+   * This used to be three values, two of which were 2px apart: `row` at 16 and
+   * `card` at 18. At that distance a card inside a card is the same shape as
+   * the card it is inside, so nesting was invisible and the whole app read as
+   * one moulded part rather than as things containing other things.
+   *
+   * The rule now is the one iOS states as concentric corners: a child is
+   * rounder than nothing and always tighter than its parent, by at least 4px.
+   *   sheet 22 → card 14 → row 10 → chip 6
+   * Every step is legible at arm's length, and none of them is zero — the
+   * softness was never the problem.
+   *
+   * `--radius-pill` is unchanged and stays where the shape is genuinely a
+   * circle or a capsule: avatars, icon buttons, toggles, segmented controls,
+   * status chips, and the capsules UIKit draws on iOS. What it lost is the
+   * full-width DOM button, which is the one place a 999px capsule is not a
+   * shape but a costume.
+   */
+  --radius-chip: 0.375rem; /* 6px  — cost chips, counters, small tags */
+  --radius-row: 0.625rem; /* 10px — list rows, choice rows, ledger cells, inline controls */
+  --radius-card: 0.875rem; /* 14px — cards, panels, and any FULL-WIDTH control */
+  --radius-sheet: 1.375rem; /* 22px — sheets, modals, the masthead's lower edge */
+  --radius-pill: 999px; /* circles and capsules only */
 }
 
 /* ══ DARK · the chosen alternative ══════════════════════════════════════════
@@ -352,7 +374,10 @@ textarea {
 .nv-card {
   background: var(--card);
   box-shadow: var(--e1);
-  border-radius: var(--radius-row);
+  /* The card token, which it did not used to take: at 16 vs 18 the difference
+     was invisible, so nobody noticed a card wearing the row's shape. At 14 vs
+     10 it is the whole point — a card has to be rounder than what is in it. */
+  border-radius: var(--radius-card);
 }
 
 /*
@@ -1164,7 +1189,7 @@ textarea {
   align-items: center;
   justify-content: center;
   gap: 0.25rem;
-  border-radius: 0.875rem;
+  border-radius: var(--radius-row);
   padding: 0.5rem 0;
   background: transparent;
   /* Secondary, not tertiary. Six controls in a row at the tertiary step read
@@ -1268,45 +1293,45 @@ textarea {
 }
 
 /*
- * Short phones.
+ * ── The founder's size on the masthead ────────────────────────────────────
  *
- * The masthead is 386px on a 320×568 screen, which leaves the life log a
- * sliver and pushes the one control that moves time toward the fold. The
- * mascot is the only thing on it with slack in it, so the mascot gives the
- * height back — measured, not guessed: 168 → 120 buys 48px, and 132 on the
- * middle band buys 36 without the character reading as an icon.
+ * This used to be a four-tier ladder keyed on viewport height — 168 → 132 →
+ * 120 → 104 → 96 — because a 168px character above a 28px title made the
+ * masthead 386px on a 320×568 screen, which left the life log a sliver and
+ * pushed the one control that moves time toward the fold. The ladder was the
+ * mascot handing its slack back a band at a time.
  *
- * Keyed on height rather than width, because this is a vertical budget and a
- * wide short window has exactly the same problem.
+ * The phone does not need the ladder any more, because the phone stopped
+ * asking for the height in the first place: the masthead is a ROW now
+ * (HomeStage.tsx) — portrait on the left, name and line beside it — and 76px
+ * is already smaller than the tightest band the ladder ever reached. Keeping
+ * the tiers would make the character GROW on a short phone, which is the
+ * opposite of what they were written to do.
+ *
+ * So: one value on the phone, and the composed 168 restored at `lg`, where
+ * the rail is a 100dvh column and the portrait was never the problem. The
+ * ladder survives only inside `lg`, for a desktop window that is genuinely
+ * short.
  */
-@media (max-height: 780px) {
+.nv-masthead {
+  --nv-portrait-size: 4.75rem; /* 76px — an identity portrait, not the page */
+}
+
+@media (min-width: 64rem) {
+  .nv-masthead {
+    --nv-portrait-size: 10.5rem; /* 168px — the size the column was composed at */
+  }
+}
+
+@media (min-width: 64rem) and (max-height: 780px) {
   .nv-masthead {
     --nv-portrait-size: 8.25rem; /* 132px */
   }
 }
 
-/*
- * The play screen is a fixed-height column now (app/play/page.tsx): nothing
- * may scroll except the books region, as a last resort. That makes these
- * tiers the mechanism that keeps the last resort rare — each shorter band
- * gives more of the mascot's slack back so the books and the log still fit
- * whole above the advance bar.
- */
-@media (max-height: 760px) {
-  .nv-masthead {
-    --nv-portrait-size: 7.5rem; /* 120px */
-  }
-}
-
-@media (max-height: 700px) {
+@media (min-width: 64rem) and (max-height: 680px) {
   .nv-masthead {
     --nv-portrait-size: 6.5rem; /* 104px */
-  }
-}
-
-@media (max-height: 620px) {
-  .nv-masthead {
-    --nv-portrait-size: 6rem; /* 96px */
   }
 }
 

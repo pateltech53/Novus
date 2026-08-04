@@ -376,7 +376,7 @@ export default function ChapterPage() {
             </Blurb>
             <a
               href="/"
-              className="nv-gc mt-6 flex h-14 w-full items-center justify-center rounded-[var(--radius-pill)] nv-t-action px-6 text-[1.0625rem] font-extrabold tracking-[0.04em] shadow-[var(--e3)]"
+              className="nv-gc mt-6 flex h-14 w-full items-center justify-center rounded-[var(--radius-card)] nv-t-action px-6 text-[1.0625rem] font-extrabold tracking-[0.04em] shadow-[var(--e3)]"
             >
               GO TO SIGN IN
             </a>
@@ -395,7 +395,7 @@ export default function ChapterPage() {
             </Blurb>
             <a
               href="/#pro"
-              className="nv-gc mt-6 flex h-14 w-full items-center justify-center rounded-[var(--radius-pill)] nv-t-action px-6 text-[1.0625rem] font-extrabold tracking-[0.04em] shadow-[var(--e3)]"
+              className="nv-gc mt-6 flex h-14 w-full items-center justify-center rounded-[var(--radius-card)] nv-t-action px-6 text-[1.0625rem] font-extrabold tracking-[0.04em] shadow-[var(--e3)]"
             >
               SEE THE LICENCES
             </a>
@@ -488,7 +488,7 @@ export default function ChapterPage() {
             type="button"
             onClick={() => void sendInvites()}
             disabled={busy !== null || parseLines(inviteText).length === 0}
-            className="nv-gc mt-3 h-12 w-full rounded-[var(--radius-pill)] nv-t-action text-sm font-extrabold tracking-[0.04em] shadow-[var(--e2)] disabled:cursor-not-allowed disabled:opacity-35"
+            className="nv-gc mt-3 h-12 w-full rounded-[var(--radius-card)] nv-t-action text-sm font-extrabold tracking-[0.04em] shadow-[var(--e2)] disabled:cursor-not-allowed disabled:opacity-35"
           >
             {busy === "invite" ? "SENDING…" : "SEND INVITES"}
           </button>

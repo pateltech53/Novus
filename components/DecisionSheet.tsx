@@ -7,6 +7,7 @@ import { haptic } from "@/lib/haptics";
 import { motion } from "framer-motion";
 import type { Choice, GameEvent, Industry } from "@/lib/engine/types";
 import { GLOSSARY } from "@/lib/engine/constants";
+import { CostChip } from "@/components/CostChip";
 import { termsUsed } from "@/lib/ai/terms";
 
 /**
@@ -55,7 +56,7 @@ export function DecisionSheet({
             role="dialog"
             aria-modal="true"
             aria-labelledby="decision-title"
-            className="relative flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-y-auto rounded-t-[1.75rem] bg-[var(--sheet)] pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[var(--e3)]"
+            className="relative flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-y-auto rounded-t-[var(--radius-sheet)] bg-[var(--sheet)] pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[var(--e3)]"
         initial={{ y: "6%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
@@ -151,11 +152,7 @@ export function DecisionSheet({
                         </span>
                       )}
                     </span>
-                    {choice.known && (
-                      <span className="tnum shrink-0 rounded-md bg-[var(--chip)] px-1.5 py-0.5 text-2xs font-bold text-[var(--text-secondary)]">
-                        {choice.known}
-                      </span>
-                    )}
+                    {choice.known && <CostChip known={choice.known} />}
                   </button>
                   <button
                     type="button"
@@ -218,7 +215,7 @@ export function DecisionSheet({
                 <button
                   type="button"
                   onClick={onDismiss}
-                  className="nv-gc mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-[var(--radius-pill)] nv-t-action text-base font-extrabold tracking-[0.04em] shadow-[var(--e3)]"
+                  className="nv-gc mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-[var(--radius-card)] nv-t-action text-base font-extrabold tracking-[0.04em] shadow-[var(--e3)]"
                 >
                   <CameraGlyph />
                   OPEN THE CAMERA ▸
@@ -299,7 +296,7 @@ function MarketDateline() {
     day: "numeric",
   });
   return (
-    <div className="flex items-baseline justify-between gap-3 rounded-t-[1.75rem] bg-[var(--color-navy)] px-5 py-2.5">
+    <div className="flex items-baseline justify-between gap-3 rounded-t-[var(--radius-sheet)] bg-[var(--color-navy)] px-5 py-2.5">
       <span className="text-2xs font-bold tracking-[0.16em] text-[var(--color-prestige)]">
         TODAY&rsquo;S MARKET
       </span>

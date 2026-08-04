@@ -78,7 +78,7 @@ export function AiStatusBanner() {
       role="status"
       aria-live="polite"
     >
-      <div className="pointer-events-auto w-full max-w-md rounded-2xl border border-amber-400/30 bg-[#241f16]/95 shadow-lg backdrop-blur-sm">
+      <div className="pointer-events-auto w-full max-w-md rounded-[var(--radius-card)] border border-amber-400/30 bg-[#241f16]/95 shadow-lg backdrop-blur-sm">
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
@@ -104,7 +104,7 @@ export function AiStatusBanner() {
             <button
               type="button"
               onClick={() => setDismissed(true)}
-              className="w-full rounded-lg bg-white/5 py-1.5 text-[11px] text-amber-200/70"
+              className="w-full rounded-[var(--radius-row)] bg-white/5 py-1.5 text-[11px] text-amber-200/70"
             >
               Hide for this session
             </button>

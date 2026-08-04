@@ -170,17 +170,21 @@ export type GlassButtonTone =
   | "quiet";
 
 /**
- * Shape presets, so a caller never has to remember which radius a pill is.
+ * Shape presets, so a caller never has to remember which radius a shape takes.
  *
- * `block` is a full-width control at the bottom of a card; `pill` is a chip
- * sized to its own label; `circle` is an icon on its own; `row` is a list row,
- * which is square-shouldered because it lives inside a `GlassGroup` that owns
- * the corners for the whole stack.
+ * `block` is a full-width control at the bottom of a card, and it is NOT a
+ * capsule any more — a full-bleed 999px button is the one place the pill was a
+ * costume rather than a shape, so it takes `--radius-card` like every other
+ * full-width control. `pill` keeps 999px because a chip sized to its own label
+ * genuinely is one. `circle` is an icon on its own. `row` is a list row, which
+ * is square-shouldered because it lives inside a `GlassGroup` that owns the
+ * corner for the whole stack — and the group therefore takes the CARD token,
+ * one step rounder than the rows it contains.
  */
 export type GlassShape = "block" | "pill" | "circle" | "row" | "bare";
 
 const SHAPE: Record<GlassShape, string> = {
-  block: "h-12 w-full rounded-[var(--radius-pill)] px-5",
+  block: "h-12 w-full rounded-[var(--radius-card)] px-5",
   pill: "h-9 rounded-[var(--radius-pill)] px-4",
   circle: "h-10 w-10 rounded-full",
   row: "h-12 w-full px-4",
@@ -262,7 +266,7 @@ export function GlassGroup({
   return (
     <div
       data-glass={solid ? "solid" : undefined}
-      className={`nv-ggroup rounded-[var(--radius-row)] ${className}`}
+      className={`nv-ggroup rounded-[var(--radius-card)] ${className}`}
       {...rest}
     >
       {children}

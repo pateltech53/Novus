@@ -171,7 +171,7 @@ export default function SeatSetupPage() {
           <button
             type="button"
             onClick={() => router.push("/")}
-            className="nv-gc mt-6 h-14 w-full rounded-[var(--radius-pill)] nv-on text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--text-primary)]"
+            className="nv-gc mt-6 h-14 w-full rounded-[var(--radius-card)] nv-on text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--text-primary)]"
           >
             BACK TO NOVUS
           </button>
@@ -237,7 +237,7 @@ export default function SeatSetupPage() {
             <button
               type="submit"
               disabled={busy || !ready}
-              className="nv-gc mt-6 block h-14 w-full rounded-[var(--radius-pill)] nv-t-action px-6 text-[1.0625rem] font-extrabold tracking-[0.04em] shadow-[var(--e3)] disabled:cursor-not-allowed disabled:opacity-35"
+              className="nv-gc mt-6 block h-14 w-full rounded-[var(--radius-card)] nv-t-action px-6 text-[1.0625rem] font-extrabold tracking-[0.04em] shadow-[var(--e3)] disabled:cursor-not-allowed disabled:opacity-35"
             >
               {busy ? "SAVING…" : "SET PASSWORD AND PLAY"}
             </button>

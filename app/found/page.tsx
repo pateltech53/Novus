@@ -226,7 +226,7 @@ function FoundPage() {
           <button
             type="button"
             onClick={() => router.push("/play")}
-            className="nv-gc mt-3 h-12 w-full truncate rounded-[var(--radius-pill)] nv-t-action px-5 text-sm font-extrabold tracking-[0.06em] text-[var(--n-11)]"
+            className="nv-gc mt-3 h-12 w-full truncate rounded-[var(--radius-card)] nv-t-action px-5 text-sm font-extrabold tracking-[0.06em] text-[var(--n-11)]"
           >
             {saved.alive ? "CONTINUE ▸" : "READ WHAT KILLED IT ▸"}
           </button>
@@ -396,7 +396,7 @@ function FoundPage() {
               type="button"
               onClick={generate}
               disabled={writing || drafts <= 0}
-              className="nv-gc flex h-12 w-full items-center justify-center gap-2 rounded-[var(--radius-pill)] nv-on text-2xs font-extrabold tracking-[0.08em] text-[var(--text-primary)] shadow-[var(--e1)] ring-1 ring-[var(--hairline)] disabled:opacity-50"
+              className="nv-gc flex h-12 w-full items-center justify-center gap-2 rounded-[var(--radius-card)] nv-on text-2xs font-extrabold tracking-[0.08em] text-[var(--text-primary)] shadow-[var(--e1)] ring-1 ring-[var(--hairline)] disabled:opacity-50"
             >
               <SparkleGlyph />
               {writing

@@ -179,7 +179,7 @@ export function ScrollPhone({ children }: { children: React.ReactNode }) {
                   alt="The company screen: the founder over the live books — cash, burn, runway, valuation."
                   width={640}
                   height={1385}
-                  className="max-h-full w-auto rounded-[1.4rem] shadow-[var(--e3)] ring-1 ring-[var(--hairline)]"
+                  className="max-h-full w-auto rounded-[var(--radius-sheet)] shadow-[var(--e3)] ring-1 ring-[var(--hairline)]"
                 />
               </div>
             ) : approached ? (

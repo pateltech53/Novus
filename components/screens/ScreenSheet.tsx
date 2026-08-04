@@ -170,7 +170,7 @@ export function ScreenSheet({
          * put the sheet's grabber underneath a glass close button. Measured,
          * not guessed: the same rule the play screen's chrome is built on.
          */
-        className="relative flex max-h-[min(88dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] w-full max-w-2xl flex-col overflow-y-auto rounded-t-[1.75rem] bg-[var(--sheet)] pb-[max(1rem,env(safe-area-inset-bottom),var(--nv-overlay-bottom))] shadow-[var(--e3)]"
+        className="relative flex max-h-[min(88dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] w-full max-w-2xl flex-col overflow-y-auto rounded-t-[var(--radius-sheet)] bg-[var(--sheet)] pb-[max(1rem,env(safe-area-inset-bottom),var(--nv-overlay-bottom))] shadow-[var(--e3)]"
         initial={{ y: "8%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
@@ -184,7 +184,7 @@ export function ScreenSheet({
            * rounded ancestor's clip — a square glass corner over a rounded
            * sheet is the kind of thing that only shows up on a device.
            */
-          className="sticky top-0 z-10 shrink-0 rounded-t-[1.75rem] px-5 pt-2.5 pb-3.5"
+          className="sticky top-0 z-10 shrink-0 rounded-t-[var(--radius-sheet)] px-5 pt-2.5 pb-3.5"
         >
           <div
             aria-hidden="true"

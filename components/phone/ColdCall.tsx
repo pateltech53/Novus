@@ -133,7 +133,7 @@ function ProGate() {
 
   return (
     <div className="px-5 py-10 text-center">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[1.1rem] bg-[var(--n-4)]">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[var(--radius-card)] bg-[var(--n-4)]">
         <HandsetGlyph />
       </div>
       <h2 className="mt-4 text-lg font-extrabold tracking-[-0.01em]">The Room</h2>
@@ -152,7 +152,7 @@ function ProGate() {
       <button
         type="button"
         onClick={() => upgrade.open("the_room")}
-        className="nv-gc mx-auto mt-5 h-12 w-full max-w-[19rem] rounded-[var(--radius-pill)] nv-t-prestige text-2xs font-extrabold tracking-[0.14em]"
+        className="nv-gc mx-auto mt-5 h-12 w-full max-w-[19rem] rounded-[var(--radius-card)] nv-t-prestige text-2xs font-extrabold tracking-[0.14em]"
       >
         SEE WHAT PRO ADDS
       </button>
@@ -474,7 +474,7 @@ function LiveCall({
         <div className="mt-4">
           <div className="flex items-start gap-3">
             {/* Self-view. Not recorded, not uploaded, stopped when the call ends. */}
-            <div className="relative h-[4.5rem] w-[3.4rem] shrink-0 overflow-hidden rounded-[0.7rem] bg-[var(--n-4)]">
+            <div className="relative h-[4.5rem] w-[3.4rem] shrink-0 overflow-hidden rounded-[var(--radius-row)] bg-[var(--n-4)]">
               <video
                 ref={videoRef}
                 muted

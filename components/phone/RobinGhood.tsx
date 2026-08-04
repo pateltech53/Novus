@@ -250,7 +250,7 @@ function PortfolioTab({
           <button
             type="button"
             onClick={() => setTransferOpen(true)}
-            className="nv-gc mt-4 h-14 w-full rounded-[var(--radius-pill)] nv-t-action text-sm font-extrabold tracking-[0.06em]"
+            className="nv-gc mt-4 h-14 w-full rounded-[var(--radius-card)] nv-t-action text-sm font-extrabold tracking-[0.06em]"
           >
             MOVE MONEY IN
           </button>
@@ -465,7 +465,7 @@ function MarketRow({
             {t.symbol}
           </span>
           {t.crypto && (
-            <span className="shrink-0 rounded bg-[var(--chip)] px-1 py-0.5 text-2xs font-bold tracking-[0.08em] text-[var(--text-secondary)]">
+            <span className="shrink-0 rounded-[var(--radius-chip)] bg-[var(--chip)] px-1 py-0.5 text-2xs font-bold tracking-[0.08em] text-[var(--text-secondary)]">
               CRYPTO
             </span>
           )}
@@ -553,7 +553,7 @@ function TickerDetail({
                 {ticker.symbol}
               </h2>
               {ticker.crypto && (
-                <span className="shrink-0 rounded bg-[var(--chip)] px-1 py-0.5 text-2xs font-bold tracking-[0.08em] text-[var(--text-secondary)]">
+                <span className="shrink-0 rounded-[var(--radius-chip)] bg-[var(--chip)] px-1 py-0.5 text-2xs font-bold tracking-[0.08em] text-[var(--text-secondary)]">
                   CRYPTO
                 </span>
               )}
@@ -754,7 +754,7 @@ function NewsTab({
               aria-label={`Open ${item.symbol}`}
               className="flex w-full items-center gap-2"
             >
-              <span className="rounded bg-[var(--chip)] px-1.5 py-0.5 text-2xs font-extrabold tracking-[0.08em] text-[var(--text-secondary)]">
+              <span className="rounded-[var(--radius-chip)] bg-[var(--chip)] px-1.5 py-0.5 text-2xs font-extrabold tracking-[0.08em] text-[var(--text-secondary)]">
                 {item.symbol}
               </span>
               <span
