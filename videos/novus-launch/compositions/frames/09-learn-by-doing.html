@@ -1,0 +1,230 @@
+<template>
+  <div data-composition-id="09-learn-by-doing" data-width="1920" data-height="1080" data-duration="3.477">
+    <style>
+      @font-face {
+        font-family: "Urbanist";
+        src: url("assets/fonts/Urbanist-Variable.woff2") format("woff2-variations");
+        font-weight: 100 900;
+        font-style: normal;
+        font-display: block;
+      }
+
+      #root {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        container-type: size;
+        font-family: "Urbanist", sans-serif;
+      }
+
+      /* The white stage — full-bleed ground on its own clip, never on #root */
+      .f09-bg {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse at center, #ffffff 0%, #ffffff 62%, #f7f5f2 100%);
+      }
+
+      .f09-stage {
+        position: absolute;
+        inset: 0;
+      }
+
+      /* Scene 1 — the struck premise, h2 ramp, centered */
+      #f09-line1 {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding-bottom: 6cqh;
+        gap: 0.5cqw;
+      }
+      .f09-row {
+        display: flex;
+        gap: 1.15cqw;
+      }
+      .f09-w {
+        display: inline-block;
+        font-size: 4.5cqw;
+        font-weight: 700;
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+        text-transform: lowercase;
+        color: #111111;
+        white-space: nowrap;
+      }
+      .f09-watching {
+        position: relative;
+      }
+      .f09-strike {
+        position: absolute;
+        display: block;
+        left: -0.3cqw;
+        right: -0.3cqw;
+        top: 54%;
+        height: 0.22cqw;
+        background: #d92d20;
+      }
+
+      /* Scene 2 — the tagline stack, display ramp, tight leading */
+      #f09-tag {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding-bottom: 6cqh;
+        line-height: 0.85;
+      }
+      .f09-t {
+        display: block;
+        text-transform: lowercase;
+        color: #111111;
+        white-space: nowrap;
+      }
+      #f09-t-learn {
+        font-size: 9cqw;
+        font-weight: 800;
+        letter-spacing: -0.04em;
+        line-height: 0.9;
+      }
+      #f09-t-by {
+        font-size: 3.4cqw;
+        font-weight: 400;
+        letter-spacing: -0.01em;
+        color: #6b6864;
+        margin: 0.9cqw 0;
+        line-height: 1;
+      }
+      #f09-t-doing {
+        font-size: 10.8cqw;
+        font-weight: 800;
+        letter-spacing: -0.04em;
+        line-height: 0.9;
+      }
+      #f09-underscore {
+        width: 12cqw;
+        height: 0.5cqw;
+        background: #111111;
+        margin-top: 2.4cqw;
+      }
+    </style>
+
+    <div class="clip f09-bg" data-start="0" data-duration="3.477" data-track-index="0"></div>
+
+    <div class="clip f09-stage" data-start="0" data-duration="3.477" data-track-index="1">
+      <div id="f09-line1" data-layout-allow-overlap>
+        <div class="f09-row">
+          <span class="f09-w" id="f09-w-you">you</span>
+          <span class="f09-w" id="f09-w-dont">don&rsquo;t</span>
+          <span class="f09-w" id="f09-w-learn">learn</span>
+          <span class="f09-w" id="f09-w-business">business</span>
+        </div>
+        <div class="f09-row">
+          <span class="f09-w" id="f09-w-by">by</span>
+          <span class="f09-w f09-watching" id="f09-w-watching">watching.<i class="f09-strike" id="f09-strike"></i></span>
+        </div>
+      </div>
+
+      <div id="f09-tag" data-layout-allow-overlap>
+        <span class="f09-t" id="f09-t-learn">learn</span>
+        <span class="f09-t" id="f09-t-by">by</span>
+        <span class="f09-t" id="f09-t-doing">doing.</span>
+        <div id="f09-underscore"></div>
+      </div>
+    </div>
+
+    <script src="assets/vendor/gsap.min.js"></script>
+    <script>
+      (function () {
+        window.__timelines = window.__timelines || {};
+        var tl = gsap.timeline({ paused: true });
+        window.__timelines["09-learn-by-doing"] = tl;
+
+        /* ---- Scene 1 (0.0-2.3s) — per-word build on the VO
+           VO onsets: you 0.41 / don't 0.59 / learn 0.88 / business 1.18 /
+           by 1.66 / watching 1.77 — each entrance leads its word by ~80ms */
+        var words = [
+          ["#f09-w-you", 0.33],
+          ["#f09-w-dont", 0.51],
+          ["#f09-w-learn", 0.80],
+          ["#f09-w-business", 1.10],
+          ["#f09-w-by", 1.58],
+          ["#f09-w-watching", 1.69]
+        ];
+        words.forEach(function (w) {
+          tl.fromTo(
+            w[0],
+            { y: 26, opacity: 0, filter: "blur(6px)" },
+            { y: 0, opacity: 1, filter: "blur(0px)", duration: 0.32, ease: "power3.out" },
+            w[1]
+          );
+        });
+
+        /* a whisper of settle under the build — ends before the cut, then nothing */
+        tl.fromTo(
+          "#f09-line1",
+          { scale: 1.025 },
+          { scale: 1, duration: 2.3, ease: "sine.out" },
+          0
+        );
+
+        /* "watching" dims to muted and takes the thin red strike (Frame-1 bookend) */
+        tl.to("#f09-w-watching", { color: "#6B6864", duration: 0.22, ease: "power2.out" }, 2.02);
+        tl.fromTo(
+          "#f09-strike",
+          { scaleX: 0 },
+          { scaleX: 1, duration: 0.24, ease: "power3.inOut", transformOrigin: "left center" },
+          2.04
+        );
+
+        /* ---- Scene 2 (2.3-3.0s) — waterfall cut clears the struck line:
+           per-word x rip (power4.in) + early fade, reading-order stagger */
+        words.forEach(function (w, i) {
+          var t0 = 2.3 + i * 0.022;
+          tl.to(w[0], { x: -230, duration: 0.34, ease: "power4.in" }, t0);
+          tl.to(w[0], { opacity: 0, duration: 0.18, ease: "power1.in" }, t0 + 0.06);
+        });
+
+        /* "learn by doing." lands beat-by-beat on the VO grid
+           (kinetic-beat-slam, restrained — three distinct entrances)
+           VO onsets: learn 2.49 / by 2.85 / doing. 2.99 */
+        tl.fromTo(
+          "#f09-t-learn",
+          { scale: 1.45, opacity: 0, filter: "blur(10px)" },
+          { scale: 1, opacity: 1, filter: "blur(0px)", duration: 0.42, ease: "power4.out" },
+          2.44
+        );
+        tl.fromTo(
+          "#f09-t-by",
+          { x: -140, opacity: 0 },
+          { x: 0, opacity: 1, duration: 0.3, ease: "expo.out" },
+          2.82
+        );
+        tl.fromTo(
+          "#f09-t-doing",
+          { y: 84, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.42, ease: "circ.out" },
+          2.96
+        );
+
+        /* underscore draws with "doing." ... */
+        tl.fromTo(
+          "#f09-underscore",
+          { scaleX: 0 },
+          { scaleX: 1, duration: 0.24, ease: "power3.out", transformOrigin: "left center" },
+          3.02
+        );
+
+        /* ---- Scene 3 (3.0-3.477s) — the underscore thins, then genuine stillness */
+        tl.to(
+          "#f09-underscore",
+          { scaleY: 0.4, duration: 0.18, ease: "power2.inOut", transformOrigin: "center center" },
+          3.26
+        );
+      })();
+    </script>
+  </div>
+</template>

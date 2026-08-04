@@ -1,0 +1,312 @@
+<template>
+  <div id="root" data-composition-id="01-bike" data-duration="3.989" data-width="1920" data-height="1080">
+
+    <div class="clip bike01-bg" data-start="0" data-duration="3.989" data-track-index="0"></div>
+
+    <div class="clip bike01-content" data-start="0" data-duration="3.989" data-track-index="1">
+      <div id="bike01-stage">
+
+        <!-- Left 55% — the building line -->
+        <div class="bike01-headline">
+          <div class="bike01-line">
+            <span class="bike01-word" id="bike01-w-you">you</span>
+            <span class="bike01-word" id="bike01-w-dont">don&rsquo;t</span>
+            <span class="bike01-word" id="bike01-w-learn">learn</span>
+          </div>
+          <div class="bike01-line">
+            <span class="bike01-word" id="bike01-w-to">to</span>
+            <span class="bike01-word" id="bike01-w-ride">ride</span>
+            <span class="bike01-word" id="bike01-w-a">a</span>
+            <span class="bike01-word" id="bike01-w-bike">bike</span>
+            <span class="bike01-word" id="bike01-w-dash">&mdash;</span>
+          </div>
+        </div>
+
+        <!-- Right 45% — single-stroke line-art bicycle, facing left, self-drawing -->
+        <svg id="bike01-svg" viewBox="0 0 580 380" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle class="bike01-stroke" id="bike01-p-fw"    cx="120" cy="268" r="95"/>
+          <circle class="bike01-stroke" id="bike01-p-rw"    cx="450" cy="268" r="95"/>
+          <circle class="bike01-stroke" id="bike01-p-hubf"  cx="120" cy="268" r="5"/>
+          <circle class="bike01-stroke" id="bike01-p-hubr"  cx="450" cy="268" r="5"/>
+          <path   class="bike01-stroke" id="bike01-p-chainstay" d="M 300 285 L 450 268"/>
+          <path   class="bike01-stroke" id="bike01-p-seattube"  d="M 300 285 L 338 130"/>
+          <path   class="bike01-stroke" id="bike01-p-downtube"  d="M 179 156 L 300 285"/>
+          <path   class="bike01-stroke" id="bike01-p-toptube"   d="M 191 120 L 334 128"/>
+          <path   class="bike01-stroke" id="bike01-p-seatstay"  d="M 450 268 L 336 134"/>
+          <path   class="bike01-stroke" id="bike01-p-headfork"  d="M 194 112 L 178 158 Q 166 214 120 268"/>
+          <path   class="bike01-stroke" id="bike01-p-steer"     d="M 194 112 L 199 97 Q 202 86 190 82 L 158 76 Q 147 74 146 84"/>
+          <path   class="bike01-stroke" id="bike01-p-seatpost"  d="M 338 130 L 347 95"/>
+          <path   class="bike01-stroke" id="bike01-p-saddle"    d="M 318 90 Q 349 80 384 89"/>
+          <circle class="bike01-stroke" id="bike01-p-crank"     cx="300" cy="285" r="15"/>
+        </svg>
+
+        <!-- The wrong way to learn — flat gray video-player card, popped into the bike's path -->
+        <div id="bike01-card">
+          <div class="bike01-play"><span class="bike01-tri"></span></div>
+          <div class="bike01-track"><div id="bike01-progress-fill"></div></div>
+          <div id="bike01-strike">
+            <span class="bike01-strike-line" id="bike01-strike-fwd"></span>
+            <span class="bike01-strike-line" id="bike01-strike-bwd"></span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <style>
+      @font-face {
+        font-family: "Urbanist";
+        src: url("assets/fonts/Urbanist-Variable.woff2") format("woff2-variations");
+        font-weight: 100 900;
+        font-style: normal;
+        font-display: block;
+      }
+
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        container-type: size;
+      }
+
+      .bike01-bg {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(120% 120% at 50% 42%, #FFFFFF 55%, #F7F5F2 100%);
+      }
+
+      .bike01-content {
+        position: absolute;
+        inset: 0;
+      }
+
+      #bike01-stage {
+        position: absolute;
+        inset: 0;
+        transform-origin: 52% 45%;
+        will-change: transform;
+      }
+
+      /* — headline, left 55% — */
+      .bike01-headline {
+        position: absolute;
+        left: 105px;
+        top: 340px;
+        width: 940px;
+        z-index: 4;
+        font-family: "Urbanist", sans-serif;
+        font-weight: 800;
+        font-size: 116px;
+        line-height: 1.04;
+        letter-spacing: -0.03em;
+        color: #111111;
+      }
+      .bike01-word {
+        display: inline-block;
+        margin-right: 0.20em;
+        will-change: transform, opacity;
+      }
+
+      /* — bicycle, right 45% — */
+      #bike01-svg {
+        position: absolute;
+        left: 1015px;
+        top: 240px;
+        width: 830px;
+        height: 544px;
+        z-index: 2;
+        overflow: visible;
+      }
+      .bike01-stroke {
+        fill: none;
+        stroke: #111111;
+        stroke-width: 2.6;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        vector-effect: non-scaling-stroke;
+      }
+
+      /* — gray video-player card — */
+      #bike01-card {
+        position: absolute;
+        left: 810px;
+        top: 610px;
+        width: 330px;
+        height: 216px;
+        z-index: 3;
+        background: #F0EEEB;
+        border-radius: 24px;
+        box-shadow:
+          0 1px 0 rgba(17, 17, 17, 0.06),
+          0 2px 4px rgba(17, 17, 17, 0.07),
+          0 12px 32px rgba(17, 17, 17, 0.10);
+        outline: 1px solid rgba(17, 17, 17, 0.07);
+        outline-offset: -1px;
+        transform-origin: 50% 60%;
+        will-change: transform, opacity;
+      }
+      .bike01-play {
+        position: absolute;
+        left: 50%;
+        top: 78px;
+        width: 64px;
+        height: 64px;
+        margin-left: -32px;
+        margin-top: -32px;
+        border-radius: 999px;
+        background: #FFFFFF;
+        outline: 1px solid rgba(17, 17, 17, 0.08);
+        outline-offset: -1px;
+        box-shadow: 0 2px 6px rgba(17, 17, 17, 0.08);
+      }
+      .bike01-tri {
+        position: absolute;
+        left: 26px;
+        top: 22px;
+        width: 0;
+        height: 0;
+        border-top: 10px solid transparent;
+        border-bottom: 10px solid transparent;
+        border-left: 16px solid #111111;
+      }
+      .bike01-track {
+        position: absolute;
+        left: 22px;
+        right: 22px;
+        bottom: 24px;
+        height: 6px;
+        border-radius: 3px;
+        background: rgba(17, 17, 17, 0.12);
+        overflow: hidden;
+      }
+      #bike01-progress-fill {
+        width: 100%;
+        height: 100%;
+        border-radius: 3px;
+        background: rgba(17, 17, 17, 0.45);
+        transform-origin: left center;
+        will-change: transform;
+      }
+
+      /* — alert-red strike, over the CARD only — */
+      #bike01-strike {
+        position: absolute;
+        left: -14px;
+        right: -14px;
+        top: 0;
+        bottom: 0;
+        z-index: 5;
+        pointer-events: none;
+      }
+      .bike01-strike-line {
+        position: absolute;
+        display: block;
+        top: 50%;
+        left: 0;
+        width: 100%;
+        height: 6px;
+        margin-top: -3px;
+        border-radius: 3px;
+        background: #D92D20;
+        transform-origin: left center;
+        will-change: transform;
+      }
+    </style>
+
+    <script src="assets/vendor/gsap.min.js"></script>
+    <script>
+      (function () {
+        window.__timelines = window.__timelines || {};
+        var tl = gsap.timeline({ paused: true });
+        window.__timelines["01-bike"] = tl;
+
+        /* svg-path-draw setup — measured lengths, never guessed */
+        document.querySelectorAll(".bike01-stroke").forEach(function (p) {
+          var len = p.getTotalLength() * 1.02;
+          p.style.strokeDasharray = String(len);
+          p.style.strokeDashoffset = String(len);
+        });
+
+        function draw(id, at, dur) {
+          tl.to("#" + id, { strokeDashoffset: 0, duration: dur, ease: "power2.out" }, at);
+        }
+
+        /* ————— Scene 1 (0.0–1.65s): line builds per word, bike self-draws ————— */
+        /* word cues from VO: you .06 / don't .20 / learn .53 / to .85 / ride .99 / a 1.25 / bike 1.30 */
+        [
+          ["bike01-w-you", 0.06],
+          ["bike01-w-dont", 0.20],
+          ["bike01-w-learn", 0.50],
+          ["bike01-w-to", 0.85],
+          ["bike01-w-ride", 0.99],
+          ["bike01-w-a", 1.22],
+          ["bike01-w-bike", 1.30],
+          ["bike01-w-dash", 1.50]
+        ].forEach(function (w) {
+          tl.fromTo(
+            "#" + w[0],
+            { opacity: 0, y: 26 },
+            { opacity: 1, y: 0, duration: 0.38, ease: "power3.out" },
+            w[1]
+          );
+        });
+
+        /* wheels sweep on, frame strokes connect — finishes as the line completes */
+        draw("bike01-p-fw", 0.08, 0.55);
+        draw("bike01-p-rw", 0.22, 0.55);
+        draw("bike01-p-hubf", 0.55, 0.20);
+        draw("bike01-p-hubr", 0.62, 0.20);
+        draw("bike01-p-chainstay", 0.55, 0.30);
+        draw("bike01-p-seattube", 0.66, 0.30);
+        draw("bike01-p-downtube", 0.76, 0.30);
+        draw("bike01-p-toptube", 0.86, 0.28);
+        draw("bike01-p-seatstay", 0.94, 0.28);
+        draw("bike01-p-headfork", 1.00, 0.34);
+        draw("bike01-p-steer", 1.12, 0.28);
+        draw("bike01-p-seatpost", 1.20, 0.24);
+        draw("bike01-p-saddle", 1.28, 0.26);
+        draw("bike01-p-crank", 1.34, 0.26);
+
+        /* ————— Scene 2 (1.72–2.68s): on "watching videos", the gray card pops
+           into the bike's path — spring-pop, smooth power3 settle, no overshoot ————— */
+        tl.fromTo(
+          "#bike01-card",
+          { scale: 0, opacity: 0 },
+          { scale: 1, opacity: 1, duration: 0.55, ease: "power3.out" },
+          1.72
+        );
+        /* the video "plays" — progress creeps while the VO says "videos" */
+        tl.fromTo(
+          "#bike01-progress-fill",
+          { scaleX: 0.05 },
+          { scaleX: 0.42, duration: 0.70, ease: "none" },
+          1.95
+        );
+
+        /* ————— Scene 3 (2.82–3.99s): on "people riding bikes", the alert-red
+           strike (css-marker-patterns sketchout) crosses the CARD, not the bike ————— */
+        tl.fromTo(
+          "#bike01-strike-fwd",
+          { scaleX: 0, rotation: -9 },
+          { scaleX: 1, rotation: -9, duration: 0.32, ease: "power2.out" },
+          2.85
+        );
+        tl.fromTo(
+          "#bike01-strike-bwd",
+          { scaleX: 0, rotation: 9 },
+          { scaleX: 1, rotation: 9, duration: 0.32, ease: "power2.out" },
+          3.05
+        );
+
+        /* macro move — imperceptible push-in across the whole shot, then dead still copy-wise */
+        tl.fromTo(
+          "#bike01-stage",
+          { scale: 1 },
+          { scale: 1.018, duration: 3.989, ease: "none" },
+          0
+        );
+      })();
+    </script>
+  </div>
+</template>

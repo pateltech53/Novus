@@ -1,0 +1,363 @@
+<template>
+  <div id="root" data-composition-id="06-remembers" data-width="1920" data-height="1080" data-duration="4.779">
+    <style>
+      @font-face {
+        font-family: "Urbanist";
+        src: url("assets/fonts/Urbanist-Variable.woff2") format("woff2");
+        font-weight: 100 900;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "IBM Plex Mono";
+        src: url("assets/fonts/IBMPlexMono-500.woff2") format("woff2");
+        font-weight: 500;
+        font-style: normal;
+      }
+
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        font-family: "Urbanist", sans-serif;
+      }
+
+      /* full-bleed white ground (whisper of warmth at the edges) */
+      #rem-bg {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse 120% 100% at 50% 45%, #ffffff 0%, #ffffff 62%, #f7f5f2 100%);
+      }
+
+      #rem-stage {
+        position: absolute;
+        inset: 0;
+      }
+      #rem-zoom {
+        position: absolute;
+        inset: 0;
+        transform-origin: 50% 44%;
+        will-change: transform;
+      }
+
+      #rem-headline {
+        position: absolute;
+        top: 214px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-family: "Urbanist", sans-serif;
+        font-size: 86px;
+        font-weight: 700;
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+        text-transform: lowercase;
+        color: #111111;
+        transform-origin: 50% 0%;
+        will-change: transform;
+      }
+
+      #rem-row {
+        position: absolute;
+        top: 402px;
+        left: 0;
+        right: 0;
+        display: flex;
+        justify-content: center;
+        gap: 44px;
+        will-change: transform;
+      }
+
+      .rem-card {
+        width: 430px;
+        height: 330px;
+        box-sizing: border-box;
+        padding: 34px 38px 30px;
+        background: #ffffff;
+        border-radius: 28px;
+        box-shadow:
+          0 1px 0 rgba(17, 17, 17, 0.06),
+          0 2px 4px rgba(17, 17, 17, 0.07),
+          0 12px 32px rgba(17, 17, 17, 0.1);
+        outline: 1px solid rgba(17, 17, 17, 0.07);
+        outline-offset: -1px;
+        transform-origin: 50% 50%;
+        will-change: transform;
+      }
+
+      .rem-label {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 19px;
+        font-weight: 500;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #6b6864;
+      }
+      .rem-hairline {
+        height: 1px;
+        background: rgba(17, 17, 17, 0.1);
+        margin: 20px 0 0;
+      }
+
+      .rem-figstack {
+        position: relative;
+        height: 118px;
+        margin-top: 14px;
+        perspective: 700px;
+      }
+      .rem-fig {
+        position: absolute;
+        inset: 0;
+        text-align: center;
+        line-height: 118px;
+        font-family: "IBM Plex Mono", monospace;
+        font-variant-numeric: tabular-nums;
+        font-size: 64px;
+        font-weight: 500;
+        color: #111111;
+        will-change: transform;
+      }
+      .rem-fig-muted {
+        color: #6b6864;
+      }
+
+      .rem-sub {
+        height: 46px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+      }
+      .rem-tick-text {
+        font-family: "IBM Plex Mono", monospace;
+        font-variant-numeric: tabular-nums;
+        font-size: 21px;
+        font-weight: 500;
+        letter-spacing: 0.06em;
+      }
+      #rem-cash-tick .rem-tick-text {
+        color: #0e9f6e;
+      }
+      #rem-run-tick .rem-tick-text {
+        color: #d92d20;
+      }
+      .rem-tri-up {
+        width: 0;
+        height: 0;
+        border-left: 8px solid transparent;
+        border-right: 8px solid transparent;
+        border-bottom: 12px solid #0e9f6e;
+      }
+      .rem-tri-down {
+        width: 0;
+        height: 0;
+        border-left: 8px solid transparent;
+        border-right: 8px solid transparent;
+        border-top: 12px solid #d92d20;
+      }
+      #rem-cash-tick,
+      #rem-run-tick {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        will-change: transform;
+      }
+
+      #rem-run-barwrap {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+      }
+      #rem-run-track {
+        width: 240px;
+        height: 10px;
+        border-radius: 999px;
+        background: rgba(17, 17, 17, 0.07);
+        overflow: hidden;
+      }
+      #rem-run-fill {
+        width: 100%;
+        height: 100%;
+        border-radius: 999px;
+        background: rgba(17, 17, 17, 0.22);
+        transform: scaleX(1);
+        transform-origin: left center;
+        will-change: transform;
+      }
+    </style>
+
+    <div class="clip" id="rem-bg" data-start="0" data-duration="4.779" data-track-index="0"></div>
+
+    <div class="clip" id="rem-stage" data-start="0" data-duration="4.779" data-track-index="1">
+      <div id="rem-zoom">
+        <h2 id="rem-headline">the game remembers</h2>
+
+        <div id="rem-row">
+          <!-- CASH -->
+          <div class="rem-card" id="rem-card-cash">
+            <div class="rem-label">Cash</div>
+            <div class="rem-hairline"></div>
+            <div class="rem-figstack">
+              <div class="rem-fig rem-fig-muted" id="rem-cash-val">$25K</div>
+            </div>
+            <div class="rem-sub">
+              <div id="rem-cash-tick">
+                <div class="rem-tri-up"></div>
+                <div class="rem-tick-text">+$6K</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- BURN -->
+          <div class="rem-card" id="rem-card-burn">
+            <div class="rem-label">Burn</div>
+            <div class="rem-hairline"></div>
+            <div class="rem-figstack">
+              <div class="rem-fig rem-fig-muted" id="rem-burn-dash">&mdash;</div>
+              <div class="rem-fig" id="rem-burn-val">$2,000</div>
+            </div>
+            <div class="rem-sub"></div>
+          </div>
+
+          <!-- RUNWAY -->
+          <div class="rem-card" id="rem-card-run">
+            <div class="rem-label" id="rem-run-label">Runway</div>
+            <div class="rem-hairline"></div>
+            <div class="rem-figstack">
+              <div class="rem-fig rem-fig-muted" id="rem-run-old">12mo</div>
+              <div class="rem-fig" id="rem-run-new">9mo</div>
+            </div>
+            <div class="rem-sub">
+              <div id="rem-run-barwrap">
+                <div id="rem-run-track"><div id="rem-run-fill"></div></div>
+              </div>
+              <div id="rem-run-tick">
+                <div class="rem-tri-down"></div>
+                <div class="rem-tick-text">&minus;3mo</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="assets/vendor/gsap.min.js"></script>
+    <script>
+      (function () {
+        window.__timelines = window.__timelines || {};
+        var tl = gsap.timeline({ paused: true });
+        window.__timelines["06-remembers"] = tl;
+
+        /* ---- macro move: slow settle-zoom under the whole shot ---- */
+        tl.fromTo("#rem-zoom", { scale: 1 }, { scale: 1.035, duration: 4.779, ease: "none" }, 0);
+
+        /* ================= Scene 1 (0.0-1.6s) — "And the game remembers." ================= */
+        /* headline lands centered in ink h2 (VO 0.04-1.48) */
+        tl.fromTo(
+          "#rem-headline",
+          { opacity: 0, y: 30, scale: 0.97 },
+          { opacity: 1, y: 0, scale: 1, duration: 0.6, ease: "power3.out" },
+          0.08
+        );
+
+        /* three empty white cards assemble beneath — spring-pop-entrance, staggered (on "remembers", 0.77-1.48) */
+        var cards = ["#rem-card-cash", "#rem-card-burn", "#rem-card-run"];
+        for (var i = 0; i < cards.length; i++) {
+          tl.fromTo(
+            cards[i],
+            { scale: 0, opacity: 0, y: 24 },
+            { scale: 1, opacity: 1, y: 0, duration: 0.55, ease: "power3.out" },
+            0.85 + i * 0.08
+          );
+        }
+
+        /* ================= Scene 2 (1.6-4.2s) — "Every decision moves your numbers" ================= */
+        /* headline demotes on "Every" (1.52); the ledger becomes the hero */
+        tl.to("#rem-headline", { scale: 0.52, y: -96, opacity: 0.5, duration: 0.55, ease: "power2.inOut" }, 1.55);
+        tl.to("#rem-row", { y: -30, duration: 0.55, ease: "power2.inOut" }, 1.55);
+
+        /* opening entries arrive on "moves your numbers" (2.26-3.24), staggered */
+        tl.fromTo(
+          "#rem-cash-val",
+          { opacity: 0, y: 16 },
+          { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" },
+          2.3
+        );
+        tl.fromTo(
+          "#rem-burn-dash",
+          { opacity: 0, y: 16 },
+          { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" },
+          2.48
+        );
+        tl.fromTo(
+          ["#rem-run-old", "#rem-run-barwrap"],
+          { opacity: 0, y: 16 },
+          { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" },
+          2.66
+        );
+
+        /* --- CASH flips on "Cash." (3.30): $25K -> $31K green count-up (counting-dynamic-scale) --- */
+        var cashEl = document.getElementById("rem-cash-val");
+        var cashState = { v: 25 };
+        tl.to("#rem-cash-val", { color: "#0E9F6E", duration: 0.3, ease: "power2.out" }, 3.28);
+        tl.fromTo(
+          cashState,
+          { v: 25 },
+          {
+            v: 31,
+            duration: 0.8,
+            ease: "power2.out",
+            onUpdate: function () {
+              cashEl.textContent = "$" + Math.round(cashState.v) + "K";
+            }
+          },
+          3.28
+        );
+        tl.fromTo("#rem-cash-val", { scale: 0.84 }, { scale: 1, duration: 0.8, ease: "power2.out" }, 3.28);
+        /* green up-tick lands after the count — the number gets its own beat */
+        tl.fromTo(
+          "#rem-cash-tick",
+          { opacity: 0, y: 10, scale: 0.6 },
+          { opacity: 1, y: 0, scale: 1, duration: 0.32, ease: "back.out(1.4)" },
+          4.1
+        );
+
+        /* --- BURN lands in ink on "Burn." (4.08): dash flips out, figure flips in --- */
+        tl.to("#rem-burn-dash", { rotationX: -86, opacity: 0, duration: 0.2, ease: "power2.in" }, 4.06);
+        tl.fromTo(
+          "#rem-burn-val",
+          { rotationX: 86, opacity: 0 },
+          { rotationX: 0, opacity: 1, duration: 0.3, ease: "power3.out" },
+          4.1
+        );
+
+        /* --- RUNWAY flips on "Runway." (4.47): 12mo -> 9mo, red tick, draining bar (stat-bars-and-fills) --- */
+        tl.to("#rem-run-old", { rotationX: -86, opacity: 0, duration: 0.2, ease: "power2.in" }, 4.4);
+        tl.fromTo(
+          "#rem-run-new",
+          { rotationX: 86, opacity: 0 },
+          { rotationX: 0, opacity: 1, duration: 0.28, ease: "power3.out" },
+          4.44
+        );
+        /* bar drains 12mo -> 9mo (scaleX 1 -> 0.75) and turns alert red — same beat as the flip */
+        tl.fromTo(
+          "#rem-run-fill",
+          { scaleX: 1, backgroundColor: "rgba(17,17,17,0.22)" },
+          { scaleX: 0.75, backgroundColor: "#D92D20", duration: 0.3, ease: "power2.out" },
+          4.44
+        );
+        tl.fromTo(
+          "#rem-run-tick",
+          { opacity: 0, y: 8 },
+          { opacity: 1, y: 0, duration: 0.22, ease: "power3.out" },
+          4.5
+        );
+
+        /* ================= Scene 3 (4.2-4.779s) — hold; one restrained emphasis step on RUNWAY ================= */
+        tl.to("#rem-run-label", { color: "#111111", duration: 0.2, ease: "power2.out" }, 4.54);
+        tl.to("#rem-card-run", { y: -6, scale: 1.02, duration: 0.22, ease: "power2.out" }, 4.54);
+      })();
+    </script>
+  </div>
+</template>
