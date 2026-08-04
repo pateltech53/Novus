@@ -272,8 +272,28 @@ console.log(`  · bundle is ${mb} MB on device`);
  * Raising it is a legitimate thing to do — a real asset that earns its weight
  * should move this line, in a commit that says so. Silently growing past it is
  * what this exists to prevent.
+ *
+ * ── Where 46 comes from, and where it should go ─────────────────────────────
+ *
+ * The bundle measures 43.5 MB today, after the prune above. A tripwire has to
+ * sit just above the real number or it is not a tripwire, it is a broken
+ * build — this was set to 32 first, which is the figure the asset work is
+ * AIMED at rather than the one it has reached, and it failed the native build
+ * on the first run.
+ *
+ * It should come down twice more, and both are known:
+ *
+ *   · `scripts/make-clips.mjs` re-encodes the 9.0 MB of onboarding video.
+ *     ffmpeg is required and was not available where this was written, so the
+ *     saving is scripted rather than taken. Expect ~4–5 MB back.
+ *   · `vendor` is 22.1 MB, over half the bundle, and 9.4 MB of it is
+ *     `vision_wasm_nosimd_internal.wasm` — the no-SIMD twin, needed only below
+ *     iOS 16.4. Raising IPHONEOS_DEPLOYMENT_TARGET drops it, and that is a
+ *     product decision about which phones to support, not a build tweak.
+ *
+ * Lower this line as each lands.
  */
-const CEILING_MB = 32;
+const CEILING_MB = 46;
 if (bytes / 1024 / 1024 > CEILING_MB) {
   console.error(
     `\n  ✗ bundle is ${mb} MB, over the ${CEILING_MB} MB ceiling.\n` +
