@@ -4,16 +4,17 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { checkEmail, normaliseEmail } from "@/lib/auth/credentials";
+import { rememberInviteName } from "@/lib/auth/invite";
 import { API_CREDENTIALS, apiUrl } from "@/lib/native/origin";
 
 /**
  * Where the chapter invite email lands: /join?code=<token>.
  *
  * The page asks for exactly two things — the email the invite was sent to,
- * and a name — and hands the browser straight into the set-password flow the
- * app already has: the claim endpoint answers with a one-time link that ends
- * on /reset with the student signed in. Filling in email and name really is
- * the whole job.
+ * and a name — and hands the browser into the second half of the invite: the
+ * claim endpoint answers with a one-time link that ends on /join/setup, the
+ * welcome screen where the student chooses a password and is signed in.
+ * Filling in email and name really is the whole job.
  *
  * The code is read from the query string with `window.location` in an effect
  * rather than `useSearchParams`, the same way returningFromCheckout() reads
@@ -71,8 +72,13 @@ export default function JoinPage() {
         setError(body.error ?? "That did not work. Try the link from the email again.");
         return;
       }
+      // The name survives the round trip through Supabase, so the welcome
+      // screen can greet them by it instead of asking twice. It is a display
+      // name and nothing else — see lib/auth/invite.ts.
+      rememberInviteName(name);
+
       // Off to choose a password: the link verifies, signs them in, and lands
-      // on /reset. Keep the button busy — this page is done.
+      // on /join/setup. Keep the button busy — this page is done.
       setPhase("leaving");
       window.location.href = body.url;
     } catch {

@@ -51,10 +51,17 @@ mailer is not for. Three steps:
 2. Resend → Domains → verify your sending domain, then set `RESEND_FROM`
    (e.g. `Novus <chapters@novuspitch.com>`). An unverified domain refuses
    every send — the console shows the refusal per row.
-3. Supabase → Authentication → URL Configuration must include
-   `https://<your-domain>/reset` — the invite's claim step hands the student
-   a link that ends there (it is the same set-password page the ordinary
-   password reset uses).
+3. Supabase → Authentication → URL Configuration must include **both**
+   `https://<your-domain>/join/setup` and `https://<your-domain>/reset` (and
+   the `http://localhost:3000` pair for local work). `/join/setup` is the
+   welcome screen every invite ends on; `/reset` is where an ordinary
+   password reset lands.
+
+   Supabase does not fail loudly on a missing entry — it redirects to the
+   Site URL instead, session and all. `AuthHashRelay` on the front door
+   catches that and forwards the link to the right page, so a forgotten
+   entry does not cost a student their seat, but the entry is still the
+   thing to set.
 
 With Resend configured, **no chapter email touches Supabase's mailer at
 all**: the invite goes out through Resend, and the choose-your-password link
@@ -63,7 +70,7 @@ Resend too.
 
 With `RESEND_API_KEY`/`RESEND_FROM` unset, invites fall back to Supabase's
 own **invite** email (`auth.admin.inviteUserByEmail` — the "You have been
-invited" template, whose link lands on `/reset`): zero extra setup, fine for
+invited" template, whose link lands on `/join/setup`): zero extra setup, fine for
 a handful of seats, throttled far below classroom volume. The console
 reports each address either way, and says which mailer carried the batch.
 The fallback never sends the **recovery** template to a fresh invitee —
@@ -94,8 +101,11 @@ Two paths, both per-row (one typo fails one row, never the paste):
 - **INVITE BY EMAIL** — `email` or `email, name`, one per line. New
   addresses get an account (random password, never shown) and a Resend
   invite email whose link lands on `/join?code=<token>`: the student
-  confirms their email and name, and is handed straight into `/reset` to
-  choose a password — signed in at the end, seat lit. The token only exists
+  confirms their email and name, and is handed to `/join/setup` — the
+  welcome screen — to choose a password, signed in at the end, seat lit.
+  That page is deliberately **not** `/reset`: "choose a new password" is the
+  wrong sentence for an account that is ninety seconds old and has never had
+  one, and it read as a mix-up or a phish to the student. The token only exists
   for accounts the invite itself created, so a claim can never open an
   account somebody already owned. Addresses that already have a Novus
   account are granted the seat with **no email** — their password is their
