@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { SUPABASE_SERVICE_ROLE_KEY, billingConfigured } from "@/lib/stripe/config";
-import { stripe } from "@/lib/stripe/client";
+import { SUPABASE_SERVICE_ROLE_KEY } from "@/lib/stripe/config";
 import { windDownOwnedChapters } from "@/lib/stripe/chapter";
+import { cancelActivePersonalPro } from "@/lib/stripe/subscription";
 import { adminClient } from "@/lib/supabase/admin";
 import { configured } from "@/lib/supabase/config";
 import { crossSite, clearSession, sessionFromRequest, withSession } from "@/lib/supabase/route";
@@ -91,76 +91,30 @@ export async function POST(req: NextRequest) {
 
   const db = adminClient();
 
-  const { data: billing } = await db
-    .from("billing_customers")
-    .select("subscription_id, subscription_status, cancel_at_period_end")
-    .eq("profile_id", session.userId)
-    .maybeSingle();
-
-  const status = billing?.subscription_status as string | undefined;
-
   /*
-   * Which statuses can still take money.
-   *
-   * `unpaid` and `paused` are in the list alongside the obvious three. Neither
-   * is finished: Stripe can resume a paused subscription, and an `unpaid` one
-   * still has an open invoice that a recovered card settles. Treating either as
-   * safe would delete the account and leave the card billable with nothing to
-   * unlock — the exact outcome this check exists to prevent.
-   *
-   * `canceled`, `incomplete` and `incomplete_expired` are genuinely finished
-   * and do not block.
+   * Cancel the personal Pro subscription first. Deleting the account while
+   * Stripe keeps billing the card is the worst outcome of a "delete me" request,
+   * so a cancellation that fails REFUSES the deletion rather than proceeding —
+   * better "try again in a minute" than a gone account with a live charge.
+   * withSession re-attaches the rotated refresh token so the retry is actually
+   * possible; a bare response would leave the browser holding a spent token and
+   * sign the player out of a refusal meant to be recoverable. (An already-
+   * cancelled or absent subscription is not billable and does not block — the
+   * helper's own logic; see lib/stripe/subscription.ts.)
    */
-  const BILLABLE = ["active", "trialing", "past_due", "unpaid", "paused"];
-
-  /*
-   * ...unless they have ALREADY cancelled.
-   *
-   * A player who cancelled keeps Pro until the period ends, so the status is
-   * still `active` — with `cancel_at_period_end` set. Without this clause,
-   * doing exactly what we asked ("cancel first") would leave them refused for
-   * up to a year, told to cancel a subscription they already cancelled.
-   */
-  const stillBillable =
-    !!status && BILLABLE.includes(status) && billing?.cancel_at_period_end !== true;
-
-  if (stillBillable) {
-    const subscriptionId = billing?.subscription_id as string | undefined;
-
-    // A billable status with no subscription id on the row is a broken record,
-    // not a live subscription — there is nothing to cancel and nothing that
-    // can bill. Deleting is the right answer and the cascade takes the row.
-    if (subscriptionId && billingConfigured()) {
-      try {
-        // Immediately, not at period end: the account is about to stop
-        // existing, so there is no one left to serve out the rest of the term.
-        // The webhook writes `canceled` back to a row the cascade is about to
-        // delete either way, and an out-of-order arrival is harmless.
-        await stripe().subscriptions.cancel(subscriptionId, {
-          invoice_now: false,
-          prorate: false,
-        });
-      } catch (e) {
-        // Do NOT delete now. An account deleted while Stripe still bills the
-        // card is the outcome the whole check exists to prevent, and the
-        // player can try again in a moment. withSession re-attaches the rotated
-        // refresh token so "try again in a minute" is actually possible — a
-        // bare response here would leave the browser holding a spent token and
-        // silently sign the player out of a refusal meant to be recoverable.
-        return withSession(
-          NextResponse.json(
-            {
-              error:
-                "Your Pro subscription could not be cancelled just now, so nothing was deleted — please try again in a minute.",
-              activeSubscription: true,
-              detail: (e as Error).message,
-            },
-            { status: 409 },
-          ),
-          session,
-        );
-      }
-    }
+  const pro = await cancelActivePersonalPro(db, session.userId);
+  if (!pro.ok) {
+    return withSession(
+      NextResponse.json(
+        {
+          error:
+            "Your Pro subscription could not be cancelled just now, so nothing was deleted — please try again in a minute.",
+          activeSubscription: true,
+        },
+        { status: 409 },
+      ),
+      session,
+    );
   }
 
   /*

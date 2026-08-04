@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { adminGate, audit, isUuid } from "@/lib/admin/guard";
 import { windDownOwnedChapters } from "@/lib/stripe/chapter";
+import { cancelActivePersonalPro } from "@/lib/stripe/subscription";
 import { adminClient } from "@/lib/supabase/admin";
 import { crossSite, withSession } from "@/lib/supabase/route";
 
@@ -139,6 +140,18 @@ export async function DELETE(
     cancelSubscriptions: true,
   });
 
+  // The personal Pro subscription lives on billing_customers, not chapters, so
+  // the wind-down above never touches it. Cancel it too, or a deleted
+  // subscriber's card keeps being charged with no account to serve. Unlike the
+  // self-serve path this warns rather than refuses — a support agent deleting an
+  // account on request should not be blocked by a Stripe hiccup, but must be
+  // told to finish the cancellation by hand.
+  const pro = await cancelActivePersonalPro(db, id);
+  const uncancelled = [
+    ...failedCancellations,
+    ...(pro.ok ? [] : pro.subscriptionId ? [pro.subscriptionId] : []),
+  ];
+
   const { error } = await db.auth.admin.deleteUser(id);
   if (error) {
     return withSession(bad(503, `delete failed: ${error.message}`), gate.session);
@@ -147,17 +160,17 @@ export async function DELETE(
   await audit(gate.session, "account_delete", {
     target: id,
     targetEmail: email,
-    detail: failedCancellations.length ? { uncancelledSubscriptions: failedCancellations } : {},
+    detail: uncancelled.length ? { uncancelledSubscriptions: uncancelled } : {},
   });
 
   return withSession(
     NextResponse.json({
       ok: true,
-      ...(failedCancellations.length
+      ...(uncancelled.length
         ? {
             warning:
-              "The account was deleted, but a classroom licence subscription could not be cancelled automatically — cancel it in the Stripe dashboard.",
-            uncancelledSubscriptions: failedCancellations,
+              "The account was deleted, but a Stripe subscription could not be cancelled automatically — cancel it in the Stripe dashboard.",
+            uncancelledSubscriptions: uncancelled,
           }
         : {}),
     }),

@@ -4,6 +4,8 @@ import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { CATALOGUE, priceIdFor, type SkuId } from "./catalogue";
+import { stripe } from "./client";
+import { billingConfigured } from "./config";
 
 /**
  * One subscription, turned into one answer: is this player Pro right now.
@@ -113,6 +115,51 @@ export async function syncSubscription(
     .eq("profile_id", profileId);
   if (custError) {
     throw new Error(`billing_customers update failed: ${custError.message}`);
+  }
+}
+
+/**
+ * Cancel a profile's personal Pro subscription before the account is deleted.
+ *
+ * Shared by both delete paths so neither can forget it: deleting the account
+ * while Stripe keeps billing the card is the worst outcome of "delete me", and
+ * the personal-Pro subscription is not covered by the chapter wind-down (that
+ * one reads `chapters`; this one reads `billing_customers`).
+ *
+ * `unpaid` and `paused` count as billable alongside the obvious three: Stripe
+ * can resume a paused subscription and an unpaid one still has an open invoice a
+ * recovered card settles. An already-cancelled subscription (or one flagged
+ * cancel_at_period_end) is finished and needs nothing. Returns `ok:false` only
+ * when a genuinely billable subscription existed and Stripe refused to cancel it
+ * — the caller decides whether that refuses the deletion or merely warns.
+ */
+const BILLABLE_STATUSES = ["active", "trialing", "past_due", "unpaid", "paused"];
+
+export async function cancelActivePersonalPro(
+  db: SupabaseClient,
+  profileId: string,
+): Promise<{ ok: boolean; subscriptionId: string | null }> {
+  const { data: billing } = await db
+    .from("billing_customers")
+    .select("subscription_id, subscription_status, cancel_at_period_end")
+    .eq("profile_id", profileId)
+    .maybeSingle();
+
+  const status = billing?.subscription_status as string | undefined;
+  const stillBillable =
+    !!status && BILLABLE_STATUSES.includes(status) && billing?.cancel_at_period_end !== true;
+  if (!stillBillable) return { ok: true, subscriptionId: null };
+
+  const subscriptionId = (billing?.subscription_id as string | undefined) ?? null;
+  // A billable status with no subscription id is a broken record, not a live
+  // subscription — nothing to cancel and nothing that can bill.
+  if (!subscriptionId || !billingConfigured()) return { ok: true, subscriptionId: null };
+
+  try {
+    await stripe().subscriptions.cancel(subscriptionId, { invoice_now: false, prorate: false });
+    return { ok: true, subscriptionId };
+  } catch {
+    return { ok: false, subscriptionId };
   }
 }
 

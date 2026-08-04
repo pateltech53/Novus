@@ -38,6 +38,41 @@ const nextConfig: NextConfig = {
   devIndicators: false,
 
   ...(native
+    ? {}
+    : {
+        /*
+         * Baseline security headers for the served (non-native) build.
+         *
+         * `headers()` is not supported by the static `output: export` the
+         * Capacitor build uses — those responses come from Capacitor's own local
+         * server — so this applies to the web deploy only. Deliberately NOT a
+         * Content-Security-Policy: a strict CSP would need real testing against
+         * the WebGL shark (blob URLs), the Stripe redirect, the Turnstile
+         * script, next/font and the inline theme/platform init scripts, and a
+         * wrong one breaks the page silently. The headers here are the ones that
+         * are safe without that work. `Permissions-Policy` still allows the
+         * camera and microphone the year-end pitch depends on, and switches off
+         * Google's Topics API to match the no-third-party-tracking stance.
+         */
+        async headers() {
+          return [
+            {
+              source: "/:path*",
+              headers: [
+                { key: "X-Content-Type-Options", value: "nosniff" },
+                { key: "X-Frame-Options", value: "SAMEORIGIN" },
+                { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+                {
+                  key: "Permissions-Policy",
+                  value: "camera=(self), microphone=(self), geolocation=(), browsing-topics=()",
+                },
+              ],
+            },
+          ];
+        },
+      }),
+
+  ...(native
     ? {
         output: "export" as const,
 
