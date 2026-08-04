@@ -31,8 +31,11 @@ import { deriveRunwayMonths } from "./sim";
 /** How many months the ledger remembers. One fiscal year, one sparkline. */
 export const LEDGER_WINDOW = 12;
 
-/** Below this many points a sparkline is a dot pretending to be a trend. */
-export const SPARK_MIN_POINTS = 3;
+/**
+ * Two points make a line. One makes a dot pretending to be a trend, so the
+ * card draws its baseline instead — see `Spark` in components/TheBooks.tsx.
+ */
+export const SPARK_MIN_POINTS = 2;
 
 /**
  * Read the Books as they stand right now. Pure — nothing is stored.

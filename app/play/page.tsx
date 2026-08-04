@@ -410,9 +410,20 @@ function PlayScreen() {
      * shrink tiers in globals.css (which stayed) do the fitting instead, and
      * the measured spacer keeps the flow's end above the fixed bar.
      */
-    <main className="min-h-dvh bg-[var(--bg)] lg:mx-auto lg:grid lg:min-h-dvh lg:max-w-6xl lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:gap-6 lg:px-6 lg:py-6">
+    /*
+     * Desktop is a three-column workspace, not a stretched phone.
+     *
+     *   18rem  the company — masthead, abilities, and the activities as a LIST
+     *   1fr    the working column — The Books, the month's decision, ADVANCE
+     *   21rem  the life log, which used to be a drawer you had to open
+     *
+     * The activities moved out of a bottom bar because a bottom bar is where a
+     * thumb is, and there is no thumb here: it was spending the full width of
+     * the working column on six words while the left column sat half empty.
+     */
+    <main className="min-h-dvh bg-[var(--bg)] lg:mx-auto lg:grid lg:min-h-dvh lg:max-w-[88rem] lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)_minmax(0,21rem)] lg:gap-5 lg:px-5 lg:py-5">
       {/* Left column on desktop; masthead on phone. */}
-      <div className="lg:sticky lg:top-6 lg:self-start lg:overflow-hidden lg:rounded-[var(--radius-card)] lg:shadow-[var(--e2)]">
+      <div className="lg:sticky lg:top-5 lg:flex lg:h-[calc(100dvh-2.5rem)] lg:flex-col lg:self-start lg:overflow-hidden lg:rounded-[var(--radius-card)] lg:bg-[var(--surface)] lg:shadow-[var(--e2)]">
         <HomeStage
           run={run}
           founderName={profile?.founderName ?? run.founderName}
@@ -426,10 +437,22 @@ function PlayScreen() {
           onDossier={setDossier}
           nativeControls={!domChrome}
         />
+        {/*
+          The activities, as a list, desktop only. The phone keeps its bottom
+          bar at the foot of the centre column below.
+        */}
+        {domChrome ? (
+          <div className="hidden min-h-0 flex-1 overflow-y-auto lg:block">
+            <div className="px-4 pt-3 pb-1 text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
+              ACTIVITIES
+            </div>
+            <ActivityBar active={activity} onOpen={setActivity} layout="rail" />
+          </div>
+        ) : null}
       </div>
 
-      {/* Right rail on desktop; the rest of the page on phone. */}
-      <div className="flex min-h-0 flex-col lg:h-[calc(100dvh-3rem)] lg:overflow-hidden lg:rounded-[var(--radius-card)] lg:bg-[var(--surface)] lg:shadow-[var(--e2)]">
+      {/* The working column on desktop; the rest of the page on phone. */}
+      <div className="flex min-h-0 flex-col lg:h-[calc(100dvh-2.5rem)] lg:overflow-hidden lg:rounded-[var(--radius-card)] lg:bg-[var(--surface)] lg:shadow-[var(--e2)]">
         <div data-coach="books">
           <TheBooks run={run} onTermTap={(t) => setTerm({ term: t })} />
         </div>
@@ -455,12 +478,9 @@ function PlayScreen() {
         >
           <LogButton month={run.month} year={run.year} onOpen={() => setLogOpen(true)} />
         </div>
-        <div
-          className="hidden flex-1 overflow-y-auto pb-3 lg:block"
-          style={domChrome ? undefined : { paddingBottom: "var(--nv-chrome-bottom, 0px)" }}
-        >
-          <LifeLog lines={run.log} />
-        </div>
+        {/* The centre column's own slack, so the decision and ADVANCE sit
+            where they always did rather than floating at the top. */}
+        <div className="hidden flex-1 lg:block" />
 
         {domChrome ? (
           <>
@@ -489,13 +509,36 @@ function PlayScreen() {
                   onOpenGate={game.openYearGate}
                 />
               </div>
-              <div className="mt-1.5" data-coach="tabs">
+              {/* Phone only: on desktop these six live in the left rail. */}
+              <div className="mt-1.5 lg:hidden" data-coach="tabs">
                 <ActivityBar active={activity} onOpen={setActivity} />
               </div>
             </div>
           </>
         ) : null}
       </div>
+
+      {/*
+        THE RIGHT COLUMN — the life log, desktop only.
+
+        It used to be a drawer you had to open, and on a 1440px screen there is
+        no reason for the company's own narrative record to be behind a tap.
+        The phone keeps the one-row summary and the sheet, because on a phone
+        there genuinely is no room for it.
+      */}
+      <aside className="hidden lg:flex lg:h-[calc(100dvh-2.5rem)] lg:flex-col lg:overflow-hidden lg:rounded-[var(--radius-card)] lg:bg-[var(--surface)] lg:shadow-[var(--e2)]">
+        <div className="flex shrink-0 items-baseline gap-2 border-b border-[var(--hairline)] px-4 py-3">
+          <span className="text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
+            LIFE LOG
+          </span>
+          <span className="tnum ml-auto text-2xs text-[var(--text-tertiary)]">
+            FY{run.year} · M{String(run.month).padStart(2, "0")}
+          </span>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto pb-3">
+          <LifeLog lines={run.log} />
+        </div>
+      </aside>
 
       {/*
         The stance question gets its own sheet. It is the one decision in the

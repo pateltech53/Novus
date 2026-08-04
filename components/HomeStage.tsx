@@ -135,7 +135,14 @@ export function HomeStage({
 }) {
   return (
     <section
-      className="nv-masthead nv-stage relative overflow-hidden rounded-b-[var(--radius-sheet)] px-5 pb-5"
+      /*
+        The lower corners are the phone's: there the masthead is the top of the
+        page and rounds into the ledger below it. On the desktop rail it is the
+        TOP OF A PANEL that continues into the activities list, so a 22px curve
+        inside the panel's own 14px one is a child rounder than its parent —
+        the one arrangement the radius budget rules out. Squared at `lg`.
+      */
+      className="nv-masthead nv-stage relative overflow-hidden rounded-b-[var(--radius-sheet)] px-5 pb-5 lg:rounded-b-none"
       style={{
         paddingTop: nativeControls
           ? "max(var(--nv-chrome-top, 0px), env(safe-area-inset-top), 0.5rem)"

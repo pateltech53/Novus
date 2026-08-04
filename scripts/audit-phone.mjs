@@ -280,7 +280,11 @@ for (const [name, width, height] of SIZES) {
 
   for (const [tag, tab] of screens) {
     if (tab) {
-      const btn = page.locator(`nav[aria-label="Activities"] button`, { hasText: new RegExp(`^${tab}$`, "i") });
+      // `:visible`, because the activities exist twice now — a bottom bar on a
+      // phone and a list in the desktop left rail — and only one of them is
+      // ever displayed. This audit is about what a thumb can reach, so the
+      // hidden one is not the one to click.
+      const btn = page.locator(`nav[aria-label="Activities"]:visible button`, { hasText: new RegExp(`^${tab}$`, "i") });
       if ((await btn.count()) === 0) { console.log(`  ${name}/${tag}: no tab button`); continue; }
       await btn.first().click();
       await page.waitForTimeout(650);
@@ -583,7 +587,7 @@ for (const [shell, inject] of SHELLS) {
   await page.goto(at("/play"), { waitUntil: "networkidle" });
   await page.waitForTimeout(900);
   const team = page
-    .locator('nav[aria-label="Activities"] button')
+    .locator('nav[aria-label="Activities"]:visible button')
     .filter({ hasText: /^team$/i });
   if (await team.count()) {
     await team.first().click();
