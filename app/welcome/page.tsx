@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { ENTER, SETTLE_SPRING, useStill } from "@/components/ui/Motion";
 import { FounderPortrait } from "@/components/FounderAvatar";
 import { play } from "@/lib/sound";
 import { LoopExplainer } from "@/components/LoopExplainer";
@@ -41,6 +42,7 @@ import { speak, stopSpeaking } from "@/lib/ai/speech";
 import { saveProfile, loadProfile } from "@/lib/engine/save";
 import { entryRoute } from "@/lib/entry";
 import { usePrefetch } from "@/lib/prefetch";
+import { useNavigating } from "@/lib/navigating";
 
 /**
  * Onboarding O1–O7. Nine steps total; O8 (found the company) lives at /found
@@ -67,6 +69,8 @@ export default function WelcomePage() {
   // instead (lib/entry.ts), so both are warmed.
   usePrefetch("/found", "/play");
 
+  const [finishing, go] = useNavigating();
+
   const finish = useCallback(() => {
     const existing = loadProfile();
     saveProfile({
@@ -79,8 +83,12 @@ export default function WelcomePage() {
     });
     // Onboarding is not a reason to lose a company. Someone who walks back
     // through these steps with a run in progress is returned to it.
-    router.push(entryRoute());
-  }, [name, age, router]);
+    //
+    // Latched, because `entryRoute()` resolves to /play for anyone with a run —
+    // the heaviest page in the app — and the last step of onboarding used to
+    // end on a sheet that simply sat there through the whole chunk.
+    go(() => router.push(entryRoute()));
+  }, [name, age, router, go]);
 
   // AnimatePresence mode="wait" takes exactly ONE child. Rendering conditional
   // siblings leaves it waiting on an exit that never resolves, and the screen
@@ -123,7 +131,7 @@ export default function WelcomePage() {
       case "showme":
         return <LoopExplainer key="showme" onDone={() => setStep("plans")} />;
       case "plans":
-        return <PlansSheet key="plans" onDone={finish} />;
+        return <PlansSheet key="plans" onDone={finish} leaving={finishing} />;
     }
   })();
 
@@ -163,7 +171,7 @@ function Wave({ onNext }: { onNext: () => void }) {
           // Rises from below with a spring, like something stepping into frame.
           initial={{ opacity: 0, y: 28, scale: 0.94 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ type: "spring", stiffness: 260, damping: 26 }}
+          transition={SETTLE_SPRING}
         >
           <FounderPortrait gender="male" tier={5} size={272} priority />
         </motion.div>
@@ -172,7 +180,7 @@ function Wave({ onNext }: { onNext: () => void }) {
           className="mt-1 text-center text-[2rem] font-extrabold leading-[1.05] tracking-[-0.03em]"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.14, duration: 0.34, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ ...ENTER, delay: 0.14 }}
         >
           Run a company.
           <br />
@@ -194,7 +202,7 @@ function Wave({ onNext }: { onNext: () => void }) {
         className="w-full"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.34, duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ ...ENTER, delay: 0.34 }}
       >
         <PrimaryButton onClick={onNext}>START</PrimaryButton>
       </motion.div>
@@ -328,34 +336,67 @@ function MicMoment({ onNext }: { onNext: () => void }) {
 function Explanation({ onNext }: { onNext: () => void }) {
   const [shown, setShown] = useState(0);
   const done = shown >= SHARK_EXPLANATION.length;
+  const reduced = useStill();
 
+  /*
+   * ── The typewriter, rewritten ─────────────────────────────────────────────
+   *
+   * It was a 22 ms `setInterval` advancing one character at a time: 194 React
+   * commits over 4.3 seconds, none of them frame-aligned, on the fourth screen
+   * a new player ever sees. An interval that does not divide the frame budget
+   * beats against it — some frames drew two characters, some drew none — so
+   * the effect it produced was a stutter rather than typing. The caret beside
+   * it ran on `animate-pulse`, a completely separate CSS clock, so the two
+   * halves of one effect were never in step.
+   *
+   * Driven from elapsed time in a rAF now: at most one commit per frame, and
+   * the character count is derived from how long has actually passed rather
+   * than from how many times a timer managed to fire. On a frame that drops,
+   * it catches up instead of falling behind.
+   *
+   * And it can be skipped. This is the shark explaining the game — the player
+   * who has read it, or who reads faster than 45 characters a second, should
+   * not be held. Tapping the text completes it; that is what everyone tries
+   * first, and it did nothing.
+   */
   useEffect(() => {
     void speak(SHARK_EXPLANATION, "narrator");
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduced) {
       setShown(SHARK_EXPLANATION.length);
       return;
     }
-    const id = setInterval(() => {
-      setShown((n) => {
-        if (n >= SHARK_EXPLANATION.length) {
-          clearInterval(id);
-          return n;
-        }
-        return n + 1;
-      });
-    }, 22);
-    return () => clearInterval(id);
-  }, []);
+    let raf = 0;
+    let start = 0;
+    const CPS = 45; // characters a second — the old 22 ms interval, honestly stated
+    const tick = (now: number) => {
+      start ||= now;
+      const n = Math.min(SHARK_EXPLANATION.length, Math.floor(((now - start) / 1000) * CPS));
+      setShown((prev) => (prev === n ? prev : n));
+      if (n < SHARK_EXPLANATION.length) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [reduced]);
+
+  const skip = () => setShown(SHARK_EXPLANATION.length);
 
   return (
     <StepShell>
       <div className="flex h-44 items-center justify-center">
         <FounderPortrait gender="male" tier={5} size={168} />
       </div>
-      <p className="mt-2 min-h-[9rem] text-[1.0625rem] leading-relaxed text-[var(--n-11)]">
+      {/* The whole block is the skip target: a player who taps the text is
+          asking for the rest of it, not for a button they have to find. */}
+      <p
+        onClick={done ? undefined : skip}
+        className={`mt-2 min-h-[9rem] text-[1.0625rem] leading-relaxed text-[var(--n-11)] ${
+          done ? "" : "cursor-pointer"
+        }`}
+      >
         {SHARK_EXPLANATION.slice(0, shown)}
-        {!done && <span className="ml-0.5 inline-block h-5 w-[2px] animate-pulse bg-[var(--action)] align-middle" />}
+        {!done && (
+          <span className="ml-0.5 inline-block h-5 w-[2px] animate-pulse bg-[var(--action)] align-middle" />
+        )}
       </p>
       <div className="mt-auto w-full">
         {done && (
@@ -408,7 +449,7 @@ function Explanation({ onNext }: { onNext: () => void }) {
  * Prices, seat counts and every entitlement come from lib/monetization.ts so
  * Settings and the eventual paywall read the same numbers as this screen.
  */
-function PlansSheet({ onDone }: { onDone: () => void }) {
+function PlansSheet({ onDone, leaving }: { onDone: () => void; leaving: boolean }) {
   const [plan, setPlan] = useState<SubscriptionPlan>(PRO_YEARLY);
   const [panel, setPanel] = useState<"pro" | "chapter">("pro");
   const reduced = useReducedMotion();
@@ -534,7 +575,7 @@ function PlansSheet({ onDone }: { onDone: () => void }) {
               initial={enter}
               animate={{ opacity: 1, y: 0 }}
               exit={reduced ? { opacity: 1 } : { opacity: 0, y: -6 }}
-              transition={{ duration: reduced ? 0 : 0.22, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ ...ENTER }}
             >
               <ul className="mt-4">
                 {PRO_FEATURES.map((f) => (
@@ -609,7 +650,7 @@ function PlansSheet({ onDone }: { onDone: () => void }) {
               initial={enter}
               animate={{ opacity: 1, y: 0 }}
               exit={reduced ? { opacity: 1 } : { opacity: 0, y: -6 }}
-              transition={{ duration: reduced ? 0 : 0.22, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ ...ENTER }}
             >
               <p className="mt-5 text-2xs font-bold tracking-[0.16em] text-[var(--text-tertiary)]">
                 A CHAPTER IS ONE CLASSROOM OR CLUB
@@ -734,12 +775,17 @@ function PlansSheet({ onDone }: { onDone: () => void }) {
             it was the only button on the step. It is not the only one any more
             — GET PRO is the other answer again — and two accented buttons on
             one screen is the accent spent twice. */}
+        {/* `leaving`, not the `busy` above: that one belongs to CHOOSE PRO and
+            its checkout. This is the last tap of onboarding, and it resolves to
+            entryRoute() — /play for anyone with a run, the heaviest page in the
+            app. It used to sit here unchanged for the whole of that chunk. */}
         <button
           type="button"
           onClick={onDone}
-          className="nv-gc mt-2.5 h-14 w-full rounded-[var(--radius-card)] nv-on text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--text-primary)]"
+          disabled={leaving}
+          className="nv-gc mt-2.5 h-14 w-full rounded-[var(--radius-card)] nv-on text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--text-primary)] disabled:opacity-60"
         >
-          CONTINUE FREE
+          {leaving ? "OPENING…" : "CONTINUE FREE"}
         </button>
 
         {/* Reachable from the screen that offers the subscription, and read

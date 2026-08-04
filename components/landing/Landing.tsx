@@ -3,7 +3,16 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { motion, useReducedMotion } from "framer-motion";
+/*
+ * No framer-motion import here any more.
+ *
+ * Every animation this component owned was an entrance, and entrances are the
+ * one kind of motion that must not wait for a JavaScript bundle — see `.nv-rise`
+ * in globals.css. What is left on this page that genuinely needs JS (the
+ * scroll-linked phone, the WebGL mascot) lives in its own dynamically-imported
+ * child, so `/` no longer pulls Framer's DOM feature bundle to fade in a
+ * headline.
+ */
 import { LandingShark } from "@/components/landing/LandingShark";
 import { AccountGate } from "@/components/landing/AccountGate";
 import { Faq } from "@/components/landing/Faq";
@@ -31,6 +40,7 @@ import { whenRestored } from "@/lib/cloud/sync";
 import { useSellsHere } from "@/lib/commerce";
 import { hasSavedRun, loadProfile } from "@/lib/engine/save";
 import { loadAccount } from "@/lib/account";
+import { useNavigating } from "@/lib/navigating";
 
 /**
  * The front door.
@@ -60,8 +70,6 @@ import { loadAccount } from "@/lib/account";
 const ACCOUNT_ANCHOR = "account";
 
 export function Landing() {
-  const reduced = useReducedMotion();
-
   /*
    * ── There used to be a redirect here, and it is not coming back ──────────
    *
@@ -87,18 +95,25 @@ export function Landing() {
    * fixed where the tap is handled, which runs long after boot has settled.
    */
 
-  const rise = (delay: number) =>
-    reduced
-      ? {}
-      : {
-          initial: { opacity: 0, y: 14 },
-          animate: { opacity: 1, y: 0 },
-          transition: {
-            duration: 0.4,
-            delay,
-            ease: [0.16, 1, 0.3, 1] as const,
-          },
-        };
+  /*
+   * The hero's entrance is CSS now — `.nv-rise` in globals.css, where the
+   * reasoning lives.
+   *
+   * The short version: this used to be a Framer `initial={{ opacity: 0 }}`, and
+   * Framer writes `initial` into the server-rendered markup. The prerendered
+   * index.html shipped the H1, the subhead, the account gate and the stage box
+   * all carrying `style="opacity:0"` — the entire above-the-fold — and they
+   * stayed invisible until the bundle had downloaded, parsed and hydrated. The
+   * page was prerendered and then hidden.
+   *
+   * `reduced` is not consulted here on purpose: the media query in globals.css
+   * reaches a CSS animation directly, which is the one case where it does not
+   * need JavaScript's help. (It still matters below, where the motion IS JS.)
+   */
+  const rise = (delay: number, className: string) => ({
+    className: `nv-rise ${className}`,
+    style: { "--nv-rise-delay": `${delay}ms` } as React.CSSProperties,
+  });
 
   return (
     <main className="min-h-dvh">
@@ -113,53 +128,47 @@ export function Landing() {
           </div>
 
           <div className="lg:grid lg:grid-cols-12 lg:items-end lg:gap-6">
-            <motion.div
-              {...(reduced
-                ? {}
-                : {
-                    initial: { opacity: 0, y: 24 },
-                    animate: { opacity: 1, y: 0 },
-                    transition: {
-                      duration: 0.55,
-                      ease: [0.16, 1, 0.3, 1] as const,
-                    },
-                  })}
+            <div
               /* `svh`, not `dvh`. A mobile browser re-resolves `dvh` on every
                  frame of its toolbar collapse, and this box holds a WebGL
                  canvas — so the drawing buffer was being reallocated and the
                  page reflowed all the way through the visitor's first drag.
                  `svh` holds still. Same reasoning in ScrollPhone. */
-              className="relative mx-auto mt-2 h-[44svh] min-h-[280px] w-full max-w-[24rem] lg:order-2 lg:col-span-6 lg:mx-0 lg:mt-0 lg:h-[560px] lg:max-w-none"
+              className="nv-rise nv-rise-stage relative mx-auto mt-2 h-[44svh] min-h-[280px] w-full max-w-[24rem] lg:order-2 lg:col-span-6 lg:mx-0 lg:mt-0 lg:h-[560px] lg:max-w-none"
             >
               <div
                 aria-hidden="true"
                 className="absolute bottom-[3.5%] left-1/2 h-[4.5%] w-[46%] -translate-x-1/2 rounded-[50%] bg-black/25 blur-xl"
               />
               <LandingShark className="h-full w-full" />
-            </motion.div>
+            </div>
 
             <div className="pb-10 lg:order-1 lg:col-span-6 lg:self-center lg:pb-20">
-              <motion.h1
-                {...rise(0.08)}
-                className="mt-6 text-[2.25rem] font-extrabold leading-[1.04] tracking-[-0.03em] sm:text-[2.75rem] lg:mt-0 lg:text-[3rem]"
+              <h1
+                {...rise(
+                  80,
+                  "mt-6 text-[2.25rem] font-extrabold leading-[1.04] tracking-[-0.03em] sm:text-[2.75rem] lg:mt-0 lg:text-[3rem]",
+                )}
               >
                 Keep a company alive.
                 <br />
                 Defend it out loud.
-              </motion.h1>
-              <motion.p
-                {...rise(0.16)}
-                className="mt-4 max-w-[26rem] text-[0.9375rem] leading-relaxed text-[var(--text-secondary)] lg:text-base"
+              </h1>
+              <p
+                {...rise(
+                  160,
+                  "mt-4 max-w-[26rem] text-[0.9375rem] leading-relaxed text-[var(--text-secondary)] lg:text-base",
+                )}
               >
                 A life sim for a company. You make every call — who to hire,
                 what to ship, which deal to walk past — and once a year the game
                 stops and asks you to defend it: a pitch, out loud, to five
                 investors who have read your numbers.
-              </motion.p>
+              </p>
 
-              <motion.div {...rise(0.24)} className="mt-7 max-w-[24rem]">
+              <div {...rise(240, "mt-7 max-w-[24rem]")}>
                 <AccountGate />
-              </motion.div>
+              </div>
             </div>
           </div>
         </div>
@@ -377,6 +386,12 @@ function PricingSection() {
     null,
   );
   const [error, setError] = useState<string | null>(null);
+  /*
+   * PLAY FREE is the one control on this page that leaves it, and it awaited
+   * the cloud restore for up to four seconds with nothing on the button.
+   * Separate from `busy` above, which tracks which PLAN is mid-checkout.
+   */
+  const [entering, goEnter, releaseEnter] = useNavigating();
   /** The chapter column's own error line — a teacher refused at 35 SEATS
    *  should not read the message inside the Pro card two columns away. */
   const [chapterError, setChapterError] = useState<string | null>(null);
@@ -389,6 +404,11 @@ function PricingSection() {
     // same reason: these three reads are localStorage, and on a device the
     // boot restore is still filling they answer for a player who is not this
     // one. Resolves immediately once that has landed.
+    //
+    // It resolves immediately in the common case and waits up to
+    // RESTORE_WAIT_MS otherwise — which is why the latch is taken BEFORE the
+    // await rather than around the push. The wait is the part the player was
+    // staring at an unchanged button through.
     await whenRestored();
     /*
      * Playing starts at the gate now. PLAY FREE used to walk a visitor
@@ -399,6 +419,10 @@ function PricingSection() {
      * this device has already played, so nothing is lost by being asked.
      */
     if (!loadAccount()) {
+      // Not a navigation after all — give the button back before the timer
+      // would, so OPENING… does not sit next to the message explaining why
+      // nothing opened.
+      releaseEnter();
       setBusy(null);
       setError(
         "Novus plays on a free account, so your companies are saved and can follow you to a new device. Create one below and you're in.",
@@ -594,10 +618,11 @@ function PricingSection() {
             </ul>
             <button
               type="button"
-              onClick={() => void enter()}
-              className="nv-gc mt-6 w-full rounded-[var(--radius-card)] px-5 py-3 text-sm font-extrabold tracking-[0.04em]"
+              onClick={() => entering || goEnter(() => enter())}
+              disabled={entering}
+              className="nv-gc mt-6 w-full rounded-[var(--radius-card)] px-5 py-3 text-sm font-extrabold tracking-[0.04em] disabled:opacity-60"
             >
-              PLAY FREE
+              {entering ? "OPENING…" : "PLAY FREE"}
             </button>
           </div>
 

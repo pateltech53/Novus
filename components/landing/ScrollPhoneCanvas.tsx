@@ -43,6 +43,27 @@ const BODY_D = 0.085;
 const YAW_FROM = -2.35;
 const YAW_TO = 0.12;
 
+/*
+ * A touch-first device, resolved once per module.
+ *
+ * The play-screen canvas has downgraded DPR and switched antialiasing off on
+ * phones since the pitch-lag work (components/SharkCanvas.tsx) — but the two
+ * LANDING canvases never got it, and the landing page is the surface a stranger
+ * meets first, on whatever phone they own. A 2.2 MB mesh rendered at 2× device
+ * pixel ratio with MSAA, at 60 fps, is a lot of GPU to spend on someone who has
+ * not decided whether they want the app yet; it shows up as heat and battery
+ * long before it shows up as dropped frames.
+ *
+ * 1.5× is the same ceiling SharkCanvas uses and is visually indistinguishable
+ * at this size. Antialiasing off matters more than it sounds: at 1.5× DPR the
+ * remaining edge stepping is sub-pixel on a phone screen.
+ */
+const MOBILE =
+  typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches;
+const DPR: [number, number] = MOBILE ? [1, 1.5] : [1, 2];
+const GL = { alpha: true, antialias: !MOBILE };
+const CANVAS_STYLE = { background: "transparent" };
+
 export default function ScrollPhoneCanvas({
   progressRef,
   reduced,
@@ -57,9 +78,9 @@ export default function ScrollPhoneCanvas({
   return (
     <Canvas
       camera={{ position: [0, 0.02, 4.15], fov: 32 }}
-      gl={{ alpha: true, antialias: true }}
-      style={{ background: "transparent" }}
-      dpr={[1, 2]}
+      gl={GL}
+      style={CANVAS_STYLE}
+      dpr={DPR}
       frameloop="demand"
     >
       <FrameBridge invalidateRef={invalidateRef} />

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { ENTER, STAGGER } from "@/components/ui/Motion";
 import { useGame } from "@/lib/state/GameProvider";
 import { FounderAvatar } from "@/components/FounderAvatar";
 import { TankRoom } from "@/components/panel/TankRoom";
@@ -153,7 +154,21 @@ export function SharkPanel({
   const [cursor, setCursor] = useState(0);
   const [thinking, setThinking] = useState(true);
   const [accepted, setAccepted] = useState<{ shark: SharkId; offer: SharkOffer } | null>(null);
-  const [micLevel, setMicLevel] = useState(0);
+  /*
+   * The Tank's mic level — a ref, so it never re-renders this component.
+   *
+   * AnswerTurn already quantises to 12 steps (see its note), which cut the
+   * original 60-a-second down to a handful. The handful was still landing on
+   * THIS component: a 1041-line screen holding the room, the beats list, the
+   * notes and the offers. `TankRoom` is memoised, but `micLevel` was in its
+   * prop list, so the memo could never bite either — the one prop that changed
+   * while the player spoke was the one that defeated it.
+   *
+   * The level now goes into a ref that AnswerTurn writes and TankRoom
+   * subscribes to on its own rAF, so speaking re-renders the room and nothing
+   * above it. The seat lean is unchanged.
+   */
+  const micLevelRef = useRef(0);
   const [awaiting, setAwaiting] = useState<{ question: string; shark: SharkId } | null>(null);
   const [countering, setCountering] = useState(false);
   const [seats, setSeats] = useState<Partial<Record<SharkId, SeatState>>>({});
@@ -553,7 +568,7 @@ export function SharkPanel({
         ),
       );
       setAwaiting(null);
-      setMicLevel(0);
+      micLevelRef.current = 0;
       stopSpeaking();
       /*
        * How they took it. The seat reacts to whether an answer arrived and
@@ -585,7 +600,7 @@ export function SharkPanel({
       ),
     );
     setAwaiting(null);
-    setMicLevel(0);
+    micLevelRef.current = 0;
     stopSpeaking();
     // Silence is a legitimate move, and it lands as one.
     setSeat(awaiting.shark, "skeptical");
@@ -687,7 +702,7 @@ export function SharkPanel({
         <TankRoom
           states={seats}
           speaking={(lastSpeaker(beats) as SharkId) ?? null}
-          micLevel={micLevel}
+          levelRef={micLevelRef}
           cameraStream={cam}
           year={run.year}
         />
@@ -744,7 +759,7 @@ export function SharkPanel({
                 key={i}
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                transition={ENTER}
               >
                 <BeatRow beat={beat} />
                 {beat.answer && <YourAnswer entry={beat.answer} run={run} />}
@@ -753,11 +768,42 @@ export function SharkPanel({
           </AnimatePresence>
         </ol>
 
+        {/*
+          ── A room that is thinking should look occupied, not stopped ────────
+          │
+          │ This was one static line, held for however long the provider took —
+          │ up to 60 s before the client timeout in lib/ai/panel.ts, and five
+          │ times per year gate. Nothing on the screen moved while it waited,
+          │ so the most common reading of a slow turn was that the app had
+          │ crashed.
+          │
+          │ Three dots on one clock, offset by STAGGER. It is the smallest
+          │ honest thing that says "still going" — and it says it about the
+          │ room rather than about a loading state, which is why it sits inline
+          │ with the sentence instead of being a spinner somewhere else.
+        */}
         {thinking && !awaiting && (
-          <p className="mt-4 text-sm text-[var(--text-secondary)]">
-            {beats.length === 0
-              ? "The room is reading your numbers…"
-              : "They're thinking about it…"}
+          <p className="mt-4 flex items-center gap-1.5 text-sm text-[var(--text-secondary)]">
+            <span>
+              {beats.length === 0
+                ? "The room is reading your numbers"
+                : "They're thinking about it"}
+            </span>
+            <span aria-hidden="true" className="flex items-end gap-[3px] pb-[3px]">
+              {[0, 1, 2].map((i) => (
+                <motion.span
+                  key={i}
+                  className="block h-[3px] w-[3px] rounded-full bg-current"
+                  animate={{ opacity: [0.25, 1, 0.25] }}
+                  transition={{
+                    duration: 1.2,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: i * STAGGER * 2,
+                  }}
+                />
+              ))}
+            </span>
           </p>
         )}
 
@@ -769,7 +815,7 @@ export function SharkPanel({
               question={awaiting.question}
               onAnswer={answered}
               onDecline={declined}
-              onLevel={setMicLevel}
+              levelRef={micLevelRef}
               /* Help exists on the QUESTIONS and not on the counter below:
                  a question has a right answer sitting in your own numbers, and
                  a counter is a decision about what you are willing to give up.
@@ -792,7 +838,7 @@ export function SharkPanel({
               declineLabel="DON'T COUNTER"
               onAnswer={countered}
               onDecline={() => setCountering(false)}
-              onLevel={setMicLevel}
+              levelRef={micLevelRef}
             />
           </div>
         )}

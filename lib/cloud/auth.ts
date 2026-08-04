@@ -1,5 +1,6 @@
 import { createAccount, loadAccount, signOut as forgetLocalAccount } from "@/lib/account";
 import { RESTORED_FLAG } from "@/lib/cloud/keys";
+import { dropPendingRun } from "@/lib/engine/save";
 import { API_CREDENTIALS, apiUrl } from "@/lib/native/origin";
 
 /**
@@ -230,6 +231,24 @@ const DEVICE_KEYS = [
  */
 function wipeDevice(): void {
   if (typeof window === "undefined") return;
+  /*
+   * Drop any write save.ts is holding, BEFORE removing the keys.
+   *
+   * `saveRun` coalesces its localStorage write over a short window (see its
+   * note). A held write is normally flushed on every path that could lose it —
+   * but this path must not flush it, it must throw it away: a save from the
+   * outgoing player landing after the loop below would restore that player's
+   * company onto a device that has just been handed to someone else. Exactly
+   * the resurrection `clearRun` guards against, with a worse blast radius,
+   * because this function also runs on sign-IN.
+   *
+   * A STATIC import, and it has to be: a dynamic one resolves a microtask
+   * later, which is after the synchronous loop below has already run — the
+   * drop would land on the far side of the very wipe it exists to protect.
+   * There is no cycle to avoid here; the chain is auth → save → sync → billing
+   * and nothing on it reaches back to this file.
+   */
+  dropPendingRun();
   for (const key of DEVICE_KEYS) {
     try {
       window.localStorage.removeItem(key);

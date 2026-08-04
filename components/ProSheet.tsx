@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { ENTER } from "@/components/ui/Motion";
 
 import { useGame } from "@/lib/state/GameProvider";
 import { LegalSheet } from "@/components/LegalSheet";
@@ -202,7 +203,7 @@ export function ProSheet({ onClose }: { onClose: () => void }) {
         className="relative flex max-h-[min(88dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] w-full max-w-2xl flex-col overflow-y-auto rounded-t-[var(--radius-sheet)] bg-[var(--sheet)] pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[var(--e3)] sm:max-h-[86dvh] sm:rounded-[var(--radius-sheet)]"
         initial={{ y: "6%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ ...ENTER }}
       >
         <div className="flex items-start justify-between gap-4 px-5 pt-5">
           <div>

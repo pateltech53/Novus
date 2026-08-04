@@ -5,6 +5,7 @@ import { haptic } from "@/lib/haptics";
 import { play } from "@/lib/sound";
 
 import { motion } from "framer-motion";
+import { EXIT } from "@/components/ui/Motion";
 import { useGame } from "@/lib/state/GameProvider";
 import type { AutopsyReport } from "@/lib/engine/autopsy";
 import { fmtMoney } from "@/lib/engine/format";
@@ -38,7 +39,7 @@ export function ChapterSeven({ report }: { report: AutopsyReport }) {
             style={{ transform: "rotate(-6deg)" }}
             initial={{ scale: 1.6, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.35, duration: 0.3, ease: [0.7, 0, 0.84, 0] }}
+            transition={{ ...EXIT, delay: 0.35 }}
           >
             CLOSED
           </motion.p>

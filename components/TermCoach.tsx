@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { motion } from "framer-motion";
+import { ENTER } from "@/components/ui/Motion";
 import { GLOSSARY } from "@/lib/engine/constants";
 import { Glass } from "@/components/ui/Glass";
 
@@ -43,7 +44,7 @@ export function TermCoach({
       className="px-4 pb-2"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ ...ENTER }}
     >
       <Glass className="mx-auto w-full max-w-2xl overflow-hidden rounded-[var(--radius-row)]">
         <button

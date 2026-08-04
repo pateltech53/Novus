@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
+import { ENTER, SNAP_SPRING } from "@/components/ui/Motion";
 
 /**
  * The lock screen — the first thing you see when you pick the phone up.
@@ -70,9 +71,11 @@ export function LockScreen({ onUnlock }: { onUnlock: () => void }) {
   const commit = () => {
     if (committing) return;
     setCommitting(true);
+    // The commit travel is longer than a standard entrance because the sheet is
+    // covering the whole phone — the same curve, held for a screen's height.
     animate(y, -(height.current || 600), {
+      ...ENTER,
       duration: 0.32,
-      ease: [0.16, 1, 0.3, 1],
       onComplete: onUnlock,
     });
   };
@@ -90,7 +93,7 @@ export function LockScreen({ onUnlock }: { onUnlock: () => void }) {
         aria-hidden="true"
         className="absolute inset-0 bg-cover bg-center"
         style={{
-          backgroundImage: "url(/phone/lock-wallpaper.png)",
+          backgroundImage: "url(/phone/lock-wallpaper.webp)",
           y: wallY,
           scale: wallScale,
         }}
@@ -114,7 +117,7 @@ export function LockScreen({ onUnlock }: { onUnlock: () => void }) {
           // A flick counts even when it did not travel far — matching how a real
           // phone reads intent from velocity, not just distance.
           if (travelled > 0.3 || info.velocity.y < -520) commit();
-          else animate(y, 0, { type: "spring", stiffness: 520, damping: 40 });
+          else animate(y, 0, { ...SNAP_SPRING });
         }}
         className="absolute inset-0 cursor-grab touch-none active:cursor-grabbing"
       >

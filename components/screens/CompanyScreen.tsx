@@ -199,7 +199,7 @@ export function CompanyScreen({ onClose }: { onClose: () => void }) {
                   runActivity(activity.id);
                   setSpent((s) => [...s, activity.id]);
                 }}
-                className="nv-card flex w-full items-start justify-between gap-3 px-4 py-3.5 text-left transition-transform duration-150 enabled:active:scale-[0.985] disabled:opacity-45"
+                className="nv-card flex w-full items-start justify-between gap-3 px-4 py-3.5 text-left transition-transform duration-150 enabled:nv-press-row disabled:opacity-45"
               >
                 <span className="min-w-0 flex-1">
                   <span className="block text-[0.9375rem] font-semibold leading-snug">

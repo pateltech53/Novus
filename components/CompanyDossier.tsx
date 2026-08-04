@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useNativeGlassClose } from "@/components/native/useNativeOverlay";
 import { motion } from "framer-motion";
+import { ENTER } from "@/components/ui/Motion";
 import type { RunState, StageNum } from "@/lib/engine/types";
 import { fmtMoney, fmtMonths, fmtPct, MONTH_NAMES } from "@/lib/engine/format";
 import { deriveRunwayMonths } from "@/lib/engine/sim";
@@ -139,7 +140,7 @@ export function CompanyDossier({
         }`}
         initial={overlay ? { opacity: 0, scale: 0.98 } : { y: "8%", opacity: 0 }}
         animate={overlay ? { opacity: 1, scale: 1 } : { y: 0, opacity: 1 }}
-        transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ ...ENTER }}
       >
         <Header run={run} overlay={overlay} onClose={onClose} native={native} />
         <Body run={run} />

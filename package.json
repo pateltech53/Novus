@@ -4,10 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npm run events && next build",
+    "build": "npm run events && next build && node scripts/bundle-report.mjs --check",
+    "bundle": "node scripts/bundle-report.mjs",
     "start": "next start",
     "lint": "next lint",
-    "events": "node scripts/parse-events.mjs && node scripts/validate-events.mjs && node scripts/validate-activities.mjs && node scripts/validate-tokens.mjs",
+    "events": "node scripts/parse-events.mjs && node scripts/validate-events.mjs && node scripts/validate-activities.mjs && node scripts/validate-tokens.mjs && node scripts/validate-motion.mjs",
     "sim": "node scripts/simulate.mjs",
     "test:db": "node scripts/db-test.mjs",
     "test:ai": "node scripts/ai-test.mjs",
@@ -20,7 +21,8 @@
     "sync": "npx cap sync",
     "audit:phone": "node scripts/audit-phone.mjs",
     "icons": "node scripts/make-icons.mjs && node scripts/make-app-icons.mjs",
-    "test:board": "node scripts/leaderboard-test.mjs"
+    "test:board": "node scripts/leaderboard-test.mjs",
+    "test:exits": "node scripts/exit-audit.mjs"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",

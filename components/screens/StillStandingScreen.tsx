@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { ENTER, EXIT, SCRIM } from "@/components/ui/Motion";
 
 import { Glass, GlassScrim } from "@/components/ui/Glass";
 import { useGame } from "@/lib/state/GameProvider";
@@ -301,7 +302,8 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
       className="fixed inset-0 z-50 flex items-end justify-center"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.18 }}
+      exit={{ opacity: 0, transition: EXIT }}
+      transition={SCRIM}
     >
       {/* The board landed a day after every other sheet's scrim became glass,
           so it kept the flat fill they all used to have. */}
@@ -314,7 +316,8 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
         className="relative flex max-h-[min(88dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] w-full max-w-2xl flex-col overflow-hidden rounded-t-[var(--radius-sheet)] bg-[var(--sheet)] shadow-[var(--e3)]"
         initial={{ y: "8%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
+        exit={{ y: "8%", opacity: 0, transition: EXIT }}
+        transition={ENTER}
       >
         {/* ── The one glass surface on this screen ──────────────────────── */}
         <Glass

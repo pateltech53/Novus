@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { motion } from "framer-motion";
+import { ENTER, EXIT, SCRIM } from "@/components/ui/Motion";
 
 import { Glass, GlassButton, GlassScrim } from "@/components/ui/Glass";
 import { useNativeOverlay, useNativeOverlayOwned } from "@/components/native/useNativeOverlay";
@@ -153,7 +154,8 @@ export function ScreenSheet({
       className="fixed inset-0 z-50 flex items-end justify-center"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.18 }}
+      exit={{ opacity: 0, transition: EXIT }}
+      transition={SCRIM}
     >
       <GlassScrim label={closeLabel} onClose={onClose} />
 
@@ -173,7 +175,8 @@ export function ScreenSheet({
         className="relative flex max-h-[min(88dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] w-full max-w-2xl flex-col overflow-y-auto rounded-t-[var(--radius-sheet)] bg-[var(--sheet)] pb-[max(1rem,env(safe-area-inset-bottom),var(--nv-overlay-bottom))] shadow-[var(--e3)]"
         initial={{ y: "8%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
+        exit={{ y: "8%", opacity: 0, transition: EXIT }}
+        transition={ENTER}
       >
         <Glass
           as="header"

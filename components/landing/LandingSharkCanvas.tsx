@@ -52,6 +52,27 @@ const SWAY_PERIOD_S = 9.5;
 const POINTER_YAW = 0.16;
 const POINTER_PITCH = 0.05;
 
+/*
+ * A touch-first device, resolved once per module.
+ *
+ * The play-screen canvas has downgraded DPR and switched antialiasing off on
+ * phones since the pitch-lag work (components/SharkCanvas.tsx) — but the two
+ * LANDING canvases never got it, and the landing page is the surface a stranger
+ * meets first, on whatever phone they own. A 2.2 MB mesh rendered at 2× device
+ * pixel ratio with MSAA, at 60 fps, is a lot of GPU to spend on someone who has
+ * not decided whether they want the app yet; it shows up as heat and battery
+ * long before it shows up as dropped frames.
+ *
+ * 1.5× is the same ceiling SharkCanvas uses and is visually indistinguishable
+ * at this size. Antialiasing off matters more than it sounds: at 1.5× DPR the
+ * remaining edge stepping is sub-pixel on a phone screen.
+ */
+const MOBILE =
+  typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches;
+const DPR: [number, number] = MOBILE ? [1, 1.5] : [1, 2];
+const GL = { alpha: true, antialias: !MOBILE };
+const CANVAS_STYLE = { background: "transparent" };
+
 export default function LandingSharkCanvas({
   reduced,
   spinning,
@@ -67,9 +88,9 @@ export default function LandingSharkCanvas({
   return (
     <Canvas
       camera={{ position: [0, 0.16, 3.25], fov: 33 }}
-      gl={{ alpha: true, antialias: true }}
-      style={{ background: "transparent" }}
-      dpr={[1, 2]}
+      gl={GL}
+      style={CANVAS_STYLE}
+      dpr={DPR}
       frameloop={spinning && !reduced ? "always" : "demand"}
     >
       {/*

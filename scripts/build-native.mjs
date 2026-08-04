@@ -24,7 +24,7 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -51,6 +51,55 @@ function dirSize(dir) {
     total += entry.isDirectory() ? dirSize(full) : statSync(full).size;
   }
   return total;
+}
+
+/** The biggest `n` top-level entries of `dir`, for the failure message below. */
+function largestEntries(dir, n) {
+  return readdirSync(dir, { withFileTypes: true })
+    .map((e) => {
+      const full = join(dir, e.name);
+      return { name: e.name, size: e.isDirectory() ? dirSize(full) : statSync(full).size };
+    })
+    .sort((a, b) => b.size - a.size)
+    .slice(0, n)
+    .map((e) => `      ${(e.size / 1024 / 1024).toFixed(1).padStart(6)} MB  ${e.name}`)
+    .join("\n");
+}
+
+/**
+ * Drops what the export produced that a phone cannot reach.
+ *
+ * `output: "export"` writes every static route and copies `public/` whole. Both
+ * are correct for the web deploy and wrong for a store binary, where every byte
+ * is a download the player waits through once and then carries forever.
+ *
+ * Each entry below is unreachable ON THE DEVICE specifically — not merely
+ * unused-looking. Anything whose reachability depends on a runtime branch that
+ * could go either way stays.
+ */
+const PRUNE = [
+  {
+    path: ["vendor", "mediapipe", "pose_landmarker_lite.task"],
+    why: "pose model — delivery-coach.ts:482 skips it when `(pointer: coarse)` matches, which is every Capacitor webview",
+  },
+  {
+    path: ["admin"],
+    why: "operator console — no native surface links to it, and robots.ts already disallows it",
+  },
+  { path: ["og.png"], why: "social card — nothing on device renders an OpenGraph image" },
+];
+
+function pruneBundle(outDir) {
+  let freed = 0;
+  for (const { path, why } of PRUNE) {
+    const full = join(outDir, ...path);
+    if (!existsSync(full)) continue;
+    const size = statSync(full).isDirectory() ? dirSize(full) : statSync(full).size;
+    rmSync(full, { recursive: true, force: true });
+    freed += size;
+    console.log(`  · pruned ${path.join("/")} — ${(size / 1024 / 1024).toFixed(1)} MB (${why})`);
+  }
+  if (freed) console.log(`  · ${(freed / 1024 / 1024).toFixed(1)} MB pruned from the device bundle`);
 }
 
 /**
@@ -101,6 +150,34 @@ function verifyApiOrigin(outDir) {
     process.exit(1);
   }
   console.log(`\n  · the app will call ${expected}`);
+  return expected;
+}
+
+/**
+ * Installs the shell's entry document, and warms the connection it will need.
+ *
+ * `boot.html` reads two localStorage keys and hands the webview to a route —
+ * one parse, no framework. But the very next thing the app does on that route
+ * is talk to the API origin over HTTPS to a DIFFERENT host than the one it is
+ * served from: in the store build the pages come off Capacitor's local file
+ * server, so there is no warm connection to reuse and the first request pays a
+ * full DNS + TCP + TLS handshake before a byte of it moves.
+ *
+ * The preconnect is injected here rather than written into native/boot.html
+ * because the origin is resolved from the built artifact directly above. A
+ * hardcoded second copy of that value in a static file is exactly the failure
+ * verifyApiOrigin exists to catch — see its note.
+ */
+function installBootDocument(outDir, origin) {
+  const src = readFileSync(join(root, "native", "boot.html"), "utf8");
+  const hint =
+    `    <link rel="preconnect" href="${origin}" crossorigin />\n` +
+    `    <link rel="dns-prefetch" href="${origin}" />\n`;
+  if (!src.includes("</head>")) {
+    throw new Error("native/boot.html has no </head> to inject the preconnect before.");
+  }
+  writeFileSync(join(outDir, "boot.html"), src.replace("</head>", `${hint}  </head>`));
+  console.log(`  · boot.html installed, preconnecting to ${origin}`);
 }
 
 function parkApiRoutes() {
@@ -170,13 +247,62 @@ if (!existsSync(out)) {
   process.exit(1);
 }
 
-verifyApiOrigin(out);
+const apiOrigin = verifyApiOrigin(out);
 
-copyFileSync(join(root, "native", "boot.html"), join(out, "boot.html"));
-console.log("  · boot.html installed as the app entry point");
+installBootDocument(out, apiOrigin);
 
-const mb = (dirSize(out) / 1024 / 1024).toFixed(1);
+pruneBundle(out);
+
+const bytes = dirSize(out);
+const mb = (bytes / 1024 / 1024).toFixed(1);
 console.log(`  · bundle is ${mb} MB on device`);
+
+/*
+ * ── The number was measured and then thrown away ────────────────────────────
+ *
+ * This line printed the bundle size for a long time and did nothing with it,
+ * which is the whole reason there was 6.7 MB of provably dead .mp4 in
+ * `public/` to find: `docs/BASELINE.md` recorded those files as unreferenced,
+ * `docs/BUILD-PROMPT.md` instructed their deletion, and they shipped in every
+ * store binary anyway — because a printed number is a number nobody reads and
+ * no build has ever failed over.
+ *
+ * So it fails now. The ceiling is deliberately loose: it is not a target, it is
+ * a tripwire for the next 7 MB that arrives without anyone deciding it should.
+ * Raising it is a legitimate thing to do — a real asset that earns its weight
+ * should move this line, in a commit that says so. Silently growing past it is
+ * what this exists to prevent.
+ *
+ * ── Where 46 comes from, and where it should go ─────────────────────────────
+ *
+ * The bundle measures 43.5 MB today, after the prune above. A tripwire has to
+ * sit just above the real number or it is not a tripwire, it is a broken
+ * build — this was set to 32 first, which is the figure the asset work is
+ * AIMED at rather than the one it has reached, and it failed the native build
+ * on the first run.
+ *
+ * It should come down twice more, and both are known:
+ *
+ *   · `scripts/make-clips.mjs` re-encodes the 9.0 MB of onboarding video.
+ *     ffmpeg is required and was not available where this was written, so the
+ *     saving is scripted rather than taken. Expect ~4–5 MB back.
+ *   · `vendor` is 22.1 MB, over half the bundle, and 9.4 MB of it is
+ *     `vision_wasm_nosimd_internal.wasm` — the no-SIMD twin, needed only below
+ *     iOS 16.4. Raising IPHONEOS_DEPLOYMENT_TARGET drops it, and that is a
+ *     product decision about which phones to support, not a build tweak.
+ *
+ * Lower this line as each lands.
+ */
+const CEILING_MB = 46;
+if (bytes / 1024 / 1024 > CEILING_MB) {
+  console.error(
+    `\n  ✗ bundle is ${mb} MB, over the ${CEILING_MB} MB ceiling.\n` +
+      `    Largest entries:\n${largestEntries(out, 8)}\n` +
+      `    Either drop what grew, or raise CEILING_MB in scripts/build-native.mjs\n` +
+      `    in the same commit — deliberately, with the reason in the message.`,
+  );
+  process.exit(1);
+}
 
 if (!skipSync) {
   /*

@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { ENTER, EXIT, SCRIM } from "@/components/ui/Motion";
 import { haptic } from "@/lib/haptics";
 import type { GameEvent, Industry } from "@/lib/engine/types";
 import {
@@ -52,7 +53,8 @@ export function PositioningSheet({
       className="fixed inset-0 z-50 flex items-end justify-center"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.18 }}
+      exit={{ opacity: 0, transition: EXIT }}
+      transition={SCRIM}
     >
       <div className="absolute inset-0 bg-[var(--scrim)]" onClick={onDismiss} />
       <motion.section
@@ -62,7 +64,8 @@ export function PositioningSheet({
         className="relative flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-y-auto rounded-t-[var(--radius-sheet)] bg-[var(--sheet)] pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[var(--e3)]"
         initial={{ y: "6%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+        exit={{ y: "6%", opacity: 0, transition: EXIT }}
+        transition={ENTER}
       >
         <p className="px-5 pt-5 text-2xs font-bold tracking-[0.14em] text-[var(--text-tertiary)]">
           POSITIONING
@@ -106,7 +109,7 @@ export function PositioningSheet({
                     if (isCurrent) onDismiss();
                     else onChoose(opt.stance);
                   }}
-                  className="nv-card flex w-full flex-col items-start gap-1 px-4 py-3.5 text-left transition-transform duration-150 active:scale-[0.985]"
+                  className="nv-card flex w-full flex-col items-start gap-1 px-4 py-3.5 text-left nv-press-row"
                 >
                   <span className="text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
                     {stanceLabel(opt.stance).toUpperCase()}

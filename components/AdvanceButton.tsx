@@ -1,6 +1,9 @@
 "use client";
 
+import { AnimatePresence, motion } from "framer-motion";
+
 import { haptic } from "@/lib/haptics";
+import { SWAP } from "@/components/ui/Motion";
 
 import { Glass } from "@/components/ui/Glass";
 import { monthBadge, monthBadgeLabel } from "@/lib/engine/format";
@@ -20,6 +23,20 @@ import { monthBadge, monthBadgeLabel } from "@/lib/engine/format";
  * anybody touches in two rows of decoration. They are one glass capsule now —
  * MAY → JUN — sitting beside the button, saying where the year is and where the
  * tap takes it.
+ *
+ * ── The change of state is the moment, and it used to be a repaint ────────
+ *
+ * Reaching month 12 is the whole shape of this game — eleven free taps, then
+ * the year asks to be defended out loud. This control is the only thing that
+ * announces it, and the announcement was a bare ternary: the label, the lock
+ * glyph and the MAY→JUN badge all swapped between two frames, with nothing but
+ * an inherited `background-color 200ms` from `.nv-gc` carrying any of it.
+ *
+ * `AnimatePresence mode="wait"` now crossfades the two buttons through each
+ * other, and the badge is keyed so its text crossfades with them. The gate
+ * arrives rather than appearing. Nothing about the two states changed — the
+ * accent still moves from action orange to prestige gold, the lock still
+ * lands — but they now land together, on one clock.
  *
  * This is the DOM chrome: the web, Android, and any iOS device the native
  * chrome declined. On iOS 26 the identical composition is real UIKit Liquid
@@ -52,45 +69,69 @@ export function AdvanceButton({
           disabled ? "opacity-45" : ""
         }`}
       >
-        {atGate ? (
-          <button
-            type="button"
-            onClick={() => {
-              haptic("yearClosed");
-              onOpenGate();
-            }}
-            disabled={disabled}
-            className="flex h-14 w-full items-center justify-center gap-2 text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--on-prestige)] transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.97] disabled:cursor-not-allowed"
-          >
-            <LockGlyph />
-            CLOSE THE YEAR
-            <span aria-hidden="true">▸</span>
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={onAdvance}
-            disabled={disabled}
-            className="flex h-14 w-full items-center justify-center gap-2 text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--on-action)] transition-transform duration-150 ease-[var(--ease-out)] active:scale-[0.97] disabled:cursor-not-allowed"
-          >
-            ADVANCE MONTH
-            <span aria-hidden="true">▸</span>
-          </button>
-        )}
+        {/* mode="wait" so the outgoing label is gone before the incoming one
+            arrives: a 14-unit-tall capsule holding two overlapping strings for
+            200 ms reads as a glitch, not as a change. */}
+        <AnimatePresence mode="wait" initial={false}>
+          {atGate ? (
+            <motion.button
+              key="gate"
+              type="button"
+              onClick={() => {
+                haptic("yearClosed");
+                onOpenGate();
+              }}
+              disabled={disabled}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={SWAP}
+              className="flex h-14 w-full items-center justify-center gap-2 text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--on-prestige)] nv-press disabled:cursor-not-allowed"
+            >
+              <LockGlyph />
+              CLOSE THE YEAR
+              <span aria-hidden="true">▸</span>
+            </motion.button>
+          ) : (
+            <motion.button
+              key="advance"
+              type="button"
+              onClick={onAdvance}
+              disabled={disabled}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={SWAP}
+              className="flex h-14 w-full items-center justify-center gap-2 text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--on-action)] nv-press disabled:cursor-not-allowed"
+            >
+              ADVANCE MONTH
+              <span aria-hidden="true">▸</span>
+            </motion.button>
+          )}
+        </AnimatePresence>
       </Glass>
 
       {/* Where the year is and where the tap takes it. Untinted, so the accent
           stays on the control that acts — and a figure the player reads rather
           than presses, which is why it is a span and not a second button. */}
       <Glass className="flex shrink-0 items-center rounded-[var(--radius-pill)] px-4">
-        <span
-          aria-label={monthBadgeLabel(month, year, atGate)}
-          className={`whitespace-nowrap text-xs font-bold tracking-[0.08em] ${
-            atGate ? "text-[var(--color-prestige)]" : "text-[var(--text-primary)]"
-          }`}
-        >
-          {monthBadge(month, year, atGate)}
-        </span>
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.span
+            // Keyed on the text, so MAY → JUN crossfades on the same clock as
+            // the button beside it rather than swapping a frame apart.
+            key={monthBadge(month, year, atGate)}
+            aria-label={monthBadgeLabel(month, year, atGate)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={SWAP}
+            className={`whitespace-nowrap text-xs font-bold tracking-[0.08em] ${
+              atGate ? "text-[var(--color-prestige)]" : "text-[var(--text-primary)]"
+            }`}
+          >
+            {monthBadge(month, year, atGate)}
+          </motion.span>
+        </AnimatePresence>
       </Glass>
     </div>
   );

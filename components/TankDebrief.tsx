@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { ENTER } from "@/components/ui/Motion";
 import type { TankDebriefData } from "@/lib/ai/debrief-types";
 import { SharkStage } from "@/components/SharkStage";
 
@@ -46,7 +47,7 @@ export function TankDebrief({
       className="flex-1 overflow-y-auto"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ ...ENTER }}
     >
       <div className="mx-auto w-full max-w-lg px-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))]">
         <SharkStage state="verdict" className="h-32 w-full" />

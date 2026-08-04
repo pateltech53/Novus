@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { ENTER } from "@/components/ui/Motion";
 import { useGame } from "@/lib/state/GameProvider";
 import type { RunState } from "@/lib/engine/types";
 import { deriveRunwayMonths } from "@/lib/engine/sim";
@@ -285,7 +286,7 @@ export function BeeMail({ onRead }: { onRead: (id: string) => void }) {
         className="px-4 pt-3 pb-6"
         initial={{ opacity: 0, x: 12 }}
         animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ ...ENTER }}
       >
         <button
           type="button"
@@ -343,7 +344,7 @@ export function BeeMail({ onRead }: { onRead: (id: string) => void }) {
                 onRead(m.id);
               }}
               aria-label={`${m.from}: ${m.subject}${m.unread ? ", unread" : ""}`}
-              className="nv-card flex w-full min-w-0 items-start gap-2.5 px-3.5 py-3 text-left transition-transform duration-150 active:scale-[0.985]"
+              className="nv-card flex w-full min-w-0 items-start gap-2.5 px-3.5 py-3 text-left nv-press-row"
             >
               <span
                 aria-hidden="true"

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { IMPACT_MS } from "@/components/ui/Motion";
 import type { RunState } from "@/lib/engine/types";
 import { fmtDelta, fmtMoney, fmtMonths, fmtMonthsDelta } from "@/lib/engine/format";
 import { deriveRunwayMonths } from "@/lib/engine/sim";
@@ -289,7 +290,7 @@ function BookCard({
     if (prev.current !== value) {
       prev.current = value;
       setFlash(true);
-      const t = setTimeout(() => setFlash(false), 700);
+      const t = setTimeout(() => setFlash(false), IMPACT_MS);
       return () => clearTimeout(t);
     }
   }, [value]);
@@ -336,7 +337,12 @@ function BookCard({
        * 8px out on the desktop rail and 10px on a phone.
        */
       className={`nv-gc flex min-w-0 flex-col items-stretch justify-start rounded-[var(--radius-row)] px-3.5 py-3 text-left lg:px-2 lg:py-2 ${
-        flash ? "outline outline-2 -outline-offset-2 outline-[var(--n-8)]" : ""
+        // The outline is ALWAYS drawn and only its colour changes, so the cue
+        // fades on both edges instead of snapping on and snapping off. Toggling
+        // the utility toggled outline-width too, which no transition can smooth.
+        `outline outline-2 -outline-offset-2 transition-[outline-color] duration-200 ${
+          flash ? "outline-[var(--n-8)]" : "outline-transparent"
+        }`
       }`}
     >
       <span className="block truncate text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">

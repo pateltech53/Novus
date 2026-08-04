@@ -393,7 +393,7 @@ function RosterCard({
               type="button"
               onClick={onConfirmFire}
               aria-label={`Confirm letting ${e.name} go`}
-              className="flex-1 rounded-[var(--radius-pill)] px-4 py-2.5 text-xs font-extrabold text-[var(--n-11)] transition-transform duration-150 active:scale-[0.97]"
+              className="flex-1 rounded-[var(--radius-pill)] px-4 py-2.5 text-xs font-extrabold text-[var(--n-11)] nv-press"
               style={{ background: BAD }}
             >
               Do it
@@ -413,7 +413,7 @@ function RosterCard({
             type="button"
             onClick={onAskFire}
             aria-label={`Let ${e.name} go`}
-            className="rounded-[var(--radius-pill)] border border-[var(--hairline)] px-3.5 py-2 text-xs font-bold text-[var(--text-secondary)] transition-transform duration-150 active:scale-[0.97]"
+            className="rounded-[var(--radius-pill)] border border-[var(--hairline)] px-3.5 py-2 text-xs font-bold text-[var(--text-secondary)] nv-press"
           >
             Let them go
           </button>

@@ -6,6 +6,23 @@ import { askOpenRouter, str } from "@/lib/ai/server/openrouter";
 import { sharkSystemPrompt } from "@/lib/ai/server/panel-prompts";
 import { scoreAnswer } from "@/lib/ai/pitch-content";
 
+/*
+ * The provider is allowed a minute (PROVIDER_TIMEOUT_MS); the platform was
+ * allowed to decide otherwise, and did.
+ *
+ * No route under app/api declared `maxDuration`, so every one of them ran at a
+ * serverless host's default — commonly 10 s. A route that waits up to 60 s for
+ * a model, on a function that is killed at 10, does not time out gracefully:
+ * it is terminated, the client sees a network error rather than a JSON body,
+ * and the offline fallback fires for a provider that was working. The stated
+ * timeouts in lib/ai/server were unreachable.
+ *
+ * 60 matches PROVIDER_TIMEOUT_MS so the two agree, and the AbortSignal on the
+ * provider call stays the thing that actually ends a slow request.
+ */
+export const maxDuration = 60;
+
+
 /**
  * POST /api/panel — one shark, one turn, in The Tank.
  *

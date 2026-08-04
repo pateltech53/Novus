@@ -2,8 +2,9 @@
 
 import { play } from "@/lib/sound";
 
-import { createContext, useCallback, useContext, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { IMPACT_MS, STAGGER } from "@/components/ui/Motion";
 
 /**
  * Decision impact, made legible.
@@ -42,16 +43,40 @@ export function ImpactProvider({ children }: { children: React.ReactNode }) {
       if (deltas.length === 0) return;
       const batch = deltas.slice(0, 6).map((d) => ({ ...d, id: nextId.current++ }));
       setItems((prev) => [...prev, ...batch]);
-      // Floaters are transient; drop them once the animation has played out.
-      window.setTimeout(() => {
-        setItems((prev) => prev.filter((i) => !batch.some((b) => b.id === i.id)));
-      }, 1800);
+      /*
+       * Floaters are transient; drop them once the animation has played out.
+       *
+       * The lifetime is keyed to IMPACT_MS like the rings and The Books, rather
+       * than being a third independent number. It is TWICE the unit and not
+       * one, deliberately: an outline only has to be seen, and a ring only has
+       * to arrive, but a chip carries a word and a figure that have to be READ
+       * — and up to six of them arrive staggered. Same clock, two beats of it,
+       * plus the tail for the last chip's stagger.
+       */
+      window.setTimeout(
+        () => setItems((prev) => prev.filter((i) => !batch.some((b) => b.id === i.id))),
+        IMPACT_MS * 2 + batch.length * STAGGER * 1000,
+      );
     },
     [],
   );
 
+  /*
+   * The value has to be memoised, not just `push`.
+   *
+   * `push` was already a `useCallback`, but it was being wrapped in a fresh
+   * object literal on every render — and this provider re-renders on every
+   * decision and again 1.8 s later when the floaters are dropped. A new context
+   * value re-renders every `useImpact()` consumer both times, and this provider
+   * is mounted around the whole of `/play` (`app/play/page.tsx:46`).
+   *
+   * The sibling providers already do this correctly (`UpgradeProvider.tsx:124`,
+   * `GameProvider.tsx:1230`), so this was an outlier rather than a pattern.
+   */
+  const value = useMemo(() => ({ push }), [push]);
+
   return (
-    <ImpactContext.Provider value={{ push }}>
+    <ImpactContext.Provider value={value}>
       {children}
       <div
         aria-live="polite"
@@ -70,7 +95,11 @@ export function ImpactProvider({ children }: { children: React.ReactNode }) {
             }
             initial={{ opacity: 0, y: 18, scale: 0.85 }}
             animate={{ opacity: [0, 1, 1, 0], y: [18, 0, -10, -46], scale: [0.85, 1.06, 1, 1] }}
-            transition={{ duration: 1.7, times: [0, 0.15, 0.6, 1], delay: i * 0.07 }}
+            transition={{
+              duration: (IMPACT_MS * 2) / 1000,
+              times: [0, 0.15, 0.6, 1],
+              delay: i * STAGGER,
+            }}
           >
             {item.label}
           </motion.span>
@@ -80,22 +109,17 @@ export function ImpactProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-/**
- * A number that visibly counts to its new value and flashes the direction of
- * travel. Used by The Books so money never just teleports.
+/*
+ * `useValueFlash` was removed here.
+ *
+ * It documented itself as "a number that visibly counts to its new value" and
+ * did not count: the body compared the previous value to the current one and
+ * then only assigned, so the comparison had no effect, and the flash it did
+ * expose had to be fired by hand. Nothing imported it. The Books — the one
+ * consumer the docstring named — has always run its own 700 ms outline toggle
+ * in `TheBooks.tsx`.
+ *
+ * The behaviour it described is worth having, and it belongs on one clock
+ * shared with the rings and the floaters above rather than in a third
+ * implementation. That is the decision beat, not a hook nobody called.
  */
-export function useValueFlash(value: string) {
-  const prev = useRef(value);
-  const [flash, setFlash] = useState<"up" | "down" | null>(null);
-
-  if (prev.current !== value) {
-    prev.current = value;
-  }
-
-  const trigger = useCallback((tone: "up" | "down") => {
-    setFlash(tone);
-    window.setTimeout(() => setFlash(null), 700);
-  }, []);
-
-  return { flash, trigger };
-}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useStill } from "@/components/ui/Motion";
 import dynamic from "next/dynamic";
 
 import { useScrolling } from "@/lib/scroll";
@@ -41,7 +42,7 @@ export function LandingShark({ className = "" }: { className?: string }) {
   // Assume on screen until the observer says otherwise — the hero is the top
   // of the page, so the first paint is always visible.
   const [onStage, setOnStage] = useState(true);
-  const reduced = usePrefersReducedMotion();
+  const reduced = useStill();
   const scrolling = useScrolling();
 
   useEffect(() => {
@@ -151,14 +152,3 @@ function ChampionPoster({ faded, labelled }: { faded: boolean; labelled: boolean
   );
 }
 
-function usePrefersReducedMotion(): boolean {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(mq.matches);
-    const onChange = () => setReduced(mq.matches);
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, []);
-  return reduced;
-}

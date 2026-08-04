@@ -1,10 +1,21 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 
 import { awaitPurchase, returningFromCheckout } from "@/lib/cloud/billing";
 import { installHeartbeat } from "@/lib/cloud/heartbeat";
 import { restoreOnBoot } from "@/lib/cloud/sync";
+
+/**
+ * Routes with no saved state to restore and no way into one.
+ *
+ * These are read, not played: a privacy policy opened from an App Store listing,
+ * a terms page linked from an email, the download page. Booting the cloud
+ * restore on them spends two sequential round trips — POST /api/session, then
+ * GET /api/sync — on a document whose only job is to render text.
+ */
+const READ_ONLY_ROUTES = ["/privacy", "/terms", "/download"];
 
 /**
  * Starts cloud persistence. Renders nothing.
@@ -19,7 +30,23 @@ import { restoreOnBoot } from "@/lib/cloud/sync";
  * mount unconditionally.
  */
 export function CloudSync() {
+  const pathname = usePathname();
+
   useEffect(() => {
+    /*
+     * Deferred rather than skipped, and the difference matters.
+     *
+     * This component is mounted by the root layout, so its effect runs once per
+     * document — not once per route. Returning early on a legal page without a
+     * dependency on the path would mean a visitor who lands on /privacy and
+     * then clicks into the app never restores at all, for the whole tab.
+     *
+     * With `pathname` in the deps the effect re-runs on the client navigation
+     * out, and `restoreOnBoot` memoises its own promise (sync.ts:421), so the
+     * re-entry costs nothing and the restore still happens exactly once.
+     */
+    if (READ_ONLY_ROUTES.includes(pathname)) return;
+
     // The once-a-minute "does the server still agree" check: an account the
     // admin console deleted signs this device out, and a revoked or granted
     // Pro lands on the open screens without a manual reload.
@@ -42,6 +69,6 @@ export function CloudSync() {
       return;
     }
     void restoreOnBoot();
-  }, []);
+  }, [pathname]);
   return null;
 }

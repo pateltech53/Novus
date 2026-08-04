@@ -46,7 +46,7 @@ export function LogButton({
       type="button"
       onClick={onOpen}
       aria-label={`Open the story so far — every month on record, up to month ${month} of fiscal year ${year}`}
-      className="nv-card flex h-12 w-full items-center justify-between gap-3 rounded-[var(--radius-row)] px-4 text-left transition-transform duration-150 active:scale-[0.985]"
+      className="nv-card flex h-12 w-full items-center justify-between gap-3 rounded-[var(--radius-row)] px-4 text-left nv-press-row"
     >
       <span className="text-2xs font-bold tracking-[0.12em] text-[var(--text)]">
         THE STORY SO FAR

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef } from "react";
+import { Suspense, useEffect, useMemo, useRef, type RefObject } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import { Color, type Group, type Mesh, type MeshStandardMaterial } from "three";
@@ -65,26 +65,48 @@ const isLive = (s: SharkState) => s === "listening" || s === "celebrate";
 const coarsePointer = () =>
   typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches;
 
+/*
+ * Resolved once per module rather than once per render.
+ *
+ * `coarsePointer()` is a live `matchMedia` read, and it was being called in the
+ * render body — a synchronous media-query evaluation on the pitch screen's
+ * hottest component. It also fed three object literals below, so every render
+ * produced a new `camera`, `gl` and `dpr`, which is the shape R3F is least able
+ * to ignore.
+ *
+ * A pointer does not change type mid-session in any way this app has to answer
+ * for: a phone does not become a desktop, and the one real transition — a
+ * keyboard attached to a tablet — is a page load away from mattering.
+ */
+const MOBILE = coarsePointer();
+const CAMERA = { position: [0, 0.15, 3.1] as const, fov: 34 };
+const GL = { alpha: true, antialias: !MOBILE };
+const DPR: [number, number] = MOBILE ? [1, 1.5] : [1, 2];
+const CANVAS_STYLE = { background: "transparent" };
+
 export default function SharkCanvas({
   state,
-  level,
+  levelRef,
   reduced,
   tint,
   suitTint,
+  onReady,
 }: {
   state: SharkState;
-  level: number;
+  levelRef?: RefObject<number>;
   reduced: boolean;
   tint?: string;
   suitTint?: string;
+  /** Fires once the mesh has resolved, so the shell can cross-fade the poster. */
+  onReady?: () => void;
 }) {
-  const mobile = coarsePointer();
+  const mobile = MOBILE;
   return (
     <Canvas
-      camera={{ position: [0, 0.15, 3.1], fov: 34 }}
-      gl={{ alpha: true, antialias: !mobile }}
-      style={{ background: "transparent" }}
-      dpr={mobile ? [1, 1.5] : [1, 2]}
+      camera={CAMERA}
+      gl={GL}
+      style={CANVAS_STYLE}
+      dpr={DPR}
       // Idle/thinking/verdict render on demand and are ticked slowly by
       // <Heartbeat/>, so a shark the player is not talking to does not burn
       // the battery at 60fps while they read a decision sheet. On phones even
@@ -103,7 +125,14 @@ export default function SharkCanvas({
       <directionalLight position={[-2.6, 0.6, 2.8]} intensity={0.55} color="#dfe8f2" />
       <directionalLight position={[0, -2.5, 1.5]} intensity={0.3} color="#f4ede2" />
       <Suspense fallback={null}>
-        <SharkModel state={state} level={level} reduced={reduced} tint={tint} suitTint={suitTint} />
+        <SharkModel
+          state={state}
+          levelRef={levelRef}
+          reduced={reduced}
+          tint={tint}
+          suitTint={suitTint}
+          onReady={onReady}
+        />
       </Suspense>
     </Canvas>
   );
@@ -157,16 +186,18 @@ function Heartbeat({
 
 function SharkModel({
   state,
-  level,
+  levelRef,
   reduced,
   tint,
   suitTint,
+  onReady,
 }: {
   state: SharkState;
-  level: number;
+  levelRef?: RefObject<number>;
   reduced: boolean;
   tint?: string;
   suitTint?: string;
+  onReady?: () => void;
 }) {
   const group = useRef<Group>(null);
   /**
@@ -202,12 +233,39 @@ function SharkModel({
     });
   }, [model, tint, suitTint]);
 
+  /*
+   * The mesh has resolved. Same signal LandingSharkCanvas has always sent —
+   * this canvas never had one, so its Suspense fallback was `null` and the
+   * mascot popped in over the poster instead of resolving through it.
+   */
+  useEffect(() => {
+    onReady?.();
+  }, [onReady]);
+
   const t = useRef(0);
 
   useFrame((_, delta) => {
     if (!group.current) return;
-    t.current += delta;
+    /*
+     * Clamped, and the lerps are frame-rate corrected — the same reasoning as
+     * LandingSharkCanvas.tsx:165, which this loop never got.
+     *
+     * Two separate problems. First, this canvas is stopped and restarted
+     * constantly: `frameloop` drops to "demand" for every non-live state and on
+     * every phone, so R3F reports the true wall-clock gap since the last
+     * RENDERED frame — which can be seconds. Unclamped, the shark resumes
+     * mid-lurch after a decision sheet closes or the tab regains focus.
+     *
+     * Second, the `lerp(a, b, 0.08)` calls below are per-frame constants, so
+     * they converge in half the time on a 120 Hz phone as on a 60 Hz one. The
+     * lean was literally twice as fast on newer hardware. `blend` rewrites the
+     * constant as an exponential decay over elapsed time, which is the same
+     * curve at any refresh rate.
+     */
+    const dt = Math.min(delta, 1 / 30);
+    t.current += dt;
     const time = t.current;
+    const blend = (per60: number) => 1 - Math.pow(1 - per60, dt * 60);
 
     if (reduced) {
       group.current.position.set(0, BASE_Y, 0);
@@ -218,18 +276,21 @@ function SharkModel({
     switch (state) {
       case "listening": {
         // Leans toward the camera; the lean tracks how loud you actually are.
+        // Read off the ref here, inside the frame loop — this is the full-rate
+        // signal, not the 24-step quantised copy React was being told about.
+        const level = levelRef?.current ?? 0;
         const lean = 0.1 + level * 0.14;
-        group.current.rotation.x = lerp(group.current.rotation.x, lean, 0.08);
+        group.current.rotation.x = lerp(group.current.rotation.x, lean, blend(0.08));
         group.current.rotation.y = Math.sin(time * 0.5) * 0.06;
-        group.current.position.z = lerp(group.current.position.z, 0.22 + level * 0.12, 0.07);
+        group.current.position.z = lerp(group.current.position.z, 0.22 + level * 0.12, blend(0.07));
         group.current.position.y = BASE_Y + Math.sin(time * 1.1) * 0.015;
         break;
       }
       case "thinking": {
-        group.current.rotation.y = lerp(group.current.rotation.y, -0.3, 0.05);
-        group.current.rotation.z = lerp(group.current.rotation.z, 0.07, 0.05);
+        group.current.rotation.y = lerp(group.current.rotation.y, -0.3, blend(0.05));
+        group.current.rotation.z = lerp(group.current.rotation.z, 0.07, blend(0.05));
         group.current.position.y = BASE_Y + Math.sin(time * 0.9) * 0.02;
-        group.current.position.z = lerp(group.current.position.z, 0, 0.05);
+        group.current.position.z = lerp(group.current.position.z, 0, blend(0.05));
         break;
       }
       case "celebrate": {
@@ -239,18 +300,18 @@ function SharkModel({
         break;
       }
       case "verdict": {
-        group.current.rotation.y = lerp(group.current.rotation.y, 0.12, 0.06);
-        group.current.rotation.x = lerp(group.current.rotation.x, -0.04, 0.06);
+        group.current.rotation.y = lerp(group.current.rotation.y, 0.12, blend(0.06));
+        group.current.rotation.x = lerp(group.current.rotation.x, -0.04, blend(0.06));
         group.current.position.y = BASE_Y + Math.sin(time * 1.4) * 0.01;
         break;
       }
       default: {
         // Idle breath.
         group.current.rotation.y = Math.sin(time * 0.35) * 0.1;
-        group.current.rotation.x = lerp(group.current.rotation.x, 0, 0.05);
-        group.current.rotation.z = lerp(group.current.rotation.z, 0, 0.05);
+        group.current.rotation.x = lerp(group.current.rotation.x, 0, blend(0.05));
+        group.current.rotation.z = lerp(group.current.rotation.z, 0, blend(0.05));
         group.current.position.y = BASE_Y + Math.sin(time * 1.05) * 0.022;
-        group.current.position.z = lerp(group.current.position.z, 0, 0.05);
+        group.current.position.z = lerp(group.current.position.z, 0, blend(0.05));
       }
     }
   });

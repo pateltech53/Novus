@@ -1,38 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useState, useMemo } from "react";
+import dynamic from "next/dynamic";
+import { AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useGame } from "@/lib/state/GameProvider";
 import { HomeStage } from "@/components/HomeStage";
+import { PlaySkeleton } from "@/components/PlaySkeleton";
 import { TheBooks } from "@/components/TheBooks";
 import { LifeLog } from "@/components/LifeLog";
 import { LogButton, LogSheet } from "@/components/screens/LogSheet";
 import { AdvanceButton } from "@/components/AdvanceButton";
-import { DecisionSheet } from "@/components/DecisionSheet";
-import { PositioningSheet } from "@/components/PositioningSheet";
 import { STANCE_CHOICE_ORDER } from "@/lib/engine/positioning";
 import { ActivityBar, type ActivityTab } from "@/components/ActivityBar";
 import { TermCoach } from "@/components/TermCoach";
-import { YearEndStatement } from "@/components/YearEndStatement";
-import { StageGuide } from "@/components/StageGuide";
-import { KeyTermsSheet } from "@/components/KeyTermsSheet";
-import { ChapterSeven } from "@/components/ChapterSeven";
-import { PerformScreen } from "@/components/PerformScreen";
-import { ProSheet } from "@/components/ProSheet";
-import { Coachmarks, firstRunSteps } from "@/components/Coachmarks";
 import { ImpactProvider, useImpact } from "@/components/ImpactLayer";
-import { CompanyScreen } from "@/components/screens/CompanyScreen";
-import { ProductScreen } from "@/components/screens/ProductScreen";
-import { TeamScreen } from "@/components/screens/TeamScreen";
-import { AssetsScreen } from "@/components/screens/AssetsScreen";
-import { ClosetScreen } from "@/components/screens/ClosetScreen";
-import { Phone } from "@/components/phone/Phone";
 import type { PhoneApp } from "@/components/phone/Phone";
-import { TierUnlock } from "@/components/TierUnlock";
-import { SettingsScreen } from "@/components/screens/SettingsScreen";
-import { StillStandingScreen } from "@/components/screens/StillStandingScreen";
-import { RobinGhood } from "@/components/phone/RobinGhood";
-import { LinkedOut } from "@/components/phone/LinkedOut";
 import { deriveRunwayMonths } from "@/lib/engine/sim";
 import { fmtMonths } from "@/lib/engine/format";
 import { usePlayChrome, type NativeControlId } from "@/components/native/usePlayChrome";
@@ -40,6 +23,123 @@ import { useNativeSheet } from "@/components/native/useNativeSheet";
 import { useNativeTermCoach } from "@/components/native/useNativeTermCoach";
 import { useBackHandler } from "@/lib/native/back";
 import { useNativeCoachRect } from "@/lib/native/chrome";
+import { Coachmarks, firstRunSteps } from "@/components/Coachmarks";
+
+/*
+ * ── Everything below renders behind a flag, so none of it belongs in the
+ *    chunk that draws month one ──────────────────────────────────────────────
+ *
+ * This file had 41 static imports and zero dynamic ones, which put every
+ * screen the game can reach into `/play`'s first load: the pitch and its whole
+ * Tank chain, five activity screens, the in-game phone and its three apps, the
+ * settings sheet, the leaderboard, the year-end statement, Chapter 7. A player
+ * on month one had downloaded all of it, and a player who never survives to
+ * year one downloads it and never opens it.
+ *
+ * `PerformScreen` is the big one. The early return further down is a clean cut
+ * point, and behind it sits SharkStage, SharkCanvas, PitchScore, SharkPanel,
+ * PitchNotes, CompanyDossier and TankDebrief — plus three.js, which was
+ * already lazy but was being anchored into this chunk by the import chain
+ * above it.
+ *
+ * `ssr: false` throughout: none of these can render on the server anyway (the
+ * page is a client component reading a localStorage run), and every one is
+ * closed on first paint.
+ *
+ * `loading: () => null` is right for the overlays — they animate in over the
+ * board, and a spinner between the tap and the sheet is worse than the sheet
+ * arriving. `PerformScreen` gets a real holding screen instead, because it
+ * REPLACES the board rather than covering it, and batch B's rule applies: the
+ * year gate must never open onto nothing.
+ */
+/*
+ * The options object below is repeated at every call site rather than shared.
+ * That is not a style choice: next/dynamic is compiled by a SWC transform that
+ * reads its second argument statically, and it rejects anything that is not an
+ * object literal — "next/dynamic options must be an object literal."
+ */
+
+const PerformScreen = dynamic(
+  () => import("@/components/PerformScreen").then((m) => m.PerformScreen),
+  {
+    ssr: false,
+    loading: () => (
+      <main className="flex h-dvh flex-col items-center justify-center gap-3 bg-[var(--bg)] px-6">
+        <p className="text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]">
+          THE YEAR CLOSES
+        </p>
+        <p className="text-sm text-[var(--text-secondary)]">Setting up the room…</p>
+      </main>
+    ),
+  },
+);
+
+const CompanyScreen = dynamic(
+  () => import("@/components/screens/CompanyScreen").then((m) => m.CompanyScreen),
+  { ssr: false, loading: () => null },
+);
+const ProductScreen = dynamic(
+  () => import("@/components/screens/ProductScreen").then((m) => m.ProductScreen),
+  { ssr: false, loading: () => null },
+);
+const TeamScreen = dynamic(
+  () => import("@/components/screens/TeamScreen").then((m) => m.TeamScreen),
+  { ssr: false, loading: () => null },
+);
+const AssetsScreen = dynamic(
+  () => import("@/components/screens/AssetsScreen").then((m) => m.AssetsScreen),
+  { ssr: false, loading: () => null },
+);
+const ClosetScreen = dynamic(
+  () => import("@/components/screens/ClosetScreen").then((m) => m.ClosetScreen),
+  { ssr: false, loading: () => null },
+);
+const SettingsScreen = dynamic(
+  () => import("@/components/screens/SettingsScreen").then((m) => m.SettingsScreen),
+  { ssr: false, loading: () => null },
+);
+const StillStandingScreen = dynamic(
+  () => import("@/components/screens/StillStandingScreen").then((m) => m.StillStandingScreen),
+  { ssr: false, loading: () => null },
+);
+const StageGuide = dynamic(
+  () => import("@/components/StageGuide").then((m) => m.StageGuide),
+  { ssr: false, loading: () => null },
+);
+const KeyTermsSheet = dynamic(
+  () => import("@/components/KeyTermsSheet").then((m) => m.KeyTermsSheet),
+  { ssr: false, loading: () => null },
+);
+const ProSheet = dynamic(() => import("@/components/ProSheet").then((m) => m.ProSheet), { ssr: false, loading: () => null });
+const ChapterSeven = dynamic(
+  () => import("@/components/ChapterSeven").then((m) => m.ChapterSeven),
+  { ssr: false, loading: () => null },
+);
+const YearEndStatement = dynamic(
+  () => import("@/components/YearEndStatement").then((m) => m.YearEndStatement),
+  { ssr: false, loading: () => null },
+);
+const TierUnlock = dynamic(
+  () => import("@/components/TierUnlock").then((m) => m.TierUnlock),
+  { ssr: false, loading: () => null },
+);
+const Phone = dynamic(() => import("@/components/phone/Phone").then((m) => m.Phone), { ssr: false, loading: () => null });
+const RobinGhood = dynamic(
+  () => import("@/components/phone/RobinGhood").then((m) => m.RobinGhood),
+  { ssr: false, loading: () => null },
+);
+const LinkedOut = dynamic(
+  () => import("@/components/phone/LinkedOut").then((m) => m.LinkedOut),
+  { ssr: false, loading: () => null },
+);
+const PositioningSheet = dynamic(
+  () => import("@/components/PositioningSheet").then((m) => m.PositioningSheet),
+  { ssr: false, loading: () => null },
+);
+const DecisionSheet = dynamic(
+  () => import("@/components/DecisionSheet").then((m) => m.DecisionSheet),
+  { ssr: false, loading: () => null },
+);
 
 export default function PlayPage() {
   return (
@@ -284,6 +384,32 @@ function PlayScreen() {
     game.advance();
   }, [completeCoachStep, game]);
 
+  /*
+   * Warm the pitch chunk the moment the year gate is reachable.
+   *
+   * Splitting PerformScreen out is only free if the code is already there when
+   * the player presses CLOSE THE YEAR — otherwise the split has moved the wait
+   * to the worst possible moment in the game. `atGate` goes true at month 12,
+   * which is a whole screen's worth of reading before the tap, and
+   * `dynamic().preload()` fetches without rendering.
+   *
+   * Idle rather than immediate, and a timeout underneath it, for the same
+   * reason lib/prefetch.ts is written that way: the screen the player is
+   * actually looking at gets the main thread first, and a slow phone that
+   * never goes idle must still end up with the chunk.
+   */
+  useEffect(() => {
+    if (!atGate) return;
+    const warm = () => void (PerformScreen as { preload?: () => void }).preload?.();
+    const idle = window.requestIdleCallback;
+    if (idle) {
+      const id = idle(warm, { timeout: 1500 });
+      return () => window.cancelIdleCallback?.(id);
+    }
+    const id = window.setTimeout(warm, 400);
+    return () => window.clearTimeout(id);
+  }, [atGate]);
+
   const nativeChromeOwned = usePlayChrome({
     visible: !!run && !overlay,
     coach: coachTarget,
@@ -356,18 +482,16 @@ function PlayScreen() {
   useBackHandler(keyTerms, () => setKeyTerms(false));
   useBackHandler(logOpen, () => setLogOpen(false));
 
-  if (!run) {
-    return (
-      <main className="flex min-h-dvh items-center justify-center px-6">
-        <p className="text-sm text-[var(--text-tertiary)]">Opening the books…</p>
-      </main>
-    );
-  }
+  if (!run) return <PlaySkeleton />;
 
   if (perform) return <PerformScreen />;
 
   const phoneNode = (app: PhoneApp | "home") => (
     <Phone
+      /* One key for the phone regardless of which app it opens on: switching
+         apps happens INSIDE the device, so a per-app key would tear the phone
+         down and rebuild it every time the player tapped a different icon. */
+      key="phone"
       open
       initialApp={app === "home" ? undefined : app}
       onClose={() => {
@@ -531,10 +655,43 @@ function PlayScreen() {
         )
       )}
 
+      {/*
+        ── Every overlay on this screen, inside one AnimatePresence ──────────
+        │
+        │ Measured before this: eighteen overlays on /play and ZERO exits. This
+        │ file had no framer-motion import at all, so nothing was mounted that
+        │ could run an exit animation — which is why seven components already
+        │ shipped `exit` props that had never once executed. Everything on this
+        │ screen closed by vanishing between two frames, against design.md §5's
+        │ "exits ~0.66× entrances" and the §9 gate that checks it.
+        │
+        │ ── The failure this has to avoid ───────────────────────────────────
+        │
+        │ app/welcome/page.tsx:137 records what happened last time someone
+        │ reached for AnimatePresence here: "its exit never resolves when the
+        │ direct child is a component rather than a motion element, which
+        │ strands the whole flow on step one." That is the real trap — Framer
+        │ holds an exiting child mounted until something calls safeToRemove,
+        │ and only a `motion` element with an `exit` prop ever does. A child
+        │ with no exit anywhere in it is a child that never leaves, and the
+        │ overlay stays on screen forever.
+        │
+        │ So each of these is safe for one specific reason: the root of every
+        │ component below is a motion element that now carries an `exit`, and
+        │ each gets a stable `key` here. That is verified, not assumed —
+        │ scripts/exit-audit.mjs drives a real browser, opens each overlay,
+        │ closes it, and fails if the node is still in the DOM afterwards.
+        │
+        │ `mode` is deliberately NOT "wait": these are independent overlays,
+        │ not steps in a flow, and mode="wait" would make closing one delay
+        │ opening the next.
+        */}
+      <AnimatePresence>
       {/* ── Each tab is a full screen now, not a list of options ─────────── */}
-      {activity === "company" && <CompanyScreen onClose={() => setActivity(null)} />}
+      {activity === "company" && <CompanyScreen key="company" onClose={() => setActivity(null)} />}
       {activity === "team" && (
         <TeamScreen
+          key="team"
           onClose={() => setActivity(null)}
           onFire={game.fire}
           onOpenPhone={() => {
@@ -543,9 +700,10 @@ function PlayScreen() {
           }}
         />
       )}
-      {activity === "product" && <ProductScreen onClose={() => setActivity(null)} />}
+      {activity === "product" && <ProductScreen key="product" onClose={() => setActivity(null)} />}
       {activity === "assets" && (
         <AssetsScreen
+          key="assets"
           onClose={() => setActivity(null)}
           onBuy={game.buyHolding}
           onSell={game.sellHolding}
@@ -553,18 +711,19 @@ function PlayScreen() {
       )}
       {activity === "market" && phoneNode("robinghood")}
       {activity === "closet" && (
-        <ClosetScreen onClose={() => setActivity(null)} onChange={game.setAvatar} />
+        <ClosetScreen key="closet" onClose={() => setActivity(null)} onChange={game.setAvatar} />
       )}
 
       {phoneApp && activity !== "market" && phoneNode(phoneApp)}
 
-      {stageGuide && <StageGuide run={run} onClose={() => setStageGuide(false)} />}
-      {keyTerms && <KeyTermsSheet onClose={() => setKeyTerms(false)} />}
+      {stageGuide && <StageGuide key="stage-guide" run={run} onClose={() => setStageGuide(false)} />}
+      {keyTerms && <KeyTermsSheet key="key-terms" onClose={() => setKeyTerms(false)} />}
 
-      {showPro && <ProSheet onClose={() => setShowPro(false)} />}
-      {showSettings && <SettingsScreen onClose={() => setShowSettings(false)} />}
-      {showBoard && <StillStandingScreen onClose={() => setShowBoard(false)} />}
-      {logOpen && <LogSheet run={run} onClose={() => setLogOpen(false)} />}
+      {showPro && <ProSheet key="pro" onClose={() => setShowPro(false)} />}
+      {showSettings && <SettingsScreen key="settings" onClose={() => setShowSettings(false)} />}
+      {showBoard && <StillStandingScreen key="board" onClose={() => setShowBoard(false)} />}
+      {logOpen && <LogSheet key="log" run={run} onClose={() => setLogOpen(false)} />}
+      </AnimatePresence>
 
       {/* Fires the moment a stage promotion opens a new tier. It sits above
           the year-end statement on purpose: the wardrobe is the reward for

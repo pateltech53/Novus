@@ -1,7 +1,8 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useEffect, useState, type RefObject } from "react";
 import { motion } from "framer-motion";
+import { ENTER } from "@/components/ui/Motion";
 import { PANEL, type SeatState } from "@/lib/ai/panel-cast";
 import type { SharkId } from "@/lib/ai/types";
 
@@ -41,19 +42,30 @@ const SEATS: Record<SharkId, { x: number; w: number }> = {
 export const TankRoom = memo(function TankRoom({
   states,
   speaking,
-  micLevel = 0,
+  levelRef,
   cameraStream,
   year,
   phase,
 }: {
   states: Partial<Record<SharkId, SeatState>>;
   speaking: SharkId | null;
-  micLevel?: number;
+  /**
+   * The live mic level, subscribed to here rather than passed in.
+   *
+   * It used to arrive as a `micLevel` number prop, which meant the one value
+   * that changed while the player was speaking was also the one that defeated
+   * this component's `memo` — and, worse, it had to be state on SharkPanel
+   * (1041 lines) for the prop to exist at all. Reading it here confines the
+   * re-render to the room.
+   */
+  levelRef?: RefObject<number>;
   cameraStream?: MediaStream | null;
   year: number;
   /** Only used for the caption strip — the ROOM itself never changes. */
   phase?: string;
 }) {
+  const micLevel = useSeatLean(levelRef, Object.values(states).includes("listening"));
+
   return (
     <div className="relative isolate w-full overflow-hidden rounded-[var(--radius-card)] bg-[var(--n-0)] shadow-[var(--e3)]">
       {/* The room, at full strength. 3:2 to match the plate. */}
@@ -84,12 +96,29 @@ export const TankRoom = memo(function TankRoom({
                 width: `${seat.w * 100}%`,
               }}
               animate={{ opacity: isSpeaking ? 1 : isOut ? 1 : 0.001 + lean }}
-              transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ ...ENTER }}
             >
               {isOut ? (
-                // Folded: drain their patch of the frame rather than removing
-                // them. They are still sitting there, and that reads.
-                <div className="absolute inset-0 bg-[oklch(0.10_0.004_260/0.62)] backdrop-grayscale" />
+                /*
+                 * Folded: drain their patch of the frame rather than removing
+                 * them. They are still sitting there, and that reads.
+                 *
+                 * This used `backdrop-grayscale`, and it was the one raw
+                 * backdrop-filter left in the app — the `:not([data-css-glass])`
+                 * gate in globals.css:1019 covers .nv-gc/.nv-ggroup/.nv-glass
+                 * and structurally cannot reach a Tailwind utility. It was also
+                 * in the worst possible place for one: up to five of them at
+                 * once, each a compositor pass over the set photograph, sharing
+                 * a stacking context with the live FounderCam video, inside a
+                 * motion.div whose opacity is animating. On the screen where
+                 * the camera, the recogniser and the recorder are all running.
+                 *
+                 * A flat scrim at the same tone does the same job — the seat
+                 * goes dark and cold and stops competing for attention. What is
+                 * lost is desaturation of the pixels underneath, which at 62%
+                 * coverage was never the thing doing the work.
+                 */
+                <div className="absolute inset-0 bg-[oklch(0.10_0.004_260/0.72)]" />
               ) : (
                 // Has the floor: a soft key light on their seat.
                 <div className="absolute inset-x-[-12%] inset-y-0 bg-[radial-gradient(60%_46%_at_50%_38%,oklch(0.95_0.03_80/0.30)_0%,transparent_72%)]" />
@@ -165,4 +194,39 @@ function FounderCam({ stream }: { stream?: MediaStream | null }) {
       )}
     </div>
   );
+}
+
+/**
+ * Follows the mic level, and only while a seat is actually listening.
+ *
+ * The lean it feeds is at most 0.06 of opacity on the seats in the "listening"
+ * state — a genuinely small effect, which is exactly why it should not cost a
+ * render anywhere above this component. The rAF is mounted only when someone is
+ * listening, so a room watching the player think costs nothing, and it holds
+ * the same 12-step quantisation AnswerTurn writes, so the visible result is
+ * identical to when this was a prop.
+ */
+function useSeatLean(levelRef: RefObject<number> | undefined, listening: boolean): number {
+  const [level, setLevel] = useState(0);
+
+  useEffect(() => {
+    if (!levelRef || !listening) {
+      setLevel(0);
+      return;
+    }
+    let raf = 0;
+    let last = -1;
+    const tick = () => {
+      const next = levelRef.current ?? 0;
+      if (next !== last) {
+        last = next;
+        setLevel(next);
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [levelRef, listening]);
+
+  return level;
 }
