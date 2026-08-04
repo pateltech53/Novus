@@ -147,20 +147,17 @@ export async function POST(req: NextRequest) {
 
     for (const voiceId of candidates) {
       /*
-       * The streaming endpoint, and why the query string matters more than it
-       * looks.
+       * The format, and why it changed back up.
        *
-       * The complaint was that a line appears on screen and the voice arrives
-       * noticeably later. Two things made that gap, and both are answered here:
-       *
-       *   · `/stream` returns audio while the sentence is still being
-       *     synthesised rather than after it. `optimize_streaming_latency=3`
-       *     tells ElevenLabs to favour first-byte time over the last few
-       *     percent of prosody — the right trade for dialogue somebody is
-       *     sitting and waiting on.
-       *   · `mp3_22050_32` is about a third of the bytes of the 44.1kHz default,
-       *     so what is generated also arrives sooner. Nobody is judging
-       *     fidelity through a phone speaker with a shark on screen.
+       * This used to ask for `mp3_22050_32` with `optimize_streaming_latency=3`
+       * to close the gap between a line appearing and the voice arriving. But
+       * 32kbps mono is genuinely artefact-heavy — gritty, swirly, "crackly" on
+       * sibilants and dense clause runs, which is exactly what the pitch
+       * instructions are — and the latency flag bought nothing: this handler
+       * buffers the WHOLE stream into an arrayBuffer below before answering,
+       * and the client buffers the whole response into a blob before playing.
+       * All of the quality was being spent on a first-byte win nobody received.
+       * 64kbps at 44.1kHz is still small (~8KB/s), and the crackle is gone.
        *
        * `speed` comes from lib/ai/voices.ts rather than from the request, for
        * the same reason the voice id does: how a character speaks is casting,
@@ -168,7 +165,7 @@ export async function POST(req: NextRequest) {
        */
       const res = await fetch(
         `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}/stream` +
-          `?optimize_streaming_latency=3&output_format=mp3_22050_32`,
+          `?output_format=mp3_44100_64`,
         {
           method: "POST",
           headers: {

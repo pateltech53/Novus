@@ -141,18 +141,41 @@ export function AnswerTurn({
       setMode("typing");
       return;
     }
+    /*
+     * The room goes quiet BEFORE the microphone opens, not after.
+     *
+     * The shark's question is spoken and the answer turn appears while that
+     * line is still playing. Opening an echo-cancelled mic flips the
+     * platform's audio session (iOS drops to play-and-record and the echo
+     * canceller starts pumping the in-flight audio), so a line still playing
+     * across `requestCapture` came out mangled — the reported crackle. And a
+     * player who starts straight away would otherwise be talking over the
+     * shark into a mic recording both. This is the barge-in half of the fix;
+     * the visible SKIP is the other.
+     */
+    stopSpeaking();
     try {
       // Permission is asked HERE, at the moment of use, not on page load.
       const stream = await requestCapture({ video: false });
       streamRef.current = stream;
       // The meter is poll-based (read/close), so drive it from rAF rather
       // than expecting a callback — this is what makes the listening shark
-      // lean in proportional to how loud the player actually is.
+      // lean in proportional to how loud the player actually is. The reading
+      // is quantised before it leaves this component: SharkPanel holds it as
+      // state, and 60 distinct values a second re-rendered the whole Tank —
+      // room, beats list, notes — per frame. Twelve steps is visually
+      // identical and drops that to a handful of renders a second.
       const meter = createLevelMeter(stream);
       meterRef.current = meter;
+      let lastStep = -1;
       const pump = () => {
         if (!meterRef.current) return;
-        onLevel?.(meterRef.current.read());
+        const value = meterRef.current.read();
+        const step = Math.round(value * 12);
+        if (step !== lastStep) {
+          lastStep = step;
+          onLevel?.(step / 12);
+        }
         rafRef.current = requestAnimationFrame(pump);
       };
       rafRef.current = requestAnimationFrame(pump);
@@ -165,16 +188,6 @@ export function AnswerTurn({
        * recogniser gives words immediately and works offline.
        * `resolveTranscript` takes whichever turns out better.
        */
-      /*
-       * The room goes quiet the moment the microphone opens.
-       *
-       * The shark's question is spoken and the answer turn appears while that
-       * line is still playing, so a player who starts straight away is talking
-       * over them — into a mic that is now recording both. This is the barge-in
-       * half of the fix; the visible SKIP is the other.
-       */
-      stopSpeaking();
-
       const { recorder, done } = startRecording(stream, false);
       recorderRef.current = recorder;
       doneRef.current = done;

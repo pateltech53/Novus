@@ -160,6 +160,23 @@ function ensureContext(): AudioContext | null {
   return ctx;
 }
 
+/**
+ * The app's ONE AudioContext, for anything that needs a context at all.
+ *
+ * The level meter used to mint its own (`createLevelMeter`), which meant two
+ * live contexts at two sample rates the moment a microphone opened — the sound
+ * effects' context created in the playback session, a second created after
+ * getUserMedia flipped the session to play-and-record. Two mismatched contexts
+ * plus the TTS element is a known WebKit crackle configuration, and on iOS the
+ * per-answer create/close churn in the Tank made it worse. One context, one
+ * rate, no churn.
+ */
+export function sharedAudioContext(): AudioContext | null {
+  const c = ensureContext();
+  if (c) wake(c);
+  return c;
+}
+
 /** Nudge a suspended context awake. Called inside real gestures (every play()
  *  runs in a click), which is what iOS requires after an interruption. */
 function wake(c: AudioContext): void {

@@ -4,6 +4,8 @@
  * the result is.
  */
 
+import { sharedAudioContext } from "@/lib/sound";
+
 export type PermissionState =
   | "idle"
   | "prompting"
@@ -53,9 +55,30 @@ export async function requestCapture(opts: {
             autoGainControl: false, // the level meter must see the real signal
           },
     video: opts.video
-      ? { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }
+      ? {
+          facingMode: "user",
+          /*
+           * 480p on phones, 720p elsewhere. The video is a thumbnail self-view
+           * (~128×176 CSS px) and an input to on-device analysis — it is never
+           * recorded and never uploaded. 720p on a phone bought nothing but a
+           * bigger camera pipeline, a bigger per-frame decode, and a 4× larger
+           * texture handed to the delivery coach eight times a second, all on
+           * the screen players report as laggy.
+           */
+          ...(coarsePointer()
+            ? { width: { ideal: 640 }, height: { ideal: 480 } }
+            : { width: { ideal: 1280 }, height: { ideal: 720 } }),
+        }
       : false,
   });
+}
+
+/** A touch-first device — the phones and tablets the lag reports come from. */
+function coarsePointer(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    !!window.matchMedia?.("(pointer: coarse)").matches
+  );
 }
 
 export function stopStream(stream: MediaStream | null) {
@@ -103,11 +126,21 @@ export interface LevelMeter {
 }
 
 export function createLevelMeter(stream: MediaStream): LevelMeter {
+  /*
+   * The app's shared context, not a fresh one. Every meter used to mint its
+   * own AudioContext — a second live context at a different sample rate the
+   * moment the mic opened, and in the Tank one created and closed per answer.
+   * Mismatched contexts alongside the TTS element is a known WebKit crackle
+   * source, so the meter now borrows the sound system's context and close()
+   * only disconnects its own nodes, never the context it does not own.
+   */
+  const shared = sharedAudioContext();
   const AudioCtx =
     window.AudioContext ??
     (window as unknown as { webkitAudioContext: typeof AudioContext })
       .webkitAudioContext;
-  const ctx = new AudioCtx();
+  const ctx = shared ?? new AudioCtx();
+  const owns = !shared;
   const source = ctx.createMediaStreamSource(stream);
   const analyser = ctx.createAnalyser();
   analyser.fftSize = 1024;
@@ -127,7 +160,7 @@ export function createLevelMeter(stream: MediaStream): LevelMeter {
     close() {
       source.disconnect();
       analyser.disconnect();
-      void ctx.close();
+      if (owns) void ctx.close();
     },
   };
 }

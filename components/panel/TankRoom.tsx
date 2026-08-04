@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { motion } from "framer-motion";
 import { PANEL, type SeatState } from "@/lib/ai/panel-cast";
 import type { SharkId } from "@/lib/ai/types";
@@ -31,7 +32,13 @@ const SEATS: Record<SharkId, { x: number; w: number }> = {
   marcus: { x: 0.855, w: 0.19 }, // pinstripe, far right
 };
 
-export function TankRoom({
+/*
+ * Memoised: SharkPanel re-renders at mic-level cadence while the player is
+ * answering, and the room — five animated seats over the set photograph plus
+ * the self-view — only actually changes when a seat state, the speaker, or the
+ * (already quantised) mic level does.
+ */
+export const TankRoom = memo(function TankRoom({
   states,
   speaking,
   micLevel = 0,
@@ -125,7 +132,7 @@ export function TankRoom({
       </div>
     </div>
   );
-}
+});
 
 /**
  * The founder's return feed — FaceTime-sized, bottom-right, inside the frame.

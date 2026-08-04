@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import type { RunState } from "@/lib/engine/types";
 import {
@@ -64,7 +64,14 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "order", label: "THE ORDER" },
 ];
 
-export function PitchNotes({
+/*
+ * Memoised because of where it sits: under the live camera and inside the
+ * Tank, both of which re-render at speech cadence (mic level, captions). This
+ * card is a several-hundred-node subtree that changes only when the run or the
+ * tab does — reconciling it per level tick was a measurable slice of the
+ * "pitch screen is laggy on phones" report.
+ */
+export const PitchNotes = memo(function PitchNotes({
   run,
   variant = "panel",
   defaultTab = "numbers",
@@ -313,7 +320,7 @@ export function PitchNotes({
     {glossary && <KeyTermsSheet onClose={() => setGlossary(false)} />}
    </>
   );
-}
+});
 
 /**
  * THE ASK — two sliders and the arithmetic they imply, done in the open.

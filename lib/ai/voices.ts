@@ -58,9 +58,12 @@ export interface VoiceProfile {
    * is a room of people interrupting each other, and at 1.0 the gaps read as
    * buffering rather than as menace. Marcus was the worst of it: his direction
    * is "unhurried", so the character the player waits on longest was also the
-   * slowest to say anything. ElevenLabs accepts 0.7–1.2; these sit at the quick
-   * end of natural and keep the characters' pace RELATIVE to each other, which
-   * is what makes them sound like different people.
+   * slowest to say anything. ElevenLabs accepts 0.7–1.2, but its CLEAN range
+   * tops out around 1.1 — above that the turbo model adds audible artefacts,
+   * which players reported as crackle on the dense instruction lines. So these
+   * sit at the quick end of natural, capped at 1.1, and keep the characters'
+   * pace RELATIVE to each other, which is what makes them sound like
+   * different people.
    */
   speed: number;
   /** Local speechSynthesis fallback shaping. */
@@ -77,7 +80,7 @@ export type VoiceKey = SharkId | "chair" | "narrator";
 export const VOICES: Record<VoiceKey, VoiceProfile> = {
   marcus: {
     elevenVoiceId: "xzZRXG86mSM3naOyL9fa",
-    speed: 1.18,
+    speed: 1.08,
     rate: 1.1,
     pitch: 0.82,
     prefer: ["Daniel", "Google UK English Male", "Microsoft Guy"],
@@ -85,7 +88,7 @@ export const VOICES: Record<VoiceKey, VoiceProfile> = {
   },
   serena: {
     elevenVoiceId: "2qfp6zPuviqeCOZIE9RZ",
-    speed: 1.12,
+    speed: 1.08,
     rate: 1.18,
     pitch: 1.15,
     prefer: ["Samantha", "Google US English", "Microsoft Aria"],
@@ -93,7 +96,7 @@ export const VOICES: Record<VoiceKey, VoiceProfile> = {
   },
   dev: {
     elevenVoiceId: "Dey7SsJGQxe5rLi7TlDb",
-    speed: 1.12,
+    speed: 1.08,
     rate: 1.12,
     pitch: 0.95,
     prefer: ["Rishi", "Google UK English Male", "Microsoft Ryan"],
@@ -109,7 +112,7 @@ export const VOICES: Record<VoiceKey, VoiceProfile> = {
   },
   viktor: {
     elevenVoiceId: "LAGBxLXnb0Y6n64yiOWj",
-    speed: 1.15,
+    speed: 1.08,
     rate: 1.02,
     pitch: 0.75,
     prefer: ["Alex", "Google UK English Male", "Microsoft Davis"],
