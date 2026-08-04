@@ -280,6 +280,36 @@ body {
 }
 
 /*
+ * ── The first frame, before UIKit has measured anything ─────────────────────
+ *
+ * The zeros above are the honest default for the web, and they were also what
+ * the shipped app used for its first frame — so the app's opening moment was:
+ * splash lifts, page paints with the native deck's height counted as 0, UIKit
+ * finishes layout, `chrome.ts` writes the real numbers, and everything that
+ * reserves space for the deck jumps ~90 pt. On the app's very first frame,
+ * every launch.
+ *
+ * `[data-platform]` is on <html> before first paint — PLATFORM_INIT_SCRIPT is a
+ * blocking script in the document head — and `env(safe-area-inset-*)` resolves
+ * at first paint too. So the seed below is available exactly when the zeros
+ * used to be, and it is much closer to right than zero: the device's own inset
+ * plus the standard UIKit control heights the native chrome is built from
+ * (44 pt toolbar, 49 pt tab bar).
+ *
+ * It is an approximation on purpose, and it does not need to be exact. The
+ * measurement in `lib/native/chrome.ts:76-79` writes to
+ * `document.documentElement.style`, and an inline declaration beats this
+ * stylesheet — so the real numbers still win the moment they exist. This only
+ * decides what the gap looks like before then: a deck-sized space that settles
+ * by a few points, instead of no space at all that suddenly becomes 90.
+ */
+:root[data-platform="ios"] {
+  --nv-chrome-top: calc(env(safe-area-inset-top, 0px) + 44px);
+  --nv-chrome-bottom: calc(env(safe-area-inset-bottom, 0px) + 49px);
+  --nv-chrome-tabbar: 49px;
+}
+
+/*
  * In the app, a long press is a game input and never a text selection. On the
  * web it stays selectable, because a life log is a thing people quote.
  * Inputs are exempt everywhere: a field you cannot select text in is broken.
@@ -1340,43 +1370,58 @@ textarea {
 
 /* ── Motion ───────────────────────────────────────────────────────────────── */
 
-@keyframes nvBar {
-  0%,
-  100% {
-    transform: scaleY(0.3);
-  }
-  50% {
-    transform: scaleY(1);
-  }
-}
-
-@keyframes nvFloat {
-  0% {
-    transform: translateY(0);
+/*
+ * The entrance rise — in CSS, because the hero cannot wait for JavaScript.
+ *
+ * ── What this replaces, and why ────────────────────────────────────────────
+ *
+ * The landing hero used a Framer `initial={{ opacity: 0, y: 14 }}`. Framer
+ * serialises `initial` into the server-rendered markup, so the prerendered
+ * index.html shipped four elements carrying `style="opacity:0"` — the H1, the
+ * subhead, the account gate and the shark stage. Every one of them is above the
+ * fold. The server rendered a complete hero and then hid it, and it stayed
+ * hidden until ~180 kB gz of JavaScript downloaded, parsed and hydrated, at
+ * which point Framer faded it in on an 80/160/240 ms stagger.
+ *
+ * A visitor on a mid-range phone therefore looked at an empty page for the
+ * entire cost of the bundle — the one thing prerendering exists to prevent.
+ *
+ * CSS is render-blocking, so this animation starts at FIRST PAINT instead of at
+ * hydration. Same gesture, same curve, seconds earlier, and no JavaScript on
+ * the critical path of the front door at all.
+ *
+ * `backwards` holds the 0% frame through the delay, so a staggered element does
+ * not flash in at full opacity before its turn.
+ */
+@keyframes nvRise {
+  from {
     opacity: 0;
+    transform: translateY(14px);
   }
-  12% {
+  to {
     opacity: 1;
-  }
-  100% {
-    transform: translateY(-52px);
-    opacity: 0;
+    transform: none;
   }
 }
 
-/* Replaces nvPulse, which animated box-shadow. Transform + opacity only. */
-@keyframes nvRing {
-  0% {
-    transform: scale(1);
-    opacity: 0.5;
-  }
-  70% {
-    transform: scale(1.35);
+.nv-rise {
+  animation: nvRise 0.4s var(--ease-out) backwards;
+  animation-delay: var(--nv-rise-delay, 0ms);
+}
+
+/* The stage box travels further than the type it sits beside. */
+.nv-rise-stage {
+  animation-name: nvRiseStage;
+}
+
+@keyframes nvRiseStage {
+  from {
     opacity: 0;
+    transform: translateY(24px);
   }
-  100% {
-    transform: scale(1.35);
-    opacity: 0;
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 
@@ -1389,6 +1434,12 @@ textarea {
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+    /* Collapsing the duration without collapsing the DELAY is not a cut, it is
+       a stall: an element with `backwards` fill sits on its 0% frame — for the
+       entrance rise above, invisible — for the full delay and then snaps in.
+       A staggered entrance would have hidden the hero from exactly the people
+       who asked for less motion. */
+    animation-delay: 0ms !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }

@@ -150,6 +150,30 @@ export async function sharkNegotiateTurn(opts: {
 
 // ── The transport ───────────────────────────────────────────────────────────
 
+/**
+ * How long the room will hold for a shark before the offline one speaks.
+ *
+ * This request had no client timeout at all, so it inherited the server's
+ * `PROVIDER_TIMEOUT_MS` of 60_000 — plus the network on either side. A player
+ * at the year gate answers five of these, and any one of them could leave
+ * "They're thinking about it…" on screen, under a lit seat, for over a minute.
+ * Every one of those seconds looked like a crash, because there is nothing on
+ * that screen that moves while it waits.
+ *
+ * 12 s rather than the 3–4 s a short answer actually takes: this is the point
+ * where the app stops believing the provider, not a latency target, and the
+ * cost of being wrong is asymmetric. Too short and a working-but-slow model
+ * gets replaced by the local shark, which is a quieter and worse product for no
+ * reason. Too long and the room hangs. Twelve is roughly 3× the real p99 and
+ * still well inside the time a person will sit with a shark thinking.
+ *
+ * `panelDown` is deliberately NOT set on a timeout. A timeout says this
+ * request was slow; the statuses below say the provider will not answer for
+ * the rest of the session. Latching the whole session off one slow turn would
+ * turn a bad connection into a silent downgrade nobody could recover from.
+ */
+const PANEL_TIMEOUT_MS = 12_000;
+
 async function ask<T>(opts: {
   phase: "questions" | "offer" | "negotiate";
   shark: SharkId;
@@ -161,6 +185,7 @@ async function ask<T>(opts: {
   try {
     const res = await fetch(ENDPOINT.startsWith("/") ? apiUrl(ENDPOINT) : ENDPOINT, {
       method: "POST",
+      signal: AbortSignal.timeout(PANEL_TIMEOUT_MS),
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         phase: opts.phase,

@@ -12,6 +12,7 @@ import { loadProfile } from "@/lib/engine/save";
 import { isPro, loadEntitlements, onEntitlementsChange, runsRemainingToday } from "@/lib/monetization";
 import { useUpgrade } from "@/components/upgrade/UpgradeProvider";
 import { usePrefetch } from "@/lib/prefetch";
+import { useNavigating } from "@/lib/navigating";
 import { EMPTY_BRIEF, sanitizeBrief, type CompanyBrief } from "@/lib/engine/company-brief";
 import { writeBrief } from "@/lib/ai/brief";
 
@@ -134,6 +135,14 @@ function FoundPage() {
   // Naming a company is the last thing before the game itself.
   usePrefetch("/play");
 
+  /*
+   * Both routes out of this screen go to /play, which is the heaviest page in
+   * the app. Until this, neither of them acknowledged the tap at all — the
+   * button stayed lit and the screen stayed put for the length of the chunk.
+   */
+  const [going, go] = useNavigating();
+  const [resuming, resume] = useNavigating();
+
   const start = () => {
     /*
      * The ledger is a real calendar day and this screen can sit open across
@@ -149,22 +158,30 @@ function FoundPage() {
       setConfirmReplace(true);
       return;
     }
-    // Close it properly first. endRun writes the company into legacy — years
-    // survived, what killed it, or that you closed it yourself — which is the
-    // whole difference between ending a run and overwriting one.
-    if (saved) game.endRun();
+    /*
+     * The latch goes here and not at the top of this function, because the two
+     * branches above are not navigations — they re-count the day's slots and
+     * they arm the replace confirmation. Latching on those would put the button
+     * into "OPENING…" for a tap whose entire job was to ask a question.
+     */
+    go(() => {
+      // Close it properly first. endRun writes the company into legacy — years
+      // survived, what killed it, or that you closed it yourself — which is the
+      // whole difference between ending a run and overwriting one.
+      if (saved) game.endRun();
 
-    game.startRun({
-      founderName: profile?.founderName ?? "Founder",
-      playerAge: profile?.playerAge ?? null,
-      companyName: companyName.trim() || "GlorpCo",
-      industry,
-      rookieMode: profile?.rookieMode ?? true,
-      tutorial: !skipTutorial,
-      gender,
-      brief: sanitizeBrief(brief),
+      game.startRun({
+        founderName: profile?.founderName ?? "Founder",
+        playerAge: profile?.playerAge ?? null,
+        companyName: companyName.trim() || "GlorpCo",
+        industry,
+        rookieMode: profile?.rookieMode ?? true,
+        tutorial: !skipTutorial,
+        gender,
+        brief: sanitizeBrief(brief),
+      });
+      router.push("/play");
     });
-    router.push("/play");
   };
 
   /**
@@ -225,10 +242,11 @@ function FoundPage() {
           </p>
           <button
             type="button"
-            onClick={() => router.push("/play")}
-            className="nv-gc mt-3 h-12 w-full truncate rounded-[var(--radius-pill)] nv-t-action px-5 text-sm font-extrabold tracking-[0.06em] text-[var(--n-11)]"
+            onClick={() => resume(() => router.push("/play"))}
+            disabled={resuming}
+            className="nv-gc mt-3 h-12 w-full truncate rounded-[var(--radius-pill)] nv-t-action px-5 text-sm font-extrabold tracking-[0.06em] text-[var(--n-11)] disabled:opacity-60"
           >
-            {saved.alive ? "CONTINUE ▸" : "READ WHAT KILLED IT ▸"}
+            {resuming ? "OPENING…" : saved.alive ? "CONTINUE ▸" : "READ WHAT KILLED IT ▸"}
           </button>
         </section>
       )}
@@ -480,18 +498,20 @@ function FoundPage() {
         <button
           type="button"
           onClick={start}
-          disabled={!valid || slotsLeft === 0}
+          disabled={!valid || slotsLeft === 0 || going}
           className={`nv-gc w-full truncate rounded-[var(--radius-card)] px-5 py-4 text-base font-extrabold tracking-[0.06em] disabled:cursor-not-allowed disabled:opacity-35 ${
             saved
               ? "nv-on text-[var(--text-primary)] shadow-[var(--e1)] hover:bg-[var(--surface-overlay)]"
               : "nv-t-action"
           }`}
         >
-          {slotsLeft === 0
-            ? "NO RUNS LEFT TODAY"
-            : saved && confirmReplace
-              ? "TAP AGAIN TO REPLACE IT ▸"
-              : "FOUND IT ▸"}
+          {going
+            ? "OPENING…"
+            : slotsLeft === 0
+              ? "NO RUNS LEFT TODAY"
+              : saved && confirmReplace
+                ? "TAP AGAIN TO REPLACE IT ▸"
+                : "FOUND IT ▸"}
         </button>
 
         {/* Named, because "are you sure? " is not a question anyone reads. And

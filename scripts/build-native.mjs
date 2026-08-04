@@ -24,7 +24,7 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -150,6 +150,34 @@ function verifyApiOrigin(outDir) {
     process.exit(1);
   }
   console.log(`\n  · the app will call ${expected}`);
+  return expected;
+}
+
+/**
+ * Installs the shell's entry document, and warms the connection it will need.
+ *
+ * `boot.html` reads two localStorage keys and hands the webview to a route —
+ * one parse, no framework. But the very next thing the app does on that route
+ * is talk to the API origin over HTTPS to a DIFFERENT host than the one it is
+ * served from: in the store build the pages come off Capacitor's local file
+ * server, so there is no warm connection to reuse and the first request pays a
+ * full DNS + TCP + TLS handshake before a byte of it moves.
+ *
+ * The preconnect is injected here rather than written into native/boot.html
+ * because the origin is resolved from the built artifact directly above. A
+ * hardcoded second copy of that value in a static file is exactly the failure
+ * verifyApiOrigin exists to catch — see its note.
+ */
+function installBootDocument(outDir, origin) {
+  const src = readFileSync(join(root, "native", "boot.html"), "utf8");
+  const hint =
+    `    <link rel="preconnect" href="${origin}" crossorigin />\n` +
+    `    <link rel="dns-prefetch" href="${origin}" />\n`;
+  if (!src.includes("</head>")) {
+    throw new Error("native/boot.html has no </head> to inject the preconnect before.");
+  }
+  writeFileSync(join(outDir, "boot.html"), src.replace("</head>", `${hint}  </head>`));
+  console.log(`  · boot.html installed, preconnecting to ${origin}`);
 }
 
 function parkApiRoutes() {
@@ -219,10 +247,9 @@ if (!existsSync(out)) {
   process.exit(1);
 }
 
-verifyApiOrigin(out);
+const apiOrigin = verifyApiOrigin(out);
 
-copyFileSync(join(root, "native", "boot.html"), join(out, "boot.html"));
-console.log("  · boot.html installed as the app entry point");
+installBootDocument(out, apiOrigin);
 
 pruneBundle(out);
 

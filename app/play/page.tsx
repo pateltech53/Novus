@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useGame } from "@/lib/state/GameProvider";
 import { HomeStage } from "@/components/HomeStage";
+import { PlaySkeleton } from "@/components/PlaySkeleton";
 import { TheBooks } from "@/components/TheBooks";
 import { LifeLog } from "@/components/LifeLog";
 import { LogButton, LogSheet } from "@/components/screens/LogSheet";
@@ -356,13 +357,7 @@ function PlayScreen() {
   useBackHandler(keyTerms, () => setKeyTerms(false));
   useBackHandler(logOpen, () => setLogOpen(false));
 
-  if (!run) {
-    return (
-      <main className="flex min-h-dvh items-center justify-center px-6">
-        <p className="text-sm text-[var(--text-tertiary)]">Opening the books…</p>
-      </main>
-    );
-  }
+  if (!run) return <PlaySkeleton />;
 
   if (perform) return <PerformScreen />;
 

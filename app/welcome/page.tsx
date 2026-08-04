@@ -41,6 +41,7 @@ import { speak, stopSpeaking } from "@/lib/ai/speech";
 import { saveProfile, loadProfile } from "@/lib/engine/save";
 import { entryRoute } from "@/lib/entry";
 import { usePrefetch } from "@/lib/prefetch";
+import { useNavigating } from "@/lib/navigating";
 
 /**
  * Onboarding O1–O7. Nine steps total; O8 (found the company) lives at /found
@@ -67,6 +68,8 @@ export default function WelcomePage() {
   // instead (lib/entry.ts), so both are warmed.
   usePrefetch("/found", "/play");
 
+  const [finishing, go] = useNavigating();
+
   const finish = useCallback(() => {
     const existing = loadProfile();
     saveProfile({
@@ -79,8 +82,12 @@ export default function WelcomePage() {
     });
     // Onboarding is not a reason to lose a company. Someone who walks back
     // through these steps with a run in progress is returned to it.
-    router.push(entryRoute());
-  }, [name, age, router]);
+    //
+    // Latched, because `entryRoute()` resolves to /play for anyone with a run —
+    // the heaviest page in the app — and the last step of onboarding used to
+    // end on a sheet that simply sat there through the whole chunk.
+    go(() => router.push(entryRoute()));
+  }, [name, age, router, go]);
 
   // AnimatePresence mode="wait" takes exactly ONE child. Rendering conditional
   // siblings leaves it waiting on an exit that never resolves, and the screen
@@ -123,7 +130,7 @@ export default function WelcomePage() {
       case "showme":
         return <LoopExplainer key="showme" onDone={() => setStep("plans")} />;
       case "plans":
-        return <PlansSheet key="plans" onDone={finish} />;
+        return <PlansSheet key="plans" onDone={finish} leaving={finishing} />;
     }
   })();
 
@@ -408,7 +415,7 @@ function Explanation({ onNext }: { onNext: () => void }) {
  * Prices, seat counts and every entitlement come from lib/monetization.ts so
  * Settings and the eventual paywall read the same numbers as this screen.
  */
-function PlansSheet({ onDone }: { onDone: () => void }) {
+function PlansSheet({ onDone, leaving }: { onDone: () => void; leaving: boolean }) {
   const [plan, setPlan] = useState<SubscriptionPlan>(PRO_YEARLY);
   const [panel, setPanel] = useState<"pro" | "chapter">("pro");
   const reduced = useReducedMotion();
@@ -734,12 +741,17 @@ function PlansSheet({ onDone }: { onDone: () => void }) {
             it was the only button on the step. It is not the only one any more
             — GET PRO is the other answer again — and two accented buttons on
             one screen is the accent spent twice. */}
+        {/* `leaving`, not the `busy` above: that one belongs to CHOOSE PRO and
+            its checkout. This is the last tap of onboarding, and it resolves to
+            entryRoute() — /play for anyone with a run, the heaviest page in the
+            app. It used to sit here unchanged for the whole of that chunk. */}
         <button
           type="button"
           onClick={onDone}
-          className="nv-gc mt-2.5 h-14 w-full rounded-[var(--radius-pill)] nv-on text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--text-primary)]"
+          disabled={leaving}
+          className="nv-gc mt-2.5 h-14 w-full rounded-[var(--radius-pill)] nv-on text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--text-primary)] disabled:opacity-60"
         >
-          CONTINUE FREE
+          {leaving ? "OPENING…" : "CONTINUE FREE"}
         </button>
 
         {/* Reachable from the screen that offers the subscription, and read
