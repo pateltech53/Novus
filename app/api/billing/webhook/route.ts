@@ -189,8 +189,22 @@ async function onCheckoutCompleted(
 
 async function onSubscriptionChanged(
   db: SupabaseClient,
-  sub: Stripe.Subscription,
+  event: Stripe.Subscription,
 ): Promise<void> {
+  /*
+   * Re-read the subscription from Stripe rather than trusting the event body.
+   *
+   * `event.data.object` is the subscription as it was when the event was
+   * GENERATED, and Stripe does not guarantee delivery order. A stale
+   * `customer.subscription.updated` (status active) delivered after
+   * `customer.subscription.deleted` would otherwise re-grant `pro` on a
+   * cancelled subscription with nothing left to revoke it — free perpetual Pro
+   * — and a `created` (incomplete) delivered last would strip Pro off a player
+   * who just paid. Fetching by id collapses the orderings into one current
+   * answer, exactly as onCheckoutCompleted already does for the same reason.
+   */
+  const sub = await stripe().subscriptions.retrieve(event.id);
+
   const profileId = await resolveProfile(db, sub.metadata?.profile_id, null, sub.customer);
   if (!profileId) {
     // Not thrown. Unlike a checkout, this is the shape of a subscription that

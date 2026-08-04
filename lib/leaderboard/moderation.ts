@@ -107,7 +107,10 @@ function normalise(name: string): string {
     .replace(/[1!|]/g, "i")
     .replace(/3/g, "e")
     .replace(/4/g, "a")
-    .replace(/5\$/g, "s")
+    // A character class, not the literal sequence "5$": both '5' and '$' are
+    // common substitutions for 's' (a55hole, cla$$). The old /5\$/ matched
+    // neither on its own, so those obfuscations slipped straight through.
+    .replace(/[5$]/g, "s")
     .replace(/7/g, "t")
     .replace(/[^a-z]/g, "");
 }

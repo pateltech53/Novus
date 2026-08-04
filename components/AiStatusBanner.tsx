@@ -37,24 +37,30 @@ import {
  * · It says what to DO, not what broke. "voice → HTTP 401" is a symptom;
  *   "ELEVENLABS_API_KEY was rejected, ask GET /api/tts why" is a next step.
  *
- * ── Turning it off ─────────────────────────────────────────────────────────
+ * ── When it is in the bundle at all ────────────────────────────────────────
  *
- * `NEXT_PUBLIC_AI_DEBUG=0` removes it from the bundle. Set that before putting
- * this in front of players: they are twelve, the fallback is a real feature,
- * and an amber warning about someone else's API key is not their problem. It
- * is on by default because the failure it catches is one an operator cannot
- * see any other way, and a diagnostic nobody remembers to switch on is the
- * same as no diagnostic.
+ * Dev builds: on unless `NEXT_PUBLIC_AI_DEBUG=0` — the operator wiring keys up
+ * is exactly who needs it. Production builds: OFF unless `NEXT_PUBLIC_AI_DEBUG=1`
+ * — the audience there is players (who are twelve, for whom the fallback is a
+ * real feature and someone else's API key is not their problem) and demos,
+ * where an amber warning is a defect. It used to default ON everywhere so that
+ * a misconfigured deploy would confess; that job is done by `GET /api/ai`,
+ * which reports the same facts without requiring anyone to remember an env
+ * var before a launch. Set `NEXT_PUBLIC_AI_DEBUG=1` on a staging deploy to get
+ * the on-glass banner back.
  */
 export function AiStatusBanner() {
   const reports = useSyncExternalStore(subscribeAi, aiSnapshot, aiSnapshot);
   const [dismissed, setDismissed] = useState(false);
   const [open, setOpen] = useState(false);
 
-  // Compiled out entirely when the flag is off — `process.env.NEXT_PUBLIC_*` is
-  // inlined at build time, so this is dead code elimination and not a runtime
-  // check that ships the component to players anyway.
-  if (process.env.NEXT_PUBLIC_AI_DEBUG === "0") return null;
+  // Compiled out entirely when off — both env vars are inlined at build time,
+  // so this is dead code elimination and not a runtime check that ships the
+  // component to players anyway.
+  const enabled =
+    process.env.NEXT_PUBLIC_AI_DEBUG === "1" ||
+    (process.env.NEXT_PUBLIC_AI_DEBUG !== "0" && process.env.NODE_ENV === "development");
+  if (!enabled) return null;
   if (dismissed) return null;
 
   // "not attempted yet" is not a fault. Nothing shows until a feature has been

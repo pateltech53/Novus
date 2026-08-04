@@ -113,8 +113,22 @@ export async function POST(req: NextRequest) {
     email: adopted.user.email ?? null,
   };
 
+  // The account's own display name, so the device-local cache the front door
+  // reads can be stamped with the real name rather than the "Founder"
+  // placeholder — the reset page has no other source for it.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("display_name")
+    .eq("id", session.userId)
+    .maybeSingle();
+
   return attachSession(
-    NextResponse.json({ ok: true, signedIn: true, email: session.email }),
+    NextResponse.json({
+      ok: true,
+      signedIn: true,
+      email: session.email,
+      displayName: profile?.display_name ?? null,
+    }),
     session,
   );
 }

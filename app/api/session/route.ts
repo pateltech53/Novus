@@ -62,9 +62,17 @@ export async function POST(req: NextRequest) {
     );
 
   if (error) {
-    return NextResponse.json(
-      { configured: true, signedIn: false, reason: error.message },
-      { status: 200 },
+    // The profile write failed, but the session itself is valid — and
+    // sessionFromRequest already SPENT the cookie's refresh token. Re-attach the
+    // rotated one, or a transient DB error on this boot-time repair path would
+    // silently sign the player out on their next request. The player IS signed
+    // in; only the profile repair did not land.
+    return attachSession(
+      NextResponse.json(
+        { configured: true, signedIn: true, anonymous: session.anonymous, reason: error.message },
+        { status: 200 },
+      ),
+      session,
     );
   }
 

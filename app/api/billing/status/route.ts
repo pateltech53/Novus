@@ -4,6 +4,7 @@ import { adminClient } from "@/lib/supabase/admin";
 import { CATALOGUE, availableSkus, priceIdFor, type SkuId } from "@/lib/stripe/catalogue";
 import { billingConfigured, missingBillingConfig, stripeMode } from "@/lib/stripe/config";
 import { resolvePrice } from "@/lib/stripe/prices";
+import { callerKey, throttle } from "@/lib/auth/throttle";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -146,7 +147,24 @@ export async function GET(req: NextRequest) {
   // Only when asked for, and only when there is something to ask: with the
   // core variables missing there is no Stripe client and no service role to
   // run these with, and `missing` above is already the whole answer.
-  const deep = configured && req.nextUrl.searchParams.get("deep") === "1";
+  const deepAsked = configured && req.nextUrl.searchParams.get("deep") === "1";
+
+  /*
+   * `?deep=1` fires a Stripe round trip per SKU. It is an operator diagnostic
+   * run by hand a few times, but nothing stopped an anonymous caller from
+   * looping it — a dozen-plus Stripe reads each, sharing the account's rate
+   * budget with real checkouts until they start failing. So the deep path is
+   * metered per address; the base call every pricing screen makes on mount is
+   * untouched. Fails open where there is no throttle store, same as everywhere.
+   */
+  let deepThrottled = false;
+  if (deepAsked) {
+    const gate = await throttle([
+      { bucket: "billing_deep:ip", key: callerKey(req), limit: 10, windowMinutes: 15 },
+    ]);
+    deepThrottled = !gate.allowed;
+  }
+  const deep = deepAsked && !deepThrottled;
   const prices = deep ? await checkSkus() : null;
   const tables = deep ? await checkTables() : null;
 
@@ -172,6 +190,9 @@ export async function GET(req: NextRequest) {
     ...(prices ? { prices } : {}),
     /** `?deep=1` only: the tables checkout cannot run without. */
     ...(tables ? { tables } : {}),
+    /** `?deep=1` asked but rate-limited: the deep checks were skipped this time
+     *  to keep the Stripe read budget for real checkouts. Try again shortly. */
+    ...(deepThrottled ? { deepThrottled: true } : {}),
 
     /**
      * The commonest cause by far, and not something the server can detect:

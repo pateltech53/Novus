@@ -806,8 +806,7 @@ function PricingSection() {
             Pro never buys a score, a survival, a revive, or a place on the
             board.
           </span>{" "}
-          Those are earned or they are nothing. No card is taken yet — choosing
-          Pro switches it on for this device until online accounts launch.
+          Those are earned or they are nothing.
         </p>
       </div>
     </section>

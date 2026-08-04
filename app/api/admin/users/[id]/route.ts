@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { adminGate, audit, isUuid } from "@/lib/admin/guard";
+import { windDownOwnedChapters } from "@/lib/stripe/chapter";
 import { adminClient } from "@/lib/supabase/admin";
 import { crossSite, withSession } from "@/lib/supabase/route";
 
@@ -123,12 +124,43 @@ export async function DELETE(
   }
 
   const email = target.data.user.email ?? null;
+
+  /*
+   * Wind down owned chapters BEFORE the cascade removes them. The cascade
+   * deletes the chapter and its seats, but each member's entitlements.chapter
+   * lives on the member's own profile — nothing clears it once the chapter row
+   * is gone, so a whole class would keep Pro-equivalent access forever. And a
+   * licence's Stripe subscription lives on the chapter, not billing_customers,
+   * so it would keep charging the school. This lapses every seat and cancels
+   * every live licence; any subscription it could not stop is surfaced to the
+   * operator to cancel in Stripe rather than silently stranded.
+   */
+  const { failedCancellations } = await windDownOwnedChapters(db, id, {
+    cancelSubscriptions: true,
+  });
+
   const { error } = await db.auth.admin.deleteUser(id);
   if (error) {
     return withSession(bad(503, `delete failed: ${error.message}`), gate.session);
   }
 
-  await audit(gate.session, "account_delete", { target: id, targetEmail: email });
+  await audit(gate.session, "account_delete", {
+    target: id,
+    targetEmail: email,
+    detail: failedCancellations.length ? { uncancelledSubscriptions: failedCancellations } : {},
+  });
 
-  return withSession(NextResponse.json({ ok: true }), gate.session);
+  return withSession(
+    NextResponse.json({
+      ok: true,
+      ...(failedCancellations.length
+        ? {
+            warning:
+              "The account was deleted, but a classroom licence subscription could not be cancelled automatically — cancel it in the Stripe dashboard.",
+            uncancelledSubscriptions: failedCancellations,
+          }
+        : {}),
+    }),
+    gate.session,
+  );
 }

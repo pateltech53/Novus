@@ -257,6 +257,17 @@ export function availableAssets(state: RunState, kind: AssetKind): AssetDef[] {
   return ASSET_CATALOG.filter((a) => a.kind === kind && state.stage >= a.minStage);
 }
 
+/** One past the highest index any live holding carries — unique among them, so
+ *  a freshly minted id can never collide with an existing holding's. */
+function nextHoldingIndex(state: RunState): number {
+  let max = -1;
+  for (const h of state.holdings) {
+    const n = Number(h.id.split("-")[1]);
+    if (Number.isFinite(n) && n > max) max = n;
+  }
+  return max + 1;
+}
+
 export function buyAsset(state: RunState, def: AssetDef): boolean {
   const S = S_UNIT[state.stage];
   const price = def.priceS * S;
@@ -265,7 +276,13 @@ export function buyAsset(state: RunState, def: AssetDef): boolean {
   state.stats.cash -= price;
   state.burnDeltaS += def.upkeepS;
   state.holdings.push({
-    id: `hold-${state.holdings.length}-${def.id}`,
+    // The index is one past the highest LIVE holding's, not the array length.
+    // Length is reused after a sell, so buy → buy → sell first → buy could mint
+    // an id already held by a live holding; sellAsset's findIndex then matches
+    // the FIRST one and liquidates the wrong (often far cheaper) asset. Taking
+    // max(live index) + 1 is unique among live holdings by construction and
+    // stays deterministic for replay.
+    id: `hold-${nextHoldingIndex(state)}-${def.id}`,
     defId: def.id,
     paid: price,
     value: price,

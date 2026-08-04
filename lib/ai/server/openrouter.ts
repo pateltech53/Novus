@@ -59,8 +59,30 @@ export interface AskOptions {
   timeoutMs?: number;
 }
 
+/**
+ * The ceiling on the user message this caller will send.
+ *
+ * The per-request rate limit counts REQUESTS, not tokens, so a single counted
+ * call carrying a field bloated to hundreds of KB would cost the operator's
+ * OpenRouter account 100–1000× the designed per-call spend while staying inside
+ * the "hard daily ceiling" the limiter promises. `max_tokens` bounds only the
+ * OUTPUT; nothing bounded the input. Every legitimate payload here — a books
+ * summary, a metrics object, a capped transcript, a dozen sliced log lines — is
+ * a few KB, so this cap is far above any real call and only ever trips on a
+ * request built to amplify cost. Tripping it returns a non-2xx, which every
+ * caller already reads as "fall back to the local resolver".
+ */
+const MAX_USER_CHARS = 24_000;
+
 export async function askOpenRouter<T>(opts: AskOptions): Promise<AskResult<T>> {
   if (!OPENROUTER_API_KEY) return { ok: false, status: 501 };
+
+  const userContent = typeof opts.user === "string" ? opts.user : JSON.stringify(opts.user);
+  if (userContent.length > MAX_USER_CHARS) {
+    // 413, not sent. The caller falls through to its local resolver, which is
+    // exactly the right answer for a payload no real client produces.
+    return { ok: false, status: 413 };
+  }
 
   try {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -78,11 +100,7 @@ export async function askOpenRouter<T>(opts: AskOptions): Promise<AskResult<T>> 
         max_tokens: opts.maxTokens,
         messages: [
           { role: "system", content: opts.system },
-          {
-            role: "user",
-            content:
-              typeof opts.user === "string" ? opts.user : JSON.stringify(opts.user),
-          },
+          { role: "user", content: userContent },
         ],
         response_format: {
           type: "json_schema",

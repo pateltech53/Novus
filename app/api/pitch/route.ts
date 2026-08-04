@@ -46,6 +46,10 @@ export const dynamic = "force-dynamic";
 /** Two minutes of speech is ~350 words. This is the abuse ceiling. */
 const MAX_TRANSCRIPT = 8_000;
 
+/** The whole assembled brief, serialized. Far above any real call (a couple of
+ *  KB); only a payload built to amplify cost reaches it. */
+const MAX_BRIEF_CHARS = 24_000;
+
 /**
  * Difficulty 1…5 → what an accepted call pays. Copied from `resolveLocally()`
  * in lib/ai/callers.ts and must stay identical to it: two payout tables that
@@ -72,6 +76,20 @@ export async function POST(req: NextRequest) {
   }
 
   const transcript = (body.pitch?.transcript ?? "").slice(0, MAX_TRANSCRIPT);
+
+  /*
+   * The transcript is capped, but `their_company` and the caller fields were
+   * forwarded to the model verbatim — an uncapped object under a request-
+   * counting rate limit is a cost-amplification hole (one counted call carrying
+   * a ~megabyte `company` object costs hundreds of times the designed spend).
+   * Bounding the whole assembled payload closes it without truncating any single
+   * legitimate field; a real call's brief is a couple of KB. Over the ceiling
+   * falls through to the local resolver, which reads the same transcript.
+   */
+  const brief = callBrief(body, transcript, difficulty);
+  if (JSON.stringify(brief).length > MAX_BRIEF_CHARS) {
+    return NextResponse.json({ error: "Call payload too large." }, { status: 413 });
+  }
 
   const limited = await claimAiCall(req, "pitch", {
     perIp: AI_LIMITS.pitchPerIp,
@@ -104,7 +122,7 @@ export async function POST(req: NextRequest) {
         max_tokens: 400,
         messages: [
           { role: "system", content: PITCH_SYSTEM_PROMPT },
-          { role: "user", content: JSON.stringify(callBrief(body, transcript, difficulty)) },
+          { role: "user", content: JSON.stringify(brief) },
         ],
         response_format: {
           type: "json_schema",

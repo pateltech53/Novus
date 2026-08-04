@@ -2,9 +2,10 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { SUPABASE_SERVICE_ROLE_KEY, billingConfigured } from "@/lib/stripe/config";
 import { stripe } from "@/lib/stripe/client";
+import { windDownOwnedChapters } from "@/lib/stripe/chapter";
 import { adminClient } from "@/lib/supabase/admin";
 import { configured } from "@/lib/supabase/config";
-import { crossSite, clearSession, sessionFromRequest } from "@/lib/supabase/route";
+import { crossSite, clearSession, sessionFromRequest, withSession } from "@/lib/supabase/route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -66,11 +67,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ configured: false }, { status: 200 });
   }
 
-  const session = await sessionFromRequest(req);
-  if (!session) {
-    return NextResponse.json({ configured: true, signedIn: false }, { status: 200 });
-  }
-
+  // Checked BEFORE the session is resolved, on purpose. sessionFromRequest
+  // SPENDS the cookie's refresh token (see withSession); a 501 that returned
+  // without re-attaching it would both refuse the delete AND sign the player
+  // out — and a Supabase deploy without the service key is a supported state
+  // (docs), so this path is reachable in normal operation.
   if (!SUPABASE_SERVICE_ROLE_KEY) {
     // Deleting an auth user needs the admin API. Say so rather than half-doing
     // it — a partial delete against a policy promise is worse than a refusal.
@@ -78,6 +79,14 @@ export async function POST(req: NextRequest) {
       { error: "Account deletion is not available on this deploy (no service role key)." },
       { status: 501 },
     );
+  }
+
+  const session = await sessionFromRequest(req);
+  if (!session) {
+    // 401, not 200: a delete that could not run is not a delete that succeeded,
+    // and the client treats any 2xx here as "the account is gone" and wipes the
+    // device. No session was resolved, so there is no rotated token to re-attach.
+    return NextResponse.json({ configured: true, signedIn: false }, { status: 401 });
   }
 
   const db = adminClient();
@@ -134,23 +143,57 @@ export async function POST(req: NextRequest) {
       } catch (e) {
         // Do NOT delete now. An account deleted while Stripe still bills the
         // card is the outcome the whole check exists to prevent, and the
-        // player can try again in a moment.
-        return NextResponse.json(
-          {
-            error:
-              "Your Pro subscription could not be cancelled just now, so nothing was deleted — please try again in a minute.",
-            activeSubscription: true,
-            detail: (e as Error).message,
-          },
-          { status: 409 },
+        // player can try again in a moment. withSession re-attaches the rotated
+        // refresh token so "try again in a minute" is actually possible — a
+        // bare response here would leave the browser holding a spent token and
+        // silently sign the player out of a refusal meant to be recoverable.
+        return withSession(
+          NextResponse.json(
+            {
+              error:
+                "Your Pro subscription could not be cancelled just now, so nothing was deleted — please try again in a minute.",
+              activeSubscription: true,
+              detail: (e as Error).message,
+            },
+            { status: 409 },
+          ),
+          session,
         );
       }
     }
   }
 
+  /*
+   * A chapter licence is not personal Pro, and the check above never sees it.
+   * Its subscription lives on `chapters`, and its seated members' entitlements
+   * live on their own profiles — both invisible to `billing_customers`. Wind
+   * them down while the rows still exist: lapse every member seat and cancel
+   * every live licence subscription. If a licence subscription cannot be
+   * cancelled, refuse for the same reason personal Pro does — a deleted owner
+   * with a still-billing school licence is the worst outcome of "delete me".
+   */
+  const { failedCancellations } = await windDownOwnedChapters(db, session.userId, {
+    cancelSubscriptions: true,
+  });
+  if (failedCancellations.length > 0) {
+    return withSession(
+      NextResponse.json(
+        {
+          error:
+            "A classroom licence on this account could not be cancelled just now, so nothing was deleted — please try again in a minute.",
+          activeSubscription: true,
+        },
+        { status: 409 },
+      ),
+      session,
+    );
+  }
+
   const { error } = await db.auth.admin.deleteUser(session.userId);
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    // The rotated token is re-attached so a failed delete does not also sign
+    // the player out of an account that still exists.
+    return withSession(NextResponse.json({ error: error.message }, { status: 500 }), session);
   }
 
   // The cookie now points at a user that does not exist. Clear it so the next

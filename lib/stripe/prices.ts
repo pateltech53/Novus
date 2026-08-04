@@ -43,6 +43,23 @@ const resolvedProducts = new Map<string, string>();
 
 export async function resolvePrice(sku: Sku): Promise<Resolved> {
   const configured = priceIdFor(sku).trim();
+  // A product→price mapping is cached for the life of the process. The normal
+  // way to change a product's price is to archive the old one and set a new
+  // default — after which a warm cache keeps handing back the archived id and
+  // verify() fails on every checkout until a redeploy, even though the dashboard
+  // is correct. So a failure on a CACHED resolution evicts the entry and
+  // resolves once more against the product's live default before giving up. A
+  // cold-cache failure is a real one and is returned as-is (no wasted retry).
+  const wasCached = configured.startsWith("prod_") && resolvedProducts.has(configured);
+
+  const first = await resolveOnce(sku, configured);
+  if (first.ok || !wasCached) return first;
+
+  resolvedProducts.delete(configured);
+  return resolveOnce(sku, configured);
+}
+
+async function resolveOnce(sku: Sku, configured: string): Promise<Resolved> {
   if (!configured) return { ok: false, reason: `${sku.envVar} is not set` };
 
   const priceId = configured.startsWith("prod_")

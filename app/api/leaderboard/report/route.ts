@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { configured } from "@/lib/supabase/config";
 import { crossSite, sessionFromRequest, withSession } from "@/lib/supabase/route";
+import { callerKey, throttle } from "@/lib/auth/throttle";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -45,11 +46,31 @@ export async function POST(req: NextRequest) {
    *
    * Not to identify the reporter — the report carries no author and never will
    * — but because an unauthenticated endpoint that unlists a row by id is a
-   * script that empties the board in one loop. The session is the rate limit.
+   * script that empties the board in one loop.
    */
   const session = await sessionFromRequest(req);
   if (!session) {
     return NextResponse.json({ ok: false, reason: "signed-out" }, { status: 401 });
+  }
+
+  /*
+   * A session is NOT a rate limit — one account can loop through every id the
+   * board discloses and unlist the lot. So the report is actually metered, per
+   * account and per address. A real reporter flags a handful of names; these
+   * ceilings sit far above that and far below "blank the board", and every
+   * report stays recoverable (a moderator relists) and logged for review.
+   * Fails open when the throttle store is unconfigured — same contract the auth
+   * routes keep.
+   */
+  const limited = await throttle([
+    { bucket: "board_report:profile", key: session.userId, limit: 25, windowMinutes: 60 },
+    { bucket: "board_report:ip", key: callerKey(req), limit: 50, windowMinutes: 60 },
+  ]);
+  if (!limited.allowed) {
+    return withSession(
+      NextResponse.json({ ok: false, reason: "rate-limited" }, { status: 429 }),
+      session,
+    );
   }
 
   let entryId: unknown;
