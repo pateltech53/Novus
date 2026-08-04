@@ -109,11 +109,19 @@ signed in.
 | Field | Value |
 |---|---|
 | Site URL | your deployed origin, e.g. `https://novuspitch.com` |
-| Redirect URLs | add `https://novuspitch.com/reset` (and `http://localhost:3000/reset` for local work) |
+| Redirect URLs | add `https://novuspitch.com/reset` **and** `https://novuspitch.com/join/setup` (plus the `http://localhost:3000` pair for local work) |
 
 The reset link will not work without that redirect entry — Supabase refuses to
 send players to a URL that is not on the allow-list, which is exactly the
-protection you want.
+protection you want. `/join/setup` is the second entry: chapter invites end
+there rather than on `/reset`, because a student being handed a seat has never
+had a password to reset (docs/CHAPTERS.md §2).
+
+What a missing entry looks like is worth knowing: Supabase does not refuse the
+link, it redirects to the **Site URL** with the session still in the fragment.
+`components/AuthHashRelay.tsx` sits on the front door and forwards those to the
+right page, so the flow survives a forgotten entry — but it is a net, not the
+configuration.
 
 ---
 
@@ -125,7 +133,7 @@ protection you want.
 | `POST /api/auth/signin` | Sign back in |
 | `POST /api/auth/signout` | Clear the session on this device |
 | `POST /api/auth/reset` | Send a reset email. Always answers the same, account or not |
-| `POST /api/auth/reset/confirm` | Finish a reset using the tokens from the email link |
+| `POST /api/auth/reset/confirm` | Finish a reset — or set up an invited seat — using the tokens from the email link. Optional `displayName` names an account that has never been named |
 | `GET /api/auth/me` | Who is signed in, and whether they are anonymous |
 | `POST /api/auth/delete` | Erase the account and everything attached to it |
 

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 import { CREDENTIAL_MESSAGE, checkPassword } from "@/lib/auth/credentials";
+import { MAX_NAME_LENGTH } from "@/lib/account";
 import { SUPABASE_ANON_KEY, SUPABASE_URL, configured } from "@/lib/supabase/config";
 import { crossSite, attachSession, type Session } from "@/lib/supabase/route";
 
@@ -9,10 +10,18 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * POST /api/auth/reset/confirm — finish a password reset.
+ * POST /api/auth/reset/confirm — finish a password reset, or set up an
+ * invited seat.
  *
- * Body: `{ accessToken, refreshToken, password }`, where the two tokens came
- * out of the URL fragment on the reset link Supabase emailed.
+ * Body: `{ accessToken, refreshToken, password, displayName? }`, where the two
+ * tokens came out of the URL fragment on the link Supabase emailed.
+ *
+ * `displayName` is optional and exists for one caller: /join/setup, when the
+ * invite arrived through Supabase's own "You have been invited" mail and there
+ * was no claim screen to ask for a name. It is written as the account itself,
+ * under the session the tokens just proved, so it can only ever name the
+ * profile the link belongs to. /reset never sends it, and a reset must not
+ * rename anybody.
  *
  * ── Why the tokens arrive from the client ──────────────────────────────────
  *
@@ -35,7 +44,17 @@ interface Body {
   accessToken?: unknown;
   refreshToken?: unknown;
   password?: unknown;
+  displayName?: unknown;
 }
+
+/** Bounded and trimmed, the same shape the rest of the app stores. Anything
+ *  that is not a usable name is simply absent — a blank one never overwrites
+ *  the name already on the profile. */
+const cleanName = (value: unknown): string | null => {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim().slice(0, MAX_NAME_LENGTH);
+  return trimmed.length > 0 ? trimmed : null;
+};
 
 export async function POST(req: NextRequest) {
 
@@ -113,9 +132,19 @@ export async function POST(req: NextRequest) {
     email: adopted.user.email ?? null,
   };
 
+  // A name, when the caller had one to give and nothing else asked for it.
+  // Written under the adopted session, so "profiles: update own" (0001) is the
+  // thing that decides it — no service role, no way to name another account.
+  // A failure here is not worth losing a set password over: the account works,
+  // and the name stays whatever it was.
+  const named = cleanName(body.displayName);
+  if (named) {
+    await supabase.from("profiles").update({ display_name: named }).eq("id", session.userId);
+  }
+
   // The account's own display name, so the device-local cache the front door
   // reads can be stamped with the real name rather than the "Founder"
-  // placeholder — the reset page has no other source for it.
+  // placeholder — the page has no other source for it.
   const { data: profile } = await supabase
     .from("profiles")
     .select("display_name")
@@ -127,7 +156,7 @@ export async function POST(req: NextRequest) {
       ok: true,
       signedIn: true,
       email: session.email,
-      displayName: profile?.display_name ?? null,
+      displayName: profile?.display_name ?? named ?? null,
     }),
     session,
   );

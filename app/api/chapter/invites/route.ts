@@ -33,9 +33,9 @@ export const dynamic = "force-dynamic";
  *   · **New address** → the account is created with no usable password, the
  *     seat and its entitlement are granted, and the address gets an invite
  *     email — through Resend, a link to `/join?code=<token>`, where the
- *     invitee confirms their email and name and is handed straight into the
- *     existing set-password flow (/reset); through the fallback, Supabase's
- *     own invite mail, whose link lands on /reset directly.
+ *     invitee confirms their email and name and is handed to the welcome
+ *     screen at `/join/setup` to choose a password; through the fallback,
+ *     Supabase's own invite mail, whose link lands on `/join/setup` directly.
  *     → `action: "invited"`
  *
  *   · **Existing account** → the seat and entitlement are granted and NO
@@ -259,9 +259,10 @@ async function inviteSeat(
     userId = created.user.id;
   } else {
     const { data: created, error: createError } = await db.auth.admin.inviteUserByEmail(email, {
-      // The invite link signs them in and lands on the set-password page —
-      // the same /reset every claim ends on.
-      ...(SITE_URL ? { redirectTo: `${SITE_URL}/reset` } : {}),
+      // The invite link signs them in and lands on the welcome screen — the
+      // same /join/setup every claim ends on. There is no claim step on this
+      // path, so that page is where the name gets asked for too.
+      ...(SITE_URL ? { redirectTo: `${SITE_URL}/join/setup` } : {}),
     });
     if (createError || !created?.user) {
       return { email, ok: false, error: createError?.message ?? "could not create the account" };
@@ -385,7 +386,7 @@ async function supabaseInviteEmail(
   email: string,
 ): Promise<string | null> {
   const { error } = await db.auth.admin.inviteUserByEmail(email, {
-    ...(SITE_URL ? { redirectTo: `${SITE_URL}/reset` } : {}),
+    ...(SITE_URL ? { redirectTo: `${SITE_URL}/join/setup` } : {}),
   });
   if (!error) return null;
   return supabaseRecoveryEmail(email);
@@ -395,7 +396,10 @@ async function supabaseInviteEmail(
  * A choose-your-password email. With Resend the link is minted server-side
  * (`admin.generateLink`) and delivered through our own mail — Supabase's
  * mailer never runs. Without it, Supabase sends its own recovery email.
- * Either way the link lands on /reset, the page that already exists for it.
+ *
+ * Either way the link lands on /reset, and /reset is the correct page here —
+ * unlike an invite, this email only ever goes to a seat whose account has
+ * already been claimed, so "choose a new password" is the true sentence.
  */
 async function sendPasswordLink(
   db: ReturnType<typeof adminClient>,

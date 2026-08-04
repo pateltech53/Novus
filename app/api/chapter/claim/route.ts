@@ -16,8 +16,9 @@ export const dynamic = "force-dynamic";
  *
  * Body: `{ token, email, name }`. The /join page posts what the invitee
  * typed; the answer is `{ url }` — a one-time password-setup link the page
- * navigates straight into, which ends on /reset with the player signed in.
- * Filling in an email and a name is genuinely all a student does.
+ * navigates straight into, which ends on /join/setup: the welcome screen where
+ * the student chooses a password and lands signed in. Filling in an email and
+ * a name is genuinely all a student does.
  *
  * ── What the token is, and what it is not ──────────────────────────────────
  *
@@ -158,12 +159,20 @@ export async function POST(req: NextRequest) {
   }
 
   // The handover: a one-time recovery link, minted server-side and handed to
-  // the page to navigate into. It lands on /reset — the set-password flow the
-  // app has had all along — with the student signed in at the end of it.
+  // the page to navigate into. It lands on /join/setup — the welcome screen
+  // written for exactly this moment — with the student signed in at the end
+  // of it.
+  //
+  // NOT /reset. The mechanism is a recovery link because that is the only
+  // one-time sign-in Supabase mints, but the sentence on the screen must not
+  // be "choose a NEW password" to someone whose account is ninety seconds old
+  // and has never had one. `/join/setup` must be on Supabase's redirect
+  // allow-list (Authentication → URL Configuration) or GoTrue quietly sends
+  // them to the Site URL instead; see docs/CHAPTERS.md.
   const { data: link, error: linkError } = await db.auth.admin.generateLink({
     type: "recovery",
     email,
-    ...(SITE_URL ? { options: { redirectTo: `${SITE_URL}/reset` } } : {}),
+    ...(SITE_URL ? { options: { redirectTo: `${SITE_URL}/join/setup` } } : {}),
   });
   const url = link?.properties?.action_link;
   if (linkError || !url) {
