@@ -40,16 +40,16 @@ const NEXT = join(root, ".next");
 
 /** kB gzipped, First Load JS. `null` = report only, no budget. */
 const BUDGETS = {
-  "/page": 200,
-  "/play/page": 450,
-  "/found/page": 350,
-  "/welcome/page": 200,
-  "/chapter/page": 140,
-  "/join/page": 130,
-  "/reset/page": 130,
-  "/privacy/page": 120,
-  "/terms/page": 120,
-  "/download/page": 120,
+  "/page": 150,
+  "/play/page": 340,
+  "/found/page": 325,
+  "/welcome/page": 195,
+  "/chapter/page": 130,
+  "/join/page": 120,
+  "/reset/page": 125,
+  "/privacy/page": 115,
+  "/terms/page": 115,
+  "/download/page": 115,
 };
 
 const manifestPath = join(NEXT, "app-build-manifest.json");

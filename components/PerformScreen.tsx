@@ -13,7 +13,7 @@ import {
   stopStream,
   type LevelMeter,
 } from "@/lib/media/recorder";
-import { tierForScore } from "@/lib/ai/stub";
+import { tierForScore } from "@/lib/ai/score-band";
 import { speak, stopSpeaking } from "@/lib/ai/speech";
 import { SkipVoice } from "@/components/ui/SkipVoice";
 import type { PitchTranscript } from "@/lib/ai/types";

@@ -62,14 +62,14 @@ function latency(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-type Tier = "good" | "mid" | "rough";
-type Band = "high" | "mid" | "low";
-
-/** Score → which canned tier/band to serve. */
-export const tierForScore = (score: number): Tier =>
-  score >= 8 ? "good" : score >= 5 ? "mid" : "rough";
-export const bandForScore = (score: number): Band =>
-  score >= 8 ? "high" : score >= 5 ? "mid" : "low";
+/*
+ * Score → which canned tier/band to serve. Defined in lib/ai/score-band.ts and
+ * re-exported here so every existing caller is unchanged: PerformScreen wanted
+ * only `tierForScore` and was importing this module for it, which put 66 KB of
+ * fixture JSON into the pitch screen's chunk to answer a comparison.
+ */
+import { tierForScore, bandForScore, type Tier, type Band } from "./score-band";
+export { tierForScore, bandForScore, type Tier, type Band };
 
 let briefCursor = 0;
 

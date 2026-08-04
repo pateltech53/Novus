@@ -13,8 +13,28 @@ import { AnimatePresence } from "framer-motion";
 import { play } from "@/lib/sound";
 import { isPro, loadEntitlements } from "@/lib/monetization";
 import { gateFor, type Gate, type GateId } from "@/lib/upgrade";
-import { UpgradeNotice } from "@/components/upgrade/UpgradeNotice";
-import { UpgradeScreen } from "@/components/upgrade/UpgradeScreen";
+import dynamic from "next/dynamic";
+
+/*
+ * Both of these render behind a gate that most sessions never trip, and this
+ * provider is mounted by the ROOT LAYOUT — so they were in the first load of
+ * every page in the app, including /privacy, /terms, /download and /join,
+ * none of which can open an upgrade sheet at all. Between them they also drag
+ * lib/legal/documents.tsx and were one of the things anchoring framer-motion's
+ * DOM feature bundle into those routes.
+ *
+ * `loading: () => null` because the AnimatePresence below already owns how
+ * these arrive; a spinner in the doorway would be a second answer to the same
+ * question.
+ */
+const UpgradeNotice = dynamic(
+  () => import("@/components/upgrade/UpgradeNotice").then((m) => m.UpgradeNotice),
+  { ssr: false, loading: () => null },
+);
+const UpgradeScreen = dynamic(
+  () => import("@/components/upgrade/UpgradeScreen").then((m) => m.UpgradeScreen),
+  { ssr: false, loading: () => null },
+);
 
 /**
  * One place that answers "you cannot do that, here is why, here is Pro".

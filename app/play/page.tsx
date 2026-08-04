@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useGame } from "@/lib/state/GameProvider";
 import { HomeStage } from "@/components/HomeStage";
@@ -9,31 +10,11 @@ import { TheBooks } from "@/components/TheBooks";
 import { LifeLog } from "@/components/LifeLog";
 import { LogButton, LogSheet } from "@/components/screens/LogSheet";
 import { AdvanceButton } from "@/components/AdvanceButton";
-import { DecisionSheet } from "@/components/DecisionSheet";
-import { PositioningSheet } from "@/components/PositioningSheet";
 import { STANCE_CHOICE_ORDER } from "@/lib/engine/positioning";
 import { ActivityBar, type ActivityTab } from "@/components/ActivityBar";
 import { TermCoach } from "@/components/TermCoach";
-import { YearEndStatement } from "@/components/YearEndStatement";
-import { StageGuide } from "@/components/StageGuide";
-import { KeyTermsSheet } from "@/components/KeyTermsSheet";
-import { ChapterSeven } from "@/components/ChapterSeven";
-import { PerformScreen } from "@/components/PerformScreen";
-import { ProSheet } from "@/components/ProSheet";
-import { Coachmarks, firstRunSteps } from "@/components/Coachmarks";
 import { ImpactProvider, useImpact } from "@/components/ImpactLayer";
-import { CompanyScreen } from "@/components/screens/CompanyScreen";
-import { ProductScreen } from "@/components/screens/ProductScreen";
-import { TeamScreen } from "@/components/screens/TeamScreen";
-import { AssetsScreen } from "@/components/screens/AssetsScreen";
-import { ClosetScreen } from "@/components/screens/ClosetScreen";
-import { Phone } from "@/components/phone/Phone";
 import type { PhoneApp } from "@/components/phone/Phone";
-import { TierUnlock } from "@/components/TierUnlock";
-import { SettingsScreen } from "@/components/screens/SettingsScreen";
-import { StillStandingScreen } from "@/components/screens/StillStandingScreen";
-import { RobinGhood } from "@/components/phone/RobinGhood";
-import { LinkedOut } from "@/components/phone/LinkedOut";
 import { deriveRunwayMonths } from "@/lib/engine/sim";
 import { fmtMonths } from "@/lib/engine/format";
 import { usePlayChrome, type NativeControlId } from "@/components/native/usePlayChrome";
@@ -41,6 +22,123 @@ import { useNativeSheet } from "@/components/native/useNativeSheet";
 import { useNativeTermCoach } from "@/components/native/useNativeTermCoach";
 import { useBackHandler } from "@/lib/native/back";
 import { useNativeCoachRect } from "@/lib/native/chrome";
+import { Coachmarks, firstRunSteps } from "@/components/Coachmarks";
+
+/*
+ * ── Everything below renders behind a flag, so none of it belongs in the
+ *    chunk that draws month one ──────────────────────────────────────────────
+ *
+ * This file had 41 static imports and zero dynamic ones, which put every
+ * screen the game can reach into `/play`'s first load: the pitch and its whole
+ * Tank chain, five activity screens, the in-game phone and its three apps, the
+ * settings sheet, the leaderboard, the year-end statement, Chapter 7. A player
+ * on month one had downloaded all of it, and a player who never survives to
+ * year one downloads it and never opens it.
+ *
+ * `PerformScreen` is the big one. The early return further down is a clean cut
+ * point, and behind it sits SharkStage, SharkCanvas, PitchScore, SharkPanel,
+ * PitchNotes, CompanyDossier and TankDebrief — plus three.js, which was
+ * already lazy but was being anchored into this chunk by the import chain
+ * above it.
+ *
+ * `ssr: false` throughout: none of these can render on the server anyway (the
+ * page is a client component reading a localStorage run), and every one is
+ * closed on first paint.
+ *
+ * `loading: () => null` is right for the overlays — they animate in over the
+ * board, and a spinner between the tap and the sheet is worse than the sheet
+ * arriving. `PerformScreen` gets a real holding screen instead, because it
+ * REPLACES the board rather than covering it, and batch B's rule applies: the
+ * year gate must never open onto nothing.
+ */
+/*
+ * The options object below is repeated at every call site rather than shared.
+ * That is not a style choice: next/dynamic is compiled by a SWC transform that
+ * reads its second argument statically, and it rejects anything that is not an
+ * object literal — "next/dynamic options must be an object literal."
+ */
+
+const PerformScreen = dynamic(
+  () => import("@/components/PerformScreen").then((m) => m.PerformScreen),
+  {
+    ssr: false,
+    loading: () => (
+      <main className="flex h-dvh flex-col items-center justify-center gap-3 bg-[var(--bg)] px-6">
+        <p className="text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]">
+          THE YEAR CLOSES
+        </p>
+        <p className="text-sm text-[var(--text-secondary)]">Setting up the room…</p>
+      </main>
+    ),
+  },
+);
+
+const CompanyScreen = dynamic(
+  () => import("@/components/screens/CompanyScreen").then((m) => m.CompanyScreen),
+  { ssr: false, loading: () => null },
+);
+const ProductScreen = dynamic(
+  () => import("@/components/screens/ProductScreen").then((m) => m.ProductScreen),
+  { ssr: false, loading: () => null },
+);
+const TeamScreen = dynamic(
+  () => import("@/components/screens/TeamScreen").then((m) => m.TeamScreen),
+  { ssr: false, loading: () => null },
+);
+const AssetsScreen = dynamic(
+  () => import("@/components/screens/AssetsScreen").then((m) => m.AssetsScreen),
+  { ssr: false, loading: () => null },
+);
+const ClosetScreen = dynamic(
+  () => import("@/components/screens/ClosetScreen").then((m) => m.ClosetScreen),
+  { ssr: false, loading: () => null },
+);
+const SettingsScreen = dynamic(
+  () => import("@/components/screens/SettingsScreen").then((m) => m.SettingsScreen),
+  { ssr: false, loading: () => null },
+);
+const StillStandingScreen = dynamic(
+  () => import("@/components/screens/StillStandingScreen").then((m) => m.StillStandingScreen),
+  { ssr: false, loading: () => null },
+);
+const StageGuide = dynamic(
+  () => import("@/components/StageGuide").then((m) => m.StageGuide),
+  { ssr: false, loading: () => null },
+);
+const KeyTermsSheet = dynamic(
+  () => import("@/components/KeyTermsSheet").then((m) => m.KeyTermsSheet),
+  { ssr: false, loading: () => null },
+);
+const ProSheet = dynamic(() => import("@/components/ProSheet").then((m) => m.ProSheet), { ssr: false, loading: () => null });
+const ChapterSeven = dynamic(
+  () => import("@/components/ChapterSeven").then((m) => m.ChapterSeven),
+  { ssr: false, loading: () => null },
+);
+const YearEndStatement = dynamic(
+  () => import("@/components/YearEndStatement").then((m) => m.YearEndStatement),
+  { ssr: false, loading: () => null },
+);
+const TierUnlock = dynamic(
+  () => import("@/components/TierUnlock").then((m) => m.TierUnlock),
+  { ssr: false, loading: () => null },
+);
+const Phone = dynamic(() => import("@/components/phone/Phone").then((m) => m.Phone), { ssr: false, loading: () => null });
+const RobinGhood = dynamic(
+  () => import("@/components/phone/RobinGhood").then((m) => m.RobinGhood),
+  { ssr: false, loading: () => null },
+);
+const LinkedOut = dynamic(
+  () => import("@/components/phone/LinkedOut").then((m) => m.LinkedOut),
+  { ssr: false, loading: () => null },
+);
+const PositioningSheet = dynamic(
+  () => import("@/components/PositioningSheet").then((m) => m.PositioningSheet),
+  { ssr: false, loading: () => null },
+);
+const DecisionSheet = dynamic(
+  () => import("@/components/DecisionSheet").then((m) => m.DecisionSheet),
+  { ssr: false, loading: () => null },
+);
 
 export default function PlayPage() {
   return (
@@ -284,6 +382,32 @@ function PlayScreen() {
     completeCoachStep("advance");
     game.advance();
   }, [completeCoachStep, game]);
+
+  /*
+   * Warm the pitch chunk the moment the year gate is reachable.
+   *
+   * Splitting PerformScreen out is only free if the code is already there when
+   * the player presses CLOSE THE YEAR — otherwise the split has moved the wait
+   * to the worst possible moment in the game. `atGate` goes true at month 12,
+   * which is a whole screen's worth of reading before the tap, and
+   * `dynamic().preload()` fetches without rendering.
+   *
+   * Idle rather than immediate, and a timeout underneath it, for the same
+   * reason lib/prefetch.ts is written that way: the screen the player is
+   * actually looking at gets the main thread first, and a slow phone that
+   * never goes idle must still end up with the chunk.
+   */
+  useEffect(() => {
+    if (!atGate) return;
+    const warm = () => void (PerformScreen as { preload?: () => void }).preload?.();
+    const idle = window.requestIdleCallback;
+    if (idle) {
+      const id = idle(warm, { timeout: 1500 });
+      return () => window.cancelIdleCallback?.(id);
+    }
+    const id = window.setTimeout(warm, 400);
+    return () => window.clearTimeout(id);
+  }, [atGate]);
 
   const nativeChromeOwned = usePlayChrome({
     visible: !!run && !overlay,
