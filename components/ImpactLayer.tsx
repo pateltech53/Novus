@@ -4,6 +4,7 @@ import { play } from "@/lib/sound";
 
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { IMPACT_MS, STAGGER } from "@/components/ui/Motion";
 
 /**
  * Decision impact, made legible.
@@ -42,10 +43,20 @@ export function ImpactProvider({ children }: { children: React.ReactNode }) {
       if (deltas.length === 0) return;
       const batch = deltas.slice(0, 6).map((d) => ({ ...d, id: nextId.current++ }));
       setItems((prev) => [...prev, ...batch]);
-      // Floaters are transient; drop them once the animation has played out.
-      window.setTimeout(() => {
-        setItems((prev) => prev.filter((i) => !batch.some((b) => b.id === i.id)));
-      }, 1800);
+      /*
+       * Floaters are transient; drop them once the animation has played out.
+       *
+       * The lifetime is keyed to IMPACT_MS like the rings and The Books, rather
+       * than being a third independent number. It is TWICE the unit and not
+       * one, deliberately: an outline only has to be seen, and a ring only has
+       * to arrive, but a chip carries a word and a figure that have to be READ
+       * — and up to six of them arrive staggered. Same clock, two beats of it,
+       * plus the tail for the last chip's stagger.
+       */
+      window.setTimeout(
+        () => setItems((prev) => prev.filter((i) => !batch.some((b) => b.id === i.id))),
+        IMPACT_MS * 2 + batch.length * STAGGER * 1000,
+      );
     },
     [],
   );
@@ -84,7 +95,11 @@ export function ImpactProvider({ children }: { children: React.ReactNode }) {
             }
             initial={{ opacity: 0, y: 18, scale: 0.85 }}
             animate={{ opacity: [0, 1, 1, 0], y: [18, 0, -10, -46], scale: [0.85, 1.06, 1, 1] }}
-            transition={{ duration: 1.7, times: [0, 0.15, 0.6, 1], delay: i * 0.07 }}
+            transition={{
+              duration: (IMPACT_MS * 2) / 1000,
+              times: [0, 0.15, 0.6, 1],
+              delay: i * STAGGER,
+            }}
           >
             {item.label}
           </motion.span>

@@ -4,7 +4,7 @@ import { play } from "@/lib/sound";
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ENTER } from "@/components/ui/Motion";
+import { ENTER, STAGGER } from "@/components/ui/Motion";
 import { allocationFlag, useGame } from "@/lib/state/GameProvider";
 import type { YearEndSummary } from "@/lib/engine/run";
 import { fmtMoney } from "@/lib/engine/format";
@@ -61,10 +61,38 @@ export function YearEndStatement({ summary }: { summary: YearEndSummary }) {
           Closed out loud. Score {summary.score}/10.
         </p>
 
-        <dl className="mt-7 border-t border-[var(--hairline)]">
+        {/*
+          ── The app's one legitimately orchestrated moment ──────────────────
+          │
+          │ design.md §5 budgets ONE per screen and this is where it belongs:
+          │ the four numbers a whole fiscal year resolved into, delivered as a
+          │ verdict. They used to arrive as part of the single 0.35 s block
+          │ fade above — cash, burn, runway and valuation appearing
+          │ simultaneously, which reads as a card loading rather than as a
+          │ result being read out.
+          │
+          │ Staggered at STAGGER (60 ms), so four rows take ~240 ms and land in
+          │ reading order. Fast enough to still be one gesture; slow enough
+          │ that the eye lands on each figure. Framer's reducedMotion="user"
+          │ cuts the y-travel for anyone who asked for less, and the stagger
+          │ becomes a very fast fade rather than a slide.
+          │
+          │ The rest of this screen keeps the block entrance deliberately —
+          │ the §5 budget is one moment per SCREEN, not one per component.
+        */}
+        <motion.dl
+          className="mt-7 border-t border-[var(--hairline)]"
+          initial="rest"
+          animate="shown"
+          variants={{ shown: { transition: { staggerChildren: STAGGER, delayChildren: 0.12 } } }}
+        >
           {rows.map((row) => (
-            <div
+            <motion.div
               key={row.label}
+              variants={{
+                rest: { opacity: 0, y: 8 },
+                shown: { opacity: 1, y: 0, transition: ENTER },
+              }}
               className="flex items-baseline justify-between gap-4 border-b border-[var(--hairline)] py-3"
             >
               <dt className="text-sm text-[var(--text-secondary)]">{row.label}</dt>
@@ -92,9 +120,9 @@ export function YearEndStatement({ summary }: { summary: YearEndSummary }) {
                   {row.value}
                 </span>
               </dd>
-            </div>
+            </motion.div>
           ))}
-        </dl>
+        </motion.dl>
 
         {summary.stageUp && (
           <p className="mt-5 border-l-2 border-[var(--color-prestige)] pl-3 text-sm font-semibold text-[var(--color-prestige)]">

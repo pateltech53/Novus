@@ -1,6 +1,7 @@
 "use client";
 
 import type { RunState } from "@/lib/engine/types";
+import { IMPACT_MS } from "@/components/ui/Motion";
 
 /**
  * The prototype's three rings, wired to real stats instead of mock numbers.
@@ -75,7 +76,11 @@ function Ring({ label, value }: { label: string; value: number }) {
           strokeDasharray={CIRCUMFERENCE}
           strokeDashoffset={offset}
           transform="rotate(-90 32 32)"
-          style={{ transition: "stroke-dashoffset 600ms var(--ease-out)" }}
+          /* Same clock as The Books' flash and the impact chip. It was 600 ms
+             against their 700 and 1700 — three reactions to one decision, none
+             of which agreed with the others, which is why a choice read as
+             several unrelated glitches rather than one consequence. */
+          style={{ transition: `stroke-dashoffset ${IMPACT_MS}ms var(--ease-out)` }}
         />
       </svg>
         <div className="absolute inset-0 flex items-center justify-center">

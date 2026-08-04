@@ -62,6 +62,17 @@ export const SharkStage = memo(function SharkStage({
   active?: boolean;
 }) {
   const [webglOk, setWebglOk] = useState(true);
+  /*
+   * Whether the mesh has resolved, so the poster can cross-fade out under it.
+   *
+   * The Suspense fallback in SharkCanvas is `null` and the dynamic import's
+   * `loading` is `null` too, so the model simply appeared on top of the
+   * silhouette one frame — a pop-in on the app's mascot, on the screen where
+   * the player is being asked to perform. LandingShark.tsx:114 has always
+   * done this correctly and it is the best loading choreography in the repo;
+   * this is the same thing, ported.
+   */
+  const [modelReady, setModelReady] = useState(false);
   const reduced = useStill();
 
   useEffect(() => {
@@ -80,7 +91,7 @@ export const SharkStage = memo(function SharkStage({
     <div className={`relative ${className}`}>
       {/* The poster sits under the canvas so the stage never reads as broken
           while the mesh lands, or before the first frame paints. */}
-      <StagePoster />
+      <StagePoster faded={modelReady} />
       {active && (
         <SharkCanvas
           state={state}
@@ -88,6 +99,7 @@ export const SharkStage = memo(function SharkStage({
           reduced={reduced}
           tint={tint}
           suitTint={suitTint}
+          onReady={() => setModelReady(true)}
         />
       )}
     </div>
@@ -98,11 +110,13 @@ export const SharkStage = memo(function SharkStage({
  * A still frame of the mascot's silhouette, at the size and position the real
  * model occupies — so the canvas arriving is a fade, not a jump.
  */
-function StagePoster() {
+function StagePoster({ faded = false }: { faded?: boolean }) {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute inset-0 flex items-end justify-center"
+      className={`pointer-events-none absolute inset-0 flex items-end justify-center transition-opacity duration-500 ${
+        faded ? "opacity-0" : "opacity-100"
+      }`}
     >
       <svg
         viewBox="0 0 120 130"

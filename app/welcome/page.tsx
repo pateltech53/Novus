@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ENTER, SETTLE_SPRING } from "@/components/ui/Motion";
+import { ENTER, SETTLE_SPRING, useStill } from "@/components/ui/Motion";
 import { FounderPortrait } from "@/components/FounderAvatar";
 import { play } from "@/lib/sound";
 import { LoopExplainer } from "@/components/LoopExplainer";
@@ -336,34 +336,67 @@ function MicMoment({ onNext }: { onNext: () => void }) {
 function Explanation({ onNext }: { onNext: () => void }) {
   const [shown, setShown] = useState(0);
   const done = shown >= SHARK_EXPLANATION.length;
+  const reduced = useStill();
 
+  /*
+   * ── The typewriter, rewritten ─────────────────────────────────────────────
+   *
+   * It was a 22 ms `setInterval` advancing one character at a time: 194 React
+   * commits over 4.3 seconds, none of them frame-aligned, on the fourth screen
+   * a new player ever sees. An interval that does not divide the frame budget
+   * beats against it — some frames drew two characters, some drew none — so
+   * the effect it produced was a stutter rather than typing. The caret beside
+   * it ran on `animate-pulse`, a completely separate CSS clock, so the two
+   * halves of one effect were never in step.
+   *
+   * Driven from elapsed time in a rAF now: at most one commit per frame, and
+   * the character count is derived from how long has actually passed rather
+   * than from how many times a timer managed to fire. On a frame that drops,
+   * it catches up instead of falling behind.
+   *
+   * And it can be skipped. This is the shark explaining the game — the player
+   * who has read it, or who reads faster than 45 characters a second, should
+   * not be held. Tapping the text completes it; that is what everyone tries
+   * first, and it did nothing.
+   */
   useEffect(() => {
     void speak(SHARK_EXPLANATION, "narrator");
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduced) {
       setShown(SHARK_EXPLANATION.length);
       return;
     }
-    const id = setInterval(() => {
-      setShown((n) => {
-        if (n >= SHARK_EXPLANATION.length) {
-          clearInterval(id);
-          return n;
-        }
-        return n + 1;
-      });
-    }, 22);
-    return () => clearInterval(id);
-  }, []);
+    let raf = 0;
+    let start = 0;
+    const CPS = 45; // characters a second — the old 22 ms interval, honestly stated
+    const tick = (now: number) => {
+      start ||= now;
+      const n = Math.min(SHARK_EXPLANATION.length, Math.floor(((now - start) / 1000) * CPS));
+      setShown((prev) => (prev === n ? prev : n));
+      if (n < SHARK_EXPLANATION.length) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [reduced]);
+
+  const skip = () => setShown(SHARK_EXPLANATION.length);
 
   return (
     <StepShell>
       <div className="flex h-44 items-center justify-center">
         <FounderPortrait gender="male" tier={5} size={168} />
       </div>
-      <p className="mt-2 min-h-[9rem] text-[1.0625rem] leading-relaxed text-[var(--n-11)]">
+      {/* The whole block is the skip target: a player who taps the text is
+          asking for the rest of it, not for a button they have to find. */}
+      <p
+        onClick={done ? undefined : skip}
+        className={`mt-2 min-h-[9rem] text-[1.0625rem] leading-relaxed text-[var(--n-11)] ${
+          done ? "" : "cursor-pointer"
+        }`}
+      >
         {SHARK_EXPLANATION.slice(0, shown)}
-        {!done && <span className="ml-0.5 inline-block h-5 w-[2px] animate-pulse bg-[var(--action)] align-middle" />}
+        {!done && (
+          <span className="ml-0.5 inline-block h-5 w-[2px] animate-pulse bg-[var(--action)] align-middle" />
+        )}
       </p>
       <div className="mt-auto w-full">
         {done && (

@@ -90,12 +90,15 @@ export default function SharkCanvas({
   reduced,
   tint,
   suitTint,
+  onReady,
 }: {
   state: SharkState;
   levelRef?: RefObject<number>;
   reduced: boolean;
   tint?: string;
   suitTint?: string;
+  /** Fires once the mesh has resolved, so the shell can cross-fade the poster. */
+  onReady?: () => void;
 }) {
   const mobile = MOBILE;
   return (
@@ -128,6 +131,7 @@ export default function SharkCanvas({
           reduced={reduced}
           tint={tint}
           suitTint={suitTint}
+          onReady={onReady}
         />
       </Suspense>
     </Canvas>
@@ -186,12 +190,14 @@ function SharkModel({
   reduced,
   tint,
   suitTint,
+  onReady,
 }: {
   state: SharkState;
   levelRef?: RefObject<number>;
   reduced: boolean;
   tint?: string;
   suitTint?: string;
+  onReady?: () => void;
 }) {
   const group = useRef<Group>(null);
   /**
@@ -226,6 +232,15 @@ function SharkModel({
       }
     });
   }, [model, tint, suitTint]);
+
+  /*
+   * The mesh has resolved. Same signal LandingSharkCanvas has always sent —
+   * this canvas never had one, so its Suspense fallback was `null` and the
+   * mascot popped in over the poster instead of resolving through it.
+   */
+  useEffect(() => {
+    onReady?.();
+  }, [onReady]);
 
   const t = useRef(0);
 

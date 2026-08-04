@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ENTER } from "@/components/ui/Motion";
+import { ENTER, STAGGER } from "@/components/ui/Motion";
 import { useGame } from "@/lib/state/GameProvider";
 import { FounderAvatar } from "@/components/FounderAvatar";
 import { TankRoom } from "@/components/panel/TankRoom";
@@ -768,11 +768,42 @@ export function SharkPanel({
           </AnimatePresence>
         </ol>
 
+        {/*
+          ── A room that is thinking should look occupied, not stopped ────────
+          │
+          │ This was one static line, held for however long the provider took —
+          │ up to 60 s before the client timeout in lib/ai/panel.ts, and five
+          │ times per year gate. Nothing on the screen moved while it waited,
+          │ so the most common reading of a slow turn was that the app had
+          │ crashed.
+          │
+          │ Three dots on one clock, offset by STAGGER. It is the smallest
+          │ honest thing that says "still going" — and it says it about the
+          │ room rather than about a loading state, which is why it sits inline
+          │ with the sentence instead of being a spinner somewhere else.
+        */}
         {thinking && !awaiting && (
-          <p className="mt-4 text-sm text-[var(--text-secondary)]">
-            {beats.length === 0
-              ? "The room is reading your numbers…"
-              : "They're thinking about it…"}
+          <p className="mt-4 flex items-center gap-1.5 text-sm text-[var(--text-secondary)]">
+            <span>
+              {beats.length === 0
+                ? "The room is reading your numbers"
+                : "They're thinking about it"}
+            </span>
+            <span aria-hidden="true" className="flex items-end gap-[3px] pb-[3px]">
+              {[0, 1, 2].map((i) => (
+                <motion.span
+                  key={i}
+                  className="block h-[3px] w-[3px] rounded-full bg-current"
+                  animate={{ opacity: [0.25, 1, 0.25] }}
+                  transition={{
+                    duration: 1.2,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: i * STAGGER * 2,
+                  }}
+                />
+              ))}
+            </span>
           </p>
         )}
 
