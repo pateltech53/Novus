@@ -71,7 +71,7 @@ function PlayScreen() {
   const [showBoard, setShowBoard] = useState(false);
   const [dossier, setDossier] = useState(false);
   const [stageGuide, setStageGuide] = useState(false);
-  /** The ⓘ page: every key term, searchable, with the Rookie switch on it. */
+  /** The book page: every key term, searchable, with the Rookie switch on it. */
   const [keyTerms, setKeyTerms] = useState(false);
   /** The phone's log sheet. Desktop keeps the log inline and never sets this. */
   const [logOpen, setLogOpen] = useState(false);
@@ -585,6 +585,7 @@ function PlayScreen() {
           steps={coachSteps}
           index={coachIndex}
           onAdvance={() => setCoachIndex((i) => i + 1)}
+          onBack={() => setCoachIndex((i) => Math.max(0, i - 1))}
           onFinish={finishCoaching}
           nativeChrome={nativeChromeOwned}
           nativeRect={nativeCoachRect}
