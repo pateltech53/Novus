@@ -439,12 +439,11 @@ export function saveEntitlements(next: Entitlements): void {
  * How many fiscal years this DEVICE has closed today, for the free tier's
  * pace limit. Device-level rather than per-run on purpose: the limit is "four
  * years of progress a day", and counting per company would make founding a
- * second company the workaround. UTC date, the same clock as cold calls, so
- * the two rations roll over together.
+ * second company the workaround. The player's LOCAL calendar day, same clock
+ * as the run ledger above and for the same reason: a personal daily allowance
+ * resets at the person's own midnight, not Greenwich's.
  */
 const YEAR_CLOSE_KEY = "novus:yearcloses:v1";
-
-const utcDayISO = (d = new Date()) => d.toISOString().slice(0, 10);
 
 function yearClosesToday(): number {
   if (!canStore()) return 0;
@@ -452,7 +451,7 @@ function yearClosesToday(): number {
     const raw = localStorage.getItem(YEAR_CLOSE_KEY);
     if (!raw) return 0;
     const parsed = JSON.parse(raw) as { day?: string; closed?: number };
-    return parsed.day === utcDayISO() ? Math.max(0, parsed.closed ?? 0) : 0;
+    return parsed.day === todayISO() ? Math.max(0, parsed.closed ?? 0) : 0;
   } catch {
     return 0;
   }
@@ -469,7 +468,7 @@ export function recordYearClose(): void {
   try {
     localStorage.setItem(
       YEAR_CLOSE_KEY,
-      JSON.stringify({ day: utcDayISO(), closed: yearClosesToday() + 1 }),
+      JSON.stringify({ day: todayISO(), closed: yearClosesToday() + 1 }),
     );
   } catch {
     // A blocked store must not take the year-end screen down with it.
@@ -568,7 +567,24 @@ interface RunLedger {
   started: number;
 }
 
-const todayISO = () => new Date().toISOString().slice(0, 10);
+/**
+ * The player's OWN calendar day, not UTC's.
+ *
+ * This was `toISOString()`, which is the UTC date — and for anyone west of
+ * Greenwich the UTC day rolls over mid-afternoon or evening. Found a company
+ * at 8pm in California and the ledger stamps TOMORROW's UTC date on it, so
+ * the slot stays spent through almost all of the player's actual next day:
+ * the reported "the number of runs does not reset every day". A daily ration
+ * promised to a person resets at that person's midnight. (Today's Market
+ * stays on UTC deliberately — it is one shared event for everyone — but a
+ * personal allowance is personal.)
+ */
+const todayISO = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate(),
+  ).padStart(2, "0")}`;
+};
 
 function loadRunLedger(): RunLedger {
   if (typeof window === "undefined") return { dayISO: todayISO(), started: 0 };
