@@ -1,957 +1,963 @@
 {
-  "bgm": null,
-  "bgm_pending": false,
-  "voices": [
+ "bgm": {
+  "path": "assets/bgm/track.wav",
+  "volume": 0.12,
+  "mode": "detached-seed-loop",
+  "duration_s": 43.627,
+  "provider": "musicgen"
+ },
+ "bgm_pending": false,
+ "voices": [
+  {
+   "frame": 1,
+   "path": "assets/voice/01.wav",
+   "duration_s": 3.989,
+   "words": [
     {
-      "frame": 1,
-      "path": "assets/voice/01.wav",
-      "duration_s": 3.989,
-      "words": [
-        {
-          "id": "w0",
-          "text": "You",
-          "start": 0.06,
-          "end": 0.2
-        },
-        {
-          "id": "w1",
-          "text": "don't",
-          "start": 0.2,
-          "end": 0.53
-        },
-        {
-          "id": "w2",
-          "text": "learn",
-          "start": 0.53,
-          "end": 0.84
-        },
-        {
-          "id": "w3",
-          "text": "to",
-          "start": 0.85,
-          "end": 0.99
-        },
-        {
-          "id": "w4",
-          "text": "ride",
-          "start": 0.99,
-          "end": 1.18
-        },
-        {
-          "id": "w5",
-          "text": "a",
-          "start": 1.25,
-          "end": 1.3
-        },
-        {
-          "id": "w6",
-          "text": "bike",
-          "start": 1.3,
-          "end": 1.65
-        },
-        {
-          "id": "w7",
-          "text": "by",
-          "start": 1.65,
-          "end": 1.72
-        },
-        {
-          "id": "w8",
-          "text": "watching",
-          "start": 1.72,
-          "end": 2.22
-        },
-        {
-          "id": "w9",
-          "text": "videos",
-          "start": 2.22,
-          "end": 2.68
-        },
-        {
-          "id": "w10",
-          "text": "of",
-          "start": 2.68,
-          "end": 2.73
-        },
-        {
-          "id": "w11",
-          "text": "people",
-          "start": 2.82,
-          "end": 3.14
-        },
-        {
-          "id": "w12",
-          "text": "riding",
-          "start": 3.14,
-          "end": 3.56
-        },
-        {
-          "id": "w13",
-          "text": "bikes.",
-          "start": 3.56,
-          "end": 3.92
-        }
-      ]
+     "id": "w0",
+     "text": "You",
+     "start": 0.06,
+     "end": 0.2
     },
     {
-      "frame": 2,
-      "path": "assets/voice/02.wav",
-      "duration_s": 5.568,
-      "words": [
-        {
-          "id": "w0",
-          "text": "But",
-          "start": 0.05,
-          "end": 0.19
-        },
-        {
-          "id": "w1",
-          "text": "that's",
-          "start": 0.19,
-          "end": 0.58
-        },
-        {
-          "id": "w2",
-          "text": "how",
-          "start": 0.58,
-          "end": 0.77
-        },
-        {
-          "id": "w3",
-          "text": "we",
-          "start": 0.77,
-          "end": 0.89
-        },
-        {
-          "id": "w4",
-          "text": "teach",
-          "start": 0.9,
-          "end": 1.22
-        },
-        {
-          "id": "w5",
-          "text": "business.",
-          "start": 1.22,
-          "end": 1.82
-        },
-        {
-          "id": "w6",
-          "text": "Hours",
-          "start": 1.87,
-          "end": 2.18
-        },
-        {
-          "id": "w7",
-          "text": "of",
-          "start": 2.21,
-          "end": 2.32
-        },
-        {
-          "id": "w8",
-          "text": "lectures,",
-          "start": 2.32,
-          "end": 3.06
-        },
-        {
-          "id": "w9",
-          "text": "hours",
-          "start": 3.06,
-          "end": 3.26
-        },
-        {
-          "id": "w10",
-          "text": "of",
-          "start": 3.26,
-          "end": 3.67
-        },
-        {
-          "id": "w11",
-          "text": "videos,",
-          "start": 3.67,
-          "end": 4.18
-        },
-        {
-          "id": "w12",
-          "text": "watching,",
-          "start": 4.18,
-          "end": 4.78
-        },
-        {
-          "id": "w13",
-          "text": "never",
-          "start": 4.89,
-          "end": 5.11
-        },
-        {
-          "id": "w14",
-          "text": "doing.",
-          "start": 5.11,
-          "end": 5.66
-        }
-      ]
+     "id": "w1",
+     "text": "don't",
+     "start": 0.2,
+     "end": 0.53
     },
     {
-      "frame": 3,
-      "path": "assets/voice/03.wav",
-      "duration_s": 3.776,
-      "words": [
-        {
-          "id": "w0",
-          "text": "Introducing",
-          "start": 0.04,
-          "end": 0.89
-        },
-        {
-          "id": "w1",
-          "text": "Novus,",
-          "start": 0.89,
-          "end": 1.5
-        },
-        {
-          "id": "w2",
-          "text": "a",
-          "start": 1.51,
-          "end": 1.58
-        },
-        {
-          "id": "w3",
-          "text": "life",
-          "start": 1.58,
-          "end": 1.89
-        },
-        {
-          "id": "w4",
-          "text": "simulator",
-          "start": 1.89,
-          "end": 2.49
-        },
-        {
-          "id": "w5",
-          "text": "for",
-          "start": 2.74,
-          "end": 2.82
-        },
-        {
-          "id": "w6",
-          "text": "running",
-          "start": 2.82,
-          "end": 3.18
-        },
-        {
-          "id": "w7",
-          "text": "a",
-          "start": 3.23,
-          "end": 3.28
-        },
-        {
-          "id": "w8",
-          "text": "company.",
-          "start": 3.28,
-          "end": 3.77
-        }
-      ]
+     "id": "w2",
+     "text": "learn",
+     "start": 0.53,
+     "end": 0.84
     },
     {
-      "frame": 4,
-      "path": "assets/voice/04.wav",
-      "duration_s": 4.437,
-      "words": [
-        {
-          "id": "w0",
-          "text": "Your",
-          "start": 0.04,
-          "end": 0.28
-        },
-        {
-          "id": "w1",
-          "text": "company",
-          "start": 0.28,
-          "end": 0.77
-        },
-        {
-          "id": "w2",
-          "text": "lives",
-          "start": 0.77,
-          "end": 1.07
-        },
-        {
-          "id": "w3",
-          "text": "month",
-          "start": 1.16,
-          "end": 1.46
-        },
-        {
-          "id": "w4",
-          "text": "to",
-          "start": 1.46,
-          "end": 1.56
-        },
-        {
-          "id": "w5",
-          "text": "month.",
-          "start": 1.56,
-          "end": 2.04
-        },
-        {
-          "id": "w6",
-          "text": "Nothing",
-          "start": 2.04,
-          "end": 2.51
-        },
-        {
-          "id": "w7",
-          "text": "moves",
-          "start": 2.51,
-          "end": 2.87
-        },
-        {
-          "id": "w8",
-          "text": "until",
-          "start": 2.87,
-          "end": 3.23
-        },
-        {
-          "id": "w9",
-          "text": "you",
-          "start": 3.23,
-          "end": 3.44
-        },
-        {
-          "id": "w10",
-          "text": "press",
-          "start": 3.45,
-          "end": 3.56
-        },
-        {
-          "id": "w11",
-          "text": "advance.",
-          "start": 4.03,
-          "end": 4.58
-        }
-      ]
+     "id": "w3",
+     "text": "to",
+     "start": 0.85,
+     "end": 0.99
     },
     {
-      "frame": 5,
-      "path": "assets/voice/05.wav",
-      "duration_s": 5.696,
-      "words": [
-        {
-          "id": "w0",
-          "text": "Every",
-          "start": 0.03,
-          "end": 0.4
-        },
-        {
-          "id": "w1",
-          "text": "month",
-          "start": 0.4,
-          "end": 0.8
-        },
-        {
-          "id": "w2",
-          "text": "brings",
-          "start": 0.8,
-          "end": 1.27
-        },
-        {
-          "id": "w3",
-          "text": "a",
-          "start": 1.27,
-          "end": 1.38
-        },
-        {
-          "id": "w4",
-          "text": "real",
-          "start": 1.38,
-          "end": 1.68
-        },
-        {
-          "id": "w5",
-          "text": "scenario.",
-          "start": 1.68,
-          "end": 2.36
-        },
-        {
-          "id": "w6",
-          "text": "A",
-          "start": 2.39,
-          "end": 2.43
-        },
-        {
-          "id": "w7",
-          "text": "supplier",
-          "start": 2.43,
-          "end": 2.85
-        },
-        {
-          "id": "w8",
-          "text": "squeezes,",
-          "start": 2.99,
-          "end": 3.62
-        },
-        {
-          "id": "w9",
-          "text": "a",
-          "start": 3.74,
-          "end": 3.77
-        },
-        {
-          "id": "w10",
-          "text": "rival",
-          "start": 3.77,
-          "end": 4.22
-        },
-        {
-          "id": "w11",
-          "text": "copies,",
-          "start": 4.22,
-          "end": 4.96
-        },
-        {
-          "id": "w12",
-          "text": "you",
-          "start": 5,
-          "end": 5.17
-        },
-        {
-          "id": "w13",
-          "text": "decide.",
-          "start": 5.17,
-          "end": 5.78
-        }
-      ]
+     "id": "w4",
+     "text": "ride",
+     "start": 0.99,
+     "end": 1.18
     },
     {
-      "frame": 6,
-      "path": "assets/voice/06.wav",
-      "duration_s": 4.779,
-      "words": [
-        {
-          "id": "w0",
-          "text": "And",
-          "start": 0.04,
-          "end": 0.19
-        },
-        {
-          "id": "w1",
-          "text": "the",
-          "start": 0.23,
-          "end": 0.46
-        },
-        {
-          "id": "w2",
-          "text": "game",
-          "start": 0.46,
-          "end": 0.77
-        },
-        {
-          "id": "w3",
-          "text": "remembers.",
-          "start": 0.77,
-          "end": 1.48
-        },
-        {
-          "id": "w4",
-          "text": "Every",
-          "start": 1.52,
-          "end": 1.78
-        },
-        {
-          "id": "w5",
-          "text": "decision",
-          "start": 1.78,
-          "end": 2.26
-        },
-        {
-          "id": "w6",
-          "text": "moves",
-          "start": 2.26,
-          "end": 2.51
-        },
-        {
-          "id": "w7",
-          "text": "your",
-          "start": 2.51,
-          "end": 2.98
-        },
-        {
-          "id": "w8",
-          "text": "numbers.",
-          "start": 2.98,
-          "end": 3.24
-        },
-        {
-          "id": "w9",
-          "text": "Cash.",
-          "start": 3.3,
-          "end": 4.07
-        },
-        {
-          "id": "w10",
-          "text": "Burn.",
-          "start": 4.08,
-          "end": 4.47
-        },
-        {
-          "id": "w11",
-          "text": "Runway.",
-          "start": 4.47,
-          "end": 4.86
-        }
-      ]
+     "id": "w5",
+     "text": "a",
+     "start": 1.25,
+     "end": 1.3
     },
     {
-      "frame": 7,
-      "path": "assets/voice/07.wav",
-      "duration_s": 4.032,
-      "words": [
-        {
-          "id": "w0",
-          "text": "then",
-          "start": 0.07,
-          "end": 0.31
-        },
-        {
-          "id": "w1",
-          "text": "month",
-          "start": 0.31,
-          "end": 0.7
-        },
-        {
-          "id": "w2",
-          "text": "12",
-          "start": 0.7,
-          "end": 1.17
-        },
-        {
-          "id": "w3",
-          "text": "stops",
-          "start": 1.17,
-          "end": 1.56
-        },
-        {
-          "id": "w4",
-          "text": "the",
-          "start": 1.56,
-          "end": 1.73
-        },
-        {
-          "id": "w5",
-          "text": "clock.",
-          "start": 1.8,
-          "end": 2.2
-        },
-        {
-          "id": "w6",
-          "text": "To",
-          "start": 2.27,
-          "end": 2.31
-        },
-        {
-          "id": "w7",
-          "text": "close",
-          "start": 2.31,
-          "end": 2.59
-        },
-        {
-          "id": "w8",
-          "text": "the",
-          "start": 2.59,
-          "end": 2.71
-        },
-        {
-          "id": "w9",
-          "text": "year,",
-          "start": 2.8,
-          "end": 3.09
-        },
-        {
-          "id": "w10",
-          "text": "you",
-          "start": 3.14,
-          "end": 3.3
-        },
-        {
-          "id": "w11",
-          "text": "have",
-          "start": 3.3,
-          "end": 3.52
-        },
-        {
-          "id": "w12",
-          "text": "to",
-          "start": 3.6,
-          "end": 3.63
-        },
-        {
-          "id": "w13",
-          "text": "pitch.",
-          "start": 3.67,
-          "end": 4.02
-        }
-      ]
+     "id": "w6",
+     "text": "bike",
+     "start": 1.3,
+     "end": 1.65
     },
     {
-      "frame": 8,
-      "path": "assets/voice/08.wav",
-      "duration_s": 3.669,
-      "words": [
-        {
-          "id": "w0",
-          "text": "on",
-          "start": 0.05,
-          "end": 0.18
-        },
-        {
-          "id": "w1",
-          "text": "camera,",
-          "start": 0.18,
-          "end": 0.9
-        },
-        {
-          "id": "w2",
-          "text": "out",
-          "start": 0.9,
-          "end": 1.17
-        },
-        {
-          "id": "w3",
-          "text": "loud,",
-          "start": 1.17,
-          "end": 1.72
-        },
-        {
-          "id": "w4",
-          "text": "to",
-          "start": 1.75,
-          "end": 1.83
-        },
-        {
-          "id": "w5",
-          "text": "five",
-          "start": 1.92,
-          "end": 2.17
-        },
-        {
-          "id": "w6",
-          "text": "sharks",
-          "start": 2.17,
-          "end": 2.56
-        },
-        {
-          "id": "w7",
-          "text": "who",
-          "start": 2.64,
-          "end": 2.76
-        },
-        {
-          "id": "w8",
-          "text": "have",
-          "start": 2.76,
-          "end": 2.93
-        },
-        {
-          "id": "w9",
-          "text": "read",
-          "start": 2.93,
-          "end": 3.1
-        },
-        {
-          "id": "w10",
-          "text": "your",
-          "start": 3.1,
-          "end": 3.27
-        },
-        {
-          "id": "w11",
-          "text": "books.",
-          "start": 3.27,
-          "end": 3.6
-        }
-      ]
+     "id": "w7",
+     "text": "by",
+     "start": 1.65,
+     "end": 1.72
     },
     {
-      "frame": 9,
-      "path": "assets/voice/09.wav",
-      "duration_s": 3.477,
-      "words": [
-        {
-          "id": "w0",
-          "text": "because",
-          "start": 0.04,
-          "end": 0.41
-        },
-        {
-          "id": "w1",
-          "text": "you",
-          "start": 0.41,
-          "end": 0.59
-        },
-        {
-          "id": "w2",
-          "text": "don't",
-          "start": 0.59,
-          "end": 0.87
-        },
-        {
-          "id": "w3",
-          "text": "learn",
-          "start": 0.88,
-          "end": 1.18
-        },
-        {
-          "id": "w4",
-          "text": "business",
-          "start": 1.18,
-          "end": 1.59
-        },
-        {
-          "id": "w5",
-          "text": "by",
-          "start": 1.66,
-          "end": 1.77
-        },
-        {
-          "id": "w6",
-          "text": "watching,",
-          "start": 1.77,
-          "end": 2.28
-        },
-        {
-          "id": "w7",
-          "text": "you",
-          "start": 2.31,
-          "end": 2.49
-        },
-        {
-          "id": "w8",
-          "text": "learn",
-          "start": 2.49,
-          "end": 2.85
-        },
-        {
-          "id": "w9",
-          "text": "by",
-          "start": 2.85,
-          "end": 2.99
-        },
-        {
-          "id": "w10",
-          "text": "doing.",
-          "start": 2.99,
-          "end": 3.58
-        }
-      ]
+     "id": "w8",
+     "text": "watching",
+     "start": 1.72,
+     "end": 2.22
     },
     {
-      "frame": 10,
-      "path": "assets/voice/10.wav",
-      "duration_s": 4.395,
-      "words": [
-        {
-          "id": "w0",
-          "text": "Novus,",
-          "start": 0.04,
-          "end": 0.67
-        },
-        {
-          "id": "w1",
-          "text": "learn",
-          "start": 0.67,
-          "end": 1.14
-        },
-        {
-          "id": "w2",
-          "text": "by",
-          "start": 1.17,
-          "end": 1.35
-        },
-        {
-          "id": "w3",
-          "text": "doing.",
-          "start": 1.35,
-          "end": 1.92
-        },
-        {
-          "id": "w4",
-          "text": "Start",
-          "start": 1.97,
-          "end": 2.22
-        },
-        {
-          "id": "w5",
-          "text": "your",
-          "start": 2.22,
-          "end": 2.46
-        },
-        {
-          "id": "w6",
-          "text": "company",
-          "start": 2.46,
-          "end": 2.77
-        },
-        {
-          "id": "w7",
-          "text": "at",
-          "start": 2.9,
-          "end": 3.03
-        },
-        {
-          "id": "w8",
-          "text": "NovusBitch.com.",
-          "start": 3.04,
-          "end": 4.38
-        }
-      ]
+     "id": "w9",
+     "text": "videos",
+     "start": 2.22,
+     "end": 2.68
+    },
+    {
+     "id": "w10",
+     "text": "of",
+     "start": 2.68,
+     "end": 2.73
+    },
+    {
+     "id": "w11",
+     "text": "people",
+     "start": 2.82,
+     "end": 3.14
+    },
+    {
+     "id": "w12",
+     "text": "riding",
+     "start": 3.14,
+     "end": 3.56
+    },
+    {
+     "id": "w13",
+     "text": "bikes.",
+     "start": 3.56,
+     "end": 3.92
     }
-  ],
-  "sfx": [
+   ]
+  },
+  {
+   "frame": 2,
+   "path": "assets/voice/02.wav",
+   "duration_s": 5.568,
+   "words": [
     {
-      "frame": 1,
-      "file": "assets/sfx/click-soft.mp3",
-      "offset_s": 0,
-      "duration_s": 0.37,
-      "volume": 0.35
+     "id": "w0",
+     "text": "But",
+     "start": 0.05,
+     "end": 0.19
     },
     {
-      "frame": 1,
-      "file": "assets/sfx/riser.mp3",
-      "offset_s": 0,
-      "duration_s": 10.03,
-      "volume": 0.35
+     "id": "w1",
+     "text": "that's",
+     "start": 0.19,
+     "end": 0.58
     },
     {
-      "frame": 2,
-      "file": "assets/sfx/notification.mp3",
-      "offset_s": 0,
-      "duration_s": 2.46,
-      "volume": 0.35
+     "id": "w2",
+     "text": "how",
+     "start": 0.58,
+     "end": 0.77
     },
     {
-      "frame": 2,
-      "file": "assets/sfx/impact-bass-2.mp3",
-      "offset_s": 0,
-      "duration_s": 2.59,
-      "volume": 0.35
+     "id": "w3",
+     "text": "we",
+     "start": 0.77,
+     "end": 0.89
     },
     {
-      "frame": 3,
-      "file": "assets/sfx/whoosh-cinematic.mp3",
-      "offset_s": 0,
-      "duration_s": 5.54,
-      "volume": 0.35
+     "id": "w4",
+     "text": "teach",
+     "start": 0.9,
+     "end": 1.22
     },
     {
-      "frame": 3,
-      "file": "assets/sfx/chime.mp3",
-      "offset_s": 0,
-      "duration_s": 2.5,
-      "volume": 0.35
+     "id": "w5",
+     "text": "business.",
+     "start": 1.22,
+     "end": 1.82
     },
     {
-      "frame": 4,
-      "file": "assets/sfx/click.mp3",
-      "offset_s": 0,
-      "duration_s": 0.37,
-      "volume": 0.35
+     "id": "w6",
+     "text": "Hours",
+     "start": 1.87,
+     "end": 2.18
     },
     {
-      "frame": 4,
-      "file": "assets/sfx/whoosh-short.mp3",
-      "offset_s": 0,
-      "duration_s": 0.57,
-      "volume": 0.35
+     "id": "w7",
+     "text": "of",
+     "start": 2.21,
+     "end": 2.32
     },
     {
-      "frame": 5,
-      "file": "assets/sfx/click-soft.mp3",
-      "offset_s": 0,
-      "duration_s": 0.37,
-      "volume": 0.35
+     "id": "w8",
+     "text": "lectures,",
+     "start": 2.32,
+     "end": 3.06
     },
     {
-      "frame": 5,
-      "file": "assets/sfx/impact-bass-2.mp3",
-      "offset_s": 0,
-      "duration_s": 2.59,
-      "volume": 0.35
+     "id": "w9",
+     "text": "hours",
+     "start": 3.06,
+     "end": 3.26
     },
     {
-      "frame": 6,
-      "file": "assets/sfx/pop.mp3",
-      "offset_s": 0,
-      "duration_s": 0.72,
-      "volume": 0.35
+     "id": "w10",
+     "text": "of",
+     "start": 3.26,
+     "end": 3.67
     },
     {
-      "frame": 6,
-      "file": "assets/sfx/sparkle.mp3",
-      "offset_s": 0,
-      "duration_s": 1.8,
-      "volume": 0.35
+     "id": "w11",
+     "text": "videos,",
+     "start": 3.67,
+     "end": 4.18
     },
     {
-      "frame": 7,
-      "file": "assets/sfx/typing.mp3",
-      "offset_s": 0,
-      "duration_s": 1.5,
-      "volume": 0.35
+     "id": "w12",
+     "text": "watching,",
+     "start": 4.18,
+     "end": 4.78
     },
     {
-      "frame": 7,
-      "file": "assets/sfx/impact-bass-1.mp3",
-      "offset_s": 0,
-      "duration_s": 2.12,
-      "volume": 0.35
+     "id": "w13",
+     "text": "never",
+     "start": 4.89,
+     "end": 5.11
     },
     {
-      "frame": 7,
-      "file": "assets/sfx/sparkle.mp3",
-      "offset_s": 0,
-      "duration_s": 1.8,
-      "volume": 0.35
-    },
-    {
-      "frame": 8,
-      "file": "assets/sfx/riser.mp3",
-      "offset_s": 0,
-      "duration_s": 10.03,
-      "volume": 0.35
-    },
-    {
-      "frame": 8,
-      "file": "assets/sfx/impact-bass-2.mp3",
-      "offset_s": 0,
-      "duration_s": 2.59,
-      "volume": 0.35
-    },
-    {
-      "frame": 9,
-      "file": "assets/sfx/click-soft.mp3",
-      "offset_s": 0,
-      "duration_s": 0.37,
-      "volume": 0.35
-    },
-    {
-      "frame": 9,
-      "file": "assets/sfx/impact-bass-1.mp3",
-      "offset_s": 0,
-      "duration_s": 2.12,
-      "volume": 0.35
-    },
-    {
-      "frame": 10,
-      "file": "assets/sfx/whoosh-cinematic.mp3",
-      "offset_s": 0,
-      "duration_s": 5.54,
-      "volume": 0.35
-    },
-    {
-      "frame": 10,
-      "file": "assets/sfx/chime.mp3",
-      "offset_s": 0,
-      "duration_s": 2.5,
-      "volume": 0.35
+     "id": "w14",
+     "text": "doing.",
+     "start": 5.11,
+     "end": 5.66
     }
-  ]
+   ]
+  },
+  {
+   "frame": 3,
+   "path": "assets/voice/03.wav",
+   "duration_s": 3.776,
+   "words": [
+    {
+     "id": "w0",
+     "text": "Introducing",
+     "start": 0.04,
+     "end": 0.89
+    },
+    {
+     "id": "w1",
+     "text": "Novus,",
+     "start": 0.89,
+     "end": 1.5
+    },
+    {
+     "id": "w2",
+     "text": "a",
+     "start": 1.51,
+     "end": 1.58
+    },
+    {
+     "id": "w3",
+     "text": "life",
+     "start": 1.58,
+     "end": 1.89
+    },
+    {
+     "id": "w4",
+     "text": "simulator",
+     "start": 1.89,
+     "end": 2.49
+    },
+    {
+     "id": "w5",
+     "text": "for",
+     "start": 2.74,
+     "end": 2.82
+    },
+    {
+     "id": "w6",
+     "text": "running",
+     "start": 2.82,
+     "end": 3.18
+    },
+    {
+     "id": "w7",
+     "text": "a",
+     "start": 3.23,
+     "end": 3.28
+    },
+    {
+     "id": "w8",
+     "text": "company.",
+     "start": 3.28,
+     "end": 3.77
+    }
+   ]
+  },
+  {
+   "frame": 4,
+   "path": "assets/voice/04.wav",
+   "duration_s": 4.437,
+   "words": [
+    {
+     "id": "w0",
+     "text": "Your",
+     "start": 0.04,
+     "end": 0.28
+    },
+    {
+     "id": "w1",
+     "text": "company",
+     "start": 0.28,
+     "end": 0.77
+    },
+    {
+     "id": "w2",
+     "text": "lives",
+     "start": 0.77,
+     "end": 1.07
+    },
+    {
+     "id": "w3",
+     "text": "month",
+     "start": 1.16,
+     "end": 1.46
+    },
+    {
+     "id": "w4",
+     "text": "to",
+     "start": 1.46,
+     "end": 1.56
+    },
+    {
+     "id": "w5",
+     "text": "month.",
+     "start": 1.56,
+     "end": 2.04
+    },
+    {
+     "id": "w6",
+     "text": "Nothing",
+     "start": 2.04,
+     "end": 2.51
+    },
+    {
+     "id": "w7",
+     "text": "moves",
+     "start": 2.51,
+     "end": 2.87
+    },
+    {
+     "id": "w8",
+     "text": "until",
+     "start": 2.87,
+     "end": 3.23
+    },
+    {
+     "id": "w9",
+     "text": "you",
+     "start": 3.23,
+     "end": 3.44
+    },
+    {
+     "id": "w10",
+     "text": "press",
+     "start": 3.45,
+     "end": 3.56
+    },
+    {
+     "id": "w11",
+     "text": "advance.",
+     "start": 4.03,
+     "end": 4.58
+    }
+   ]
+  },
+  {
+   "frame": 5,
+   "path": "assets/voice/05.wav",
+   "duration_s": 5.696,
+   "words": [
+    {
+     "id": "w0",
+     "text": "Every",
+     "start": 0.03,
+     "end": 0.4
+    },
+    {
+     "id": "w1",
+     "text": "month",
+     "start": 0.4,
+     "end": 0.8
+    },
+    {
+     "id": "w2",
+     "text": "brings",
+     "start": 0.8,
+     "end": 1.27
+    },
+    {
+     "id": "w3",
+     "text": "a",
+     "start": 1.27,
+     "end": 1.38
+    },
+    {
+     "id": "w4",
+     "text": "real",
+     "start": 1.38,
+     "end": 1.68
+    },
+    {
+     "id": "w5",
+     "text": "scenario.",
+     "start": 1.68,
+     "end": 2.36
+    },
+    {
+     "id": "w6",
+     "text": "A",
+     "start": 2.39,
+     "end": 2.43
+    },
+    {
+     "id": "w7",
+     "text": "supplier",
+     "start": 2.43,
+     "end": 2.85
+    },
+    {
+     "id": "w8",
+     "text": "squeezes,",
+     "start": 2.99,
+     "end": 3.62
+    },
+    {
+     "id": "w9",
+     "text": "a",
+     "start": 3.74,
+     "end": 3.77
+    },
+    {
+     "id": "w10",
+     "text": "rival",
+     "start": 3.77,
+     "end": 4.22
+    },
+    {
+     "id": "w11",
+     "text": "copies,",
+     "start": 4.22,
+     "end": 4.96
+    },
+    {
+     "id": "w12",
+     "text": "you",
+     "start": 5,
+     "end": 5.17
+    },
+    {
+     "id": "w13",
+     "text": "decide.",
+     "start": 5.17,
+     "end": 5.78
+    }
+   ]
+  },
+  {
+   "frame": 6,
+   "path": "assets/voice/06.wav",
+   "duration_s": 4.779,
+   "words": [
+    {
+     "id": "w0",
+     "text": "And",
+     "start": 0.04,
+     "end": 0.19
+    },
+    {
+     "id": "w1",
+     "text": "the",
+     "start": 0.23,
+     "end": 0.46
+    },
+    {
+     "id": "w2",
+     "text": "game",
+     "start": 0.46,
+     "end": 0.77
+    },
+    {
+     "id": "w3",
+     "text": "remembers.",
+     "start": 0.77,
+     "end": 1.48
+    },
+    {
+     "id": "w4",
+     "text": "Every",
+     "start": 1.52,
+     "end": 1.78
+    },
+    {
+     "id": "w5",
+     "text": "decision",
+     "start": 1.78,
+     "end": 2.26
+    },
+    {
+     "id": "w6",
+     "text": "moves",
+     "start": 2.26,
+     "end": 2.51
+    },
+    {
+     "id": "w7",
+     "text": "your",
+     "start": 2.51,
+     "end": 2.98
+    },
+    {
+     "id": "w8",
+     "text": "numbers.",
+     "start": 2.98,
+     "end": 3.24
+    },
+    {
+     "id": "w9",
+     "text": "Cash.",
+     "start": 3.3,
+     "end": 4.07
+    },
+    {
+     "id": "w10",
+     "text": "Burn.",
+     "start": 4.08,
+     "end": 4.47
+    },
+    {
+     "id": "w11",
+     "text": "Runway.",
+     "start": 4.47,
+     "end": 4.86
+    }
+   ]
+  },
+  {
+   "frame": 7,
+   "path": "assets/voice/07.wav",
+   "duration_s": 4.032,
+   "words": [
+    {
+     "id": "w0",
+     "text": "then",
+     "start": 0.07,
+     "end": 0.31
+    },
+    {
+     "id": "w1",
+     "text": "month",
+     "start": 0.31,
+     "end": 0.7
+    },
+    {
+     "id": "w2",
+     "text": "12",
+     "start": 0.7,
+     "end": 1.17
+    },
+    {
+     "id": "w3",
+     "text": "stops",
+     "start": 1.17,
+     "end": 1.56
+    },
+    {
+     "id": "w4",
+     "text": "the",
+     "start": 1.56,
+     "end": 1.73
+    },
+    {
+     "id": "w5",
+     "text": "clock.",
+     "start": 1.8,
+     "end": 2.2
+    },
+    {
+     "id": "w6",
+     "text": "To",
+     "start": 2.27,
+     "end": 2.31
+    },
+    {
+     "id": "w7",
+     "text": "close",
+     "start": 2.31,
+     "end": 2.59
+    },
+    {
+     "id": "w8",
+     "text": "the",
+     "start": 2.59,
+     "end": 2.71
+    },
+    {
+     "id": "w9",
+     "text": "year,",
+     "start": 2.8,
+     "end": 3.09
+    },
+    {
+     "id": "w10",
+     "text": "you",
+     "start": 3.14,
+     "end": 3.3
+    },
+    {
+     "id": "w11",
+     "text": "have",
+     "start": 3.3,
+     "end": 3.52
+    },
+    {
+     "id": "w12",
+     "text": "to",
+     "start": 3.6,
+     "end": 3.63
+    },
+    {
+     "id": "w13",
+     "text": "pitch.",
+     "start": 3.67,
+     "end": 4.02
+    }
+   ]
+  },
+  {
+   "frame": 8,
+   "path": "assets/voice/08.wav",
+   "duration_s": 3.669,
+   "words": [
+    {
+     "id": "w0",
+     "text": "on",
+     "start": 0.05,
+     "end": 0.18
+    },
+    {
+     "id": "w1",
+     "text": "camera,",
+     "start": 0.18,
+     "end": 0.9
+    },
+    {
+     "id": "w2",
+     "text": "out",
+     "start": 0.9,
+     "end": 1.17
+    },
+    {
+     "id": "w3",
+     "text": "loud,",
+     "start": 1.17,
+     "end": 1.72
+    },
+    {
+     "id": "w4",
+     "text": "to",
+     "start": 1.75,
+     "end": 1.83
+    },
+    {
+     "id": "w5",
+     "text": "five",
+     "start": 1.92,
+     "end": 2.17
+    },
+    {
+     "id": "w6",
+     "text": "sharks",
+     "start": 2.17,
+     "end": 2.56
+    },
+    {
+     "id": "w7",
+     "text": "who",
+     "start": 2.64,
+     "end": 2.76
+    },
+    {
+     "id": "w8",
+     "text": "have",
+     "start": 2.76,
+     "end": 2.93
+    },
+    {
+     "id": "w9",
+     "text": "read",
+     "start": 2.93,
+     "end": 3.1
+    },
+    {
+     "id": "w10",
+     "text": "your",
+     "start": 3.1,
+     "end": 3.27
+    },
+    {
+     "id": "w11",
+     "text": "books.",
+     "start": 3.27,
+     "end": 3.6
+    }
+   ]
+  },
+  {
+   "frame": 9,
+   "path": "assets/voice/09.wav",
+   "duration_s": 3.477,
+   "words": [
+    {
+     "id": "w0",
+     "text": "because",
+     "start": 0.04,
+     "end": 0.41
+    },
+    {
+     "id": "w1",
+     "text": "you",
+     "start": 0.41,
+     "end": 0.59
+    },
+    {
+     "id": "w2",
+     "text": "don't",
+     "start": 0.59,
+     "end": 0.87
+    },
+    {
+     "id": "w3",
+     "text": "learn",
+     "start": 0.88,
+     "end": 1.18
+    },
+    {
+     "id": "w4",
+     "text": "business",
+     "start": 1.18,
+     "end": 1.59
+    },
+    {
+     "id": "w5",
+     "text": "by",
+     "start": 1.66,
+     "end": 1.77
+    },
+    {
+     "id": "w6",
+     "text": "watching,",
+     "start": 1.77,
+     "end": 2.28
+    },
+    {
+     "id": "w7",
+     "text": "you",
+     "start": 2.31,
+     "end": 2.49
+    },
+    {
+     "id": "w8",
+     "text": "learn",
+     "start": 2.49,
+     "end": 2.85
+    },
+    {
+     "id": "w9",
+     "text": "by",
+     "start": 2.85,
+     "end": 2.99
+    },
+    {
+     "id": "w10",
+     "text": "doing.",
+     "start": 2.99,
+     "end": 3.58
+    }
+   ]
+  },
+  {
+   "frame": 10,
+   "path": "assets/voice/10.wav",
+   "duration_s": 4.395,
+   "words": [
+    {
+     "id": "w0",
+     "text": "Novus,",
+     "start": 0.04,
+     "end": 0.67
+    },
+    {
+     "id": "w1",
+     "text": "learn",
+     "start": 0.67,
+     "end": 1.14
+    },
+    {
+     "id": "w2",
+     "text": "by",
+     "start": 1.17,
+     "end": 1.35
+    },
+    {
+     "id": "w3",
+     "text": "doing.",
+     "start": 1.35,
+     "end": 1.92
+    },
+    {
+     "id": "w4",
+     "text": "Start",
+     "start": 1.97,
+     "end": 2.22
+    },
+    {
+     "id": "w5",
+     "text": "your",
+     "start": 2.22,
+     "end": 2.46
+    },
+    {
+     "id": "w6",
+     "text": "company",
+     "start": 2.46,
+     "end": 2.77
+    },
+    {
+     "id": "w7",
+     "text": "at",
+     "start": 2.9,
+     "end": 3.03
+    },
+    {
+     "id": "w8",
+     "text": "NovusBitch.com.",
+     "start": 3.04,
+     "end": 4.38
+    }
+   ]
+  }
+ ],
+ "sfx": [
+  {
+   "frame": 1,
+   "file": "assets/sfx/click-soft.mp3",
+   "offset_s": 0,
+   "duration_s": 0.37,
+   "volume": 0.35
+  },
+  {
+   "frame": 1,
+   "file": "assets/sfx/riser.mp3",
+   "offset_s": 0,
+   "duration_s": 10.03,
+   "volume": 0.35
+  },
+  {
+   "frame": 2,
+   "file": "assets/sfx/notification.mp3",
+   "offset_s": 0,
+   "duration_s": 2.46,
+   "volume": 0.35
+  },
+  {
+   "frame": 2,
+   "file": "assets/sfx/impact-bass-2.mp3",
+   "offset_s": 0,
+   "duration_s": 2.59,
+   "volume": 0.35
+  },
+  {
+   "frame": 3,
+   "file": "assets/sfx/whoosh-cinematic.mp3",
+   "offset_s": 0,
+   "duration_s": 5.54,
+   "volume": 0.35
+  },
+  {
+   "frame": 3,
+   "file": "assets/sfx/chime.mp3",
+   "offset_s": 0,
+   "duration_s": 2.5,
+   "volume": 0.35
+  },
+  {
+   "frame": 4,
+   "file": "assets/sfx/click.mp3",
+   "offset_s": 0,
+   "duration_s": 0.37,
+   "volume": 0.35
+  },
+  {
+   "frame": 4,
+   "file": "assets/sfx/whoosh-short.mp3",
+   "offset_s": 0,
+   "duration_s": 0.57,
+   "volume": 0.35
+  },
+  {
+   "frame": 5,
+   "file": "assets/sfx/click-soft.mp3",
+   "offset_s": 0,
+   "duration_s": 0.37,
+   "volume": 0.35
+  },
+  {
+   "frame": 5,
+   "file": "assets/sfx/impact-bass-2.mp3",
+   "offset_s": 0,
+   "duration_s": 2.59,
+   "volume": 0.35
+  },
+  {
+   "frame": 6,
+   "file": "assets/sfx/pop.mp3",
+   "offset_s": 0,
+   "duration_s": 0.72,
+   "volume": 0.35
+  },
+  {
+   "frame": 6,
+   "file": "assets/sfx/sparkle.mp3",
+   "offset_s": 0,
+   "duration_s": 1.8,
+   "volume": 0.35
+  },
+  {
+   "frame": 7,
+   "file": "assets/sfx/typing.mp3",
+   "offset_s": 0,
+   "duration_s": 1.5,
+   "volume": 0.35
+  },
+  {
+   "frame": 7,
+   "file": "assets/sfx/impact-bass-1.mp3",
+   "offset_s": 0,
+   "duration_s": 2.12,
+   "volume": 0.35
+  },
+  {
+   "frame": 7,
+   "file": "assets/sfx/sparkle.mp3",
+   "offset_s": 0,
+   "duration_s": 1.8,
+   "volume": 0.35
+  },
+  {
+   "frame": 8,
+   "file": "assets/sfx/riser.mp3",
+   "offset_s": 0,
+   "duration_s": 10.03,
+   "volume": 0.35
+  },
+  {
+   "frame": 8,
+   "file": "assets/sfx/impact-bass-2.mp3",
+   "offset_s": 0,
+   "duration_s": 2.59,
+   "volume": 0.35
+  },
+  {
+   "frame": 9,
+   "file": "assets/sfx/click-soft.mp3",
+   "offset_s": 0,
+   "duration_s": 0.37,
+   "volume": 0.35
+  },
+  {
+   "frame": 9,
+   "file": "assets/sfx/impact-bass-1.mp3",
+   "offset_s": 0,
+   "duration_s": 2.12,
+   "volume": 0.35
+  },
+  {
+   "frame": 10,
+   "file": "assets/sfx/whoosh-cinematic.mp3",
+   "offset_s": 0,
+   "duration_s": 5.54,
+   "volume": 0.35
+  },
+  {
+   "frame": 10,
+   "file": "assets/sfx/chime.mp3",
+   "offset_s": 0,
+   "duration_s": 2.5,
+   "volume": 0.35
+  }
+ ]
 }

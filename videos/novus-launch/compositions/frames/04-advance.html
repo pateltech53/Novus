@@ -1,5 +1,5 @@
 <template>
-  <div id="root" data-composition-id="04-advance" data-duration="4.437" data-width="1920" data-height="1080">
+  <div id="root" data-composition-id="04-advance" data-duration="4.937" data-width="1920" data-height="1080">
     <style>
       @font-face {
         font-family: "Urbanist";
@@ -228,9 +228,9 @@
       }
     </style>
 
-    <div class="clip af04-bg" data-start="0" data-duration="4.437" data-track-index="0"></div>
+    <div class="clip af04-bg" data-start="0" data-duration="4.937" data-track-index="0"></div>
 
-    <div class="clip af04-stage" data-start="0" data-duration="4.437" data-track-index="1">
+    <div class="clip af04-stage" data-start="0" data-duration="4.937" data-track-index="1">
       <div class="af04-kicker" id="af04-kicker">THE SIM</div>
 
       <div class="af04-headline">
@@ -241,9 +241,9 @@
         >
       </div>
 
-      <div class="af04-mlabel" id="af04-mlabel">MONTH</div>
+      <div class="af04-mlabel" id="af04-mlabel" data-layout-allow-overlap>MONTH</div>
       <div class="af04-mrow" id="af04-mrow">
-        <span class="af04-count" id="af04-count">1</span>
+        <span class="af04-count" id="af04-count" data-layout-allow-overlap>1</span>
         <span class="af04-mof">/ 12</span>
       </div>
 
@@ -264,21 +264,7 @@
       </div>
     </div>
 
-    <video
-      class="clip"
-      data-frame-video="approved"
-      src="assets/months.mp4"
-      muted
-      playsinline
-      data-start="3.8"
-      data-duration="0.637"
-      data-track-index="2"
-      data-frame-video-x="1252"
-      data-frame-video-y="280"
-      data-frame-video-width="376"
-      data-frame-video-height="382"
-      data-frame-video-fit="cover"
-    ></video>
+    <!-- approved frame video hoisted by assemble-index -->
 
     <script src="assets/vendor/gsap.min.js"></script>
     <script>

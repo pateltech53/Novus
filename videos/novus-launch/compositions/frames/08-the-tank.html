@@ -1,5 +1,5 @@
 <template>
-  <div data-composition-id="08-the-tank" data-duration="3.669" data-width="1920" data-height="1080">
+  <div data-composition-id="08-the-tank" data-duration="4.169" data-width="1920" data-height="1080">
     <style>
       @font-face {
         font-family: "Urbanist";
@@ -187,10 +187,10 @@
     </style>
 
     <!-- track 0: navy ground -->
-    <div class="clip f08tank-ground" data-start="0" data-duration="3.669" data-track-index="0"></div>
+    <div class="clip f08tank-ground" data-start="0" data-duration="4.169" data-track-index="0"></div>
 
     <!-- track 1: the plate under one continuous push (camera transforms plates only) -->
-    <div class="clip f08tank-stage" data-start="0" data-duration="3.669" data-track-index="1">
+    <div class="clip f08tank-stage" data-start="0" data-duration="4.169" data-track-index="1">
       <div class="f08tank-camera">
         <div class="f08tank-plate-base"></div>
         <div class="f08tank-plate-sharp"></div>
@@ -198,38 +198,24 @@
     </div>
 
     <!-- track 2: vignette -->
-    <div class="clip f08tank-vignette" data-start="0" data-duration="3.669" data-track-index="2"></div>
+    <div class="clip f08tank-vignette" data-start="0" data-duration="4.169" data-track-index="2"></div>
 
     <!-- track 3: per-word reveal line -->
-    <div class="clip f08tank-line" data-start="0" data-duration="3.669" data-track-index="3">
+    <div class="clip f08tank-line" data-start="0" data-duration="4.169" data-track-index="3">
       <span>they've</span><span>read</span><span>your</span><span>books.</span>
     </div>
 
     <!-- track 4: mono kicker -->
-    <div class="clip f08tank-kicker" data-start="0" data-duration="3.669" data-track-index="4">The Pitch</div>
+    <div class="clip f08tank-kicker" data-start="0" data-duration="4.169" data-track-index="4">The Pitch</div>
 
     <!-- track 5: live chip above the device -->
-    <div class="clip f08tank-chip" data-start="0" data-duration="3.669" data-track-index="5">Live</div>
+    <div class="clip f08tank-chip" data-start="0" data-duration="4.169" data-track-index="5">Live</div>
 
     <!-- track 6: glass ring around the pitch clip (fixed overlay) -->
-    <div class="clip f08tank-pane" data-start="0" data-duration="3.669" data-track-index="6"></div>
+    <div class="clip f08tank-pane" data-start="0" data-duration="4.169" data-track-index="6"></div>
 
     <!-- track 7: approved in-app pitch clip — static host geometry, never moved -->
-    <video
-      class="clip"
-      data-frame-video="approved"
-      src="capture/assets/tank.mp4"
-      muted
-      playsinline
-      data-start="0.5"
-      data-duration="3.169"
-      data-track-index="7"
-      data-frame-video-x="96"
-      data-frame-video-y="616"
-      data-frame-video-width="340"
-      data-frame-video-height="224"
-      data-frame-video-fit="cover"
-    ></video>
+    <!-- approved frame video hoisted by assemble-index -->
 
     <script src="assets/vendor/gsap.min.js"></script>
     <script>
@@ -250,6 +236,9 @@
         /* ================= camera: one unbroken slow push (multi-phase-camera) =================
            Phase scale on a proxy + sine micro-drift, composed in the ONE transform writer.
            Push completes at ~3.25s; the last beat holds near-still. */
+        /* claim the sharp overlay's hidden start at t=0 (seek-safe; lint gsap_fullscreen_overlay_starts_visible) */
+        tl.set(sharp, { opacity: 0 }, 0);
+
         var phase = { scale: 1.035 };
         tl.to(phase, { scale: 1.115, duration: 3.25, ease: "power1.inOut" }, 0);
 
