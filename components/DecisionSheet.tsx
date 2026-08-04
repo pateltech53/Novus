@@ -1,10 +1,13 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import { haptic } from "@/lib/haptics";
 
 import { motion } from "framer-motion";
 import type { Choice, GameEvent, Industry } from "@/lib/engine/types";
 import { GLOSSARY } from "@/lib/engine/constants";
+import { termsUsed } from "@/lib/ai/terms";
 
 /**
  * A decision takes over the screen: situation in 1–3 lines of Voice v2, then
@@ -31,6 +34,13 @@ export function DecisionSheet({
   onChoose: (index: number) => void;
   onDismiss: () => void;
 }) {
+  /** Which option's "?" is open. One at a time; tapping again closes it. */
+  const [decoded, setDecoded] = useState<number | null>(null);
+  // A new card is a new set of options; an explainer left open from the last
+  // card would be explaining the wrong row.
+  const eventId = event?.id;
+  useEffect(() => setDecoded(null), [eventId]);
+
   if (!event) return null;
 
   return (
@@ -116,15 +126,21 @@ export function DecisionSheet({
             )}
 
             <ul className="mt-4 space-y-2 px-3 pb-1">
-              {choices.map((choice, i) => (
+              {choices.map((choice, i) => {
+                const lines = decodeChoice(choice);
+                return (
                 <li key={`${choice.label}-${i}`}>
+                  {/* The "?" is a SIBLING of the choice, never nested inside
+                      it — a button in a button is invalid HTML and a mistap
+                      away from spending the decision while asking about it. */}
+                  <div className="flex items-stretch gap-2">
                   <button
                     type="button"
                     onClick={() => {
                       haptic("choice");
                       onChoose(i);
                     }}
-                    className="nv-card flex w-full items-start justify-between gap-4 px-4 py-3.5 text-left transition-transform duration-150 active:scale-[0.985]"
+                    className="nv-card flex w-full flex-1 items-start justify-between gap-4 px-4 py-3.5 text-left transition-transform duration-150 active:scale-[0.985]"
                   >
                     <span className="flex-1 text-[0.9375rem] font-semibold leading-snug">
                       {choice.label}
@@ -141,8 +157,53 @@ export function DecisionSheet({
                       </span>
                     )}
                   </button>
+                  <button
+                    type="button"
+                    aria-label={`Explain this option: ${choice.label}`}
+                    aria-expanded={decoded === i}
+                    onClick={() => setDecoded(decoded === i ? null : i)}
+                    className={`nv-gc w-9 shrink-0 self-stretch rounded-[var(--radius-row)] text-sm font-extrabold transition-colors ${
+                      decoded === i
+                        ? "text-[var(--action)]"
+                        : "text-[var(--text-tertiary)]"
+                    }`}
+                  >
+                    ?
+                  </button>
+                  </div>
+                  {decoded === i && (
+                    <div className="mt-1.5 rounded-[var(--radius-row)] bg-[var(--chip)] px-3.5 py-2.5">
+                      {lines.length > 0 ? (
+                        <dl className="space-y-1.5">
+                          {lines.map((line) => (
+                            <div key={line.term} className="text-xs leading-snug">
+                              <dt className="inline font-bold uppercase tracking-wide text-[var(--text-primary)]">
+                                {line.term}
+                              </dt>
+                              <dd className="inline text-[var(--text-secondary)]">
+                                {" — "}
+                                {line.meaning}
+                              </dd>
+                            </div>
+                          ))}
+                        </dl>
+                      ) : (
+                        <p className="text-xs leading-snug text-[var(--text-secondary)]">
+                          No jargon in this one — it says what it does.
+                        </p>
+                      )}
+                      {choice.known && (
+                        <p className="mt-1.5 border-t border-[var(--hairline)] pt-1.5 text-2xs leading-snug text-[var(--text-tertiary)]">
+                          The chip shows what this choice is KNOWN to change
+                          before you pick it. Everything else resolves after,
+                          like it would in real life.
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </li>
-              ))}
+                );
+              })}
             </ul>
 
             {/* performOnly events with no tap-out are handled upstream: the
@@ -167,6 +228,68 @@ export function DecisionSheet({
       </motion.section>
     </motion.div>
   );
+}
+
+/*
+ * ── The option decoder ──────────────────────────────────────────────────────
+ *
+ * What the per-option "?" shows. Two vocabularies feed it:
+ *
+ *   · Real business terms in the label ("equity", "churn", "margin") come
+ *     from GLOSSARY via the same scanner the term coach uses, so a word means
+ *     the same thing here as everywhere else.
+ *   · The KNOWN chip's shorthand ("GM −3", "Burn +0.5S/mo", "CSAT +2") has
+ *     its own table below, because the chip abbreviates stats that GLOSSARY
+ *     spells out — a player squinting at "GM" needs the abbreviation
+ *     explained, not a lecture on margin accounting.
+ */
+const CHIP_SHORTHAND: { pattern: RegExp; term: string; meaning: string }[] = [
+  { pattern: /\bGM\b/, term: "GM", meaning: "gross margin — of each $1 sold, what you keep before rent and salaries." },
+  { pattern: /\bRev\b/i, term: "Rev", meaning: "revenue — everything customers pay you." },
+  { pattern: /\bBurn\b/i, term: "Burn", meaning: "burn — how fast your bank account shrinks each month." },
+  { pattern: /\bCash\b/i, term: "Cash", meaning: "cash — money in the bank right now." },
+  { pattern: /\bCSAT\b/, term: "CSAT", meaning: "customer satisfaction — how happy the people who bought it are." },
+  { pattern: /\bQual\b/, term: "Qual", meaning: "product quality — how good the thing you sell actually is." },
+  { pattern: /\bMor\b/, term: "Mor", meaning: "morale — how your team is holding up." },
+  { pattern: /\bEn\b/, term: "En", meaning: "energy — yours. Founders run out too." },
+  { pattern: /\bResp\b/, term: "Resp", meaning: "shark respect — what the room thinks of you." },
+  { pattern: /\bEmp\b/, term: "Emp", meaning: "employees — headcount." },
+  { pattern: /\bShare\b/i, term: "Share", meaning: "market share — your slice of everyone buying this kind of thing." },
+  { pattern: /\bBrand\b/i, term: "Brand", meaning: "brand — how many people know and trust the name." },
+  { pattern: /\bCWP\b/, term: "CWP", meaning: "customer wow points — delight beyond what was promised." },
+  { pattern: /\bCTR\b/, term: "CTR", meaning: "click-through rate — of the people who saw it, how many tapped." },
+  { pattern: /\bCAC\b/, term: "CAC", meaning: "customer acquisition cost — what one new customer costs you to win." },
+  {
+    pattern: /\d\s?S\b|\bS\/mo\b|\+S\b|−S\b|-S\b/,
+    term: "S",
+    meaning:
+      "the money unit at your stage — $1,000 in a garage, up to $10M at the top. It scales so the same card matters all game. “S/mo” is per month.",
+  },
+];
+
+/** The plain-English lines for one option: label terms first, chip shorthand after. */
+function decodeChoice(choice: Choice): { term: string; meaning: string }[] {
+  const lines: { term: string; meaning: string }[] = [];
+  const seen = new Set<string>();
+
+  // Real terms in the label, from the shared glossary.
+  for (const term of termsUsed(choice.label)) {
+    const gloss = GLOSSARY[term];
+    if (!gloss || seen.has(term)) continue;
+    seen.add(term);
+    lines.push({ term, meaning: gloss.rookie });
+  }
+
+  // The chip's abbreviations.
+  const chip = choice.known ?? "";
+  for (const entry of CHIP_SHORTHAND) {
+    if (!chip || seen.has(entry.term.toLowerCase())) continue;
+    if (!entry.pattern.test(chip)) continue;
+    seen.add(entry.term.toLowerCase());
+    lines.push({ term: entry.term, meaning: entry.meaning });
+  }
+
+  return lines;
 }
 
 /** Today's Market wears a dateline, not a category tag — same storm, every boat. */

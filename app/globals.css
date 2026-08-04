@@ -1285,9 +1285,28 @@ textarea {
   }
 }
 
-@media (max-height: 670px) {
+/*
+ * The play screen is a fixed-height column now (app/play/page.tsx): nothing
+ * may scroll except the books region, as a last resort. That makes these
+ * tiers the mechanism that keeps the last resort rare — each shorter band
+ * gives more of the mascot's slack back so the books and the log still fit
+ * whole above the advance bar.
+ */
+@media (max-height: 760px) {
   .nv-masthead {
     --nv-portrait-size: 7.5rem; /* 120px */
+  }
+}
+
+@media (max-height: 700px) {
+  .nv-masthead {
+    --nv-portrait-size: 6.5rem; /* 104px */
+  }
+}
+
+@media (max-height: 620px) {
+  .nv-masthead {
+    --nv-portrait-size: 6rem; /* 96px */
   }
 }
 

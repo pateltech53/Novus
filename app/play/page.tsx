@@ -15,6 +15,7 @@ import { ActivityBar, type ActivityTab } from "@/components/ActivityBar";
 import { TermCoach } from "@/components/TermCoach";
 import { YearEndStatement } from "@/components/YearEndStatement";
 import { StageGuide } from "@/components/StageGuide";
+import { KeyTermsSheet } from "@/components/KeyTermsSheet";
 import { ChapterSeven } from "@/components/ChapterSeven";
 import { PerformScreen } from "@/components/PerformScreen";
 import { ProSheet } from "@/components/ProSheet";
@@ -70,6 +71,8 @@ function PlayScreen() {
   const [showBoard, setShowBoard] = useState(false);
   const [dossier, setDossier] = useState(false);
   const [stageGuide, setStageGuide] = useState(false);
+  /** The ⓘ page: every key term, searchable, with the Rookie switch on it. */
+  const [keyTerms, setKeyTerms] = useState(false);
   /** The phone's log sheet. Desktop keeps the log inline and never sets this. */
   const [logOpen, setLogOpen] = useState(false);
   const [term, setTerm] = useState<{ term: string; detail?: string } | null>(null);
@@ -195,6 +198,7 @@ function PlayScreen() {
     !showBoard &&
     !dossier &&
     !stageGuide &&
+    !keyTerms &&
     !logOpen &&
     run.alive;
 
@@ -207,6 +211,7 @@ function PlayScreen() {
     showBoard ||
     dossier ||
     stageGuide ||
+    keyTerms ||
     logOpen ||
     !!yearEnd ||
     !!autopsy ||
@@ -261,6 +266,7 @@ function PlayScreen() {
       else if (id === "settings") setShowSettings(true);
       else if (id === "board") setShowBoard(true);
       else if (id === "phone") setPhoneApp("home");
+      else if (id === "keyterms") setKeyTerms(true);
     },
     [completeCoachStep],
   );
@@ -347,6 +353,7 @@ function PlayScreen() {
   useBackHandler(showBoard, () => setShowBoard(false));
   useBackHandler(dossier, () => setDossier(false));
   useBackHandler(stageGuide, () => setStageGuide(false));
+  useBackHandler(keyTerms, () => setKeyTerms(false));
   useBackHandler(logOpen, () => setLogOpen(false));
 
   if (!run) {
@@ -393,10 +400,20 @@ function PlayScreen() {
      *
      * The previous behaviour was neither: it went full-bleed, so The Books
      * became a 1280px band of 8px labels and the CTA an ~800px slab.
+     *
+     * And the phone is a FIXED-HEIGHT flex column now, not a scrolling
+     * document. It used to be min-h-dvh with a fixed footer, which meant the
+     * page could always scroll — and scrolling slid The Books and the log up
+     * UNDER the ADVANCE MONTH bar, which players read as content stuck
+     * behind the button. h-dvh + overflow-hidden makes the screen the
+     * screen: masthead, books, log and the bar all share one viewport,
+     * nothing scrolls out from under anything, and on a phone too short to
+     * fit it all, the books region scrolls INSIDE itself while the bar
+     * stays put. Desktop keeps its own grid composition unchanged.
      */
-    <main className="min-h-dvh bg-[var(--bg)] lg:mx-auto lg:grid lg:min-h-dvh lg:max-w-6xl lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:gap-6 lg:px-6 lg:py-6">
+    <main className="flex h-dvh flex-col overflow-hidden bg-[var(--bg)] lg:mx-auto lg:grid lg:h-auto lg:min-h-dvh lg:max-w-6xl lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:gap-6 lg:overflow-visible lg:px-6 lg:py-6">
       {/* Left column on desktop; masthead on phone. */}
-      <div className="lg:sticky lg:top-6 lg:self-start lg:overflow-hidden lg:rounded-[var(--radius-card)] lg:shadow-[var(--e2)]">
+      <div className="shrink-0 lg:sticky lg:top-6 lg:self-start lg:overflow-hidden lg:rounded-[var(--radius-card)] lg:shadow-[var(--e2)]">
         <HomeStage
           run={run}
           founderName={profile?.founderName ?? run.founderName}
@@ -405,6 +422,7 @@ function PlayScreen() {
           onOpenSettings={() => setShowSettings(true)}
           onOpenBoard={() => setShowBoard(true)}
           onOpenStageGuide={() => setStageGuide(true)}
+          onOpenKeyTerms={() => setKeyTerms(true)}
           dossierOpen={dossier}
           onDossier={setDossier}
           nativeControls={!domChrome}
@@ -412,7 +430,11 @@ function PlayScreen() {
       </div>
 
       {/* Right rail on desktop; the rest of the page on phone. */}
-      <div className="flex min-h-0 flex-col lg:h-[calc(100dvh-3rem)] lg:overflow-hidden lg:rounded-[var(--radius-card)] lg:bg-[var(--surface)] lg:shadow-[var(--e2)]">
+      <div className="flex min-h-0 flex-1 flex-col lg:h-[calc(100dvh-3rem)] lg:flex-none lg:overflow-hidden lg:rounded-[var(--radius-card)] lg:bg-[var(--surface)] lg:shadow-[var(--e2)]">
+        {/* The reading region. It fits on almost every phone; where it cannot,
+            IT scrolls — never the page — so nothing ever slides under the
+            fixed bar below. */}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain lg:min-h-fit lg:flex-none lg:overflow-visible">
         <div data-coach="books">
           <TheBooks run={run} onTermTap={(t) => setTerm({ term: t })} />
         </div>
@@ -437,6 +459,7 @@ function PlayScreen() {
           style={domChrome ? undefined : { paddingBottom: "var(--nv-chrome-bottom, 0px)" }}
         >
           <LogButton month={run.month} year={run.year} onOpen={() => setLogOpen(true)} />
+        </div>
         </div>
         <div
           className="hidden flex-1 overflow-y-auto pb-3 lg:block"
@@ -542,6 +565,7 @@ function PlayScreen() {
       {phoneApp && activity !== "market" && phoneNode(phoneApp)}
 
       {stageGuide && <StageGuide run={run} onClose={() => setStageGuide(false)} />}
+      {keyTerms && <KeyTermsSheet onClose={() => setKeyTerms(false)} />}
 
       {showPro && <ProSheet onClose={() => setShowPro(false)} />}
       {showSettings && <SettingsScreen onClose={() => setShowSettings(false)} />}

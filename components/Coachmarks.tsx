@@ -535,7 +535,7 @@ const BASE_STEPS: CoachStep[] = [
     id: "key-terms",
     target: "books",
     title: "Every key term explains itself.",
-    body: "Anywhere you see a business word — on these Books, on your pitch notes, in The Tank — tap it and you get the meaning, once, when it matters. Want a plain-English line under every term as you go? That switch is Rookie Mode.",
+    body: "Anywhere you see a business word — on these Books, on your pitch notes, in The Tank — tap it and you get the meaning, once, when it matters. Want a plain-English line under every term as you go? That switch is Rookie Mode — it lives here and on the ⓘ page this tour ends at.",
     mode: "ack",
     place: "below",
     rookieToggle: true,
@@ -574,6 +574,31 @@ const BASE_STEPS: CoachStep[] = [
     mode: "ack",
     place: "above",
   },
+  /*
+   * The two tabs players reported never finding, named individually. Both
+   * point at the same bar as the step above — there is nothing else to point
+   * at until the tab is opened — but each names its tab and what is behind
+   * it, because "everything lives down here" taught the bar and still left
+   * the first product unlaunched and the closet undiscovered.
+   */
+  {
+    id: "product",
+    target: "tabs",
+    native: "tabs",
+    title: "PRODUCT is where you launch what you sell.",
+    body: "Open it, press ADD, give it a name and a price. Everything else in the game — revenue, margin, the pitch itself — starts from having something on the shelf, so make this the first place you go.",
+    mode: "ack",
+    place: "above",
+  },
+  {
+    id: "closet",
+    target: "tabs",
+    native: "tabs",
+    title: "CLOSET is yours.",
+    body: "The fits you earn by surviving years and finishing runs. It changes how your founder looks in the room — and nothing else. Style is earned here, never bought advantage.",
+    mode: "ack",
+    place: "above",
+  },
   {
     id: "phone",
     target: "phone",
@@ -582,6 +607,21 @@ const BASE_STEPS: CoachStep[] = [
     body: "RobinGhood for the market, BeeMail for the mail you'd rather not open, LinkedOut for hiring. It runs on real time — the market moves while you're away.",
     mode: "ack",
     place: "above",
+  },
+  /*
+   * The tour ends ON the key terms page, not at a card about it. The step is
+   * a tap: pressing ⓘ opens the glossary — with the Rookie switch at the top
+   * — as the tutorial's last act, so every player has stood in the place
+   * confused players need to know exists.
+   */
+  {
+    id: "info",
+    target: "info",
+    native: "keyterms",
+    title: "Stuck on a word? It lives here.",
+    body: "This ⓘ is every term the game uses, searchable, in plain English — and the Rookie Mode switch is at the top of it. Tap it to finish the tour and have a look around.",
+    mode: "tap",
+    place: "below",
   },
 ];
 

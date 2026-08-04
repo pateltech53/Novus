@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { ScreenSheet } from "@/components/screens/ScreenSheet";
+import { RookieToggle } from "@/components/ui/RookieToggle";
 import { GLOSSARY } from "@/lib/engine/constants";
 
 /**
@@ -54,6 +55,14 @@ export function KeyTermsSheet({ onClose }: { onClose: () => void }) {
       blurb="Every word the game uses, in plain English. The real term is on top; the textbook line is under it. Tap any figure on your Books or in your notes to get the same thing, one at a time."
     >
       <div className="px-5 pb-5 pt-3">
+        {/* The vocabulary switch lives WITH the vocabulary. Rookie Mode was a
+            Settings row and a mid-tutorial card — both places you find after
+            you needed it. Here it sits on the page the ⓘ button opens, where
+            someone confused by a word already is. */}
+        <div className="mb-3 rounded-[var(--radius-row)] bg-[var(--surface)] px-3.5 py-3 ring-1 ring-[var(--hairline)]">
+          <RookieToggle />
+        </div>
+
         <input
           type="search"
           value={query}
