@@ -1,0 +1,335 @@
+<template>
+  <div id="root" data-composition-id="09-sharks" data-width="1920" data-height="1080" data-duration="7.211">
+
+    <!-- Track 0 — paper ground (full-bleed clip, never on #root) -->
+    <div class="clip s09-ground" data-start="0" data-duration="7.211" data-track-index="0"></div>
+
+    <!-- Track 1 — the wide inner world: four Tank stations, traversed by lateral pans -->
+    <div class="clip s09-viewport" data-start="0" data-duration="7.211" data-track-index="1">
+      <div class="s09-world" id="s09-world" data-layout-allow-overflow>
+
+        <!-- Station 1 — the room, the Chair reads the ask -->
+        <div class="s09-station s09-st-a" id="s09-st1">
+          <div class="s09-label s09-mono">THE ASK</div>
+          <div class="s09-shot">
+            <img class="s09-img s09-img-a" src="assets/11-panel-1.png" alt="">
+          </div>
+        </div>
+
+        <!-- Station 2 — a shark's question -->
+        <div class="s09-station s09-st-b" id="s09-st2">
+          <div class="s09-label s09-mono">THE QUESTION</div>
+          <div class="s09-shot">
+            <img class="s09-img s09-img-b" src="assets/11-panel-2.png" alt="">
+          </div>
+          <div class="s09-chip s09-mono" id="s09-chip">SCORED&nbsp;/10</div>
+        </div>
+
+        <!-- Station 3 — five offers on the table, the math -->
+        <div class="s09-station s09-st-c" id="s09-st3">
+          <div class="s09-label s09-mono">THE OFFERS</div>
+          <div class="s09-shot">
+            <img class="s09-img s09-img-c" src="assets/11-panel-3.png" alt="">
+          </div>
+          <!-- ink outline drawn around one offer's math: amount / equity / valuation -->
+          <svg class="s09-outline" viewBox="0 0 296 128" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect id="s09-outline-rect" x="3" y="3" width="290" height="122" rx="12"/>
+          </svg>
+        </div>
+
+        <!-- Station 4 — the signed deal, SIGN IT (landing hold) -->
+        <div class="s09-station s09-st-d" id="s09-st4">
+          <div class="s09-label s09-mono">SIGN IT</div>
+          <div class="s09-shot">
+            <img class="s09-img s09-img-d" src="assets/11-panel-4.png" alt="">
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Track 2 — chrome fixed to the frame: chapter kicker + station dots -->
+    <div class="clip s09-chrome" data-start="0" data-duration="7.211" data-track-index="2">
+      <div class="s09-kicker s09-mono" id="s09-kicker">08 &middot; THE TANK</div>
+      <div class="s09-dots" id="s09-dots">
+        <span class="s09-dot"><span class="s09-dot-fill" id="s09-dfill1"></span></span>
+        <span class="s09-dot"><span class="s09-dot-fill" id="s09-dfill2"></span></span>
+        <span class="s09-dot"><span class="s09-dot-fill" id="s09-dfill3"></span></span>
+        <span class="s09-dot"><span class="s09-dot-fill" id="s09-dfill4"></span></span>
+      </div>
+    </div>
+
+  </div>
+
+  <style>
+    @font-face {
+      font-family: "Urbanist";
+      src: url("assets/fonts/Urbanist-Variable.woff2") format("woff2");
+      font-weight: 100 900;
+      font-style: normal;
+      font-display: block;
+    }
+    @font-face {
+      font-family: "IBM Plex Mono";
+      src: url("assets/fonts/IBMPlexMono-500.woff2") format("woff2");
+      font-weight: 500;
+      font-style: normal;
+      font-display: block;
+    }
+
+    #root {
+      position: relative;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      container-type: size;
+    }
+
+    .s09-ground {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(120% 120% at 50% 38%, rgba(242, 240, 236, 0) 55%, #F2F0EC 100%),
+        #FCFCFA;
+    }
+
+    /* content containers carry the family, not only #root */
+    .s09-viewport,
+    .s09-chrome {
+      font-family: "Urbanist", sans-serif;
+      color: #232019;
+    }
+
+    .s09-mono {
+      font-family: "IBM Plex Mono", monospace;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .s09-viewport {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    /* one wide inner world — the single pan transform writer */
+    .s09-world {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 6688px;
+      height: 1080px;
+      will-change: transform;
+    }
+
+    /* stations: ~70% frame width (1344px), spaced 1600px center-to-center */
+    .s09-station {
+      position: absolute;
+      top: 120px;
+      width: 1344px;
+      height: 756px;
+    }
+    .s09-st-a { left: 288px; }
+    .s09-st-b { left: 1888px; }
+    .s09-st-c { left: 3488px; }
+    .s09-st-d { left: 5088px; }
+
+    /* the screen card — flat white, 14px radius, two-layer soft shadow, hairline */
+    .s09-shot {
+      position: absolute;
+      inset: 0;
+      background: #ffffff;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow:
+        0 0 0 1px rgba(35, 32, 25, 0.08),
+        0 2px 4px rgba(35, 32, 25, 0.08),
+        0 12px 32px rgba(35, 32, 25, 0.10);
+    }
+
+    /* each capture is cropped to its own focal region of the app column */
+    .s09-img {
+      position: absolute;
+      width: 2784px;
+      height: auto;
+      max-width: none;
+      left: -720px;
+    }
+    .s09-img-a { top: -15px; }
+    .s09-img-b { top: -782px; }
+    .s09-img-c { top: -724px; }
+    .s09-img-d { top: -796px; }
+
+    /* small mono station tab riding the card's top-left edge */
+    .s09-label {
+      position: absolute;
+      top: -18px;
+      left: 28px;
+      z-index: 2;
+      padding: 8px 20px;
+      background: #ffffff;
+      border-radius: 100px;
+      font-size: 17px;
+      letter-spacing: 0.14em;
+      color: #5F5C56;
+      box-shadow:
+        0 0 0 1px rgba(35, 32, 25, 0.08),
+        0 2px 4px rgba(35, 32, 25, 0.08);
+    }
+
+    /* the SCORED /10 chip popping at station 2's edge */
+    .s09-chip {
+      position: absolute;
+      top: 190px;
+      right: -42px;
+      z-index: 2;
+      padding: 12px 22px;
+      background: #ffffff;
+      border-radius: 10px;
+      font-size: 21px;
+      letter-spacing: 0.1em;
+      color: #232019;
+      box-shadow:
+        0 0 0 1px rgba(35, 32, 25, 0.08),
+        0 2px 4px rgba(35, 32, 25, 0.08),
+        0 12px 32px rgba(35, 32, 25, 0.10);
+    }
+
+    /* ink outline around the chosen offer's math line */
+    .s09-outline {
+      position: absolute;
+      left: 758px;
+      top: 51px;
+      width: 296px;
+      height: 128px;
+      z-index: 2;
+      overflow: visible;
+    }
+    .s09-outline rect {
+      fill: none;
+      stroke: #232019;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .s09-kicker {
+      position: absolute;
+      top: 58px;
+      left: 96px;
+      font-size: 22px;
+      letter-spacing: 0.16em;
+      color: #5F5C56;
+    }
+
+    .s09-dots {
+      position: absolute;
+      top: 64px;
+      right: 96px;
+      display: flex;
+      gap: 14px;
+    }
+    .s09-dot {
+      position: relative;
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      box-shadow: inset 0 0 0 1.5px rgba(35, 32, 25, 0.25);
+    }
+    .s09-dot-fill {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: #232019;
+    }
+  </style>
+
+  <script src="assets/vendor/gsap.min.js"></script>
+  <script>
+    (function () {
+      var world = document.getElementById("s09-world");
+      var st1 = document.getElementById("s09-st1");
+      var kicker = document.getElementById("s09-kicker");
+      var dots = document.getElementById("s09-dots");
+      var chip = document.getElementById("s09-chip");
+      var outlineRect = document.getElementById("s09-outline-rect");
+      var dfills = [
+        document.getElementById("s09-dfill1"),
+        document.getElementById("s09-dfill2"),
+        document.getElementById("s09-dfill3"),
+        document.getElementById("s09-dfill4")
+      ];
+
+      /* svg-path-draw setup: measured length, dash shifted fully out of view */
+      var len = outlineRect.getTotalLength() * 1.05;
+      outlineRect.style.strokeDasharray = String(len);
+      outlineRect.style.strokeDashoffset = String(len);
+
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+      window.__timelines["09-sharks"] = tl;
+
+      /* Real VO cues (audio_meta line 09, remapped onto the locked 7.211s):
+         "Five sharks…books." 0.10–1.69 | "They question you," 1.79 |
+         "they score you" 2.60 | "and they decide." 3.42 |
+         "An offer," 4.24 | "a pass," 5.09 | "or a hard lesson." 5.53–7.21 */
+
+      /* t=0 claims — everything that enters later starts hidden on frame 0 */
+      tl.set(kicker, { opacity: 0 }, 0);
+      tl.set(dots, { opacity: 0 }, 0);
+      tl.set(chip, { opacity: 0 }, 0);
+      tl.set(dfills, { scale: 0 }, 0);
+
+      /* Scene 1 (0–1.72) — the room holds center; kicker + station 1 settle in */
+      tl.fromTo(st1,
+        { opacity: 0, y: 26, scale: 0.985 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.8, ease: "power3.out" },
+        0);
+      tl.fromTo(kicker,
+        { opacity: 0, y: 12 },
+        { opacity: 1, y: 0, duration: 0.55, ease: "power3.out" },
+        0.12);
+      tl.fromTo(dots,
+        { opacity: 0 },
+        { opacity: 1, duration: 0.45, ease: "power1.out" },
+        0.2);
+      tl.fromTo(dfills[0],
+        { scale: 0 },
+        { scale: 1, duration: 0.35, ease: "power3.out" },
+        0.45);
+
+      /* Scene 2 — on "They question you," pan to station 2; chip pops on "score" */
+      tl.to(world, { x: -1600, duration: 1.05, ease: "power3.inOut" }, 1.72);
+      tl.fromTo(chip,
+        { opacity: 0, scale: 0.7, y: 12 },
+        { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: "power3.out" },
+        2.62);
+      tl.fromTo(dfills[1],
+        { scale: 0 },
+        { scale: 1, duration: 0.35, ease: "power3.out" },
+        2.72);
+
+      /* Scene 3 — on "and they decide." pan to station 3; ink outline draws
+         around one offer's math (amount / equity / valuation) on "An offer," */
+      tl.to(world, { x: -3200, duration: 0.95, ease: "power3.inOut" }, 3.32);
+      tl.fromTo(dfills[2],
+        { scale: 0 },
+        { scale: 1, duration: 0.35, ease: "power3.out" },
+        4.22);
+      tl.to(outlineRect,
+        { strokeDashoffset: 0, duration: 0.7, ease: "power2.out" },
+        4.32);
+
+      /* Scene 4 — on "a pass, or a hard lesson." the final pan lands on
+         SIGN IT and holds to the end (no exit — the root transition owns it) */
+      tl.to(world, { x: -4800, duration: 1.15, ease: "power3.inOut" }, 5.3);
+      tl.fromTo(dfills[3],
+        { scale: 0 },
+        { scale: 1, duration: 0.35, ease: "power3.out" },
+        6.3);
+
+      /* pad the timeline to the locked duration; the landed frame holds still */
+      tl.set(dots, { opacity: 1 }, 7.211);
+    })();
+  </script>
+</template>
