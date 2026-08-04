@@ -1,0 +1,284 @@
+<template>
+  <div id="root" data-composition-id="03-introducing" data-duration="3.776" data-width="1920" data-height="1080">
+    <style>
+      @font-face {
+        font-family: "Urbanist";
+        src: url("assets/fonts/Urbanist-Variable.woff2") format("woff2");
+        font-weight: 100 900;
+        font-style: normal;
+        font-display: block;
+      }
+      @font-face {
+        font-family: "IBM Plex Mono";
+        src: url("assets/fonts/IBMPlexMono-500.woff2") format("woff2");
+        font-weight: 500;
+        font-style: normal;
+        font-display: block;
+      }
+
+      #root {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        container-type: size;
+      }
+
+      /* ---- full-bleed white stage (its own clip layer, never on #root) ---- */
+      .f03i-bg {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse 120% 100% at 50% 45%, #ffffff 55%, #f7f5f2 100%);
+      }
+
+      /* ---- content stage ---- */
+      .f03i-stage {
+        position: absolute;
+        inset: 0;
+      }
+      .f03i-push {
+        position: absolute;
+        inset: 0;
+        transform-origin: 50% 42%;
+      }
+
+      /* Scene 1 — mono kicker, centered upper-third */
+      .f03i-kicker {
+        position: absolute;
+        top: 27cqh;
+        left: 0;
+        width: 100%;
+        text-align: center;
+        font-family: "IBM Plex Mono", monospace;
+        font-weight: 500;
+        font-size: 0.85cqw;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: #6b6864;
+      }
+
+      /* Scene 2 — the lockup: fin mark + typeset wordmark, dead center */
+      .f03i-lockup {
+        position: absolute;
+        top: 37.5cqh;
+        left: 0;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 2.2cqw;
+      }
+      .f03i-mark {
+        width: 10.7cqw;
+        height: 9.5cqw;
+        flex: 0 0 auto;
+      }
+      .f03i-fin {
+        fill: #e35f00;
+        fill-opacity: 0;
+        stroke: #e35f00;
+        stroke-width: 2;
+        stroke-linejoin: round;
+      }
+      .f03i-wave {
+        fill: none;
+        stroke: #111111;
+        stroke-width: 4.5;
+        stroke-linecap: round;
+      }
+      .f03i-word {
+        position: relative;
+        font-family: "Urbanist", sans-serif;
+        font-weight: 800;
+        font-size: 10.4cqw;
+        line-height: 0.9;
+        letter-spacing: -0.04em;
+        text-transform: lowercase;
+        color: #111111;
+        white-space: nowrap;
+      }
+      .f03i-word-ghost {
+        visibility: hidden;
+      }
+      .f03i-word-live {
+        position: absolute;
+        left: 0;
+        top: 0;
+      }
+
+      /* Scenes 3–4 — the category sub-line, per-word */
+      .f03i-subline {
+        position: absolute;
+        top: 63.5cqh;
+        left: 0;
+        width: 100%;
+        text-align: center;
+        font-family: "Urbanist", sans-serif;
+        font-weight: 500;
+        font-size: 2.4cqw;
+        line-height: 1.3;
+        letter-spacing: -0.01em;
+        color: #6b6864;
+        white-space: nowrap;
+      }
+      .f03i-subline .f03i-w {
+        display: inline-block;
+      }
+      .f03i-subline .f03i-ink {
+        color: #111111;
+        font-weight: 600;
+      }
+    </style>
+
+    <div class="clip f03i-bg" data-start="0" data-duration="3.776" data-track-index="0"></div>
+
+    <div class="clip f03i-stage" data-start="0" data-duration="3.776" data-track-index="1">
+      <div class="f03i-push" id="f03i-push">
+        <div class="f03i-kicker" id="f03i-kicker">Introducing</div>
+
+        <div class="f03i-lockup" id="f03i-lockup">
+          <svg class="f03i-mark" viewBox="8 5 54 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path class="f03i-fin" id="f03i-fin" d="M40 9 C46 16 48 26 48 38 L16 38 C20 22 30 12 40 9 Z" />
+            <path class="f03i-wave" id="f03i-wave" d="M10 47 q6 -5 12 0 t12 0 t12 0 t12 0" />
+          </svg>
+          <div class="f03i-word">
+            <span class="f03i-word-ghost">novus</span>
+            <span class="f03i-word-live" id="f03i-word-live"></span>
+          </div>
+        </div>
+
+        <div class="f03i-subline" id="f03i-subline">
+          <span class="f03i-w" id="f03i-sw0">a</span>
+          <span class="f03i-w" id="f03i-sw1">life</span>
+          <span class="f03i-w" id="f03i-sw2">simulator</span>
+          <span class="f03i-w f03i-ink" id="f03i-sw3">&mdash;&nbsp;for</span>
+          <span class="f03i-w f03i-ink" id="f03i-sw4">running</span>
+          <span class="f03i-w f03i-ink" id="f03i-sw5">a</span>
+          <span class="f03i-w f03i-ink" id="f03i-sw6">company.</span>
+        </div>
+      </div>
+    </div>
+
+    <video
+      class="clip"
+      data-frame-video="approved"
+      src="assets/mascot-waving-alpha.webm"
+      muted
+      playsinline
+      preload="auto"
+      data-start="1.55"
+      data-duration="2.226"
+      data-track-index="2"
+      data-frame-video-x="1550"
+      data-frame-video-y="616"
+      data-frame-video-width="270"
+      data-frame-video-height="274"
+      data-frame-video-fit="contain"
+    ></video>
+
+    <script src="assets/vendor/gsap.min.js"></script>
+    <script>
+      (function () {
+        window.__timelines = window.__timelines || {};
+        var tl = gsap.timeline({ paused: true });
+        window.__timelines["03-introducing"] = tl;
+
+        var DURATION = 3.776;
+
+        /* ---------- Scene 1 (0.0–1.0s) — "Introducing": kicker alone ---------- */
+        tl.fromTo(
+          "#f03i-kicker",
+          { opacity: 0, y: 22 },
+          { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" },
+          0.06
+        );
+
+        /* ---------- Scene 2 (1.0–2.2s window, cued on "Novus" @0.89) ----------
+           svg-path-draw: measure real geometry, dash-draw, then fill (fin). */
+        var fin = document.getElementById("f03i-fin");
+        var wave = document.getElementById("f03i-wave");
+        [fin, wave].forEach(function (p) {
+          var len = p.getTotalLength() * 1.05;
+          p.style.strokeDasharray = String(len);
+          p.style.strokeDashoffset = String(len);
+        });
+
+        /* fin outline draws in brand orange… */
+        tl.to("#f03i-fin", { strokeDashoffset: 0, duration: 0.42, ease: "power2.out" }, 0.89);
+        /* …wave strokes through in ink (stagger ~75% into the fin draw) */
+        tl.to("#f03i-wave", { strokeDashoffset: 0, duration: 0.46, ease: "power2.out" }, 1.2);
+        /* …then the fin fills solid orange */
+        tl.to("#f03i-fin", { fillOpacity: 1, duration: 0.3, ease: "power1.out" }, 1.31);
+
+        /* discrete-text-sequence (no caret): "novus" typesets beside the mark.
+           Reverse-search sparse states; instant jumps; ghost span reserves width. */
+        var WORD_SEQ = [
+          { t: 0.0, text: "" },
+          { t: 1.02, text: "n" },
+          { t: 1.14, text: "no" },
+          { t: 1.24, text: "nov" },
+          { t: 1.34, text: "novu" },
+          { t: 1.44, text: "novus" },
+        ];
+        function wordAt(time) {
+          for (var i = WORD_SEQ.length - 1; i >= 0; i--) {
+            if (time >= WORD_SEQ[i].t) return WORD_SEQ[i].text;
+          }
+          return "";
+        }
+        var liveEl = document.getElementById("f03i-word-live");
+        var driver = { t: 0 };
+        tl.to(
+          driver,
+          {
+            t: DURATION,
+            duration: DURATION,
+            ease: "none",
+            onUpdate: function () {
+              var s = wordAt(driver.t);
+              if (liveEl.textContent !== s) liveEl.textContent = s;
+            },
+          },
+          0
+        );
+
+        /* one lockup arrival settle — the whole lockup breathes into place */
+        tl.fromTo(
+          "#f03i-lockup",
+          { y: 14 },
+          { y: 0, duration: 0.6, ease: "power2.out" },
+          0.89
+        );
+
+        /* ---------- Scene 3 (cued per real VO words) — sub-line, per-word ----------
+           a @1.51 · life @1.58 · simulator @1.89 (muted), mascot enters via its
+           own clip window @1.55 (hoisted video, no timeline control needed). */
+        var SUB_CUES = [
+          ["#f03i-sw0", 1.51],
+          ["#f03i-sw1", 1.58],
+          ["#f03i-sw2", 1.89],
+          /* Scene 4 — "— for running a company." completes at full ink */
+          ["#f03i-sw3", 2.74],
+          ["#f03i-sw4", 2.82],
+          ["#f03i-sw5", 3.23],
+          ["#f03i-sw6", 3.28],
+        ];
+        SUB_CUES.forEach(function (cue) {
+          tl.fromTo(
+            cue[0],
+            { opacity: 0, y: 14 },
+            { opacity: 1, y: 0, duration: 0.34, ease: "power2.out" },
+            cue[1]
+          );
+        });
+
+        /* macro camera: one slow push-in under the whole shot */
+        tl.fromTo(
+          "#f03i-push",
+          { scale: 1 },
+          { scale: 1.03, duration: DURATION, ease: "none" },
+          0
+        );
+      })();
+    </script>
+  </div>
+</template>
