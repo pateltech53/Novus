@@ -77,6 +77,13 @@ export type TapeEntry =
       eventId?: string;
       choiceIndex?: number;
       transcript: string;
+      /**
+       * A year gate closed WITHOUT a pitch — allowed only after the Tank
+       * becomes optional (year > TANK_REQUIRED_THROUGH_YEAR), and the replay
+       * enforces that. Closes at a neutral 1.0× with no deal, so there is no
+       * score for a devtools console to smuggle in through this flag.
+       */
+      skipped?: boolean;
     }
   /** The year-end investment choice. */
   | { t: "allocation"; pick: Allocation }

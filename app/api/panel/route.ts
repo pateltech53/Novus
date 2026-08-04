@@ -4,6 +4,7 @@ import { AI_LIMITS, NOT_CONFIGURED, OPENROUTER_API_KEY } from "@/lib/ai/server/p
 import { claimAiCall } from "@/lib/ai/server/limit";
 import { askOpenRouter, str } from "@/lib/ai/server/openrouter";
 import { sharkSystemPrompt } from "@/lib/ai/server/panel-prompts";
+import { scoreAnswer } from "@/lib/ai/pitch-content";
 
 /**
  * POST /api/panel — one shark, one turn, in The Tank.
@@ -217,6 +218,18 @@ function turnBrief(body: PanelRequest, phase: string) {
       })),
       fair_valuation_range: ctx?.fairValuation,
       which_pitch_sections_they_covered: ctx?.coveredBeats,
+      /*
+       * A cheap substance read on each answer so far — strong / adequate /
+       * shaky / dodged — where keyboard mash and non-words grade as dodged.
+       * The model reads the answers itself, but this readout keeps a nonsense
+       * answer from being priced as a real one, and rule 4 says a dodge costs.
+       */
+      answers_substance_readout: answerRecords(body)
+        .slice(-MAX_ANSWERS)
+        .map((a) => ({
+          question: str(a.question, 160),
+          held_up: a.declined ? "dodged" : scoreAnswer(a.question, a.answer).tier,
+        })),
     },
 
     /*
@@ -304,6 +317,30 @@ function shapeTurn(raw: RawTurn, phase: string, body: PanelRequest) {
   const offer = wantsOffer ? clampOffer(raw, fair) : null;
 
   if (phase === "offer") {
+    /*
+     * The same "bound it rather than trust it" rule the deal terms get. The
+     * prompt tells the model that dodged questions cost the founder; a model
+     * that offers anyway after the room was given nothing but silence and
+     * keyboard mash is corrected here, exactly as an absurd valuation is.
+     */
+    const answers = answerRecords(body);
+    const held = answers.length
+      ? answers.reduce(
+          (sum, a) => sum + (a.declined ? 0 : scoreAnswer(a.question, a.answer).quality),
+          0,
+        ) / answers.length
+      : 0.5;
+    if (answers.length >= 2 && held < 0.15) {
+      return {
+        spoken:
+          "You were asked real questions and the room got nothing back. Unanswered questions are the diligence. I'm out.",
+        decision: "out",
+        offer: null,
+        join_with: "",
+        reason: "The questions went unanswered.",
+        private_notes: `Answer substance ${held.toFixed(2)} across ${answers.length} questions — overridden to out.`,
+      };
+    }
     return {
       spoken,
       decision: ["offer", "out", "join"].includes(decision) ? decision : "out",
@@ -353,6 +390,18 @@ function clampOffer(raw: RawTurn, fair: { low: number; high: number }) {
       ? raw.conditions.map((c) => str(c, 140)).filter(Boolean).slice(0, 3)
       : [],
   };
+}
+
+/** The founder's answers so far, defensively shaped from the wire. */
+function answerRecords(body: PanelRequest) {
+  return (Array.isArray(body.answers) ? body.answers : []).map((entry) => {
+    const a = entry as { question?: unknown; answer?: unknown; declined?: unknown };
+    return {
+      question: typeof a.question === "string" ? a.question : "",
+      answer: typeof a.answer === "string" ? a.answer : "",
+      declined: a.declined === true,
+    };
+  });
 }
 
 interface PanelRequest {

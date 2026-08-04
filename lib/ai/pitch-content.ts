@@ -293,6 +293,105 @@ export function scorePitchContent(
   return { score, findings, words, empty: false };
 }
 
+// ── Answer quality ──────────────────────────────────────────────────────────
+
+export interface AnswerQuality {
+  /**
+   * 0..1 — how much this answer should count as "held up under questioning".
+   * 0 is silence or keyboard mash; 1 is a relevant answer with a figure in it.
+   */
+  quality: number;
+  /** The tier the debrief shows and the offline sharks react to. */
+  tier: "dodged" | "shaky" | "adequate" | "strong";
+}
+
+/**
+ * Words that anchor a sentence as an actual sentence. Function words plus the
+ * business vocabulary the rest of this file already scores on. A real answer of
+ * any length contains several of these; a fistful of keyboard mash contains
+ * none. Deliberately a list rather than a model, for the same reason as
+ * everything else in this file: every judgement it makes can be read.
+ */
+const ANCHORS = new Set(
+  (
+    "the a an i we our my you your it its they them their this that these those " +
+    "is are was were be been am do does did have has had will would can could " +
+    "should might must and or but so because if when then than as of to in on " +
+    "at by for from with about into over under after before not no yes more " +
+    "most less least very really just also still only even much many some few " +
+    "make makes made sell sells sold buy build built run runs get got keep grow " +
+    "growing know think want need say said per month monthly year yearly week " +
+    "day people team customer customers client clients user users market money " +
+    "revenue profit margin margins cost costs price pricing cash burn runway " +
+    "churn growth sales product service plan number percent"
+  ).split(/\s+/),
+);
+
+/** The keyboard's three letter rows, for spotting home-row mash like "asdf". */
+const KEY_ROWS = ["qwertyuiop", "asdfghjkl", "zxcvbnm"];
+
+/** True when a token reads as keyboard mash rather than a word. */
+function looksMashed(token: string): boolean {
+  const t = token.toLowerCase().replace(/[^a-z]/g, "");
+  if (t.length < 3) return false;
+  // No vowel at all in a 3+ letter token — "hjkl", "zxcv".
+  if (!/[aeiouy]/.test(t)) return true;
+  // One letter leaned on — "aaaa", "ssss".
+  if (/(.)\1{2,}/.test(t)) return true;
+  // Mostly keyboard-adjacent bigrams — "asdf", "qwerty", "sdfg".
+  let adjacent = 0;
+  for (let i = 0; i < t.length - 1; i += 1) {
+    const row = KEY_ROWS.find((r) => r.includes(t[i]));
+    if (row && Math.abs(row.indexOf(t[i]) - row.indexOf(t[i + 1])) === 1) adjacent += 1;
+  }
+  return adjacent / (t.length - 1) >= 0.6;
+}
+
+/**
+ * How much one answer to one shark question should count.
+ *
+ * The offline offer maths, the live route's floor and the debrief's per-answer
+ * labels all read this one function, so "asdf asdf" is worthless everywhere by
+ * the same rule. It judges substance only — presence of real words, a figure,
+ * and whether it touches what was actually asked — never length for its own
+ * sake, and never anything about how it was delivered.
+ */
+export function scoreAnswer(question: string, answer: string): AnswerQuality {
+  const text = (answer ?? "").trim();
+  if (!text) return { quality: 0, tier: "dodged" };
+
+  const tokens = text.toLowerCase().split(/\s+/).filter(Boolean);
+  const alphaTokens = tokens.filter((t) => /[a-z]/i.test(t));
+  const mashed = alphaTokens.filter(looksMashed).length;
+  const anchored = tokens.filter(
+    (t) => /\d/.test(t) || ANCHORS.has(t.replace(/[^a-z']/gi, "")),
+  ).length;
+
+  // Keyboard mash, or a string of "words" none of which is one: worth exactly
+  // what silence is worth, because it is silence wearing a costume.
+  const mashHeavy = alphaTokens.length > 0 && mashed / alphaTokens.length >= 0.5;
+  const noLanguage = tokens.length >= 3 && anchored === 0 && !/\d/.test(text);
+  if (mashHeavy || noLanguage) return { quality: 0, tier: "dodged" };
+
+  // A real answer. Credit substance: a figure, relevance to the question, and
+  // having actually developed the point rather than tossed a word at it.
+  const hasFigure = /\d/.test(text);
+  const questionWords = (question ?? "")
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length > 4);
+  const relevant =
+    questionWords.length === 0 || questionWords.some((w) => text.toLowerCase().includes(w));
+
+  const quality = Math.min(
+    1,
+    0.4 + (hasFigure ? 0.25 : 0) + (relevant ? 0.2 : 0) + (tokens.length >= 10 ? 0.15 : 0),
+  );
+  const tier = quality >= 0.75 ? "strong" : quality >= 0.5 ? "adequate" : "shaky";
+  return { quality, tier };
+}
+
 /**
  * Delivery figures, for the coach panel only.
  *

@@ -157,16 +157,28 @@ export interface Recording {
  * recorder that gives up entirely would cost a fiscal year over a container.
  */
 function makeRecorder(stream: MediaStream, video: boolean): MediaRecorder {
+  /*
+   * An audio-only recording from a camera+mic stream records the MIC, not the
+   * camera: hand MediaRecorder the audio tracks alone, or it would insist on
+   * encoding the video too (and most browsers refuse an audio container for a
+   * stream that still carries a video track). This is what lets the pitch
+   * screen keep its self-view live while recording only what `/api/stt` can
+   * actually use.
+   */
+  const source =
+    video || stream.getVideoTracks().length === 0
+      ? stream
+      : new MediaStream(stream.getAudioTracks());
   const mimeType = pickMimeType(video);
   if (mimeType) {
     try {
-      return new MediaRecorder(stream, { mimeType });
+      return new MediaRecorder(source, { mimeType });
     } catch {
       /* fall through */
     }
   }
   try {
-    return new MediaRecorder(stream);
+    return new MediaRecorder(source);
   } catch (err) {
     const audioOnly = stream.getAudioTracks();
     if (!video || audioOnly.length === 0) throw err;
@@ -197,7 +209,7 @@ export function startRecording(
       resolve({
         blob:
           chunks.length > 0
-            ? new Blob(chunks, { type: mimeType ?? "video/webm" })
+            ? new Blob(chunks, { type: mimeType ?? (video ? "video/webm" : "audio/webm") })
             : null,
         durationSeconds,
       });

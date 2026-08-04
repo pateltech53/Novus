@@ -36,7 +36,8 @@ export type GateId =
   | "run_slots"
   | "talent_pool"
   | "assets"
-  | "wardrobe";
+  | "wardrobe"
+  | "year_pace";
 
 export interface Gate {
   id: GateId;
@@ -88,6 +89,12 @@ export const GATES: Record<GateId, Gate> = {
     title: "The wardrobe track is Pro",
     body: "Six fits, earned by finishing runs. Changes nothing but you.",
     feature: "cosmetics",
+  },
+  year_pace: {
+    id: "year_pace",
+    title: "Four fiscal years a day on free",
+    body: "The books reopen tomorrow. Pro closes as many years as you can pitch — it never moves a score.",
+    feature: null,
   },
 };
 

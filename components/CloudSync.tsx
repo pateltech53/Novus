@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 
 import { awaitPurchase, returningFromCheckout } from "@/lib/cloud/billing";
+import { installHeartbeat } from "@/lib/cloud/heartbeat";
 import { restoreOnBoot } from "@/lib/cloud/sync";
 
 /**
@@ -19,6 +20,10 @@ import { restoreOnBoot } from "@/lib/cloud/sync";
  */
 export function CloudSync() {
   useEffect(() => {
+    // The once-a-minute "does the server still agree" check: an account the
+    // admin console deleted signs this device out, and a revoked or granted
+    // Pro lands on the open screens without a manual reload.
+    installHeartbeat();
     // Coming back from Stripe is its own path. The tab is not new — checkout
     // left and returned to it — so the boot restore's once-per-tab flag is
     // already set and it would do nothing, which is the one moment a player

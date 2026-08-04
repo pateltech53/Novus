@@ -1,6 +1,7 @@
 import type { PanelContext, AttackPoint } from "./panel-context";
 import type { SharkId, SharkOffer, SharkQuestions, SharkOfferTurn, SharkNegotiateTurn } from "./types";
 import { CAST } from "./panel-cast";
+import { scoreAnswer } from "./pitch-content";
 import { hashString, mulberry32 } from "@/lib/engine/rng";
 
 /**
@@ -198,13 +199,16 @@ function reactionLine(
 ): string {
   if (!last) return "";
   /*
-   * The only thing the offline shark can read about an answer is whether there
-   * was one. It reacts to that and nothing else — deliberately not to length,
-   * not to speed, not to how it was delivered. A short, correct answer is a
-   * good answer, and any heuristic that assumed otherwise would be scoring
-   * speech rhythm through the back door.
+   * The offline shark reads an answer for substance, never for delivery: a
+   * short, correct answer is a good answer, and nothing here scores length,
+   * speed, or rhythm. But an answer with no language in it — keyboard mash,
+   * a string of non-words — is a dodge wearing a costume, and thanking the
+   * founder for it ("That's a number. Thank you.") was the most visible tell
+   * that the room wasn't reading. `scoreAnswer` gives those the same zero
+   * that silence gets.
    */
-  const nothing = last.declined || last.text.trim().length === 0;
+  const nothing =
+    last.declined || scoreAnswer("", last.text).quality === 0;
   return pickFrom(nothing ? AFTER_DODGE[shark] : AFTER_GOOD[shark], rng);
 }
 
@@ -252,9 +256,32 @@ export function localOfferTurn(opts: {
   const { shark, ctx } = opts;
   const rng = rngFor(ctx, `${shark}:offer`);
   const asked = opts.answers.length;
-  const answered = opts.answers.filter((a) => !a.declined && a.answer.trim().length > 0).length;
-  /** How much of the interrogation they actually stood up to. */
-  const held = asked > 0 ? answered / asked : 0.5;
+  /*
+   * Each answer counts for what it was worth, not merely for existing. The old
+   * test here was `answer.trim().length > 0`, which priced "asdf asdf" exactly
+   * like a real figure — so a founder who mashed the keyboard three times held
+   * the room as well as one who defended every number. `scoreAnswer` grades
+   * substance (real words, a figure, on-topic) and gives keyboard mash the
+   * same zero that silence gets.
+   */
+  const qualities = opts.answers.map((a) => (a.declined ? 0 : scoreAnswer(a.question, a.answer).quality));
+  const answered = qualities.filter((q) => q > 0).length;
+  /** How much of the interrogation they actually stood up to, 0..1. */
+  const held = asked > 0 ? qualities.reduce((s, q) => s + q, 0) / asked : 0.5;
+
+  // A founder who gave the room nothing — silence or gibberish, question after
+  // question — does not get a cheque on the strength of the pitch alone.
+  // Dodging every question ends the deal; that is rulebook rule 4, enforced.
+  if (asked >= 2 && held < 0.15) {
+    return {
+      spoken: outLine(shark, ctx, rng),
+      decision: "out",
+      offer: null,
+      join_with: "",
+      reason: "The questions went unanswered, and unanswered questions are the diligence.",
+      private_notes: `Held ${held.toFixed(2)} across ${asked} questions — nothing to price.`,
+    };
+  }
 
   /*
    * Conviction: half the pitch, half the questioning. The rulebook is explicit

@@ -4,6 +4,7 @@ import { adminGate, audit, isUuid } from "@/lib/admin/guard";
 import { windDownOwnedChapters } from "@/lib/stripe/chapter";
 import { cancelActivePersonalPro } from "@/lib/stripe/subscription";
 import { adminClient } from "@/lib/supabase/admin";
+import { purgeAccountRows } from "@/lib/supabase/purge";
 import { crossSite, withSession } from "@/lib/supabase/route";
 
 export const runtime = "nodejs";
@@ -157,22 +158,38 @@ export async function DELETE(
     return withSession(bad(503, `delete failed: ${error.message}`), gate.session);
   }
 
+  // Belt and braces behind the cascade: clear every table by name, so "delete
+  // this account" holds even against a production schema that drifted from the
+  // migrations. A table that refuses is surfaced to the operator, not swallowed.
+  const leftovers = await purgeAccountRows(db, id);
+
   await audit(gate.session, "account_delete", {
     target: id,
     targetEmail: email,
-    detail: uncancelled.length ? { uncancelledSubscriptions: uncancelled } : {},
+    detail: {
+      ...(uncancelled.length ? { uncancelledSubscriptions: uncancelled } : {}),
+      ...(leftovers.length ? { tablesNotPurged: leftovers } : {}),
+    },
   });
+
+  const warnings = [
+    ...(uncancelled.length
+      ? [
+          "The account was deleted, but a Stripe subscription could not be cancelled automatically — cancel it in the Stripe dashboard.",
+        ]
+      : []),
+    ...(leftovers.length
+      ? [
+          `The account was deleted, but some rows could not be purged (${leftovers.join("; ")}) — check the database.`,
+        ]
+      : []),
+  ];
 
   return withSession(
     NextResponse.json({
       ok: true,
-      ...(uncancelled.length
-        ? {
-            warning:
-              "The account was deleted, but a Stripe subscription could not be cancelled automatically — cancel it in the Stripe dashboard.",
-            uncancelledSubscriptions: uncancelled,
-          }
-        : {}),
+      ...(warnings.length ? { warning: warnings.join(" ") } : {}),
+      ...(uncancelled.length ? { uncancelledSubscriptions: uncancelled } : {}),
     }),
     gate.session,
   );
