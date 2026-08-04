@@ -602,9 +602,31 @@ function PlayScreen() {
         >
           <LogButton month={run.month} year={run.year} onOpen={() => setLogOpen(true)} />
         </div>
-        {/* The centre column's own slack, so the decision and ADVANCE sit
-            where they always did rather than floating at the top. */}
-        <div className="hidden flex-1 lg:block" />
+        {/*
+          The centre column's own slack, so the decision and ADVANCE sit where
+          they always did rather than floating at the top.
+
+          On the phone that slack is a few pixels. On desktop it is most of a
+          1000px column, and it never fills: decisions arrive as a sheet over
+          the page, not as a card in the flow. An empty column that size reads
+          as a screen that failed to load, so it says what it is instead — and
+          says nothing at all while a decision is up, since the sheet is then
+          the thing being read.
+        */}
+        <div className="hidden flex-1 lg:flex lg:items-center lg:justify-center lg:px-6">
+          {!current && run.alive ? (
+            <div className="max-w-[24rem] text-center">
+              <div className="text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
+                {atGate ? "THE YEAR IS UP" : "NOTHING ON THE TABLE"}
+              </div>
+              <p className="mt-2 text-sm text-[var(--text-secondary)]">
+                {atGate
+                  ? "Twelve months, banked. Close the year and see what they bought you."
+                  : "Nobody needs you this minute. Advance the month and that will change."}
+              </p>
+            </div>
+          ) : null}
+        </div>
 
         {domChrome ? (
           <>
