@@ -1,57 +1,83 @@
 {
-  "provider": "kokoro",
-  "speed": 0.95,
   "lines": [
     {
       "id": "01",
-      "text": "This is Novus — a life simulator for running a company. Let's play one full year, screen by screen."
+      "sfx": [
+        "chime"
+      ]
     },
     {
       "id": "02",
-      "text": "You start by founding your company. Pick a name, pick an industry — and you begin in the garage, with twenty-five thousand in the bank."
+      "sfx": [
+        "click-soft",
+        "typing"
+      ]
     },
     {
       "id": "03",
-      "text": "This is your company. Your mascot, up top. Three rings — brand, quality, morale. And the books: cash, burn, runway, valuation. Real words — because they're real numbers."
+      "sfx": [
+        "click-soft",
+        "pop"
+      ]
     },
     {
       "id": "04",
-      "text": "Time only moves when you move it. Press advance month — and the month happens: revenue comes in, burn goes out, and something lands on your desk."
+      "sfx": [
+        "click",
+        "whoosh-short"
+      ]
     },
     {
       "id": "05",
-      "text": "Every month brings a scenario — a supplier squeezes, a rival copies, a critic calls. Each choice has a cost, and the game remembers. You decide — then you live with it."
+      "sfx": [
+        "click-soft",
+        "impact-bass-2"
+      ]
     },
     {
       "id": "06",
-      "text": "Watch the books after every call. Cash moves. Runway stretches — or shrinks. By month twelve, these numbers are your story."
+      "sfx": [
+        "pop",
+        "sparkle"
+      ]
     },
     {
       "id": "07",
-      "text": "Then the year stops. To close it, you pitch — on camera. Sixty seconds: what you sell, who buys it, why you win, what you want."
+      "sfx": [
+        "typing",
+        "impact-bass-1",
+        "sparkle"
+      ]
     },
     {
       "id": "08",
-      "text": "Your camera comes on. You talk. Novus listens — to your logic, your numbers, even your filler words. This is the part you can't skim."
+      "sfx": [
+        "riser"
+      ]
     },
     {
       "id": "09",
-      "text": "Five sharks have read your books. They question you, they score you — and they decide. An offer, a pass, or a hard lesson."
+      "sfx": [
+        "riser",
+        "impact-bass-2"
+      ]
     },
     {
       "id": "10",
-      "text": "Survive, and year two begins — bigger stage, harder problems. Fail, and Chapter Seven is real. Either way — you learned by doing."
+      "sfx": [
+        "chime",
+        "impact-bass-1"
+      ]
     },
     {
       "id": "11",
-      "text": "That's Novus. Your company, your calls, your pitch. Learn by doing — at novuspitch dot com."
+      "sfx": [
+        "whoosh-cinematic",
+        "chime"
+      ]
     }
   ],
   "bgm": {
-    "mode": "retrieve",
-    "query": "calm warm minimal underscore, patient, apple tutorial feel",
-    "blob": "Here is how Novus works, from founding your company to surviving the year — one full life, screen by screen.",
-    "arc": "Guided walkthrough — welcome → founding → the play screen → advancing a month → decisions → the books react → the year gate → the pitch → the sharks decide → year two or the lesson → close"
-  },
-  "voice": "af_heart"
+    "mode": "none"
+  }
 }

@@ -37,7 +37,7 @@ music: calm warm minimal underscore, patient, apple tutorial feel
 
 - scene: The fin mark + "novus" lockup in ink on paper; the real play screen rises beside it as the guide names the premise; chapter kicker THE GUIDE.
 - voiceover: "This is Novus — a life simulator for running a company. Let's play one full year, screen by screen."
-- duration: 8s
+- duration: 5.973s
 - poster: 5s
 - transition_in: cut
 - status: outline
@@ -61,7 +61,7 @@ keyMessage: This guide plays one full year of Novus.
 
 - scene: The founding paperwork screens step through in one large card — blank form, "Marrow & Co" + industry picked, the company brief drafted — one step per VO cue; chapter kicker 01 · FOUNDING.
 - voiceover: "You start by founding your company. Pick a name, pick an industry — and you begin in the garage, with twenty-five thousand in the bank."
-- duration: 10s
+- duration: 7.275s
 - poster: 6s
 - transition_in: push-slide LEFT
 - status: outline
@@ -86,7 +86,7 @@ keyMessage: Name it, pick the industry, start in the garage with $25K.
 
 - scene: The play screen large and centered; callouts draw one at a time — mascot, the three rings, the ledger — exactly as the VO names them; chapter kicker 02 · YOUR COMPANY.
 - voiceover: "This is your company. Your mascot, up top. Three rings — brand, quality, morale. And the books: cash, burn, runway, valuation. Real words — because they're real numbers."
-- duration: 12s
+- duration: 11.072s
 - poster: 8s
 - transition_in: push-slide LEFT
 - status: outline
@@ -113,7 +113,7 @@ keyMessage: Mascot, rings, and the books — the whole company on one screen.
 
 - scene: The real advance clip plays large: ADVANCE MONTH pressed, the month turning, the event card sliding in; chapter kicker 03 · THE MONTH.
 - voiceover: "Time only moves when you move it. Press advance month — and the month happens: revenue comes in, burn goes out, and something lands on your desk."
-- duration: 11s
+- duration: 8.491s
 - poster: 6s
 - transition_in: push-slide LEFT
 - status: outline
@@ -138,7 +138,7 @@ keyMessage: Time moves only when you press advance.
 
 - scene: The real decision clip plays large — "Price Tag Panic" read, choices weighed, one committed; chapter kicker 04 · THE CALL.
 - voiceover: "Every month brings a scenario — a supplier squeezes, a rival copies, a critic calls. Each choice has a cost, and the game remembers. You decide — then you live with it."
-- duration: 12s
+- duration: 10.283s
 - poster: 7s
 - transition_in: push-slide LEFT
 - status: outline
@@ -163,7 +163,7 @@ keyMessage: Every choice has a cost, and the game remembers.
 
 - scene: The post-commit screens: the ledger updated, then the life-log with "The Books move" deltas; a solvency-green and an alert-red delta called out; chapter kicker 05 · THE BOOKS.
 - voiceover: "Watch the books after every call. Cash moves. Runway stretches — or shrinks. By month twelve, these numbers are your story."
-- duration: 10s
+- duration: 7.893s
 - poster: 6s
 - transition_in: push-slide LEFT
 - status: outline
@@ -188,7 +188,7 @@ keyMessage: The books are the story your decisions wrote.
 
 - scene: The gold CLOSE THE YEAR capsule, then the full "Pitch me" gate screen with its four beats; chapter kicker 06 · THE GATE.
 - voiceover: "Then the year stops. To close it, you pitch — on camera. Sixty seconds: what you sell, who buys it, why you win, what you want."
-- duration: 11s
+- duration: 7.595s
 - poster: 7s
 - transition_in: zoom-through
 - status: outline
@@ -213,7 +213,7 @@ keyMessage: The year closes with a pitch, on camera.
 
 - scene: The real pitch clip: OPEN THE CAMERA, the live self-view, START TALKING, the REC timer running with the shark listening; chapter kicker 07 · THE PITCH.
 - voiceover: "Your camera comes on. You talk. Novus listens — to your logic, your numbers, even your filler words. This is the part you can't skim."
-- duration: 12s
+- duration: 8.171s
 - poster: 8s
 - transition_in: blur-crossfade
 - status: outline
@@ -238,7 +238,7 @@ keyMessage: You talk; Novus listens to the words and the numbers.
 
 - scene: The Tank sequence: the five-shark room, a shark's question, the five offers with their math, the signed deal; chapter kicker 08 · THE TANK.
 - voiceover: "Five sharks have read your books. They question you, they score you — and they decide. An offer, a pass, or a hard lesson."
-- duration: 12s
+- duration: 7.211s
 - poster: 7s
 - transition_in: crossfade
 - status: outline
@@ -264,7 +264,7 @@ keyMessage: Five sharks question, score, and decide.
 
 - scene: The debrief (scores + grade), the year-end statement (YEAR 1: SURVIVED), and Year 2 opening with the deal on the books; chapter kicker 09 · THE VERDICT.
 - voiceover: "Survive, and year two begins — bigger stage, harder problems. Fail, and Chapter Seven is real. Either way — you learned by doing."
-- duration: 11s
+- duration: 8.171s
 - poster: 7s
 - transition_in: push-slide LEFT
 - status: outline
@@ -289,7 +289,7 @@ keyMessage: Survive to year two, or learn the hard way — both are the game.
 
 - scene: The paper stage clears; the ink lockup returns with the tagline and novuspitch.com typing in mono; the keyed mascot waves goodbye; chapter kicker THE END.
 - voiceover: "That's Novus. Your company, your calls, your pitch. Learn by doing — at novuspitch dot com."
-- duration: 9s
+- duration: 5.611s
 - poster: 6s
 - transition_in: zoom-through
 - status: outline
