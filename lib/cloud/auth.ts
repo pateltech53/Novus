@@ -395,7 +395,12 @@ export async function requestPasswordReset(email: string): Promise<string> {
 }
 
 /**
- * Finish a reset, using the tokens the /reset page read out of its own URL.
+ * Finish a reset — or set up an invited seat — using the tokens the page read
+ * out of its own URL. Two pages call this: /reset, where someone is repairing
+ * an account they already own, and /join/setup, where a chapter invitee is
+ * choosing the first password the account has ever had. Same endpoint, because
+ * it is the same operation; `displayName` is the one thing only the second one
+ * sends, and only when nothing has asked for a name yet.
  *
  * ── Why this WIPES the device, exactly like signIn ─────────────────────────
  *
@@ -413,8 +418,14 @@ export async function confirmPasswordReset(
   accessToken: string,
   refreshToken: string,
   password: string,
+  displayName?: string,
 ): Promise<AuthOutcome> {
-  const out = await post("/api/auth/reset/confirm", { accessToken, refreshToken, password });
+  const out = await post("/api/auth/reset/confirm", {
+    accessToken,
+    refreshToken,
+    password,
+    ...(displayName ? { displayName } : {}),
+  });
   if (!out) return fail("offline", "Could not reach the server. Check your connection.");
   const { res, body } = out;
   if (!res.ok) return fail("error", body.error ?? "Could not set that password.");

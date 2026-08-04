@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AuthHashRelay } from "@/components/AuthHashRelay";
 import { Landing } from "@/components/landing/Landing";
 import {
   FAQ,
@@ -158,6 +159,10 @@ export default function Home() {
         // Serialised server-side; nothing user-controlled enters this object.
         dangerouslySetInnerHTML={{ __html: JSON_LD }}
       />
+      {/* A Supabase link whose redirect was not on the allow-list is sent to
+          the Site URL — here — with its session still in the fragment. This
+          hands it on to the page that can finish the job. */}
+      <AuthHashRelay />
       <Landing />
     </>
   );

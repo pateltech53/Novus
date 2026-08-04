@@ -69,12 +69,22 @@ function GearGlyph() {
   );
 }
 
-function InfoGlyph() {
+/**
+ * An open book, not an ⓘ. The dossier button beside this one is already drawn
+ * as an info circle (components/CompanyDossier.tsx), and two ⓘs in one row is
+ * a coin flip every time someone wants their numbers or the glossary. A book
+ * is what this actually opens: the vocabulary, looked up.
+ */
+function BookGlyph() {
   return (
     <svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-      <circle cx="9" cy="9" r="7.2" stroke="currentColor" strokeWidth="1.6" />
-      <circle cx="9" cy="5.6" r="1" fill="currentColor" />
-      <path d="M9 8.4v4.4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path
+        d="M9 4.4C7.6 3.1 5.6 2.7 2.8 2.7v10.8c2.8 0 4.8.4 6.2 1.7 1.4-1.3 3.4-1.7 6.2-1.7V2.7c-2.8 0-4.8.4-6.2 1.7Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path d="M9 4.4v10.8" stroke="currentColor" strokeWidth="1.5" />
     </svg>
   );
 }
@@ -101,7 +111,7 @@ export function HomeStage({
   onOpenBoard: () => void;
   /** Opens the per-stage rookie guide from the stage line in the identity row. */
   onOpenStageGuide: () => void;
-  /** The ⓘ button: every key term, searchable, with the Rookie switch on it. */
+  /** The book button: every key term, searchable, with the Rookie switch on it. */
   onOpenKeyTerms: () => void;
   /*
    * The dossier used to own its own open state. It is lifted now because the
@@ -157,9 +167,9 @@ export function HomeStage({
           {run.pro ? "PRO" : "FREE"}
         </button>
         <div className="flex items-center gap-2">
-        {/* ⓘ — the key terms page, and the Rookie switch on it. First in the
-            row because it is the door a confused player is looking for, and
-            the tutorial points at it by name. */}
+        {/* The book — the key terms page, and the Rookie switch on it. First
+            in the row because it is the door a confused player is looking
+            for, and the tutorial points at it by name. */}
         <button
           type="button"
           data-coach="info"
@@ -167,7 +177,7 @@ export function HomeStage({
           aria-label="Key terms — every word the game uses, explained"
           className="nv-gc flex h-9 w-9 items-center justify-center rounded-[0.7rem] text-[var(--n-10)]"
         >
-          <InfoGlyph />
+          <BookGlyph />
         </button>
         {/* The whole company, on one scroll. Sits with the gear and the phone
             because it is a thing you consult, not a move you make. */}
