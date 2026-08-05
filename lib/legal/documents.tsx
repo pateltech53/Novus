@@ -110,6 +110,19 @@ export const PRIVACY: LegalDocument = {
           follows you to another device, and a Pro subscription has something
           durable to attach to. We do not send marketing email, and there is no
           newsletter to be added to.
+          <br />
+          <br />
+          You can also sign in with <strong>Google</strong> or{" "}
+          <strong>Apple</strong> instead of choosing a password, where those
+          buttons are shown. If you do, that is the one moment Novus sends you to
+          another company: you sign in on their page, and they tell us your email
+          address — nothing else, and never anything about how you play. Google
+          and Apple will know that you signed in to Novus, which is the honest
+          cost of the shortcut and the reason the email option is still there and
+          always will be. Apple&rsquo;s <em>Hide My Email</em> works normally; we
+          only ever see the forwarding address. The display name is still yours
+          to invent — we ask for it on the next screen and never keep the name on
+          your Google or Apple account.
         </>
       ),
     },
@@ -186,6 +199,13 @@ export const PRIVACY: LegalDocument = {
           telemetry, and nothing about you to anyone else. There are no
           advertising SDKs and no social pixels anywhere in it, and nothing in
           Novus tracks you across other companies&rsquo; apps or websites.
+          <br />
+          <br />
+          The one exception is if you press <em>Continue with Google</em> or{" "}
+          <em>Continue with Apple</em>, which takes you to them and back. Until
+          you press it, nothing on the page has contacted either of them — the
+          buttons are drawn by us, not loaded from anywhere — so reading this
+          page, or playing without an account, still reaches nobody.
         </>
       ),
     },
