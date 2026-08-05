@@ -1,4 +1,5 @@
 import type { RunState } from "@/lib/engine/types";
+import { developedSentences, saidIn } from "@/lib/engine/company-brief";
 
 /**
  * WHAT YOU SAID — content scoring for a pitch.
@@ -245,6 +246,38 @@ export function scorePitchContent(
     };
   }
 
+  /*
+   * Is this about a business at all?
+   *
+   * The coherence read above catches gibberish and a line on a loop. It does
+   * not catch fluent English about nothing, and that is the other half of what
+   * players reported: "I am the pickle man… Pickles are in the supermarket. I
+   * want money" came back at 2.5/10 having supposedly covered three of the
+   * seven beats, and a transcript about someone's trip to the shop scored 1.3
+   * for covering "what the business actually is".
+   *
+   * Coverage is per topic, so ONE stray trade word — shop, sell, customers —
+   * used to be worth a topic and a compliment. A pitch talks about a business
+   * throughout; a joke brushes past a business word on its way somewhere else.
+   * Three distinct trade words is the line, and a figure counts as one because
+   * numbers are what pitches are made of. A real pitch of any length clears it
+   * without trying; nothing that isn't a pitch clears it at all.
+   */
+  if (words >= 8 && businessSubstance(transcript ?? "") < 3) {
+    return {
+      score: 0,
+      words,
+      empty: false,
+      findings: [
+        {
+          kind: "missing",
+          note: "There was no business in that. A pitch has to say what you sell, who buys it, what it costs and what you want — this said none of them.",
+          weight: 0,
+        },
+      ],
+    };
+  }
+
   if (words < 8) {
     return {
       score: 0,
@@ -260,11 +293,20 @@ export function scorePitchContent(
     };
   }
 
-  // 1 · Coverage — up to 5 of the 10 points, because doing the four jobs is the
-  //     floor of a competent pitch rather than the ceiling of a good one.
+  /*
+   * 1 · Coverage — up to 5 of the 10 points, because doing the four jobs is the
+   *     floor of a competent pitch rather than the ceiling of a good one.
+   *
+   * Matched the same way `beatsCovered` matches, and for the same reason: a
+   * term has to appear as a whole word inside a sentence that develops
+   * something. `text.includes("shop")` was true of "I went to the workshop",
+   * and a player who talked about their weekend was told they had covered what
+   * the business actually is.
+   */
+  const claims = developedSentences(transcript ?? "");
   let covered = 0;
   for (const topic of TOPICS) {
-    const hit = topic.terms.some((t) => text.includes(t));
+    const hit = claims.some((s) => topic.terms.some((t) => saidIn(s, t)));
     if (hit) {
       covered += 1;
       findings.push({ kind: "covered", note: `You covered ${topic.label}.`, weight: 1.25 });
@@ -385,6 +427,25 @@ function transcriptCoherence(transcript: string): number {
 }
 
 const clamp01 = (n: number) => Math.max(0, Math.min(1, Number.isFinite(n) ? n : 0));
+
+/**
+ * How many distinct pieces of business vocabulary a transcript actually uses.
+ *
+ * Whole-word matched, distinct-counted, and a figure is worth one — so
+ * repeating "customers, customers, customers" is one word, not three, and
+ * "we charge 34 dollars" is two signals rather than one. It is a count of
+ * SUBJECTS raised, which is what separates a pitch from a sentence that
+ * happened to contain the word "shop".
+ */
+function businessSubstance(transcript: string): number {
+  const tokens = transcript
+    .toLowerCase()
+    .replace(/[^a-z0-9'\s]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+  const distinct = new Set(tokens.filter((t) => TRADE.has(t)));
+  return distinct.size + (SPECIFIC.test(transcript) || MONEY.test(transcript) ? 1 : 0);
+}
 
 // ── Answer quality ──────────────────────────────────────────────────────────
 

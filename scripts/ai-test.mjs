@@ -738,6 +738,61 @@ const WORTH_Q = "Run your own math with me: what is this company actually worth?
 }
 
 {
+  // The pitch score card, and the sentence a player quoted back: "I am the
+  // pickle man… Pickles are in the supermarket. I want money" came back as
+  // 2.5/10 having covered Solution, Market and Traction. Market was awarded
+  // for the word SUPERmarket.
+  const { beatsCovered, saidIn, PITCH_FRAMEWORK } = await import(
+    pathToFileURL(join(root, "lib/engine/company-brief.ts")).href
+  );
+
+  check("a marker is a word, not a substring", saidIn("Pickles are in the supermarket", "market") === false);
+  check("but the word itself still counts", saidIn("our addressable market is huge", "market") === true);
+  check("\"sincere\" is not \"since\"", saidIn("he was sincere about it", "since") === false);
+  check("\"soldier\" is not \"sold\"", saidIn("a soldier bought one", "sold") === false);
+  check("\"workshop\" is not \"shop\"", saidIn("I went to the workshop", "shop") === false);
+  // Brand Law 5: a marker list written in textbook English must not quietly
+  // score grammar. Same claim, second-language phrasing, same beat.
+  check("\"we make\" is found in \"we is making\"", saidIn("we is making hoodie", "we make") === true);
+  check("and in \"we are selling\"", saidIn("we are selling to schools", "we sell") === true);
+  check("but not across a negation", saidIn("we do not make anything", "we make") === false);
+
+  const named = (tx) => PITCH_FRAMEWORK.filter((b) => beatsCovered(tx)[b.n]).map((b) => b.title);
+  const junk = "I am the pickle man. I like pickles. We sell pickles. Customers like pickles. Pickles are in the supermarket. I want money.";
+  check("the pickle man covers no beats at all", named(junk).length === 0, named(junk).join(","));
+
+  const books = {
+    stats: {
+      burnMonthly: 20_000, revenueAnnual: 240_000, grossMarginPt: 62, cash: 90_000,
+      csat: 71, morale: 66, qual: 60, valuation: 1_200_000, employees: 4, netMarginPt: 5,
+    },
+  };
+  check("and scores nothing", scorePitchContent(junk, books).score === 0, String(scorePitchContent(junk, books).score));
+  const weekend =
+    "hello hello my name is bob and i went to the shop yesterday and it was quite sunny outside so i had a nice time thanks";
+  check(
+    "neither does fluent English about someone's weekend",
+    scorePitchContent(weekend, books).score === 0,
+    String(scorePitchContent(weekend, books).score),
+  );
+  check(
+    "and it is told there was no business in it",
+    /no business in that/.test(scorePitchContent(weekend, books).findings[0]?.note ?? ""),
+  );
+
+  // The other direction, which matters just as much: a real pitch must not be
+  // caught by any of this — terse, unpunctuated, or in imperfect English.
+  const terse = "We sell hoodies to schools. Customers reorder every term. Revenue is 240k. I'm asking for 150k for 12%.";
+  const spoken =
+    "so we make hoodies for school sports teams the customers are parents and school clubs we charge 34 dollars each and keep 62 percent revenue is 240 thousand a year im raising 150 thousand for 12 percent to buy another printer";
+  const esl =
+    "we is making hoodie for the school team. the parent and club they buy from us. we charge 34 dollar and keep 62 percent. i want 150 thousand for 12 percent to buy machine";
+  check("a terse real pitch still scores", scorePitchContent(terse, books).score >= 6, String(scorePitchContent(terse, books).score));
+  check("an unpunctuated spoken pitch still scores", scorePitchContent(spoken, books).score >= 6, String(scorePitchContent(spoken, books).score));
+  check("and one in imperfect English still covers beats", named(esl).includes("Solution"), named(esl).join(","));
+}
+
+{
   // The cold call is the other surface that turns a pitch into money, and it
   // had the same hole: a strong company and a good reputation cleared an easy
   // caller's bar with a transcript that said nothing at all.
