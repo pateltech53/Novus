@@ -98,6 +98,18 @@ export function AccountGate() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  /**
+   * The reset link's own flag, and its own line of text.
+   *
+   * Both used to be shared with the sign-in form, and sharing them is what made
+   * the link look dead — see forgot(). `n` counts the taps so an identical
+   * repeat of the same sentence still remounts, which is both a change on
+   * screen and a fresh announcement to a screen reader.
+   */
+  const [sending, setSending] = useState(false);
+  const [resetSaid, setResetSaid] = useState<{ ok: boolean; text: string; n: number } | null>(null);
+  const sayReset = (ok: boolean, text: string) =>
+    setResetSaid((prev) => ({ ok, text, n: (prev?.n ?? 0) + 1 }));
   /** Second tap arms the delete. Reset by any other action. */
   const [confirmDelete, setConfirmDelete] = useState(false);
   /** CONTINUE has been pressed and the app is on its way in. */
@@ -282,6 +294,8 @@ export function AccountGate() {
     play("click");
     setError(null);
     setNotice(null);
+    setResetSaid(null);
+    setSending(false);
     setConfirmDelete(false);
     setShowPassword(false);
     setCaptchaToken(null);
@@ -437,16 +451,54 @@ export function AccountGate() {
     window.location.href = "/";
   };
 
+  /**
+   * Ask for a reset email.
+   *
+   * ── Why this stopped borrowing the sign-in form's state ────────────────────
+   *
+   * Pressing "Forgot your password?" used to change exactly one thing on the
+   * screen, and it was the wrong thing: setting `busy` flipped the full-width
+   * button NEXT to it to SIGNING IN…, an action the player had just decided not
+   * to take. The link itself did nothing at all. FootLink has no press
+   * animation (the scale rule in globals.css keys off `nv-gc`, which it does
+   * not carry), its tap highlight is suppressed on the element, it took no
+   * `disabled`, its label was a constant — and this was the one handler in the
+   * file that never played the click. Five ways to acknowledge a tap and not
+   * one of them was wired, so "I pressed it and nothing happened" was a fair
+   * description of what the pressed thing did.
+   *
+   * The answer then landed in the shared notice, ABOVE the link: behind the
+   * finger, and shoving the link itself down the page. And because the message
+   * is deliberately the same whether or not the address has an account, a
+   * second press — which is what anyone does when the first appears to fail —
+   * produced a genuinely identical DOM. The button was fine. Every signal it
+   * gave was either about something else or somewhere else.
+   *
+   * So: its own flag, its own label, its own line of text directly beneath it,
+   * and the click every other control here already played.
+   */
   const forgot = async () => {
-    if (busy) return;
+    if (sending) return;
+    play("click");
+    setError(null);
+    setNotice(null);
+    // The last answer goes the moment a new attempt starts, or it sits there
+    // contradicting the label — "enter your email first" in red above a link
+    // that is busy sending to the email that was just entered.
+    setResetSaid(null);
+
     if (!email.trim()) {
-      setError("Enter your email first, then tap this again.");
+      sayReset(false, "Enter your email above first, then tap this again.");
       return;
     }
-    setBusy(true);
-    setError(null);
-    setNotice(await requestPasswordReset(email));
-    setBusy(false);
+
+    setSending(true);
+    try {
+      const result = await requestPasswordReset(email);
+      sayReset(result.ok, result.message);
+    } finally {
+      setSending(false);
+    }
   };
 
   /**
@@ -722,7 +774,26 @@ export function AccountGate() {
         </FootLink>
       ) : mode === "signIn" ? (
         <div className="mt-3 space-y-2">
-          <FootLink onClick={() => void forgot()}>Forgot your password?</FootLink>
+          <FootLink onClick={() => void forgot()} disabled={sending}>
+            {sending ? "Sending reset link…" : "Forgot your password?"}
+          </FootLink>
+
+          {/* Directly under the link that produced it, not in the shared slot
+              above — the answer to a tap belongs where the finger already is,
+              and putting it overhead moved the link out from under it. Keyed on
+              the tap count so an identical repeat still counts as a change. */}
+          {resetSaid ? (
+            <p
+              key={resetSaid.n}
+              role="status"
+              className={`mx-auto max-w-[21rem] text-center text-2xs leading-relaxed ${
+                resetSaid.ok ? "text-[var(--text-secondary)]" : "text-[var(--color-alert)]"
+              }`}
+            >
+              {resetSaid.text}
+            </p>
+          ) : null}
+
           <FootLink onClick={() => go("signUp")}>
             No account yet? Create one
           </FootLink>

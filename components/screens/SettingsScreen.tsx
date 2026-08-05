@@ -352,6 +352,12 @@ function AccountSection() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  /** The reset link's own flag and its own line, for the reason forgot() below
+   *  gives — and the same split the front door now makes. */
+  const [sending, setSending] = useState(false);
+  const [resetSaid, setResetSaid] = useState<{ ok: boolean; text: string; n: number } | null>(null);
+  const sayReset = (ok: boolean, text: string) =>
+    setResetSaid((prev) => ({ ok, text, n: (prev?.n ?? 0) + 1 }));
 
   /**
    * Google and Apple, when this build can actually do them.
@@ -496,16 +502,37 @@ function AccountSection() {
     window.location.href = storefront() === "web" ? route : appPath(route);
   };
 
+  /**
+   * Ask for a reset email. Same repair as the front door's forgot().
+   *
+   * This button was better wired than that one — it did at least dim itself —
+   * but it borrowed the sign-in form's `busy`, so the only control that changed
+   * its WORDS was the SIGN IN button above it, which announced an action nobody
+   * had asked for. And the answer rendered outside the card entirely, below the
+   * three-line paragraph about making accounts at novuspitch.com: seventy-odd
+   * pixels from the button, on a sheet that scrolls, with nothing to bring it
+   * into view. Its own flag, its own label, its own line under the button.
+   */
   const forgot = async () => {
-    if (busy) return;
+    if (sending) return;
+    setError(null);
+    setNotice(null);
+    // Gone the moment a new attempt starts — a stale answer above a button that
+    // says it is sending is the same confusion this whole change is about.
+    setResetSaid(null);
+
     if (!email.trim()) {
-      setError("Enter your email first, then tap this again.");
+      sayReset(false, "Enter your email above first, then tap this again.");
       return;
     }
-    setBusy(true);
-    setError(null);
-    setNotice(await requestPasswordReset(email.trim()));
-    setBusy(false);
+
+    setSending(true);
+    try {
+      const result = await requestPasswordReset(email.trim());
+      sayReset(result.ok, result.message);
+    } finally {
+      setSending(false);
+    }
   };
 
   const leaveAccount = async () => {
@@ -756,11 +783,28 @@ function AccountSection() {
               <GlassButton
                 tone="quiet"
                 onClick={() => void forgot()}
-                disabled={busy}
+                disabled={busy || sending}
                 className="mt-2 h-11 text-xs"
               >
-                Forgot your password?
+                {sending ? "SENDING RESET LINK…" : "Forgot your password?"}
               </GlassButton>
+
+              {/* Inside the card and directly under the button, rather than
+                  with the shared error/notice below — those sit past the
+                  paragraph beneath this form, far enough down a scrolling sheet
+                  to be off screen at the moment the button is pressed. */}
+              {resetSaid ? (
+                <p
+                  key={resetSaid.n}
+                  role="status"
+                  className={`mt-2 text-2xs leading-snug ${
+                    resetSaid.ok ? "text-[var(--text-secondary)]" : "text-[var(--alert)]"
+                  }`}
+                >
+                  {resetSaid.text}
+                </p>
+              ) : null}
+
               <p className="mt-1 text-2xs leading-snug text-[var(--text-tertiary)]">
                 New accounts are made at novuspitch.com, where the human check
                 can run. Signing in here brings that account&rsquo;s companies
