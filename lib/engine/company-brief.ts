@@ -706,12 +706,109 @@ export const PITCH_FRAMEWORK: PitchBeat[] = [
   },
 ];
 
-/** Which beats a transcript actually reached. Used by the debrief. */
+/**
+ * Which beats a transcript actually reached. Used by the debrief and the score
+ * card, and read by the sharks so they can ask about what was never said.
+ *
+ * ── Why this is not `text.includes(marker)` any more ───────────────────────
+ *
+ * It was, and it produced feedback players correctly called nonsense. Two
+ * separate faults, both visible in one reported transcript — "I am the pickle
+ * man… Pickles are in the supermarket. I want money." — which came back rated
+ * as having covered Solution, Market and Traction:
+ *
+ *   1. NO WORD BOUNDARIES. "market" matched inside "super*market*". The Market
+ *      beat — how many people have this problem and what is it worth — was
+ *      awarded for the word supermarket. The same bug hands "since" to
+ *      "sincere", "sold" to "soldier" and "shop" to "workshop".
+ *
+ *   2. ONE WORD IS NOT A BEAT. Even matched correctly, "we sell pickles" is
+ *      not a Solution and "customers like pickles" is not Traction. A beat is
+ *      a thing the founder ARGUED, and three words is not an argument.
+ *
+ * So a marker now has to appear as a whole word or phrase, and it has to
+ * appear inside a sentence that develops something — enough content to be a
+ * claim, or a figure, which is a claim by itself. That is a deliberately low
+ * bar. It is not a test of eloquence and it cannot be failed by imperfect
+ * grammar or a short pitch (Brand Law 5): "We charge £34 a hoodie" clears it
+ * on its figure alone. It is only a test of whether anything was said.
+ */
 export function beatsCovered(transcript: string): Record<number, boolean> {
-  const text = (transcript ?? "").toLowerCase();
+  const claims = developedSentences(transcript ?? "");
   const out: Record<number, boolean> = {};
   for (const beat of PITCH_FRAMEWORK) {
-    out[beat.n] = beat.markers.some((m) => text.includes(m));
+    out[beat.n] = claims.some((s) => beat.markers.some((m) => saidIn(s, m)));
   }
   return out;
+}
+
+/**
+ * True when `text` contains `marker` as a whole word or whole phrase.
+ *
+ * Built by escaping the marker and fencing it with non-letter lookarounds
+ * rather than `\b`, because several markers end in punctuation ("%") or hold
+ * spaces ("we charge", "break even"), and `\b` behaves differently on each.
+ * Trailing inflection is allowed — "customers" matches "customer" — so a
+ * founder is not penalised for a plural.
+ */
+export function saidIn(text: string, marker: string): boolean {
+  const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  /*
+   * One word may sit inside a multi-word marker, so "we make" is also found in
+   * "we are making", "we is making" and "we just make". Brand Law 5 forbids
+   * scoring fluency, and a marker list written in textbook English quietly
+   * does exactly that: a founder pitching in a second language says the same
+   * thing and loses the beat on grammar. One word of slack, not two, so the
+   * phrase still has to be a phrase rather than two words in the same
+   * paragraph.
+   */
+  const parts = marker.split(/\s+/);
+  /*
+   * The last word carries the inflection, and a silent -e is dropped before
+   * -ing: make/making, charge/charging, offer/offering. Without this, "we are
+   * making hoodies" misses the marker "we make" on a spelling rule, which is
+   * the same Brand Law 5 problem in smaller print.
+   */
+  const last = parts[parts.length - 1];
+  const inflected = /[a-z]$/i.test(last)
+    ? last.endsWith("e")
+      ? `${escape(last.slice(0, -1))}(?:e|es|ed|ing)?(?![a-z])`
+      : `${escape(last)}(?:s|es|d|ed|ing)?(?![a-z])`
+    : escape(last);
+  const body = [...parts.slice(0, -1).map(escape), inflected].join("(?:\\s+\\w+)?\\s+");
+  const lead = /^[a-z0-9]/i.test(marker) ? "(?<![a-z0-9])" : "";
+  return new RegExp(`${lead}${body}`, "i").test(text);
+}
+
+/**
+ * The sentences in a transcript that actually assert something.
+ *
+ * A figure makes a sentence a claim at almost any length — "240K revenue" is
+ * two words and the most checkable thing in most pitches. Otherwise it takes
+ * five words and three of them carrying content. Speech transcripts are punctuated
+ * badly or not at all, so a run of text with no sentence breaks is treated as
+ * one long sentence and clears the bar easily — the guard is against
+ * fragments, not against people who do not say "full stop" out loud, and it is
+ * deliberately too weak to be the only thing standing between a joke and a
+ * score. `scorePitchContent` carries the other half.
+ */
+export function developedSentences(transcript: string): string[] {
+  const FILLER = new Set(
+    ("the a an and or but so if it is are was were be been am do does did have has had " +
+      "i we you they he she them us our my your their this that these those there here " +
+      "of to in on at by for from with about into over under not no yes very really just " +
+      "like want going get got what which who when where why how").split(/\s+/),
+  );
+  return (transcript ?? "")
+    .split(/[.!?\n]+/)
+    .map((s) => s.trim())
+    .filter((s) => {
+      const words = s.split(/\s+/).filter(Boolean);
+      if (/\d/.test(s)) return words.length >= 2;
+      if (words.length < 5) return false;
+      const content = words.filter(
+        (w) => w.length > 2 && !FILLER.has(w.toLowerCase().replace(/[^a-z']/g, "")),
+      );
+      return content.length >= 3;
+    });
 }
