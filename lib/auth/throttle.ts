@@ -42,6 +42,23 @@ export const LIMITS = {
   /** Reset emails are mail we send on a stranger's say-so. Kept tight. */
   resetPerIp: 5,
   resetPerEmail: 3,
+  /**
+   * Leaving for Google or Apple. Sized like sign-IN rather than sign-UP, and
+   * the difference is deliberate.
+   *
+   * `signupPerIp` is five, on the reasoning that bulk account creation is worth
+   * automating when all it costs is a typed address. It is not worth automating
+   * here: every account this door opens needs a real Google or Apple account
+   * behind it, which is a far higher bar than anything our own form asks for.
+   * Meanwhile the ways to spend an attempt without getting an account are
+   * ordinary — press the button, see the account chooser, change your mind —
+   * and at five a classroom behind one NAT would lock itself out before the
+   * back row had tried once.
+   *
+   * Thirty bounds the abuse that remains (a script hammering the route to make
+   * us mint authorisation URLs) without standing in front of a real player.
+   */
+  oauthPerIp: 30,
 } as const;
 
 /**

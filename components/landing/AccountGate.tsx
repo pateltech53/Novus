@@ -6,8 +6,16 @@ import Link from "next/link";
 
 import { MAX_NAME_LENGTH, loadAccount, signOut as forgetLocalAccount } from "@/lib/account";
 import {
+  PROVIDER_LABEL,
+  enabledProviders,
+  type OAuthProvider,
+} from "@/lib/auth/providers";
+import { ChooseName } from "@/components/ChooseName";
+import {
   deleteAccount,
   identity,
+  nativeProviderSignIn,
+  providerStartUrl,
   requestPasswordReset,
   signIn,
   signOut,
@@ -51,15 +59,31 @@ const RETRY_AFTER_MS = 6000;
  * so every browser player has an account their companies can attach to. The
  * account is what makes progress portable and a purchase recoverable.
  *
- * ── Four states ────────────────────────────────────────────────────────────
+ * ── Five states ────────────────────────────────────────────────────────────
  *
  *   create    the resting state, one button
  *   signUp    name + email + password + policy checkbox
  *   signIn    email + password, with a way to ask for a reset
  *   signedIn  CONTINUE AS <NAME>
+ *   naming    a provider account, one screen old, choosing what to be called
+ *
+ * ── The provider buttons ───────────────────────────────────────────────────
+ *
+ * Google and Apple appear under the form when the deploy switches them on
+ * (`enabledProviders()`, which is off by default and says why). They are ONE
+ * button doing both jobs — "Continue with Google" is a sign-up the first time
+ * and a sign-in every time after — so they sit outside the create/signIn split
+ * the email fields are organised by, and the server tells us afterwards which
+ * it turned out to be (lib/auth/oauth-profile.ts).
+ *
+ * On the web pressing one leaves the page: the whole flow is a redirect out to
+ * the provider and back to /auth/callback, which finishes it. In the shipped
+ * app it never leaves — the system sheet returns a token in-process — so the
+ * `naming` state exists to hold the one screen a new account still needs
+ * without sending an app that is already open somewhere else and back.
  */
 
-type Mode = "create" | "signUp" | "signIn" | "signedIn";
+type Mode = "create" | "signUp" | "signIn" | "signedIn" | "naming";
 
 export function AccountGate() {
   const router = useRouter();
@@ -89,6 +113,21 @@ export function AccountGate() {
    */
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaNonce, setCaptchaNonce] = useState(0);
+
+  /**
+   * The providers this deploy offers, and whether the app can do them natively.
+   *
+   * Seeded synchronously from the environment so the server render and the
+   * first client render agree — the alternative is a hydration mismatch, or two
+   * buttons appearing under the hero a beat after the page settles. The effect
+   * only ever narrows it, and only inside the shipped app: there the list
+   * depends on a Capacitor plugin whose presence cannot be known until the
+   * bridge is up (lib/cloud/native-oauth.ts).
+   */
+  const [providers, setProviders] = useState<readonly OAuthProvider[]>(() => enabledProviders());
+  const [nativeAuth, setNativeAuth] = useState(false);
+  /** The name Google or Apple offered, for the `naming` step to prefill. */
+  const [suggestedName, setSuggestedName] = useState<string | null>(null);
 
   const firstFieldRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -136,6 +175,20 @@ export function AccountGate() {
         setMode("signIn");
         setNotice("Your session expired. Sign in to pick up where you left off.");
       }
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Which provider buttons the shipped app can actually honour. A no-op in
+  // every browser, where the seed above is already the answer.
+  useEffect(() => {
+    let alive = true;
+    void import("@/lib/cloud/native-oauth").then(({ nativeAuthAvailable, availableProviders }) => {
+      if (!alive || !nativeAuthAvailable()) return;
+      setNativeAuth(true);
+      setProviders(availableProviders());
     });
     return () => {
       alive = false;
@@ -328,6 +381,62 @@ export function AccountGate() {
     window.location.href = "/";
   };
 
+  /**
+   * Continue with Google, or with Apple.
+   *
+   * ── Two shapes, one button ────────────────────────────────────────────────
+   *
+   * On the web this is a document navigation and nothing after it runs: the
+   * player is going to accounts.google.com and coming back to /auth/callback,
+   * which finishes the sign-in and decides where they land. `busy` is set and
+   * never cleared on purpose — the page is leaving, and a button that
+   * re-enables itself during that is a button that can be pressed twice.
+   *
+   * In the shipped app it resolves in place. The system sheet hands back a
+   * token in the app's own process, so there is no round trip to survive and
+   * nowhere to send anybody: a returning player is reloaded into the game, and
+   * a brand-new one gets the naming step here rather than on a page this app
+   * would have to leave itself to reach.
+   */
+  const useProvider = async (provider: OAuthProvider) => {
+    if (busy) return;
+    play("click");
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+
+    if (!nativeAuth) {
+      window.location.href = providerStartUrl(provider);
+      return;
+    }
+
+    const result = await nativeProviderSignIn(provider);
+    if (!result.ok) {
+      setBusy(false);
+      // A closed sheet is a change of mind, not a failure. Saying anything
+      // about it turns "I'll do it later" into "something went wrong".
+      if (result.reason !== "cancelled") setError(result.message);
+      return;
+    }
+
+    play("success");
+    if (await resumePendingPro()) return;
+
+    if (result.state === "new") {
+      setBusy(false);
+      setSuggestedName(
+        result.suggestedName && result.suggestedName !== "Founder" ? result.suggestedName : null,
+      );
+      setMode("naming");
+      return;
+    }
+
+    // A returning player. nativeProviderSignIn has emptied this device, and the
+    // account's own saves are pulled by restoreOnBoot when CloudSync remounts —
+    // which a client-side navigation never triggers. Same reload signIn does.
+    window.location.href = "/";
+  };
+
   const forgot = async () => {
     if (busy) return;
     if (!email.trim()) {
@@ -386,6 +495,31 @@ export function AccountGate() {
     }
     window.location.href = "/";
   };
+
+  /*
+   * The account exists and has just been named. Sign-up KEEPS this device — the
+   * companies in localStorage are the player's own and keeping them is why they
+   * made an account — so `destination()` is meaningful here in a way it never is
+   * after a sign-in, and it takes them back to whatever they had open.
+   */
+  if (mode === "naming") {
+    return (
+      <div className="w-full text-left">
+        <p className="mb-5 text-2xs leading-relaxed text-[var(--text-secondary)]">
+          Your account is made. This is the name the game uses — your own
+          invention, not the one on your Google or Apple account.
+        </p>
+        <ChooseName
+          suggested={suggestedName}
+          onDone={() => {
+            const route = destination();
+            if (storefront() === "web") router.push(route);
+            else window.location.href = appPath(route);
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
@@ -512,6 +646,40 @@ export function AccountGate() {
         </GateButton>
       ) : mode === "create" ? (
         <GateButton onClick={() => go("signUp")}>CREATE ACCOUNT</GateButton>
+      ) : null}
+
+      {/* One button per provider, in every state except signedIn — where the
+          player already is who they are and a second way in is noise. Renders
+          nothing at all on a deploy that has not switched them on, which is
+          the default (enabledProviders). */}
+      {mode !== "signedIn" && providers.length > 0 ? (
+        <div className="mt-4">
+          <div className="flex items-center gap-3" aria-hidden>
+            <span className="h-px flex-1 bg-[var(--hairline)]" />
+            <span className="text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]">
+              OR
+            </span>
+            <span className="h-px flex-1 bg-[var(--hairline)]" />
+          </div>
+
+          {providers.map((provider) => (
+            <ProviderButton
+              key={provider}
+              provider={provider}
+              disabled={busy}
+              onClick={() => void useProvider(provider)}
+            />
+          ))}
+
+          {/* Said once, plainly, before anybody presses anything: this is the
+              one thing in Novus that contacts somebody else. The rest of the
+              app routes Supabase and Stripe through our own origin precisely so
+              it can say that. */}
+          <p className="mx-auto mt-3 max-w-[21rem] text-center text-2xs leading-relaxed text-[var(--text-tertiary)]">
+            This takes you to {providers.map((p) => PROVIDER_LABEL[p]).join(" or ")} and back.
+            They tell us your email address and nothing else.
+          </p>
+        </div>
       ) : null}
 
       {error ? (
@@ -671,6 +839,80 @@ function FootLink({
     >
       {children}
     </button>
+  );
+}
+
+/**
+ * Continue with Google / Continue with Apple.
+ *
+ * Quieter than the primary pill and identical in height to it, because these
+ * are alternatives to CREATE ACCOUNT rather than competitors for it — a
+ * full-accent Google button next to a full-accent Novus one makes the page ask
+ * a question it does not mean to ask.
+ *
+ * ── The marks are drawn, not fetched ──────────────────────────────────────
+ *
+ * Both brands require their own mark on a sign-in button, and both publish it
+ * on a CDN. Loading it from there would put a request to Google on the landing
+ * page of a product for minors before anybody has pressed anything — which is
+ * the exact thing docs/LEADERBOARD.md §1.4 rules out and the whole architecture
+ * of this app is arranged to avoid. Inline SVG satisfies the guidelines and
+ * contacts nobody.
+ */
+function ProviderButton({
+  provider,
+  onClick,
+  disabled,
+}: {
+  provider: OAuthProvider;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      style={{ touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
+      className="nv-gc mt-3 flex h-14 w-full items-center justify-center gap-3 rounded-[var(--radius-card)] nv-on px-6 text-[0.9375rem] font-extrabold tracking-[0.02em] text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-35"
+    >
+      {provider === "google" ? <GoogleMark /> : <AppleMark />}
+      <span className="truncate">Continue with {PROVIDER_LABEL[provider]}</span>
+    </button>
+  );
+}
+
+/** Google's four-colour G, at the fixed proportions their guidelines set. */
+function GoogleMark() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden focusable="false">
+      <path
+        fill="#4285F4"
+        d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62Z"
+      />
+      <path
+        fill="#34A853"
+        d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18Z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M3.97 10.72a5.41 5.41 0 0 1 0-3.44V4.95H.96a9 9 0 0 0 0 8.1l3-2.33Z"
+      />
+      <path
+        fill="#EA4335"
+        d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.59C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58Z"
+      />
+    </svg>
+  );
+}
+
+/** Apple's mark, in the current text colour so it works in both themes —
+ *  which is what their guidelines ask for on a non-black button. */
+function AppleMark() {
+  return (
+    <svg width="17" height="20" viewBox="0 0 17 20" aria-hidden focusable="false" fill="currentColor">
+      <path d="M14.03 10.62c-.02-2.2 1.8-3.26 1.88-3.31-1.02-1.5-2.62-1.7-3.18-1.72-1.35-.14-2.64.8-3.33.8-.69 0-1.75-.78-2.88-.76-1.48.02-2.85.86-3.61 2.19-1.54 2.67-.39 6.62 1.11 8.79.73 1.06 1.6 2.25 2.75 2.21 1.1-.05 1.52-.71 2.86-.71 1.33 0 1.71.71 2.88.69 1.19-.02 1.94-1.08 2.67-2.15.84-1.23 1.19-2.42 1.21-2.48-.03-.01-2.32-.89-2.34-3.53M11.85 4.1c.61-.74 1.02-1.77.91-2.79-.88.04-1.94.58-2.57 1.32-.56.65-1.05 1.7-.92 2.7.98.08 1.98-.5 2.58-1.23" />
+    </svg>
   );
 }
 

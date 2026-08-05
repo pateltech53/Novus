@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { NextRequest, NextResponse } from "next/server";
 
+import type { OAuthProvider } from "@/lib/auth/providers";
 import { isNativeOrigin } from "@/lib/native/origins";
 
 import {
@@ -152,6 +153,246 @@ export async function signInWithPassword(email: string, password: string): Promi
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) return { session: null, failure: classifyAuthError(error.message) };
   return { session: pack(supabase, data), failure: null };
+}
+
+// ── Google and Apple ────────────────────────────────────────────────────────
+
+/**
+ * Storage for a Supabase client that has none.
+ *
+ * ── Why this is needed at all ──────────────────────────────────────────────
+ *
+ * The rest of this file runs `persistSession: false`, because a Route Handler
+ * has no browser storage and the refresh token in the cookie is the whole
+ * session. The PKCE flow is the one thing that does not fit that: `getUrlFor
+ * Provider` writes the code verifier into the client's storage, and
+ * `exchangeCodeForSession` reads it back out — and with `persistSession: false`
+ * gotrue-js ignores any storage you pass and installs its own private one, so
+ * the verifier is written somewhere we cannot reach and the exchange, one
+ * request later, has nothing to read.
+ *
+ * So these two calls (and only these two) run with `persistSession: true` and a
+ * Map. It is still per-request and still in memory — the durable half of the
+ * round trip is the httpOnly cookie the routes set.
+ *
+ * ── Why the WHOLE store travels, and not just the verifier ────────────────
+ *
+ * The obvious version of this reaches in for one known key. It would work
+ * today and break on an upgrade, silently, in the one flow nobody tests by
+ * accident. The installed auth-js does not keep a single verifier: it keeps a
+ * slot per concurrent flow (`<key>-flow-<id>-code-verifier`), an index listing
+ * them, and a fixed legacy key mirroring the most recent — three entries whose
+ * names and JSON encoding are the library's business, not ours, and which have
+ * already changed shape once.
+ *
+ * So nothing here is parsed. The map is serialised whole on the way out and
+ * restored whole on the way back, and whatever the library wrote it finds
+ * again byte for byte. It is a few hundred bytes of cookie and it cannot be
+ * wrong about a format it never reads.
+ */
+const VERIFIER_STORAGE_KEY = "novus-oauth";
+
+const pkceClient = (
+  seed?: string,
+): { supabase: SupabaseClient; snapshot: () => string } => {
+  const store = new Map<string, string>();
+
+  if (seed) {
+    try {
+      for (const [key, value] of JSON.parse(seed) as [string, string][]) {
+        if (typeof key === "string" && typeof value === "string") store.set(key, value);
+      }
+    } catch {
+      // A cookie that is not our JSON is a cookie from another build, or a
+      // tampered one. Left empty: the exchange then fails on a missing
+      // verifier, which is the correct answer to both.
+    }
+  }
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      flowType: "pkce",
+      // Not a preference: with persistSession false, gotrue-js ignores the
+      // storage passed here and installs its own, so the verifier would be
+      // written somewhere this function cannot read.
+      persistSession: true,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      storageKey: VERIFIER_STORAGE_KEY,
+      storage: {
+        getItem: (key) => store.get(key) ?? null,
+        setItem: (key, value) => {
+          store.set(key, value);
+        },
+        removeItem: (key) => {
+          store.delete(key);
+        },
+      },
+    },
+  });
+
+  return { supabase, snapshot: () => JSON.stringify([...store.entries()]) };
+};
+
+export interface OAuthStart {
+  /** Where to send the browser. */
+  url: string;
+  /** The PKCE storage, serialised. Park it in the cookie; the callback cannot
+   *  finish without it. Opaque on purpose — see pkceClient. */
+  verifier: string;
+}
+
+/**
+ * Builds the provider's authorisation URL and hands back the secret half.
+ *
+ * `skipBrowserRedirect` is belt and braces — gotrue-js only redirects when it
+ * thinks it is in a browser, and this is Node — but stating it means the
+ * function cannot start behaving differently if that check ever changes.
+ *
+ * Returns null rather than throwing when Supabase declines. The caller turns
+ * that into "sign-in with Google is not available", which is the truth from the
+ * player's side whether the provider is switched off in the dashboard or the
+ * project is unreachable.
+ */
+export async function startOAuth(
+  provider: OAuthProvider,
+  redirectTo: string,
+): Promise<OAuthStart | null> {
+  if (!configured()) return null;
+
+  const { supabase, snapshot } = pkceClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: {
+      redirectTo,
+      skipBrowserRedirect: true,
+      /*
+       * Apple hands over the name ONCE, on the very first authorisation, and
+       * never again — so it has to be asked for here or the account is called
+       * "Founder" forever. Asking for it is not the same as relying on it:
+       * /auth/callback puts a name field in front of every new account anyway,
+       * because a player is entitled to be called what they choose rather than
+       * what their Apple ID says.
+       */
+      ...(provider === "apple" ? { scopes: "name email" } : {}),
+    },
+  });
+
+  if (error || !data?.url) return null;
+
+  const verifier = snapshot();
+  // "[]" — nothing was written, so there is no verifier to come back to and
+  // the exchange would fail ten minutes from now with nothing to point at.
+  if (verifier.length < 3) return null;
+
+  return { url: data.url, verifier };
+}
+
+/**
+ * An OAuth result carries one thing a password result never can: a name the
+ * provider offered. It is a suggestion, not an answer — see suggestedName().
+ */
+export interface OAuthResult extends AuthResult {
+  suggested: string | null;
+}
+
+/**
+ * The reserved parameter auth-js uses to name which flow a callback belongs to.
+ *
+ * It appends this to `redirectTo` when several PKCE sign-ins may be in flight
+ * at once, and in a browser it reads it back off `window.location` by itself.
+ * There is no `window` in a Route Handler, so the callback route has to lift it
+ * off the request and pass it in — the library's own documented server recipe.
+ * Absent is normal and fine: the exchange then uses the most recently stored
+ * verifier, which on a per-request store is the only one there is.
+ */
+export const PKCE_FLOW_ID_PARAM = "sb_flow_id";
+
+/**
+ * Turns the `?code=` the provider sent back into a session.
+ *
+ * The verifier comes from our own cookie, so a code that was minted for a
+ * different browser fails here — which is the whole point of the pair.
+ */
+export async function exchangeOAuthCode(
+  code: string,
+  verifier: string,
+  flowId?: string | null,
+): Promise<OAuthResult> {
+  if (!configured()) return { session: null, failure: "disabled", suggested: null };
+
+  const { supabase } = pkceClient(verifier);
+  const { data, error } = await supabase.auth.exchangeCodeForSession(
+    code,
+    flowId ? { flowId } : undefined,
+  );
+  if (error) {
+    return { session: null, failure: classifyAuthError(error.message), suggested: null };
+  }
+  return { session: pack(supabase, data), failure: null, suggested: suggestedName(data.user) };
+}
+
+/**
+ * The app's half: a token the phone already holds, verified server-side.
+ *
+ * ── Why the shipped app cannot use the redirect flow above ─────────────────
+ *
+ * It can start it. It cannot finish it. `Browser.open` is a real Safari view
+ * (lib/commerce.ts), and it has Safari's cookie jar, not the webview's — so the
+ * session cookie the callback sets lands in a browser the app cannot read, and
+ * the player comes back to the app exactly as signed out as they left.
+ *
+ * The native SDKs sidestep the whole problem: the system sheet returns a signed
+ * `id_token` in the app's own process, the app posts it to us like any other
+ * request, and the cookie comes back down the same connection. It is also the
+ * better flow on its own merits — a system sheet rather than a browser, and the
+ * token still never leaves the server side of this app.
+ *
+ * `nonce` is Apple's replay protection and must be the RAW value the app
+ * generated; Apple carries only its hash inside the token. Absent for Google,
+ * which does not use one here.
+ */
+export async function signInWithProviderToken(
+  provider: OAuthProvider,
+  idToken: string,
+  nonce?: string,
+): Promise<OAuthResult> {
+  if (!configured()) return { session: null, failure: "disabled", suggested: null };
+
+  const supabase = anonClient();
+  const { data, error } = await supabase.auth.signInWithIdToken({
+    provider,
+    token: idToken,
+    ...(nonce ? { nonce } : {}),
+  });
+
+  if (error) {
+    return { session: null, failure: classifyAuthError(error.message), suggested: null };
+  }
+  return { session: pack(supabase, data), failure: null, suggested: suggestedName(data.user) };
+}
+
+/**
+ * The name the provider volunteered, if it volunteered one.
+ *
+ * Google always sends `full_name`. Apple sends a name only on the first
+ * authorisation, and only when `name` was in the scopes — after that the field
+ * is simply absent, for that account, forever. Neither is trusted as the final
+ * answer: this is the PREFILL for the name field on /auth/callback, which is
+ * where the player decides what they are actually called.
+ *
+ * Trimmed to MAX_NAME_LENGTH (24, lib/account.ts) because `profiles.
+ * display_name` carries that as a check constraint, and a 40-character Google
+ * name would otherwise fail the insert and take the whole sign-in with it.
+ */
+export function suggestedName(user: { user_metadata?: Record<string, unknown> } | null): string | null {
+  const meta = user?.user_metadata;
+  if (!meta) return null;
+  for (const key of ["full_name", "name", "preferred_username"]) {
+    const value = meta[key];
+    if (typeof value === "string" && value.trim()) return value.trim().slice(0, 24);
+  }
+  return null;
 }
 
 /**

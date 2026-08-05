@@ -1,4 +1,5 @@
 import { createAccount, loadAccount, signOut as forgetLocalAccount } from "@/lib/account";
+import { PROVIDER_LABEL, type OAuthProvider, type OAuthState } from "@/lib/auth/providers";
 import { RESTORED_FLAG } from "@/lib/cloud/keys";
 import { dropPendingRun } from "@/lib/engine/save";
 import { API_CREDENTIALS, apiUrl } from "@/lib/native/origin";
@@ -31,9 +32,19 @@ export type AuthFailReason =
   | "needs-confirmation"
   | "captcha"
   | "offline"
+  /** The player closed the provider's sheet. Not a failure; say nothing. */
+  | "cancelled"
   | "error";
 
-const fail = (reason: AuthFailReason, message: string): AuthOutcome => ({
+/** The refusal branch on its own, so `fail()` is assignable to every outcome
+ *  shape in this file rather than only to AuthOutcome. */
+interface Refusal {
+  ok: false;
+  reason: AuthFailReason;
+  message: string;
+}
+
+const fail = (reason: AuthFailReason, message: string): Refusal => ({
   ok: false,
   reason,
   message,
@@ -49,6 +60,10 @@ interface AuthBody {
   error?: string;
   reason?: string;
   captcha?: string;
+  /** Provider sign-in only: which of the two doors this turned out to be. */
+  state?: string;
+  /** Provider sign-in only: the name Google or Apple offered, if any. */
+  suggestedName?: string | null;
 }
 
 async function post(path: string, payload: unknown): Promise<{ res: Response; body: AuthBody } | null> {
@@ -195,6 +210,199 @@ export async function signIn(email: string, password: string): Promise<AuthOutco
   }
 
   return { ok: true, email: body.email ?? email, displayName: body.displayName };
+}
+
+// ── Google and Apple ────────────────────────────────────────────────────────
+
+export type ProviderOutcome =
+  | {
+      ok: true;
+      /** "new" on the sign-in that created the account, "known" after that. */
+      state: OAuthState;
+      email: string | null;
+      displayName: string | null;
+      /** The provider's own name for this person, to prefill the name field. */
+      suggestedName: string | null;
+    }
+  | { ok: false; reason: AuthFailReason; message: string };
+
+/**
+ * Where the browser goes to leave for Google or Apple.
+ *
+ * A full navigation, not a fetch — the player is going to another site and
+ * coming back, and a redirect chain is not something XHR can follow into a
+ * consent screen. The route on the other end mints the PKCE verifier and parks
+ * it in a cookie; see app/api/auth/oauth/start/route.ts for why none of that
+ * can happen in the page.
+ */
+export const providerStartUrl = (provider: OAuthProvider): string =>
+  apiUrl(`/api/auth/oauth/start?provider=${provider}`);
+
+/**
+ * What this device owes the player once a provider has signed them in.
+ *
+ * The whole of the sign-up/sign-in split lives here, and it is the same split
+ * signUp() and signIn() above document at length — only the trigger differs.
+ * With email the player chose a door; with a provider there is one button, so
+ * the server reports which door it turned out to be (lib/auth/oauth-profile.ts)
+ * and this acts on the answer:
+ *
+ * · **new** — the account was created a moment ago, so this device's companies
+ *   are the player's own and they came here to keep them. Kept, and pushed up
+ *   immediately, exactly as sign-up does and for the same reason: the debounced
+ *   write never fires for somebody who signs up and closes the tab.
+ * · **known** — a returning player, so everything in localStorage belongs to
+ *   whoever used this browser before them. Emptied, and the account's own copy
+ *   is pulled on the reload the caller does next.
+ *
+ * Getting this backwards is not a cosmetic bug in either direction: one way a
+ * stranger's save is pushed over a returning player's cloud copy, the other a
+ * player watches the company they just made disappear.
+ */
+async function adoptProviderSession(
+  state: OAuthState,
+  email: string | null,
+  displayName: string | null,
+): Promise<void> {
+  // Emptied BEFORE the account cache is written, so a failure between the two
+  // leaves nothing pointing at someone else's saves. Same order as signIn().
+  if (state === "known") wipeDevice();
+
+  createAccount(displayName ?? "Founder", email ?? undefined);
+  forgetIdentity();
+
+  try {
+    const { resume, pushLocalNow } = await import("@/lib/cloud/sync");
+    // Boot switched sync off because this device had no account. It has one
+    // now, so re-arm before anything tries to use it.
+    resume();
+    if (state === "new") await pushLocalNow();
+  } catch {
+    /* the device still has it; the next commit carries it up */
+  }
+}
+
+/**
+ * Finish a provider sign-in that came back through the browser.
+ *
+ * Called by /auth/callback, which is the first page of ours the player sees
+ * after the round trip. The session cookie is already set by then — the
+ * callback route did the exchange — so this reads who that turned out to be and
+ * settles the device.
+ *
+ * `state` comes off the URL, and it is worth being clear about what happens if
+ * somebody edits it. Forcing "known" wipes the localStorage of the browser
+ * you are sitting at, which is a thing you can already do by signing out.
+ * Forcing "new" pushes this device's save into the account you just signed in
+ * to — your own account. Neither reaches anybody else's data, which is why the
+ * value is allowed to travel in the open.
+ */
+export async function completeProviderSignIn(state: OAuthState): Promise<ProviderOutcome> {
+  forgetIdentity();
+  const who = await identity();
+
+  if (!who.configured) {
+    return fail("not-configured", "Accounts are not switched on for this build.");
+  }
+  if (!who.signedIn) {
+    return fail("invalid", "That sign-in did not complete. Try again.");
+  }
+
+  await adoptProviderSession(state, who.email, who.displayName);
+
+  return {
+    ok: true,
+    state,
+    email: who.email,
+    displayName: who.displayName,
+    // The prefill for a brand-new account is whatever the callback route
+    // already wrote to the profile — "Founder" when the provider offered
+    // nothing, which the name screen shows as an empty field.
+    suggestedName: who.displayName,
+  };
+}
+
+/**
+ * The whole flow, in the shipped app, without leaving it.
+ *
+ * The system sheet returns a signed token in the app's own process; that goes
+ * to our own route, which verifies it through Supabase and sets the cookie on
+ * this connection. See lib/cloud/native-oauth.ts for why the redirect flow
+ * cannot be used here — the short version is that `Browser.open` has Safari's
+ * cookie jar and not the webview's.
+ */
+export async function nativeProviderSignIn(provider: OAuthProvider): Promise<ProviderOutcome> {
+  const label = PROVIDER_LABEL[provider];
+
+  let token: { idToken: string; name: string | null } | null;
+  try {
+    const { nativeIdToken } = await import("@/lib/cloud/native-oauth");
+    token = await nativeIdToken(provider);
+  } catch {
+    return fail("error", `Could not open the ${label} sign-in. Try again.`);
+  }
+
+  // Dismissed the sheet. Not an error, and must not be shown as one.
+  if (!token) return fail("cancelled", "");
+
+  const out = await post("/api/auth/oauth/native", {
+    provider,
+    idToken: token.idToken,
+    ...(token.name ? { name: token.name } : {}),
+  });
+  if (!out) return fail("offline", "Could not reach the server. Check your connection.");
+
+  const { res, body } = out;
+  if (body.configured === false) {
+    return fail("not-configured", "Accounts are not switched on for this build.");
+  }
+  if (!res.ok || !body.signedIn) {
+    return fail("invalid", body.error ?? `That ${label} sign-in could not be completed.`);
+  }
+
+  const state: OAuthState = body.state === "new" ? "new" : "known";
+  await adoptProviderSession(state, body.email ?? null, body.displayName ?? null);
+
+  return {
+    ok: true,
+    state,
+    email: body.email ?? null,
+    displayName: body.displayName ?? null,
+    suggestedName: body.suggestedName ?? null,
+  };
+}
+
+/**
+ * Name an account the player has just been handed.
+ *
+ * Only ever called on the `new` path, where the row exists but is called
+ * whatever the provider said — or "Founder", which is nobody's name. The
+ * server-side half also records the privacy consent this screen collected;
+ * see app/api/auth/name/route.ts for why that checkbox cannot sit where the
+ * email form's does.
+ *
+ * The local account cache is rewritten with the chosen name, which is what the
+ * front door reads at first paint — otherwise CONTINUE AS FOUNDER greets
+ * somebody who has just told us they are called something else.
+ */
+export async function setDisplayName(
+  displayName: string,
+  acceptedPrivacy: boolean,
+): Promise<AuthOutcome> {
+  const out = await post("/api/auth/name", { displayName, acceptedPrivacy });
+  if (!out) return fail("offline", "Could not reach the server. Check your connection.");
+
+  const { res, body } = out;
+  if (body.configured === false) {
+    return fail("not-configured", "Accounts are not switched on for this build.");
+  }
+  if (!res.ok) return fail("error", body.error ?? "Could not save that name. Try again.");
+
+  const named = body.displayName ?? displayName;
+  createAccount(named, body.email ?? undefined, acceptedPrivacy);
+  forgetIdentity();
+
+  return { ok: true, email: body.email ?? null, displayName: named };
 }
 
 /**
