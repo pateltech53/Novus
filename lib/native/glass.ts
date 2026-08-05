@@ -302,7 +302,16 @@ export interface NovusGlassPlugin {
    */
   addListener(
     event: "sheetPresented",
-    fn: (data: { id: string }) => void,
+    /**
+     * `height` is the panel's, in points, measured after layout.
+     *
+     * Carried because "presented" and "visible" are not the same claim: a panel
+     * that resolved to zero height appears, reports itself, and shows the
+     * player a frosted backdrop with no card in it. Absent on a binary older
+     * than the change that added it, which the web reads as unknown rather
+     * than as zero.
+     */
+    fn: (data: { id: string; height?: number }) => void,
   ): Promise<PluginListenerHandle>;
   addListener(
     event: "sheetChoice",

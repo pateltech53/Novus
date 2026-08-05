@@ -213,8 +213,9 @@ public class NovusGlassPlugin: CAPPlugin, CAPBridgedPlugin {
              infer presentation from anything this method returns. It waits for
              this instead, and draws the card itself if it never comes.
              */
-            controller.onPresented = { [weak self] id in
-                self?.notifyListeners("sheetPresented", data: ["id": id])
+            controller.onPresented = { [weak self] id, height in
+                self?.notifyListeners(
+                    "sheetPresented", data: ["id": id, "height": Double(height)])
             }
             controller.onChoose = { [weak self] id, index in
                 self?.sheet = nil
