@@ -98,6 +98,7 @@ export function HomeStage({
   onOpenBoard,
   onOpenStageGuide,
   onOpenKeyTerms,
+  onOpenIslands,
   dossierOpen,
   onDossier,
   nativeControls = false,
@@ -113,6 +114,14 @@ export function HomeStage({
   onOpenStageGuide: () => void;
   /** The book button: every key term, searchable, with the Rookie switch on it. */
   onOpenKeyTerms: () => void;
+  /**
+   * Back to the archipelago, from the company's own name.
+   *
+   * A prop rather than a `useGame()` call inside this component because the
+   * navigation differs by storefront (the native shell routes through
+   * `appPath`), and the page already owns every other exit on this screen.
+   */
+  onOpenIslands: () => void;
   /*
    * The dossier used to own its own open state. It is lifted now because the
    * app's masthead controls are UIKit views on iOS, and a native button
@@ -254,8 +263,40 @@ export function HomeStage({
             width, so it steps down one notch and wraps to at most two lines
             instead of truncating — a company name the player chose is not a
             thing to put an ellipsis through. */}
-        <h1 className="line-clamp-2 text-[1.375rem] font-extrabold leading-tight text-[var(--n-11)] lg:mt-1 lg:text-center lg:text-[1.4375rem]">
-          {run.companyName}
+        {/*
+          The name is the way back to the archipelago.
+
+          /play had exactly one exit — inside the Settings sheet — and a player
+          whose daily year ration ran out reported that they could neither
+          reach their other company nor found a new one. Both were available;
+          neither was findable. The masthead control row was already five
+          buttons deep on a phone, and the company's own name is the honest
+          affordance for "which company am I in" anyway: tapping the thing that
+          identifies the company is how you change which company you are in.
+
+          Shown even with one island, because founding the second one lives
+          through the same door.
+        */}
+        <h1 className="lg:mt-1 lg:text-center">
+          <button
+            type="button"
+            onClick={onOpenIslands}
+            aria-label={`${run.companyName} — back to your islands`}
+            /* `nv-press`, not `nv-gc`: the glass material is for controls, and
+               a blurred pane behind a 22px title reads as a button that has
+               eaten the company's name. The chevron carries the affordance. */
+            /* `-my-1 py-1` buys the hit box its height without moving the
+               title: a single-line name at 22px/leading-tight is ~28px tall,
+               under the 30 a thumb needs and exactly the shape
+               `npm run audit:phone` fails at 393px. The padding counts toward
+               the target, the negative margin gives back the layout. */
+            className="nv-press -my-1 line-clamp-2 py-1 text-left text-[1.375rem] font-extrabold leading-tight text-[var(--n-11)] lg:text-center lg:text-[1.4375rem]"
+          >
+            {run.companyName}
+            <span aria-hidden="true" className="ml-1 align-middle text-sm text-[var(--n-6)]">
+              ▾
+            </span>
+          </button>
         </h1>
         <p className="mt-1 text-sm font-semibold text-[var(--n-7)] lg:mt-0.5 lg:text-center lg:text-xs">
           {founderName || "Founder"} &nbsp;|&nbsp; {fmtMoney(run.stats.valuation)}{" "}

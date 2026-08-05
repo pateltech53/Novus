@@ -25,6 +25,8 @@ import { useBackHandler } from "@/lib/native/back";
 import { WorkspaceSlot } from "@/components/screens/Workspace";
 import { useNativeCoachRect } from "@/lib/native/chrome";
 import { Coachmarks, firstRunSteps } from "@/components/Coachmarks";
+import { appPath } from "@/lib/native/href";
+import { storefront } from "@/lib/commerce";
 
 /*
  * ── Everything below renders behind a flag, so none of it belongs in the
@@ -563,6 +565,16 @@ function PlayScreen() {
           onOpenBoard={() => setShowBoard(true)}
           onOpenStageGuide={() => setStageGuide(true)}
           onOpenKeyTerms={() => setKeyTerms(true)}
+          /*
+           * The way out, from the company's own name. A full navigation
+           * rather than a router push for the same reason the Settings sheet
+           * does it: /islands re-reads the archipelago from storage on mount,
+           * and the run being left has to have flushed first.
+           */
+          onOpenIslands={() => {
+            window.location.href =
+              storefront() === "web" ? "/islands" : appPath("/islands");
+          }}
           dossierOpen={dossier}
           onDossier={setDossier}
           nativeControls={!domChrome}

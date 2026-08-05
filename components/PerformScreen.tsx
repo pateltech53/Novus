@@ -21,9 +21,12 @@ import { KNOBS, TANK_REQUIRED_THROUGH_YEAR } from "@/lib/engine/constants";
 import {
   FREE_LIMITS,
   loadEntitlements,
+  runsRemainingToday,
   yearClosesFor,
   yearClosesRemainingToday,
 } from "@/lib/monetization";
+import { appPath } from "@/lib/native/href";
+import { storefront } from "@/lib/commerce";
 import { useUpgrade } from "@/components/upgrade/UpgradeProvider";
 import { LiveTranscriber, resolveTranscript } from "@/lib/ai/transcribe";
 import { CompanyDossier, DossierGlyph } from "@/components/CompanyDossier";
@@ -476,6 +479,38 @@ export function PerformScreen() {
    */
   const yearPaceToday = yearRationSpent ? yearClosesFor(loadEntitlements()) : 0;
 
+  /*
+   * ── What is still possible, which this screen used to refuse to say ───────
+   *
+   * The refusal offered SEE PRO and BACK TO THE COMPANY, and the company it
+   * went back to was parked at month 12 unable to advance. /play has no exit
+   * to the archipelago except inside the Settings sheet, so a player whose
+   * ration ran out reported — correctly — that they could not start a new
+   * company or reach the other one either. Both were available the whole time;
+   * neither was reachable from the screen that stopped them.
+   *
+   * They are three DIFFERENT limits and a player cannot be expected to hold
+   * that distinction:
+   *
+   *   · the year ration (spent — device-wide, so no island can close a year)
+   *   · the founding ration (`runsPerDay`, usually already spent on the
+   *     company they are standing in — and NOT gated by the year ration)
+   *   · the island cap (a stock, not a rate — see lib/monetization.ts)
+   *
+   * So the refusal now names the one that actually stopped them and offers the
+   * things that still work: another company whose months can still advance,
+   * and founding, when there is a founding left. A company at its own month 12
+   * is deliberately not offered — it would refuse for the same reason and the
+   * player would have learnt nothing but that the app wastes taps.
+   */
+  const elsewhere = yearRationSpent
+    ? game.islands.filter((i) => i.slot !== game.island && i.alive && i.month < 12)
+    : [];
+  const foundingsLeft = yearRationSpent ? runsRemainingToday() : 0;
+  const goIslands = () => {
+    window.location.href = storefront() === "web" ? "/islands" : appPath("/islands");
+  };
+
   return (
     <main
       data-live-3d
@@ -565,15 +600,54 @@ export function PerformScreen() {
                     {yearPaceToday > FREE_LIMITS.yearClosesPerDay
                       ? "the pace you were given"
                       : "the free pace"}
-                    . The books reopen tomorrow, or Pro closes as many as you
-                    can pitch.
+                    , and it covers every island. The books reopen tomorrow, or
+                    Pro closes as many as you can pitch.
                   </p>
+
+                  {/* What still works today, named before the upsell — a
+                      refusal that sells before it helps is a refusal players
+                      stop reading. */}
+                  {elsewhere.length > 0 && (
+                    <>
+                      <p className="mb-2 text-xs leading-snug text-[var(--n-8)]">
+                        {elsewhere.length === 1
+                          ? `${elsewhere[0].companyName} isn't at its year gate — you can still play its months.`
+                          : "Your other companies aren't at their year gates — you can still play their months."}
+                      </p>
+                      {elsewhere.slice(0, 2).map((island) => (
+                        <button
+                          key={island.slot}
+                          type="button"
+                          // `switchIsland` clears the perform state itself, so
+                          // this lands on the other company's board directly.
+                          onClick={() => game.switchIsland(island.slot)}
+                          className="nv-gc mb-2 w-full rounded-[var(--radius-card)] px-5 py-3 text-xs font-bold tracking-[0.06em] text-[var(--n-10)]"
+                        >
+                          PLAY {island.companyName.toUpperCase()} ▸
+                        </button>
+                      ))}
+                    </>
+                  )}
+                  {foundingsLeft > 0 && (
+                    <p className="mb-2 text-xs leading-snug text-[var(--n-8)]">
+                      Founding a new company is a separate allowance, and you
+                      have {foundingsLeft} left today.
+                    </p>
+                  )}
+
                   <button
                     type="button"
                     onClick={() => upgrade.open("year_pace")}
                     className="nv-gc w-full rounded-[var(--radius-card)] nv-t-action px-5 py-4 text-base font-extrabold tracking-[0.06em]"
                   >
                     SEE PRO ▸
+                  </button>
+                  <button
+                    type="button"
+                    onClick={goIslands}
+                    className="nv-gc mt-2 w-full rounded-[var(--radius-card)] px-5 py-3 text-xs font-bold tracking-[0.06em] text-[var(--n-10)]"
+                  >
+                    ◂ YOUR ISLANDS
                   </button>
                   <button
                     type="button"
