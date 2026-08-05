@@ -49,7 +49,7 @@ export function TankDebrief({
       animate={{ opacity: 1, y: 0 }}
       transition={{ ...ENTER }}
     >
-      <div className="mx-auto w-full max-w-lg px-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))]">
+      <div className="mx-auto w-full max-w-lg px-6 pt-[max(1.5rem,var(--nv-safe-top))] pb-[max(2rem,var(--nv-safe-bottom))]">
         <SharkStage state="verdict" className="h-32 w-full" />
 
         <p className="text-2xs font-bold tracking-[0.18em] text-[var(--n-7)]">

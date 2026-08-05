@@ -321,7 +321,7 @@ export function ScreenSheet({
          * put the sheet's grabber underneath a glass close button. Measured,
          * not guessed: the same rule the play screen's chrome is built on.
          */
-        className="relative flex max-h-[min(88dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] w-full max-w-2xl flex-col overflow-y-auto rounded-t-[var(--radius-sheet)] bg-[var(--sheet)] pb-[max(1rem,env(safe-area-inset-bottom),var(--nv-overlay-bottom))] shadow-[var(--e3)]"
+        className="relative flex max-h-[min(88dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] w-full max-w-2xl flex-col overflow-y-auto rounded-t-[var(--radius-sheet)] bg-[var(--sheet)] pb-[max(1rem,var(--nv-safe-bottom),var(--nv-overlay-bottom))] shadow-[var(--e3)]"
         initial={{ y: "8%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: "8%", opacity: 0, transition: EXIT }}

@@ -51,7 +51,7 @@ export function UpgradeNotice({
 }) {
   return (
     <div
-      className="pointer-events-none fixed inset-x-0 top-0 z-[96] flex justify-center px-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:justify-end sm:px-4"
+      className="pointer-events-none fixed inset-x-0 top-0 z-[96] flex justify-center px-3 pt-[max(0.75rem,var(--nv-safe-top))] sm:justify-end sm:px-4"
       role="status"
       aria-live="polite"
     >

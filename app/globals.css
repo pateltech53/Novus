@@ -328,6 +328,33 @@ body {
      screen that declared no native chrome. */
   --nv-overlay-top: 0px;
   --nv-overlay-bottom: 0px;
+
+  /*
+   * ── Where content is allowed to start ───────────────────────────────────
+   *
+   * `max(1.5rem, env(safe-area-inset-top))` was the shape this app used in
+   * twenty-odd places, and it is wrong on every phone it matters on. The two
+   * arguments are not alternatives: 1.5rem is a GAP the design wants and the
+   * inset is a REGION the hardware owns. Taking the larger spends the gap
+   * paying for the inset, so a browser (inset 0) gets 24px of air and a phone
+   * gets none at all — content lands exactly on the safe-area boundary.
+   *
+   * On a Dynamic Island phone that boundary is 59pt and the island's own
+   * bottom edge is at ~48pt, so "exactly on the boundary" is eleven points
+   * under a black pill the width of a third of the screen. Which is what the
+   * pitch screen's self-view was doing: 128pt wide, pinned right, its top edge
+   * level with the island's chin.
+   *
+   * So the inset and the gap ADD. Call sites still carry their own minimum for
+   * the no-inset case — `max(1.5rem, var(--nv-safe-top))` — and the minimum
+   * now means what it says, because it only ever applies where there is no
+   * inset to clear.
+   *
+   * The bottom is the same argument with a smaller number: the home indicator
+   * is 34pt and thin, and every dock in this app already floats above it.
+   */
+  --nv-safe-top: calc(env(safe-area-inset-top, 0px) + 0.75rem);
+  --nv-safe-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.5rem);
 }
 
 /*

@@ -250,7 +250,7 @@ function FoundPage() {
   const noRoom = living >= cap;
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))]">
+    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-6 pt-[max(1.5rem,var(--nv-safe-top))] pb-[max(2rem,var(--nv-safe-bottom))]">
       {/*
         The company you already have, offered back before the form for a new
         one. It is the first thing on the screen because for a returning player

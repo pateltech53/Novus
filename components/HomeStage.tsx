@@ -145,8 +145,8 @@ export function HomeStage({
       className="nv-masthead nv-stage relative overflow-hidden rounded-b-[var(--radius-sheet)] px-5 pb-5 lg:rounded-b-none"
       style={{
         paddingTop: nativeControls
-          ? "max(var(--nv-chrome-top, 0px), env(safe-area-inset-top), 0.5rem)"
-          : "max(0.5rem, env(safe-area-inset-top))",
+          ? "max(var(--nv-chrome-top, 0px), var(--nv-safe-top), 0.5rem)"
+          : "max(0.5rem, var(--nv-safe-top))",
       }}
     >
       {/* The orange bloom that used to sit here is gone. It spent the screen's

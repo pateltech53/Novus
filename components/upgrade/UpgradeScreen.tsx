@@ -514,7 +514,7 @@ export function UpgradeScreen({
         </div>
 
         {/* ── The purchase · phone only, pinned ───────────────────────────── */}
-        <div className="shrink-0 border-t border-[var(--hairline)] bg-[var(--sheet)] px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 lg:hidden">
+        <div className="shrink-0 border-t border-[var(--hairline)] bg-[var(--sheet)] px-5 pb-[max(1rem,var(--nv-safe-bottom))] pt-3 lg:hidden">
           {purchase}
         </div>
       </motion.section>

@@ -17,7 +17,7 @@ export const metadata: Metadata = {
  */
 export default function NotFound() {
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col justify-center px-6 py-[max(3rem,env(safe-area-inset-top))]">
+    <main className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col justify-center px-6 py-[max(3rem,var(--nv-safe-top))]">
       <p className="text-2xs font-extrabold tracking-[0.24em] text-[var(--text-tertiary)]">
         NOVUS · 404
       </p>

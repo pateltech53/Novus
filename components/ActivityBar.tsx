@@ -92,7 +92,7 @@ export function ActivityBar({
        * one row of six above it. It costs ~28px of height on the smallest phones
        * and nothing clips at any width.
        */
-      className="nv-tabbar mx-auto grid w-full max-w-2xl grid-cols-3 rounded-t-[var(--radius-card)] pt-1 pb-[max(0.375rem,env(safe-area-inset-bottom))] min-[360px]:grid-cols-6"
+      className="nv-tabbar mx-auto grid w-full max-w-2xl grid-cols-3 rounded-t-[var(--radius-card)] pt-1 pb-[max(0.375rem,var(--nv-safe-bottom))] min-[360px]:grid-cols-6"
     >
       {TABS.map((tab) => {
         const isActive = active === tab.id;

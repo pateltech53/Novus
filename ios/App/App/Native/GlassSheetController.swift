@@ -68,16 +68,21 @@ final class GlassSheetController: UIViewController, UIScrollViewDelegate {
     var onAction: ((String) -> Void)?
     var onDismissed: ((String) -> Void)?
     /**
-     Fired once, from `viewDidAppear`, when this sheet is genuinely on screen.
+     Fired once, from `viewDidAppear`, with the panel's laid-out height.
 
-     The web layer cannot tell a presented sheet from a refused one otherwise.
+     The web layer cannot otherwise tell a presented sheet from a refused one:
      `present` onto a controller that is already presenting does nothing and
      says nothing — no throw, no completion, one console line — and a card that
-     never appears is a month the player cannot answer on a screen where the
-     chrome has already withdrawn. This is the only honest evidence there is,
-     so it is the evidence the web waits for.
+     never appears is a month the player cannot answer on a screen whose chrome
+     has already withdrawn.
+
+     The height is here because "presented" and "visible" came apart once
+     already. A panel with no equality constraint on its height can resolve to
+     zero and still appear, still fire this, and still show the player nothing
+     but a frosted backdrop. So the claim this makes is measured rather than
+     asserted, and the web treats a panel too short to be a card as no card.
      */
-    var onPresented: ((String) -> Void)?
+    var onPresented: ((String, CGFloat) -> Void)?
 
     private let spec: SheetSpec
     private var answered = false
@@ -106,6 +111,11 @@ final class GlassSheetController: UIViewController, UIScrollViewDelegate {
         static let rowCorner: CGFloat = 10
         static let headerHeight: CGFloat = 52
         static let maxHeightFraction: CGFloat = 0.92
+        /// A floor under the panel, so the worst an unexpected layout can do is
+        /// look wrong rather than look like nothing at all. Nothing should ever
+        /// reach it: the smallest real card — eyebrow, title, one line of body,
+        /// two choices — is comfortably past it.
+        static let minHeight: CGFloat = 160
     }
 
     init(spec: SheetSpec) {
@@ -140,14 +150,22 @@ final class GlassSheetController: UIViewController, UIScrollViewDelegate {
         syncHeader()
         guard !enteredOnce else { return }
         enteredOnce = true
-        // Before the entrance animation, not after it: the web is holding a
-        // watchdog open, and what it is waiting to hear is "this exists", not
-        // "this has finished moving".
-        onPresented?(spec.id)
         // Presented without animation so the two halves can be choreographed:
         // the backdrop fades while the panel springs, which is what a sheet
         // over a live screen does and what a plain cover-vertical does not.
         view.layoutIfNeeded()
+        /*
+         After layout and before the entrance, and it carries the panel's
+         HEIGHT rather than just "I appeared".
+
+         "The controller is on screen" turned out not to be the same claim as
+         "the player can see a card" — a panel resolved to zero height is a
+         backdrop over a frosted game and nothing else, and viewDidAppear fires
+         for it exactly as it does for a good one. The constraint in
+         `buildContent` is what stops that happening; this is what makes it
+         survivable if it ever happens again for a reason nobody predicted.
+         */
+        onPresented?(spec.id, panel.bounds.height)
         panel.transform = CGAffineTransform(translationX: 0, y: panel.bounds.height)
         UIView.animate(
             withDuration: 0.42, delay: 0, usingSpringWithDamping: 0.88, initialSpringVelocity: 0.4,
@@ -201,7 +219,15 @@ final class GlassSheetController: UIViewController, UIScrollViewDelegate {
             top,
             panel.heightAnchor.constraint(
                 lessThanOrEqualTo: view.heightAnchor, multiplier: Metric.maxHeightFraction),
+            // A floor, so the very worst this can do is look wrong rather than
+            // look like nothing. Everything above is an inequality; a system of
+            // inequalities with no equality in it has more than one solution,
+            // and the solver is entitled to pick any of them.
+            panel.heightAnchor.constraint(greaterThanOrEqualToConstant: Metric.minHeight),
         ])
+
+        // What actually SIZES the panel is set in `buildContent`, which runs
+        // next and is where the scroll view joins the hierarchy.
 
         /*
          * The sheet's own surface, now Liquid Glass.
@@ -263,6 +289,36 @@ final class GlassSheetController: UIViewController, UIScrollViewDelegate {
             stack.widthAnchor.constraint(
                 equalTo: scroll.frameLayoutGuide.widthAnchor, constant: -Metric.side * 2),
         ])
+
+        /*
+         ── What actually sizes the panel ────────────────────────────────────
+
+         Nothing did, and that is the bug this constraint exists for.
+
+         The panel's constraints are leading, trailing, bottom, a `>=` top and
+         a `<=` height cap — not one equality on the height between them. And
+         the scroll view above does not supply one either: it is pinned to all
+         four of the panel's edges, and a UIScrollView has no intrinsic content
+         size. `contentLayoutGuide` sizes the CONTENT; it does not push a height
+         back out to the view around it.
+
+         So the panel's height was ambiguous, and Auto Layout may resolve an
+         ambiguous system any way it likes. Zero satisfies every one of those
+         constraints: bottom pinned to the bottom, top wherever the bottom is,
+         height comfortably under the cap. What the player got was the backdrop
+         with nothing in it — the game frosted over, no card, and the only thing
+         on screen that answered a finger was the backdrop's own dismiss tap.
+         Tap once: blank. Tap again: the card is discarded and play resumes.
+         Which is exactly how it was reported.
+
+         `defaultHigh`, so the cap and the safe-area floor still win on a card
+         with more content than the screen. That is when this should scroll, and
+         only then.
+         */
+        let contentHeight = panel.heightAnchor.constraint(
+            equalTo: scroll.contentLayoutGuide.heightAnchor)
+        contentHeight.priority = .defaultHigh
+        contentHeight.isActive = true
 
         // ── Eyebrow ──────────────────────────────────────────────────────────
         if spec.eyebrowStyle == "market" {

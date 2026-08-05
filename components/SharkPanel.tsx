@@ -703,7 +703,7 @@ export function SharkPanel({
       animate={{ opacity: 1 }}
       transition={{ duration: 0.25 }}
     >
-      <div className="mx-auto w-full max-w-lg shrink-0 px-4 pt-[max(0.5rem,env(safe-area-inset-top))]">
+      <div className="mx-auto w-full max-w-lg shrink-0 px-4 pt-[max(0.5rem,var(--nv-safe-top))]">
         <TankRoom
           states={seats}
           speaking={(lastSpeaker(beats) as SharkId) ?? null}
@@ -756,7 +756,7 @@ export function SharkPanel({
 
       {/* Everything else scrolls beneath the set, on solid ground — dialogue
           over a photograph is the reason text was unreadable. */}
-      <div className="mx-auto w-full max-w-lg flex-1 overflow-y-auto bg-[var(--bg)] px-4 pb-[max(2rem,env(safe-area-inset-bottom))]">
+      <div className="mx-auto w-full max-w-lg flex-1 overflow-y-auto bg-[var(--bg)] px-4 pb-[max(2rem,var(--nv-safe-bottom))]">
         <ol className="mt-5 space-y-3">
           <AnimatePresence initial={false}>
             {beats.map((beat, i) => (
