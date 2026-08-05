@@ -108,6 +108,7 @@ export function TeamScreen({ onClose, onFire, onOpenPhone }: TeamScreenProps) {
     <ScreenSheet
       label="The team"
       closeLabel="Close the team screen"
+      workspace
       onClose={onClose}
       title="The team"
       blurb="Payroll leaves every month whether or not the month earned it."
