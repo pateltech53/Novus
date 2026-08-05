@@ -75,6 +75,12 @@ export async function POST(req: NextRequest) {
     { bucket: "reset:email", key: emailKey(email), limit: LIMITS.resetPerEmail, windowMinutes: 60 },
   ]);
   if (!limited.allowed) {
+    // Logged, because a wall of suppressed resets looks exactly like a wall of
+    // delivered ones from the outside, and "nobody is getting their email" is
+    // the report this route has to be able to answer. The bucket name carries
+    // no address and no email — see lib/auth/throttle.ts.
+    console.warn("[auth/reset] throttled", { bucket: limited.hit });
+
     // Same shape as the success answer on purpose — see the note above about
     // never revealing whether an address has an account. A distinct 429 here
     // would say "this address is worth rate limiting", which is a tell.
@@ -97,12 +103,38 @@ export async function POST(req: NextRequest) {
   // same as not sending it, and this link is the one that resets a password.
   const origin = SITE_URL || new URL(req.url).origin;
 
+  /*
+   * The answer must not vary. That was being read as "nobody may know", and
+   * the result was a route that discarded its own outcome: the `{ data, error }`
+   * this call resolves with was never destructured, so a refused redirect URL,
+   * a disabled email provider, an exhausted mailer quota and a captcha
+   * requirement all ended here in identical, unlogged silence — while the
+   * player was told a link was on its way.
+   *
+   * supabase-js RESOLVES on an API failure rather than throwing, so `error`
+   * below, not the catch, is where those actually land; the catch was very
+   * nearly dead code.
+   *
+   * What changes is the log, not the response. Not one byte of the body, the
+   * status or the timing depends on any of this — the anti-enumeration rule
+   * constrains what we say to the caller, and says nothing about what the
+   * server is allowed to know about itself. Neither line records the address.
+   */
   try {
-    await supabase.auth.resetPasswordForEmail(email, {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${origin}/reset`,
     });
-  } catch {
-    // Swallowed for the same reason the result is: the answer must not vary.
+    if (error) {
+      console.error("[auth/reset] supabase refused to send", {
+        status: error.status,
+        message: error.message,
+        // The usual culprit, and the one thing that has to match the project's
+        // Redirect URLs allow-list exactly (docs/ACCOUNTS-SETUP.md §2).
+        redirectTo: `${origin}/reset`,
+      });
+    }
+  } catch (thrown) {
+    console.error("[auth/reset] could not reach supabase", thrown);
   }
 
   return NextResponse.json({

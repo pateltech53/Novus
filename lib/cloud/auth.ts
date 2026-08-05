@@ -66,7 +66,30 @@ interface AuthBody {
   suggestedName?: string | null;
 }
 
-async function post(path: string, payload: unknown): Promise<{ res: Response; body: AuthBody } | null> {
+/**
+ * `timeoutMs` is opt-in rather than the rule.
+ *
+ * A request that never settles is indistinguishable from a dead button, and
+ * the reset link is the one control with nothing else on screen to show it is
+ * working — so that call gives up and says so. The rest are left alone: sign-up
+ * behind a slow human check is a request worth waiting for, and a deadline
+ * there would turn a succeeding signup into "could not reach the server".
+ *
+ * The guard around `AbortSignal.timeout` is not decoration. It is absent on
+ * older WKWebView, and an unguarded call would throw INSIDE the try below,
+ * where it would be caught and reported as an unreachable server — on every
+ * auth call in the app, not just this one.
+ */
+async function post(
+  path: string,
+  payload: unknown,
+  timeoutMs?: number,
+): Promise<{ res: Response; body: AuthBody } | null> {
+  const signal =
+    timeoutMs && typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function"
+      ? AbortSignal.timeout(timeoutMs)
+      : undefined;
+
   try {
     // apiUrl + credentials: the shipped app is a static bundle with no server
     // behind it, so these have to go to the real origin and carry the session
@@ -76,6 +99,7 @@ async function post(path: string, payload: unknown): Promise<{ res: Response; bo
       credentials: API_CREDENTIALS,
       headers: { "content-type": "application/json" },
       body: JSON.stringify(payload),
+      ...(signal ? { signal } : {}),
     });
     return { res, body: (await res.json()) as AuthBody };
   } catch {
@@ -623,15 +647,64 @@ export async function deleteAccount(): Promise<{ ok: boolean; message?: string }
   return { ok: true };
 }
 
-/** Ask for a password reset email. The answer never says whether the address
- *  has an account — see app/api/auth/reset/route.ts. */
-export async function requestPasswordReset(email: string): Promise<string> {
-  const out = await post("/api/auth/reset", { email });
-  if (!out) return "Could not reach the server. Check your connection.";
-  return (
-    out.body.error ??
-    "If that email has an account, a reset link is on its way."
-  );
+export interface ResetRequest {
+  /** False means no email is coming, and `message` says why. */
+  ok: boolean;
+  message: string;
+}
+
+/**
+ * Ask for a password reset email.
+ *
+ * The answer never says whether the address has an account — see
+ * app/api/auth/reset/route.ts for why that matters more here than usual.
+ *
+ * ── Why this reports failure separately ────────────────────────────────────
+ *
+ * It used to return one string and let the caller render it as good news.
+ * Every outcome that is NOT "the mail is on its way" therefore arrived wearing
+ * the same clothes as the one that is: an unreachable server, a deploy with no
+ * Supabase behind it at all, a 500. The one case worth telling a locked-out
+ * player apart from the others — nothing is coming, stop waiting for it — was
+ * the one case they could not see. `ok` is that distinction, and it is what
+ * lets the two callers put a refusal in the alert colour.
+ *
+ * The `configured === false` check closes the last inconsistency in this file:
+ * signIn (not-configured) and signUp (falls back to a local account) both read
+ * that flag, and this was the only wrapper that ignored it — so a deploy that
+ * has never sent an email in its life still promised one.
+ *
+ * The success sentence stays identical whether or not the address has an
+ * account. That is the whole design of the route and nothing here weakens it.
+ */
+export async function requestPasswordReset(email: string): Promise<ResetRequest> {
+  // Ten seconds, because this is the one auth call with nothing else on screen
+  // to prove it is still running. Silence past that is a failure worth saying.
+  const out = await post("/api/auth/reset", { email }, 10_000);
+  if (!out) {
+    return { ok: false, message: "Could not reach the server. Check your connection and try again." };
+  }
+
+  const { res, body } = out;
+
+  if (body.configured === false) {
+    return { ok: false, message: "Accounts are not switched on for this build." };
+  }
+
+  // The route's own words when it has any — a malformed address is the one
+  // thing it is willing to say out loud, because that is the player's typo
+  // rather than a fact about who has an account here.
+  if (body.error) return { ok: false, message: body.error };
+
+  if (!res.ok) {
+    return { ok: false, message: "Could not send the reset email just now. Try again in a minute." };
+  }
+
+  return {
+    ok: true,
+    message:
+      "If that email has an account, a reset link is on its way. It can take a few minutes — check your spam folder before asking for another.",
+  };
 }
 
 /**
