@@ -5,7 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { adminClient } from "@/lib/supabase/admin";
 import { stripe } from "@/lib/stripe/client";
 import { STRIPE_WEBHOOK_SECRET, billingConfigured } from "@/lib/stripe/config";
-import { isSkuId } from "@/lib/stripe/catalogue";
+import { skuFromMetadata } from "@/lib/stripe/catalogue";
 import { chapterFromSubscription, syncChapter } from "@/lib/stripe/chapter";
 import { customerId, profileForCustomer, syncSubscription } from "@/lib/stripe/subscription";
 
@@ -32,7 +32,7 @@ export const dynamic = "force-dynamic";
  * ── Delivered at least once ────────────────────────────────────────────────
  *
  * Stripe retries any non-2xx for three days, so every handler below is written
- * to survive being run twice. `grant_extra_run_slot` is the one that cannot be
+ * to survive being run twice. `grant_extra_island` is the one that cannot be
  * idempotent — two slots bought is two slots — and the `billing_events` row is
  * what protects it, claimed before the work and released if the work fails.
  */
@@ -160,8 +160,12 @@ async function onCheckoutCompleted(
   }
 
   // ── One-time purchases ───────────────────────────────────────────────────
-  const sku = cs.metadata?.sku;
-  if (!isSkuId(sku)) throw new Error(`checkout ${cs.id}: unknown sku ${String(sku)}`);
+  // Follows a rename: a session opened before 0013 carries `extra_run_slot`
+  // and must still deliver. See RETIRED_SKUS in lib/stripe/catalogue.ts.
+  const sku = skuFromMetadata(cs.metadata?.sku);
+  if (sku === null) {
+    throw new Error(`checkout ${cs.id}: unknown sku ${String(cs.metadata?.sku)}`);
+  }
 
   if (sku === "industry_pack") {
     const industry = cs.metadata?.industry;
@@ -176,9 +180,9 @@ async function onCheckoutCompleted(
     return;
   }
 
-  if (sku === "extra_run_slot") {
-    const { error } = await db.rpc("grant_extra_run_slot", { p_profile: profileId });
-    if (error) throw new Error(`grant_extra_run_slot: ${error.message}`);
+  if (sku === "extra_island") {
+    const { error } = await db.rpc("grant_extra_island", { p_profile: profileId });
+    if (error) throw new Error(`grant_extra_island: ${error.message}`);
     return;
   }
 

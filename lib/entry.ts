@@ -1,4 +1,4 @@
-import { hasSavedRun, loadProfile } from "@/lib/engine/save";
+import { hasAnySavedRun, loadProfile } from "@/lib/engine/save";
 
 /**
  * Where a player goes when they open Novus.
@@ -22,15 +22,27 @@ import { hasSavedRun, loadProfile } from "@/lib/engine/save";
  * no synchronous fetch — see lib/engine/save.ts for why that constraint holds
  * across the whole persistence layer.
  */
-export type EntryRoute = "/play" | "/found" | "/welcome";
+export type EntryRoute = "/islands" | "/found" | "/welcome";
 
 /** Every route the entry points may send someone to. Prefetch fodder. */
-export const ENTRY_ROUTES: readonly EntryRoute[] = ["/play", "/found", "/welcome"];
+export const ENTRY_ROUTES: readonly EntryRoute[] = ["/islands", "/found", "/welcome"];
 
 export function entryRoute(): EntryRoute {
-  // A dead company routes here too, on purpose: /play shows Chapter Seven, and
-  // reading what killed it is how a run ends. Founding again is one tap from
-  // that screen, and it is the player's tap.
-  if (hasSavedRun()) return "/play";
+  /*
+   * ── Why the front door is the picker and not the game ──────────────────
+   *
+   * This used to answer "/play", because a player had one company and opening
+   * it was unambiguous. With islands it is a question, and answering it on the
+   * player's behalf is how a second company becomes invisible: send someone
+   * straight into island 0 and the other one exists only for whoever thinks to
+   * go looking.
+   *
+   * A company that ENDED still routes here rather than to founding. Its books
+   * stay readable — the picker offers READ THE BOOKS, which opens /play on
+   * Chapter Seven — and founding again is one tap from the same screen. That
+   * was the reasoning when this returned "/play" for a dead run, and the
+   * picker keeps it while adding the choice.
+   */
+  if (hasAnySavedRun()) return "/islands";
   return loadProfile()?.onboarded ? "/found" : "/welcome";
 }

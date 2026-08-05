@@ -182,7 +182,7 @@ export function customChapterPriceCents(seats: number): Cents {
  * the rule.
  */
 export interface OneTimePurchase {
-  id: "industry_pack" | "cosmetic_bundle" | "extra_run_slot";
+  id: "industry_pack" | "cosmetic_bundle" | "extra_island";
   name: string;
   priceCents: Cents;
   /** Set when the item is a shelf with several prices on it, not one SKU. */
@@ -205,8 +205,23 @@ export const ONE_TIME_PURCHASES: readonly OneTimePurchase[] = [
     what: "Wardrobe only. Changes how you look in the panel.",
   },
   {
-    id: "extra_run_slot",
-    name: "Extra Run Slot",
+    /*
+     * Renamed from `extra_run_slot`, and the rename is the fix.
+     *
+     * This SKU's own description has always promised CONCURRENCY — "one more
+     * company running at the same time", repeated verbatim in the one-time
+     * shelf and, more seriously, in the Terms of Service. What it granted was
+     * `extraRunSlots`, which `runSlotsFor()` added to the DAILY FOUNDING
+     * ration. Those are different products, and the one the player received
+     * destroyed the company they already had, because founding was the only
+     * thing the app could spend it on.
+     *
+     * The Stripe price is deliberately unchanged: same purchase link, same
+     * catalogue entry, same $1.99. Only what arrives is different, and what
+     * arrives is now what the description said.
+     */
+    id: "extra_island",
+    name: "Extra Island",
     priceCents: 199,
     what: "One more company running at the same time.",
   },
@@ -219,9 +234,35 @@ export const priceLabel = (item: OneTimePurchase): string =>
 
 // ── The limits ───────────────────────────────────────────────────────────────
 
+/**
+ * The hard ceiling on companies held at once, for every tier including admin.
+ *
+ * This is a STORAGE bound, not a pricing one. `public.saves` is keyed
+ * `(profile_id, slot)` with `slot smallint check (slot between 0 and 9)`, so
+ * the eleventh company has nowhere to be written. Pro is described to players
+ * as unlimited islands and receives this number; nobody is expected to reach
+ * it, and the check constraint is what makes the claim safe to print.
+ */
+export const ISLAND_CAP = 10;
+
 export interface Limits {
   /** New companies you may found per real day. */
   runsPerDay: number;
+  /**
+   * Companies that may exist AT ONCE — islands.
+   *
+   * Deliberately the sibling of `runsPerDay` rather than a number derived from
+   * it: they are the two halves of a distinction this product got wrong once
+   * already. `runsPerDay` is a rate (how often you may start), `islands` is a
+   * stock (how many you may hold). A player at their island cap with foundings
+   * left has to bury something first; a player with islands free and no
+   * foundings left has to wait for tomorrow.
+   *
+   * Capped at 10 everywhere by ISLAND_CAP — `saves.slot` is checked
+   * `between 0 and 9`, and an allowance that outruns its own storage is a
+   * promise the database refuses to keep.
+   */
+  islands: number;
   /** Whether a company that went under can be restarted the same day. */
   redoFailedRun: boolean;
   /** Industries you may found in. */
@@ -239,6 +280,7 @@ export interface Limits {
 
 export const FREE_LIMITS: Limits = {
   runsPerDay: 1,
+  islands: 2,
   redoFailedRun: false,
   industries: 4,
   coldCallsPerDay: 0,
@@ -247,6 +289,7 @@ export const FREE_LIMITS: Limits = {
 
 export const PRO_LIMITS: Limits = {
   runsPerDay: 3,
+  islands: ISLAND_CAP,
   redoFailedRun: true,
   industries: 12,
   // Matches the gate in lib/engine/activities.ts — three a real day, and
@@ -271,6 +314,9 @@ export const PRO_LIMITS: Limits = {
  */
 export const ADMIN_LIMITS: Limits = {
   runsPerDay: 99,
+  // Not 99. Unlike every other number here, this one is bounded by storage
+  // rather than by policy: there is no eleventh row to put a company in.
+  islands: ISLAND_CAP,
   redoFailedRun: true,
   industries: 12,
   coldCallsPerDay: 3,
@@ -322,7 +368,7 @@ export const PRO_PROMISE =
  * player who has to scroll to find the free button has been nudged.
  */
 export interface ProFeature {
-  id: "the_room" | "industries" | "run_slots" | "cosmetics";
+  id: "the_room" | "industries" | "run_slots" | "islands" | "cosmetics";
   title: string;
   /** Free's honest position. Stated flat — free is a complete game, not a demo. */
   free: string;
@@ -349,6 +395,12 @@ export const PRO_FEATURES: readonly ProFeature[] = [
     body: "Lose one and found again the same day.",
   },
   {
+    id: "islands",
+    title: "Ten islands",
+    free: "Two",
+    body: "Companies running at the same time. Switch between them whenever.",
+  },
+  {
     id: "cosmetics",
     title: "The long wardrobe",
     free: "Also unlocks",
@@ -361,8 +413,16 @@ export const PRO_FEATURES: readonly ProFeature[] = [
 export interface Entitlements {
   /** Pro is active. Today only the simulated switch sets this. */
   pro: boolean;
-  /** Bought slots stack on top of the plan's allowance. */
-  extraRunSlots: number;
+  /**
+   * Bought islands stack on top of the plan's allowance, up to ISLAND_CAP.
+   *
+   * Was `extraRunSlots`, which added to the daily founding ration instead —
+   * see the `extra_island` SKU above for why that was the wrong product, and
+   * supabase/migrations/0013_islands.sql for the column rename that matches.
+   * `loadEntitlements()` backfills the old field so a player who bought one
+   * before the split does not lose it.
+   */
+  extraIslands: number;
   /**
    * Fiscal-year closes an operator granted this account, on top of the tier's
    * own allowance. Never sold — the store has no SKU for pace — and written
@@ -390,7 +450,7 @@ export interface Entitlements {
 
 export const NO_ENTITLEMENTS: Entitlements = {
   pro: false,
-  extraRunSlots: 0,
+  extraIslands: 0,
   extraYearCloses: 0,
   industryPacks: [],
   cosmeticBundles: [],
@@ -405,8 +465,22 @@ export const isPro = (e: Entitlements): boolean => e.pro || e.chapter !== null;
 export const limitsFor = (e: Entitlements): Limits =>
   e.admin ? ADMIN_LIMITS : isPro(e) ? PRO_LIMITS : FREE_LIMITS;
 
-export const runSlotsFor = (e: Entitlements): number =>
-  limitsFor(e).runsPerDay + e.extraRunSlots;
+/**
+ * Foundings allowed per real day. Tier alone — nothing is sold that raises it.
+ *
+ * This used to read `limitsFor(e).runsPerDay + e.extraRunSlots`, which is how
+ * a SKU advertising concurrency came to hand out a daily rate. The purchasable
+ * component moved to `islandCapFor` below, where its own description always
+ * said it belonged.
+ */
+export const runsPerDayFor = (e: Entitlements): number => limitsFor(e).runsPerDay;
+
+/**
+ * Companies allowed at once. Tier plus whatever was bought, then the storage
+ * ceiling, which wins over both.
+ */
+export const islandCapFor = (e: Entitlements): number =>
+  Math.min(ISLAND_CAP, limitsFor(e).islands + Math.max(0, e.extraIslands));
 
 /**
  * Fiscal years this account may close today, tier plus operator grant. The
@@ -433,7 +507,21 @@ export function loadEntitlements(): Entitlements {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return NO_ENTITLEMENTS;
-    return { ...NO_ENTITLEMENTS, ...(JSON.parse(raw) as Partial<Entitlements>) };
+    const stored = JSON.parse(raw) as Partial<Entitlements> & { extraRunSlots?: number };
+    const merged = { ...NO_ENTITLEMENTS, ...stored };
+    /*
+     * A device that last wrote this before 0013 holds `extraRunSlots`. That
+     * player paid for concurrency and was given a daily founding; the honest
+     * conversion is one for one, into the thing the receipt described. Read
+     * only when the new field is absent, so a device that has already been
+     * converted — or has since synced a real value down from the server —
+     * is never overwritten by the stale key sitting beside it.
+     */
+    if (stored.extraIslands === undefined && typeof stored.extraRunSlots === "number") {
+      merged.extraIslands = Math.max(0, stored.extraRunSlots);
+    }
+    delete (merged as { extraRunSlots?: number }).extraRunSlots;
+    return merged;
   } catch {
     return NO_ENTITLEMENTS;
   }
@@ -566,7 +654,7 @@ export function grantProLocally(plan: PlanId): void {
 // ── The run-a-day ledger ────────────────────────────────────────────────────
 
 /**
- * Counts run STARTS per real calendar day, against `runSlotsFor()`.
+ * Counts run STARTS per real calendar day, against `runsPerDayFor()`.
  *
  * This exists because the Pro screen says "FREE · ONE, NO REDO" and for a while
  * that was a claim the engine did not enforce — startRun would happily create a
@@ -621,7 +709,7 @@ function loadRunLedger(): RunLedger {
 
 /** Runs still startable today, given the player's entitlements. */
 export function runsRemainingToday(e: Entitlements = loadEntitlements()): number {
-  return Math.max(0, runSlotsFor(e) - loadRunLedger().started);
+  return Math.max(0, runsPerDayFor(e) - loadRunLedger().started);
 }
 
 /** Consume one slot. Call from startRun, nowhere else. */

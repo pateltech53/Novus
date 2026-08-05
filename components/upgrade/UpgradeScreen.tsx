@@ -479,8 +479,8 @@ export function UpgradeScreen({
               <OneTimeShelf
                 className="mt-5"
                 lead={
-                  gate?.id === "run_slots"
-                    ? "extra_run_slot"
+                  gate?.id === "run_slots" || gate?.id === "islands"
+                    ? "extra_island"
                     : gate?.id === "industries"
                       ? "industry_pack"
                       : undefined

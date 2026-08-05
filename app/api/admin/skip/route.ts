@@ -24,7 +24,7 @@ export const dynamic = "force-dynamic";
  *   pro_monthly / pro_yearly → admin_set_comp_pro (the comp column, because
  *                              the webhook owns `pro` and would overwrite it)
  *   industry_pack + industry → grant_industry_pack (0003, the webhook's own)
- *   extra_run_slot           → grant_extra_run_slot (0003, ditto)
+ *   extra_island             → grant_extra_island (0013, ditto)
  *   chapter_35 / chapter_100 → admin_create_comp_chapter (0009)
  *   chapter_custom + seats   → admin_create_comp_chapter with p_seats (0011)
  *
@@ -74,8 +74,8 @@ export async function POST(req: NextRequest) {
       p_profile: self,
       p_industry: body.industry,
     }));
-  } else if (sku === "extra_run_slot") {
-    ({ error } = await db.rpc("grant_extra_run_slot", { p_profile: self }));
+  } else if (sku === "extra_island") {
+    ({ error } = await db.rpc("grant_extra_island", { p_profile: self }));
   } else if ((CHAPTER_SKUS as readonly string[]).includes(sku)) {
     if (sku === "chapter_custom" && !isCustomSeatCount(body.seats)) {
       return withSession(

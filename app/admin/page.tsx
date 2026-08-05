@@ -57,7 +57,7 @@ interface UserRow {
   compUntil: string | null;
   compNote: string | null;
   chapter: string | null;
-  extraRunSlots: number;
+  extraIslands: number;
   industryPacks: string[];
   subscriptionStatus: string | null;
   plan: string | null;
@@ -79,7 +79,7 @@ interface Detail {
   };
   entitlements: {
     pro: boolean;
-    extra_run_slots: number;
+    extra_islands: number;
     extra_year_closes: number;
     industry_packs: string[];
     cosmetic_bundles: string[];
@@ -380,13 +380,13 @@ export default function AdminPage() {
       [refreshOpen],
     );
 
-  const setSlots = (id: string, slots: number) =>
+  const setIslands = (id: string, islands: number) =>
     act(
-      "slots",
+      "islands",
       () =>
-        call("/api/admin/slots", {
+        call("/api/admin/islands", {
           method: "POST",
-          body: JSON.stringify({ profileId: id, slots }),
+          body: JSON.stringify({ profileId: id, islands }),
         }),
       [refreshOpen],
     );
@@ -864,7 +864,7 @@ export default function AdminPage() {
                       onGiftPro={(until) => void giftPro(u.id, until)}
                       onRevokePro={() => void revokePro(u.id)}
                       onTogglePack={(code, grant) => void togglePack(u.id, code, grant)}
-                      onSetSlots={(n) => void setSlots(u.id, n)}
+                      onSetIslands={(n) => void setIslands(u.id, n)}
                       onSetYearCloses={(n) => void setYearCloses(u.id, n)}
                       onGrantChapter={(licence, seats) => void grantChapter(u.id, licence, seats)}
                       onRevokeChapter={(cid) => void revokeChapter(cid)}
@@ -970,7 +970,7 @@ function DetailPanel({
   onGiftPro,
   onRevokePro,
   onTogglePack,
-  onSetSlots,
+  onSetIslands,
   onSetYearCloses,
   onGrantChapter,
   onRevokeChapter,
@@ -981,13 +981,13 @@ function DetailPanel({
   onGiftPro: (untilISO: string | null) => void;
   onRevokePro: () => void;
   onTogglePack: (code: string, grant: boolean) => void;
-  onSetSlots: (n: number) => void;
+  onSetIslands: (n: number) => void;
   onSetYearCloses: (n: number) => void;
   onGrantChapter: (licence: string, seats?: number) => void;
   onRevokeChapter: (chapterId: string) => void;
   onDelete: () => void;
 }) {
-  const [slotsText, setSlotsText] = useState(String(detail.entitlements?.extra_run_slots ?? 0));
+  const [islandsText, setIslandsText] = useState(String(detail.entitlements?.extra_islands ?? 0));
   const [yearsText, setYearsText] = useState(String(detail.entitlements?.extra_year_closes ?? 0));
   const [chapterSeatsText, setChapterSeatsText] = useState("");
   const [confirmText, setConfirmText] = useState("");
@@ -1100,22 +1100,24 @@ function DetailPanel({
         </div>
       </div>
 
-      {/* Slots */}
+      {/* Islands */}
       <div className="flex flex-wrap items-center gap-2">
-        <p className="text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]">EXTRA RUN SLOTS</p>
+        <p className="text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]">EXTRA ISLANDS</p>
         <input
-          value={slotsText}
-          onChange={(ev) => setSlotsText(ev.target.value.replace(/[^0-9]/g, "").slice(0, 2))}
+          value={islandsText}
+          onChange={(ev) => setIslandsText(ev.target.value.replace(/[^0-9]/g, "").slice(0, 2))}
           inputMode="numeric"
           className="tnum w-16 rounded-[var(--radius-row)] border border-[var(--hairline)] bg-transparent px-2 py-1.5 text-center text-sm focus:border-[var(--n-11)] focus-visible:outline-none!"
         />
         <Chip
-          onClick={() => onSetSlots(Math.min(20, Number(slotsText) || 0))}
+          onClick={() => onSetIslands(Math.min(20, Number(islandsText) || 0))}
           disabled={busy !== null}
         >
           SET
         </Chip>
-        <span className="text-2xs text-[var(--text-tertiary)]">0–20, on top of the tier&rsquo;s runs</span>
+        <span className="text-2xs text-[var(--text-tertiary)]">
+          0&ndash;20, on top of the tier&rsquo;s islands &mdash; capped at 10 held at once
+        </span>
       </div>
 
       {/* Year closes — pace, the one limit between free's four and Pro's all */}

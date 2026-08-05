@@ -33,7 +33,7 @@ from (
       to_regclass('public.billing_customers') is not null
       and to_regclass('public.billing_events') is not null
       and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-                   where n.nspname = 'public' and p.proname = 'grant_extra_run_slot')),
+                   where n.nspname = 'public' and p.proname = 'grant_extra_island')),
     ('0004 accounts', '0004_accounts.sql',
       exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                where n.nspname = 'public' and p.proname = 'delete_stale_anonymous_users')),
@@ -87,5 +87,20 @@ from (
                  and pg_get_constraintdef(c.oid) like '%chapter_custom%')
       and exists (select 1 from pg_constraint c
                    where c.conname = 'entitlements_chapter_check'
-                     and pg_get_constraintdef(c.oid) like '%chapter_custom%'))
+                     and pg_get_constraintdef(c.oid) like '%chapter_custom%')),
+    ('0012 year closes', '0012_year_closes.sql',
+      exists (select 1 from information_schema.columns
+               where table_schema = 'public' and table_name = 'entitlements'
+                 and column_name = 'extra_year_closes')),
+    ('0013 islands', '0013_islands.sql',
+      exists (select 1 from information_schema.columns
+               where table_schema = 'public' and table_name = 'entitlements'
+                 and column_name = 'extra_islands')
+      and exists (select 1 from information_schema.columns
+                   where table_schema = 'public' and table_name = 'saves'
+                     and column_name = 'peak_valuation')
+      and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                   where n.nspname = 'public' and p.proname = 'island_allowance')
+      and exists (select 1 from pg_trigger g
+                   where g.tgname = 'saves_island_cap' and not g.tgisinternal))
 ) as t(migration, file, present);

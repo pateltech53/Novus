@@ -79,7 +79,7 @@ engine, which deliberately knows nothing about entitlements beyond
 ## 4. Skipping checkout (跳过付款)
 
 Every paid button in the game — Pro plans on the landing page, the welcome
-flow and the in-game paywalls, industry packs and run slots in the shelf,
+flow and the in-game paywalls, industry packs and islands in the shelf,
 chapter licences — funnels through one function, and for an **admin session
 only** that function pauses with a choice:
 
@@ -108,7 +108,8 @@ needs no sweeper, it simply stops being true.
 
 The console's chips: 30 days, 1 year, forever, revoke. Industry packs gift
 through 0003's own `grant_industry_pack` (a gifted pack and a bought one are
-the same row), and extra run slots are set outright, 0–20.
+the same row), and extra islands are set outright, 0–20 (only the first ten
+are reachable — `saves.slot` stops at nine).
 
 **Extra year closes a day (给用户加 year)** — `entitlements.extra_year_closes`
 (0012), set outright 0–20 through `/api/admin/years`, on top of whatever the

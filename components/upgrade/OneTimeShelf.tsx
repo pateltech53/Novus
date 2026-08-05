@@ -18,19 +18,20 @@ import { play } from "@/lib/sound";
 /**
  * The one-time buys, with actual buttons on them.
  *
- * The server could sell an Extra Run Slot and an Industry Pack from the day
+ * The server could sell an Extra Island and an Industry Pack from the day
  * billing landed — catalogue entry, price verification, webhook grant, the
  * whole path — and no screen ever called it: the shelf was a line of grey
  * text under the subscription grid. This component is the missing half. It
  * renders on every WEB pricing surface (the paywall, the Pro sheet, the
  * landing prices); store builds never mount it, because the surfaces that
  * include it already gate on `useSellsHere()` — Guideline 3.1.1 applies to a
- * $1.99 slot exactly as it does to a subscription.
+ * $1.99 island exactly as it does to a subscription.
  *
  * ── What each row is ───────────────────────────────────────────────────────
  *
- * · **Extra Run Slot, $1.99, once.** One more company running at the same
- *   time, stacked on the plan's allowance. Useful on free AND on Pro.
+ * · **Extra Island, $1.99, once.** One more company running at the same time,
+ *   stacked on the plan's allowance. Useful on free; Pro already holds the ten
+ *   the storage allows, so the row is honest rather than universally useful.
  * · **Industry Pack, $2.99, once.** ONE locked industry, named here and
  *   carried to the webhook in metadata, kept for good. Meaningless on Pro —
  *   Pro already opens all twelve — so the row withdraws itself for Pro
@@ -53,7 +54,7 @@ export function OneTimeShelf({
   className = "",
 }: {
   /** Which row the surface's gate is about, shown first. */
-  lead?: "extra_run_slot" | "industry_pack";
+  lead?: "extra_island" | "industry_pack";
   /** Landing scrolls to its sign-up gate; sheets just show the message. */
   onNeedsAccount?: () => void;
   className?: string;
@@ -67,7 +68,7 @@ export function OneTimeShelf({
   const [entitlements] = useState(() => loadEntitlements());
   const pro = isPro(entitlements);
 
-  const slot = ONE_TIME_PURCHASES.find((p) => p.id === "extra_run_slot")!;
+  const island = ONE_TIME_PURCHASES.find((p) => p.id === "extra_island")!;
   const pack = ONE_TIME_PURCHASES.find((p) => p.id === "industry_pack")!;
   const bundles = ONE_TIME_PURCHASES.find((p) => p.id === "cosmetic_bundle")!;
 
@@ -95,7 +96,7 @@ export function OneTimeShelf({
     };
   }, []);
 
-  const buy = async (sku: "extra_run_slot" | "industry_pack") => {
+  const buy = async (sku: "extra_island" | "industry_pack") => {
     if (busy) return;
     setBusy(sku);
     setMessage(null);
@@ -140,28 +141,28 @@ export function OneTimeShelf({
 
   const rows: React.ReactNode[] = [];
 
-  const slotRow = (
-    <li key="slot" className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[var(--hairline)] py-3">
+  const islandRow = (
+    <li key="island" className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[var(--hairline)] py-3">
       <div className="min-w-0 flex-1">
         <p className="text-sm font-extrabold">
-          {slot.name}{" "}
+          {island.name}{" "}
           <span className="tnum font-bold text-[var(--text-secondary)]">
-            {formatPrice(slot.priceCents)}
+            {formatPrice(island.priceCents)}
           </span>{" "}
           <span className="text-2xs font-bold tracking-[0.08em] text-[var(--text-tertiary)]">
             ONCE
           </span>
         </p>
-        <p className="mt-0.5 text-xs leading-snug text-[var(--text-secondary)]">{slot.what}</p>
+        <p className="mt-0.5 text-xs leading-snug text-[var(--text-secondary)]">{island.what}</p>
       </div>
-      {has("extra_run_slot") && (
+      {has("extra_island") && (
         <button
           type="button"
-          onClick={() => void buy("extra_run_slot")}
+          onClick={() => void buy("extra_island")}
           disabled={busy !== null}
           className="nv-gc shrink-0 rounded-[var(--radius-pill)] nv-t-action px-4 py-2 text-2xs font-extrabold tracking-[0.08em] shadow-[var(--e1)] disabled:opacity-40"
         >
-          {busy === "extra_run_slot" ? "OPENING…" : "BUY A SLOT"}
+          {busy === "extra_island" ? "OPENING…" : "BUY AN ISLAND"}
         </button>
       )}
     </li>
@@ -208,9 +209,9 @@ export function OneTimeShelf({
     </li>
   );
 
-  if (lead === "industry_pack" && packRow) rows.push(packRow, slotRow);
+  if (lead === "industry_pack" && packRow) rows.push(packRow, islandRow);
   else {
-    rows.push(slotRow);
+    rows.push(islandRow);
     if (packRow) rows.push(packRow);
   }
 

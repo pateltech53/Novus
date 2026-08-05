@@ -2,6 +2,7 @@ import type { GameEvent, LegacyState, RunState } from "./types";
 import type { YearEndSummary } from "./run";
 import { DEFAULT_AVATAR } from "./avatar";
 import { queueLegacy, queuePrefs, queueRun } from "@/lib/cloud/sync";
+import { ISLAND_CAP } from "@/lib/monetization";
 
 /**
  * Persistence adapter. localStorage AND Supabase, in that order.
@@ -21,12 +22,79 @@ import { queueLegacy, queuePrefs, queueRun } from "@/lib/cloud/sync";
  * about a child (docs/LEADERBOARD.md §9.4).
  */
 
+/**
+ * ── Islands ────────────────────────────────────────────────────────────────
+ *
+ * A player holds up to ISLAND_CAP companies at once, and every one of them is
+ * a full RunState. `public.saves` has been keyed `(profile_id, slot)` since
+ * 0001; this file is the device's half of the same idea.
+ *
+ * The run and the open table are therefore PER SLOT. Legacy, profile and the
+ * entitlements beside them are not: legacy is the founder's record and follows
+ * the person across companies (0001 keeps it one row per profile), and the
+ * profile is the person.
+ *
+ * `novus:run:v1` and `novus:table:v1` — the pre-islands keys — are migrated
+ * into slot 0 on first touch and removed. See `adoptLegacyKeys`.
+ */
 const KEYS = {
-  run: "novus:run:v1",
   legacy: "novus:legacy:v1",
   profile: "novus:profile:v1",
-  table: "novus:table:v1",
+  /** Which island the player is on. A number, 0..ISLAND_CAP-1. */
+  active: "novus:island:v1",
+  /** The picker's cache. Derived; `listIslands()` rebuilds it when it drifts. */
+  index: "novus:islands:v1",
 } as const;
+
+/** What this device called the single company before islands existed. */
+const PRE_ISLANDS = { run: "novus:run:v1", table: "novus:table:v1" } as const;
+
+/** Every localStorage key this file may write, for the sign-out wipe. */
+export const SAVE_KEY_PREFIXES: readonly string[] = [
+  "novus:run:v1",
+  "novus:table:v1",
+  KEYS.legacy,
+  KEYS.profile,
+  KEYS.active,
+  KEYS.index,
+];
+
+const runKey = (slot: number) => `novus:run:v1:${slot}`;
+const tableKey = (slot: number) => `novus:table:v1:${slot}`;
+
+/** A slot number that is certainly storable, whatever a caller passed. */
+const safeSlot = (slot: number): number =>
+  Math.min(ISLAND_CAP - 1, Math.max(0, Math.trunc(Number.isFinite(slot) ? slot : 0)));
+
+/*
+ * The one-time move from "one company" to "island 0".
+ *
+ * Runs before any island read or write, exactly once per page. It is written
+ * to be safe to interrupt: the new key is set BEFORE the old one is removed,
+ * so a tab killed between the two lines has the company twice rather than not
+ * at all, and the second run of this function tidies up. A copy, in other
+ * words, never a move.
+ */
+let legacyAdopted = false;
+function adoptLegacyKeys(): void {
+  if (legacyAdopted || !canStore()) return;
+  legacyAdopted = true;
+  try {
+    const run = localStorage.getItem(PRE_ISLANDS.run);
+    if (run !== null) {
+      if (localStorage.getItem(runKey(0)) === null) localStorage.setItem(runKey(0), run);
+      localStorage.removeItem(PRE_ISLANDS.run);
+    }
+    const table = localStorage.getItem(PRE_ISLANDS.table);
+    if (table !== null) {
+      if (localStorage.getItem(tableKey(0)) === null) localStorage.setItem(tableKey(0), table);
+      localStorage.removeItem(PRE_ISLANDS.table);
+    }
+  } catch {
+    // A blocked store leaves the old key where it is; the player keeps their
+    // company under the old name and the next boot tries again.
+  }
+}
 
 export interface Profile {
   founderName: string;
@@ -67,12 +135,13 @@ function migrate(raw: Partial<RunState>): RunState {
   return state;
 }
 
-export function loadRun(): RunState | null {
+export function loadRun(slot: number = activeIsland()): RunState | null {
   if (!canStore()) return null;
+  adoptLegacyKeys();
   // A held write must never be invisible to a read. See saveRun's note.
   flushRun();
   try {
-    const raw = localStorage.getItem(KEYS.run);
+    const raw = localStorage.getItem(runKey(safeSlot(slot)));
     return raw ? migrate(JSON.parse(raw) as Partial<RunState>) : null;
   } catch {
     return null;
@@ -87,16 +156,22 @@ export function loadRun(): RunState | null {
  * same answer loadRun() gives it, so the two can never disagree about whether
  * /play has something to open.
  */
-export function hasSavedRun(): boolean {
+export function hasSavedRun(slot: number = activeIsland()): boolean {
   if (!canStore()) return false;
+  adoptLegacyKeys();
   flushRun();
   try {
-    const raw = localStorage.getItem(KEYS.run);
+    const raw = localStorage.getItem(runKey(safeSlot(slot)));
     if (!raw) return false;
     return typeof (JSON.parse(raw) as Partial<RunState>)?.companyName === "string";
   } catch {
     return false;
   }
+}
+
+/** Is there a company on ANY island? The entry points' real question. */
+export function hasAnySavedRun(): boolean {
+  return occupiedSlots().length > 0;
 }
 
 /*
@@ -129,7 +204,19 @@ export function hasSavedRun(): boolean {
  */
 const SAVE_COALESCE_MS = 120;
 
-let pendingRun: RunState | null = null;
+/*
+ * One held write PER ISLAND, not one held write.
+ *
+ * A single `pendingRun` was correct while a device held one company. With
+ * several it would be a data-loss bug rather than a stale read: saving island
+ * 2 while island 0's write was still held would silently drop island 0's write
+ * and then flush island 2's bytes — and, before the key was parameterised,
+ * flush them over island 0's key. A Map keyed by slot cannot do either.
+ *
+ * The timer stays single. It flushes everything held, which is what every
+ * caller of `flushRun()` has always meant by it.
+ */
+const pendingRuns = new Map<number, RunState>();
 let pendingTimer: number | null = null;
 
 /** Writes any held run immediately. Safe to call at any time, including twice. */
@@ -138,14 +225,20 @@ export function flushRun(): void {
     clearTimeout(pendingTimer);
     pendingTimer = null;
   }
-  const state = pendingRun;
-  pendingRun = null;
-  if (state === null || !canStore()) return;
-  try {
-    localStorage.setItem(KEYS.run, JSON.stringify(state));
-  } catch {
-    // A full or disabled store is the same answer it has always been here:
-    // the run lives in memory and the cloud queue is unaffected.
+  if (pendingRuns.size === 0) return;
+  // Drained before writing: a `setItem` that throws must not leave the entry
+  // held for a later flush to retry forever against a store that is full.
+  const held = [...pendingRuns.entries()];
+  pendingRuns.clear();
+  if (!canStore()) return;
+  for (const [slot, state] of held) {
+    try {
+      localStorage.setItem(runKey(slot), JSON.stringify(state));
+      writeIndexEntry(summarise(state, slot));
+    } catch {
+      // A full or disabled store is the same answer it has always been here:
+      // the run lives in memory and the cloud queue is unaffected.
+    }
   }
 }
 
@@ -157,12 +250,18 @@ export function flushRun(): void {
  * `wipeDevice` in lib/cloud/auth.ts (this device is being handed to a different
  * player, on sign-in as well as sign-out). Everything else flushes.
  */
-export function dropPendingRun(): void {
-  if (pendingTimer !== null) {
-    clearTimeout(pendingTimer);
-    pendingTimer = null;
+export function dropPendingRun(slot?: number): void {
+  if (slot === undefined) {
+    if (pendingTimer !== null) {
+      clearTimeout(pendingTimer);
+      pendingTimer = null;
+    }
+    pendingRuns.clear();
+    return;
   }
-  pendingRun = null;
+  // One island's held write. The timer stays armed for the others — burying
+  // one company must not delay another's save.
+  pendingRuns.delete(safeSlot(slot));
 }
 
 let flushHooksInstalled = false;
@@ -179,26 +278,48 @@ function installFlushHooks(): void {
   window.addEventListener("beforeunload", flushRun);
 }
 
-export function saveRun(state: RunState) {
-  queueRun(state);
+export function saveRun(state: RunState, slot: number = activeIsland()) {
+  const at = safeSlot(slot);
+  /*
+   * The high-water mark is maintained HERE, and this is the only place it is
+   * written.
+   *
+   * lib/engine/sim.ts computes valuation and is protected (docs/DO-NOT-TOUCH
+   * .md); `peakValuation` is an additive optional field on RunState, so the
+   * additive path is to raise it at the choke point every run write already
+   * passes through. Mutating `state` rather than copying is deliberate: the
+   * caller holds this object in React state and expects the field to be there
+   * on the next render, not one save later.
+   */
+  const valuation = state.stats?.valuation;
+  if (typeof valuation === "number" && Number.isFinite(valuation)) {
+    state.peakValuation = Math.max(state.peakValuation ?? 0, valuation);
+  }
+
+  queueRun(state, at);
   if (!canStore()) return;
+  adoptLegacyKeys();
   installFlushHooks();
-  pendingRun = state;
+  pendingRuns.set(at, state);
   if (pendingTimer === null) {
     pendingTimer = window.setTimeout(flushRun, SAVE_COALESCE_MS);
   }
 }
 
-export function clearRun() {
+export function clearRun(slot: number = activeIsland()) {
+  const at = safeSlot(slot);
   // Before anything else: a held write from the run being ended must not be
-  // allowed to land after the removeItem below. See the note above.
-  dropPendingRun();
+  // allowed to land after the removeItem below. See the note above. Scoped to
+  // this island — the others' held writes are not part of this burial.
+  dropPendingRun(at);
   // null is an instruction, not an absence: it deletes the cloud row too.
   // Without this a buried company would resurrect on the next device.
-  queueRun(null);
+  queueRun(null, at);
   if (!canStore()) return;
-  localStorage.removeItem(KEYS.run);
-  localStorage.removeItem(KEYS.table);
+  adoptLegacyKeys();
+  localStorage.removeItem(runKey(at));
+  localStorage.removeItem(tableKey(at));
+  dropIndexEntry(at);
 }
 
 // ── What is on the table but not yet in the run ──────────────────────────────
@@ -250,14 +371,16 @@ export interface OpenTable {
  * meaningless once the player is at M5, and re-surfacing it would replay a
  * decision the engine has already accounted for.
  */
-export function loadTable(run: RunState): OpenTable | null {
+export function loadTable(run: RunState, slot: number = activeIsland()): OpenTable | null {
   if (!canStore()) return null;
+  adoptLegacyKeys();
+  const key = tableKey(safeSlot(slot));
   try {
-    const raw = localStorage.getItem(KEYS.table);
+    const raw = localStorage.getItem(key);
     if (!raw) return null;
     const table = JSON.parse(raw) as Partial<OpenTable>;
     if (table.runId !== run.id || table.year !== run.year || table.month !== run.month) {
-      localStorage.removeItem(KEYS.table);
+      localStorage.removeItem(key);
       return null;
     }
     return {
@@ -273,11 +396,13 @@ export function loadTable(run: RunState): OpenTable | null {
   }
 }
 
-export function saveTable(table: OpenTable | null) {
+export function saveTable(table: OpenTable | null, slot: number = activeIsland()) {
   if (!canStore()) return;
+  adoptLegacyKeys();
+  const key = tableKey(safeSlot(slot));
   try {
-    if (table) localStorage.setItem(KEYS.table, JSON.stringify(table));
-    else localStorage.removeItem(KEYS.table);
+    if (table) localStorage.setItem(key, JSON.stringify(table));
+    else localStorage.removeItem(key);
   } catch {
     // A full or blocked store must not take the screen down with it. The
     // failure mode is the old behaviour — a lost card — not a crash.
@@ -345,7 +470,8 @@ export function saveProfile(profile: Profile) {
  * very bytes we just pulled.
  */
 export function adoptFromCloud(data: {
-  run?: RunState | null;
+  /** Every island the account holds, by slot. */
+  runs?: { slot: number; state: RunState }[] | null;
   legacy?: LegacyState | null;
   prefs?: {
     rookieMode: boolean;
@@ -355,17 +481,26 @@ export function adoptFromCloud(data: {
   } | null;
 }) {
   if (!canStore()) return;
-  if (data.run) {
+  adoptLegacyKeys();
+  if (data.runs?.length) {
     // The server has never seen playerAge (it is stripped on the way out, and
     // again on arrival), so a run pulled from the cloud comes back without it.
     // Restore it from this device — the same move the prefs branch below makes,
     // and for the same reason: age-gating is local, and a restored company must
     // not silently un-gate itself because the field came back undefined.
     const local = loadProfile();
-    localStorage.setItem(
-      KEYS.run,
-      JSON.stringify({ ...migrate(data.run), playerAge: local?.playerAge ?? null }),
-    );
+    for (const { slot, state } of data.runs) {
+      const at = safeSlot(slot);
+      const restored = { ...migrate(state), playerAge: local?.playerAge ?? null };
+      try {
+        localStorage.setItem(runKey(at), JSON.stringify(restored));
+        writeIndexEntry(summarise(restored, at));
+      } catch {
+        // Ten companies can exceed a device's quota where one never did. The
+        // islands that fit are kept, the rest stay on the server, and the
+        // picker draws what is actually here rather than throwing.
+      }
+    }
   }
   if (data.legacy) localStorage.setItem(KEYS.legacy, JSON.stringify(data.legacy));
   if (data.prefs) {
@@ -377,4 +512,253 @@ export function adoptFromCloud(data: {
       JSON.stringify({ ...data.prefs, playerAge: local?.playerAge ?? null } satisfies Profile),
     );
   }
+}
+
+
+// ── Which island, and what is on the others ─────────────────────────────────
+
+/**
+ * A company, small enough to draw a card with and never big enough to parse
+ * ten of on a phone.
+ *
+ * Deliberately the same set of fields the `saves` listing cache holds
+ * (supabase/migrations/0013_islands.sql), for the same stated reason: a UI
+ * that lists companies must not have to read megabytes of RunState to do it.
+ * Like that cache, this is derived and never the truth — `loadRun` is.
+ */
+export interface IslandSummary {
+  slot: number;
+  runId: string;
+  /** The run's seed. Stable per company; decorates the island glyph. */
+  seed: number;
+  companyName: string;
+  founderName: string;
+  industry: RunState["industry"];
+  year: number;
+  month: number;
+  stage: number;
+  alive: boolean;
+  endedBy: RunState["endedBy"] | null;
+  valuation: number;
+  peakValuation: number;
+  cash: number;
+  revenueAnnual: number;
+  employees: number;
+  avatar: RunState["avatar"] | null;
+  /** Device clock, epoch ms. For "last played", never for conflict resolution. */
+  savedAt: number;
+}
+
+function summarise(state: RunState, slot: number): IslandSummary {
+  const s = state.stats;
+  const valuation = num(s?.valuation);
+  return {
+    slot,
+    runId: state.id,
+    seed: num(state.seed),
+    companyName: state.companyName,
+    founderName: state.founderName,
+    industry: state.industry,
+    year: state.year,
+    month: state.month,
+    stage: state.stage,
+    alive: state.alive,
+    endedBy: state.endedBy ?? null,
+    valuation,
+    peakValuation: Math.max(num(state.peakValuation), valuation),
+    cash: num(s?.cash),
+    revenueAnnual: num(s?.revenueAnnual),
+    employees: num(s?.employees),
+    avatar: state.avatar ?? null,
+    /*
+     * When this company was last touched.
+     *
+     * `Date.now()` is right on the write path — summarise() runs inside the
+     * flush, so "now" IS when it was saved. It is wrong on the REBUILD path:
+     * a device whose index was lost stamps every island, including headstones
+     * from months ago, with the moment the picker happened to open, and every
+     * card reads "today".
+     *
+     * `lastPlayedISO` is the run's own record of the last day time moved, so
+     * it survives the index and cannot be invented by a rebuild. Now is the
+     * fallback for a company founded and not yet advanced, where "today" is
+     * the honest answer anyway.
+     */
+    savedAt: parseDay(state.lastPlayedISO) ?? Date.now(),
+  };
+}
+
+/** A `YYYY-MM-DD` from the engine, as epoch ms. Null for anything else. */
+function parseDay(iso: string | null | undefined): number | null {
+  if (typeof iso !== "string" || iso.length < 10) return null;
+  const ms = Date.parse(`${iso.slice(0, 10)}T12:00:00Z`);
+  return Number.isFinite(ms) ? ms : null;
+}
+
+const num = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+
+/**
+ * The slots that currently hold a company.
+ *
+ * Existence only — no JSON.parse. The picker needs the shape of the
+ * archipelago far more often than it needs what is on each island, and ten
+ * parses of a 90 KB run is not a thing to do on a screen transition.
+ */
+function occupiedSlots(): number[] {
+  if (!canStore()) return [];
+  adoptLegacyKeys();
+  const out: number[] = [];
+  for (let slot = 0; slot < ISLAND_CAP; slot += 1) {
+    try {
+      if (localStorage.getItem(runKey(slot)) !== null) out.push(slot);
+    } catch {
+      /* one unreadable key is not the whole archipelago */
+    }
+  }
+  return out;
+}
+
+function readIndex(): IslandSummary[] {
+  if (!canStore()) return [];
+  try {
+    const raw = localStorage.getItem(KEYS.index);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? (parsed as IslandSummary[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeIndex(list: IslandSummary[]): void {
+  if (!canStore()) return;
+  try {
+    localStorage.setItem(KEYS.index, JSON.stringify(list));
+  } catch {
+    // The index is a cache. Losing it costs one rebuild, never a company.
+  }
+}
+
+function writeIndexEntry(entry: IslandSummary): void {
+  writeIndex([...readIndex().filter((i) => i.slot !== entry.slot), entry].sort(bySlot));
+}
+
+function dropIndexEntry(slot: number): void {
+  writeIndex(readIndex().filter((i) => i.slot !== slot));
+}
+
+const bySlot = (a: IslandSummary, b: IslandSummary) => a.slot - b.slot;
+
+/**
+ * Every company on this device, cheapest way first.
+ *
+ * The index is a cache and caches drift — a cloud adopt that partly failed, a
+ * tab killed mid-write, a hand-edited devtools session. So the cache is
+ * TRUSTED ONLY IF IT AGREES with the run keys about which slots are occupied;
+ * on any disagreement the answer is rebuilt from the runs themselves, which
+ * are the truth. That check costs one existence read per slot and no parsing,
+ * which is the whole reason it is affordable to do on every call.
+ */
+export function listIslands(): IslandSummary[] {
+  const occupied = occupiedSlots();
+  const cached = readIndex().filter((i) => occupied.includes(i.slot));
+  if (cached.length === occupied.length) return cached.sort(bySlot);
+
+  const rebuilt: IslandSummary[] = [];
+  for (const slot of occupied) {
+    const state = loadRun(slot);
+    if (state) rebuilt.push(summarise(state, slot));
+  }
+  writeIndex(rebuilt);
+  return rebuilt;
+}
+
+/**
+ * Which island the player is on.
+ *
+ * Falls back to the lowest occupied slot rather than to 0, so a pointer left
+ * behind by a buried company — or a device that has only ever had island 3
+ * restored from the cloud — opens something real instead of an empty slot the
+ * player would have to escape from.
+ */
+export function activeIsland(): number {
+  if (!canStore()) return 0;
+  adoptLegacyKeys();
+  const occupied = occupiedSlots();
+  try {
+    const raw = localStorage.getItem(KEYS.active);
+    if (raw !== null) {
+      const slot = safeSlot(Number(raw));
+      if (occupied.includes(slot)) return slot;
+    }
+  } catch {
+    /* fall through to the first island */
+  }
+  return occupied[0] ?? 0;
+}
+
+/** Point the game at an island. Does not load it — GameProvider does that. */
+export function setActiveIsland(slot: number): void {
+  if (!canStore()) return;
+  try {
+    localStorage.setItem(KEYS.active, String(safeSlot(slot)));
+  } catch {
+    // Losing the pointer costs the player one tap on the picker, not a company.
+  }
+}
+
+/**
+ * The lowest slot with nothing on it at all, or null when every one is taken.
+ *
+ * Lowest rather than next: burying the company on island 0 and founding again
+ * should reuse island 0, not march rightwards leaving holes behind it.
+ */
+export function firstFreeIsland(): number | null {
+  const occupied = occupiedSlots();
+  for (let slot = 0; slot < ISLAND_CAP; slot += 1) {
+    if (!occupied.includes(slot)) return slot;
+  }
+  return null;
+}
+
+/** Companies still going. The number the allowance is actually about. */
+export function liveIslandCount(): number {
+  return listIslands().filter((i) => i.alive).length;
+}
+
+/**
+ * Where a new company goes, or null if it may not be founded.
+ *
+ * Three questions in order, and the order is the product decision:
+ *
+ *  1. **Is there room under the allowance?** Only LIVING companies count. A
+ *     company that reached Chapter 7, an acquisition or an IPO keeps its
+ *     island as a headstone the player can go back and read, and it does not
+ *     spend the allowance — a free tier whose two islands fill with two graves
+ *     is a game that politely stops. The same rule is enforced server-side by
+ *     `enforce_island_cap` in 0013.
+ *
+ *  2. **Is there an empty island?** Take the lowest.
+ *
+ *  3. **Otherwise, the oldest headstone gives up its place.** Storage is ten
+ *     rows whatever the allowance says (`slot between 0 and 9`), so headstones
+ *     cannot accumulate forever. Evicting the oldest is the least surprising
+ *     rule available: it is the grave the player has looked at least recently,
+ *     and the legacy entry survives regardless — `endRun` wrote the company
+ *     into `legacy.autopsies` when it ended, which is the record that lasts.
+ *
+ * Returns null only when the allowance is spent, which is the case the caller
+ * should be selling Pro against rather than silently overwriting something.
+ */
+export function slotForNewCompany(cap: number): number | null {
+  const islands = listIslands();
+  const limit = Math.min(ISLAND_CAP, Math.max(1, Math.trunc(cap)));
+  if (islands.filter((i) => i.alive).length >= limit) return null;
+
+  const free = firstFreeIsland();
+  if (free !== null) return free;
+
+  const headstones = islands.filter((i) => !i.alive);
+  if (headstones.length === 0) return null;
+  return headstones.reduce((oldest, i) => (i.savedAt < oldest.savedAt ? i : oldest)).slot;
 }

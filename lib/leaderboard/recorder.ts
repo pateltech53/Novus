@@ -1,5 +1,7 @@
 import type { Industry, RunState } from "@/lib/engine/types";
 
+import { activeIsland } from "@/lib/engine/save";
+
 import { MAX_TAPE_ENTRIES, type RunTape, type TapeEntry } from "./tape";
 
 /**
@@ -32,7 +34,48 @@ import { MAX_TAPE_ENTRIES, type RunTape, type TapeEntry } from "./tape";
  * (docs/LEADERBOARD.md §9.1).
  */
 
-const KEY = "novus:tape:v1";
+/*
+ * ── One tape per island ────────────────────────────────────────────────────
+ *
+ * A single key was correct while a device held a single company. With islands
+ * it fails in the quietest possible way: `record()` returns early when the
+ * stored tape belongs to a different run, so switching to another company
+ * would simply stop recording — no throw, no log — and the player would find
+ * out at the Still Standing screen, told only that submission is unavailable.
+ *
+ * The key follows the island the player is on. `record()` keeps its runId
+ * check: it is now a second line of defence rather than the only one, and it
+ * still catches the case it was written for (a tape left over from the company
+ * that used to be in this slot).
+ *
+ * The pre-islands key is adopted into slot 0 on first touch, exactly as
+ * lib/engine/save.ts does for the run beside it — a player mid-company when
+ * this shipped keeps a submittable tape.
+ */
+const KEY_BASE = "novus:tape:v1";
+const keyFor = (slot: number) => `${KEY_BASE}:${slot}`;
+
+let legacyAdopted = false;
+function adoptLegacyTape(): void {
+  if (legacyAdopted || !canStore()) return;
+  legacyAdopted = true;
+  try {
+    const old = localStorage.getItem(KEY_BASE);
+    if (old === null) return;
+    // Written before removed: a tab killed between the two lines leaves the
+    // tape twice rather than not at all.
+    if (localStorage.getItem(keyFor(0)) === null) localStorage.setItem(keyFor(0), old);
+    localStorage.removeItem(KEY_BASE);
+  } catch {
+    /* a blocked store keeps the old key; the next boot tries again */
+  }
+}
+
+/** The tape key for the island currently open. */
+const KEY = (): string => {
+  adoptLegacyTape();
+  return keyFor(activeIsland());
+};
 
 interface StoredTape {
   /** Which company these taps belong to. A different run never inherits them. */
@@ -51,7 +94,7 @@ const canStore = () => typeof window !== "undefined" && !!window.localStorage;
 function read(): StoredTape | null {
   if (!canStore()) return null;
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(KEY());
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<StoredTape>;
     if (typeof parsed.runId !== "string" || !Array.isArray(parsed.entries)) return null;
@@ -71,8 +114,9 @@ function read(): StoredTape | null {
 function write(tape: StoredTape | null) {
   if (!canStore()) return;
   try {
-    if (tape) localStorage.setItem(KEY, JSON.stringify(tape));
-    else localStorage.removeItem(KEY);
+    const key = KEY();
+    if (tape) localStorage.setItem(key, JSON.stringify(tape));
+    else localStorage.removeItem(key);
   } catch {
     /*
      * A full or blocked store must not take the game down with it. The failure
