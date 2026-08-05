@@ -86,22 +86,40 @@ written for, and it is worth checking twice.
 
 ## 3. Google
 
+### 3.0 Where these pages are now
+
+Google has split the old two-page setup into a section called **Google Auth
+Platform** (`console.cloud.google.com/auth`), and every tutorial written before
+that — including the first draft of this one — names pages that no longer
+exist. The mapping, once:
+
+| What older guides call it | Where it is now |
+|---|---|
+| OAuth consent screen → app name, support email | **Branding** (品牌塑造) |
+| OAuth consent screen → user type, test users, Publish | **Audience** (目标对象) |
+| OAuth consent screen → Scopes | **Data Access** (数据访问) |
+| APIs & Services → Credentials → OAuth client ID | **Clients** (客户端) |
+
+The fields and the values are unchanged; only the menu moved.
+
 ### 3.1 The consent screen
 
 1. `console.cloud.google.com` → create or pick a project.
-2. **APIs & Services → OAuth consent screen** → **External**.
-3. App name, support email, developer contact email. The app name is what the
-   consent screen says to the player, so make it "Novus", not the project id.
-4. Scopes: `openid`, `.../auth/userinfo.email`, `.../auth/userinfo.profile`.
-   Nothing else. Every extra scope is something you have to justify at
-   verification and something a parent has to read on the consent screen.
-5. While the app is in **Testing** only listed test users can sign in. Publish
-   before launch; with only those three scopes it stays out of the review
-   queue that sensitive scopes trigger.
+2. **Google Auth Platform → Branding.** App name, user support email,
+   developer contact email. The app name is what the consent screen says to
+   the player, so make it "Novus", not the project id.
+3. **Audience** → user type **External**.
+4. **Data Access** → add scopes: `openid`, `.../auth/userinfo.email`,
+   `.../auth/userinfo.profile`. Nothing else. Every extra scope is something
+   you have to justify at verification and something a parent has to read on
+   the consent screen.
+5. While **Audience** says **Testing**, only listed test users can sign in.
+   Publish there before launch; with only those three scopes it stays out of
+   the review queue that sensitive scopes trigger.
 
 ### 3.2 The web client — this is the one Supabase needs
 
-**Credentials → Create credentials → OAuth client ID → Web application.**
+**Clients → Create client → Web application.**
 
 | Field | Value |
 |---|---|
@@ -119,9 +137,9 @@ Copy the **Client ID** and **Client secret** into
 
 Only needed if you ship the app.
 
-- **iOS:** Credentials → OAuth client ID → **iOS** → bundle ID
+- **iOS:** Clients → Create client → **iOS** → bundle ID
   `com.novuspitch.app`. This id goes in `NEXT_PUBLIC_GOOGLE_IOS_CLIENT_ID`.
-- **Android:** Credentials → OAuth client ID → **Android** → package name
+- **Android:** Clients → Create client → **Android** → package name
   `com.novuspitch.app` plus the signing certificate's SHA-1. Debug builds and
   Play-signed builds have **different** SHA-1s, so register both:
 
