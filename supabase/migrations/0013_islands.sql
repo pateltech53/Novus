@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════════════
--- 0012 · Islands — more than one company at a time, and the SKU that says so
+-- 0013 · Islands — more than one company at a time, and the SKU that says so
 -- ═══════════════════════════════════════════════════════════════════════════
 --
 -- 0001 built `saves` with a composite primary key `(profile_id, slot)` and a
@@ -286,8 +286,17 @@ grant  execute on function public.player_allowance(uuid) to service_role;
 
 
 -- ═══ The stale-anonymous sweep follows the rename ══════════════════════════
--- 0010's version, with the one column renamed. An anonymous account holding a
--- bought island is still evidence of a purchase and still must not be swept.
+-- 0012's version, with the one column renamed.
+--
+-- 0012 replaced this function to spare an account holding GIFTED PACE, and
+-- this migration replaces it again — so its clause has to be carried forward
+-- here or the gift stops protecting anything the moment islands land. Two
+-- migrations owning one function is how a feature regresses without a single
+-- line of its own code changing.
+--
+-- An anonymous account holding a bought island is evidence of a purchase, and
+-- one holding gifted year-closes is evidence an operator attached value to it.
+-- Neither may be swept.
 create or replace function public.delete_stale_anonymous_users(
   p_older_than interval default interval '90 days'
 )
@@ -307,6 +316,7 @@ begin
         select 1 from public.entitlements e
         where e.profile_id = u.id
           and (e.pro or e.comp_pro or e.extra_islands > 0
+               or e.extra_year_closes > 0
                or array_length(e.industry_packs, 1) > 0
                or e.chapter is not null)
       )

@@ -69,7 +69,7 @@ export default function IslandsPageWrapper() {
  *     its books stay readable, and it does NOT spend the allowance. A free
  *     tier whose two islands fill with two graves is a game that politely
  *     stops, which is a limit designed to sell something rather than to mean
- *     something. `slotForNewCompany` and 0012's `enforce_island_cap` both
+ *     something. `slotForNewCompany` and 0013's `enforce_island_cap` both
  *     count the living only.
  *   · **Empty** — room under the allowance. Founds a company.
  *   · **Locked** — beyond the allowance. Says what would open it, once.

@@ -74,7 +74,7 @@ export const GATES: Record<GateId, Gate> = {
     feature: "run_slots",
   },
   /*
-   * The other half of the split 0012 made. `run_slots` is the RATE — how often
+   * The other half of the split 0013 made. `run_slots` is the RATE — how often
    * a new company may be founded. This is the STOCK — how many may exist at
    * once. A player hits them at different moments and for different reasons,
    * so they are two gates and not one: telling someone with two full islands

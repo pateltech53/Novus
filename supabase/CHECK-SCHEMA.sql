@@ -88,7 +88,11 @@ from (
       and exists (select 1 from pg_constraint c
                    where c.conname = 'entitlements_chapter_check'
                      and pg_get_constraintdef(c.oid) like '%chapter_custom%')),
-    ('0012 islands', '0012_islands.sql',
+    ('0012 year closes', '0012_year_closes.sql',
+      exists (select 1 from information_schema.columns
+               where table_schema = 'public' and table_name = 'entitlements'
+                 and column_name = 'extra_year_closes')),
+    ('0013 islands', '0013_islands.sql',
       exists (select 1 from information_schema.columns
                where table_schema = 'public' and table_name = 'entitlements'
                  and column_name = 'extra_islands')

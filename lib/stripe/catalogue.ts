@@ -64,7 +64,7 @@ export interface Sku {
   /**
    * An older name for the same variable, still honoured when `envVar` is
    * unset. Exists for exactly one SKU: `extra_island` was called
-   * `extra_run_slot` until 0012, and the whole point of that rename was that
+   * `extra_run_slot` until 0013, and the whole point of that rename was that
    * the PRICE does not change — same Stripe product, same purchase link, same
    * $1.99. A deploy that has `STRIPE_PRICE_EXTRA_RUN_SLOT` set and has not yet
    * been re-configured must keep selling, or the rename takes the shop down
@@ -169,7 +169,7 @@ export const isSkuId = (v: unknown): v is SkuId =>
  * difference between a rename and a refund.
  */
 const RETIRED_SKUS: Readonly<Record<string, SkuId>> = {
-  // 0012 — the daily-founding grant became the concurrency it was sold as.
+  // 0013 — the daily-founding grant became the concurrency it was sold as.
   extra_run_slot: "extra_island",
 };
 

@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 /**
  * POST /api/admin/islands — set an account's bought islands outright.
  *
- * `{ profileId, islands }` → admin_set_extra_islands (0012). SET rather than
+ * `{ profileId, islands }` → admin_set_extra_islands (0013). SET rather than
  * increment, because an admin types the number they mean; the 0–20 clamp
  * matches the column's own check constraint.
  *

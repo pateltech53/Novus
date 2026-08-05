@@ -22,8 +22,11 @@ import { loadTheme, saveTheme, type ThemeChoice } from "@/lib/theme";
 import { APP_VERSION, SUPPORT_EMAIL, supportMailto } from "@/lib/app-info";
 import { PRIVACY, TERMS, type LegalDocument } from "@/lib/legal/documents";
 import { loadAccount, type Account } from "@/lib/account";
+import { PROVIDER_LABEL, type OAuthProvider } from "@/lib/auth/providers";
+import { ChooseName } from "@/components/ChooseName";
 import {
   deleteAccount,
+  nativeProviderSignIn,
   requestPasswordReset,
   signIn,
   signOut,
@@ -361,11 +364,36 @@ function AccountSection() {
   const [notice, setNotice] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  /**
+   * Google and Apple, when this build can actually do them.
+   *
+   * Empty unless the app is running natively AND its project carries the social
+   * login plugin, which is the only configuration where the token can come back
+   * into the app rather than into Safari (lib/cloud/native-oauth.ts). The web
+   * redirect flow is deliberately not offered here as a fallback: it would hand
+   * the session to a browser this webview cannot read, and the player would
+   * come back to a settings sheet exactly as signed out as they left it.
+   */
+  const [providers, setProviders] = useState<readonly OAuthProvider[]>([]);
+  /** Set when a provider sign-in turns out to have created the account. */
+  const [naming, setNaming] = useState<{ suggested: string | null } | null>(null);
+
   // localStorage, so never during render — this screen can be prerendered into
   // the static export the app ships from.
   useEffect(() => {
     setAccount(loadAccount());
     setReady(true);
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    void import("@/lib/cloud/native-oauth").then(({ nativeAuthAvailable, availableProviders }) => {
+      if (!alive || !nativeAuthAvailable()) return;
+      setProviders(availableProviders());
+    });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   /**
@@ -432,6 +460,55 @@ function AccountSection() {
      * page. See lib/native/href.ts — that belief is what put an account gate
      * inside the app and made every way out of it lead back to it.
      */
+    await restoreForSignIn();
+    const route = entryRoute();
+    window.location.href = storefront() === "web" ? route : appPath(route);
+  };
+
+  /**
+   * Continue with Google, or with Apple, without leaving the app.
+   *
+   * The system sheet returns a signed token in this process, so unlike the web
+   * there is no round trip to survive — which is the whole reason the app takes
+   * this route rather than the redirect one. What happens afterwards is the
+   * same fork every sign-in path in this app has:
+   *
+   * · **known** — a returning player. The device was emptied by the sign-in
+   *   (it belonged to whoever used this app before), so the account's saves are
+   *   pulled BEFORE the route is chosen, exactly as submitSignIn does above and
+   *   for the same reason: `entryRoute()` on an empty device answers "/welcome"
+   *   for everybody, and marches a returning player through onboarding they
+   *   finished a term ago.
+   * · **new** — the account was created just now, so it needs a name. That is
+   *   one screen, and this sheet is already on top of the game, so it happens
+   *   here rather than by navigating out to /auth/callback and back.
+   */
+  const useProvider = async (provider: OAuthProvider) => {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+
+    const result = await nativeProviderSignIn(provider);
+    if (!result.ok) {
+      setBusy(false);
+      // A closed sheet is a change of mind, not a failure.
+      if (result.reason !== "cancelled") setError(result.message);
+      return;
+    }
+
+    if (result.state === "new") {
+      setBusy(false);
+      // "Founder" is the placeholder written when the provider offered no name.
+      // Prefilling with it would invite the player to accept it, which is the
+      // opposite of what the naming step is for.
+      setNaming({
+        suggested:
+          result.suggestedName && result.suggestedName !== "Founder" ? result.suggestedName : null,
+      });
+      return;
+    }
+
     await restoreForSignIn();
     const route = entryRoute();
     window.location.href = storefront() === "web" ? route : appPath(route);
@@ -604,18 +681,54 @@ function AccountSection() {
       ) : (
         <div className="rounded-[var(--radius-row)] bg-[var(--surface)] p-4">
           <p className="text-sm font-semibold text-[var(--text-primary)]">
-            {account ? `Playing as ${account.displayName}` : "Playing without an account"}
+            {naming
+              ? "What should we call you?"
+              : account
+                ? `Playing as ${account.displayName}`
+                : "Playing without an account"}
           </p>
           <p className="mt-1 text-2xs leading-snug text-[var(--text-secondary)]">
-            The whole free game works this way, and nothing about it is sent to
-            us. An account backs your companies up so they survive a new phone,
-            and it is what Novus Pro attaches to.
+            {naming
+              ? "Your account is made. This is the name the game uses — your own invention, not the one on your Google or Apple account."
+              : "The whole free game works this way, and nothing about it is sent to us. An account backs your companies up so they survive a new phone, and it is what Novus Pro attaches to."}
           </p>
 
-          {!open ? (
-            <GlassButton onClick={() => setOpen(true)} className="mt-3 text-sm">
-              Sign in
-            </GlassButton>
+          {naming ? (
+            <div className="mt-3">
+              <ChooseName
+                suggested={naming.suggested}
+                submitLabel="SAVE AND PLAY"
+                onDone={() => {
+                  // A new account KEEPS this device (lib/cloud/auth.ts), so the
+                  // company the player already had open is still here and is
+                  // where they belong. No restoreForSignIn: there is nothing on
+                  // the server yet that this device does not have.
+                  const route = entryRoute();
+                  window.location.href = storefront() === "web" ? route : appPath(route);
+                }}
+              />
+            </div>
+          ) : !open ? (
+            <>
+              <GlassButton onClick={() => setOpen(true)} className="mt-3 text-sm">
+                Sign in
+              </GlassButton>
+
+              {/* Only in a build whose native project has the plugin — see the
+                  `providers` state. There is no web fallback here on purpose:
+                  a redirect would leave the session in Safari's cookie jar,
+                  where this webview cannot reach it. */}
+              {providers.map((provider) => (
+                <GlassButton
+                  key={provider}
+                  onClick={() => void useProvider(provider)}
+                  disabled={busy}
+                  className="mt-2 text-sm"
+                >
+                  Continue with {PROVIDER_LABEL[provider]}
+                </GlassButton>
+              ))}
+            </>
           ) : (
             <form
               className="mt-3"

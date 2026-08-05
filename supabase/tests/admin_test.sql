@@ -79,6 +79,9 @@ select test.throws('42501', $$
   select public.admin_set_extra_islands('90000000-0000-0000-0000-000000000002', 20)
 $$, 'a player cannot set their own islands');
 select test.throws('42501', $$
+  select public.admin_set_extra_year_closes('90000000-0000-0000-0000-000000000002', 20)
+$$, 'a player cannot grant themselves the pace to close more years');
+select test.throws('42501', $$
   select public.admin_revoke_industry_pack('90000000-0000-0000-0000-000000000003', 'TECH')
 $$, 'a player cannot strip another player''s pack');
 select test.throws('42501', $$
@@ -100,6 +103,10 @@ select test.throws('42501', $$
   insert into public.entitlements (profile_id, comp_pro)
   values ('90000000-0000-0000-0000-000000000002', true)
 $$, 'a player cannot insert a comp for themselves');
+select test.throws('42501', $$
+  insert into public.entitlements (profile_id, extra_year_closes)
+  values ('90000000-0000-0000-0000-000000000002', 20)
+$$, 'a player cannot write their own year-close allowance');
 
 -- ...and the audit log is nobody's to read.
 select test.throws('42501', $$
@@ -146,6 +153,42 @@ set role authenticated;
 set request.jwt.claim.sub = '90000000-0000-0000-0000-000000000003';
 select test.eq((select public.runs_remaining_today()), 1::bigint,
                'a revoked gift no longer grants anything');
+
+-- Gifted pace (0012). The allowance is a number on the row that the client
+-- reads at the year gate, so the properties that matter are: it lands, it
+-- cannot leave the column's 0–20 bound however it is called, the giftee can
+-- READ their own (the gate is client-side), and zero takes it back.
+set role service_role;
+set request.jwt.claim.sub = '';
+select public.admin_set_extra_year_closes('90000000-0000-0000-0000-000000000003', 6);
+select test.eq((select extra_year_closes from public.entitlements
+                where profile_id = '90000000-0000-0000-0000-000000000003'), 6,
+               'an operator grants extra year closes');
+
+select public.admin_set_extra_year_closes('90000000-0000-0000-0000-000000000003', 999);
+select test.eq((select extra_year_closes from public.entitlements
+                where profile_id = '90000000-0000-0000-0000-000000000003'), 20,
+               'a fat-fingered grant clamps to the column''s bound, it does not throw');
+
+-- A profile with no entitlements row yet: the function inserts one, the same
+-- way admin_set_extra_run_slots does.
+select public.admin_set_extra_year_closes('90000000-0000-0000-0000-000000000005', 4);
+select test.eq((select extra_year_closes from public.entitlements
+                where profile_id = '90000000-0000-0000-0000-000000000005'), 4,
+               'granting to an account with no entitlements row creates one');
+
+set role authenticated;
+set request.jwt.claim.sub = '90000000-0000-0000-0000-000000000003';
+select test.eq((select extra_year_closes from public.entitlements
+                where profile_id = '90000000-0000-0000-0000-000000000003'), 20,
+               'the giftee reads their own allowance, which is how the gate sees it');
+
+set role service_role;
+set request.jwt.claim.sub = '';
+select public.admin_set_extra_year_closes('90000000-0000-0000-0000-000000000003', 0);
+select test.eq((select extra_year_closes from public.entitlements
+                where profile_id = '90000000-0000-0000-0000-000000000003'), 0,
+               'zero takes the pace back');
 
 
 \echo ''

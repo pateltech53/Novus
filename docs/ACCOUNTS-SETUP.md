@@ -136,11 +136,24 @@ configuration.
 | `POST /api/auth/reset/confirm` | Finish a reset — or set up an invited seat — using the tokens from the email link. Optional `displayName` names an account that has never been named |
 | `GET /api/auth/me` | Who is signed in, and whether they are anonymous |
 | `POST /api/auth/delete` | Erase the account and everything attached to it |
+| `POST /api/auth/name` | Name an account that was created without one — the provider paths |
+| `GET /api/auth/oauth/start` | Leave for Google or Apple. Mints the PKCE verifier |
+| `GET /api/auth/oauth/callback` | Come back. Exchanges the code for a session server-side |
+| `POST /api/auth/oauth/native` | The app's door: a token from the system sheet |
 
 The browser never talks to Supabase. Credentials are posted to our own origin
 and used server-side, the session lives in an httpOnly cookie no script can
 read, and no third-party auth endpoint is contacted from a page a minor is
 looking at — the same rule the rest of the app follows.
+
+The four provider routes are the one place that rule bends, and only when a
+deploy switches them on. Even then the token never touches the page: with the
+PKCE flow the provider returns a `?code=` in the query string, which reaches a
+server, so the exchange happens in `/api/auth/oauth/callback` and the refresh
+token goes straight into the same httpOnly cookie every other path uses. What
+genuinely changes is that the player's browser visits `accounts.google.com`.
+**`docs/OAUTH-SETUP.md` is the whole of that feature** — the decision, the two
+developer consoles, the dashboard fields, and what to test.
 
 ---
 
@@ -220,6 +233,15 @@ and three instances would mean three times the limit.
 | `signin:email` | 10 | 15 min |
 | `reset:ip` | 5 | 15 min |
 | `reset:email` | 3 | 60 min |
+| `oauth:ip` | 30 | 15 min |
+
+`oauth:ip` covers both provider doors (the web redirect and the app's token
+post). It is sized like sign-IN rather than sign-UP on purpose: every account it
+can open needs a real Google or Apple account behind it, which is a far higher
+bar than a typed address, while the ways to spend an attempt without getting an
+account are ordinary — press the button, look at the account chooser, change
+your mind. At five, a classroom behind one NAT would lock itself out before the
+back row had tried once.
 
 Five sign-ups per address per fifteen minutes is far above what a real person
 does — a family behind one router, a teacher setting up alongside a class — and

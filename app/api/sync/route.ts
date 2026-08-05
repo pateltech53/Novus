@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
     session.supabase
       .from("entitlements")
       .select(
-        "pro, extra_islands, industry_packs, cosmetic_bundles, chapter, intent, comp_pro, comp_until",
+        "pro, extra_islands, extra_year_closes, industry_packs, cosmetic_bundles, chapter, intent, comp_pro, comp_until",
       )
       .eq("profile_id", session.userId)
       .maybeSingle(),
@@ -302,7 +302,7 @@ async function writeRun(
       // live run with a stale cause of death would be rejected outright.
       ended_by: run.alive ? null : (run.endedBy ?? "chapter7"),
       /*
-       * The listing cache the islands picker reads (0012). Derived here for
+       * The listing cache the islands picker reads (0013). Derived here for
        * the same reason the six above are: the client sends `state` as an
        * opaque blob, and a card drawn from numbers the client chose is a card
        * that can lie. Truncated because the columns are bigint — the engine
@@ -318,7 +318,7 @@ async function writeRun(
     { onConflict: "profile_id,slot" },
   );
   /*
-   * The island cap raises 23514 from the BEFORE INSERT trigger in 0012. Say so
+   * The island cap raises 23514 from the BEFORE INSERT trigger in 0013. Say so
    * in words: this is the one error on this route a player can actually cause,
    * and "saves[3]: new row violates check constraint" tells them nothing.
    */

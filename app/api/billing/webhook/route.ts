@@ -160,7 +160,7 @@ async function onCheckoutCompleted(
   }
 
   // ── One-time purchases ───────────────────────────────────────────────────
-  // Follows a rename: a session opened before 0012 carries `extra_run_slot`
+  // Follows a rename: a session opened before 0013 carries `extra_run_slot`
   // and must still deliver. See RETIRED_SKUS in lib/stripe/catalogue.ts.
   const sku = skuFromMetadata(cs.metadata?.sku);
   if (sku === null) {

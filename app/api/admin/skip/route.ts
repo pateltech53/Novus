@@ -24,7 +24,7 @@ export const dynamic = "force-dynamic";
  *   pro_monthly / pro_yearly → admin_set_comp_pro (the comp column, because
  *                              the webhook owns `pro` and would overwrite it)
  *   industry_pack + industry → grant_industry_pack (0003, the webhook's own)
- *   extra_island             → grant_extra_island (0012, ditto)
+ *   extra_island             → grant_extra_island (0013, ditto)
  *   chapter_35 / chapter_100 → admin_create_comp_chapter (0009)
  *   chapter_custom + seats   → admin_create_comp_chapter with p_seats (0011)
  *

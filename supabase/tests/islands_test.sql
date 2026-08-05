@@ -1,7 +1,7 @@
 \set ON_ERROR_STOP 1
 \pset pager off
 
--- Islands (0012) — more than one company per player, and the cap that decides
+-- Islands (0013) — more than one company per player, and the cap that decides
 -- how many.
 --
 -- Two claims are worth a suite of their own, because both were sold before
@@ -110,7 +110,7 @@ delete from public.saves
 
 \echo ''
 \echo '=== 4. the SKU no longer touches the daily founding ration ==='
--- This is the split. Before 0012 the same column was added to the daily
+-- This is the split. Before 0013 the same column was added to the daily
 -- allowance, so the line below would have read 2.
 select test.eq(public.player_allowance('11111111-1111-1111-1111-111111111111'), 1,
                'a bought island does NOT add a founding per day');
@@ -158,7 +158,7 @@ $$, 'a player cannot set their own island count');
 
 \echo ''
 \echo '=== 7. RLS still fences islands by owner, at every slot ==='
--- The `saves: own` policy never mentioned slot, so this held before 0012 by
+-- The `saves: own` policy never mentioned slot, so this held before 0013 by
 -- construction. Asserted anyway: it is now the only thing standing between one
 -- player and another player's ten companies.
 select test.eq((select count(*)::bigint from public.saves), 3::bigint,

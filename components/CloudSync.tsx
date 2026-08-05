@@ -14,8 +14,19 @@ import { restoreOnBoot } from "@/lib/cloud/sync";
  * a terms page linked from an email, the download page. Booting the cloud
  * restore on them spends two sequential round trips — POST /api/session, then
  * GET /api/sync — on a document whose only job is to render text.
+ *
+ * `/auth/callback` is here for a different and much sharper reason. It is where
+ * a Google or Apple sign-in lands, and the first thing it does is empty this
+ * device — because on the machines this app runs on, the localStorage sitting
+ * there belongs to whoever used the browser before (lib/cloud/auth.ts). A boot
+ * restore racing that wipe is the one ordering this flow cannot survive: it
+ * would pull the account's saves onto a device that is about to be emptied, or
+ * decide "this device already has a run" from the previous student's company
+ * and skip the restore the signing-in player came back for. The page navigates
+ * with a document load when it is finished, so the restore runs a moment later
+ * on a device whose state is settled — which is exactly where it belongs.
  */
-const READ_ONLY_ROUTES = ["/privacy", "/terms", "/download"];
+const READ_ONLY_ROUTES = ["/privacy", "/terms", "/download", "/auth/callback"];
 
 /**
  * Starts cloud persistence. Renders nothing.

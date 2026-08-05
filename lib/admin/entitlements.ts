@@ -31,6 +31,7 @@ export type AdminView = "free" | "pro" | "all";
 export interface EntitlementRow {
   pro: boolean | null;
   extra_islands: number | null;
+  extra_year_closes: number | null;
   industry_packs: string[] | null;
   cosmetic_bundles: string[] | null;
   chapter: string | null;
@@ -51,6 +52,7 @@ const compActive = (row: EntitlementRow): boolean =>
 const fromRow = (row: EntitlementRow): Entitlements => ({
   pro: !!row.pro || compActive(row),
   extraIslands: row.extra_islands ?? 0,
+  extraYearCloses: row.extra_year_closes ?? 0,
   industryPacks: (row.industry_packs ?? []) as Entitlements["industryPacks"],
   cosmeticBundles: row.cosmetic_bundles ?? [],
   chapter: (row.chapter ?? null) as Entitlements["chapter"],

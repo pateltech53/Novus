@@ -43,7 +43,7 @@ export async function GET(
     await Promise.all([
       db.auth.admin.getUserById(id),
       db.from("profiles").select("display_name, board_handle, role, admin_view, accepted_privacy_at, created_at").eq("id", id).maybeSingle(),
-      db.from("entitlements").select("pro, extra_islands, industry_packs, cosmetic_bundles, chapter, intent, comp_pro, comp_until, comp_note").eq("profile_id", id).maybeSingle(),
+      db.from("entitlements").select("pro, extra_islands, extra_year_closes, industry_packs, cosmetic_bundles, chapter, intent, comp_pro, comp_until, comp_note").eq("profile_id", id).maybeSingle(),
       db.from("billing_customers").select("subscription_status, plan, current_period_end, cancel_at_period_end, created_at").eq("profile_id", id).maybeSingle(),
       db.from("chapters").select("id, licence, seats, status, source, current_period_end, created_at").eq("owner_profile_id", id).order("created_at", { ascending: false }),
       db.from("chapter_seats").select("chapter_id, email, origin, claimed_at, created_at").eq("profile_id", id).maybeSingle(),

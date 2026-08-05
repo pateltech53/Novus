@@ -522,7 +522,7 @@ export function adoptFromCloud(data: {
  * ten of on a phone.
  *
  * Deliberately the same set of fields the `saves` listing cache holds
- * (supabase/migrations/0012_islands.sql), for the same stated reason: a UI
+ * (supabase/migrations/0013_islands.sql), for the same stated reason: a UI
  * that lists companies must not have to read megabytes of RunState to do it.
  * Like that cache, this is derived and never the truth — `loadRun` is.
  */
@@ -736,7 +736,7 @@ export function liveIslandCount(): number {
  *     island as a headstone the player can go back and read, and it does not
  *     spend the allowance — a free tier whose two islands fill with two graves
  *     is a game that politely stops. The same rule is enforced server-side by
- *     `enforce_island_cap` in 0012.
+ *     `enforce_island_cap` in 0013.
  *
  *  2. **Is there an empty island?** Take the lowest.
  *

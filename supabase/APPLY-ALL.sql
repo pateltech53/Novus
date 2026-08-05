@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════════════
--- APPLY ALL · the complete Novus schema (0001 → 0012), idempotently
+-- APPLY ALL · the complete Novus schema (0001 → 0013), idempotently
 -- ═══════════════════════════════════════════════════════════════════════════
 --
 -- Paste the whole file into the Supabase SQL editor of the NOVUS project and
@@ -48,14 +48,14 @@ $$;
 
 
 -- ═══════════════════════════════════════════════════════════════════════════
--- Ahead of everything: 0012's one rename
+-- Ahead of everything: 0013's one rename
 -- ═══════════════════════════════════════════════════════════════════════════
--- `entitlements.extra_run_slots` became `extra_islands` in 0012, and this file
+-- `entitlements.extra_run_slots` became `extra_islands` in 0013, and this file
 -- is a snapshot of the schema AFTER that — every section below writes the new
 -- name. So a project still carrying the old one has to be converted before the
 -- first function that reads it is created, which is in the 0001 section. It
--- lives here rather than down in 0012 for that reason alone; the reasoning for
--- the rename itself is in supabase/migrations/0012_islands.sql.
+-- lives here rather than down in 0013 for that reason alone; the reasoning for
+-- the rename itself is in supabase/migrations/0013_islands.sql.
 --
 -- Guarded, so a fresh project (no table yet) and an already-converted one both
 -- fall straight through. This is what makes a SECOND run of this file a no-op
@@ -72,9 +72,9 @@ $$;
 
 -- `admin_list_users` RETURNS TABLE names that column, and Postgres refuses to
 -- change a function's output type with CREATE OR REPLACE — a project carrying
--- the pre-0012 version fails at the 0009 section below with "cannot change
+-- the pre-0013 version fails at the 0009 section below with "cannot change
 -- return type of existing function". Dropping it here is the same move
--- supabase/migrations/0012_islands.sql makes, hoisted for the same reason the
+-- supabase/migrations/0013_islands.sql makes, hoisted for the same reason the
 -- rename above is: it has to happen before anything redefines it.
 drop function if exists public.admin_list_users(text, int, int);
 
@@ -1894,7 +1894,88 @@ grant execute on function public.admin_create_comp_chapter(uuid, text, timestamp
 
 
 -- ═══════════════════════════════════════════════════════════════════════════
--- 0012 · Islands — more than one company at a time, and the SKU that says so
+-- 0012 · Gifted pace — extra fiscal-year closes a day
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Free closes four fiscal years a real day, Pro as many as it can pitch, and
+-- between them an operator now has one account-sized dial: `extra_year_closes`
+-- stacks on top of the tier's allowance, set outright, 0–20 — the shape
+-- `extra_run_slots` already has. Pace is what Pro sells, so it is giftable; a
+-- score, a survival and a place on the board still are not. The full reasoning
+-- lives in supabase/migrations/0012_year_closes.sql.
+
+alter table public.entitlements
+  add column if not exists extra_year_closes int not null default 0;
+
+alter table public.entitlements
+  drop constraint if exists entitlements_extra_year_closes_check;
+alter table public.entitlements
+  add constraint entitlements_extra_year_closes_check
+  check (extra_year_closes between 0 and 20);
+
+create or replace function public.admin_set_extra_year_closes(
+  p_profile uuid,
+  p_closes  int
+)
+returns void
+language sql
+set search_path = public, pg_temp
+as $$
+  insert into public.entitlements (profile_id, extra_year_closes)
+  values (p_profile, least(greatest(coalesce(p_closes, 0), 0), 20))
+  on conflict (profile_id) do update
+    set extra_year_closes = least(greatest(coalesce(p_closes, 0), 0), 20);
+$$;
+
+revoke execute on function public.admin_set_extra_year_closes(uuid, int)
+  from public, anon, authenticated;
+grant execute on function public.admin_set_extra_year_closes(uuid, int)
+  to service_role;
+
+-- The stale-anonymous sweep spares a granted allowance, exactly as it spares a
+-- comp: 0009's version of this function above, plus the new column.
+create or replace function public.delete_stale_anonymous_users(
+  p_older_than interval default interval '90 days'
+)
+returns integer
+language plpgsql
+security definer
+set search_path = public, auth, pg_temp
+as $$
+declare
+  removed integer;
+begin
+  with doomed as (
+    delete from auth.users u
+    where u.is_anonymous is true
+      and coalesce(u.last_sign_in_at, u.created_at) < (now() - p_older_than)
+      and not exists (
+        select 1 from public.entitlements e
+        where e.profile_id = u.id
+          and (e.pro or e.comp_pro or e.extra_islands > 0
+               or e.extra_year_closes > 0
+               or array_length(e.industry_packs, 1) > 0
+               or e.chapter is not null)
+      )
+      and not exists (
+        select 1 from public.billing_customers b where b.profile_id = u.id
+      )
+    returning 1
+  )
+  select count(*) into removed from doomed;
+
+  return removed;
+end;
+$$;
+
+revoke execute on function public.delete_stale_anonymous_users(interval)
+  from public, anon, authenticated;
+grant execute on function public.delete_stale_anonymous_users(interval)
+  to service_role;
+
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 0013 · Islands — more than one company at a time, and the SKU that says so
 -- ═══════════════════════════════════════════════════════════════════════════
 -- `entitlements.extra_run_slots` fed the DAILY FOUNDING ration while the SKU
 -- beside it, the one-time shelf and the Terms of Service all promised
@@ -1905,14 +1986,14 @@ grant execute on function public.admin_create_comp_chapter(uuid, text, timestamp
 -- BEFORE INSERT cap trigger that counts only LIVING companies, six listing
 -- cache columns for the picker, and splits `savesAlive` from `playersPlaying`
 -- so the stored analytics series does not change meaning underneath itself.
--- The full reasoning lives in supabase/migrations/0012_islands.sql.
+-- Its delete_stale_anonymous_users carries 0012's gifted-pace clause forward.
+-- The full reasoning lives in supabase/migrations/0013_islands.sql.
 
 -- ═══ entitlements.extra_run_slots → extra_islands ══════════════════════════
 -- A rename rather than a new column: there is no data to preserve under the
 -- old meaning that the new meaning would corrupt. Every player who bought one
 -- was promised concurrency in writing; giving them concurrency is the fix, not
 -- a migration hazard.
-
 -- The check travelled with the column but kept its old name, and a constraint
 -- called extra_run_slots_check on a column called extra_islands is the same
 -- drift this migration exists to end. Guarded rather than bare: 0001 declared
@@ -2144,8 +2225,17 @@ grant  execute on function public.player_allowance(uuid) to service_role;
 
 
 -- ═══ The stale-anonymous sweep follows the rename ══════════════════════════
--- 0010's version, with the one column renamed. An anonymous account holding a
--- bought island is still evidence of a purchase and still must not be swept.
+-- 0012's version, with the one column renamed.
+--
+-- 0012 replaced this function to spare an account holding GIFTED PACE, and
+-- this migration replaces it again — so its clause has to be carried forward
+-- here or the gift stops protecting anything the moment islands land. Two
+-- migrations owning one function is how a feature regresses without a single
+-- line of its own code changing.
+--
+-- An anonymous account holding a bought island is evidence of a purchase, and
+-- one holding gifted year-closes is evidence an operator attached value to it.
+-- Neither may be swept.
 create or replace function public.delete_stale_anonymous_users(
   p_older_than interval default interval '90 days'
 )
@@ -2165,6 +2255,7 @@ begin
         select 1 from public.entitlements e
         where e.profile_id = u.id
           and (e.pro or e.comp_pro or e.extra_islands > 0
+               or e.extra_year_closes > 0
                or array_length(e.industry_packs, 1) > 0
                or e.chapter is not null)
       )
@@ -2387,6 +2478,7 @@ $$;
 
 revoke execute on function public.admin_stats() from public, anon, authenticated;
 grant  execute on function public.admin_stats() to service_role;
+
 -- ═══════════════════════════════════════════════════════════════════════════
 -- The report — read this before closing the tab
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -2446,7 +2538,13 @@ from (
       and exists (select 1 from pg_constraint c
                    where c.conname = 'entitlements_chapter_check'
                      and pg_get_constraintdef(c.oid) like '%chapter_custom%')),
-    ('0012 islands',
+    ('0012 year closes',
+      exists (select 1 from information_schema.columns
+               where table_schema = 'public' and table_name = 'entitlements'
+                 and column_name = 'extra_year_closes')
+      and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                   where n.nspname = 'public' and p.proname = 'admin_set_extra_year_closes')),
+    ('0013 islands',
       exists (select 1 from information_schema.columns
                where table_schema = 'public' and table_name = 'entitlements'
                  and column_name = 'extra_islands')

@@ -748,6 +748,48 @@ textarea {
 }
 
 /*
+ * An ANSWER the player has given, as opposed to a control they happen to be on.
+ *
+ * `.nv-on` above is a 16% tint and a rim at 26% of emphasis ink. That is the
+ * right weight for a segment inside a segmented control, where the options are
+ * small, touching, and read against each other — the tint is the difference
+ * between two neighbours and nothing has to carry meaning on its own.
+ *
+ * It is nowhere near enough where an option is large, pictorial, or separated
+ * by a gutter. The two founder portraits on /found and the two price tiles on
+ * the plans screen were exactly that: a 16% wash across a 120px card, with a
+ * gap beside it and nothing to compare against. Players tapped one and could
+ * not tell afterwards which one they had tapped, which for the gender pick is
+ * a question the game then answers for them for the whole run.
+ *
+ * So a picked option gets the strongest edge the system has that is NOT the
+ * accent — a 2px rim in full label ink. §1.5 spends the orange on the primary
+ * CTA and on nothing else, and on /found that CTA is FOUND IT, so the answer
+ * above it cannot borrow it. Everything else here is the same glass, turned
+ * up: more tint, a brighter crest, one step of elevation.
+ *
+ * The rim is only half of it. Colour alone is never the sole carrier of a
+ * state — call sites pair this with `<PickMark on />`, which says the same
+ * thing in a shape, for anyone reading the screen in sunlight or without
+ * colour vision.
+ */
+.nv-gc[data-picked="true"],
+.nv-gc.nv-pick {
+  --gc-tint: color-mix(in oklch, var(--n-11) 24%, var(--glass-tint));
+  --gc-ring: var(--text-primary);
+  --gc-specular: color-mix(in oklch, var(--n-11) 52%, transparent);
+  --gc-drop: var(--e2);
+
+  /* Restated rather than inherited: the rim `.nv-gc` draws is a material edge
+     at 1px, and this one is information. At 1px, in label ink, it reads as the
+     former — a slightly crisper pane — which is the whole failure being fixed. */
+  box-shadow:
+    inset 0 -1px 0 0 var(--gc-underside),
+    inset 0 0 0 2px var(--gc-ring),
+    var(--gc-drop);
+}
+
+/*
  * The lens, without a backdrop pass of its own.
  *
  * Everything that makes a control read as glass — the tint, the crest, the
@@ -1093,6 +1135,33 @@ textarea {
 :root:not([data-css-glass]) .nv-gc {
   background: var(--gc-solid, var(--surface-overlay));
   box-shadow: var(--e1);
+}
+
+/*
+ * The picked state, restated on the path that actually ships.
+ *
+ * This is the whole reason a chosen option was invisible. `.nv-pick` and
+ * `.nv-on` above express themselves in the material's own knobs — tint, rim,
+ * specular — and the rule directly above this one overwrites `background` and
+ * `box-shadow` for every control in the app at (0,3,0). So all a selected
+ * card actually got was `--gc-solid`, and on the industry list that resolved
+ * to n-3 sitting inside an n-4 row: the CHOSEN option came out a shade DARKER
+ * than the ones beside it. Nobody was going to spot that, and nobody did.
+ *
+ * (0,4,0), so it clears the solidifier. The fill is derived rather than named
+ * — 15% of emphasis ink into the standard control surface, which lightens on
+ * dark and darkens on light with no second token — and the 2px rim in label
+ * ink is the same edge the glass rule asks for, drawn where it can be seen.
+ * Neutral by construction: `.nv-pick` marks an answer, and an answer never
+ * wears a tone (§1.5 spends the accent on the one control that asks you to
+ * act), so this may flatten `--gc-solid` without losing anything real.
+ */
+:root:not([data-css-glass]) .nv-gc[data-picked="true"],
+:root:not([data-css-glass]) .nv-gc.nv-pick {
+  background: color-mix(in oklch, var(--n-11) 15%, var(--surface-overlay));
+  box-shadow:
+    inset 0 0 0 2px var(--text-primary),
+    var(--e2);
 }
 
 :root:not([data-css-glass]) .nv-ggroup {
