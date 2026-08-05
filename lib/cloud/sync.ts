@@ -35,10 +35,17 @@ interface Prefs {
   founderName: string;
 }
 
+/** One company on the wire, with the slot that says which island it is. */
+export interface CloudIsland {
+  slot: number;
+  state: RunState;
+}
+
 interface PullResult {
   configured: boolean;
   signedIn: boolean;
-  run?: RunState | null;
+  /** Every island the account holds. Absent on an account that has none. */
+  runs?: CloudIsland[] | null;
   legacy?: LegacyState | null;
   prefs?: Prefs | null;
   /** Null until a purchase is recorded. Never sent back up — the PUT side has
@@ -153,7 +160,25 @@ export async function pull(): Promise<PullResult | null> {
  * second. Debouncing turns that burst into one request carrying the latest
  * state — the game is not collaborative, so only the final value matters.
  */
-type Payload = { run?: RunState | null; legacy?: LegacyState; prefs?: Prefs };
+/*
+ * ── Why `runs` is a map and not a field ────────────────────────────────────
+ *
+ * This was `run?: RunState | null`, one company, where `null` meant "delete
+ * it". Two writes inside one 1500 ms debounce window therefore collapsed to
+ * the later one — which was harmless while a device held a single company and
+ * both writes named the same row, and is a lost delete the moment it does not:
+ *
+ *   endRun() on island 3   → pending.run = null    (delete)
+ *   startRun() on island 0 → pending.run = state   (overwrites the delete)
+ *
+ * The DELETE never reaches the server, island 3 stays on the account, and it
+ * comes back on the next device that restores. Keyed by slot, the two are
+ * simply different entries and both are sent.
+ *
+ * `null` keeps its meaning per island: an instruction to delete that row.
+ */
+type RunPatch = Record<number, RunState | null>;
+type Payload = { runs?: RunPatch; legacy?: LegacyState; prefs?: Prefs };
 
 let pending: Payload = {};
 let timer: ReturnType<typeof setTimeout> | null = null;
@@ -274,9 +299,18 @@ async function accepted(res: Response): Promise<boolean> {
   }
 }
 
-/** Newer queued values win — this is a batch coming back, not arriving. */
+/**
+ * Newer queued values win — this is a batch coming back, not arriving.
+ *
+ * `runs` is merged one island at a time rather than as a field. A shallow
+ * spread would drop the whole returning map the instant any single island had
+ * been queued since, which is exactly the failed-push-is-discarded bug the map
+ * exists to prevent: island 0 queued while island 3's push was in flight must
+ * not throw island 3 away.
+ */
 const requeue = (body: Payload) => {
-  pending = { ...body, ...pending };
+  const runs = body.runs || pending.runs ? { ...body.runs, ...pending.runs } : undefined;
+  pending = { ...body, ...pending, ...(runs ? { runs } : {}) };
 };
 
 /**
@@ -303,8 +337,8 @@ const withoutAge = (run: RunState): RunState => {
   return rest as RunState;
 };
 
-export function queueRun(run: RunState | null) {
-  pending.run = run === null ? null : withoutAge(run);
+export function queueRun(run: RunState | null, slot: number) {
+  pending.runs = { ...pending.runs, [slot]: run === null ? null : withoutAge(run) };
   schedule();
 }
 
@@ -331,18 +365,35 @@ export async function pushLocalNow(): Promise<boolean> {
   if (disabled) return false;
   // Dynamic import for the same reason restoreOnBoot uses one: save.ts imports
   // this file, and a static cycle would leave one of them half-initialised.
-  const { loadRun, loadLegacy, loadProfile } = await import("@/lib/engine/save");
+  const { listIslands, loadRun, loadLegacy, loadProfile } = await import("@/lib/engine/save");
 
   const profile = loadProfile();
-  const run = loadRun();
+
+  /*
+   * Every island, not the active one.
+   *
+   * This used to send `loadRun()` — one company — which was the whole device
+   * when a device held one. Sending only the active island now would hand a
+   * brand-new account one company and silently strand the rest on an
+   * anonymous identity the player can never sign back into, which is the exact
+   * failure this function exists to prevent.
+   */
+  const local: RunPatch = {};
+  for (const island of listIslands()) {
+    const state = loadRun(island.slot);
+    // `null` is a real instruction (clearRun), so an island that failed to
+    // load is SKIPPED rather than sent as null — an unreadable local blob must
+    // never tell a fresh account to delete the copy it may already hold.
+    if (state) local[island.slot] = withoutAge(state);
+  }
 
   pending = {
     ...pending,
-    // `run: null` is a real instruction (clearRun), so only send the key when
-    // there is genuinely a company here — an empty device must not tell a
-    // fresh account to delete a save it might have. Stripped of playerAge on
-    // the way out, exactly as queueRun does.
-    ...(run ? { run: withoutAge(run) } : {}),
+    // Same reason: only send the key when there is genuinely something here.
+    // Anything already queued wins, being newer than this snapshot.
+    ...(Object.keys(local).length > 0
+      ? { runs: { ...local, ...pending.runs } }
+      : {}),
     legacy: loadLegacy(),
     ...(profile
       ? {
@@ -534,7 +585,6 @@ async function pullAndAdopt(): Promise<{
   const nothing = { run: false, legacy: false, prefs: false, entitlements: false };
   if (typeof window === "undefined") return nothing;
 
-  const hasLocalRun = !!window.localStorage.getItem("novus:run:v1");
   const hasLocalLegacy = !!window.localStorage.getItem("novus:legacy:v1");
   const hasLocalProfile = !!window.localStorage.getItem("novus:profile:v1");
 
@@ -547,21 +597,34 @@ async function pullAndAdopt(): Promise<{
 
   // Import here rather than at module scope: save.ts imports this file, and a
   // static cycle between the two would leave one of them half-initialised.
-  const { adoptFromCloud } = await import("@/lib/engine/save");
+  const { adoptFromCloud, listIslands } = await import("@/lib/engine/save");
 
-  const run = hasLocalRun ? undefined : cloud.run;
+  /*
+   * "Local always wins" — now decided PER ISLAND.
+   *
+   * It used to be one device-level boolean: any company here at all meant the
+   * cloud copy was refused wholesale. With islands that rule is not
+   * conservative, it is lossy — a device holding one company would refuse to
+   * adopt the other nine, forever, with nothing on screen to say so.
+   *
+   * Per slot it means what it always meant, and means it more precisely: a
+   * company in progress on THIS device is never replaced by a server copy,
+   * and an island this device has never seen is simply restored.
+   */
+  const held = new Set(listIslands().map((i) => i.slot));
+  const runs = (cloud.runs ?? []).filter((i) => !held.has(i.slot));
   const legacy = hasLocalLegacy ? undefined : cloud.legacy;
   const prefs = hasLocalProfile ? undefined : cloud.prefs;
 
-  if (!run && !legacy && !prefs) {
+  if (runs.length === 0 && !legacy && !prefs) {
     return { run: false, legacy: false, prefs: false, entitlements };
   }
 
-  adoptFromCloud({ run, legacy, prefs });
+  adoptFromCloud({ runs, legacy, prefs });
   // Reported per category rather than as one "saves" flag: the caller reloads
   // for exactly one of them, and rolling three together is what made a prefs
   // row cost the same as a company.
-  return { run: !!run, legacy: !!legacy, prefs: !!prefs, entitlements };
+  return { run: runs.length > 0, legacy: !!legacy, prefs: !!prefs, entitlements };
 }
 
 /**

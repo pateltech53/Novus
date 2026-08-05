@@ -209,19 +209,32 @@ export async function signIn(email: string, password: string): Promise<AuthOutco
  * problem in a smaller coat.
  */
 const DEVICE_KEYS = [
+  // Islands. `novus:run:v1:0` … and the pre-islands `novus:run:v1` beside
+  // them, which a device that has not booted since 0012 still carries. These
+  // are PREFIXES, matched below — an exact list cannot enumerate ten slots
+  // without going stale the first time ISLAND_CAP moves, and a key that
+  // escapes this wipe is the previous student's company left on a shared iPad.
   "novus:run:v1",
   // The cards left face-up on that run. loadTable() would refuse them for a
   // different company anyway, but "the last student's decision is still on the
   // table" is the same problem this list exists to prevent.
   "novus:table:v1",
+  // Which island was open, and the picker's cache of what is on the others.
+  "novus:island:v1",
+  "novus:islands:v1",
   "novus:legacy:v1",
   "novus:profile:v1",
   "novus:entitlements:v1",
   "novus:runledger:v1",
+  "novus:yearcloses:v1",
   "novus:wardrobe:v1",
   "novus:theme:v1",
   "novus:sound:v1",
 ];
+
+/** Does this key belong to one of the entries above, exactly or per island? */
+const isDeviceKey = (key: string): boolean =>
+  DEVICE_KEYS.some((k) => key === k || key.startsWith(`${k}:`));
 
 /**
  * Empties this device of the previous player, leaving the account cache alone.
@@ -249,7 +262,22 @@ function wipeDevice(): void {
    * and nothing on it reaches back to this file.
    */
   dropPendingRun();
-  for (const key of DEVICE_KEYS) {
+  /*
+   * Collected first, then removed. Iterating localStorage while deleting from
+   * it re-indexes the collection underneath the loop and silently skips keys —
+   * and a skipped key here is a company handed to the next person to use this
+   * browser.
+   */
+  const doomed: string[] = [];
+  try {
+    for (let i = 0; i < window.localStorage.length; i += 1) {
+      const key = window.localStorage.key(i);
+      if (key !== null && isDeviceKey(key)) doomed.push(key);
+    }
+  } catch {
+    /* fall through — the exact-name pass below still runs */
+  }
+  for (const key of [...new Set([...doomed, ...DEVICE_KEYS])]) {
     try {
       window.localStorage.removeItem(key);
     } catch {

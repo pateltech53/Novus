@@ -35,13 +35,21 @@ export async function GET(req: NextRequest) {
   const session = await sessionFromRequest(req);
   if (!session) return noSession();
 
-  const [saveRow, legacyRow, prefRow, profileRow, entRow] = await Promise.all([
+  const [saveList, legacyRow, prefRow, profileRow, entRow] = await Promise.all([
+    /*
+     * Every island the account holds, low slot first.
+     *
+     * `.eq("slot", 0).maybeSingle()` was correct while the client only ever
+     * wrote slot 0; 0001 built the table for ten and said so. `.order` rather
+     * than relying on Postgres row order because the picker draws them in this
+     * sequence and "which island is first" must not depend on which one was
+     * last written.
+     */
     session.supabase
       .from("saves")
-      .select("state, updated_at")
+      .select("slot, state, updated_at")
       .eq("profile_id", session.userId)
-      .eq("slot", 0)
-      .maybeSingle(),
+      .order("slot", { ascending: true }),
     session.supabase
       .from("legacy")
       .select("best_year, runs_completed, shark_respect, badges, autopsies, updated_at")
@@ -92,6 +100,16 @@ export async function GET(req: NextRequest) {
       }
     : null;
 
+  /*
+   * An unreadable saves query is an EMPTY archipelago, not a broken one.
+   *
+   * The client treats "local always wins" per island, so a device that
+   * receives no islands simply keeps its own — which is the safe direction. A
+   * throw here would take legacy, prefs and entitlements down with it for a
+   * player whose companies were fine.
+   */
+  const saveRows = (saveList.data ?? []) as { slot: number; state: unknown; updated_at: string }[];
+
   // Absent until the player buys something, because nothing else creates a
   // row here. That absence is meaningful to the client: it means "no purchase
   // on record", which is what lets a device-local pre-billing grant survive.
@@ -105,14 +123,16 @@ export async function GET(req: NextRequest) {
     NextResponse.json({
       configured: true,
       signedIn: true,
-      run: (saveRow.data?.state as RunState | undefined) ?? null,
+      runs: saveRows.map((r) => ({ slot: r.slot, state: r.state as RunState })),
       legacy,
       prefs,
       entitlements,
       // The client compares these against its own last-write stamp to decide
       // whether the cloud copy is worth adopting.
       updatedAt: {
-        run: saveRow.data?.updated_at ?? null,
+        // Per island, keyed by slot — one stamp for ten companies would say
+        // nothing about any of them.
+        runs: Object.fromEntries(saveRows.map((r) => [r.slot, r.updated_at])),
         legacy: legacyRow.data?.updated_at ?? null,
         prefs: prefRow.data?.updated_at ?? null,
       },
@@ -125,7 +145,12 @@ export async function PUT(req: NextRequest) {
   const session = await sessionFromRequest(req);
   if (!session) return noSession();
 
-  let body: { run?: RunState | null; legacy?: LegacyState; prefs?: Prefs };
+  let body: {
+    /** Keyed by slot. `null` is a real instruction: delete that island. */
+    runs?: Record<string, RunState | null>;
+    legacy?: LegacyState;
+    prefs?: Prefs;
+  };
   try {
     body = await req.json();
   } catch {
@@ -140,9 +165,26 @@ export async function PUT(req: NextRequest) {
   if (body.legacy) {
     errors.push(...(await writeLegacy(session, body.legacy)));
   }
-  // `run: null` is a real instruction — clearRun() on a buried company.
-  if (body.run !== undefined) {
-    errors.push(...(await writeRun(session, body.run)));
+  /*
+   * One entry per island. `null` is a real instruction — clearRun() on a
+   * buried company — so the check is `!== undefined`, not truthiness.
+   *
+   * Sequential rather than Promise.all: ten upserts of up to a megabyte each,
+   * fired at once, is a burst this route has no reason to send. The debounce
+   * upstream means the common case is one or two entries anyway.
+   */
+  for (const [key, run] of Object.entries(body.runs ?? {})) {
+    const slot = Number(key);
+    // 0001 checks `slot between 0 and 9`. Refusing here rather than letting
+    // the constraint do it keeps one bad key from failing a batch that also
+    // carried nine good islands.
+    if (!Number.isInteger(slot) || slot < 0 || slot > 9) {
+      errors.push(`saves: slot ${key} is not 0-9`);
+      continue;
+    }
+    if (run !== undefined) {
+      errors.push(...(await writeRun(session, run, slot)));
+    }
   }
 
   /*
@@ -219,14 +261,18 @@ async function writeLegacy(session: Session, legacy: LegacyState): Promise<strin
   return error ? [`legacy: ${error.message}`] : [];
 }
 
-async function writeRun(session: Session, run: RunState | null): Promise<string[]> {
+async function writeRun(
+  session: Session,
+  run: RunState | null,
+  slot: number,
+): Promise<string[]> {
   if (run === null) {
     const { error } = await session.supabase
       .from("saves")
       .delete()
       .eq("profile_id", session.userId)
-      .eq("slot", 0);
-    return error ? [`saves: ${error.message}`] : [];
+      .eq("slot", slot);
+    return error ? [`saves[${slot}]: ${error.message}`] : [];
   }
 
   // playerAge is stripped again here, having already been stripped on the way
@@ -241,7 +287,7 @@ async function writeRun(session: Session, run: RunState | null): Promise<string[
   const { error } = await session.supabase.from("saves").upsert(
     {
       profile_id: session.userId,
-      slot: 0,
+      slot,
       run_id: run.id,
       seed: run.seed,
       state: storableRun,
@@ -255,11 +301,45 @@ async function writeRun(session: Session, run: RunState | null): Promise<string[
       // The ended_by_iff_dead constraint means these two must agree, and a
       // live run with a stale cause of death would be rejected outright.
       ended_by: run.alive ? null : (run.endedBy ?? "chapter7"),
+      /*
+       * The listing cache the islands picker reads (0012). Derived here for
+       * the same reason the six above are: the client sends `state` as an
+       * opaque blob, and a card drawn from numbers the client chose is a card
+       * that can lie. Truncated because the columns are bigint — the engine
+       * deals in fractional dollars and Postgres will not.
+       */
+      valuation: money(run.stats?.valuation),
+      peak_valuation: Math.max(money(run.peakValuation), money(run.stats?.valuation)),
+      cash: money(run.stats?.cash),
+      revenue_annual: money(run.stats?.revenueAnnual),
+      employees: clamp(run.stats?.employees ?? 0, 0, 1_000_000),
+      avatar: run.avatar ?? null,
     },
     { onConflict: "profile_id,slot" },
   );
-  return error ? [`saves: ${error.message}`] : [];
+  /*
+   * The island cap raises 23514 from the BEFORE INSERT trigger in 0012. Say so
+   * in words: this is the one error on this route a player can actually cause,
+   * and "saves[3]: new row violates check constraint" tells them nothing.
+   */
+  if (error?.code === "23514" && /island allowance/i.test(error.message)) {
+    return [`saves[${slot}]: island allowance exhausted`];
+  }
+  return error ? [`saves[${slot}]: ${error.message}`] : [];
 }
+
+/**
+ * A dollar amount as the bigint columns want it.
+ *
+ * Signed on purpose — cash goes negative, and `redMonths` exists precisely to
+ * count how long it stays there. Clamped well inside the 64-bit range so a
+ * corrupted or hostile blob cannot fail the whole upsert on an overflow: the
+ * cache is a nicety, the `state` column beside it is the company.
+ */
+const money = (n: unknown): number =>
+  typeof n === "number" && Number.isFinite(n)
+    ? Math.trunc(Math.min(1e15, Math.max(-1e15, n)))
+    : 0;
 
 const clamp = (n: number, lo: number, hi: number) =>
   Math.min(hi, Math.max(lo, Math.trunc(Number.isFinite(n) ? n : lo)));

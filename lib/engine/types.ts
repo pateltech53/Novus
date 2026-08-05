@@ -329,6 +329,22 @@ export interface RunState {
   month: number; // 1..12
   stage: StageNum;
   stats: Stats;
+  /**
+   * The highest `stats.valuation` this company has ever reached, in dollars.
+   *
+   * The islands picker shows it beside the current number, and for a company
+   * that went under it is the only one worth showing: valuation at Chapter 7
+   * is approximately zero and says nothing about the four years before it.
+   *
+   * Optional, and every reader must treat missing as "no better answer than
+   * the current valuation" — runs saved before this existed have none. It is
+   * maintained in lib/engine/save.ts rather than by the sim, because
+   * lib/engine/sim.ts is protected and every write to a run passes through
+   * `saveRun` anyway. That also means the harness and the phone audit, which
+   * drive `advanceMonth` directly and never save, produce no peak — the same
+   * shape `ledger` already has.
+   */
+  peakValuation?: number;
   /** Trailing 4 quarterly revenues (dollars); revenueAnnual = their sum. */
   quarters: number[];
   /**
