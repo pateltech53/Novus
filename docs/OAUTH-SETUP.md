@@ -185,8 +185,22 @@ Enable **Sign in with Apple** → **Configure**:
 | Domains and Subdomains | `<project-ref>.supabase.co` |
 | Return URLs | `https://<project-ref>.supabase.co/auth/v1/callback` |
 
-Apple will not accept `localhost` here. Local testing of the *web* Apple flow
-therefore needs a tunnel, or you test Apple on a deploy and Google locally.
+Apple will not accept `localhost` in either field — and it does not need to,
+which is worth stating because the obvious conclusion is that Apple sign-in
+cannot be tested locally, and it is wrong. Both values name **Supabase**, not
+us: the browser goes Apple → Supabase → our `/api/auth/oauth/callback`, so
+Apple only ever sees the one hop it was told about, and where we send the
+player afterwards is Supabase's redirect allow-list to decide (§2). With
+`http://localhost:3000/api/auth/oauth/callback` on that list, Apple and Google
+both work against a `npm run dev` on your own machine. No tunnel, and no second
+Apple configuration for development.
+
+The same reasoning covers Vercel preview deployments: nothing in either
+developer console has to know about them, only Supabase's list. Add the exact
+preview URL rather than a `https://*.vercel.app/**` wildcard — anybody can
+deploy to that domain, and while PKCE means a stolen `code` is not much use
+without the verifier in our own cookie, it is not a hole worth opening for
+convenience.
 
 ### 4.3 The key
 
