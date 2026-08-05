@@ -173,7 +173,7 @@ export function HomeStage({
         >
           {run.pro ? "PRO" : "FREE"}
         </button>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
         {/* The book — the key terms page, and the Rookie switch on it. First
             in the row because it is the door a confused player is looking
             for, and the tutorial points at it by name. */}

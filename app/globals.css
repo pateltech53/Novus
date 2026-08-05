@@ -134,6 +134,23 @@
   --stage-wall: oklch(0.165 0.006 260);
   --stage-floor: oklch(0.125 0.005 260);
 
+  /* ── The water on /islands ─────────────────────────────────────────────
+     Its own pair of tokens rather than a mix of the neutral ramp, which is
+     what it used to be: `--color-navy` folded into `--surface`, with the wave
+     strokes drawn in `--hairline`. Mixing a near-black blue into a surface
+     produces a grey with a blue memory, and drawing the crests in the divider
+     colour put them within a few points of the ground they sit on — so the
+     sea came out flat and unlit in both themes and almost invisible in light.
+     Water is a colour, and crests are the light ON it, so they are two tokens
+     and the crest is always the brighter of them.
+
+     Dark keeps roughly the lightness it had and spends the change on chroma
+     and on the crests: water a step below `--surface`, so the boat and the
+     books panel still have something to float ON, and crests half again as
+     bright as the divider grey they used to be drawn in. */
+  --sea: oklch(0.200 0.040 248);
+  --sea-crest: oklch(0.520 0.048 248);
+
   /* ── Glass · consumed only by components/ui/Glass.tsx ─────────────────── */
   --glass-tint: oklch(0.215 0.005 260 / 0.62);
   --glass-ring: oklch(1 0 0 / 0.08);
@@ -240,6 +257,18 @@
   --stage-key: oklch(1 0 0);
   --stage-wall: oklch(0.955 0.006 85);
   --stage-floor: oklch(0.905 0.010 85);
+
+  /* ── The water on /islands ─────────────────────────────────────────────
+     See the dark block for why these are tokens. Light is where the old mix
+     failed hardest: 14% of a near-black navy in a warm near-white surface
+     lands around L 0.85 with the chroma almost gone — a grey dishcloth — and
+     the crests were `--hairline` at L 0.885, which is 3 points of lightness
+     away from it. The whole screen read as unlit, which is exactly what it
+     was. Real chroma in the water, and crests BRIGHTER than it: on a light
+     ground the highlight is the sun on the surface, and it is the only thing
+     that says this is water rather than a coloured rectangle. */
+  --sea: oklch(0.905 0.052 232);
+  --sea-crest: oklch(0.995 0.014 232);
 
   --scrim: oklch(0.28 0.01 85 / 0.42);
   --glass-tint: oklch(0.98 0.003 85 / 0.62);

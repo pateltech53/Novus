@@ -414,6 +414,39 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
         return lastInsets
     }
 
+    /**
+     Everything this controller draws, withdrawn, and its reservation with it.
+
+     `apply(hidden)` deliberately keeps the reservation, because every hidden it
+     sees is a web sheet opening over a play screen that is still mounted
+     underneath and still laying out around the deck. A reset is the other case:
+     the webview has thrown that screen away entirely, and there is nothing left
+     to reserve for.
+
+     Which happens on a document navigation. Several routes leave by
+     `window.location` rather than by the router — signing out, deleting an
+     account, the door out of Settings back to the islands — and a document
+     navigation destroys the React tree without running one effect cleanup. The
+     chrome is a subview of the view controller rather than of the page, so it
+     outlives the code that knew how to take it down. `configure()` runs again
+     on the new document, and this is what it calls.
+     */
+    @discardableResult
+    func reset() -> ChromeInsets {
+        currentToast?.dismissNow()
+        apply(
+            ChromeState(
+                mode: "hidden",
+                theme: currentState?.theme ?? "dark",
+                tabs: [],
+                activeTab: nil,
+                cta: nil,
+                controls: [],
+                coach: nil))
+        lastInsets = ChromeInsets()
+        return lastInsets
+    }
+
     private func setHidden(_ hidden: Bool) {
         tabBar.isHidden = hidden || tabBar.items?.isEmpty != false
         deck.isHidden = hidden || currentState?.cta == nil

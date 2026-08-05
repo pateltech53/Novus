@@ -731,8 +731,17 @@ final class GlassSheetController: UIViewController, UIScrollViewDelegate {
 
     /// Closed by the game rather than by the player — the run ended, a year
     /// closed, the card was resolved somewhere else.
-    func closeWithoutAnswering() {
+    ///
+    /// `then` fires once the dismissal has actually finished, and the caller
+    /// that replaces one sheet with another has to wait for it: UIKit refuses
+    /// to present onto a controller that is still presenting, and it refuses
+    /// silently. See `NovusGlassPlugin.presentSheet`.
+    func closeWithoutAnswering(then: (() -> Void)? = nil) {
         answered = true
-        presentingViewController?.dismiss(animated: true)
+        guard let presenter = presentingViewController else {
+            then?()
+            return
+        }
+        presenter.dismiss(animated: true) { then?() }
     }
 }
