@@ -4,7 +4,7 @@ import { AI_LIMITS, NOT_CONFIGURED, OPENROUTER_API_KEY } from "@/lib/ai/server/p
 import { claimAiCall } from "@/lib/ai/server/limit";
 import { askOpenRouter, str } from "@/lib/ai/server/openrouter";
 import { sharkSystemPrompt } from "@/lib/ai/server/panel-prompts";
-import { scoreAnswer } from "@/lib/ai/pitch-content";
+import { scoreAnswers, DEFENCE_FLOOR } from "@/lib/ai/pitch-content";
 
 /*
  * The provider is allowed a minute (PROVIDER_TIMEOUT_MS); the platform was
@@ -211,6 +211,7 @@ export async function POST(req: NextRequest) {
 /** What the shark is shown for this turn. */
 function turnBrief(body: PanelRequest, phase: string) {
   const ctx = body.context ?? ({} as PanelRequest["context"]);
+  const defence = scoreAnswers(answerRecords(body));
   return {
     phase,
     round: Number(body.round ?? 1),
@@ -237,16 +238,31 @@ function turnBrief(body: PanelRequest, phase: string) {
       which_pitch_sections_they_covered: ctx?.coveredBeats,
       /*
        * A cheap substance read on each answer so far — strong / adequate /
-       * shaky / dodged — where keyboard mash and non-words grade as dodged.
-       * The model reads the answers itself, but this readout keeps a nonsense
-       * answer from being priced as a real one, and rule 4 says a dodge costs.
+       * shaky / dodged — where keyboard mash, non-words, answers about
+       * something nobody asked, and the same sentence pasted twice all grade
+       * as dodged. The model reads the answers itself, but this readout keeps
+       * a nonsense answer from being priced as a real one, and rule 4 says a
+       * dodge costs.
        */
-      answers_substance_readout: answerRecords(body)
-        .slice(-MAX_ANSWERS)
-        .map((a) => ({
-          question: str(a.question, 160),
-          held_up: a.declined ? "dodged" : scoreAnswer(a.question, a.answer).tier,
-        })),
+      answers_substance_readout: defence.perAnswer.slice(-MAX_ANSWERS).map((a) => ({
+        question: str(a.question, 160),
+        held_up: a.tier,
+        answered_a_different_question: a.offTopic,
+        why: a.note,
+      })),
+      /*
+       * And the whole defence as one number, because the per-answer labels did
+       * not stop a model from being charmed by a good balance sheet. This is
+       * the same 0..1 the offline room prices on and the same one the server
+       * enforces below, stated in the brief so the shark is not surprised by
+       * its own override.
+       */
+      how_much_of_the_questioning_they_stood_up_to: {
+        score_0_to_1: Number(defence.held.toFixed(2)),
+        questions_asked: defence.asked,
+        questions_actually_answered: defence.answered,
+        below_this_nobody_invests: DEFENCE_FLOOR,
+      },
     },
 
     /*
@@ -337,17 +353,19 @@ function shapeTurn(raw: RawTurn, phase: string, body: PanelRequest) {
     /*
      * The same "bound it rather than trust it" rule the deal terms get. The
      * prompt tells the model that dodged questions cost the founder; a model
-     * that offers anyway after the room was given nothing but silence and
-     * keyboard mash is corrected here, exactly as an absurd valuation is.
+     * that offers anyway after the room was given nothing but silence, keyboard
+     * mash, or three sentences about something nobody asked is corrected here,
+     * exactly as an absurd valuation is.
+     *
+     * The threshold used to be 0.15, which was unreachable: the old per-answer
+     * scorer gave 0.4 to any string of English, so a founder answering every
+     * question with a joke averaged 0.4 and this override never once fired.
+     * `DEFENCE_FLOOR` is above what an off-topic answer can score on purpose,
+     * and it is the same number the offline room walks at, so the two rooms
+     * cannot disagree about whether a founder answered anything.
      */
-    const answers = answerRecords(body);
-    const held = answers.length
-      ? answers.reduce(
-          (sum, a) => sum + (a.declined ? 0 : scoreAnswer(a.question, a.answer).quality),
-          0,
-        ) / answers.length
-      : 0.5;
-    if (answers.length >= 2 && held < 0.15) {
+    const defence = scoreAnswers(answerRecords(body));
+    if (defence.asked >= 2 && defence.held < DEFENCE_FLOOR) {
       return {
         spoken:
           "You were asked real questions and the room got nothing back. Unanswered questions are the diligence. I'm out.",
@@ -355,7 +373,7 @@ function shapeTurn(raw: RawTurn, phase: string, body: PanelRequest) {
         offer: null,
         join_with: "",
         reason: "The questions went unanswered.",
-        private_notes: `Answer substance ${held.toFixed(2)} across ${answers.length} questions — overridden to out.`,
+        private_notes: `Answer substance ${defence.held.toFixed(2)} across ${defence.asked} questions (${defence.answered} answered) — overridden to out.`,
       };
     }
     return {

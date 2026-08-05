@@ -575,6 +575,261 @@ const modelSays = (payload) => () =>
   check("refuses an incomplete call", res.status === 400, `HTTP ${res.status}`);
 }
 
+// ── The Tank · substance, not statistics ────────────────────────────────────
+// The failure this section exists to catch was reported by players and is the
+// worst kind: the room LOOKED like it was listening. Sharks asked real
+// questions about the real company, the founder answered "I like pickles", and
+// the money arrived anyway — because the offer maths priced any string of
+// English at 0.4 and a good balance sheet did the rest. These are the tests
+// that make "the sharks read the answers" a claim with a failing state.
+console.log("\nThe Tank  ·  what the sharks actually pay for");
+
+const { scoreAnswer, scoreAnswers, scorePitchContent, DEFENCE_FLOOR } = await import(
+  pathToFileURL(join(root, "lib/ai/pitch-content.ts")).href
+);
+const { localOfferTurn } = await import(pathToFileURL(join(root, "lib/ai/panel-local.ts")).href);
+
+const CHURN_Q =
+  "You're losing 9% of customers every month. Do you know why they leave, or are you guessing?";
+const SCALE_Q = "What breaks first when you triple the volume? Be specific.";
+const WORTH_Q = "Run your own math with me: what is this company actually worth?";
+
+{
+  check("a joke is not an answer", scoreAnswer(CHURN_Q, "i like pickles").quality === 0);
+  check("neither is a shrug", scoreAnswer(CHURN_Q, "it'll be fine").quality === 0);
+  check("neither is keyboard mash", scoreAnswer(CHURN_Q, "asdf asdf asdf").quality === 0);
+  check(
+    "neither is a fluent sentence about something else",
+    scoreAnswer(CHURN_Q, "My favourite colour is blue and I have a dog called Rex.").quality === 0,
+  );
+  check(
+    "reading the question back adds nothing",
+    scoreAnswer(
+      "You keep 38 cents on the dollar before you've paid anybody. Where does the rest go?",
+      "You keep 38 cents on the dollar before you've paid anybody",
+    ).quality === 0,
+  );
+
+  const good = scoreAnswer(
+    CHURN_Q,
+    "Most of them leave after the first month because setup takes a week, so we rebuilt onboarding.",
+  );
+  check("a real answer scores as one", good.quality >= 0.7, String(good.quality));
+  // The whole point of scoring topic rather than vocabulary: this answer
+  // repeats none of the question's words and is still an answer to it.
+  const terse = scoreAnswer(CHURN_Q, "About 9%, mostly the free-trial cohort.");
+  check("four numerate words beat a paragraph of nothing", terse.quality >= 0.5, String(terse.quality));
+  // Brand Law 5 lives here too: the scorer must not prefer the fluent one.
+  const plain = scoreAnswer(CHURN_Q, "they leave becuase the app is slow, we fixing it now");
+  check(
+    "imperfect English is still a real answer",
+    plain.quality > 0 && !plain.offTopic,
+    JSON.stringify(plain),
+  );
+}
+
+{
+  const same = "We are a hoodie brand for teenagers with a 62% gross margin and growing fast.";
+  const read = scoreAnswers([
+    { question: CHURN_Q, answer: same },
+    { question: SCALE_Q, answer: same },
+    { question: WORTH_Q, answer: same },
+  ]);
+  check("one prepared sentence is one answer, not three", read.answered <= 1, JSON.stringify(read.answered));
+  check("and it does not clear the floor", read.held < DEFENCE_FLOOR, String(read.held));
+}
+
+{
+  // A company with genuinely excellent books. Under the old maths this is
+  // exactly the run that got funded no matter what the founder said.
+  const ctx = {
+    founderName: "Ana",
+    company: {
+      name: "Loop", industry: "Consumer goods", stage: "Growth", year: 3,
+      cash: 900_000, burnMonthly: 20_000, runwayMonths: 24, revenueAnnual: 2_400_000,
+      grossMarginPt: 72, netMarginPt: 18, valuation: 8_000_000, founderEquityPct: 80,
+      employees: 12, customerSatisfaction: 88,
+    },
+    brief: { companyType: "brand", whatItDoes: "hoodies", usp: "in-house printing", whyCustomers: "cheaper", mission: "", missing: false },
+    metrics: { ltvCacRatio: 5.2, monthlyChurnPct: 2, growthYoyPct: 90, tam: 6e11, marketSharePct: 3 },
+    competitors: [],
+    attackPoints: [{ id: "scale", claim: "Capacity is one press.", question: SCALE_Q, owner: "dev", severity: 3 }],
+    fairValuation: { low: 5_600_000, high: 11_600_000 },
+    ask: { amountUsd: 500_000, equityPct: 6, impliedValuationUsd: 8_333_333 },
+    coveredBeats: [],
+  };
+  const SHARKS = ["marcus", "serena", "dev", "lily", "viktor"];
+  const room = (answers, score = 8) =>
+    SHARKS.map((shark) =>
+      localOfferTurn({
+        shark,
+        ctx,
+        answers: answers.map((answer, i) => ({
+          question: [CHURN_Q, SCALE_Q, WORTH_Q][i],
+          answer,
+          declined: !answer,
+        })),
+        offersOnTable: [],
+        score,
+      }).decision,
+    );
+
+  const jokes = room(["i like pickles", "pickles are nice", "lol idk"]);
+  check(
+    "a perfect balance sheet buys nothing when the answers are jokes",
+    jokes.every((d) => d === "out"),
+    jokes.join(","),
+  );
+  const offTopic = room([
+    "We are a hoodie brand for teenagers.",
+    "We print them ourselves in Leeds.",
+    "Teenagers really like the designs.",
+  ]);
+  check(
+    "and nothing when the founder answers a different question each time",
+    offTopic.every((d) => d === "out"),
+    offTopic.join(","),
+  );
+  const real = room([
+    "About 2%, mostly the free-trial cohort, because setup takes a week — we rebuilt onboarding and it's down to 1.4%.",
+    "The heat press. At triple volume we need a second one, which is 40k, and one more operator.",
+    "The books say 8 million and I'm asking at 8.3 because revenue grew 90% on a 72% margin.",
+  ]);
+  check(
+    "a founder who answers the questions still gets offers",
+    real.filter((d) => d === "offer").length >= 4,
+    real.join(","),
+  );
+  // The pitch still matters — this is a rebalance, not a replacement.
+  const weakPitch = real.filter((d) => d === "offer").length;
+  const strongPitch = room(
+    [
+      "About 2%, mostly the free-trial cohort, because setup takes a week — we rebuilt onboarding and it's down to 1.4%.",
+      "The heat press. At triple volume we need a second one, which is 40k, and one more operator.",
+      "The books say 8 million and I'm asking at 8.3 because revenue grew 90% on a 72% margin.",
+    ],
+    2,
+  ).filter((d) => d === "offer").length;
+  check("the pitch score still moves the room", strongPitch <= weakPitch, `${strongPitch} vs ${weakPitch}`);
+}
+
+{
+  // The pitch itself. Keyword bingo and one line on a loop are the two cheapest
+  // ways to beat a keyword scorer, and both used to work.
+  const books = {
+    stats: {
+      burnMonthly: 20_000, revenueAnnual: 240_000, grossMarginPt: 62, cash: 90_000,
+      csat: 71, morale: 66, qual: 60, valuation: 1_200_000, employees: 4, netMarginPt: 5,
+    },
+  };
+  const loop = Array(24).fill("i like pickles").join(" ");
+  check("a pitch that is one line on a loop scores nothing", scorePitchContent(loop, books).score === 0);
+  check(
+    "a pitch that is not language scores nothing",
+    scorePitchContent("asdf asdf qwer qwer zxcv zxcv hjkl hjkl asdf qwer zxcv hjkl", books).score === 0,
+  );
+  const realPitch =
+    "We make hoodies for school sports teams. Our customers are parents and school clubs, and we charge 34 dollars a hoodie at a 62% gross margin. Revenue is 240,000 a year and growing. I'm raising 150,000 for 12% to buy a second printer and hire one person.";
+  check(
+    "a real pitch is unaffected",
+    scorePitchContent(realPitch, books).score >= 7,
+    String(scorePitchContent(realPitch, books).score),
+  );
+}
+
+{
+  // The cold call is the other surface that turns a pitch into money, and it
+  // had the same hole: a strong company and a good reputation cleared an easy
+  // caller's bar with a transcript that said nothing at all.
+  const { resolveCallLocally, CALLERS } = await import(
+    pathToFileURL(join(root, "lib/ai/callers.ts")).href
+  );
+  const easiest = [...CALLERS].sort((a, b) => a.difficulty - b.difficulty)[0];
+  const run = {
+    seed: 7, year: 2, month: 4, industry: "food", stage: 1, founderEquityPct: 90,
+    companyName: "Loop", founderName: "Ana", brief: null,
+    stats: {
+      burnMonthly: 0, revenueAnnual: 2_400_000, grossMarginPt: 88, cash: 2_000_000,
+      csat: 95, morale: 95, qual: 95, brand: 95, respect: 100, invsent: 6,
+      valuation: 8_000_000, employees: 12, netMarginPt: 30,
+    },
+  };
+  const nonsense = resolveCallLocally(
+    { transcript: Array(24).fill("i like pickles").join(" "), seconds: 90, spoken: true },
+    easiest,
+    run,
+  );
+  check(
+    "the easiest caller still says no to a pitch that said nothing",
+    nonsense.accepted === false,
+    JSON.stringify(nonsense.accepted),
+  );
+}
+
+{
+  // The live room, overridden. A model charmed by good books does not get to
+  // hand out a cheque the offline room would have refused.
+  const panel = await import(pathToFileURL(join(root, "app/api/panel/route.ts")).href);
+  const offered = {
+    spoken: "I love this. I'm in.",
+    decision: "offer",
+    amount_usd: 500_000,
+    equity_pct: 6,
+    deal_type: "equity",
+    conditions: [],
+    join_with: "",
+    reason: "Great margins.",
+    private_notes: "",
+  };
+  handler = () => Response.json({ choices: [{ message: { content: JSON.stringify(offered) } }] });
+
+  const call = (answers) =>
+    panel.POST(
+      json("http://localhost/api/panel", {
+        phase: "offer",
+        shark: "marcus",
+        pitchTranscript: "We make hoodies for school teams and I'm raising 150,000 for 12%.",
+        context: { fairValuation: { low: 5_600_000, high: 11_600_000 } },
+        answers,
+      }),
+    );
+
+  const jokeBody = await (
+    await call([
+      { question: CHURN_Q, answer: "i like pickles" },
+      { question: SCALE_Q, answer: "pickles are nice" },
+      { question: WORTH_Q, answer: "lol idk" },
+    ])
+  ).json();
+  check("the server overrides an offer the answers did not earn", jokeBody.decision === "out", JSON.stringify(jokeBody.decision));
+  check("and says why in the private notes", /Answer substance/.test(jokeBody.private_notes ?? ""), jokeBody.private_notes);
+
+  const realBody = await (
+    await call([
+      { question: CHURN_Q, answer: "About 2%, mostly the free-trial cohort, because setup takes a week." },
+      { question: SCALE_Q, answer: "The heat press. A second one is 40k and one more operator." },
+      { question: WORTH_Q, answer: "The books say 8 million and I'm asking at 8.3 on 90% growth." },
+    ])
+  ).json();
+  check("and leaves an earned offer alone", realBody.decision === "offer", JSON.stringify(realBody.decision));
+
+  await call([{ question: CHURN_Q, answer: "About 2%, from the free-trial cohort." }]);
+  const brief = JSON.parse(JSON.parse(lastRequest.init.body).messages[1].content);
+  check(
+    "the shark is told how much of the questioning the founder stood up to",
+    typeof brief.evaluator_notes.how_much_of_the_questioning_they_stood_up_to?.score_0_to_1 === "number",
+    JSON.stringify(brief.evaluator_notes.how_much_of_the_questioning_they_stood_up_to),
+  );
+  check(
+    "and told the floor below which nobody invests",
+    brief.evaluator_notes.how_much_of_the_questioning_they_stood_up_to.below_this_nobody_invests ===
+      DEFENCE_FLOOR,
+  );
+
+  const rules = (await import(pathToFileURL(join(root, "lib/ai/server/panel-prompts.ts")).href)).sharkSystemPrompt("marcus");
+  check("and told in the prompt that good numbers are not a defence", /GOOD NUMBERS ARE NOT A DEFENCE/.test(rules));
+}
+
 // ── /api/ai ─────────────────────────────────────────────────────────────────
 // The whole-picture endpoint. Exists because "the key is set and it still
 // sounds wrong" needed a redeploy to answer, three times running.

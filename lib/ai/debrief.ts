@@ -367,12 +367,13 @@ function localReport(input: DebriefInput): DebriefBody {
     })),
     attack_points_scorecard: ctx.attackPoints.slice(0, 8).map((a) => {
       const raised = input.answers.some((ans) => ans.question === a.question);
-      const answeredIt = input.answers.some(
-        (ans) =>
-          ans.question === a.question &&
-          !ans.declined &&
-          scoreAnswer(a.question, ans.answer).quality > 0,
-      );
+      const answeredIt = input.answers.some((ans) => {
+        if (ans.question !== a.question || ans.declined) return false;
+        const graded = scoreAnswer(a.question, ans.answer);
+        // Off-topic counts as exposed, not defended. A weakness the founder
+        // talked past is a weakness the next room still gets to use.
+        return graded.quality > 0 && !graded.offTopic;
+      });
       return {
         attack_point: a.claim,
         status: !raised ? ("untouched" as const) : answeredIt ? ("defended" as const) : ("exposed" as const),
@@ -384,11 +385,17 @@ function localReport(input: DebriefInput): DebriefBody {
       };
     }),
     qa_review: input.answers.map((a) => {
-      // The same rule the sharks price on: keyboard mash and non-words grade
-      // as dodged, so the debrief cannot call an answer fine that the room
-      // just refused to pay for.
-      const graded = a.declined ? "dodged" : scoreAnswer(a.question, a.answer).tier;
-      const quality = (graded === "shaky" ? "adequate" : graded) as
+      /*
+       * The same rule the sharks price on, so the debrief cannot call an answer
+       * fine that the room just refused to pay for. Three cases collapse into
+       * "dodged": nothing was said, what was said was not language, and what
+       * was said was fluent and about something else. The third is the one
+       * players kept getting credit for, and the note names it precisely rather
+       * than calling a real sentence silence.
+       */
+      const graded = a.declined ? null : scoreAnswer(a.question, a.answer);
+      const dodged = !graded || graded.quality === 0 || graded.offTopic;
+      const quality = (dodged ? "dodged" : graded.tier === "strong" ? "strong" : "adequate") as
         | "strong"
         | "adequate"
         | "dodged";
@@ -396,14 +403,14 @@ function localReport(input: DebriefInput): DebriefBody {
         question: a.question,
         asked_by: a.askedBy,
         answer_quality: quality,
-        note:
-          quality === "dodged"
-            ? a.declined || !a.answer.trim()
-              ? "No answer. In a real room, silence is priced."
-              : "That wasn't an answer to the question. The room prices it exactly like silence."
-            : quality === "strong"
-              ? "You answered with a figure. That is the answer this kind of question wants."
-              : "You answered, but without anything checkable in it. A number would have closed it.",
+        note: dodged
+          ? a.declined || !a.answer.trim()
+            ? "No answer. In a real room, silence is priced."
+            : (graded?.note ??
+              "That wasn't an answer to the question. The room prices it exactly like silence.")
+          : quality === "strong"
+            ? "You answered with a figure. That is the answer this kind of question wants."
+            : "You answered, but without anything checkable in it. A number would have closed it.",
       };
     }),
     next_run_playbook: localPlaybook(input),

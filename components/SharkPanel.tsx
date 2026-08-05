@@ -411,7 +411,9 @@ export function SharkPanel({
             shark: next.shark,
             session,
             round: session.askedQuestions.length + 1,
-            lastAnswer: last ? { text: last.answer, declined: last.declined } : null,
+            lastAnswer: last
+              ? { text: last.answer, declined: last.declined, question: last.question }
+              : null,
           });
 
           /*
@@ -576,9 +578,12 @@ export function SharkPanel({
        * sounded. The old version read `seconds >= 6` as engagement, which is
        * speech rhythm reaching an outcome and is exactly what Brand Law 5
        * forbids. Keyboard mash counts as nothing arriving: a seat that leans
-       * in for "asdf asdf" tells the player the room isn't reading.
+       * in for "asdf asdf" tells the player the room isn't reading — and so
+       * does one that leans in for a fluent sentence about something nobody
+       * asked, which is why an off-topic answer lands as skepticism too.
        */
-      const substance = scoreAnswer(awaiting.question, answer.text).quality > 0;
+      const graded = scoreAnswer(awaiting.question, answer.text);
+      const substance = graded.quality > 0 && !graded.offTopic;
       setSeat(awaiting.shark, substance ? "interested" : "skeptical");
       haptic("choice");
     },

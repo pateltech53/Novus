@@ -1,7 +1,7 @@
 import type { PanelContext, AttackPoint } from "./panel-context";
 import type { SharkId, SharkOffer, SharkQuestions, SharkOfferTurn, SharkNegotiateTurn } from "./types";
 import { CAST } from "./panel-cast";
-import { scoreAnswer } from "./pitch-content";
+import { scoreAnswer, scoreAnswers, DEFENCE_FLOOR } from "./pitch-content";
 import { hashString, mulberry32 } from "@/lib/engine/rng";
 
 /**
@@ -155,8 +155,12 @@ export function localQuestionTurn(opts: {
    * this room. So the text is checked too.
    */
   askedQuestions?: string[];
-  /** Whether the previous answer was substantive, for the reaction line. */
-  lastAnswer?: { text: string; declined: boolean } | null;
+  /**
+   * The previous answer, for the reaction line — with the question it was an
+   * answer to, because "did they say anything" and "did they answer THAT" are
+   * different questions and only the second one is worth reacting to.
+   */
+  lastAnswer?: { text: string; declined: boolean; question?: string } | null;
   round: number;
 }): SharkQuestions & { attackId?: string; term?: string } {
   const { shark, ctx } = opts;
@@ -194,21 +198,22 @@ export function localQuestionTurn(opts: {
 
 function reactionLine(
   shark: SharkId,
-  last: { text: string; declined: boolean } | null | undefined,
+  last: { text: string; declined: boolean; question?: string } | null | undefined,
   rng: () => number,
 ): string {
   if (!last) return "";
   /*
    * The offline shark reads an answer for substance, never for delivery: a
    * short, correct answer is a good answer, and nothing here scores length,
-   * speed, or rhythm. But an answer with no language in it — keyboard mash,
-   * a string of non-words — is a dodge wearing a costume, and thanking the
-   * founder for it ("That's a number. Thank you.") was the most visible tell
-   * that the room wasn't reading. `scoreAnswer` gives those the same zero
-   * that silence gets.
+   * speed, or rhythm. But an answer with no language in it — keyboard mash, a
+   * string of non-words — or one that is about something nobody asked, is a
+   * dodge wearing a costume, and thanking the founder for it ("That's a number.
+   * Thank you.") was the most visible tell that the room wasn't reading.
+   * `scoreAnswer` gives both the same zero that silence gets, which is why the
+   * question is passed in: without it there is nothing to be off-topic ABOUT.
    */
-  const nothing =
-    last.declined || scoreAnswer("", last.text).quality === 0;
+  const graded = scoreAnswer(last.question ?? "", last.text);
+  const nothing = last.declined || graded.quality === 0 || graded.offTopic;
   return pickFrom(nothing ? AFTER_DODGE[shark] : AFTER_GOOD[shark], rng);
 }
 
@@ -255,24 +260,22 @@ export function localOfferTurn(opts: {
 }): SharkOfferTurn {
   const { shark, ctx } = opts;
   const rng = rngFor(ctx, `${shark}:offer`);
-  const asked = opts.answers.length;
   /*
    * Each answer counts for what it was worth, not merely for existing. The old
    * test here was `answer.trim().length > 0`, which priced "asdf asdf" exactly
    * like a real figure — so a founder who mashed the keyboard three times held
-   * the room as well as one who defended every number. `scoreAnswer` grades
-   * substance (real words, a figure, on-topic) and gives keyboard mash the
-   * same zero that silence gets.
+   * the room as well as one who defended every number. `scoreAnswers` grades
+   * substance (real words, a figure, on the subject that was asked about) and
+   * gives silence, gibberish, off-topic answers and the same sentence pasted
+   * five times the zero each of them is worth.
    */
-  const qualities = opts.answers.map((a) => (a.declined ? 0 : scoreAnswer(a.question, a.answer).quality));
-  const answered = qualities.filter((q) => q > 0).length;
-  /** How much of the interrogation they actually stood up to, 0..1. */
-  const held = asked > 0 ? qualities.reduce((s, q) => s + q, 0) / asked : 0.5;
+  const defence = scoreAnswers(opts.answers);
+  const { asked, answered, held } = defence;
 
-  // A founder who gave the room nothing — silence or gibberish, question after
-  // question — does not get a cheque on the strength of the pitch alone.
-  // Dodging every question ends the deal; that is rulebook rule 4, enforced.
-  if (asked >= 2 && held < 0.15) {
+  // A founder who gave the room nothing it asked for does not get a cheque on
+  // the strength of the books alone. Dodging the questions ends the deal; that
+  // is rulebook rule 4, enforced rather than hoped for.
+  if (asked >= 2 && held < DEFENCE_FLOOR) {
     return {
       spoken: outLine(shark, ctx, rng),
       decision: "out",
@@ -284,13 +287,36 @@ export function localOfferTurn(opts: {
   }
 
   /*
-   * Conviction: half the pitch, half the questioning. The rulebook is explicit
-   * that a sloppy pitch of a good business should cost the founder valuation
-   * and a strong defence should earn it back, so both terms are here and the
-   * questioning is weighted as heavily as the pitch.
+   * Conviction: the pitch, the questioning, and this shark's own appetite.
+   *
+   * The questioning is now the largest single term, and it is also a CEILING —
+   * see below. The rulebook is explicit that a sloppy pitch of a good business
+   * should cost the founder valuation and a strong defence should earn it back,
+   * and the complaint that produced this shape was the reverse: good numbers
+   * were buying offers that the founder had said nothing to deserve.
    */
   const appetite = APPETITE[shark](ctx);
-  const conviction = 0.4 * (opts.score / 10) + 0.4 * held + 0.2 * appetite;
+  /*
+   * ── Why the defence is a ceiling and not just a term ──────────────────────
+   *
+   * With three weighted terms, a company with excellent books and a lucky
+   * industry draw can clear any threshold on statistics alone — the founder's
+   * answers move the total, but never enough to matter. That is precisely what
+   * players reported: joke answers, offers anyway, because the spreadsheet was
+   * good. An investor does not work that way. However attractive the numbers,
+   * the cheque is written to a person who could account for them, and a founder
+   * who would not do that in the room does not get funded on the strength of
+   * the room's own arithmetic.
+   *
+   * So the defence caps conviction. Answer nothing and no shark can be more
+   * than 0.3 convinced, which is under every seat's walk-away line including
+   * Lily's 0.36 — the most forgiving in the room. Answer well and the cap lifts
+   * clear of the maths entirely and stops binding.
+   */
+  const conviction = Math.min(
+    0.35 * (opts.score / 10) + 0.45 * held + 0.2 * appetite,
+    0.3 + held * 0.75,
+  );
 
   if (conviction < OUT_BELOW[shark]) {
     return {

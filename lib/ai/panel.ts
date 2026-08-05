@@ -64,7 +64,7 @@ export async function sharkQuestionTurn(opts: {
   shark: SharkId;
   session: PanelSessionState;
   round: number;
-  lastAnswer?: { text: string; declined: boolean } | null;
+  lastAnswer?: { text: string; declined: boolean; question?: string } | null;
 }): Promise<QuestionTurn> {
   const local = (): QuestionTurn => ({
     ...localQuestionTurn({

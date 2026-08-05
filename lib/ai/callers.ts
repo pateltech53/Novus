@@ -570,8 +570,23 @@ export function resolveCallLocally(
   // 3 · Reputation opens doors a good quarter does not.
   const standing = 0.5 + 0.5 * (s.respect / 100) + 0.04 * (s.invsent ?? 0);
 
-  // The pitch is the biggest term. Everything else is context around it.
-  const score = (content.score / 10) * 0.5 + substance * 0.3 + standing * 0.2;
+  /*
+   * The pitch is the biggest term, and it is also a CEILING.
+   *
+   * As three weighted terms alone, a good enough company on a good enough
+   * reputation clears an easy caller's bar with a transcript that said
+   * nothing — the words move the total but never enough to decide it. That is
+   * the same complaint players made about The Tank, on the other surface that
+   * turns a pitch into money, and it has the same answer: the person on the
+   * phone is deciding whether to back a founder who just talked to them, and
+   * nobody hands over a cheque because the spreadsheet was persuasive on
+   * someone's behalf. Pitch nothing and no caller gets past 0.25, which is
+   * under every bar in the table; pitch well and the cap stops binding.
+   */
+  const score = Math.min(
+    (content.score / 10) * 0.5 + substance * 0.3 + standing * 0.2,
+    0.25 + (content.score / 10) * 0.75,
+  );
   const bar = 0.42 + caller.difficulty * 0.07; // 0.49 … 0.77
   const accepted = score + (rng() - 0.5) * 0.06 > bar;
 
