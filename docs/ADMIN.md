@@ -23,19 +23,20 @@ dashboard and nowhere else**, and unlocks three things:
    账号可见的 **OPERATOR → Admin console** 行，点进去就是同一个控制台。
    降权同理：把 `role` 改回 `player`，一切立即恢复，无需清理任何数据。
 
-前提：`supabase/APPLY-ALL.sql`（0001 → 0011）已在 Novus 项目跑过，部署配置了
+前提：`supabase/APPLY-ALL.sql`（0001 → 0012）已在 Novus 项目跑过，部署配置了
 `SUPABASE_SERVICE_ROLE_KEY`（计费同款，见 `docs/ACCOUNTS-SETUP.md`）。
 
 ---
 
 ## 1. What to run
 
-**`supabase/APPLY-ALL.sql`** — the whole schema, 0001 → 0011, idempotent.
-Admin specifically is `supabase/migrations/0009_admin.sql` and
-`0010_admin_analytics.sql`, and `supabase/tests/admin_test.sql` proves their
-claims under `npm run test:db` (62 checks: self-promotion refused, gifts
-expire, the directory answers to the service role alone, demotion is total,
-cohort math holds).
+**`supabase/APPLY-ALL.sql`** — the whole schema, 0001 → 0012, idempotent.
+Admin specifically is `supabase/migrations/0009_admin.sql`,
+`0010_admin_analytics.sql` and `0012_year_closes.sql`, and
+`supabase/tests/admin_test.sql` proves their claims under `npm run test:db`
+(74 checks: self-promotion refused, gifts expire, a granted pace clamps to its
+column's bound, the directory answers to the service role alone, demotion is
+total, cohort math holds).
 
 No new environment variables. The routes run on `SUPABASE_SERVICE_ROLE_KEY`,
 which billing already requires.
@@ -108,6 +109,23 @@ needs no sweeper, it simply stops being true.
 The console's chips: 30 days, 1 year, forever, revoke. Industry packs gift
 through 0003's own `grant_industry_pack` (a gifted pack and a bought one are
 the same row), and extra run slots are set outright, 0–20.
+
+**Extra year closes a day (给用户加 year)** — `entitlements.extra_year_closes`
+(0012), set outright 0–20 through `/api/admin/years`, on top of whatever the
+account's tier allows: free closes four fiscal years a real day, Pro as many
+as it can pitch. The console row states the total it adds up to, so an
+operator granting 6 to a free player can see the account now closes ten a
+day; typing `0` takes the grant back.
+
+Reach for it when Pro is more than the situation needs — a classroom being
+demoed, a support case, a player who lost an afternoon to a bug. It is pace,
+not progress: the year still has to be played and the pitch still has to be
+given (§11). The count of years closed today lives on the DEVICE
+(`novus:yearcloses:v1`), because it is a limit rather than a ledger of things
+owned; this column is the allowance that count is measured against, and it
+reaches the giftee on their next entitlement sync. The refusal screen prints
+the granted number rather than "four", so it never states a limit it is not
+the one enforcing.
 
 Notes on gifts (`comp_note`) are technically readable by the player through
 their own entitlements row — keep them neutral.
@@ -187,5 +205,7 @@ your leisure.
 
 Brand Law 4 holds for operators too. There is no code path here — console,
 route, or SQL function — that changes a score, a survival, a revive, a
-leaderboard result, or `NEVER_PURCHASABLE` anything. Gifts are content:
-the same Pro, packs, slots and seats money buys, and nothing money cannot.
+leaderboard result, or `NEVER_PURCHASABLE` anything. Gifts are content and
+pace: the same Pro, packs, slots, seats and fiscal-year closes money buys,
+and nothing money cannot. A granted year close is permission to play the
+year — never the year's result.

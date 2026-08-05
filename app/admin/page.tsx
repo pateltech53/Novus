@@ -22,7 +22,9 @@ import {
   CHAPTER_CUSTOM_MAX_SEATS,
   CHAPTER_CUSTOM_MIN_SEATS,
   CHAPTER_LICENCES,
+  FREE_LIMITS,
   isCustomSeatCount,
+  PRO_LIMITS,
 } from "@/lib/monetization";
 import { play } from "@/lib/sound";
 
@@ -78,6 +80,7 @@ interface Detail {
   entitlements: {
     pro: boolean;
     extra_run_slots: number;
+    extra_year_closes: number;
     industry_packs: string[];
     cosmetic_bundles: string[];
     chapter: string | null;
@@ -384,6 +387,17 @@ export default function AdminPage() {
         call("/api/admin/slots", {
           method: "POST",
           body: JSON.stringify({ profileId: id, slots }),
+        }),
+      [refreshOpen],
+    );
+
+  const setYearCloses = (id: string, closes: number) =>
+    act(
+      "years",
+      () =>
+        call("/api/admin/years", {
+          method: "POST",
+          body: JSON.stringify({ profileId: id, closes }),
         }),
       [refreshOpen],
     );
@@ -851,6 +865,7 @@ export default function AdminPage() {
                       onRevokePro={() => void revokePro(u.id)}
                       onTogglePack={(code, grant) => void togglePack(u.id, code, grant)}
                       onSetSlots={(n) => void setSlots(u.id, n)}
+                      onSetYearCloses={(n) => void setYearCloses(u.id, n)}
                       onGrantChapter={(licence, seats) => void grantChapter(u.id, licence, seats)}
                       onRevokeChapter={(cid) => void revokeChapter(cid)}
                       onDelete={() => void deleteAccount(u.id)}
@@ -956,6 +971,7 @@ function DetailPanel({
   onRevokePro,
   onTogglePack,
   onSetSlots,
+  onSetYearCloses,
   onGrantChapter,
   onRevokeChapter,
   onDelete,
@@ -966,16 +982,25 @@ function DetailPanel({
   onRevokePro: () => void;
   onTogglePack: (code: string, grant: boolean) => void;
   onSetSlots: (n: number) => void;
+  onSetYearCloses: (n: number) => void;
   onGrantChapter: (licence: string, seats?: number) => void;
   onRevokeChapter: (chapterId: string) => void;
   onDelete: () => void;
 }) {
   const [slotsText, setSlotsText] = useState(String(detail.entitlements?.extra_run_slots ?? 0));
+  const [yearsText, setYearsText] = useState(String(detail.entitlements?.extra_year_closes ?? 0));
   const [chapterSeatsText, setChapterSeatsText] = useState("");
   const [confirmText, setConfirmText] = useState("");
 
   const e = detail.entitlements;
   const compActive = !!e?.comp_pro && (!e.comp_until || new Date(e.comp_until) > new Date());
+  // What the account's TIER allows before the grant, so the row can state the
+  // total rather than leaving the operator to add four and a gift in their head.
+  const paceBase =
+    e?.pro || compActive || e?.chapter
+      ? PRO_LIMITS.yearClosesPerDay
+      : FREE_LIMITS.yearClosesPerDay;
+  const paceGranted = e?.extra_year_closes ?? 0;
   const activeChapter = detail.ownedChapters.find((c) => c.status === "active") ?? null;
   const confirmNeeded = detail.user.email ?? "delete";
 
@@ -1091,6 +1116,29 @@ function DetailPanel({
           SET
         </Chip>
         <span className="text-2xs text-[var(--text-tertiary)]">0–20, on top of the tier&rsquo;s runs</span>
+      </div>
+
+      {/* Year closes — pace, the one limit between free's four and Pro's all */}
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]">
+          EXTRA YEAR CLOSES A DAY
+        </p>
+        <input
+          value={yearsText}
+          onChange={(ev) => setYearsText(ev.target.value.replace(/[^0-9]/g, "").slice(0, 2))}
+          inputMode="numeric"
+          aria-label="Extra fiscal-year closes a day"
+          className="tnum w-16 rounded-[var(--radius-row)] border border-[var(--hairline)] bg-transparent px-2 py-1.5 text-center text-sm focus:border-[var(--n-11)] focus-visible:outline-none!"
+        />
+        <Chip
+          onClick={() => onSetYearCloses(Math.min(20, Number(yearsText) || 0))}
+          disabled={busy !== null}
+        >
+          SET
+        </Chip>
+        <span className="tnum text-2xs text-[var(--text-tertiary)]">
+          0–20, on top of the tier&rsquo;s {paceBase} — closes {paceBase + paceGranted} a day
+        </span>
       </div>
 
       {/* Chapter */}
