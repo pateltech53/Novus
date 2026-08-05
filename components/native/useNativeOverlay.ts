@@ -129,6 +129,31 @@ function flush() {
 }
 
 /**
+ * Every screen's chrome withdrawn at once, with no unmount to do it.
+ *
+ * The stack is emptied rather than popped, because this is not a screen
+ * closing — it is the document that held all of them going away. Which is a
+ * case the stack could not otherwise see: several routes in this app leave by
+ * `window.location` (signing out, deleting an account, and the door out of
+ * Settings back to the islands, which all have to empty the device), a
+ * document navigation runs no effect cleanup at all, and every native surface
+ * is a UIKit view owned by the view controller rather than by the page.
+ *
+ * So Settings' toolbar and its account dock survived the trip and sat on top
+ * of the islands screen — a close button for a screen that was gone, over a
+ * page that had never declared any chrome, with the dock in the same place the
+ * play screen's ADVANCE capsule lands.
+ *
+ * Called from `pagehide`. Native repeats it in `configure()` on the far side,
+ * for the case where the bridge message does not outlive the unload.
+ */
+export function hideNativeOverlay(): void {
+  stack.length = 0;
+  dock = null;
+  flush();
+}
+
+/**
  * Declares this screen's native chrome for as long as it is mounted.
  *
  * `state` may be rebuilt on every render — it is diffed as a string before it

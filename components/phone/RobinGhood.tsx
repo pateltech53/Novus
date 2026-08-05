@@ -106,7 +106,7 @@ export function RobinGhood({
           <div
             role="tablist"
             aria-label="RobinGhood sections"
-            className="mt-3 flex gap-1 rounded-[var(--radius-pill)] bg-[var(--chip)] p-1"
+            className="mt-3 flex gap-2 rounded-[var(--radius-pill)] bg-[var(--chip)] p-1.5"
           >
             {TABS.map((t) => (
               <button

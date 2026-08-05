@@ -143,7 +143,7 @@ export const PitchNotes = memo(function PitchNotes({
       className={`overflow-hidden rounded-[var(--radius-card)] ${surface} ${className}`}
       aria-label="Your notes"
     >
-      <div className="flex items-center gap-1 border-b border-[var(--hairline)] px-2 pt-2 pb-2">
+      <div className="flex items-center gap-2 border-b border-[var(--hairline)] px-2 pt-2 pb-2">
         {TABS.map((t) => (
           <button
             key={t.id}

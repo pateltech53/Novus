@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { SHEET_SPRING } from "@/components/ui/Motion";
 import { useGame } from "@/lib/state/GameProvider";
@@ -182,8 +183,14 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
             Deliberately NOT the control material: the selected one is a raised
             surface with a shadow under it, which is what says "here" on a
             picker that is part of a list rather than part of the chrome.
+
+            `gap-3`, not `gap-2`. The selected option carries a shadow, and a
+            shadow needs somewhere to fall: at 8px the three panels read as one
+            segmented bar with two hairlines in it, and the raised one had
+            nothing to be raised ABOVE. Twelve is where three separate objects
+            appear, which is what a radio group is.
           */}
-          <div role="radiogroup" aria-label="Theme" className="grid grid-cols-3 gap-2">
+          <div role="radiogroup" aria-label="Theme" className="grid grid-cols-3 gap-3">
             {(
               [
                 { id: "system", label: "System" },
@@ -1023,9 +1030,26 @@ function ProSection() {
  * `switchIsland` before the navigation, not after: it is synchronous, and
  * doing it here means /play mounts with the right company already in context
  * rather than opening the old one and swapping it under the player.
+ *
+ * ── Why this one pushes rather than navigates ───────────────────────────────
+ *
+ * Every other exit from this screen empties the device — signing out, deleting
+ * the account — and has to load a fresh document so nothing carries the old
+ * player's values across in memory. This one changes nothing: it is a trip
+ * between two screens of the same game, and /found already makes the same trip
+ * with a router push.
+ *
+ * It USED to load a document too, and the cost was not the reload. A document
+ * navigation destroys the React tree without running one effect cleanup, and
+ * this screen's chrome is a UIKit view owned by the view controller rather
+ * than by the page — so Settings' toolbar and its account dock followed the
+ * player to the islands and stayed there, over a screen that had never
+ * declared any chrome, with the dock sitting where the play screen's ADVANCE
+ * capsule lands. Unmounting properly is what takes them down.
  */
 function IslandsSection({ onClose }: { onClose: () => void }) {
   const game = useGame();
+  const router = useRouter();
   const others = game.islands.filter((i) => i.slot !== game.island);
 
   return (
@@ -1033,7 +1057,7 @@ function IslandsSection({ onClose }: { onClose: () => void }) {
       <GlassButton
         onClick={() => {
           onClose();
-          window.location.href = storefront() === "web" ? "/islands" : appPath("/islands");
+          router.push("/islands");
         }}
         className="text-sm font-bold"
       >

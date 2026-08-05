@@ -1,14 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 
 import { Boat } from "@/components/Boat";
 import { IslandGlyph } from "@/components/IslandGlyph";
+import {
+  useNativeOverlay,
+  useNativeOverlayOwned,
+} from "@/components/native/useNativeOverlay";
 import { SEA_POSITIONS, Sea } from "@/components/Sea";
 import { ENTER, SETTLE_SPRING, STAGGER, SWAP } from "@/components/ui/Motion";
 import { useUpgrade } from "@/components/upgrade/UpgradeProvider";
+import type { NativeOverlayState } from "@/lib/native/glass";
+import { useResolvedTheme } from "@/lib/native/theme";
 import { INDUSTRIES, STAGE_NAME } from "@/lib/engine/constants";
 import { fmtMoney } from "@/lib/engine/format";
 import type { IslandSummary } from "@/lib/engine/save";
@@ -190,6 +196,78 @@ function IslandsPage() {
 
   const focused = focus === null ? null : (bySlot.get(focus) ?? null);
 
+  /*
+   * ── The gallery's chrome, in the real material ────────────────────────────
+   *
+   * Everything on the sea is scenery — the water, the islands, one line of
+   * small print in a boat — and scenery has no chrome. The gallery does: a way
+   * back, a way along the row, and the one thing this screen exists to ask.
+   * Those are controls, and on iOS a control is a UIKit view or it is an
+   * impression of one (components/ui/Glass.tsx: the CSS material is retired).
+   *
+   * So the three of them are handed over. Back rides the leading cluster with
+   * its name on it, ‹ › become a merged pair of glass circles in the trailing
+   * one, and CONTINUE is the prominent control in the floating dock. Which
+   * moves the arrows off the island they were flanking — deliberately: a
+   * toolbar pager is the iOS idiom for walking a row, and it buys the island
+   * the full width of the screen to be drawn in. The DOM keeps the flanking
+   * arrows for the web and Android, where there is no material to move them to.
+   *
+   * Declared HERE rather than inside `Gallery` so the sea has an opinion too:
+   * `null` is a screen actively saying it wants no chrome, which withdraws
+   * whatever the last screen left up. The hook is a stack, and a page that
+   * never joins it is a page that cannot clear it.
+   */
+  const nativeChrome = useNativeOverlayOwned();
+  const theme = useResolvedTheme();
+  const many = islands.length > 1;
+  const overlay = useMemo<NativeOverlayState | null>(() => {
+    if (!focused) return null;
+    return {
+      mode: "shown",
+      theme,
+      // No title plate: the company's name is already set 26px high in the
+      // middle of the screen, and a second copy 60pt above it is the same
+      // words twice.
+      title: null,
+      leading: [
+        {
+          id: "back",
+          symbol: "chevron.backward",
+          title: "All islands",
+          label: "Back to all your islands",
+          style: "plain",
+        },
+      ],
+      trailing: many
+        ? [
+            { id: "prev", symbol: "chevron.left", label: "Previous island", style: "plain" },
+            { id: "next", symbol: "chevron.right", label: "Next island", style: "plain" },
+          ]
+        : [],
+      actions: [
+        {
+          id: "enter",
+          title: opening ? "OPENING…" : focused.alive ? "CONTINUE" : "READ THE BOOKS",
+          label: focused.alive
+            ? `Open ${focused.companyName}`
+            : `Read the books for ${focused.companyName}`,
+          style: "prominent",
+          enabled: !opening,
+        },
+      ],
+    };
+  }, [focused, theme, many, opening]);
+
+  useNativeOverlay(overlay, {
+    onAction: (id) => {
+      if (id === "back") setFocus(null);
+      else if (id === "prev") step(-1);
+      else if (id === "next") step(1);
+      else if (id === "enter" && focus !== null) enter(focus);
+    },
+  });
+
   return (
     /*
      * The water is the page, edge to edge — no column, no panel, no corners.
@@ -209,6 +287,7 @@ function IslandsPage() {
             index={islands.findIndex((i) => i.slot === focused.slot)}
             total={islands.length}
             busy={opening}
+            native={nativeChrome}
             onStep={step}
             onBack={() => setFocus(null)}
             onEnter={() => enter(focused.slot)}
@@ -227,7 +306,15 @@ function IslandsPage() {
               none` so it never swallows a tap meant for an island drifting
               underneath it — nothing here is tappable.
             */}
-            <header className="pointer-events-none absolute inset-x-0 top-0 z-10 px-6 pt-[max(1.5rem,env(safe-area-inset-top))]">
+            {/*
+              The top pad is the safe area PLUS a gap, never the larger of the
+              two. `max(1.5rem, safe-area)` reads as breathing room on a
+              browser, where the inset is 0 and 24px is the gap — and as none
+              at all on a phone, where the inset is ~59px and swallows the
+              whole thing, so YOUR ISLANDS came out tight against the clock.
+              An inset is where the screen starts, not where the type does.
+            */}
+            <header className="pointer-events-none absolute inset-x-0 top-0 z-10 px-6 pt-[calc(max(1.5rem,env(safe-area-inset-top,0px))+1.5rem)]">
               <p className="text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]">
                 YOUR ISLANDS
               </p>
@@ -547,6 +634,7 @@ function Gallery({
   index,
   total,
   busy,
+  native,
   onStep,
   onBack,
   onEnter,
@@ -556,6 +644,15 @@ function Gallery({
   index: number;
   total: number;
   busy: boolean;
+  /**
+   * UIKit is drawing this screen's controls, so React must not draw them too.
+   *
+   * Not rendered rather than hidden, which is the rule every native-chrome
+   * caller in this app follows: a hidden button still takes a tap on iOS if
+   * the native view above it lets the touch through, and the player gets a
+   * dead zone nobody can see.
+   */
+  native: boolean;
   onStep: (by: number) => void;
   onBack: () => void;
   onEnter: () => void;
@@ -575,20 +672,32 @@ function Gallery({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={SWAP}
-      className="relative mx-auto flex min-h-dvh w-full max-w-lg flex-col px-5 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+      /* The pads clear whatever chrome is actually there: the safe area plus a
+         gap on the web, and the measured height of the UIKit toolbar and dock
+         where UIKit drew them. `--nv-overlay-*` is 0 everywhere else. */
+      className="relative mx-auto flex min-h-dvh w-full max-w-lg flex-col px-5 pt-[max(calc(env(safe-area-inset-top,0px)+1.5rem),calc(var(--nv-overlay-top)+0.75rem))] pb-[max(calc(env(safe-area-inset-bottom,0px)+1.5rem),calc(var(--nv-overlay-bottom)+0.75rem))]"
     >
-      <button
-        type="button"
-        onClick={onBack}
-        className="-ml-1 flex min-h-11 items-center gap-1.5 self-start text-2xs font-bold tracking-[0.08em] text-[var(--text-secondary)]"
-      >
-        <span aria-hidden>◂</span> ALL ISLANDS
-      </button>
+      {/* UIKit carries this in the leading cluster when it owns the screen. */}
+      {native ? null : (
+        <button
+          type="button"
+          onClick={onBack}
+          className="-ml-1 flex min-h-11 items-center gap-1.5 self-start text-2xs font-bold tracking-[0.08em] text-[var(--text-secondary)]"
+        >
+          <span aria-hidden>◂</span> ALL ISLANDS
+        </button>
+      )}
 
       {/* ── The island, arrows either side ──────────────────────────────── */}
-      <div className="relative mt-1 h-56 w-full sm:h-64">
+      {/* Except on iOS, where ‹ › are a merged pair of glass circles in the
+          toolbar and the island gets the whole width to be drawn in. */}
+      <div className={`relative h-56 w-full sm:h-64 ${native ? "mt-0" : "mt-1"}`}>
         <div className="absolute inset-0 flex items-center justify-between gap-1">
-          {many ? <Arrow dir={-1} onClick={() => onStep(-1)} /> : <span className="w-11" />}
+          {native ? null : many ? (
+            <Arrow dir={-1} onClick={() => onStep(-1)} />
+          ) : (
+            <span className="w-11" />
+          )}
 
           {/*
             No `mode="wait"`: the island is the thing being looked at, and
@@ -632,7 +741,11 @@ function Gallery({
             </AnimatePresence>
           </div>
 
-          {many ? <Arrow dir={1} onClick={() => onStep(1)} /> : <span className="w-11" />}
+          {native ? null : many ? (
+            <Arrow dir={1} onClick={() => onStep(1)} />
+          ) : (
+            <span className="w-11" />
+          )}
         </div>
       </div>
 
@@ -700,16 +813,20 @@ function Gallery({
         <Figure label="LAST PLAYED" value={lastPlayed(island.savedAt) || "—"} />
       </dl>
 
-      <div className="mt-auto w-full pt-6">
-        <button
-          type="button"
-          onClick={onEnter}
-          disabled={busy}
-          className="nv-gc w-full truncate rounded-[var(--radius-card)] nv-t-action px-5 py-4 text-base font-extrabold tracking-[0.06em] disabled:cursor-not-allowed disabled:opacity-35"
-        >
-          {busy ? "OPENING…" : island.alive ? "CONTINUE ▸" : "READ THE BOOKS ▸"}
-        </button>
-      </div>
+      {/* The screen's one ask. UIKit floats it in the glass dock where it owns
+          the chrome; everywhere else it is the last thing in the column. */}
+      {native ? null : (
+        <div className="mt-auto w-full pt-6">
+          <button
+            type="button"
+            onClick={onEnter}
+            disabled={busy}
+            className="nv-gc w-full truncate rounded-[var(--radius-card)] nv-t-action px-5 py-4 text-base font-extrabold tracking-[0.06em] disabled:cursor-not-allowed disabled:opacity-35"
+          >
+            {busy ? "OPENING…" : island.alive ? "CONTINUE ▸" : "READ THE BOOKS ▸"}
+          </button>
+        </div>
+      )}
     </motion.div>
   );
 }

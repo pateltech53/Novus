@@ -46,21 +46,20 @@ export function Sea({ className = "" }: { className?: string }) {
       fill="none"
       aria-hidden
     >
-      {/* The water itself. A cool tint mixed off the brand anchor rather than a
-          literal blue, so it belongs to this app's palette in both themes. */}
-      <rect
-        x="0"
-        y="0"
-        width="400"
-        height="300"
-        fill="color-mix(in oklch, var(--color-navy) 14%, var(--surface))"
-      />
+      {/* The water itself.
+          `--sea` and `--sea-crest` are a pair, per theme, in globals.css. This
+          used to be `--color-navy` mixed 14% into `--surface`, with the swells
+          drawn in `--hairline` — which in light mode is a grey at L 0.85 with
+          crests three points of lightness away from it. The sea was the whole
+          screen and the whole screen was unlit. Water is a colour; a crest is
+          the light on it; the crest is always the brighter of the two. */}
+      <rect x="0" y="0" width="400" height="300" fill="var(--sea)" />
 
       {/* Far water: fine, level, close together. Distance flattens waves, and
           packing them tighter toward the top is most of what makes this read
           as a surface receding rather than as a rectangle with squiggles. */}
       <g
-        stroke="var(--hairline)"
+        stroke="var(--sea-crest)"
         strokeWidth="1.4"
         strokeLinecap="round"
         opacity="0.5"
@@ -81,7 +80,7 @@ export function Sea({ className = "" }: { className?: string }) {
 
       {/* Middle water: longer swells, further apart. */}
       <g
-        stroke="var(--hairline)"
+        stroke="var(--sea-crest)"
         strokeWidth="2.1"
         strokeLinecap="round"
         opacity="0.7"
@@ -101,7 +100,7 @@ export function Sea({ className = "" }: { className?: string }) {
 
       {/* Near water: the biggest swells, the ones with weight. */}
       <g
-        stroke="var(--hairline)"
+        stroke="var(--sea-crest)"
         strokeWidth="2.8"
         strokeLinecap="round"
         vectorEffect="non-scaling-stroke"

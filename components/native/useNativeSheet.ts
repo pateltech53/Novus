@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NovusGlass, type NativeSheetSpec } from "@/lib/native/glass";
 import { useNativeChromeOwned } from "@/lib/native/chrome";
 import { useResolvedTheme } from "@/lib/native/theme";
@@ -81,6 +81,24 @@ export function useNativeSheet(options: NativeSheetOptions): boolean {
   const owned = useNativeChromeOwned();
   const theme = useResolvedTheme();
 
+  /**
+   * The native sheet turned a card down, so the DOM one takes over.
+   *
+   * There is no such thing as "the card did not appear" for a player: the play
+   * chrome withdraws while a decision is open and the DOM sheet is not
+   * rendered behind a native one, so a presentation that silently fails is a
+   * month with a decision in it, nothing on screen to answer it with, and no
+   * chrome to do anything else either. The game is simply over, on a screen
+   * that looks fine.
+   *
+   * `presentSheet` rejects rather than failing quietly now (see
+   * NovusGlassPlugin), and this is what that rejection buys: the same card in
+   * the same words, one material down. Sticky for the rest of this screen's
+   * life — a renderer that has refused one card is not the one to trust with
+   * the next.
+   */
+  const [refused, setRefused] = useState(false);
+
   const optionsRef = useRef(options);
   optionsRef.current = options;
 
@@ -137,11 +155,12 @@ export function useNativeSheet(options: NativeSheetOptions): boolean {
     };
   }, [owned]);
 
-  const spec = owned ? build(options, theme) : null;
+  const live = owned && !refused;
+  const spec = live ? build(options, theme) : null;
   const id = spec?.id ?? null;
 
   useEffect(() => {
-    if (!owned) return;
+    if (!live) return;
 
     if (!id) {
       if (presented.current !== null) {
@@ -154,11 +173,17 @@ export function useNativeSheet(options: NativeSheetOptions): boolean {
     if (presented.current === id) return;
     presented.current = id;
     const current = build(optionsRef.current, theme);
-    if (current) NovusGlass.presentSheet(current).catch(() => {});
+    if (current)
+      NovusGlass.presentSheet(current).catch(() => {
+        // UIKit would not put it on screen. Hand the card back to the DOM
+        // rather than leave the player looking at a month they cannot answer.
+        presented.current = null;
+        setRefused(true);
+      });
     // Only the identity of the card matters here. Rebuilding the spec on every
     // render would re-present the same sheet and cut its own entrance short.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [owned, id, theme]);
+  }, [live, id, theme]);
 
   // Leaving the screen with a card up must not leave the card up.
   useEffect(() => {
@@ -169,5 +194,5 @@ export function useNativeSheet(options: NativeSheetOptions): boolean {
     };
   }, [owned]);
 
-  return owned;
+  return live;
 }

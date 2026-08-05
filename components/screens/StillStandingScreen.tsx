@@ -353,7 +353,7 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
             <div
               role="tablist"
               aria-label="Board"
-              className="mt-3 grid grid-cols-2 gap-1 rounded-[var(--radius-pill)] bg-[var(--chip)] p-1"
+              className="mt-3 grid grid-cols-2 gap-2 rounded-[var(--radius-pill)] bg-[var(--chip)] p-1.5"
             >
               {BOARDS.map((b) => (
                 <button
@@ -383,7 +383,7 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
             <div
               role="tablist"
               aria-label="Who is on the board"
-              className="mt-1.5 grid grid-cols-2 gap-1 rounded-[var(--radius-pill)] bg-[var(--chip)] p-1"
+              className="mt-2 grid grid-cols-2 gap-2 rounded-[var(--radius-pill)] bg-[var(--chip)] p-1.5"
             >
               {(
                 [

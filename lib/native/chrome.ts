@@ -166,6 +166,37 @@ export function useNativeChromeOwned(): boolean {
   return useSyncExternalStore(subscribe, snapshot, serverSnapshot);
 }
 
+/** Nothing on screen, and nothing reserved. */
+const HIDDEN: NativeChromeState = {
+  mode: "hidden",
+  theme: "dark",
+  tabs: [],
+  activeTab: null,
+  cta: null,
+  controls: [],
+};
+
+/**
+ * The chrome withdrawn, with no React tree left to do it.
+ *
+ * `useNativeChrome` takes the chrome down on unmount, which covers every exit
+ * this app makes through the router. It does not cover the exits that go
+ * through `window.location` — signing out, deleting an account, the door out
+ * of Settings back to the islands — because a document navigation destroys the
+ * tree without running one cleanup, and the chrome is a UIKit view owned by
+ * the view controller rather than by the page. It outlives the code that knew
+ * about it, and lands on top of whatever document loads next.
+ *
+ * So the page says goodbye on `pagehide`, which is the last moment it gets.
+ * Native clears itself again in `configure()` for the case where this message
+ * does not survive the unload; this is what keeps the gap between the two
+ * documents from showing the old screen's controls.
+ */
+export function hideNativeChrome(): void {
+  if (!owned) return;
+  NovusGlass.setChrome(HIDDEN).catch(() => {});
+}
+
 export function chromeInsets(): ChromeInsets {
   return insets;
 }
@@ -248,14 +279,7 @@ export function useNativeChrome(state: NativeChromeState | null, handlers: Chrom
     if (!owns) return;
     return () => {
       lastSent.current = null;
-      NovusGlass.setChrome({
-        mode: "hidden",
-        theme: "dark",
-        tabs: [],
-        activeTab: null,
-        cta: null,
-        controls: [],
-      }).catch(() => {});
+      hideNativeChrome();
     };
   }, [owns]);
 }
