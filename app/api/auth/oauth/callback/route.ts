@@ -1,8 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { exchangeGoogleCode, sameState } from "@/lib/auth/google-oauth";
+import { readHandoff, type Handoff } from "@/lib/auth/oauth-handoff";
 import { ensureProfile } from "@/lib/auth/oauth-profile";
-import { OAUTH_COOKIE_OPTIONS, OAUTH_VERIFIER_COOKIE, configured } from "@/lib/supabase/config";
-import { PKCE_FLOW_ID_PARAM, attachSession, exchangeOAuthCode } from "@/lib/supabase/route";
+import { OAUTH_COOKIE_OPTIONS, OAUTH_HANDOFF_COOKIE, configured } from "@/lib/supabase/config";
+import {
+  PKCE_FLOW_ID_PARAM,
+  attachSession,
+  exchangeOAuthCode,
+  signInWithProviderToken,
+  type OAuthResult,
+} from "@/lib/supabase/route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,15 +21,24 @@ export const dynamic = "force-dynamic";
  * ── Why the session is minted here and not in the page ─────────────────────
  *
  * Because this app's whole authentication story is that the token never touches
- * JavaScript. With the PKCE flow the provider returns a short-lived `?code=` in
- * the QUERY string, which — unlike the `#fragment` the recovery links use — does
+ * JavaScript. Both flows that land here return a short-lived `?code=` in the
+ * QUERY string, which — unlike the `#fragment` the recovery links use — does
  * reach a server. So the exchange happens here, the refresh token goes straight
  * into the httpOnly cookie, and the page that renders next learns who it is by
  * asking /api/auth/me like every other screen. Nothing sensitive is ever in the
  * document.
  *
- * That is the one real advantage over the implicit flow, and it is the reason
- * this route exists rather than a second copy of components/AuthHashRelay.tsx.
+ * ── The two flows ─────────────────────────────────────────────────────────
+ *
+ * The cookie says which one ran, rather than this route guessing from which
+ * parameters happen to be present:
+ *
+ * · **direct** — the code is Google's. We exchange it with Google ourselves and
+ *   hand the resulting `id_token` to Supabase, which is the same call the
+ *   shipped app makes from the system sheet. See lib/auth/google-oauth.ts for
+ *   why this exists at all; the short version is the sentence Google prints on
+ *   the consent screen.
+ * · **supabase** — the code is Supabase's, and its PKCE store finishes it.
  *
  * ── What this route deliberately does not do ───────────────────────────────
  *
@@ -41,10 +58,10 @@ const back = (req: NextRequest, params: Record<string, string>) =>
     { status: 303 },
   );
 
-/** The verifier is single-use. Clear it on every path out of here, including
- *  the failures — a spent one left in place is a confusing second attempt. */
-const clearVerifier = (res: NextResponse) => {
-  res.cookies.set(OAUTH_VERIFIER_COOKIE, "", { ...OAUTH_COOKIE_OPTIONS, maxAge: 0 });
+/** The handoff is single-use. Cleared on every path out of here, including the
+ *  failures — a spent one left in place is a confusing second attempt. */
+const clearHandoff = (res: NextResponse) => {
+  res.cookies.set(OAUTH_HANDOFF_COOKIE, "", { ...OAUTH_COOKIE_OPTIONS, maxAge: 0 });
   return res;
 };
 
@@ -62,40 +79,42 @@ export async function GET(req: NextRequest) {
    */
   const denied = params.get("error");
   if (denied) {
-    return clearVerifier(
+    return clearHandoff(
       back(req, { error: denied === "access_denied" ? "cancelled" : "provider" }),
     );
   }
 
-  if (!configured()) return clearVerifier(back(req, { error: "not-configured" }));
+  if (!configured()) return clearHandoff(back(req, { error: "not-configured" }));
 
   const code = params.get("code");
-  if (!code) return clearVerifier(back(req, { error: "no-code" }));
+  if (!code) return clearHandoff(back(req, { error: "no-code" }));
 
-  const verifier = req.cookies.get(OAUTH_VERIFIER_COOKIE)?.value;
-  if (!verifier) {
+  const handoff = readHandoff(req.cookies.get(OAUTH_HANDOFF_COOKIE)?.value);
+  if (!handoff) {
     /*
-     * No verifier means this browser did not start this sign-in.
+     * No handoff means this browser did not start this sign-in.
      *
      * The innocent version is a player who cleared cookies, or took longer than
      * the ten-minute window, or opened the link in a different browser. The
      * other version is somebody handing a player a `?code=` of their own in the
      * hope of signing that player into an account the attacker controls — which
-     * is the attack the pair exists to stop, and this is where it stops.
+     * is the attack the cookie exists to stop, and this is where it stops.
      */
-    return clearVerifier(back(req, { error: "expired" }));
+    return clearHandoff(back(req, { error: "expired" }));
   }
 
-  // Which flow this callback belongs to, when Supabase named one. A browser
-  // client reads this off window.location by itself; a Route Handler has to
-  // hand it over. See PKCE_FLOW_ID_PARAM.
-  const { session, failure, suggested } = await exchangeOAuthCode(
-    code,
-    verifier,
-    params.get(PKCE_FLOW_ID_PARAM),
-  );
+  const result =
+    handoff.k === "direct"
+      ? await finishDirect(handoff, code, params.get("state"))
+      : await finishSupabase(handoff, code, params.get(PKCE_FLOW_ID_PARAM));
+
+  if ("error" in result) return clearHandoff(back(req, { error: result.error }));
+
+  const { session, failure, suggested } = result.auth;
   if (failure || !session) {
-    return clearVerifier(back(req, { error: failure === "disabled" ? "not-configured" : "exchange" }));
+    return clearHandoff(
+      back(req, { error: failure === "disabled" ? "not-configured" : "exchange" }),
+    );
   }
 
   const profile = await ensureProfile(session, suggested);
@@ -109,10 +128,59 @@ export async function GET(req: NextRequest) {
      * attached — being signed in to an account that cannot hold anything is the
      * worse of the two states.
      */
-    return clearVerifier(back(req, { error: "profile" }));
+    return clearHandoff(back(req, { error: "profile" }));
   }
 
-  return clearVerifier(
+  return clearHandoff(
     attachSession(back(req, { state: profile.created ? "new" : "known" }), session),
   );
+}
+
+type Finished = { auth: OAuthResult } | { error: string };
+
+/**
+ * Google's code, exchanged by us.
+ *
+ * The `state` check is first and unconditional: everything after it costs a
+ * round trip to Google, and a request that cannot prove it belongs to a
+ * sign-in this browser started has no business spending one.
+ */
+async function finishDirect(
+  handoff: Extract<Handoff, { k: "direct" }>,
+  code: string,
+  state: string | null,
+): Promise<Finished> {
+  if (!state || !sameState(state, handoff.s)) return { error: "state" };
+
+  const exchanged = await exchangeGoogleCode(code, handoff.r, handoff.n);
+  if (!exchanged.ok) {
+    // A failed nonce or audience check is not a configuration problem, it is a
+    // token that was not minted for this sign-in. Reported apart from the
+    // ordinary failures so it is legible in a log rather than another
+    // "exchange".
+    return { error: exchanged.reason === "nonce" || exchanged.reason === "audience" ? "state" : "exchange" };
+  }
+
+  /*
+   * Straight into the path the shipped app already uses.
+   *
+   * `nonce` is deliberately not passed on: it has been verified here, against
+   * the value in our own cookie, and the conventions differ by provider in a
+   * way that is easy to get subtly wrong (lib/cloud/native-oauth.ts has the
+   * long version). Supabase still verifies the signature and the audience,
+   * which is what decides whether the token is real.
+   */
+  return { auth: await signInWithProviderToken(handoff.p, exchanged.idToken) };
+}
+
+/** Supabase's code, finished with the PKCE store it wrote at the start. */
+async function finishSupabase(
+  handoff: Extract<Handoff, { k: "supabase" }>,
+  code: string,
+  flowId: string | null,
+): Promise<Finished> {
+  // Which flow this callback belongs to, when Supabase named one. A browser
+  // client reads this off window.location by itself; a Route Handler has to
+  // hand it over. See PKCE_FLOW_ID_PARAM.
+  return { auth: await exchangeOAuthCode(code, handoff.v, flowId) };
 }

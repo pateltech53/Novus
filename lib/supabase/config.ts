@@ -38,16 +38,15 @@ export const COOKIE_OPTIONS = {
 } as const;
 
 /**
- * The PKCE code verifier, parked between leaving for Google/Apple and coming
- * back.
+ * What one provider sign-in has to remember while the player is away.
  *
- * A sign-in with a provider is two requests to us with a trip to somebody
+ * A sign-in with Google or Apple is two requests to us with a trip to somebody
  * else's site in between, and the second one has to prove it belongs to the
- * first. The verifier is the proof: `/api/auth/oauth/start` mints it, sends
- * only its hash to the provider, and keeps the original here; the callback
- * hands both to Supabase, which refuses a `code` that was not minted for this
- * browser. That is what stops somebody pasting their own `?code=` into a
- * player's URL bar and signing that player into an account they control.
+ * first. This cookie is that proof. What is in it depends on which flow ran —
+ * a PKCE verifier for Supabase's redirect, or our own state and nonce for the
+ * direct Google exchange (lib/auth/oauth-handoff.ts) — but the reason is the
+ * same either way: without it, anyone could paste their own `?code=` into a
+ * player's URL bar and sign that player into an account the attacker controls.
  *
  * Three of the four options below are load-bearing:
  *
@@ -63,7 +62,7 @@ export const COOKIE_OPTIONS = {
  * Ten minutes is generous for "choose an account and press allow" and short
  * enough that an abandoned attempt leaves nothing behind worth having.
  */
-export const OAUTH_VERIFIER_COOKIE = "novus_pkce";
+export const OAUTH_HANDOFF_COOKIE = "novus_oauth";
 
 export const OAUTH_COOKIE_OPTIONS = {
   httpOnly: true,

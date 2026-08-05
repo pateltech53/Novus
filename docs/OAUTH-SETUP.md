@@ -42,8 +42,13 @@ There is no equivalent Play Store rule, so Android may ship Google alone.
 # Which buttons the web front door shows. Unset = neither = nothing changes.
 NEXT_PUBLIC_OAUTH_PROVIDERS=google,apple
 
-# ── The shipped app only. Ignored by the web build. ────────────────────────
+# ── Google, spoken directly. See §3.4 for why this is worth setting. ───────
+# Both must be present or Google falls back to Supabase's redirect flow, which
+# works but shows the player your Supabase hostname on the consent screen.
 NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID=000000-xxxx.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-...              # server only, never NEXT_PUBLIC_
+
+# ── The shipped app only. Ignored by the web build. ────────────────────────
 NEXT_PUBLIC_GOOGLE_IOS_CLIENT_ID=000000-yyyy.apps.googleusercontent.com
 NEXT_PUBLIC_APPLE_SERVICES_ID=com.novuspitch.web
 NEXT_PUBLIC_APPLE_REDIRECT_URL=https://<project-ref>.supabase.co/auth/v1/callback
@@ -56,10 +61,15 @@ NEXT_PUBLIC_APPLE_REDIRECT_URL=https://<project-ref>.supabase.co/auth/v1/callbac
 OAUTH_REDIRECT_ORIGIN=https://www.novuspitch.com
 ```
 
-Every `NEXT_PUBLIC_` value here is public by nature — a client id is in the
-first request the consent screen makes. **No secret belongs in this list.** The
-Google client secret and the Apple `.p8` go into the Supabase dashboard and
-nowhere else.
+`NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID` is shared by the web and the app on purpose:
+Supabase verifies an `id_token`'s audience against the client ids on its Google
+provider, so both paths have to present one that project already trusts.
+
+Every `NEXT_PUBLIC_` value is public by nature — a client id is in the first
+request the consent screen makes. **`GOOGLE_CLIENT_SECRET` is the one secret in
+this file**, and prefixing it `NEXT_PUBLIC_` would compile it into the browser
+bundle. The Apple `.p8` never comes here at all; it goes to the Supabase
+dashboard (§4.4).
 
 `NEXT_PUBLIC_*` is read at build time, so a change means a rebuild and, for the
 app, a `npm run build:native`.
@@ -117,21 +127,31 @@ The fields and the values are unchanged; only the menu moved.
    Publish there before launch; with only those three scopes it stays out of
    the review queue that sensitive scopes trigger.
 
-### 3.2 The web client — this is the one Supabase needs
+### 3.2 The web client
 
 **Clients → Create client → Web application.**
 
 | Field | Value |
 |---|---|
 | Authorized JavaScript origins | `https://www.novuspitch.com` (and `http://localhost:3000`) |
-| Authorized redirect URIs | `https://<project-ref>.supabase.co/auth/v1/callback` |
+| Authorized redirect URIs | **both** of the two below |
 
-The redirect URI is **Supabase's**, not ours. The browser goes Google →
-Supabase → our `/api/auth/oauth/callback`, and Google only ever needs to know
-about the first hop.
+```
+https://www.novuspitch.com/api/auth/oauth/callback     ← §3.4, the one that ships
+https://<project-ref>.supabase.co/auth/v1/callback     ← the fallback
+```
+
+Add `http://localhost:3000/api/auth/oauth/callback` too if you want to sign in
+against a dev server, and one line per Vercel preview you intend to test on.
+
+Registering both costs nothing and means the fallback in §3.4 is a working
+fallback rather than a theoretical one.
 
 Copy the **Client ID** and **Client secret** into
-**Supabase → Authentication → Sign In / Providers → Google**, and enable it.
+**Supabase → Authentication → Sign In / Providers → Google**, and enable it —
+Supabase needs them for the fallback path and to verify audiences. Put the same
+two in the environment as `NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID` and
+`GOOGLE_CLIENT_SECRET`.
 
 ### 3.3 The two native clients
 
@@ -159,6 +179,47 @@ Then, back in Supabase's Google provider, put both native client ids in
 > code works perfectly in a browser. `NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID` is
 > still the **web** id: Android's Credential Manager takes it as the
 > `serverClientId` and mints a token whose audience is that web id.
+
+### 3.4 Why the web talks to Google directly
+
+Google's consent screen says "continue to **X**", and X is the host of the
+`redirect_uri` — not the app name you filled in under Branding, and not
+anything else on that page. Route the flow through Supabase and every player is
+asked to hand their Google account to `qeqvhwkprkiqyvuilzbv.supabase.co`.
+GoTrue's redirect_uri is fixed at `<project>/auth/v1/callback`; there is no
+setting that changes it, and filling in the branding panel does not help.
+
+For a product sold to schools that is not a detail worth shrugging at, so with
+`GOOGLE_CLIENT_SECRET` set the web flow skips Supabase's authorize endpoint
+entirely:
+
+```
+browser → accounts.google.com → our /api/auth/oauth/callback
+                                  ↓ (server-side, with the client secret)
+                                Google's token endpoint → id_token
+                                  ↓
+                                supabase.auth.signInWithIdToken()
+```
+
+The consent screen then says **novuspitch.com**. It is also not a second
+architecture: the last step is the call the shipped app already makes from the
+system sign-in sheet, and with this in place `supabase.co` never appears in a
+URL bar a player can see — which is the line the rest of this app already
+holds for Stripe and for Supabase's own API.
+
+Three things the callback checks before it will accept a token, none of which
+Supabase can do for us on this path: the `state` matches the httpOnly cookie
+this browser was given (CSRF), the `nonce` inside the token matches the one we
+sent (replay), and the `aud` is our client id. Supabase still verifies the
+signature, which is what decides whether the token is genuine.
+
+**Unset `GOOGLE_CLIENT_SECRET` and everything still works** — the start route
+falls back to Supabase's redirect flow. A half-configured deploy has an ugly
+consent screen, not a broken sign-in.
+
+Apple is deliberately left on Supabase's flow: its sign-in page shows the
+Services ID's **Description**, which is a name we choose (§4.2), so it never had
+this problem — and one flow we do not maintain is one flow that cannot be wrong.
 
 ---
 
@@ -314,6 +375,7 @@ So check it, once, on a throwaway address:
 | # | Check | Right answer |
 |---|---|---|
 | 1 | Buttons with `NEXT_PUBLIC_OAUTH_PROVIDERS` unset | None render |
+| 1b | What Google's consent screen says you are signing in to | **novuspitch.com**, not `<ref>.supabase.co` — if it says the latter, `GOOGLE_CLIENT_SECRET` is not reaching the deploy (§3.4) |
 | 2 | First Google sign-in, new address | Lands on `/auth/callback`, asks for a name, privacy box unticked |
 | 3 | Name typed, box ticked, START PLAYING | Lands in the game; `profiles.display_name` is the typed name, `accepted_privacy_at` is set |
 | 4 | Sign out, sign in again with the same Google account | No name screen. Straight in |

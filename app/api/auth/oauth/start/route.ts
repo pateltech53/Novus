@@ -1,8 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { googleDirect, startGoogle } from "@/lib/auth/google-oauth";
+import { callbackPath, packHandoff, siteOrigin } from "@/lib/auth/oauth-handoff";
 import { isOAuthProvider } from "@/lib/auth/providers";
 import { LIMITS, callerKey, throttle } from "@/lib/auth/throttle";
-import { OAUTH_COOKIE_OPTIONS, OAUTH_VERIFIER_COOKIE, configured } from "@/lib/supabase/config";
+import { OAUTH_COOKIE_OPTIONS, OAUTH_HANDOFF_COOKIE, configured } from "@/lib/supabase/config";
 import { startOAuth } from "@/lib/supabase/route";
 
 export const runtime = "nodejs";
@@ -19,10 +21,21 @@ export const dynamic = "force-dynamic";
  * no page a minor is looking at loads a third party's script. So the URL is
  * built here, on our own origin, and the browser's only instruction is a 302.
  *
- * The PKCE verifier is the reason this cannot be a static link either. It is
- * minted per attempt, its hash goes to the provider, and the original stays in
- * an httpOnly cookie that the callback needs in order to finish. See
- * OAUTH_VERIFIER_COOKIE.
+ * ── Two ways to build that URL ─────────────────────────────────────────────
+ *
+ * **Google, when a client secret is configured:** we talk to Google directly
+ * (lib/auth/google-oauth.ts). The point is one line of copy — Google's consent
+ * screen names the host of the `redirect_uri`, so this is the difference
+ * between "continue to novuspitch.com" and "continue to
+ * qeqvhwkprkiqyvuilzbv.supabase.co", and no branding setting changes it.
+ *
+ * **Everything else:** Supabase builds it and owns the PKCE exchange. Apple
+ * stays here because it does not have the problem — its sign-in page shows the
+ * Services ID's description, which is a name we choose — and because one flow
+ * we do not maintain is one flow that cannot be wrong.
+ *
+ * Google falls back to this path too when `GOOGLE_CLIENT_SECRET` is unset. A
+ * half-configured deploy gets an ugly consent screen, not a broken sign-in.
  *
  * ── Why a GET, and why no CSRF check ───────────────────────────────────────
  *
@@ -32,32 +45,9 @@ export const dynamic = "force-dynamic";
  * send somebody to Google, where they sign in as themselves and come back as
  * themselves. The attack this flow actually has to stop is the opposite one —
  * an attacker's `?code=` landing in a player's browser — and that is stopped in
- * the callback, by a verifier this route put there and nobody else can write.
+ * the callback, against a value this route put in a cookie nobody else can
+ * write.
  */
-
-/**
- * The origin to come back to.
- *
- * Derived from the request rather than an environment variable so localhost and
- * preview deploys talk to themselves, which is what makes this testable without
- * a second Supabase project. `x-forwarded-*` first because the app runs behind a
- * proxy in production and `req.nextUrl` there is an internal address.
- *
- * Whatever this resolves to must be on Supabase's redirect allow-list. A value
- * that is not on it does not fail loudly — GoTrue silently sends the player to
- * the project's Site URL instead. docs/OAUTH-SETUP.md §3 is the list.
- */
-function siteOrigin(req: NextRequest): string {
-  const override = process.env.OAUTH_REDIRECT_ORIGIN;
-  if (override) return override.replace(/\/$/, "");
-
-  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
-  if (host) {
-    const proto = req.headers.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-    return `${proto}://${host}`;
-  }
-  return req.nextUrl.origin;
-}
 
 /** Somewhere to land that can say what went wrong in a sentence. */
 const refuse = (req: NextRequest, reason: string) =>
@@ -71,20 +61,31 @@ export async function GET(req: NextRequest) {
 
   /*
    * Bounded, but on its own bucket — see LIMITS.oauthPerIp for why this is not
-   * `signup:ip`. Spent before Supabase is called, so a flood costs one cheap
-   * upsert per request rather than a round trip.
+   * `signup:ip`. Spent before any provider is called, so a flood costs one
+   * cheap upsert per request rather than a round trip.
    */
   const limited = await throttle([
     { bucket: "oauth:ip", key: callerKey(req), limit: LIMITS.oauthPerIp },
   ]);
   if (!limited.allowed) return refuse(req, "throttled");
 
-  const started = await startOAuth(provider, `${siteOrigin(req)}/api/auth/oauth/callback`);
+  const redirectUri = `${siteOrigin(req)}${callbackPath}`;
+
+  if (provider === "google" && googleDirect()) {
+    const { url, state, nonce } = startGoogle(redirectUri);
+    return handoff(url, packHandoff({ k: "direct", p: provider, s: state, n: nonce, r: redirectUri }));
+  }
+
+  const started = await startOAuth(provider, redirectUri);
   if (!started) return refuse(req, "unavailable");
 
-  // 303 rather than 302: this is a GET already, but naming it means no
-  // intermediary can decide to re-issue it as anything else.
-  const res = NextResponse.redirect(started.url, { status: 303 });
-  res.cookies.set(OAUTH_VERIFIER_COOKIE, started.verifier, OAUTH_COOKIE_OPTIONS);
+  return handoff(started.url, packHandoff({ k: "supabase", p: provider, v: started.verifier }));
+}
+
+/** 303 rather than 302: this is a GET already, but naming it means no
+ *  intermediary can decide to re-issue it as anything else. */
+function handoff(url: string, cookie: string): NextResponse {
+  const res = NextResponse.redirect(url, { status: 303 });
+  res.cookies.set(OAUTH_HANDOFF_COOKIE, cookie, OAUTH_COOKIE_OPTIONS);
   return res;
 }

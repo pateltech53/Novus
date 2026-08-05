@@ -49,6 +49,7 @@ const MESSAGES: Record<string, string> = {
   "not-configured": "Accounts are not switched on for this build.",
   throttled: "Too many sign-in attempts from this network. Wait a few minutes and try again.",
   expired: "That sign-in took too long, or was finished in a different browser. Start again.",
+  state: "That sign-in could not be matched to the one this browser started. Start again.",
   "no-code": "That link is missing the part that proves the sign-in finished. Start again.",
   exchange: "That sign-in could not be completed. Start again.",
   profile: "The account was created but its profile could not be. Try signing in again.",
