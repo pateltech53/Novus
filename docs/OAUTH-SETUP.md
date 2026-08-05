@@ -210,10 +210,17 @@ Enable it, then:
   The Services ID for the web redirect flow, the **bundle id** for tokens the
   app mints natively. Same trap as Google's Authorized Client IDs, same symptom
   if you leave the second one out.
-- **Secret Key (for OAuth)** — Team ID, Key ID and the `.p8` contents. Some
-  dashboard versions take those three fields and sign the client secret for
-  you; older ones want a pre-signed JWT, and the provider panel links Supabase's
-  generator for that case.
+- **Secret Key (for OAuth)** — this is not a secret Apple gives you. What Apple
+  calls a client secret is an ES256 JWT you sign yourself with the `.p8`. Some
+  dashboard versions take the Team ID, Key ID and key contents and sign it for
+  you; others want the finished token. For the second case, and for the day the
+  first case's copy expires:
+
+  ```sh
+  node scripts/apple-secret.mjs AuthKey_ABCD123456.p8 <TeamID> <KeyID> com.novuspitch.web
+  ```
+
+  No dependencies, and it prints the expiry date next to the token.
 
 > **Apple client secrets expire — six months, maximum, by Apple's rule.** If
 > Supabase signs it from your key it renews itself. If you pasted a JWT, put a
