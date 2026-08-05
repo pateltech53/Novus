@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 
+import { Boat } from "@/components/Boat";
 import { IslandGlyph } from "@/components/IslandGlyph";
 import { SEA_POSITIONS, Sea } from "@/components/Sea";
-import { ENTER, STAGGER, SWAP } from "@/components/ui/Motion";
+import { ENTER, SETTLE_SPRING, STAGGER, SWAP } from "@/components/ui/Motion";
 import { useUpgrade } from "@/components/upgrade/UpgradeProvider";
 import { INDUSTRIES, STAGE_NAME } from "@/lib/engine/constants";
 import { fmtMoney } from "@/lib/engine/format";
@@ -188,7 +189,15 @@ function IslandsPage() {
   const focused = focus === null ? null : (bySlot.get(focus) ?? null);
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col px-5 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))]">
+    /*
+     * The water is the page, edge to edge — no column, no panel, no corners.
+     * `overflow-hidden` because an island near the margin hangs its label past
+     * the safe area on a narrow phone, and a horizontal scrollbar on the front
+     * door is the least forgivable place to have one.
+     */
+    <main className="relative min-h-dvh w-full overflow-hidden">
+      <Sea className="pointer-events-none absolute inset-0 h-full w-full" />
+
       <AnimatePresence mode="wait" initial={false}>
         {focused ? (
           <Gallery
@@ -209,13 +218,18 @@ function IslandsPage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={SWAP}
-            className="flex flex-1 flex-col"
+            className="absolute inset-0"
           >
-            <header>
+            {/*
+              The title, ON the water rather than above it. `pointer-events-
+              none` so it never swallows a tap meant for an island drifting
+              underneath it — nothing here is tappable.
+            */}
+            <header className="pointer-events-none absolute inset-x-0 top-0 z-10 px-6 pt-[max(1.5rem,env(safe-area-inset-top))]">
               <p className="text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]">
                 YOUR ISLANDS
               </p>
-              <h1 className="mt-1 text-[1.75rem] font-extrabold leading-tight tracking-[-0.02em]">
+              <h1 className="mt-1 max-w-[15ch] text-[1.75rem] font-extrabold leading-tight tracking-[-0.02em] sm:max-w-none">
                 {living.length === 0
                   ? "Nothing running yet."
                   : living.length === 1
@@ -225,16 +239,15 @@ function IslandsPage() {
             </header>
 
             {/*
-              ── The sea ─────────────────────────────────────────────────────
-              A fixed aspect ratio, so the scene keeps its composition instead
-              of squashing: the islands are positioned in PERCENTAGES of this
-              box, and a box whose proportions move would move them relative to
-              each other. Taller on a phone, wider on a desktop — the same
-              water, framed for the screen it is on.
+              ── The islands ─────────────────────────────────────────────────
+              Positioned in PERCENTAGES of the whole screen, inside a column
+              that is capped on a desktop. Uncapped, ten islands on a 2560px
+              monitor would be ten specks against a mile of empty water; capped,
+              the archipelago stays an archipelago and the extra width is the
+              ocean it is in, which is the point.
             */}
-            <div className="relative mt-4 aspect-[3/4] w-full sm:aspect-[16/11]">
-              <Sea className="absolute inset-0 h-full w-full" />
-
+            <div className="absolute inset-0">
+              <div className="relative mx-auto h-full w-full max-w-3xl">
               {Array.from({ length: places }, (_, slot) => {
                 const spot = SEA_POSITIONS[slot];
                 const island = bySlot.get(slot);
@@ -271,36 +284,43 @@ function IslandsPage() {
                   </motion.div>
                 );
               })}
+              </div>
             </div>
 
-            <p className="mt-4 text-center text-2xs leading-relaxed text-[var(--text-secondary)]">
-              {pro ? `Up to ${ISLAND_CAP} at once.` : `${cap} at once on free.`} Each
-              island keeps its own year, its own books and its own panel.
-            </p>
-
             {/*
-              The daily ration, stated only when it is actually in the way. It
-              is a DIFFERENT limit from the island cap and the two are easy to
-              confuse, so the sentence names which one is stopping them.
+              ── The small print, in a boat ──────────────────────────────────
+              Everything on this screen that is not an island lives here. Two
+              sentences at most, and the second only when a limit is actually
+              in the way: the island cap and the daily founding ration are
+              DIFFERENT limits answered by different things — Pro or burying
+              one, versus tomorrow — and a screen that says "you have hit the
+              limit" without saying which is how a player buys the wrong fix.
             */}
-            {canFound && foundingsLeft === 0 && (
-              <p className="mt-2 text-center text-2xs leading-snug text-[var(--text-tertiary)]">
-                You have room for another company, but that is one founding a day
-                on free and today&rsquo;s is spent.
-              </p>
-            )}
-
-            {!canFound && !pro && (
-              <button
-                type="button"
-                onClick={() => upgrade.open("islands")}
-                className="mt-2 block w-full text-center text-2xs leading-snug text-[var(--text-secondary)]"
-              >
-                <span className="whitespace-nowrap font-bold text-[var(--color-prestige)] underline underline-offset-4">
-                  See what Pro adds
-                </span>
-              </button>
-            )}
+            <div className="pointer-events-none absolute inset-x-0 bottom-[max(1.75rem,env(safe-area-inset-bottom))] z-10 flex justify-center px-6">
+              <Boat className="nv-bob pointer-events-auto max-w-[22rem]">
+                <p className="text-2xs leading-relaxed text-[var(--text-secondary)]">
+                  {pro ? `Up to ${ISLAND_CAP} at once.` : `${cap} at once on free.`} Each
+                  island keeps its own year and its own books.
+                </p>
+                {canFound && foundingsLeft === 0 && (
+                  <p className="mt-1 text-2xs leading-snug text-[var(--text-tertiary)]">
+                    Room for another, but that is one founding a day on free and
+                    today&rsquo;s is spent.
+                  </p>
+                )}
+                {!canFound && !pro && (
+                  <button
+                    type="button"
+                    onClick={() => upgrade.open("islands")}
+                    className="mt-1 block w-full text-2xs leading-snug"
+                  >
+                    <span className="whitespace-nowrap font-bold text-[var(--color-prestige)] underline underline-offset-4">
+                      See what Pro adds
+                    </span>
+                  </button>
+                )}
+              </Boat>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -372,12 +392,33 @@ function SeaIsland({
          depth on this scene, so no minimum is forced — forcing one would put an
          invisible rectangle over the water beside the small far islands. */
     >
-      <IslandGlyph
-        stage={clampStage(island.stage)}
-        alive={island.alive}
-        seed={island.seed}
-        size={Math.round(BASE_SIZE * depth)}
-      />
+      {/*
+        The bob lives on a WRAPPER, never on the glyph and never on the
+        positioned parent: Framer owns the transform on the entrance, CSS owns
+        it here, and an element with both loses whichever wrote it first.
+
+        Phase and period are derived from the island itself. Ten islands on one
+        4.5s cycle is a raft, and a raft is the one thing an archipelago must
+        not look like. The far ones ride shallower for the same reason they are
+        drawn smaller.
+      */}
+      <span
+        className="nv-bob block"
+        style={
+          {
+            "--nv-bob-rise": `${(2.5 * depth).toFixed(2)}px`,
+            "--nv-bob-dur": `${(4.2 + (island.slot % 4) * 0.55).toFixed(2)}s`,
+            "--nv-bob-delay": `${(island.slot % 5) * 320}ms`,
+          } as CSSProperties
+        }
+      >
+        <IslandGlyph
+          stage={clampStage(island.stage)}
+          alive={island.alive}
+          seed={island.seed}
+          size={Math.round(BASE_SIZE * depth)}
+        />
+      </span>
       <Label
         title={island.companyName}
         muted={!island.alive}
@@ -480,12 +521,18 @@ function Gallery({
   const many = total > 1;
 
   return (
+    /*
+     * Same water as the map — the sea behind this is the page's, not the
+     * gallery's, so moving between the two views never swaps the ocean out.
+     * A column here rather than edge to edge because this view is reading
+     * matter: a books panel the width of a desktop is a spreadsheet.
+     */
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={SWAP}
-      className="flex flex-1 flex-col"
+      className="relative mx-auto flex min-h-dvh w-full max-w-lg flex-col px-5 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]"
     >
       <button
         type="button"
@@ -495,11 +542,9 @@ function Gallery({
         <span aria-hidden>◂</span> ALL ISLANDS
       </button>
 
-      {/* ── The island, on its own patch of water, arrows either side ────── */}
+      {/* ── The island, arrows either side ──────────────────────────────── */}
       <div className="relative mt-1 h-56 w-full sm:h-64">
-        <Sea className="absolute inset-0 h-full w-full" />
-
-        <div className="absolute inset-0 flex items-center justify-between gap-1 px-2">
+        <div className="absolute inset-0 flex items-center justify-between gap-1">
           {many ? <Arrow dir={-1} onClick={() => onStep(-1)} /> : <span className="w-11" />}
 
           {/*
@@ -510,20 +555,36 @@ function Gallery({
           */}
           <div className="relative h-full flex-1 overflow-hidden">
             <AnimatePresence initial={false}>
+              {/*
+                It drifts in rather than cutting across. A spring rather than a
+                duration because an island arriving on water should overshoot a
+                little and settle, and `x` alone reads as a slide — the small
+                `y` is what turns it into something floating.
+              */}
               <motion.div
                 key={island.slot}
-                initial={{ opacity: 0, x: dir * 44 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: dir * -44 }}
-                transition={ENTER}
+                initial={{ opacity: 0, x: dir * 110, y: 10 }}
+                animate={{ opacity: 1, x: 0, y: 0 }}
+                exit={{ opacity: 0, x: dir * -110, y: 10 }}
+                transition={SETTLE_SPRING}
                 className="absolute inset-0 flex items-center justify-center"
               >
-                <IslandGlyph
-                  stage={clampStage(island.stage)}
-                  alive={island.alive}
-                  seed={island.seed}
-                  size={188}
-                />
+                <span
+                  className="nv-bob block"
+                  style={
+                    {
+                      "--nv-bob-rise": "5px",
+                      "--nv-bob-dur": "5s",
+                    } as CSSProperties
+                  }
+                >
+                  <IslandGlyph
+                    stage={clampStage(island.stage)}
+                    alive={island.alive}
+                    seed={island.seed}
+                    size={188}
+                  />
+                </span>
               </motion.div>
             </AnimatePresence>
           </div>
@@ -547,7 +608,7 @@ function Gallery({
         </div>
       )}
 
-      <div className="mt-4 text-center">
+      <div className="mt-5 text-center">
         <p
           className="text-2xs font-bold tracking-[0.14em]"
           style={{ color: ending ? ending.tone : "var(--text-tertiary)" }}
@@ -569,8 +630,17 @@ function Gallery({
         The books. Content, so an opaque shadowed panel and never glass, and
         every figure at full ink — design.md's "money is read at full strength"
         is a legibility floor rather than a taste setting.
+        
+        Deliberately NOT a boat. The small print on the map is one line and can
+        afford to be scenery; this is six figures a player is reading, and a
+        curved hull under a number column would cost legibility to make a joke.
+        It floats by sitting HIGHER instead: `--e3` rather than `--e1`, which
+        is the shadow the app gives a sheet, so the panel reads as an object
+        resting above the water rather than a section painted onto it. Still,
+        while the island above it bobs — a table of numbers that moves is a
+        table you read twice.
       */}
-      <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-4 rounded-[var(--radius-card)] bg-[var(--surface)] p-4 shadow-[var(--e1)]">
+      <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-4 rounded-[var(--radius-sheet)] bg-[var(--surface)] p-5 shadow-[var(--e3)]">
         <Figure
           label={island.alive ? "VALUATION" : "PEAK VALUATION"}
           value={fmtMoney(island.alive ? island.valuation : island.peakValuation)}

@@ -1475,6 +1475,66 @@ textarea {
   }
 }
 
+/*
+ * ── Idle motion: the sea and the things floating on it ─────────────────────
+ *
+ * The picker is a body of water, and still water reads as a diagram of water.
+ * These two animations are the difference, and they are deliberately the only
+ * ambient motion in the app.
+ *
+ * Both are AMBIENT, which means they answer to a stricter rule than the
+ * entrances above: a player sits on this screen for a few seconds, several
+ * times a day, so anything that draws the eye a second time is a fidget. Hence
+ * the amplitudes below — single-digit units, over seconds, `ease-in-out` and
+ * `alternate` so there is no restart to notice. Nothing here loops back to a
+ * seam, because nothing here travels far enough to have one.
+ *
+ * The blanket `prefers-reduced-motion` rule at the bottom of this file already
+ * stops both dead: it clamps every animation to one 0.01ms iteration, so an
+ * `alternate infinite` becomes a single frame at rest. That is the correct
+ * outcome — the sea carries no information, so removing its motion removes
+ * nothing.
+ *
+ * Both are driven with custom properties rather than one class per band. The
+ * whole point is that the layers DISAGREE — three waves on the same duration
+ * is a comb, and ten islands on the same phase is a raft.
+ */
+@keyframes nvSwell {
+  from {
+    transform: translate3d(calc(var(--nv-swell-x, 6px) * -1), 0, 0);
+  }
+  to {
+    transform: translate3d(var(--nv-swell-x, 6px), var(--nv-swell-y, 0px), 0);
+  }
+}
+
+.nv-swell {
+  animation: nvSwell var(--nv-swell-dur, 9s) var(--ease-in-out) infinite alternate;
+  /* The waves are inside an SVG that is stretched by preserveAspectRatio, so
+     `px` here is a user unit and lands proportionally at every width. */
+  will-change: transform;
+}
+
+@keyframes nvBob {
+  from {
+    transform: translate3d(0, var(--nv-bob-rise, 4px), 0);
+  }
+  to {
+    transform: translate3d(0, calc(var(--nv-bob-rise, 4px) * -1), 0);
+  }
+}
+
+/*
+ * An island riding the swell. Applied to a WRAPPER, never to an element Framer
+ * Motion is also animating — both write `transform`, and the last writer wins,
+ * which shows up as an entrance that never arrives.
+ */
+.nv-bob {
+  animation: nvBob var(--nv-bob-dur, 4.5s) var(--ease-in-out) infinite alternate;
+  animation-delay: var(--nv-bob-delay, 0ms);
+  will-change: transform;
+}
+
 /* The stage box travels further than the type it sits beside. */
 .nv-rise-stage {
   animation-name: nvRiseStage;
