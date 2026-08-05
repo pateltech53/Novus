@@ -18,7 +18,12 @@ import { speak, stopSpeaking } from "@/lib/ai/speech";
 import { SkipVoice } from "@/components/ui/SkipVoice";
 import type { PitchTranscript } from "@/lib/ai/types";
 import { KNOBS, TANK_REQUIRED_THROUGH_YEAR } from "@/lib/engine/constants";
-import { yearClosesRemainingToday } from "@/lib/monetization";
+import {
+  FREE_LIMITS,
+  loadEntitlements,
+  yearClosesFor,
+  yearClosesRemainingToday,
+} from "@/lib/monetization";
 import { useUpgrade } from "@/components/upgrade/UpgradeProvider";
 import { LiveTranscriber, resolveTranscript } from "@/lib/ai/transcribe";
 import { CompanyDossier, DossierGlyph } from "@/components/CompanyDossier";
@@ -463,6 +468,14 @@ export function PerformScreen() {
   const yearRationSpent =
     perform.kind === "yearEnd" && !run.pro && yearClosesRemainingToday() <= 0;
 
+  /*
+   * The number the refusal states. Four on free, more if an operator granted
+   * this account extra closes (0012) — read rather than written into the copy,
+   * because a screen that says "four" to a player who was given eight is a
+   * screen that lies about a limit it is enforcing.
+   */
+  const yearPaceToday = yearRationSpent ? yearClosesFor(loadEntitlements()) : 0;
+
   return (
     <main
       data-live-3d
@@ -547,9 +560,13 @@ export function PerformScreen() {
               {yearRationSpent ? (
                 <>
                   <p className="mb-3 text-sm leading-snug text-[var(--n-8)]">
-                    You&apos;ve closed four fiscal years today — that&apos;s the free
-                    pace. The books reopen tomorrow, or Pro closes as many as
-                    you can pitch.
+                    You&apos;ve closed {yearPaceToday} fiscal years today —
+                    that&apos;s{" "}
+                    {yearPaceToday > FREE_LIMITS.yearClosesPerDay
+                      ? "the pace you were given"
+                      : "the free pace"}
+                    . The books reopen tomorrow, or Pro closes as many as you
+                    can pitch.
                   </p>
                   <button
                     type="button"

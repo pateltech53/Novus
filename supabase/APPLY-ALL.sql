@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════════════
--- APPLY ALL · the complete Novus schema (0001 → 0011), idempotently
+-- APPLY ALL · the complete Novus schema (0001 → 0012), idempotently
 -- ═══════════════════════════════════════════════════════════════════════════
 --
 -- Paste the whole file into the Supabase SQL editor of the NOVUS project and
@@ -1864,6 +1864,86 @@ grant execute on function public.admin_create_comp_chapter(uuid, text, timestamp
 
 
 -- ═══════════════════════════════════════════════════════════════════════════
+-- 0012 · Gifted pace — extra fiscal-year closes a day
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Free closes four fiscal years a real day, Pro as many as it can pitch, and
+-- between them an operator now has one account-sized dial: `extra_year_closes`
+-- stacks on top of the tier's allowance, set outright, 0–20 — the shape
+-- `extra_run_slots` already has. Pace is what Pro sells, so it is giftable; a
+-- score, a survival and a place on the board still are not. The full reasoning
+-- lives in supabase/migrations/0012_year_closes.sql.
+
+alter table public.entitlements
+  add column if not exists extra_year_closes int not null default 0;
+
+alter table public.entitlements
+  drop constraint if exists entitlements_extra_year_closes_check;
+alter table public.entitlements
+  add constraint entitlements_extra_year_closes_check
+  check (extra_year_closes between 0 and 20);
+
+create or replace function public.admin_set_extra_year_closes(
+  p_profile uuid,
+  p_closes  int
+)
+returns void
+language sql
+set search_path = public, pg_temp
+as $$
+  insert into public.entitlements (profile_id, extra_year_closes)
+  values (p_profile, least(greatest(coalesce(p_closes, 0), 0), 20))
+  on conflict (profile_id) do update
+    set extra_year_closes = least(greatest(coalesce(p_closes, 0), 0), 20);
+$$;
+
+revoke execute on function public.admin_set_extra_year_closes(uuid, int)
+  from public, anon, authenticated;
+grant execute on function public.admin_set_extra_year_closes(uuid, int)
+  to service_role;
+
+-- The stale-anonymous sweep spares a granted allowance, exactly as it spares a
+-- comp: 0009's version of this function above, plus the new column.
+create or replace function public.delete_stale_anonymous_users(
+  p_older_than interval default interval '90 days'
+)
+returns integer
+language plpgsql
+security definer
+set search_path = public, auth, pg_temp
+as $$
+declare
+  removed integer;
+begin
+  with doomed as (
+    delete from auth.users u
+    where u.is_anonymous is true
+      and coalesce(u.last_sign_in_at, u.created_at) < (now() - p_older_than)
+      and not exists (
+        select 1 from public.entitlements e
+        where e.profile_id = u.id
+          and (e.pro or e.comp_pro or e.extra_run_slots > 0
+               or e.extra_year_closes > 0
+               or array_length(e.industry_packs, 1) > 0
+               or e.chapter is not null)
+      )
+      and not exists (
+        select 1 from public.billing_customers b where b.profile_id = u.id
+      )
+    returning 1
+  )
+  select count(*) into removed from doomed;
+
+  return removed;
+end;
+$$;
+
+revoke execute on function public.delete_stale_anonymous_users(interval)
+  from public, anon, authenticated;
+grant execute on function public.delete_stale_anonymous_users(interval)
+  to service_role;
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
 -- The report — read this before closing the tab
 -- ═══════════════════════════════════════════════════════════════════════════
 
@@ -1921,5 +2001,11 @@ from (
                  and pg_get_constraintdef(c.oid) like '%chapter_custom%')
       and exists (select 1 from pg_constraint c
                    where c.conname = 'entitlements_chapter_check'
-                     and pg_get_constraintdef(c.oid) like '%chapter_custom%'))
+                     and pg_get_constraintdef(c.oid) like '%chapter_custom%')),
+    ('0012 year closes',
+      exists (select 1 from information_schema.columns
+               where table_schema = 'public' and table_name = 'entitlements'
+                 and column_name = 'extra_year_closes')
+      and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                   where n.nspname = 'public' and p.proname = 'admin_set_extra_year_closes'))
 ) as t(migration, present);

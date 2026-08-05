@@ -363,6 +363,13 @@ export interface Entitlements {
   pro: boolean;
   /** Bought slots stack on top of the plan's allowance. */
   extraRunSlots: number;
+  /**
+   * Fiscal-year closes an operator granted this account, on top of the tier's
+   * own allowance. Never sold — the store has no SKU for pace — and written
+   * only by /api/admin/years (0012). Pace is what Pro sells, so a gift here
+   * buys nothing money cannot; a score or a survival stays ungiftable.
+   */
+  extraYearCloses: number;
   industryPacks: Industry[];
   cosmeticBundles: string[];
   /** A chapter licence covering this seat, if a teacher enrolled it. */
@@ -384,6 +391,7 @@ export interface Entitlements {
 export const NO_ENTITLEMENTS: Entitlements = {
   pro: false,
   extraRunSlots: 0,
+  extraYearCloses: 0,
   industryPacks: [],
   cosmeticBundles: [],
   chapter: null,
@@ -399,6 +407,14 @@ export const limitsFor = (e: Entitlements): Limits =>
 
 export const runSlotsFor = (e: Entitlements): number =>
   limitsFor(e).runsPerDay + e.extraRunSlots;
+
+/**
+ * Fiscal years this account may close today, tier plus operator grant. The
+ * same stacking `runSlotsFor` does, and stated once here so the gate, the
+ * refusal copy and the ledger cannot each derive it differently.
+ */
+export const yearClosesFor = (e: Entitlements): number =>
+  limitsFor(e).yearClosesPerDay + e.extraYearCloses;
 
 export const industryUnlocked = (code: Industry, e: Entitlements): boolean =>
   FREE_INDUSTRY_CODES.includes(code) ||
@@ -457,9 +473,12 @@ function yearClosesToday(): number {
   }
 }
 
-/** Year closes left today under the CURRENT entitlements. Pro is ~unlimited. */
+/**
+ * Year closes left today under the CURRENT entitlements. Pro is ~unlimited, and
+ * an operator's grant (0012) is added to whatever the tier allows.
+ */
 export function yearClosesRemainingToday(e: Entitlements = loadEntitlements()): number {
-  return Math.max(0, limitsFor(e).yearClosesPerDay - yearClosesToday());
+  return Math.max(0, yearClosesFor(e) - yearClosesToday());
 }
 
 /** Spend one. Called by the game when a fiscal year actually closes. */
