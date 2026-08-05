@@ -76,8 +76,8 @@ select test.throws('42501', $$
   select public.admin_set_comp_pro('90000000-0000-0000-0000-000000000002', true)
 $$, 'a player cannot gift themselves Pro');
 select test.throws('42501', $$
-  select public.admin_set_extra_run_slots('90000000-0000-0000-0000-000000000002', 20)
-$$, 'a player cannot set their own slots');
+  select public.admin_set_extra_islands('90000000-0000-0000-0000-000000000002', 20)
+$$, 'a player cannot set their own islands');
 select test.throws('42501', $$
   select public.admin_revoke_industry_pack('90000000-0000-0000-0000-000000000003', 'TECH')
 $$, 'a player cannot strip another player''s pack');

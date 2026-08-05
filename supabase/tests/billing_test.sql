@@ -30,8 +30,8 @@ set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
 -- If any of these three succeed, Pro costs nothing: they are reachable over
 -- PostgREST as POST /rest/v1/rpc/<name> by every player in the game.
 select test.throws('42501', $$
-  select public.grant_extra_run_slot('11111111-1111-1111-1111-111111111111')
-$$, 'a player cannot grant themselves a run slot');
+  select public.grant_extra_island('11111111-1111-1111-1111-111111111111')
+$$, 'a player cannot grant themselves an island');
 select test.throws('42501', $$
   select public.grant_industry_pack('11111111-1111-1111-1111-111111111111', 'TECH')
 $$, 'a player cannot grant themselves an industry pack');
@@ -95,12 +95,12 @@ $$, 'an industry code that is not real is refused loudly');
 
 
 \echo ''
-\echo '=== 7. run slots ACCUMULATE — two bought is two ==='
-select public.grant_extra_run_slot('22222222-2222-2222-2222-222222222222');
-select public.grant_extra_run_slot('22222222-2222-2222-2222-222222222222');
-select test.eq((select extra_run_slots::bigint from public.entitlements
+\echo '=== 7. islands ACCUMULATE — two bought is two ==='
+select public.grant_extra_island('22222222-2222-2222-2222-222222222222');
+select public.grant_extra_island('22222222-2222-2222-2222-222222222222');
+select test.eq((select extra_islands::bigint from public.entitlements
                 where profile_id = '22222222-2222-2222-2222-222222222222'), 2::bigint,
-               'two run slots bought is two run slots');
+               'two islands bought is two islands');
 
 
 \echo ''

@@ -34,6 +34,7 @@ export type GateId =
   | "the_room"
   | "industries"
   | "run_slots"
+  | "islands"
   | "talent_pool"
   | "assets"
   | "wardrobe"
@@ -71,6 +72,20 @@ export const GATES: Record<GateId, Gate> = {
     title: "One company a day on free",
     body: "Pro founds three, and a company that went under can be replaced the same day.",
     feature: "run_slots",
+  },
+  /*
+   * The other half of the split 0012 made. `run_slots` is the RATE — how often
+   * a new company may be founded. This is the STOCK — how many may exist at
+   * once. A player hits them at different moments and for different reasons,
+   * so they are two gates and not one: telling someone with two full islands
+   * to "come back tomorrow" would be false, and telling someone out of
+   * foundings to "bury a company" would be worse.
+   */
+  islands: {
+    id: "islands",
+    title: "Two islands on free",
+    body: "Pro runs ten companies at once. Bury one to found another, or keep both and come back to whichever you like.",
+    feature: "islands",
   },
   talent_pool: {
     id: "talent_pool",

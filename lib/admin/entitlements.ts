@@ -30,7 +30,7 @@ export type AdminView = "free" | "pro" | "all";
 /** The columns the two routes select, in the table's own names. */
 export interface EntitlementRow {
   pro: boolean | null;
-  extra_run_slots: number | null;
+  extra_islands: number | null;
   industry_packs: string[] | null;
   cosmetic_bundles: string[] | null;
   chapter: string | null;
@@ -50,7 +50,7 @@ const compActive = (row: EntitlementRow): boolean =>
 
 const fromRow = (row: EntitlementRow): Entitlements => ({
   pro: !!row.pro || compActive(row),
-  extraRunSlots: row.extra_run_slots ?? 0,
+  extraIslands: row.extra_islands ?? 0,
   industryPacks: (row.industry_packs ?? []) as Entitlements["industryPacks"],
   cosmeticBundles: row.cosmetic_bundles ?? [],
   chapter: (row.chapter ?? null) as Entitlements["chapter"],

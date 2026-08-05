@@ -56,7 +56,7 @@ Six products. Dashboard → **Product catalogue → Add product**.
 | Novus Pro — Monthly | $6.99 | Recurring, monthly | `STRIPE_PRICE_PRO_MONTHLY` |
 | Novus Pro — Yearly | $39.99 | Recurring, yearly | `STRIPE_PRICE_PRO_YEARLY` |
 | Industry Pack | $2.99 | One-off | `STRIPE_PRICE_INDUSTRY_PACK` |
-| Extra Run Slot | $1.99 | One-off | `STRIPE_PRICE_EXTRA_RUN_SLOT` |
+| Extra Island | $1.99 | One-off | `STRIPE_PRICE_EXTRA_ISLAND` |
 | Novus Chapter — 35 seats | $299 | Recurring, yearly | `STRIPE_PRICE_CHAPTER_35` |
 | Novus Chapter — 100 seats | $599 | Recurring, yearly | `STRIPE_PRICE_CHAPTER_100` |
 
@@ -213,7 +213,7 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 STRIPE_PRICE_PRO_MONTHLY=prod_...
 STRIPE_PRICE_PRO_YEARLY=prod_...
 STRIPE_PRICE_INDUSTRY_PACK=prod_...
-STRIPE_PRICE_EXTRA_RUN_SLOT=prod_...
+STRIPE_PRICE_EXTRA_ISLAND=prod_...
 
 # Optional — the live product ids are the in-code defaults (see §2). Set only
 # to override, e.g. with test-mode copies.
@@ -327,7 +327,7 @@ weeks. Revoking The Room on the first failure punishes a player whose card will
 work on Thursday. Access ends when Stripe gives up and the status becomes
 `unpaid` or `canceled`. See `ENTITLING` in `lib/stripe/subscription.ts`.
 
-**One-time purchases survive cancellation.** Industry packs and run slots are
+**One-time purchases survive cancellation.** Industry packs and islands are
 bought, not rented; ending a subscription clears `pro` and leaves them. Test 8
 in `billing_test.sql` asserts this.
 
@@ -345,7 +345,7 @@ That release is load-bearing: without it, a transient database error would turn
 into a permanently lost purchase.
 
 **Brand Law 4 still governs what may be sold.** Everything purchasable is
-content — industries, cosmetics, run slots, seats. Score, survival, revives and
+content — industries, cosmetics, islands, seats. Score, survival, revives and
 leaderboard position are in `NEVER_PURCHASABLE` in `lib/monetization.ts` and no
 code path puts a price on them. Adding a Stripe product does not change that
 list; if a new SKU needs an entry there, the answer is no.

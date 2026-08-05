@@ -654,7 +654,7 @@ exactly the right line: it catches states the engine could not have produced, an
 
 ## 8 · Brand Law 4 — position is never purchasable
 
-> Cosmetics, run slots and scenario packs are purchasable. Score, survival, revives and leaderboard
+> Cosmetics, islands and scenario packs are purchasable. Score, survival, revives and leaderboard
 > position **never** are. This is a product for minors — a legal constraint, not a taste one.
 
 The app already promises this in copy: `ProSheet.tsx` lists "Score, survival, leaderboard — Free:

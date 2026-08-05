@@ -32,7 +32,7 @@ const LABELS: Record<CheckoutSku, string> = {
   pro_monthly: "Pro — monthly",
   pro_yearly: "Pro — yearly",
   industry_pack: "Industry pack",
-  extra_run_slot: "Extra run slot",
+  extra_island: "Extra island",
   chapter_35: "Chapter — 35 seats",
   chapter_100: "Chapter — 100 seats",
   chapter_custom: "Chapter — custom size",

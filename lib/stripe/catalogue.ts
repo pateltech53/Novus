@@ -51,7 +51,7 @@ export type SkuId =
   | "pro_monthly"
   | "pro_yearly"
   | "industry_pack"
-  | "extra_run_slot"
+  | "extra_island"
   | "chapter_35"
   | "chapter_100";
 
@@ -61,6 +61,16 @@ export interface Sku {
   /** The env var holding this SKU's Stripe price id. Named in error messages
    *  so a misconfigured deploy says which line of .env.local is missing. */
   envVar: string;
+  /**
+   * An older name for the same variable, still honoured when `envVar` is
+   * unset. Exists for exactly one SKU: `extra_island` was called
+   * `extra_run_slot` until 0012, and the whole point of that rename was that
+   * the PRICE does not change — same Stripe product, same purchase link, same
+   * $1.99. A deploy that has `STRIPE_PRICE_EXTRA_RUN_SLOT` set and has not yet
+   * been re-configured must keep selling, or the rename takes the shop down
+   * with it.
+   */
+  legacyEnvVar?: string;
   /**
    * Used when the env var is unset. Only the chapter licences carry one — the
    * ids of the two products actually created in the live Stripe account — so
@@ -79,7 +89,7 @@ export interface Sku {
   label: string;
 }
 
-const oneTime = (id: "industry_pack" | "extra_run_slot"): Cents => {
+const oneTime = (id: "industry_pack" | "extra_island"): Cents => {
   const found = ONE_TIME_PURCHASES.find((p) => p.id === id);
   // ONE_TIME_PURCHASES is a literal in the same repo, so this cannot be missing
   // without someone having deleted the entry the checkout route still offers.
@@ -116,12 +126,13 @@ export const CATALOGUE: Readonly<Record<SkuId, Sku>> = {
     needsIndustry: true,
     label: "Industry Pack",
   },
-  extra_run_slot: {
-    id: "extra_run_slot",
+  extra_island: {
+    id: "extra_island",
     kind: "payment",
-    envVar: "STRIPE_PRICE_EXTRA_RUN_SLOT",
-    expectedCents: oneTime("extra_run_slot"),
-    label: "Extra Run Slot",
+    envVar: "STRIPE_PRICE_EXTRA_ISLAND",
+    legacyEnvVar: "STRIPE_PRICE_EXTRA_RUN_SLOT",
+    expectedCents: oneTime("extra_island"),
+    label: "Extra Island",
   },
   chapter_35: {
     id: "chapter_35",
@@ -144,6 +155,32 @@ export const CATALOGUE: Readonly<Record<SkuId, Sku>> = {
 export const isSkuId = (v: unknown): v is SkuId =>
   typeof v === "string" && Object.prototype.hasOwnProperty.call(CATALOGUE, v);
 
+/**
+ * SKU ids that have been renamed, and what they are now.
+ *
+ * A Checkout Session stamps its sku into metadata when it OPENS and the
+ * webhook reads it when it COMPLETES — minutes later, and across a deploy if
+ * the timing is unlucky. So a rename cannot simply drop the old string: the
+ * one session in flight during the release would arrive as "unknown sku", the
+ * webhook would throw, and the retry would throw identically forever on a card
+ * that has already been charged.
+ *
+ * Keep entries here permanently. They cost one map lookup and they are the
+ * difference between a rename and a refund.
+ */
+const RETIRED_SKUS: Readonly<Record<string, SkuId>> = {
+  // 0012 — the daily-founding grant became the concurrency it was sold as.
+  extra_run_slot: "extra_island",
+};
+
+/** Reads a sku from untrusted metadata, following any rename. */
+export const skuFromMetadata = (v: unknown): SkuId | null => {
+  if (typeof v !== "string") return null;
+  const current = RETIRED_SKUS[v];
+  if (current) return current;
+  return isSkuId(v) ? v : null;
+};
+
 /** The two SKUs that buy a classroom rather than a personal plan. */
 export const isChapterSku = (id: SkuId): id is ChapterLicence["id"] =>
   id === "chapter_35" || id === "chapter_100";
@@ -164,6 +201,10 @@ export const isChapterSku = (id: SkuId): id is ChapterLicence["id"] =>
 export const priceIdFor = (sku: Sku): string => {
   const configured = process.env[sku.envVar];
   if (configured && configured.trim()) return configured.trim();
+  // The renamed SKU's old variable, if this deploy still carries it. Same
+  // price, same product — see `legacyEnvVar`.
+  const legacy = sku.legacyEnvVar ? process.env[sku.legacyEnvVar] : undefined;
+  if (legacy && legacy.trim()) return legacy.trim();
   return sku.defaultId ?? "";
 };
 

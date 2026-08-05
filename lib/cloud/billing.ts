@@ -56,7 +56,7 @@ export type CheckoutSku =
   | "pro_monthly"
   | "pro_yearly"
   | "industry_pack"
-  | "extra_run_slot"
+  | "extra_island"
   | "chapter_35"
   | "chapter_100"
   // The buyer-sized licence. Sent with `seats`; the server computes the
@@ -201,7 +201,7 @@ export function adoptEntitlements(server: Entitlements | null | undefined): bool
   // because two equal arrays sorted differently would be a nasty little loop.
   const same =
     local.pro === server.pro &&
-    local.extraRunSlots === server.extraRunSlots &&
+    local.extraIslands === server.extraIslands &&
     local.chapter === server.chapter &&
     local.intent === server.intent &&
     // The admin overlay travels in the same object; a view switch in the

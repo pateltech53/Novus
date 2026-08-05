@@ -113,14 +113,14 @@ select test.eq((select count(*) from public.entitlements
 
 \echo ''
 \echo '=== 7. revoking one seat clears chapter and ONLY chapter ==='
-select public.grant_extra_run_slot('22222222-2222-2222-2222-222222222222');
+select public.grant_extra_island('22222222-2222-2222-2222-222222222222');
 select public.revoke_chapter_seat('22222222-2222-2222-2222-222222222222');
 select test.eq((select chapter from public.entitlements
                 where profile_id = '22222222-2222-2222-2222-222222222222'), null::text,
                'the seat''s access is gone');
-select test.eq((select extra_run_slots from public.entitlements
+select test.eq((select extra_islands from public.entitlements
                 where profile_id = '22222222-2222-2222-2222-222222222222'), 1,
-               'a bought run slot survives losing the seat');
+               'a bought island survives losing the seat');
 
 
 \echo ''

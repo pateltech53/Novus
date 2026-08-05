@@ -30,7 +30,7 @@ interface ListRow {
   comp_until: string | null;
   comp_note: string | null;
   chapter: string | null;
-  extra_run_slots: number;
+  extra_islands: number;
   industry_packs: string[];
   intent: string | null;
   subscription_status: string | null;
@@ -84,7 +84,7 @@ export async function GET(req: NextRequest) {
         compUntil: r.comp_until,
         compNote: r.comp_note,
         chapter: r.chapter,
-        extraRunSlots: r.extra_run_slots,
+        extraIslands: r.extra_islands,
         industryPacks: r.industry_packs,
         intent: r.intent,
         subscriptionStatus: r.subscription_status,
