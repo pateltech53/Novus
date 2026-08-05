@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { GameProvider, useGame } from "@/lib/state/GameProvider";
 import { FounderPortrait } from "@/components/FounderAvatar";
+import { PickMark } from "@/components/ui/PickMark";
 import type { Gender } from "@/lib/engine/avatar";
 import { INDUSTRIES } from "@/lib/engine/constants";
 import type { Industry } from "@/lib/engine/types";
@@ -261,34 +262,52 @@ function FoundPage() {
       {/* Who you are, before anything else. This is the only avatar decision
           the player ever makes — the wardrobe after this is earned, not
           chosen, so it is worth spending real estate on. Both options render
-          at tier 1: everyone starts in the hoodie. */}
+          at tier 1: everyone starts in the hoodie.
+
+          Four things say which one is picked, and that is not one too many: it
+          is the answer the game then uses for every pronoun for the next twelve
+          months, and it used to be said by a 16% tint alone. Now the card takes
+          the picked rim (.nv-pick), a tick lands in its corner, the label goes
+          from grey caps to a filled pill, and the portrait NOT chosen steps
+          back to 60% — a difference you can see with one card under a thumb. */}
       <fieldset className="mt-5">
         <legend className="text-2xs font-bold tracking-[0.16em] text-[var(--text-tertiary)]">
           WHO IS FOUNDING IT
         </legend>
         <div className="mt-2 grid grid-cols-2 gap-2">
-          {(["male", "female"] as Gender[]).map((g) => (
-            <button
-              key={g}
-              type="button"
-              onClick={() => setGender(g)}
-              aria-pressed={gender === g}
-              className={`nv-gc flex flex-col items-center rounded-[var(--radius-card)] p-2 ${
-                gender === g
-                  ? "nv-on shadow-[var(--e2)]"
-                  : ""
-              }`}
-            >
-              <FounderPortrait gender={g} tier={1} size={120} priority />
-              <span
-                className={`text-2xs font-bold tracking-[0.1em] ${
-                  gender === g ? "text-[var(--text-primary)]" : "text-[var(--text-tertiary)]"
+          {(["male", "female"] as Gender[]).map((g) => {
+            const on = gender === g;
+            return (
+              <button
+                key={g}
+                type="button"
+                onClick={() => setGender(g)}
+                aria-pressed={on}
+                aria-label={g === "male" ? "He" : "She"}
+                className={`nv-gc relative flex flex-col items-center rounded-[var(--radius-card)] p-2 ${
+                  on ? "nv-pick" : ""
                 }`}
               >
-                {g === "male" ? "HE" : "SHE"}
-              </span>
-            </button>
-          ))}
+                <PickMark on={on} className="absolute right-2 top-2" />
+                <FounderPortrait
+                  gender={g}
+                  tier={1}
+                  size={120}
+                  priority
+                  className={on ? "" : "opacity-60"}
+                />
+                <span
+                  className={`rounded-[var(--radius-pill)] px-3 py-1 text-2xs font-extrabold tracking-[0.1em] ${
+                    on
+                      ? "bg-[var(--text-primary)] text-[var(--bg)]"
+                      : "text-[var(--text-tertiary)]"
+                  }`}
+                >
+                  {g === "male" ? "HE" : "SHE"}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </fieldset>
 
@@ -325,16 +344,29 @@ function FoundPage() {
                   setLockedNote(ind.name);
                   upgrade.notify("industries");
                 }}
+                aria-pressed={selected}
+                /* The border stays on every state, transparent under the
+                   picked rim: `.nv-pick` draws its 2px inside the box, so a
+                   1px border on top of it would be a second edge in a second
+                   colour, and dropping the border on selection alone would
+                   move the label by a pixel every time you changed your mind. */
                 className={`nv-gc flex w-full items-center justify-between gap-2 rounded-[var(--radius-card)] border px-3 py-3 text-left ${
                   selected
-                    ?"border-[var(--text-primary)] nv-on font-bold"
+                    ? "nv-pick border-transparent font-bold"
                     : ind.free || hasPro
-                      ?"border-[var(--hairline)] hover:bg-[var(--card)]"
-                      :"border-[var(--hairline)] opacity-55"
+                      ? "border-[var(--hairline)] hover:bg-[var(--card)]"
+                      : "border-[var(--hairline)] opacity-55"
                 }`}
               >
                 <span className="text-sm font-semibold leading-tight">{ind.name}</span>
-                {!ind.free && !hasPro && <LockGlyph />}
+                {/* One slot, three answers: chosen, locked, or nothing at all.
+                    An empty ring on every unchosen row would put twelve of them
+                    down a screen that already carries a lock column. */}
+                {selected ? (
+                  <PickMark on size={18} />
+                ) : !ind.free && !hasPro ? (
+                  <LockGlyph />
+                ) : null}
               </button>
             </li>
           );

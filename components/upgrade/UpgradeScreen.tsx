@@ -8,6 +8,7 @@ import { useSellsHere } from "@/lib/commerce";
 import { BuyOnWeb, RestoreButton } from "@/components/upgrade/BuyOnWeb";
 import { OneTimeShelf } from "@/components/upgrade/OneTimeShelf";
 import { EXIT, SHEET_SPRING } from "@/components/ui/Motion";
+import { PickMark } from "@/components/ui/PickMark";
 import { LegalSheet } from "@/components/LegalSheet";
 import { PRIVACY, TERMS, type LegalDocument } from "@/lib/legal/documents";
 import {
@@ -234,23 +235,31 @@ export function UpgradeScreen({
                 setPlan(p);
               }}
               className={`nv-gc rounded-[var(--radius-card)] px-3 py-2.5 text-left ${
-                on
-                  ? "nv-on shadow-[var(--e2)]"
-                  : ""
+                on ? "nv-pick" : ""
               }`}
             >
               {/* Stacked, not "$6.99 A MONTH" on one line. Side by side, the
                   cadence broke across two lines inside a 320px tile — §7's
                   no-two-line-clickable-text rule, and it is the same three-line
-                  tile the /welcome plans screen already uses. */}
+                  tile the /welcome plans screen already uses.
+
+                  The tick sits on the price line, where the figure GET PRO is
+                  about to charge is. */}
+              <span className="flex items-start justify-between gap-2">
+                <span
+                  className={`tnum block text-base font-extrabold ${
+                    on ? "text-[var(--text-primary)]" : "text-[var(--text-secondary)]"
+                  }`}
+                >
+                  {formatPrice(p.priceCents)}
+                </span>
+                <PickMark on={on} size={18} className="mt-0.5" />
+              </span>
               <span
-                className={`tnum block text-base font-extrabold ${
-                  on ? "text-[var(--text-primary)]" : "text-[var(--text-secondary)]"
+                className={`block text-2xs font-bold tracking-[0.1em] ${
+                  on ? "text-[var(--text-secondary)]" : "text-[var(--text-tertiary)]"
                 }`}
               >
-                {formatPrice(p.priceCents)}
-              </span>
-              <span className="block text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]">
                 {monthly ? "A MONTH" : "A YEAR"}
               </span>
               {/* The comparison is carried by BOTH tiles. A yearly plan that

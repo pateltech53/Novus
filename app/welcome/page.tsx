@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ENTER, SETTLE_SPRING, useStill } from "@/components/ui/Motion";
 import { FounderPortrait } from "@/components/FounderAvatar";
+import { PickMark } from "@/components/ui/PickMark";
 import { play } from "@/lib/sound";
 import { LoopExplainer } from "@/components/LoopExplainer";
 import { PrimaryButton, StepShell } from "@/components/StepShell";
@@ -614,19 +615,28 @@ function PlansSheet({ onDone, leaving }: { onDone: () => void; leaving: boolean 
                           setPlan(p);
                         }}
                         className={`nv-gc rounded-[var(--radius-card)] px-3 py-2 text-left ${
-                          on
-                            ? "nv-on shadow-[var(--e2)]"
-                            : ""
+                          on ? "nv-pick" : ""
                         }`}
                       >
+                        {/* The tick rides beside the price rather than under
+                            it: this tile is what CHOOSE PRO below will charge,
+                            and the two things a player needs to see together
+                            are the figure and whether it is the chosen one. */}
+                        <span className="flex items-start justify-between gap-2">
+                          <span
+                            className={`tnum block text-base font-extrabold ${
+                              on ? "text-[var(--text-primary)]" : "text-[var(--text-secondary)]"
+                            }`}
+                          >
+                            {formatPrice(p.priceCents)}
+                          </span>
+                          <PickMark on={on} size={18} className="mt-0.5" />
+                        </span>
                         <span
-                          className={`tnum block text-base font-extrabold ${
-                            on ? "text-[var(--text-primary)]" : "text-[var(--text-secondary)]"
+                          className={`block text-2xs font-bold tracking-[0.1em] ${
+                            on ? "text-[var(--text-secondary)]" : "text-[var(--text-tertiary)]"
                           }`}
                         >
-                          {formatPrice(p.priceCents)}
-                        </span>
-                        <span className="block text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]">
                           {monthly ? "A MONTH" : "A YEAR"}
                         </span>
                         <span className="tnum mt-0.5 block text-2xs text-[var(--text-tertiary)]">
