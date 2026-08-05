@@ -132,9 +132,11 @@ function IslandsPage() {
    */
   const bySlot = new Map(islands.map((i) => [i.slot, i]));
   const occupiedThrough = islands.reduce((n, i) => Math.max(n, i.slot + 1), 0);
-  const base = Math.max(occupiedThrough, canFound ? 2 : 0);
-  const extra = canFound ? (base === occupiedThrough ? 1 : 0) : pro ? 0 : 1;
-  const places = Math.min(ISLAND_CAP, base + extra);
+  const floor = Math.max(occupiedThrough, canFound ? 2 : 0);
+  const extra = canFound ? (floor === occupiedThrough ? 1 : 0) : pro ? 0 : 1;
+  const places = Math.min(ISLAND_CAP, floor + extra);
+  /* How big an island is drawn, given how many are sharing the water. */
+  const islandSize = baseSizeFor(places);
 
   const enter = useCallback(
     (slot: number) => {
@@ -264,6 +266,7 @@ function IslandsPage() {
                       <SeaIsland
                         island={island}
                         depth={spot.depth}
+                        base={islandSize}
                         current={slot === game.island}
                         onOpen={() => {
                           play("click");
@@ -275,11 +278,16 @@ function IslandsPage() {
                       <SeaEmpty
                         slot={slot}
                         depth={spot.depth}
+                        base={islandSize}
                         busy={opening}
                         onFound={() => found(slot)}
                       />
                     ) : (
-                      <SeaLocked depth={spot.depth} onAsk={() => upgrade.open("islands")} />
+                      <SeaLocked
+                        depth={spot.depth}
+                        base={islandSize}
+                        onAsk={() => upgrade.open("islands")}
+                      />
                     )}
                   </motion.div>
                 );
@@ -370,16 +378,41 @@ function Label({
   );
 }
 
-const BASE_SIZE = 116;
+/**
+ * The near island's width in px, before `depth` scales it back for the ones
+ * further out — and it depends on how many islands there are.
+ *
+ * A fixed size has to be the size that survives the WORST case, which is ten
+ * islands on a 390px phone. Everyone then pays for that: the player with one
+ * company, which is most of them on most days, gets a lone island drawn at the
+ * size that keeps ten from colliding, adrift in an ocean with nothing else in
+ * it. The screen is emptiest exactly when the islands could afford to be
+ * biggest.
+ *
+ * So the scene breathes. Two companies get a big, close archipelago; ten get a
+ * wider, smaller one, which is what an archipelago of ten looks like anyway.
+ *
+ * Linear rather than anything cleverer, because the constraint it is dodging
+ * is linear: the names sit in a fixed 13ch column under each island, and what
+ * runs out is the horizontal gap between two captions. The bounds are measured
+ * — 185 is where two islands stop being comfortable at 390px, 113 is where ten
+ * stop overlapping — so both are numbers to re-measure if SEA_POSITIONS moves,
+ * not constants to taste.
+ */
+const baseSizeFor = (places: number): number =>
+  Math.round(Math.min(185, Math.max(113, 185 - (places - 2) * 9)));
 
 function SeaIsland({
   island,
   depth,
+  base,
   current,
   onOpen,
 }: {
   island: IslandSummary;
   depth: number;
+  /** The near-island size for THIS archipelago — see `baseSizeFor`. */
+  base: number;
   current: boolean;
   onOpen: () => void;
 }) {
@@ -416,7 +449,7 @@ function SeaIsland({
           stage={clampStage(island.stage)}
           alive={island.alive}
           seed={island.seed}
-          size={Math.round(BASE_SIZE * depth)}
+          size={Math.round(base * depth)}
         />
       </span>
       <Label
@@ -436,15 +469,17 @@ function SeaIsland({
 function SeaEmpty({
   slot,
   depth,
+  base,
   busy,
   onFound,
 }: {
   slot: number;
   depth: number;
+  base: number;
   busy: boolean;
   onFound: () => void;
 }) {
-  const size = Math.round(BASE_SIZE * depth);
+  const size = Math.round(base * depth);
   return (
     <button
       type="button"
@@ -471,8 +506,16 @@ function SeaEmpty({
   );
 }
 
-function SeaLocked({ depth, onAsk }: { depth: number; onAsk: () => void }) {
-  const size = Math.round(BASE_SIZE * depth);
+function SeaLocked({
+  depth,
+  base,
+  onAsk,
+}: {
+  depth: number;
+  base: number;
+  onAsk: () => void;
+}) {
+  const size = Math.round(base * depth);
   return (
     <button
       type="button"
@@ -582,7 +625,7 @@ function Gallery({
                     stage={clampStage(island.stage)}
                     alive={island.alive}
                     seed={island.seed}
-                    size={188}
+                    size={236}
                   />
                 </span>
               </motion.div>

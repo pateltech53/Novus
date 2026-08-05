@@ -140,7 +140,13 @@ export function Sea({ className = "" }: { className?: string }) {
  *
  * Two lanes are kept clear, because two things share this water with the
  * islands: the title along the top edge, and the boat carrying the small
- * print at the bottom. Nothing sits above y=12 or below y=72.
+ * print at the bottom. Nothing sits above y=13 or below y=72.
+ *
+ * Nothing sits past x=87 either. The name under an island is a fixed 13ch
+ * column centred on it, so an island close enough to the edge to fit is still
+ * one whose CAPTION gets clipped — and the caption is the part that says which
+ * company it is. That margin is in label widths, not island widths, so it does
+ * not move when BASE_SIZE does.
  */
 export const SEA_POSITIONS: readonly { x: number; y: number; depth: number }[] = [
   { x: 27, y: 57, depth: 1.0 },
@@ -149,8 +155,8 @@ export const SEA_POSITIONS: readonly { x: number; y: number; depth: number }[] =
   { x: 66, y: 62, depth: 0.86 },
   { x: 45, y: 44, depth: 0.64 },
   { x: 9, y: 38, depth: 0.56 },
-  { x: 58, y: 12, depth: 0.46 },
-  { x: 90, y: 21, depth: 0.48 },
-  { x: 89, y: 52, depth: 0.58 },
+  { x: 56, y: 13, depth: 0.46 },
+  { x: 87, y: 22, depth: 0.48 },
+  { x: 87, y: 52, depth: 0.58 },
   { x: 40, y: 71, depth: 0.52 },
 ];
