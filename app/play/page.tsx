@@ -22,6 +22,7 @@ import { usePlayChrome, type NativeControlId } from "@/components/native/usePlay
 import { useNativeSheet } from "@/components/native/useNativeSheet";
 import { useNativeTermCoach } from "@/components/native/useNativeTermCoach";
 import { useBackHandler } from "@/lib/native/back";
+import { WorkspaceSlot } from "@/components/screens/Workspace";
 import { useNativeCoachRect } from "@/lib/native/chrome";
 import { Coachmarks, firstRunSteps } from "@/components/Coachmarks";
 
@@ -159,6 +160,11 @@ function PlayScreen() {
   const impact = useImpact();
 
   const [activity, setActivity] = useState<ActivityTab | null>(null);
+  // The centre column's working area, handed to the activity screens so they
+  // can render into it instead of over the page. A state node rather than a
+  // ref: the portal has to re-render once the div exists, and a ref does not
+  // tell React that it now does.
+  const [workspaceEl, setWorkspaceEl] = useState<HTMLDivElement | null>(null);
 
   /**
    * "home" means "the phone is open with no destination" — it unlocks to the
@@ -602,9 +608,37 @@ function PlayScreen() {
         >
           <LogButton month={run.month} year={run.year} onOpen={() => setLogOpen(true)} />
         </div>
-        {/* The centre column's own slack, so the decision and ADVANCE sit
-            where they always did rather than floating at the top. */}
-        <div className="hidden flex-1 lg:block" />
+        {/*
+          The centre column's own slack, so the decision and ADVANCE sit where
+          they always did rather than floating at the top.
+
+          On the phone that slack is a few pixels. On desktop it is most of a
+          1000px column, and this is what fills it: the workspace. Clicking a
+          row in the left rail opens that activity here, between the books and
+          the clock, instead of throwing a modal over the layout the rail lives
+          in — see components/screens/Workspace.tsx.
+
+          With nothing open it states its own condition rather than sitting
+          blank, since an empty column this size reads as a screen that failed
+          to load. It says nothing at all while a decision is up, because the
+          sheet is then the thing being read.
+        */}
+        <div ref={setWorkspaceEl} className="hidden min-h-0 flex-1 lg:flex lg:flex-col">
+          {!activity && !current && run.alive ? (
+            <div className="flex flex-1 items-center justify-center px-6">
+              <div className="max-w-[24rem] text-center">
+                <div className="text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
+                  {atGate ? "THE YEAR IS UP" : "NOTHING ON THE TABLE"}
+                </div>
+                <p className="mt-2 text-sm text-[var(--text-secondary)]">
+                  {atGate
+                    ? "Twelve months, banked. Close the year and see what they bought you."
+                    : "Nobody needs you this minute. Advance the month and that will change."}
+                </p>
+              </div>
+            </div>
+          ) : null}
+        </div>
 
         {domChrome ? (
           <>
@@ -729,6 +763,7 @@ function PlayScreen() {
         │ not steps in a flow, and mode="wait" would make closing one delay
         │ opening the next.
         */}
+      <WorkspaceSlot.Provider value={workspaceEl}>
       <AnimatePresence>
       {/* ── Each tab is a full screen now, not a list of options ─────────── */}
       {activity === "company" && <CompanyScreen key="company" onClose={() => setActivity(null)} />}
@@ -767,6 +802,7 @@ function PlayScreen() {
       {showBoard && <StillStandingScreen key="board" onClose={() => setShowBoard(false)} />}
       {logOpen && <LogSheet key="log" run={run} onClose={() => setLogOpen(false)} />}
       </AnimatePresence>
+      </WorkspaceSlot.Provider>
 
       {/* Fires the moment a stage promotion opens a new tier. It sits above
           the year-end statement on purpose: the wardrobe is the reward for

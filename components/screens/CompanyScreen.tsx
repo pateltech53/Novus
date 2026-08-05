@@ -79,6 +79,7 @@ export function CompanyScreen({ onClose }: { onClose: () => void }) {
     <ScreenSheet
       label={`${run.companyName} — company detail`}
       closeLabel="Close the company sheet"
+      workspace
       onClose={onClose}
       eyebrow={`${industry.name.toUpperCase()} · ${STAGE_NAME[run.stage].toUpperCase()}`}
       title={run.companyName}

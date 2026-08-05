@@ -140,6 +140,7 @@ export function AssetsScreen({
     <ScreenSheet
       label="Assets"
       closeLabel="Close assets"
+      workspace
       onClose={onClose}
       title="Assets"
       blurb={TAB_LINE[kind]}

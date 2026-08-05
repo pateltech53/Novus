@@ -39,6 +39,7 @@ export function ProductScreen({ onClose }: { onClose: () => void }) {
     <ScreenSheet
       label={`${run.companyName} — ${spec.reportLabel.toLowerCase()}`}
       closeLabel="Close the product sheet"
+      workspace
       onClose={onClose}
       title={spec.nounPlural}
       blurb="What you made, what you charged, and how each one is doing."
