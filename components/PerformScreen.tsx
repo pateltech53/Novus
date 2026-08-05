@@ -504,7 +504,7 @@ export function PerformScreen() {
              * to zero, but the two are edited independently and stating the
              * shrink means removing the overflow cannot quietly restore it.
              */
-            className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pt-[max(2rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+            className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pt-[max(2rem,var(--nv-safe-top))] pb-[max(1.5rem,var(--nv-safe-bottom))]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -652,7 +652,7 @@ export function PerformScreen() {
               permission, ready and recording, because the stream binds to it
               once, when the camera opens.
             */}
-            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pt-[max(1rem,env(safe-area-inset-top))]">
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pt-[max(1rem,var(--nv-safe-top))]">
               <div className="mx-auto flex w-full max-w-2xl flex-col">
                 <SharkStage
                   state={sharkState}
@@ -740,7 +740,7 @@ export function PerformScreen() {
               dragMomentum={false}
               whileDrag={{ scale: 1.04 }}
               aria-label="Your camera — drag to move"
-              className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] z-20 h-44 w-32 cursor-grab overflow-hidden rounded-[var(--radius-card)] bg-black shadow-[var(--e4)] ring-1 ring-white/25 active:cursor-grabbing sm:h-52 sm:w-40"
+              className="absolute right-4 top-[max(1rem,var(--nv-safe-top))] z-20 h-44 w-32 cursor-grab overflow-hidden rounded-[var(--radius-card)] bg-black shadow-[var(--e4)] ring-1 ring-white/25 active:cursor-grabbing sm:h-52 sm:w-40"
               style={{ touchAction: "none" }}
             >
               <video
@@ -766,7 +766,7 @@ export function PerformScreen() {
               )}
             </motion.div>
 
-            <div className="shrink-0 px-6 pt-3 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+            <div className="shrink-0 px-6 pt-3 pb-[max(1.5rem,var(--nv-safe-bottom))]">
               <div className="mx-auto w-full max-w-2xl">
               {error && (
                 <p className="mb-3 text-sm leading-snug text-[var(--alert)]">{error}</p>

@@ -148,7 +148,7 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
       {/* Centred column on desktop rather than a stretched sheet. The top pad
           clears the native toolbar where there is one, and is the plain safe
           area everywhere else — `--nv-overlay-top` is 0 off iOS. */}
-      <div className="mx-auto w-full max-w-lg px-5 pt-[max(1.25rem,env(safe-area-inset-top),var(--nv-overlay-top))] pb-[max(2.5rem,env(safe-area-inset-bottom),calc(var(--nv-overlay-bottom)+1rem))]">
+      <div className="mx-auto w-full max-w-lg px-5 pt-[max(1.25rem,var(--nv-safe-top),var(--nv-overlay-top))] pb-[max(2.5rem,var(--nv-safe-bottom),calc(var(--nv-overlay-bottom)+1rem))]">
         <div className="flex items-center justify-between">
           {/* UIKit draws both of these when it owns the screen. Not rendered
               rather than hidden: a hidden button still takes a tap on iOS. */}

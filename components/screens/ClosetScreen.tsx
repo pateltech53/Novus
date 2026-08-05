@@ -146,7 +146,7 @@ export function ClosetScreen({
       */}
       <Glass
         as="header"
-        className="sticky top-0 z-10 px-5 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3"
+        className="sticky top-0 z-10 px-5 pt-[max(0.75rem,var(--nv-safe-top))] pb-3"
       >
         <div className="mx-auto flex w-full max-w-md items-center justify-between">
           <h1 className="text-xl font-extrabold tracking-[-0.01em]">The Closet</h1>
@@ -160,7 +160,7 @@ export function ClosetScreen({
         </div>
       </Glass>
 
-      <div className="mx-auto w-full max-w-md px-5 pt-4 pb-[max(2rem,env(safe-area-inset-bottom))]">
+      <div className="mx-auto w-full max-w-md px-5 pt-4 pb-[max(2rem,var(--nv-safe-bottom))]">
 
         {/* Who you are right now. */}
         <section className="mt-4 flex flex-col items-center rounded-[var(--radius-card)] bg-[var(--surface)] p-5 shadow-[var(--e2)]">

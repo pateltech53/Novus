@@ -78,7 +78,7 @@ export function LegalSheet({
           )}
         </header>
 
-        <div className="overflow-y-auto overscroll-contain px-5 pt-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+        <div className="overflow-y-auto overscroll-contain px-5 pt-4 pb-[max(1.5rem,var(--nv-safe-bottom))]">
           {doc.sections.map((s) => (
             <section key={s.heading} className="mb-6 last:mb-0">
               <h3 className="text-sm font-extrabold tracking-[-0.01em]">

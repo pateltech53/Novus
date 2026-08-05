@@ -307,14 +307,13 @@ function IslandsPage() {
               underneath it — nothing here is tappable.
             */}
             {/*
-              The top pad is the safe area PLUS a gap, never the larger of the
-              two. `max(1.5rem, safe-area)` reads as breathing room on a
-              browser, where the inset is 0 and 24px is the gap — and as none
-              at all on a phone, where the inset is ~59px and swallows the
-              whole thing, so YOUR ISLANDS came out tight against the clock.
-              An inset is where the screen starts, not where the type does.
+              A whole extra rem on top of `--nv-safe-top`, which already clears
+              the island. This is a title on open water with nothing above it,
+              and the gap is composition rather than clearance — the eyebrow
+              wants to read as floating on the sea, not as pinned to the top of
+              the phone.
             */}
-            <header className="pointer-events-none absolute inset-x-0 top-0 z-10 px-6 pt-[calc(max(1.5rem,env(safe-area-inset-top,0px))+1.5rem)]">
+            <header className="pointer-events-none absolute inset-x-0 top-0 z-10 px-6 pt-[max(2.5rem,calc(var(--nv-safe-top)+1rem))]">
               <p className="text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]">
                 YOUR ISLANDS
               </p>
@@ -391,7 +390,7 @@ function IslandsPage() {
               one, versus tomorrow — and a screen that says "you have hit the
               limit" without saying which is how a player buys the wrong fix.
             */}
-            <div className="pointer-events-none absolute inset-x-0 bottom-[max(1.75rem,env(safe-area-inset-bottom))] z-10 flex justify-center px-6">
+            <div className="pointer-events-none absolute inset-x-0 bottom-[max(1.75rem,var(--nv-safe-bottom))] z-10 flex justify-center px-6">
               <Boat className="nv-bob pointer-events-auto max-w-[22rem]">
                 <p className="text-2xs leading-relaxed text-[var(--text-secondary)]">
                   {pro ? `Up to ${ISLAND_CAP} at once.` : `${cap} at once on free.`} Each
@@ -675,7 +674,7 @@ function Gallery({
       /* The pads clear whatever chrome is actually there: the safe area plus a
          gap on the web, and the measured height of the UIKit toolbar and dock
          where UIKit drew them. `--nv-overlay-*` is 0 everywhere else. */
-      className="relative mx-auto flex min-h-dvh w-full max-w-lg flex-col px-5 pt-[max(calc(env(safe-area-inset-top,0px)+1.5rem),calc(var(--nv-overlay-top)+0.75rem))] pb-[max(calc(env(safe-area-inset-bottom,0px)+1.5rem),calc(var(--nv-overlay-bottom)+0.75rem))]"
+      className="relative mx-auto flex min-h-dvh w-full max-w-lg flex-col px-5 pt-[max(1.5rem,var(--nv-safe-top),calc(var(--nv-overlay-top)+0.75rem))] pb-[max(1.5rem,var(--nv-safe-bottom),calc(var(--nv-overlay-bottom)+0.75rem))]"
     >
       {/* UIKit carries this in the leading cluster when it owns the screen. */}
       {native ? null : (

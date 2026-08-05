@@ -46,7 +46,7 @@ export function YearEndStatement({ summary }: { summary: YearEndSummary }) {
   return (
     <div className="fixed inset-0 z-[70] overflow-y-auto bg-[var(--bg)]">
       <motion.div
-        className="mx-auto w-full max-w-lg px-6 pt-[max(2rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))]"
+        className="mx-auto w-full max-w-lg px-6 pt-[max(2rem,var(--nv-safe-top))] pb-[max(2rem,var(--nv-safe-bottom))]"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...ENTER }}

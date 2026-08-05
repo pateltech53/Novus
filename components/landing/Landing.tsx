@@ -120,7 +120,7 @@ export function Landing() {
       {/* ── 1 · The stage ─────────────────────────────────────────────────── */}
       <header data-live-3d className="nv-stage relative overflow-hidden">
         <div className="mx-auto w-full max-w-6xl px-6 lg:px-10">
-          <div className="flex items-baseline justify-between pt-[max(1.5rem,env(safe-area-inset-top))]">
+          <div className="flex items-baseline justify-between pt-[max(1.5rem,var(--nv-safe-top))]">
             <p className="text-sm font-extrabold tracking-[0.24em]">NOVUS</p>
             <p className="tnum hidden text-2xs font-bold tracking-[0.14em] text-[var(--text-tertiary)] sm:block">
               FREE TO PLAY · PRO OPTIONAL
@@ -294,7 +294,7 @@ export function Landing() {
       </section>
 
       {/* ── 6 · Close ─────────────────────────────────────────────────────── */}
-      <footer className="mx-auto w-full max-w-6xl px-6 pb-[max(3rem,env(safe-area-inset-bottom))] pt-16 lg:px-10 lg:pt-24">
+      <footer className="mx-auto w-full max-w-6xl px-6 pb-[max(3rem,var(--nv-safe-bottom))] pt-16 lg:px-10 lg:pt-24">
         <div className="border-t border-[var(--hairline)] pt-10 lg:pt-14">
           <p className="text-[2rem] font-extrabold leading-none tracking-[-0.03em] lg:text-[2.75rem]">
             Found something.

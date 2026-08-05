@@ -426,7 +426,7 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
         <div
           ref={bodyRef}
           onScroll={onScroll}
-          className="min-h-0 flex-1 overflow-y-auto px-3 pt-2 pb-[max(1rem,env(safe-area-inset-bottom),var(--nv-overlay-bottom))]"
+          className="min-h-0 flex-1 overflow-y-auto px-3 pt-2 pb-[max(1rem,var(--nv-safe-bottom),var(--nv-overlay-bottom))]"
         >
           {loading && <Note>Reading the board…</Note>}
 

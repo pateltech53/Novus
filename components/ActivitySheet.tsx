@@ -68,7 +68,7 @@ export function ActivitySheet({
             role="dialog"
             aria-modal="true"
             aria-label={TAB_COPY[tab].title}
-            className="relative flex max-h-[min(88dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] w-full max-w-2xl flex-col overflow-y-auto rounded-t-[var(--radius-sheet)] bg-[var(--sheet)] pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[var(--e3)]"
+            className="relative flex max-h-[min(88dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] w-full max-w-2xl flex-col overflow-y-auto rounded-t-[var(--radius-sheet)] bg-[var(--sheet)] pb-[max(1rem,var(--nv-safe-bottom))] shadow-[var(--e3)]"
             initial={{ y: "8%", opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: "8%", opacity: 0, transition: EXIT }}
