@@ -284,6 +284,26 @@ export interface NovusGlassPlugin {
     event: "overlayInsets",
     fn: (data: OverlayInsets) => void,
   ): Promise<PluginListenerHandle>;
+  /**
+   * The sheet is on screen — sent from the controller's own `viewDidAppear`.
+   *
+   * The web layer needs this because `presentSheet` resolving means only that
+   * the bridge took the call. UIKit refuses to present onto a controller that
+   * is already presenting, and it refuses SILENTLY: no throw, no completion,
+   * one line in the console. The card then exists in the engine and nowhere
+   * else — the play chrome has withdrawn because a decision is open, and the
+   * DOM sheet is not rendered behind a native one, so the screen is the
+   * background and nothing at all to press.
+   *
+   * So presentation is confirmed rather than assumed. No confirmation inside
+   * `PRESENT_TIMEOUT_MS` and the web draws the card itself, which is also what
+   * makes an app running an older native binary — one that never sends this —
+   * fall back cleanly instead of dead-ending.
+   */
+  addListener(
+    event: "sheetPresented",
+    fn: (data: { id: string }) => void,
+  ): Promise<PluginListenerHandle>;
   addListener(
     event: "sheetChoice",
     fn: (data: { id: string; index: number }) => void,

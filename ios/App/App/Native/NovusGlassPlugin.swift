@@ -204,6 +204,18 @@ public class NovusGlassPlugin: CAPPlugin, CAPBridgedPlugin {
             }
 
             let controller = GlassSheetController(spec: spec)
+            /*
+             The only honest signal that the card is on screen.
+
+             `call.resolve()` below means the bridge took the call and nothing
+             more. UIKit refuses to present onto a controller that is already
+             presenting, and it refuses silently — so the web layer cannot
+             infer presentation from anything this method returns. It waits for
+             this instead, and draws the card itself if it never comes.
+             */
+            controller.onPresented = { [weak self] id in
+                self?.notifyListeners("sheetPresented", data: ["id": id])
+            }
             controller.onChoose = { [weak self] id, index in
                 self?.sheet = nil
                 self?.notifyListeners("sheetChoice", data: ["id": id, "index": index])
@@ -237,6 +249,12 @@ public class NovusGlassPlugin: CAPPlugin, CAPBridgedPlugin {
              one and presenting the new one 50ms later. An animated dismissal
              takes about five times that, so the second card lost the race with
              the first card's exit whenever the engine queued two.
+
+             Waiting for the dismissal is what makes THIS site correct. It does
+             not make the outcome certain, which is why the controller reports
+             `sheetPresented` and the web holds a watchdog on it: the two
+             together are what turn "the card did not appear" from a dead run
+             into a card drawn one material down.
              */
             let present: () -> Void = { [weak self] in
                 guard let self else { return }
@@ -245,19 +263,9 @@ public class NovusGlassPlugin: CAPPlugin, CAPBridgedPlugin {
                 // own entrance so the backdrop and the panel can move
                 // independently.
                 host.present(controller, animated: false)
-
-                // Checked on the next turn of the runloop, which is after UIKit
-                // has decided. A rejection is not a failure the player sees:
-                // the web side answers it by rendering its own sheet, which is
-                // the same card in the same words on a material one step down.
-                DispatchQueue.main.async {
-                    if controller.presentingViewController == nil {
-                        if self.sheet === controller { self.sheet = nil }
-                        call.reject("The sheet could not be presented")
-                    } else {
-                        call.resolve()
-                    }
-                }
+                // Resolving says the call was taken, and deliberately claims
+                // nothing more. `sheetPresented` is what says it worked.
+                call.resolve()
             }
 
             if let existing = self.sheet {

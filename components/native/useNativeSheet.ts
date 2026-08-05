@@ -76,26 +76,44 @@ function build(options: NativeSheetOptions, theme: "light" | "dark"): NativeShee
   };
 }
 
+/**
+ * How long the web waits for UIKit to say the card is on screen.
+ *
+ * Not a latency target: a sheet that is coming confirms itself in a frame or
+ * two. This is the line past which "still arriving" and "never arriving" stop
+ * being worth telling apart, set well clear of a cold first present on a slow
+ * device — the cost of being wrong is a card drawn in the DOM instead of in
+ * glass, and the cost of not having it is a month nobody can answer.
+ */
+const PRESENT_TIMEOUT_MS = 1200;
+
 /** True when UIKit is presenting the card, so React must not. */
 export function useNativeSheet(options: NativeSheetOptions): boolean {
   const owned = useNativeChromeOwned();
   const theme = useResolvedTheme();
 
   /**
-   * The native sheet turned a card down, so the DOM one takes over.
+   * The native renderer did not put a card on screen, so the DOM one takes
+   * over — for good, on this screen.
    *
-   * There is no such thing as "the card did not appear" for a player: the play
-   * chrome withdraws while a decision is open and the DOM sheet is not
-   * rendered behind a native one, so a presentation that silently fails is a
+   * ── Why this is not paranoia ────────────────────────────────────────────
+   *
+   * "The card did not appear" has no visible form for a player. The play
+   * chrome withdraws whenever a decision is open, and the DOM sheet is not
+   * rendered behind a native one — so a presentation that does not happen is a
    * month with a decision in it, nothing on screen to answer it with, and no
-   * chrome to do anything else either. The game is simply over, on a screen
-   * that looks fine.
+   * chrome to do anything else with either. The screen is the background
+   * colour and one disabled button. The game is over and nothing looks broken.
    *
-   * `presentSheet` rejects rather than failing quietly now (see
-   * NovusGlassPlugin), and this is what that rejection buys: the same card in
-   * the same words, one material down. Sticky for the rest of this screen's
-   * life — a renderer that has refused one card is not the one to trust with
-   * the next.
+   * And it can happen quietly. `presentSheet` resolving means the bridge took
+   * the call, nothing more; UIKit refuses to present onto a controller that is
+   * already presenting and it refuses without a throw, a completion or an
+   * error. So resolution is not evidence. Only `sheetPresented` is, because
+   * the controller sends it from its own `viewDidAppear`.
+   *
+   * Sticky, because a renderer that has dropped one card is not the one to
+   * hand the next one to — and because flipping back and forth mid-run would
+   * change what a decision looks like between one month and the next.
    */
   const [refused, setRefused] = useState(false);
 
@@ -104,6 +122,16 @@ export function useNativeSheet(options: NativeSheetOptions): boolean {
 
   /** The id currently on screen, so a re-render does not re-present it. */
   const presented = useRef<string | null>(null);
+  /** The id UIKit has confirmed is actually visible. */
+  const confirmed = useRef<string | null>(null);
+  const watchdog = useRef<number | null>(null);
+
+  const clearWatchdog = () => {
+    if (watchdog.current !== null) {
+      window.clearTimeout(watchdog.current);
+      watchdog.current = null;
+    }
+  };
 
   useEffect(() => {
     if (!owned) return;
@@ -130,6 +158,11 @@ export function useNativeSheet(options: NativeSheetOptions): boolean {
     const answering = (id: string) => presented.current === id;
 
     void (async () => {
+      await add<{ id: string }>("sheetPresented", (d) => {
+        if (presented.current !== d.id) return;
+        confirmed.current = d.id;
+        clearWatchdog();
+      });
       await add<{ id: string; index: number }>("sheetChoice", (d) => {
         if (!answering(d.id)) return;
         presented.current = null;
@@ -163,8 +196,10 @@ export function useNativeSheet(options: NativeSheetOptions): boolean {
     if (!live) return;
 
     if (!id) {
+      clearWatchdog();
       if (presented.current !== null) {
         presented.current = null;
+        confirmed.current = null;
         NovusGlass.dismissSheet().catch(() => {});
       }
       return;
@@ -172,14 +207,40 @@ export function useNativeSheet(options: NativeSheetOptions): boolean {
 
     if (presented.current === id) return;
     presented.current = id;
+    confirmed.current = null;
     const current = build(optionsRef.current, theme);
-    if (current)
-      NovusGlass.presentSheet(current).catch(() => {
-        // UIKit would not put it on screen. Hand the card back to the DOM
-        // rather than leave the player looking at a month they cannot answer.
-        presented.current = null;
-        setRefused(true);
-      });
+    if (!current) return;
+
+    const giveUp = () => {
+      // Whatever went wrong over there, the player is owed a card. Take down
+      // anything half-presented first: a native backdrop left frosting the
+      // webview would sit on top of the sheet React is about to draw, which
+      // is the same blank screen with more steps.
+      watchdog.current = null;
+      presented.current = null;
+      confirmed.current = null;
+      NovusGlass.dismissSheet().catch(() => {});
+      setRefused(true);
+    };
+
+    NovusGlass.presentSheet(current).catch(giveUp);
+
+    /*
+     * Armed on every card, disarmed by `sheetPresented`.
+     *
+     * The budget is deliberately loose. A sheet that is genuinely coming
+     * announces itself in a frame or two — this is not a latency target, it is
+     * the line past which "still arriving" and "never arriving" stop being
+     * worth telling apart, and the cost of guessing wrong is one card drawn in
+     * the DOM instead of UIKit.
+     *
+     * It is also what makes an older native binary safe. Nothing before this
+     * change sends `sheetPresented`, so an app whose web layer updated ahead of
+     * its shell simply falls through to the DOM sheet after the timeout rather
+     * than showing a month nobody can answer.
+     */
+    clearWatchdog();
+    watchdog.current = window.setTimeout(giveUp, PRESENT_TIMEOUT_MS);
     // Only the identity of the card matters here. Rebuilding the spec on every
     // render would re-present the same sheet and cut its own entrance short.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -189,7 +250,9 @@ export function useNativeSheet(options: NativeSheetOptions): boolean {
   useEffect(() => {
     if (!owned) return;
     return () => {
+      clearWatchdog();
       presented.current = null;
+      confirmed.current = null;
       NovusGlass.dismissSheet().catch(() => {});
     };
   }, [owned]);

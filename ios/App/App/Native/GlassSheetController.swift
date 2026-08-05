@@ -67,6 +67,17 @@ final class GlassSheetController: UIViewController, UIScrollViewDelegate {
     var onChoose: ((String, Int) -> Void)?
     var onAction: ((String) -> Void)?
     var onDismissed: ((String) -> Void)?
+    /**
+     Fired once, from `viewDidAppear`, when this sheet is genuinely on screen.
+
+     The web layer cannot tell a presented sheet from a refused one otherwise.
+     `present` onto a controller that is already presenting does nothing and
+     says nothing — no throw, no completion, one console line — and a card that
+     never appears is a month the player cannot answer on a screen where the
+     chrome has already withdrawn. This is the only honest evidence there is,
+     so it is the evidence the web waits for.
+     */
+    var onPresented: ((String) -> Void)?
 
     private let spec: SheetSpec
     private var answered = false
@@ -129,6 +140,10 @@ final class GlassSheetController: UIViewController, UIScrollViewDelegate {
         syncHeader()
         guard !enteredOnce else { return }
         enteredOnce = true
+        // Before the entrance animation, not after it: the web is holding a
+        // watchdog open, and what it is waiting to hear is "this exists", not
+        // "this has finished moving".
+        onPresented?(spec.id)
         // Presented without animation so the two halves can be choreographed:
         // the backdrop fades while the panel springs, which is what a sheet
         // over a live screen does and what a plain cover-vertical does not.
