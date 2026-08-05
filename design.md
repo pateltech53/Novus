@@ -226,6 +226,27 @@ the hue — is what reads as generated.
 phone-app tints (`phone/Phone.tsx`) stay deliberately outside the Novus palette but must still be
 named tokens. The cosmetic swatch hexes in `lib/engine/avatar.ts` are data, not UI colour — leave them.
 
+### 1.7 An answer must be readable without the other option beside it
+
+`.nv-on` — a 16% tint — is a **comparison**. It says which of two adjacent segments is lit, and it
+only works if both are in the eye at once and the difference is the only difference.
+
+Anywhere the player is answering a **question** — who is founding the company, which industry,
+monthly or yearly — that is not enough, and §0's retirement of the CSS material made it less than
+that: the solidifier overwrites `background` and `box-shadow` at (0,3,0), so all a chosen card kept
+was `--gc-solid`. On the industry list that resolved to n-3 inside an n-4 row, i.e. the chosen
+option came out marginally **darker** than the ones it was chosen over.
+
+The answer is `.nv-pick` + `<PickMark on />`, and it is deliberately three cues, not one:
+
+- a **2px rim in `--text-primary`** — the strongest edge the system has that is not the accent,
+  which §1.5 spends on the primary CTA and nothing else
+- a fill lifted 15% toward emphasis ink, so it reads on its own rather than against its neighbour
+- a **tick in a filled disc**, because colour is never the sole carrier of a state
+
+Both halves are restated on the solid path in `globals.css`. A picked control is neutral by
+construction: an answer never wears a tone.
+
 ---
 
 ## 2 · Elevation — depth without gradients
@@ -457,6 +478,7 @@ Every screen passes before it is called done. Verify against **screenshots**, no
 - [ ] Exactly three gradients in the app. Count them.
 - [ ] Accent appears **once** per screen.
 - [ ] AA on all text; **AAA on any figure in The Books**.
+- [ ] Every chosen option is legible **on its own card** — rim, fill and tick, not a tint (§1.7).
 
 **Motion**
 - [ ] Exits ~0.66× entrances.
