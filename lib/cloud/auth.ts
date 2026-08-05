@@ -222,6 +222,10 @@ const DEVICE_KEYS = [
   // Which island was open, and the picker's cache of what is on the others.
   "novus:island:v1",
   "novus:islands:v1",
+  // The leaderboard tape, per island. Never on this list before islands, which
+  // means a shared device has always kept the previous player's tape — a
+  // record of every tap they took, left for the next person to sign in.
+  "novus:tape:v1",
   "novus:legacy:v1",
   "novus:profile:v1",
   "novus:entitlements:v1",

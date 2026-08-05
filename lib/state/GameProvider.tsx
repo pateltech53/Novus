@@ -32,6 +32,7 @@ import { callerById, consumeCall, type CallOutcome } from "@/lib/ai/callers";
 import { syncPositioning } from "@/lib/engine/positioning";
 import { TANK_REQUIRED_THROUGH_YEAR } from "@/lib/engine/constants";
 import {
+  islandCapFor,
   isPro,
   loadEntitlements,
   onEntitlementsChange,
@@ -97,7 +98,11 @@ import { hashString, runRng } from "@/lib/engine/rng";
 import { makeLine } from "@/lib/engine/log";
 import { fmtMoney } from "@/lib/engine/format";
 import {
+  activeIsland,
   clearRun,
+  firstFreeIsland,
+  flushRun,
+  listIslands,
   loadLegacy,
   loadProfile,
   loadRun,
@@ -106,6 +111,8 @@ import {
   saveProfile,
   saveRun,
   saveTable,
+  setActiveIsland,
+  type IslandSummary,
   type Profile,
 } from "@/lib/engine/save";
 
@@ -164,6 +171,16 @@ export interface PerformRequest {
 
 interface GameContextValue {
   run: RunState | null;
+  /**
+   * Which island `run` is. 0..ISLAND_CAP-1.
+   *
+   * Every write in this provider goes to this slot, so it is not decoration:
+   * it is the answer to "which company am I playing", and before islands the
+   * answer was assumed rather than held.
+   */
+  island: number;
+  /** Every company on this device, for the picker. Refreshed on every change. */
+  islands: IslandSummary[];
   profile: Profile | null;
   events: GameEvent[];
   /** Queue of decision cards surfaced by the last advance. */
@@ -181,6 +198,12 @@ interface GameContextValue {
   dismissTierUnlock(): void;
 
   startRun(opts: {
+    /**
+     * Which island to found on. Omitted means the lowest free one — which is
+     * what /found wants, and what keeps burying island 0 and founding again
+     * reuse island 0 rather than marching rightwards.
+     */
+    slot?: number;
     founderName: string;
     playerAge: number | null;
     companyName: string;
@@ -230,6 +253,17 @@ interface GameContextValue {
   markTermSeen(term: string): void;
   advanceTutorial(step: number): void;
   abandonRun(): void;
+  /**
+   * Open a different company.
+   *
+   * Flushes the one being left before touching anything — the held write in
+   * lib/engine/save.ts is coalesced over 120 ms, and a switch inside that
+   * window would otherwise drop the last decision of the island being left.
+   * Every piece of transient state is reset with the same call, because a
+   * decision card, a year-end statement or an autopsy belongs to the company
+   * that produced it and to no other.
+   */
+  switchIsland(slot: number): void;
   saveProfileFields(fields: Partial<Profile>): void;
   choicesFor(ev: GameEvent): ReturnType<typeof visibleChoices>;
   /** Activity-bar actions. These spend resources and never advance time. */
@@ -280,6 +314,18 @@ const GameContext = createContext<GameContextValue | null>(null);
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const [run, setRun] = useState<RunState | null>(null);
+  /*
+   * Which island is open, and what is on the others.
+   *
+   * `island` is mirrored into a ref for the same reason `run` is: the ~25
+   * mutation callbacks below read it out of a closure that was captured when
+   * the callback was created, and a stale slot number would write one
+   * company's state over another's. The ref is always the truth; the state is
+   * what renders.
+   */
+  const [island, setIsland] = useState(0);
+  const islandRef = useRef(0);
+  const [islands, setIslands] = useState<IslandSummary[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [queue, setQueue] = useState<GameEvent[]>([]);
   const [marketId, setMarketId] = useState<string | null>(null);
@@ -317,11 +363,18 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
     runRef.current = next;
     setRun({ ...next });
-    saveRun(next);
+    saveRun(next, islandRef.current);
+    // The picker's cards are derived from the save, so they move when it does.
+    // Cheap: listIslands() reads an index and parses nothing unless it drifted.
+    setIslands(listIslands());
   }, []);
 
   useEffect(() => {
-    const saved = loadRun();
+    const at = activeIsland();
+    islandRef.current = at;
+    setIsland(at);
+    setIslands(listIslands());
+    const saved = loadRun(at);
     if (saved) {
       // Saves written against the old skin/suit/shirt/accessory avatar have no
       // gender or tier; normalize rather than letting a portrait lookup 404.
@@ -339,7 +392,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
        * loadTable refuses anything written at a different run/year/month, so a
        * stale table cannot replay a decision the engine has already settled.
        */
-      const table = loadTable(saved);
+      const table = loadTable(saved, at);
       if (table) {
         setQueue(table.cards);
         setMarketId(table.marketId);
@@ -363,8 +416,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!hydrated) return;
     const open = !!run && (queue.length > 0 || !!yearEnd);
+    // The island is part of the identity: two companies can be at the same
+    // year and month with the same cards drawn, and a key that could not tell
+    // them apart would skip the write for the second one.
     const key = open
-      ? `${run.id}:${run.year}:${run.month}:${marketId ?? ""}:${yearEnd?.year ?? ""}:${queue
+      ? `${island}:${run.id}:${run.year}:${run.month}:${marketId ?? ""}:${yearEnd?.year ?? ""}:${queue
           .map((e) => e.id)
           .join(",")}`
       : null;
@@ -381,8 +437,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
             yearEnd,
           }
         : null,
+      island,
     );
-  }, [hydrated, run, queue, marketId, yearEnd]);
+  }, [hydrated, run, queue, marketId, yearEnd, island]);
 
   const startRun: GameContextValue["startRun"] = useCallback(
     (opts) => {
@@ -393,9 +450,24 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
        * page says you do not have.
        */
       if (runsRemainingToday() <= 0) return;
+      /*
+       * Which island this company goes on, decided BEFORE anything is written.
+       *
+       * `startTape` below keys off the island that is currently open
+       * (lib/leaderboard/recorder.ts), so the pointer has to move first or the
+       * new company's tape is written onto the one being left. `firstFreeIsland`
+       * answers null when the archipelago is full — /found checks the cap before
+       * calling, and this is the backstop that refuses rather than overwriting
+       * a company the player still has.
+       */
+      const target = opts.slot ?? firstFreeIsland(islandCapFor(loadEntitlements()));
+      if (target === null) return;
       recordRunStart();
+      islandRef.current = target;
+      setIsland(target);
+      setActiveIsland(target);
       const legacy = loadLegacy();
-      const { gender, brief, ...runOpts } = opts;
+      const { gender, brief, slot: _slot, ...runOpts } = opts;
       const next = createRun({
         ...runOpts,
         carriedRespect: legacy.sharkRespect,
@@ -734,12 +806,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       legacy.autopsies = legacy.autopsies.slice(0, 10);
       saveLegacy(legacy);
     }
-    clearRun();
     // The tape goes with the company. A player who buries this one and founds
     // another must not carry the old taps into the new tape — `record` refuses
     // a mismatched runId anyway, and this makes the intent explicit rather than
     // leaving a spent tape in storage until something overwrites it.
+    //
+    // BEFORE clearRun: the tape's key is the island that is currently open
+    // (lib/leaderboard/recorder.ts), and clearRun frees the slot.
     clearTape();
+    clearRun(islandRef.current);
+    setIslands(listIslands());
     runRef.current = null;
     setRun(null);
     setQueue([]);
@@ -945,12 +1021,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       legacy.autopsies = legacy.autopsies.slice(0, 10);
       saveLegacy(legacy);
     }
-    clearRun();
-    // The tape goes with the company. A player who buries this one and founds
-    // another must not carry the old taps into the new tape — `record` refuses
-    // a mismatched runId anyway, and this makes the intent explicit rather than
-    // leaving a spent tape in storage until something overwrites it.
+    // Tape before clearRun, for the reason abandonRun states: the tape's key
+    // is whichever island is open, and clearRun frees the slot.
     clearTape();
+    clearRun(islandRef.current);
+    setIslands(listIslands());
     runRef.current = null;
     setRun(null);
     setQueue([]);
@@ -959,6 +1034,65 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setPerform(null);
     setAtGate(false);
     setTierUnlock(null);
+  }, []);
+
+  /**
+   * Open a different company.
+   *
+   * The order here is the whole function, and each step is load-bearing:
+   *
+   *  1. `flushRun` FIRST. `saveRun` coalesces its localStorage write over
+   *     120 ms (lib/engine/save.ts), so a switch inside that window would
+   *     leave the last decision of the island being left held in a buffer that
+   *     the next `saveRun` — for a different company — is about to reuse.
+   *  2. Move the pointer BEFORE reading anything. The tape recorder keys off
+   *     the open island, and `loadRun`/`loadTable` default to it.
+   *  3. Reset every piece of transient state, unconditionally. A decision card,
+   *     a year-end statement, an autopsy or a pending pitch belongs to the
+   *     company that produced it. Carrying one across would let a player answer
+   *     island 0's card with island 2's company.
+   */
+  const switchIsland = useCallback((slot: number) => {
+    if (slot === islandRef.current && runRef.current) return;
+    flushRun();
+
+    islandRef.current = slot;
+    setIsland(slot);
+    setActiveIsland(slot);
+
+    setQueue([]);
+    setMarketId(null);
+    setYearEnd(null);
+    setPortfolioYear(null);
+    setAutopsy(null);
+    setPerform(null);
+    setAtGate(false);
+    setTierUnlock(null);
+    setLastDeltas([]);
+
+    const saved = loadRun(slot);
+    if (!saved) {
+      runRef.current = null;
+      setRun(null);
+      setIslands(listIslands());
+      return;
+    }
+
+    // Same normalisation the boot hydration does, and for the same reason: a
+    // save written against the old avatar shape has no gender or tier, and a
+    // portrait lookup must not 404 because of which door the run came in by.
+    saved.avatar = normalizeAvatar(saved.avatar);
+    runRef.current = saved;
+    setRun(saved);
+    if (!saved.alive) setAutopsy(buildAutopsy(saved));
+    if (saved.month >= 12) setAtGate(true);
+    const table = loadTable(saved, slot);
+    if (table) {
+      setQueue(table.cards);
+      setMarketId(table.marketId);
+      setYearEnd(table.yearEnd);
+    }
+    setIslands(listIslands());
   }, []);
 
   const dismissTierUnlock = useCallback(() => setTierUnlock(null), []);
@@ -1240,6 +1374,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       perform,
       atGate,
       busy,
+      island,
+      islands,
+      switchIsland,
       startRun,
       advance,
       choose,
@@ -1282,6 +1419,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }),
     [
       hydrated, run, profile, queue, marketId, yearEnd, autopsy, perform, atGate, busy,
+      island, islands, switchIsland,
       startRun, advance, choose, dismissCard, openYearGate, skipYearGate, cancelPerform, submitPerform,
       chooseAllocation, closeYearEnd, setRookieMode, markTermSeen,
       advanceTutorial, abandonRun, saveProfileFields, choicesFor, runActivity,
