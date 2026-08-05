@@ -38,7 +38,7 @@ import { OneTimeShelf } from "@/components/upgrade/OneTimeShelf";
 import { rememberPendingPro } from "@/lib/cloud/pending-pro";
 import { whenRestored } from "@/lib/cloud/sync";
 import { useSellsHere } from "@/lib/commerce";
-import { hasSavedRun, loadProfile } from "@/lib/engine/save";
+import { entryRoute } from "@/lib/entry";
 import { loadAccount } from "@/lib/account";
 import { useNavigating } from "@/lib/navigating";
 
@@ -436,12 +436,10 @@ function PricingSection() {
     // moment a player is handed a "found a new one" screen instead of the one
     // they already have (lib/entry.ts). Below that, a named account with an
     // onboarded profile skips straight to founding.
-    const dest = hasSavedRun()
-      ? "/play"
-      : loadProfile()?.onboarded
-        ? "/found"
-        : "/welcome";
-    router.push(dest);
+    // `entryRoute()` rather than a third copy of the ladder. This block and
+    // native/boot.html and lib/entry.ts were three transcriptions of one rule,
+    // and they had already drifted once — the whole reason lib/entry.ts exists.
+    router.push(entryRoute());
   };
 
   /**

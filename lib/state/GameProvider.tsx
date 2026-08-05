@@ -100,7 +100,6 @@ import { fmtMoney } from "@/lib/engine/format";
 import {
   activeIsland,
   clearRun,
-  firstFreeIsland,
   flushRun,
   listIslands,
   loadLegacy,
@@ -112,6 +111,7 @@ import {
   saveRun,
   saveTable,
   setActiveIsland,
+  slotForNewCompany,
   type IslandSummary,
   type Profile,
 } from "@/lib/engine/save";
@@ -460,7 +460,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
        * calling, and this is the backstop that refuses rather than overwriting
        * a company the player still has.
        */
-      const target = opts.slot ?? firstFreeIsland(islandCapFor(loadEntitlements()));
+      const target = opts.slot ?? slotForNewCompany(islandCapFor(loadEntitlements()));
       if (target === null) return;
       recordRunStart();
       islandRef.current = target;

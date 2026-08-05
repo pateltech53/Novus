@@ -1,15 +1,22 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { GameProvider, useGame } from "@/lib/state/GameProvider";
 import { FounderPortrait } from "@/components/FounderAvatar";
 import type { Gender } from "@/lib/engine/avatar";
 import { INDUSTRIES } from "@/lib/engine/constants";
 import type { Industry } from "@/lib/engine/types";
-import { loadProfile } from "@/lib/engine/save";
-import { isPro, loadEntitlements, onEntitlementsChange, runsRemainingToday } from "@/lib/monetization";
+import { liveIslandCount, loadProfile } from "@/lib/engine/save";
+import {
+  ISLAND_CAP,
+  islandCapFor,
+  isPro,
+  loadEntitlements,
+  onEntitlementsChange,
+  runsRemainingToday,
+} from "@/lib/monetization";
 import { useUpgrade } from "@/components/upgrade/UpgradeProvider";
 import { usePrefetch } from "@/lib/prefetch";
 import { useNavigating } from "@/lib/navigating";
@@ -19,7 +26,12 @@ import { writeBrief } from "@/lib/ai/brief";
 export default function FoundPageWrapper() {
   return (
     <GameProvider>
-      <FoundPage />
+      {/* useSearchParams needs one — this page is statically exported
+          (next.config.ts, output: "export") and the hook suspends until the
+          client knows the query. */}
+      <Suspense fallback={null}>
+        <FoundPage />
+      </Suspense>
     </GameProvider>
   );
 }
@@ -46,7 +58,23 @@ function FoundPage() {
   const router = useRouter();
   const game = useGame();
   const upgrade = useUpgrade();
-  const saved = game.run;
+  const params = useSearchParams();
+  /*
+   * Which island this company goes on.
+   *
+   * The picker sends `?island=N` when the player taps a specific empty card,
+   * so founding lands where they pointed. Reached without one — a bookmark,
+   * the onboarding hand-off — it is left undefined and `startRun` picks with
+   * `slotForNewCompany`, which is the same rule the picker used to draw the
+   * card in the first place.
+   */
+  const askedFor = Number(params.get("island"));
+  const targetSlot =
+    Number.isInteger(askedFor) && askedFor >= 0 && askedFor < ISLAND_CAP ? askedFor : undefined;
+
+  /** Companies still going, and how many are allowed. Read after mount. */
+  const [living, setLiving] = useState(0);
+  const [cap, setCap] = useState(ISLAND_CAP);
   const [companyName, setCompanyName] = useState("");
   const [industry, setIndustry] = useState<Industry>("FOOD");
   const [gender, setGender] = useState<Gender>("male");
@@ -64,8 +92,6 @@ function FoundPage() {
   const [drafts, setDrafts] = useState(3);
   const [briefOpen, setBriefOpen] = useState(false);
   const [lockedNote, setLockedNote] = useState<string | null>(null);
-  /** Armed by the first tap on FOUND IT when a company is already open. */
-  const [confirmReplace, setConfirmReplace] = useState(false);
   /** null until mounted — the ledger lives in localStorage. */
   const [slotsLeft, setSlotsLeft] = useState<number | null>(null);
   /**
@@ -101,8 +127,11 @@ function FoundPage() {
    */
   useEffect(() => {
     const sync = () => {
-      setSlotsLeft(runsRemainingToday());
-      setHasPro(isPro(loadEntitlements()));
+      const e = loadEntitlements();
+      setSlotsLeft(runsRemainingToday(e));
+      setHasPro(isPro(e));
+      setCap(islandCapFor(e));
+      setLiving(liveIslandCount());
     };
     sync();
     setProfile(loadProfile());
@@ -145,32 +174,29 @@ function FoundPage() {
 
   const start = () => {
     /*
-     * The ledger is a real calendar day and this screen can sit open across
-     * midnight in either direction, so the slot is re-counted at the tap rather
-     * than trusted from mount. Without this the confirmation below could close
-     * a live company for a founding that startRun would then refuse.
+     * ── This used to close the company you already had ────────────────────
+     *
+     * With one save, founding meant overwriting, so this screen asked twice
+     * and then called `endRun()` on a live company to make room. There is room
+     * now: a new company goes on its own island and the old one is still
+     * there when the player wants it.
+     *
+     * Both limits are re-read at the tap rather than trusted from mount. The
+     * ledger is a real calendar day and this screen can sit open across
+     * midnight in either direction, and the cap can change while it is open —
+     * buying an island happens without leaving the page.
      */
     const left = runsRemainingToday();
     setSlotsLeft(left);
     if (left <= 0) return;
 
-    if (saved && !confirmReplace) {
-      setConfirmReplace(true);
-      return;
-    }
-    /*
-     * The latch goes here and not at the top of this function, because the two
-     * branches above are not navigations — they re-count the day's slots and
-     * they arm the replace confirmation. Latching on those would put the button
-     * into "OPENING…" for a tap whose entire job was to ask a question.
-     */
-    go(() => {
-      // Close it properly first. endRun writes the company into legacy — years
-      // survived, what killed it, or that you closed it yourself — which is the
-      // whole difference between ending a run and overwriting one.
-      if (saved) game.endRun();
+    const room = liveIslandCount();
+    setLiving(room);
+    if (room >= cap) return;
 
+    go(() => {
       game.startRun({
+        slot: targetSlot,
         founderName: profile?.founderName ?? "Founder",
         playerAge: profile?.playerAge ?? null,
         companyName: companyName.trim() || "GlorpCo",
@@ -219,6 +245,8 @@ function FoundPage() {
     setBrief((b) => ({ ...b, [key]: value, source: "player" }));
 
   const valid = companyName.trim().length > 0;
+  /** Every island the allowance permits is already running a live company. */
+  const noRoom = living >= cap;
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))]">
@@ -227,28 +255,20 @@ function FoundPage() {
         one. It is the first thing on the screen because for a returning player
         it is the only thing they came for.
       */}
-      {saved && (
-        <section className="mb-6 rounded-[var(--radius-card)] bg-[var(--surface)] p-4 shadow-[var(--e1)]">
-          <p className="text-2xs font-bold tracking-[0.16em] text-[var(--text-tertiary)]">
-            {saved.alive ? "STILL OPEN" : "CHAPTER SEVEN"}
-          </p>
-          <p className="mt-1 truncate text-[1.125rem] font-extrabold leading-tight tracking-[-0.01em]">
-            {saved.companyName}
-          </p>
-          <p className="mt-0.5 text-2xs leading-snug text-[var(--text-tertiary)]">
-            {saved.alive
-              ? `Year ${saved.year}, month ${saved.month}. Right where you left it.`
-              : `It went under in year ${saved.year}. The books are still open.`}
-          </p>
-          <button
-            type="button"
-            onClick={() => resume(() => router.push("/play"))}
-            disabled={resuming}
-            className="nv-gc mt-3 h-12 w-full truncate rounded-[var(--radius-card)] nv-t-action px-5 text-sm font-extrabold tracking-[0.06em] text-[var(--n-11)] disabled:opacity-60"
-          >
-            {resuming ? "OPENING…" : saved.alive ? "CONTINUE ▸" : "READ WHAT KILLED IT ▸"}
-          </button>
-        </section>
+      {game.islands.length > 0 && (
+        <button
+          type="button"
+          onClick={() => resume(() => router.push("/islands"))}
+          disabled={resuming}
+          className="mb-5 -ml-1 flex min-h-11 items-center gap-1.5 self-start text-2xs font-bold tracking-[0.08em] text-[var(--text-secondary)] disabled:opacity-60"
+        >
+          <span aria-hidden>◂</span>
+          {resuming
+            ? "OPENING…"
+            : game.islands.length === 1
+              ? "BACK TO YOUR ISLAND"
+              : `BACK TO YOUR ${game.islands.length} ISLANDS`}
+        </button>
       )}
 
       <p className="text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]">
@@ -491,78 +511,69 @@ function FoundPage() {
         {/*
           design.md §1.5, the strictest rule in the system: the accent paints
           at most ONE element per screen, and it belongs to the primary CTA.
-          With a company still open the primary action is continuing it, so
-          this button steps down to a surface while CONTINUE takes the orange.
-          On an empty device it is the primary CTA and keeps it.
+          On this screen founding IS the only action, so it keeps the orange —
+          the step-down that used to happen when a company was already open
+          belongs to the picker now, where CONTINUE is the primary thing.
         */}
         <button
           type="button"
           onClick={start}
-          disabled={!valid || slotsLeft === 0 || going}
-          className={`nv-gc w-full truncate rounded-[var(--radius-card)] px-5 py-4 text-base font-extrabold tracking-[0.06em] disabled:cursor-not-allowed disabled:opacity-35 ${
-            saved
-              ? "nv-on text-[var(--text-primary)] shadow-[var(--e1)] hover:bg-[var(--surface-overlay)]"
-              : "nv-t-action"
-          }`}
+          disabled={!valid || slotsLeft === 0 || noRoom || going}
+          className="nv-gc w-full truncate rounded-[var(--radius-card)] nv-t-action px-5 py-4 text-base font-extrabold tracking-[0.06em] disabled:cursor-not-allowed disabled:opacity-35"
         >
           {going
             ? "OPENING…"
-            : slotsLeft === 0
-              ? "NO RUNS LEFT TODAY"
-              : saved && confirmReplace
-                ? "TAP AGAIN TO REPLACE IT ▸"
+            : noRoom
+              ? "NO ISLAND FREE"
+              : slotsLeft === 0
+                ? "NO RUNS LEFT TODAY"
                 : "FOUND IT ▸"}
         </button>
 
-        {/* Named, because "are you sure? " is not a question anyone reads. And
-            a way back out, because an armed confirmation with no exit is a
-            trap rather than a safeguard. */}
-        {saved && confirmReplace && slotsLeft !== 0 && (
-          <>
-            <p className="mt-2 text-center text-2xs leading-snug text-[var(--text-tertiary)]">
-              This files {saved.companyName} away for good. Year {saved.year}{" "}
-              goes into your legacy — the company does not come back.
-            </p>
-            <button
-              type="button"
-              onClick={() => setConfirmReplace(false)}
-              className="mx-auto mt-1 flex min-h-11 w-full items-center justify-center text-2xs text-[var(--text-tertiary)] underline underline-offset-4"
-            >
-              Keep {saved.companyName}
-            </button>
-          </>
-        )}
-
-        {slotsLeft === 0 &&
-          (saved ? (
-            <p className="mt-2 text-center text-2xs leading-snug text-[var(--text-tertiary)]">
-              One company a day on the free plan. {saved.companyName} is still
-              yours — continue it above, or found another tomorrow.
-            </p>
-          ) : (
+        {/*
+          Two limits, two sentences, and they must never be confused with each
+          other. "No island free" is about how many companies you may hold at
+          once and is answered by Pro or by burying one; "no runs left today"
+          is about how often you may found and is answered by tomorrow. The
+          old screen had one message for both, which is how a player ends up
+          buying something that does not unblock them.
+        */}
+        {noRoom ? (
+          <button
+            type="button"
+            onClick={() => upgrade.open("islands")}
+            className="mt-2 block w-full text-center text-2xs leading-snug text-[var(--text-secondary)]"
+          >
+            {cap === 1 ? "One company" : `${cap} companies`} at once on the free
+            plan, and all of {cap === 1 ? "it is" : "them are"} running. Bury one
+            from its own screen, or{" "}
+            <span className="whitespace-nowrap font-bold text-[var(--color-prestige)] underline underline-offset-4">
+              see what Pro adds
+            </span>
+            .
+          </button>
+        ) : (
+          slotsLeft === 0 && (
             /*
              * The one place in the app where free stops a player from playing
              * at all rather than from playing wider, so the way out is a
              * control rather than a line of grey text under a disabled button.
-             *
-             * Only on an empty device. The branch above has a company sitting
-             * in storage, and there the honest next step is continuing it —
-             * selling Pro to someone who already has somewhere to go would be
-             * the upsell talking over the answer.
              */
             <button
               type="button"
               onClick={() => upgrade.open("run_slots")}
               className="mt-2 block w-full text-center text-2xs leading-snug text-[var(--text-secondary)]"
             >
-              One company a day on the free plan, and a dead one stays dead.
-              Tomorrow, or{" "}
+              {game.islands.length > 0
+                ? "One founding a day on the free plan. Your islands are still yours — open one above, or found again tomorrow. "
+                : "One company a day on the free plan, and a dead one stays dead. Tomorrow, or "}
               <span className="whitespace-nowrap font-bold text-[var(--color-prestige)] underline underline-offset-4">
                 three a day with Pro
               </span>
               .
             </button>
-          ))}
+          )
+        )}
       </div>
     </main>
   );

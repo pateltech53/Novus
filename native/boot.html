@@ -65,8 +65,20 @@
           if (theme === "dark" || theme === "light") {
             document.documentElement.setAttribute("data-theme", theme);
           }
-          if (localStorage.getItem("novus:run:v1")) {
-            target = "/play/index.html";
+          /*
+            Any island at all sends the player to the picker, which is what
+            lib/entry.ts answers on the web. Two shapes are checked because a
+            device that has not booted since islands shipped still carries the
+            pre-islands key; lib/engine/save.ts migrates it into slot 0 on the
+            first read, but that happens AFTER this file has already chosen
+            where to go.
+          */
+          var anyIsland = localStorage.getItem("novus:run:v1") !== null;
+          for (var i = 0; !anyIsland && i < 10; i++) {
+            if (localStorage.getItem("novus:run:v1:" + i) !== null) anyIsland = true;
+          }
+          if (anyIsland) {
+            target = "/islands/index.html";
           } else {
             var raw = localStorage.getItem("novus:profile:v1");
             if (raw && JSON.parse(raw).onboarded) target = "/found/index.html";

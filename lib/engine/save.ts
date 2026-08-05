@@ -529,6 +529,8 @@ export function adoptFromCloud(data: {
 export interface IslandSummary {
   slot: number;
   runId: string;
+  /** The run's seed. Stable per company; decorates the island glyph. */
+  seed: number;
   companyName: string;
   founderName: string;
   industry: RunState["industry"];
@@ -553,6 +555,7 @@ function summarise(state: RunState, slot: number): IslandSummary {
   return {
     slot,
     runId: state.id,
+    seed: num(state.seed),
     companyName: state.companyName,
     founderName: state.founderName,
     industry: state.industry,
@@ -567,8 +570,29 @@ function summarise(state: RunState, slot: number): IslandSummary {
     revenueAnnual: num(s?.revenueAnnual),
     employees: num(s?.employees),
     avatar: state.avatar ?? null,
-    savedAt: Date.now(),
+    /*
+     * When this company was last touched.
+     *
+     * `Date.now()` is right on the write path — summarise() runs inside the
+     * flush, so "now" IS when it was saved. It is wrong on the REBUILD path:
+     * a device whose index was lost stamps every island, including headstones
+     * from months ago, with the moment the picker happened to open, and every
+     * card reads "today".
+     *
+     * `lastPlayedISO` is the run's own record of the last day time moved, so
+     * it survives the index and cannot be invented by a rebuild. Now is the
+     * fallback for a company founded and not yet advanced, where "today" is
+     * the honest answer anyway.
+     */
+    savedAt: parseDay(state.lastPlayedISO) ?? Date.now(),
   };
+}
+
+/** A `YYYY-MM-DD` from the engine, as epoch ms. Null for anything else. */
+function parseDay(iso: string | null | undefined): number | null {
+  if (typeof iso !== "string" || iso.length < 10) return null;
+  const ms = Date.parse(`${iso.slice(0, 10)}T12:00:00Z`);
+  return Number.isFinite(ms) ? ms : null;
 }
 
 const num = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) ? v : 0);
@@ -684,17 +708,57 @@ export function setActiveIsland(slot: number): void {
 }
 
 /**
- * The lowest slot with nothing on it, or null when the archipelago is full.
+ * The lowest slot with nothing on it at all, or null when every one is taken.
  *
  * Lowest rather than next: burying the company on island 0 and founding again
- * should reuse island 0, not march rightwards until the cap is hit with two
- * empty slots behind it.
+ * should reuse island 0, not march rightwards leaving holes behind it.
  */
-export function firstFreeIsland(cap: number = ISLAND_CAP): number | null {
+export function firstFreeIsland(): number | null {
   const occupied = occupiedSlots();
-  const limit = Math.min(ISLAND_CAP, Math.max(0, Math.trunc(cap)));
-  for (let slot = 0; slot < limit; slot += 1) {
+  for (let slot = 0; slot < ISLAND_CAP; slot += 1) {
     if (!occupied.includes(slot)) return slot;
   }
   return null;
+}
+
+/** Companies still going. The number the allowance is actually about. */
+export function liveIslandCount(): number {
+  return listIslands().filter((i) => i.alive).length;
+}
+
+/**
+ * Where a new company goes, or null if it may not be founded.
+ *
+ * Three questions in order, and the order is the product decision:
+ *
+ *  1. **Is there room under the allowance?** Only LIVING companies count. A
+ *     company that reached Chapter 7, an acquisition or an IPO keeps its
+ *     island as a headstone the player can go back and read, and it does not
+ *     spend the allowance — a free tier whose two islands fill with two graves
+ *     is a game that politely stops. The same rule is enforced server-side by
+ *     `enforce_island_cap` in 0012.
+ *
+ *  2. **Is there an empty island?** Take the lowest.
+ *
+ *  3. **Otherwise, the oldest headstone gives up its place.** Storage is ten
+ *     rows whatever the allowance says (`slot between 0 and 9`), so headstones
+ *     cannot accumulate forever. Evicting the oldest is the least surprising
+ *     rule available: it is the grave the player has looked at least recently,
+ *     and the legacy entry survives regardless — `endRun` wrote the company
+ *     into `legacy.autopsies` when it ended, which is the record that lasts.
+ *
+ * Returns null only when the allowance is spent, which is the case the caller
+ * should be selling Pro against rather than silently overwriting something.
+ */
+export function slotForNewCompany(cap: number): number | null {
+  const islands = listIslands();
+  const limit = Math.min(ISLAND_CAP, Math.max(1, Math.trunc(cap)));
+  if (islands.filter((i) => i.alive).length >= limit) return null;
+
+  const free = firstFreeIsland();
+  if (free !== null) return free;
+
+  const headstones = islands.filter((i) => !i.alive);
+  if (headstones.length === 0) return null;
+  return headstones.reduce((oldest, i) => (i.savedAt < oldest.savedAt ? i : oldest)).slot;
 }

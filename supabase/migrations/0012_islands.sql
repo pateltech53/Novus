@@ -153,6 +153,19 @@ grant  execute on function public.island_allowance(uuid) to service_role;
 -- BEFORE INSERT only. An upsert onto a slot the player already owns arrives as
 -- an UPDATE through `on conflict do update` and must stay free — a player at
 -- their cap still has to be able to save the companies they have.
+--
+-- ── Only LIVING companies count ────────────────────────────────────────────
+--
+-- A company that reached Chapter 7, an acquisition or an IPO keeps its row and
+-- keeps its island, as a headstone the player can go back and read. It does
+-- NOT spend the allowance. Counting the dead would mean a free player's two
+-- islands fill with two graves and the game politely stops, which is the
+-- shape of a limit designed to sell something rather than to mean something.
+--
+-- The rows still cost a slot, and `slot between 0 and 9` still caps those at
+-- ten. The client evicts the oldest headstone when a founding needs the room
+-- (firstFreeIsland in lib/engine/save.ts); this function's job is only to stop
+-- an eleventh LIVE company, which is the thing that was actually sold.
 create or replace function public.enforce_island_cap()
 returns trigger
 language plpgsql
@@ -163,8 +176,17 @@ declare
   allowed int;
   held    int;
 begin
+  -- A dead company arriving as a fresh INSERT cannot exceed a living-company
+  -- allowance, and refusing it would strand a headstone the client is trying
+  -- to restore from the cloud.
+  if new.alive is false then
+    return new;
+  end if;
+
   allowed := coalesce(public.island_allowance(new.profile_id), 2);
-  select count(*) into held from public.saves s where s.profile_id = new.profile_id;
+  select count(*) into held
+    from public.saves s
+   where s.profile_id = new.profile_id and s.alive;
 
   if held >= allowed then
     raise exception 'island allowance exhausted (% of %)', held, allowed

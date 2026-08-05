@@ -43,6 +43,10 @@ const BUDGETS = {
   "/page": 150,
   "/play/page": 340,
   "/found/page": 325,
+  // The picker is the front door for anyone with a company, so it is on the
+  // critical path for every returning player. 320 is a little above where it
+  // stands (312) on the same rule as the rest of this table.
+  "/islands/page": 320,
   "/welcome/page": 195,
   "/chapter/page": 130,
   "/join/page": 120,

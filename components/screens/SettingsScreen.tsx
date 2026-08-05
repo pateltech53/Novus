@@ -31,6 +31,7 @@ import {
 import { openBillingPortal, restorePurchases } from "@/lib/cloud/billing";
 import { isAdminAccount } from "@/lib/cloud/admin-skip";
 import { restoreForSignIn } from "@/lib/cloud/sync";
+import { fmtMoney } from "@/lib/engine/format";
 import { isPro, loadEntitlements } from "@/lib/monetization";
 import { MANAGE_SUBSCRIPTION_NOTE, storefront, useSellsHere } from "@/lib/commerce";
 import { BuyOnWeb, RestoreButton } from "@/components/upgrade/BuyOnWeb";
@@ -160,6 +161,16 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
             </>
           )}
         </div>
+
+        {/* ── The way back to the other companies ────────────────────────── */}
+        {/*
+          First, above Appearance, because it is the only thing in this sheet
+          that is navigation rather than a setting — and because /play has no
+          other exit. Before islands it did not need one: there was nowhere
+          else to be. Now there are up to ten somewhere-elses and this is the
+          door to them.
+        */}
+        <IslandsSection onClose={onClose} />
 
         {/* ── Appearance ─────────────────────────────────────────────────── */}
         <Section label="APPEARANCE">
@@ -371,12 +382,19 @@ function AccountSection() {
    * server needs to resolve a directory.
    */
   const leave = () => {
+    /*
+     * The literal used to be "/play" — the route `entryRoute()` returned for
+     * anyone with a company. It answers "/islands" now, and the two branches
+     * below want opposite things from it: the web sends a player with saves to
+     * the marketing page, and the app cannot (that page carries prices a store
+     * build may not show at all, Guideline 3.1.1) so it sends them to onboarding.
+     */
+    const route = entryRoute();
     if (storefront() === "web") {
-      window.location.href = entryRoute() === "/play" ? "/" : entryRoute();
+      window.location.href = route === "/islands" ? "/" : route;
       return;
     }
-    const route = entryRoute();
-    window.location.href = appPath(route === "/play" ? "/welcome" : route);
+    window.location.href = appPath(route === "/islands" ? "/welcome" : route);
   };
 
   const submitSignIn = async () => {
@@ -836,6 +854,68 @@ function ProSection() {
 }
 
 // ── Furniture ────────────────────────────────────────────────────────────────
+
+/**
+ * Leave this company for the archipelago, and switch straight to another.
+ *
+ * Both, on purpose. "Back to your islands" is the destination a player asks
+ * for by name; the rows under it are the two-tap version of the same trip,
+ * because the common case with two companies open is going to the OTHER one
+ * and a picker in between is a screen you pass through rather than use.
+ *
+ * `switchIsland` before the navigation, not after: it is synchronous, and
+ * doing it here means /play mounts with the right company already in context
+ * rather than opening the old one and swapping it under the player.
+ */
+function IslandsSection({ onClose }: { onClose: () => void }) {
+  const game = useGame();
+  const others = game.islands.filter((i) => i.slot !== game.island);
+
+  return (
+    <Section label={others.length === 0 ? "YOUR ISLAND" : "YOUR ISLANDS"}>
+      <GlassButton
+        onClick={() => {
+          onClose();
+          window.location.href = storefront() === "web" ? "/islands" : appPath("/islands");
+        }}
+        className="text-sm font-bold"
+      >
+        ◂ Back to your islands
+      </GlassButton>
+
+      {others.length > 0 && (
+        <ul className="mt-2 space-y-2">
+          {others.map((island) => (
+            <li key={island.slot}>
+              <button
+                type="button"
+                onClick={() => {
+                  game.switchIsland(island.slot);
+                  onClose();
+                }}
+                className="nv-press flex w-full items-center gap-3 rounded-[var(--radius-row)] bg-[var(--surface)] p-3 text-left"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-bold text-[var(--text-primary)]">
+                    {island.companyName}
+                  </p>
+                  <p className="tnum mt-0.5 truncate text-2xs text-[var(--text-tertiary)]">
+                    {island.alive
+                      ? `Year ${island.year} · ${fmtMoney(island.valuation)}`
+                      : `Ended in year ${island.year} · peak ${fmtMoney(island.peakValuation)}`}
+                  </p>
+                </div>
+                <span aria-hidden className="text-2xs text-[var(--text-tertiary)]">
+                  ▸
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Section>
+  );
+}
 
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (

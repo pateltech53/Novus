@@ -79,6 +79,36 @@ $$, 'and only one — the fourth is still refused');
 
 
 \echo ''
+\echo '=== 3b. a company that ENDED keeps its island and spends no allowance ==='
+-- The headstone rule. A free player whose two companies both went under must
+-- be able to found again — a limit that fills with graves is a limit that
+-- stops the game rather than shaping it.
+update public.saves set alive = false, ended_by = 'chapter7'
+ where profile_id = '11111111-1111-1111-1111-111111111111';
+select test.found('11111111-1111-1111-1111-111111111111', 3);
+select test.eq((select count(*)::bigint from public.saves
+                where profile_id = '11111111-1111-1111-1111-111111111111'), 4::bigint,
+               'three headstones and a living company share the archipelago');
+
+-- ...and the living ones still count. The allowance is 3 here (2 free + the
+-- one bought in section 3), so the fourth LIVING company is the refused one,
+-- with three headstones sitting beside it costing nothing.
+select test.found('11111111-1111-1111-1111-111111111111', 4);
+select test.found('11111111-1111-1111-1111-111111111111', 5);
+select test.throws('23514', $$
+  select test.found('11111111-1111-1111-1111-111111111111', 6)
+$$, 'a fourth LIVING company is refused at 2 + 1 bought');
+select test.eq((select count(*)::bigint from public.saves
+                where profile_id = '11111111-1111-1111-1111-111111111111'
+                  and alive), 3::bigint,
+               'three living, and the graves did not take a place from them');
+
+-- Put the fixture back the way section 4 onwards expects it.
+delete from public.saves
+ where profile_id = '11111111-1111-1111-1111-111111111111' and slot in (3, 4, 5);
+
+
+\echo ''
 \echo '=== 4. the SKU no longer touches the daily founding ration ==='
 -- This is the split. Before 0012 the same column was added to the daily
 -- allowance, so the line below would have read 2.
