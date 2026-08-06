@@ -33,7 +33,9 @@ import {
   type ProPlanId,
   type SubscriptionPlan,
 } from "@/lib/monetization";
-import { goToCheckout } from "@/lib/cloud/billing";
+import { goToCheckout, openBillingPortal } from "@/lib/cloud/billing";
+import { planName, usePlan } from "@/lib/plan";
+import { PickMark } from "@/components/ui/PickMark";
 import { OneTimeShelf } from "@/components/upgrade/OneTimeShelf";
 import { rememberPendingPro } from "@/lib/cloud/pending-pro";
 import { whenRestored } from "@/lib/cloud/sync";
@@ -365,6 +367,24 @@ export function Landing() {
  * the same breath. Buttons are real: choosing Pro grants it on this device now
  * (lib/monetization.ts — the honest pre-billing behaviour) and walks into the
  * game.
+ *
+ * ── And which one you are already on ───────────────────────────────────────
+ *
+ * This section used to be written entirely for a stranger. Every column was an
+ * offer, MONTHLY and YEARLY sat side by side as two things to buy, and a player
+ * who was already subscribed to one of them could read the whole page top to
+ * bottom without finding out which. The buttons then made it worse than merely
+ * silent: pressing either one opened a checkout the server refuses with 409
+ * "already subscribed — use the billing portal to change plan", so the answer to
+ * "which plan am I on" was a failure message about a purchase they were not
+ * trying to make.
+ *
+ * So the plan the account holds is marked, on the card and on the tile, and for
+ * a subscriber both tiles stop being checkouts and become the two doors into the
+ * portal — CURRENT PLAN on the one they hold, SWITCH TO … on the other, which is
+ * the operation the 409 was pointing at all along. `usePlan()` is null until the
+ * client has read localStorage, and every one of these marks is absent for that
+ * first render rather than guessed at (lib/plan.ts).
  */
 function PricingSection() {
   const router = useRouter();
@@ -380,6 +400,16 @@ function PricingSection() {
    * lib/commerce.ts. On the web nothing changes.
    */
   const sells = useSellsHere();
+
+  /**
+   * What this account already holds. Null for the server render and the first
+   * client one — see lib/plan.ts — which is why every mark below is written to
+   * be absent rather than false when it is missing.
+   */
+  const plan = usePlan();
+  const standing = plan?.standing ?? null;
+  /** A subscription of the player's own, i.e. one with a portal behind it. */
+  const subscribed = standing?.via === "subscription";
 
   /** The plan whose checkout is opening, so only that button reads BUSY. */
   const [busy, setBusy] = useState<ProPlanId | ChapterLicence["id"] | "chapter_custom" | null>(
@@ -443,6 +473,30 @@ function PricingSection() {
   };
 
   /**
+   * The portal, for a player who already subscribes.
+   *
+   * Switching monthly ↔ yearly is a real thing people want and it is not a
+   * second checkout — the checkout route says so itself, and answers 409 with
+   * exactly that sentence. Pressing the other cadence should therefore land in
+   * the place that can do it rather than in the place that refuses it.
+   */
+  const manage = async (id: ProPlanId) => {
+    if (busy) return;
+    setBusy(id);
+    setError(null);
+
+    if (await openBillingPortal()) return; // leaving for Stripe
+
+    setBusy(null);
+    // No portal behind this Pro: a device-local grant on a deploy with no
+    // Stripe keys, or a comped account. Both are true states rather than
+    // failures, and neither has a subscription to change.
+    setError(
+      "Your Pro is on, but there is no Stripe subscription behind it to change — nothing is being billed.",
+    );
+  };
+
+  /**
    * Same two behaviours as the onboarding sheet, and for the same reason —
    * see the long note on takePro() in app/welcome/page.tsx. Checkout when
    * Stripe is configured, the device-local grant when it is not, and no grant
@@ -466,6 +520,9 @@ function PricingSection() {
    */
   const choosePro = async (plan: SubscriptionPlan) => {
     if (busy) return;
+    // A subscriber pressing a cadence is asking to move, not to buy again.
+    if (subscribed) return manage(plan.id);
+
     setBusy(plan.id);
     setError(null);
 
@@ -604,7 +661,13 @@ function PricingSection() {
         <div className="mt-8 grid gap-4 lg:grid-cols-3">
           {/* Free — first, and a real column, not a foil. */}
           <div className="flex flex-col rounded-[var(--radius-card)] bg-[var(--n-3)] p-6 shadow-[var(--e1)] ring-1 ring-[var(--hairline)]">
-            <p className="text-sm font-extrabold tracking-[0.08em]">FREE</p>
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="text-sm font-extrabold tracking-[0.08em]">FREE</p>
+              {/* Marked on the tier the account is actually on, so the answer to
+                  "which one am I" is on the page rather than only in the
+                  absence of a mark somewhere else. */}
+              {standing && !standing.pro ? <YourPlan /> : null}
+            </div>
             <p className="tnum mt-2 text-[2rem] font-extrabold leading-none">
               $0
             </p>
@@ -626,7 +689,23 @@ function PricingSection() {
 
           {/* Pro — two cadences, one card, yearly framed by its saving. */}
           <div className="flex flex-col rounded-[var(--radius-card)] bg-[var(--n-3)] p-6 shadow-[var(--e2)] ring-1 ring-[var(--text-primary)]">
-            <p className="text-sm font-extrabold tracking-[0.08em]">PRO</p>
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="text-sm font-extrabold tracking-[0.08em]">PRO</p>
+              {/* A chapter seat is Pro that a school pays for. Saying YOUR PLAN
+                  over a price the player is not being charged, next to two
+                  buttons they have no reason to press, would be a bill they do
+                  not have — so it says who is paying instead. */}
+              {standing?.via === "chapter" ? (
+                <YourPlan label="YOUR CHAPTER" />
+              ) : standing?.via === "operator" ? (
+                // An operator's unlock is derived from `profiles.role`, not
+                // bought. Calling it their plan would put a bill on a card that
+                // has never been charged.
+                <YourPlan label="OPERATOR" />
+              ) : standing?.pro ? (
+                <YourPlan />
+              ) : null}
+            </div>
             <p className="tnum mt-2 text-[2rem] font-extrabold leading-none">
               {formatPrice(PRO_MONTHLY.priceCents)}
               <span className="text-sm font-bold text-[var(--text-tertiary)]">
@@ -645,33 +724,85 @@ function PricingSection() {
               <li>Wear the wardrobe you earn</li>
             </ul>
             <div className="mt-6 grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => void choosePro(PRO_MONTHLY)}
-                disabled={busy !== null}
-                className="nv-gc w-full rounded-[var(--radius-card)] nv-t-action px-4 py-3 text-sm font-extrabold tracking-[0.04em] disabled:opacity-60"
-              >
-                {busy === PRO_MONTHLY.id ? "OPENING…" : "MONTHLY"}
-              </button>
-              <button
-                type="button"
-                onClick={() => void choosePro(PRO_YEARLY)}
-                disabled={busy !== null}
-                className="nv-gc w-full rounded-[var(--radius-card)] nv-t-action px-4 py-3 text-sm font-extrabold tracking-[0.04em] disabled:opacity-60"
-              >
-                {busy === PRO_YEARLY.id ? "OPENING…" : "YEARLY"}
-              </button>
+              {[PRO_MONTHLY, PRO_YEARLY].map((p) => {
+                /* `standing.plan` is null whenever the cadence cannot be
+                   vouched for — a lapsed intent, a comp, a price id we do not
+                   recognise — and a null must mark NEITHER tile rather than
+                   both or the wrong one. See subscriptionPlan in lib/plan.ts. */
+                const current = subscribed && standing?.plan === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => void choosePro(p)}
+                    disabled={busy !== null}
+                    aria-current={current ? "true" : undefined}
+                    className={`nv-gc w-full rounded-[var(--radius-card)] px-4 py-3 text-center text-sm font-extrabold tracking-[0.04em] disabled:opacity-60 ${
+                      current ? "nv-pick text-[var(--text-primary)]" : "nv-t-action"
+                    }`}
+                  >
+                    {/*
+                      A caption over the cadence, rather than a longer label
+                      beside it.
+
+                      "SWITCH TO MONTHLY" on one line does not fit half of a
+                      430px card — it truncated to "SWITCH TO MON…", which is
+                      §7's no-two-line-clickable-text rule solved by breaking a
+                      different one. Stacked, both tiles stay one word wide and
+                      the pair reads as what it is. The caption appears only for
+                      a subscriber, so an ordinary visitor's buttons are exactly
+                      the two they always were.
+
+                      The tick is not decoration: colour and tint are never the
+                      sole carrier of a state, which is the whole reason
+                      PickMark exists — see its header.
+                    */}
+                    {subscribed ? (
+                      <span
+                        className={`mb-0.5 flex items-center justify-center gap-1 text-2xs font-bold tracking-[0.1em] ${
+                          current ? "text-[var(--text-secondary)]" : "opacity-80"
+                        }`}
+                      >
+                        {current ? <PickMark on size={14} /> : null}
+                        {current ? "CURRENT" : "SWITCH TO"}
+                      </span>
+                    ) : null}
+                    <span className="block truncate">
+                      {busy === p.id ? "OPENING…" : p.label.toUpperCase()}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
             {/* What a subscription owes the person about to start one, said
                 beside the button rather than on a page they have to find:
                 length, price per period, that it renews by itself, and where
-                it is stopped. */}
+                it is stopped.
+
+                A subscriber is owed something different and gets it instead:
+                which plan is theirs, and that both buttons now lead to the one
+                place that can change or stop it. Repeating the renewal terms at
+                somebody already inside them is noise on top of the answer they
+                came for. */}
             <p className="mt-2.5 text-2xs leading-relaxed text-[var(--text-tertiary)]">
-              Billed by Stripe. Both plans renew automatically —{" "}
-              {formatPrice(PRO_MONTHLY.priceCents)} each month or{" "}
-              {formatPrice(PRO_YEARLY.priceCents)} each year — until you cancel,
-              which you can do at any time from Settings.{" "}
+              {subscribed ? (
+                <>
+                  {standing?.plan
+                    ? `You are on the ${planName(standing.plan).toLowerCase()} plan.`
+                    : "You are subscribed to Novus Pro."}{" "}
+                  Either button opens the billing portal, where the plan is
+                  switched, the card is changed and the subscription is
+                  cancelled.
+                </>
+              ) : (
+                <>
+                  Billed by Stripe. Both plans renew automatically —{" "}
+                  {formatPrice(PRO_MONTHLY.priceCents)} each month or{" "}
+                  {formatPrice(PRO_YEARLY.priceCents)} each year — until you
+                  cancel, which you can do at any time from Settings.
+                </>
+              )}{" "}
               <a className="underline underline-offset-4" href="/terms">
                 Terms
               </a>{" "}
@@ -680,6 +811,18 @@ function PricingSection() {
                 Privacy
               </a>
             </p>
+            {/* A seat holder is Pro already and has no plan of their own, so
+                the two buttons above are a purchase they almost certainly do
+                not want. Said plainly rather than by disabling them: a student
+                who leaves the chapter may genuinely want to keep Pro. */}
+            {standing?.via === "chapter" ? (
+              <p className="mt-2 text-2xs leading-relaxed text-[var(--text-secondary)]">
+                Your chapter seat already gives you all of this, for as long as
+                the licence runs. You would only need a plan of your own once
+                the chapter ends.
+              </p>
+            ) : null}
+
             {error ? (
               <p
                 role="alert"
@@ -833,6 +976,24 @@ function PricingSection() {
         </p>
       </div>
     </section>
+  );
+}
+
+/**
+ * The chip that says a column is the one you are on.
+ *
+ * Prestige rather than the accent, and deliberately not a button: §1.5 spends
+ * the orange on the one control per screen that asks you to act, and this asks
+ * for nothing — it is a label on a card the player has already bought.
+ */
+function YourPlan({ label = "YOUR PLAN" }: { label?: string }) {
+  return (
+    /* `--surface`, a step BELOW the card it sits on, not `--surface-elevated`
+       — which is `--n-3`, the card's own fill, and would have made the pill a
+       ring around nothing. */
+    <span className="shrink-0 rounded-[var(--radius-pill)] bg-[var(--surface)] px-2.5 py-1 text-2xs font-bold tracking-[0.12em] text-[var(--color-prestige)] ring-1 ring-[var(--hairline)]">
+      {label}
+    </span>
   );
 }
 

@@ -6,13 +6,16 @@ import { billingStatus, goToCheckout } from "@/lib/cloud/billing";
 import { INDUSTRIES } from "@/lib/engine/constants";
 import type { Industry } from "@/lib/engine/types";
 import {
+  FREE_LIMITS,
+  ISLAND_CAP,
+  NO_ENTITLEMENTS,
   ONE_TIME_PURCHASES,
   PRO_INDUSTRY_CODES,
   formatPrice,
   isPro,
-  loadEntitlements,
   priceLabel,
 } from "@/lib/monetization";
+import { useEntitlements } from "@/lib/plan";
 import { play } from "@/lib/sound";
 
 /**
@@ -41,12 +44,38 @@ import { play } from "@/lib/sound";
  *
  * When billing is not configured there is nothing to tap, so the shelf keeps
  * the old text-only shape — prices as facts, no dead buttons.
+ *
+ * ── What it says once you own some of it ───────────────────────────────────
+ *
+ * Nothing, until now. A player who bought an island saw a row identical to the
+ * one they saw before paying — same name, same $1.99, same BUY AN ISLAND — and
+ * the only evidence the purchase had landed was a number on a different screen.
+ * Islands stack, so the button cannot simply withdraw once one is owned; what it
+ * can do is count what is already yours beside the offer of another. The
+ * industry row answers the same question by NAME rather than by count, because
+ * the packs a player owns are precisely the ones missing from the picker at the
+ * end of the row, and an absence is not a receipt.
+ *
+ * The one sale that is now refused outright is an island with nowhere to go:
+ * `ISLAND_CAP` is a storage bound — `saves.slot` is checked `between 0 and 9` —
+ * so past the free tier's two plus eight bought there is no eleventh row for the
+ * ninth to live in, on any tier, ever. A PRO player at the same ceiling is a
+ * different case and keeps the button, with the caveat said beside it: the
+ * subscription is what makes the purchase redundant today, and the purchase is
+ * what outlives the subscription.
  */
 
 interface ShelfState {
   configured: boolean;
   skus: string[];
 }
+
+/** An industry code with the name a player would recognise it by. Module
+ *  scope so the two lists below can memoise on the entitlement alone. */
+const named = (code: Industry) => ({
+  code,
+  name: INDUSTRIES.find((i) => i.code === code)?.name ?? code,
+});
 
 export function OneTimeShelf({
   lead,
@@ -63,10 +92,35 @@ export function OneTimeShelf({
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  /* Entitlements are read once on mount — the moment that matters is "is this
-     player Pro / which packs do they own" as the shelf appears. */
-  const [entitlements] = useState(() => loadEntitlements());
+  /* Live, not read once at mount.
+     It used to be `useState(() => loadEntitlements())`, on the reasoning that
+     the moment that matters is "what does this player own as the shelf
+     appears". That was true while the shelf only decided which rows to draw,
+     and false the moment it started reporting what is owned: the boot restore
+     adopts the server's copy a second after mount, the heartbeat adopts a
+     purchase made on another device, and an admin skip grants without a
+     reload. All three used to leave this shelf stating yesterday's answer.
+     NO_ENTITLEMENTS for the first render is the SSR-safe floor — it hides the
+     owned marks for one frame and shows no row that should be hidden. */
+  const entitlements = useEntitlements() ?? NO_ENTITLEMENTS;
   const pro = isPro(entitlements);
+  const ownedIslands = Math.max(0, entitlements.extraIslands);
+  /*
+   * When another island could never do anything for this account.
+   *
+   * Measured against the FREE tier's own allowance plus what has been bought,
+   * not against `islandCapFor` — and the difference is the whole judgement.
+   * `islandCapFor` says a Pro player is already at the ceiling, which is true
+   * and is not a reason to withdraw the row from them: an island is bought
+   * outright, it outlives a subscription, and it is what holds their tenth
+   * place if Pro ever lapses. A free player who has bought eight is a
+   * different case entirely — there is no eleventh row in `public.saves` for
+   * the ninth to live in, on any tier, ever. That is the only sale worth
+   * refusing, so it is the only one refused.
+   */
+  const islandsMaxed = FREE_LIMITS.islands + ownedIslands >= ISLAND_CAP;
+  /** Pro is at the ceiling by tier alone — worth saying, not worth refusing. */
+  const islandsSpareOnPro = pro && !islandsMaxed;
 
   const island = ONE_TIME_PURCHASES.find((p) => p.id === "extra_island")!;
   const pack = ONE_TIME_PURCHASES.find((p) => p.id === "industry_pack")!;
@@ -74,17 +128,37 @@ export function OneTimeShelf({
 
   const lockedIndustries = useMemo(
     () =>
-      PRO_INDUSTRY_CODES.filter((code) => !entitlements.industryPacks.includes(code)).map(
-        (code) => ({
-          code,
-          name: INDUSTRIES.find((i) => i.code === code)?.name ?? code,
-        }),
-      ),
+      PRO_INDUSTRY_CODES.filter((code) => !entitlements.industryPacks.includes(code)).map(named),
+    [entitlements.industryPacks],
+  );
+
+  /* The other half of the same list, and the one this shelf never used to
+     show: the packs already paid for. Read off the entitlement rather than
+     inferred from what is missing above, so a code the industry table no
+     longer carries is still reported as owned rather than silently vanishing
+     from both lists. */
+  const ownedPacks = useMemo(
+    () => entitlements.industryPacks.map(named),
     [entitlements.industryPacks],
   );
   const [industry, setIndustry] = useState<Industry | "">(
     lockedIndustries[0]?.code ?? "",
   );
+
+  /*
+   * Keep the picker pointed at something still buyable.
+   *
+   * The seed above runs on the first render, where entitlements are not
+   * readable yet and "locked" therefore means all eight — so a player who
+   * already owns Fashion starts with Fashion selected and would be sent to a
+   * checkout the server refuses with "FASHION is already unlocked". The same
+   * correction covers a purchase completed in this tab: the industry that was
+   * just bought leaves the list, and the picker must not keep pointing at it.
+   */
+  useEffect(() => {
+    if (lockedIndustries.some((i) => i.code === industry)) return;
+    setIndustry(lockedIndustries[0]?.code ?? "");
+  }, [lockedIndustries, industry]);
 
   useEffect(() => {
     let alive = true;
@@ -152,17 +226,45 @@ export function OneTimeShelf({
           <span className="text-2xs font-bold tracking-[0.08em] text-[var(--text-tertiary)]">
             ONCE
           </span>
+          {ownedIslands > 0 ? <Owned>{ownedIslands} YOURS</Owned> : null}
         </p>
-        <p className="mt-0.5 text-xs leading-snug text-[var(--text-secondary)]">{island.what}</p>
+        <p className="mt-0.5 text-xs leading-snug text-[var(--text-secondary)]">
+          {island.what}
+          {islandsMaxed ? (
+            <span className="text-[var(--text-tertiary)]">
+              {" "}
+              You are at the {ISLAND_CAP}-island ceiling — there is nowhere to
+              put another.
+            </span>
+          ) : islandsSpareOnPro ? (
+            /* Said before the money moves, not after. Pro already runs the ten
+               the storage allows, so an island bought today changes nothing
+               today — it is worth having only because it survives the
+               subscription that is currently making it redundant. */
+            <span className="text-[var(--text-tertiary)]">
+              {" "}
+              Pro already runs {ISLAND_CAP} at once, so this adds nothing while
+              it lasts — an island is yours for good and holds its place if Pro
+              ever lapses.
+            </span>
+          ) : null}
+        </p>
       </div>
-      {has("extra_island") && (
+      {/* Still offered after the first one: islands stack. Withdrawn only at
+          the storage ceiling, where the money would buy a slot the database
+          has no row for. */}
+      {has("extra_island") && !islandsMaxed && (
         <button
           type="button"
           onClick={() => void buy("extra_island")}
           disabled={busy !== null}
           className="nv-gc shrink-0 rounded-[var(--radius-pill)] nv-t-action px-4 py-2 text-2xs font-extrabold tracking-[0.08em] shadow-[var(--e1)] disabled:opacity-40"
         >
-          {busy === "extra_island" ? "OPENING…" : "BUY AN ISLAND"}
+          {busy === "extra_island"
+            ? "OPENING…"
+            : ownedIslands > 0
+              ? "BUY ANOTHER"
+              : "BUY AN ISLAND"}
         </button>
       )}
     </li>
@@ -180,7 +282,27 @@ export function OneTimeShelf({
             ONCE
           </span>
         </p>
-        <p className="mt-0.5 text-xs leading-snug text-[var(--text-secondary)]">{pack.what}</p>
+        <p className="mt-0.5 text-xs leading-snug text-[var(--text-secondary)]">
+          {pack.what}
+          {/* By name, and only by name — a count beside the price would say
+              "2 YOURS" and leave the actual question unanswered. The packs a
+              player owns are exactly the ones missing from the picker at the
+              end of this row, and an absence is not a receipt: "which ones did
+              I buy" has to be answerable without opening the dropdown and
+              reasoning about what is no longer in it. */}
+          {ownedPacks.length > 0 ? (
+            <span className="font-semibold text-[var(--text-secondary)]">
+              {" "}
+              Yours: {ownedPacks.map((i) => i.name).join(", ")}.
+            </span>
+          ) : null}
+          {lockedIndustries.length === 0 ? (
+            <span className="text-[var(--text-tertiary)]">
+              {" "}
+              Every industry is open on this account.
+            </span>
+          ) : null}
+        </p>
       </div>
       {has("industry_pack") && lockedIndustries.length > 0 && (
         <div className="flex shrink-0 items-center gap-2">
@@ -240,5 +362,21 @@ export function OneTimeShelf({
         </p>
       )}
     </div>
+  );
+}
+
+/**
+ * "2 YOURS" — the receipt, inline with the price it was paid.
+ *
+ * Prestige ink and no border: it sits inside a sentence that already carries a
+ * name and a figure, and a second boxed thing on that line would compete with
+ * the button at the end of the row for the eye. Deliberately not the accent —
+ * §1.5 keeps that for the control asking to be pressed, which this is not.
+ */
+function Owned({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="ml-1 text-2xs font-bold tracking-[0.08em] text-[var(--color-prestige)]">
+      {children}
+    </span>
   );
 }

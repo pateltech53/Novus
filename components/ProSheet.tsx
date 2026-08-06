@@ -26,6 +26,7 @@ import {
   loadEntitlements,
   type SubscriptionPlan,
 } from "@/lib/monetization";
+import { ownedLine, planStanding, standingNote, useEntitlements } from "@/lib/plan";
 
 /**
  * Novus Pro, in the game.
@@ -79,6 +80,14 @@ export function ProSheet({ onClose }: { onClose: () => void }) {
   const [active, setActive] = useState(!!run?.pro);
   const [plan, setPlan] = useState<SubscriptionPlan>(PRO_YEARLY);
   const [legal, setLegal] = useState<LegalDocument | null>(null);
+
+  /* Which plan is paying for it, and what else this account bought. `active`
+     above already answers "is Pro on"; this answers the question that follows,
+     which the sheet used to leave to Settings. Null until the client has read
+     localStorage — see lib/plan.ts. */
+  const entitlements = useEntitlements();
+  const standing = entitlements ? planStanding(entitlements) : null;
+  const bought = entitlements ? ownedLine(entitlements) : null;
 
   /** Null until the status route answers — see the same pattern in /welcome. */
   const [canCharge, setCanCharge] = useState<boolean | null>(null);
@@ -208,8 +217,14 @@ export function ProSheet({ onClose }: { onClose: () => void }) {
       >
         <div className="flex items-start justify-between gap-4 px-5 pt-5">
           <div>
+            {/* The cadence, when the account has one to state. "NOVUS PRO ·
+                ACTIVE" is the honest fallback while the entitlements are
+                unreadable and for a Pro with no plan behind it — a chapter
+                seat, an operator account, a device-local grant. */}
             <p className="text-2xs font-bold tracking-[0.16em] text-[var(--color-prestige)]">
-              {active ? "NOVUS PRO · ACTIVE" : "NOVUS PRO"}
+              {active
+                ? (standing?.pro ? standing.badge : "NOVUS PRO · ACTIVE")
+                : "NOVUS PRO"}
             </p>
             <h2 className="mt-1 text-xl font-extrabold tracking-[-0.01em]">
               More to play with. Never an easier game.
@@ -257,9 +272,29 @@ export function ProSheet({ onClose }: { onClose: () => void }) {
 
         <div className="px-5 pt-5">
           {active ? (
-            <p className="rounded-[var(--radius-row)] bg-[var(--surface)] px-4 py-3 text-sm font-semibold text-[var(--text-primary)]">
-              Pro is on for this account. Every industry and room is open.
-            </p>
+            <div className="rounded-[var(--radius-row)] bg-[var(--surface)] px-4 py-3">
+              <p className="text-sm font-semibold text-[var(--text-primary)]">
+                Pro is on for this account. Every industry and room is open.
+              </p>
+              {/* Which plan, and where it is stopped — the two things a
+                  subscriber standing here is actually asking. */}
+              {standing?.pro ? (
+                <p className="mt-1 text-2xs leading-snug text-[var(--text-secondary)]">
+                  {standingNote(standing)}
+                </p>
+              ) : null}
+              {/* Bought outright, and therefore not part of the subscription:
+                  an island survives a cancellation and belongs on its own
+                  line rather than folded into the sentence above. */}
+              {bought ? (
+                <p className="mt-1.5 border-t border-[var(--hairline)] pt-1.5 text-2xs leading-snug text-[var(--text-secondary)]">
+                  <span className="font-bold tracking-[0.1em] text-[var(--text-tertiary)]">
+                    BOUGHT{" "}
+                  </span>
+                  {bought}
+                </p>
+              ) : null}
+            </div>
           ) : sellsHere === true ? (
             <>
               {/* Both options carry the comparison, not only the one being
