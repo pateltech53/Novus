@@ -335,7 +335,8 @@ export const PRO_LIMITS: Limits = {
  * What an operator's own account plays at. Never sold, never granted by any
  * purchase path: the only way `Entitlements.admin` becomes true is the server
  * overlay in lib/admin/entitlements.ts reading `profiles.role = 'admin'` — a
- * cell flipped in the Supabase dashboard (docs/ADMIN.md).
+ * cell flipped by an admin (the console's ROLE band) or, for the first one,
+ * in the Supabase dashboard (docs/ADMIN.md).
  *
  * 99 rather than Infinity so every surface that formats the number stays
  * honest and finite. The server-side ledger allows 999 for the same account;

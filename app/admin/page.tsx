@@ -32,7 +32,8 @@ import { play } from "@/lib/sound";
  * /admin — the operator's console.
  *
  * Reached by URL, linked from nowhere: the role is a cell in the database
- * (profiles.role, flipped in the Supabase dashboard — docs/ADMIN.md), and to
+ * (profiles.role — the first admin is made in the Supabase dashboard, every
+ * one after that from the ROLE band below; docs/ADMIN.md), and to
  * everyone else this page renders the same "nothing here" the API answers
  * with. Everything on it talks to app/api/admin/*; the page itself holds no
  * privilege beyond the operator's own session cookie, exactly like /chapter.
@@ -233,6 +234,9 @@ export default function AdminPage() {
   const [phase, setPhase] = useState<Phase>("loading");
   const [view, setView] = useState<View>("all");
   const [email, setEmail] = useState<string | null>(null);
+  // The operator's own profile id, so the directory can tell "this row is me"
+  // and leave the role alone there (/api/admin/role refuses it regardless).
+  const [selfId, setSelfId] = useState<string | null>(null);
 
   const [stats, setStats] = useState<Stats>({});
   const [series, setSeries] = useState<SeriesRow[]>([]);
@@ -290,7 +294,9 @@ export default function AdminPage() {
     let alive = true;
     void (async () => {
       try {
-        const me = await call<{ ok: boolean; view: View; email: string | null }>("/api/admin/me");
+        const me = await call<{ ok: boolean; id: string; view: View; email: string | null }>(
+          "/api/admin/me",
+        );
         if (!alive) return;
         if (!me?.ok) {
           setPhase("denied");
@@ -298,6 +304,7 @@ export default function AdminPage() {
         }
         setView(me.view);
         setEmail(me.email);
+        setSelfId(me.id);
         setPhase("ready");
         await Promise.all([loadStats(), loadUsers(""), loadQueue()]);
       } catch {
@@ -424,6 +431,21 @@ export default function AdminPage() {
         call("/api/admin/chapters", {
           method: "DELETE",
           body: JSON.stringify({ chapterId }),
+        }),
+      [refreshOpen, loadStats],
+    );
+
+  // Promotion and demotion, the one grant that is not content or pace: it
+  // hands over the console itself. loadStats refreshes because the overview
+  // counts admins, and a promotion that did not move that number would look
+  // like it had not happened.
+  const setRole = (id: string, role: "admin" | "player") =>
+    act(
+      "role",
+      () =>
+        call("/api/admin/role", {
+          method: "POST",
+          body: JSON.stringify({ profileId: id, role }),
         }),
       [refreshOpen, loadStats],
     );
@@ -861,6 +883,8 @@ export default function AdminPage() {
                     <DetailPanel
                       detail={detail}
                       busy={busy}
+                      self={u.id === selfId}
+                      onSetRole={(role) => void setRole(u.id, role)}
                       onGiftPro={(until) => void giftPro(u.id, until)}
                       onRevokePro={() => void revokePro(u.id)}
                       onTogglePack={(code, grant) => void togglePack(u.id, code, grant)}
@@ -967,6 +991,8 @@ function Badge({ children, tone }: { children: React.ReactNode; tone?: "good" | 
 function DetailPanel({
   detail,
   busy,
+  self,
+  onSetRole,
   onGiftPro,
   onRevokePro,
   onTogglePack,
@@ -978,6 +1004,8 @@ function DetailPanel({
 }: {
   detail: Detail;
   busy: string | null;
+  self: boolean;
+  onSetRole: (role: "admin" | "player") => void;
   onGiftPro: (untilISO: string | null) => void;
   onRevokePro: () => void;
   onTogglePack: (code: string, grant: boolean) => void;
@@ -991,6 +1019,10 @@ function DetailPanel({
   const [yearsText, setYearsText] = useState(String(detail.entitlements?.extra_year_closes ?? 0));
   const [chapterSeatsText, setChapterSeatsText] = useState("");
   const [confirmText, setConfirmText] = useState("");
+  // Promotion is armed by the same typed email the deletion is, and for the
+  // same reason: it is the other action on this panel that cannot be undone
+  // by tapping the chip again.
+  const [promoteText, setPromoteText] = useState("");
 
   const e = detail.entitlements;
   const compActive = !!e?.comp_pro && (!e.comp_until || new Date(e.comp_until) > new Date());
@@ -1003,6 +1035,7 @@ function DetailPanel({
   const paceGranted = e?.extra_year_closes ?? 0;
   const activeChapter = detail.ownedChapters.find((c) => c.status === "active") ?? null;
   const confirmNeeded = detail.user.email ?? "delete";
+  const isAdmin = detail.user.role === "admin";
 
   return (
     <div className="space-y-5">
@@ -1206,8 +1239,71 @@ function DetailPanel({
         )}
       </div>
 
+      {/* Role — the one grant that is not content or pace, but this console */}
+      <div className="rounded-[var(--radius-row)] border border-[var(--hairline)] p-3">
+        <p className="text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]">
+          ROLE — {isAdmin ? "ADMIN" : "PLAYER"}
+        </p>
+        {self ? (
+          <p className="mt-1 text-2xs leading-relaxed text-[var(--text-secondary)]">
+            Your own account. An admin cannot change their own role here &mdash; a
+            self-demotion would close this door from the inside, and the way
+            back in is the Supabase dashboard. Ask another admin, or use the
+            dashboard.
+          </p>
+        ) : isAdmin ? (
+          <>
+            <p className="mt-1 text-2xs leading-relaxed text-[var(--text-secondary)]">
+              A full operator: this console, every account on it, and their own
+              game unlocked. Demoting is one cell back and total &mdash; an
+              admin&rsquo;s access is derived, never stored, so there is nothing
+              left behind to chase down.
+            </p>
+            <div className="mt-2">
+              <Chip onClick={() => onSetRole("player")} disabled={busy !== null} danger>
+                {busy === "role" ? "DEMOTING…" : "DEMOTE TO PLAYER"}
+              </Chip>
+            </div>
+          </>
+        ) : detail.user.anonymous || !detail.user.email ? (
+          <p className="mt-1 text-2xs leading-relaxed text-[var(--text-secondary)]">
+            {detail.user.anonymous
+              ? "An anonymous account cannot be made an admin: it signs in with a device and no credential."
+              : "An account with no email cannot be made an admin — the audit log would have nobody to name."}
+          </p>
+        ) : (
+          <>
+            <p className="mt-1 text-2xs leading-relaxed text-[var(--text-secondary)]">
+              Makes this account a full operator: this console, every account
+              and gift on it, their own game unlocked &mdash; and the power to
+              promote others. Type{" "}
+              <span className="tnum font-bold">{detail.user.email}</span> to arm
+              the button.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <input
+                value={promoteText}
+                onChange={(ev) => setPromoteText(ev.target.value)}
+                spellCheck={false}
+                placeholder={detail.user.email}
+                aria-label="Type the email to arm the promotion"
+                className="tnum min-w-0 flex-1 rounded-[var(--radius-row)] border border-[var(--hairline)] bg-transparent px-3 py-2 text-sm placeholder:text-[var(--n-6)] focus:border-[var(--n-11)] focus-visible:outline-none!"
+              />
+              <button
+                type="button"
+                onClick={() => onSetRole("admin")}
+                disabled={busy !== null || promoteText !== detail.user.email}
+                className="rounded-full px-4 py-2 text-2xs font-bold tracking-[0.08em] nv-gc text-[var(--text-secondary)] disabled:opacity-35"
+              >
+                {busy === "role" ? "PROMOTING…" : "MAKE ADMIN"}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+
       {/* Danger */}
-      {detail.user.role !== "admin" ? (
+      {!isAdmin ? (
         <div className="rounded-[var(--radius-row)] border border-[var(--alert)]/40 p-3">
           <p className="text-2xs font-bold tracking-[0.1em] text-[var(--alert)]">DELETE THIS ACCOUNT</p>
           <p className="mt-1 text-2xs leading-relaxed text-[var(--text-secondary)]">
@@ -1234,8 +1330,7 @@ function DetailPanel({
         </div>
       ) : (
         <p className="text-2xs text-[var(--text-tertiary)]">
-          An admin account — demote it in the Supabase dashboard before anything
-          drastic.
+          An admin account — demote it above before anything drastic.
         </p>
       )}
     </div>

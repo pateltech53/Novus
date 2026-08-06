@@ -120,7 +120,7 @@ export async function DELETE(
   }
   if (targetProfile.data?.role === "admin") {
     return withSession(
-      bad(409, "that account is an admin — demote it in the Supabase dashboard first"),
+      bad(409, "that account is an admin — demote it first (ROLE, on its panel)"),
       gate.session,
     );
   }

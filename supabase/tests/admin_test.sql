@@ -64,6 +64,28 @@ select test.eq((select role from public.profiles
                 where id = '90000000-0000-0000-0000-000000000001'), 'admin',
                'the dashboard flip landed');
 
+-- The door /api/admin/role runs through. The guard trigger keys on
+-- current_user and never refused `service_role` — the reason the first admin
+-- had to be made in the dashboard is that there was nobody to authorise the
+-- promotion yet, not that the cell was out of the routes' reach. An admin
+-- promoting a colleague is therefore a console button, not a SQL session.
+set role service_role;
+set request.jwt.claim.sub = '';
+update public.profiles set role = 'admin'
+ where id = '90000000-0000-0000-0000-000000000002';
+select test.eq((select role from public.profiles
+                where id = '90000000-0000-0000-0000-000000000002'), 'admin',
+               'the service role can promote an account');
+
+-- …and back, clearing the testing view with it, exactly as the route writes
+-- the demotion — so what section 8 proves about a dashboard demotion is what
+-- the console's own button does.
+update public.profiles set role = 'player', admin_view = null
+ where id = '90000000-0000-0000-0000-000000000002';
+select test.eq((select role from public.profiles
+                where id = '90000000-0000-0000-0000-000000000002'), 'player',
+               'the service role can demote again');
+
 
 \echo ''
 \echo '=== 2. the admin surface is unreachable from the game ==='

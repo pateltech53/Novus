@@ -16,8 +16,10 @@ import type { AdminView } from "@/lib/admin/entitlements";
  *   1. WHO is asking is proved through the caller's own session client —
  *      `profiles` has an own-row SELECT policy (0001), so reading `role` off
  *      the caller's row is the caller proving it about themselves. No token,
- *      no shared secret: the role is a cell in the database, flipped in the
- *      Supabase dashboard and nowhere else (0009's guard trigger).
+ *      no shared secret: the role is a cell in the database, unwritable from
+ *      any session client (0009's guard trigger) — the first one is set in
+ *      the Supabase dashboard, the rest through /api/admin/role, which is
+ *      itself behind this gate.
  *   2. WHAT the routes then do runs on the service role, because listing
  *      accounts, granting gifts and deleting users are exactly the operations
  *      no browser-reachable policy should permit.
