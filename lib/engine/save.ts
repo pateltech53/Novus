@@ -750,6 +750,41 @@ export function liveIslandCount(): number {
  * Returns null only when the allowance is spent, which is the case the caller
  * should be selling Pro against rather than silently overwriting something.
  */
+/**
+ * An `?island=` query parameter, read honestly.
+ *
+ * ── The company this deleted ───────────────────────────────────────────────
+ *
+ * /found did this inline, and it was one coercion away from destroying saves:
+ *
+ *     const askedFor = Number(params.get("island"));
+ *     const targetSlot =
+ *       Number.isInteger(askedFor) && askedFor >= 0 && askedFor < ISLAND_CAP
+ *         ? askedFor : undefined;
+ *
+ * `URLSearchParams.get` answers `null` when the parameter is absent, and
+ * `Number(null)` is `0` — an integer, in range, indistinguishable from a
+ * player who tapped island 0 on purpose. So EVERY route to /found that did not
+ * carry the parameter founded onto slot 0 and overwrote whatever company was
+ * living there. Stripe's success URL is `/found?purchase=ok`, which meant the
+ * most reliable way to lose your company was to pay for a second one.
+ *
+ * A parameter that is absent, blank or not a slot number is not a slot: it is
+ * the absence of an answer, and the caller must be told so rather than handed
+ * a plausible zero. `Number("")` is also 0, so blank is rejected explicitly
+ * rather than left to the range check.
+ */
+export function parseIslandSlot(raw: string | null | undefined): number | undefined {
+  if (typeof raw !== "string" || raw.trim() === "") return undefined;
+  const n = Number(raw);
+  return Number.isInteger(n) && n >= 0 && n < ISLAND_CAP ? n : undefined;
+}
+
+/** True when a company that has NOT ended is sitting on this slot. */
+export function islandIsOccupied(slot: number): boolean {
+  return listIslands().some((i) => i.slot === slot && i.alive);
+}
+
 export function slotForNewCompany(cap: number): number | null {
   const islands = listIslands();
   const limit = Math.min(ISLAND_CAP, Math.max(1, Math.trunc(cap)));

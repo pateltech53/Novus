@@ -9,7 +9,7 @@ import { PickMark } from "@/components/ui/PickMark";
 import type { Gender } from "@/lib/engine/avatar";
 import { INDUSTRIES } from "@/lib/engine/constants";
 import type { Industry } from "@/lib/engine/types";
-import { liveIslandCount, loadProfile } from "@/lib/engine/save";
+import { liveIslandCount, loadProfile, parseIslandSlot } from "@/lib/engine/save";
 import {
   ISLAND_CAP,
   islandCapFor,
@@ -65,13 +65,15 @@ function FoundPage() {
    *
    * The picker sends `?island=N` when the player taps a specific empty card,
    * so founding lands where they pointed. Reached without one — a bookmark,
-   * the onboarding hand-off — it is left undefined and `startRun` picks with
-   * `slotForNewCompany`, which is the same rule the picker used to draw the
-   * card in the first place.
+   * the onboarding hand-off, Stripe's `/found?purchase=ok` — it is left
+   * undefined and `startRun` picks with `slotForNewCompany`, which is the same
+   * rule the picker used to draw the card in the first place.
+   *
+   * `parseIslandSlot` rather than `Number(...)` inline, because `Number(null)`
+   * is 0 and this screen spent that zero on whatever company was living on
+   * island 0. See the note on that function — it is the whole bug.
    */
-  const askedFor = Number(params.get("island"));
-  const targetSlot =
-    Number.isInteger(askedFor) && askedFor >= 0 && askedFor < ISLAND_CAP ? askedFor : undefined;
+  const targetSlot = parseIslandSlot(params.get("island"));
 
   /** Companies still going, and how many are allowed. Read after mount. */
   const [living, setLiving] = useState(0);

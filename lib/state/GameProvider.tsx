@@ -112,6 +112,7 @@ import {
   saveTable,
   setActiveIsland,
   slotForNewCompany,
+  islandIsOccupied,
   type IslandSummary,
   type Profile,
 } from "@/lib/engine/save";
@@ -460,7 +461,25 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
        * calling, and this is the backstop that refuses rather than overwriting
        * a company the player still has.
        */
-      const target = opts.slot ?? slotForNewCompany(islandCapFor(loadEntitlements()));
+      /*
+       * ── The backstop that was missing ──────────────────────────────────
+       *
+       * `slotForNewCompany` never returns an occupied slot, so the auto-picked
+       * path was always safe. An EXPLICIT `opts.slot` skipped it entirely and
+       * wrote straight over whatever was there — and /found handed this an
+       * explicit 0 every time it was opened without an `?island=` parameter,
+       * because `Number(null)` is 0 (see `parseIslandSlot`). The player tapped
+       * "found a new company" and their existing one was gone.
+       *
+       * Fixing the parse fixes the reported bug. This fixes the CLASS: a
+       * caller that names a slot holding a living company no longer gets to
+       * overwrite it, it gets the same free slot the picker would have chosen.
+       * Founding onto a headstone stays allowed — that is how graves are
+       * reused, and `slotForNewCompany` does it deliberately.
+       */
+      const auto = () => slotForNewCompany(islandCapFor(loadEntitlements()));
+      const target =
+        opts.slot === undefined || islandIsOccupied(opts.slot) ? auto() : opts.slot;
       if (target === null) return;
       recordRunStart();
       islandRef.current = target;
