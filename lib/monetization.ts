@@ -33,10 +33,22 @@ export type Cents = number;
 
 export type Cadence = "month" | "year" | "once";
 
-/** "$6.99" — and "$299" rather than "$299.00", because that is how it is sold. */
+/**
+ * "$6.99" — and "$299" rather than "$299.00", because that is how it is sold.
+ *
+ * Grouped above a thousand. Nothing here reached four figures while a custom
+ * chapter stopped at 500 seats; now that it does not, the same function prints
+ * the largest number on the site, and "$59900" is a figure a buyer has to stop
+ * and count digits on. Only values over $999 change — every published price is
+ * three digits or fewer and formats exactly as before.
+ */
 export function formatPrice(cents: Cents): string {
   const whole = cents % 100 === 0;
-  return `$${(cents / 100).toFixed(whole ? 0 : 2)}`;
+  const dollars = cents / 100;
+  return `$${dollars.toLocaleString("en-US", {
+    minimumFractionDigits: whole ? 0 : 2,
+    maximumFractionDigits: whole ? 0 : 2,
+  })}`;
 }
 
 /** "$1.99–$4.99". Used for the bundles, which are a shelf and not one item. */
@@ -135,11 +147,30 @@ export const perSeatCents = (licence: ChapterLicence): Cents =>
 /**
  * The floor is where a "classroom" stops being one: below ten seats a custom
  * licence undercuts buying Pro for each person, and a licence priced under a
- * couple of personal plans is a discount code, not a chapter. The ceiling is
- * the database's own sanity bound on `chapters.seats` (0007).
+ * couple of personal plans is a discount code, not a chapter.
+ *
+ * ── Why the ceiling moved off 500 ──────────────────────────────────────────
+ *
+ * 500 was 0007's sanity bound on `chapters.seats`, adopted here because it was
+ * the number already in the schema — not because 500 was a size anybody had
+ * decided a chapter stops at. It turned out to be one: a secondary school with
+ * a year group in the programme, a district running it across campuses, a
+ * summer programme with a thousand places. Those buyers hit a form that told
+ * them their number was invalid, which is the worst possible answer to give
+ * the largest cheque on the page.
+ *
+ * The ceiling is still a real bound, because an unbounded seat field is a
+ * typo away from a six-figure charge and a chapter nobody can fill. 10,000 is
+ * chosen to sit far above any real buyer and well below a pasted phone number
+ * or a doubled keystroke, so it only ever catches mistakes.
+ *
+ * Two things follow this number and must move with it, or a quote is taken
+ * that cannot be stored: `chapters.seats` in the schema, and the guard inside
+ * `admin_create_comp_chapter`. Both are widened in
+ * supabase/migrations/0014_chapter_seats_ceiling.sql.
  */
 export const CHAPTER_CUSTOM_MIN_SEATS = 10;
-export const CHAPTER_CUSTOM_MAX_SEATS = 500;
+export const CHAPTER_CUSTOM_MAX_SEATS = 10_000;
 
 export const isCustomSeatCount = (v: unknown): v is number =>
   typeof v === "number" &&

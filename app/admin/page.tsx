@@ -1162,11 +1162,22 @@ function DetailPanel({
             <>
               <input
                 value={chapterSeatsText}
-                onChange={(ev) => setChapterSeatsText(ev.target.value.replace(/[^0-9]/g, "").slice(0, 3))}
+                // Five digits, because the ceiling is five digits. It was three
+                // when the ceiling was 500, which would now make every chapter
+                // above 999 seats untypeable in the one console that comps them.
+                onChange={(ev) =>
+                  setChapterSeatsText(
+                    ev.target.value
+                      .replace(/[^0-9]/g, "")
+                      .slice(0, String(CHAPTER_CUSTOM_MAX_SEATS).length),
+                  )
+                }
                 inputMode="numeric"
                 placeholder={`${CHAPTER_CUSTOM_MIN_SEATS}–${CHAPTER_CUSTOM_MAX_SEATS}`}
                 aria-label="Custom seat count"
-                className="tnum w-20 rounded-[var(--radius-row)] border border-[var(--hairline)] bg-transparent px-2 py-1.5 text-center text-sm placeholder:text-[var(--n-6)] focus:border-[var(--n-11)] focus-visible:outline-none!"
+                // w-20 fitted "10–500". The placeholder is now "10–10000" and
+                // the value can be five digits, so the box grows with them.
+                className="tnum w-28 rounded-[var(--radius-row)] border border-[var(--hairline)] bg-transparent px-2 py-1.5 text-center text-sm placeholder:text-[var(--n-6)] focus:border-[var(--n-11)] focus-visible:outline-none!"
               />
               <Chip
                 onClick={() => onGrantChapter("chapter_custom", Number(chapterSeatsText))}
