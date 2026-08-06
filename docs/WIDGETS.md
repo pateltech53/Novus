@@ -102,9 +102,11 @@ reporting it rather than failing silently. The Settings row hides itself in
 that case, because a switch that cannot change anything reads as a broken
 feature.
 
-**The simulator does not show Live Activities on the Lock Screen** in a way
-worth judging. Use a device with a Dynamic Island for anything to do with the
-compact and minimal presentations; the expanded one can be previewed in Xcode.
+**The simulator does run all of this**, including the Dynamic Island — pick an
+iPhone 15 Pro or later, since a simulator without an island simply has nowhere
+to draw the compact and minimal presentations. What the simulator cannot tell
+you is how the accessory widgets read on a real wallpaper, because the Lock
+Screen renders them in `.vibrant` against whatever photo is behind them.
 
 ---
 
