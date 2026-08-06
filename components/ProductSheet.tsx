@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGame } from "@/lib/state/GameProvider";
 import { specForRun } from "@/lib/engine/industries/index";
@@ -17,7 +17,8 @@ import {
   type Verdict,
 } from "@/lib/engine/portfolio";
 import { fmtMoney } from "@/lib/engine/format";
-import { S_UNIT } from "@/lib/engine/constants";
+import { S_UNIT, industryByCode } from "@/lib/engine/constants";
+import { suggestProducts, type ProductIdea } from "@/lib/ai/products";
 
 /**
  * THE PRODUCT TAB — the things you made, ranked.
@@ -371,6 +372,47 @@ function LaunchFlow({ spec, onDone }: { spec: IndustrySpec; onDone: () => void }
    */
   const [choiceIdx, setChoiceIdx] = useState<number>(spec.launchChoice?.defaultIndex ?? 0);
 
+  /*
+   * Three things this company could sell.
+   *
+   * The flow opened on a blank field headed "Name your <noun>" and the
+   * tutorial sends every new player straight to it — the emptiest screen in
+   * the game is the first one it recommends. These are starting points and
+   * nothing else: tapping one fills the three fields below, all of which stay
+   * editable, and the player still walks the same taps and pays the same
+   * money. Nothing is launched or spent on anyone's behalf.
+   *
+   * Requested once per mount and never awaited by the UI — the field is usable
+   * immediately and the ideas appear under it when they arrive. A player who
+   * already knows what they are making must not wait for a suggestion they did
+   * not ask for.
+   */
+  const [ideas, setIdeas] = useState<ProductIdea[] | null>(null);
+  useEffect(() => {
+    if (!run) return;
+    let cancelled = false;
+    void suggestProducts({
+      run,
+      spec,
+      industryName: industryByCode(run.industry).name,
+    }).then(({ ideas: got }) => {
+      if (!cancelled) setIdeas(got);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // Deliberately mount-only: re-requesting on every keystroke of `name` would
+    // be one model call per character.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const useIdea = (idea: ProductIdea) => {
+    setName(idea.name);
+    setPrice(clampPrice(idea.price, spec));
+    setInvestTier(idea.investTier);
+    setTags(idea.tags.slice(0, 2));
+  };
+
   if (!run) return null;
   const invest = spec.investTiers[investTier];
   const costDollars = invest.costS * S_UNIT[run.stage];
@@ -430,6 +472,49 @@ function LaunchFlow({ spec, onDone }: { spec: IndustrySpec; onDone: () => void }
             >
               NEXT
             </button>
+
+            {/* ── Three you could make ─────────────────────────────────────
+                Under the button, not above it: a player who arrived knowing
+                what they are making should reach NEXT without reading past a
+                list of other people's ideas. The three differ on price and
+                build tier on purpose — that spread IS the lesson the next two
+                taps teach. */}
+            {ideas && ideas.length > 0 && (
+              <div className="mt-6">
+                <h4 className="text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
+                  OR START FROM ONE OF THESE
+                </h4>
+                <p className="mt-1 text-2xs leading-snug text-[var(--text-tertiary)]">
+                  Fills in the name, the price and the build. Change any of it.
+                </p>
+                <ul className="mt-3 space-y-2">
+                  {ideas.map((idea, i) => (
+                    <li key={`${idea.name}-${i}`}>
+                      <button
+                        type="button"
+                        onClick={() => useIdea(idea)}
+                        className="nv-press w-full rounded-[var(--radius-row)] bg-[var(--surface)] p-3 text-left"
+                      >
+                        <div className="flex items-baseline justify-between gap-3">
+                          <span className="truncate text-sm font-bold text-[var(--text-primary)]">
+                            {idea.name}
+                          </span>
+                          <span className="tnum shrink-0 text-2xs font-bold text-[var(--text-secondary)]">
+                            {fmtMoney(idea.price)} ·{" "}
+                            {spec.investTiers[idea.investTier]?.label ?? ""}
+                          </span>
+                        </div>
+                        {idea.why && (
+                          <p className="mt-0.5 text-2xs leading-snug text-[var(--text-tertiary)]">
+                            {idea.why}
+                          </p>
+                        )}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </motion.div>
         )}
 

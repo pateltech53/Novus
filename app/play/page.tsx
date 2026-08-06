@@ -25,6 +25,7 @@ import { useBackHandler } from "@/lib/native/back";
 import { WorkspaceSlot } from "@/components/screens/Workspace";
 import { useNativeCoachRect } from "@/lib/native/chrome";
 import { Coachmarks, firstRunSteps } from "@/components/Coachmarks";
+import { NextStep } from "@/components/NextStep";
 import { appPath } from "@/lib/native/href";
 import { storefront } from "@/lib/commerce";
 
@@ -607,6 +608,16 @@ function PlayScreen() {
         <div data-coach="books">
           <TheBooks run={run} onTermTap={(t) => setTerm({ term: t })} />
         </div>
+
+        {/*
+          One thing worth doing, when there is one — nothing on the shelf,
+          nobody employed, or room the team has already paid for. Directly
+          under the Books because it is about what the Books are saying, and
+          above the feed because a nudge below the fold is a nudge nobody
+          reads. It renders nothing at all when the company is not missing
+          anything, which is most of a healthy run.
+        */}
+        <NextStep run={run} onOpen={(tab) => setActivity(tab)} />
 
         {/*
           One log, two presentations.

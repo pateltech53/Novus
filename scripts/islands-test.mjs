@@ -1,5 +1,5 @@
 /**
- * Does founding a company leave the others alone?
+ * The rules that decide what a device holds, and what a run is still missing.
  *
  *   node scripts/islands-test.mjs
  *
@@ -141,6 +141,55 @@ console.log("\n=== 3 · the cap is still a cap ===");
 
 ok(slotForNewCompany(2) === null, "a full archipelago refuses rather than evicting", String(slotForNewCompany(2)));
 ok(slotForNewCompany(3) === 2, "and a raised cap opens the next island", String(slotForNewCompany(3)));
+
+// ── 4 · what the run is still missing ───────────────────────────────────────
+// The two tabs players report never finding are PRODUCT and TEAM. The tutorial
+// names both, once, at minute zero — to someone who has not yet met the
+// problem. `nextStep` says it again at the moment it becomes true, and its one
+// hard rule is that it must never fire for a company that is not missing
+// anything: a nudge that is wrong teaches players to stop reading nudges.
+console.log("\n=== 4 · the one thing worth doing ===");
+
+const { nextStep } = await import(join(root, "lib/engine/nudges.ts"));
+
+const company = (over = {}) => {
+  const run = createRun({
+    founderName: "Ana", playerAge: 15, companyName: "Loop",
+    industry: "FOOD", rookieMode: true, tutorial: false,
+  });
+  return { ...run, ...over, stats: { ...run.stats, ...(over.stats ?? {}) } };
+};
+const item = (n) => ({ id: `i${n}`, name: `Item ${n}`, state: "live", history: [] });
+
+const empty = company({ stats: { employees: 0 }, portfolio: { items: [], nextId: 1 } });
+ok(nextStep(empty)?.id === "no-product", "an empty shelf is the first thing said", nextStep(empty)?.id);
+ok(nextStep(empty)?.tab === "product", "and it points at PRODUCT");
+
+const selling = company({ stats: { employees: 0 }, portfolio: { items: [item(1)], nextId: 2 } });
+ok(nextStep(selling)?.id === "no-team", "something to sell and nobody to sell it comes second", nextStep(selling)?.id);
+ok(nextStep(selling)?.tab === "team", "and it points at TEAM");
+
+const dead = company({ alive: false, stats: { employees: 0 }, portfolio: { items: [], nextId: 1 } });
+ok(nextStep(dead) === null, "a company that has ended is not nagged about hiring");
+
+/*
+ * The rule that matters most: silence when nothing is missing. `portfolioCap`
+ * is read rather than hardcoded, so this stays true if the cap is retuned.
+ */
+const { portfolioCap } = await import(join(root, "lib/engine/portfolio.ts"));
+const staffed = company({ stats: { employees: 3 } });
+const cap = portfolioCap(staffed);
+const full = company({
+  stats: { employees: 3 },
+  portfolio: { items: Array.from({ length: cap }, (_, i) => item(i)), nextId: cap + 1 },
+});
+ok(nextStep(full)?.id === "team-caps-products", "a full shelf is a hiring decision, not a wall", nextStep(full)?.id);
+
+const oneShort = company({
+  stats: { employees: 3 },
+  portfolio: { items: Array.from({ length: cap - 1 }, (_, i) => item(i)), nextId: cap },
+});
+ok(nextStep(oneShort) === null, "one slot free is left alone — not every gap is a problem", nextStep(oneShort)?.id ?? "null");
 
 console.log(
   `\n${passed} passed, ${failures.length} failed.` +
