@@ -68,13 +68,37 @@ interface Rect {
 }
 
 /**
+ * The element a step points at — the VISIBLE one.
+ *
+ * ── Why this is not `querySelector` ────────────────────────────────────────
+ *
+ * A responsive layout renders the same control twice and hides one of them.
+ * /play does exactly this with the activity bar: the six tabs are a bottom bar
+ * on a phone (`lg:hidden`) and a list in the left rail on a desktop
+ * (`hidden lg:block`). `querySelector` returns whichever comes first in the
+ * document regardless of whether anyone can see it — and a `display: none`
+ * element measures 0×0 at 0,0, so the tutorial cut a zero-size hole in the top
+ * corner of the screen and said "everything else lives down here" while
+ * pointing at nothing.
+ *
+ * Visibility is decided by `getClientRects()`, which is empty for a
+ * `display: none` element and its descendants — the exact condition that
+ * breaks measurement, rather than a guess at which breakpoint is live. The
+ * first match is kept as a fallback so a target that is merely off-screen, or
+ * hidden behind a sheet mid-animation, still anchors somewhere sensible.
+ */
+function coachTarget(targetId: string): HTMLElement | null {
+  const all = document.querySelectorAll<HTMLElement>(`[data-coach="${targetId}"]`);
+  for (const el of all) if (el.getClientRects().length > 0) return el;
+  return all[0] ?? null;
+}
+
+/**
  * The spotlight anchor is often a wrapper div (so the hole can hug a group of
  * controls). Clicking a div does nothing, so resolve down to the real control.
  */
 function activate(targetId: string): boolean {
-  const host = document.querySelector<HTMLElement>(
-    `[data-coach="${targetId}"]`,
-  );
+  const host = coachTarget(targetId);
   if (!host) return false;
   const control = host.matches("button, a, input, [role='button']")
     ? host
@@ -145,8 +169,11 @@ export function Coachmarks({
      */
     let cached: HTMLElement | null = null;
     const target = () => {
-      if (cached?.isConnected) return cached;
-      cached = document.querySelector<HTMLElement>(`[data-coach="${step.target}"]`);
+      // Re-resolved when the cached element leaves the document OR stops being
+      // measurable: a breakpoint change swaps which copy of a duplicated
+      // target is the visible one without either leaving the DOM.
+      if (cached?.isConnected && cached.getClientRects().length > 0) return cached;
+      cached = coachTarget(step.target);
       return cached;
     };
 
@@ -225,10 +252,7 @@ export function Coachmarks({
   useLayoutEffect(() => {
     if (!step || typeof window === "undefined") return;
 
-    const el =
-      step.native && nativeChrome
-        ? null
-        : document.querySelector<HTMLElement>(`[data-coach="${step.target}"]`);
+    const el = step.native && nativeChrome ? null : coachTarget(step.target);
     if (el) {
       const r = el.getBoundingClientRect();
       const vh = window.visualViewport?.height ?? window.innerHeight;
@@ -625,7 +649,14 @@ const BASE_STEPS: CoachStep[] = [
     id: "tabs",
     target: "tabs",
     native: "tabs",
-    title: "Everything else lives down here.",
+    /*
+     * "down here" was a lie on every screen wide enough for the rail, where
+     * these six are a list beside the company rather than a bar under it. The
+     * spotlight now finds whichever one is on screen, so the words have to
+     * work for both — "here" points at the hole, which is the only instruction
+     * that is true in every layout.
+     */
+    title: "Everything else lives here.",
     body: "Your company, your team, your assets, the market, your closet. None of it costs you a month — you can look as much as you like.",
     mode: "ack",
     place: "above",

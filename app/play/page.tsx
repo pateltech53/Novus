@@ -582,9 +582,18 @@ function PlayScreen() {
         {/*
           The activities, as a list, desktop only. The phone keeps its bottom
           bar at the foot of the centre column below.
+
+          `data-coach="tabs"` is on BOTH copies, and the tutorial points at
+          whichever one is visible — see `coachTarget` in
+          components/Coachmarks.tsx. Before that, only the phone's bottom bar
+          carried the attribute, and on a desktop that element is `lg:hidden`:
+          still in the document, so `querySelector` found it, and 0×0 at 0,0
+          once measured. Three steps — the bar, PRODUCT and CLOSET — cut a
+          zero-size hole in the top corner of an empty screen while the six
+          tabs they describe sat unhighlighted in this rail.
         */}
         {domChrome ? (
-          <div className="hidden min-h-0 flex-1 overflow-y-auto lg:block">
+          <div className="hidden min-h-0 flex-1 overflow-y-auto lg:block" data-coach="tabs">
             <div className="px-4 pt-3 pb-1 text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
               ACTIVITIES
             </div>
