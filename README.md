@@ -33,9 +33,10 @@ than a CSS impression of it — and the height they take is measured after
 layout and handed back as a CSS variable, so nothing is ever occluded by a
 number somebody guessed. See **[docs/APP.md](docs/APP.md)**.
 
-The company also exists on the phone while the app is shut: The Books and the
-fiscal year as Home Screen and Lock Screen widgets, the runway as a StandBy
-ring, and two Live Activities — the year, which turns prestige gold at the gate
+The company also exists on the phone while the app is shut: Brand, Quality and
+Morale as Home Screen and Lock Screen widgets, whichever of the five visible
+stats the engine is about to aim events at as a StandBy ring, and two Live
+Activities — the year, which turns prestige gold at the gate
 because it will not close without a pitch, and RobinGhood, which is the one
 thing in this game that keeps moving while you are not looking. A second build
 target reading a snapshot the app publishes into a shared App Group. See

@@ -15,13 +15,26 @@ import WidgetKit
  So the design here is about SHAPE and HIERARCHY rather than colour:
 
  · The circular slot is a `Gauge`, because a system gauge is the one control
-   that keeps its ring in every rendering mode and on every wallpaper. Runway,
-   which is the number worth glancing at.
- · The rectangular slot is three lines with a strict order: who, how long, how
-   much. Reading order is the hierarchy when tint is not available.
+   that keeps its ring in every rendering mode and on every wallpaper. It shows
+   the WEAKEST of the five — see below.
+ · The rectangular slot is three lines with a strict order: who, what is
+   weakest, what the other two are. Reading order is the hierarchy when tint is
+   not available.
  · The inline slot is one clause, and it goes beside the date. It gets a symbol
    and about thirty characters, and anything longer is truncated by the system
    rather than by a designer.
+
+ ── Why the weakest, rather than a fixed stat ────────────────────────────────
+
+ A Lock Screen slot is about eleven points across and a player sees it a
+ hundred times a day without meaning to. Spending that on Brand every day —
+ including the eleven months Brand is fine — wastes it.
+
+ `weakestCategory()` in lib/engine/events.ts biases the next event draw toward
+ whichever of the five visible stats is lowest, once it falls below 45. So the
+ lowest one is not a statistic: it is what the game is about to do to you. That
+ is worth eleven points, and it changes when the answer changes, which is the
+ only way a glanceable surface earns being glanced at.
 
  `.widgetAccentable()` marks what should ride in the accent group when the
  player has picked a tinted Lock Screen. It is the only colour instruction here
@@ -30,21 +43,21 @@ import WidgetKit
 
 // ── Circular ────────────────────────────────────────────────────────────────
 
-struct RunwayCircularWidget: Widget {
-    static let kind = "com.novuspitch.widget.runway"
+struct WeakestCircularWidget: Widget {
+    static let kind = "com.novuspitch.widget.weakest"
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: Self.kind, provider: OutsideProvider()) { entry in
-            RunwayCircularView(snapshot: entry.snapshot)
+            WeakestCircularView(snapshot: entry.snapshot)
                 .containerBackground(Color.clear, for: .widget)
         }
-        .configurationDisplayName("Runway")
-        .description("How long the company has left, as a ring.")
+        .configurationDisplayName("Weakest")
+        .description("Whichever of Brand, Quality, Morale, CSAT or Energy is lowest.")
         .supportedFamilies([.accessoryCircular])
     }
 }
 
-struct RunwayCircularView: View {
+struct WeakestCircularView: View {
     let snapshot: OutsideSnapshot
 
     var body: some View {
@@ -64,13 +77,14 @@ struct RunwayCircularView: View {
                     .widgetAccentable()
                 }
                 .widgetURL(URL(string: "\(OutsideStore.scheme)://gate"))
-            } else {
-                Gauge(value: min(company.runwayFill, 1)) {
-                    Image(systemName: company.symbol)
+            } else if let weakest = company.weakest {
+                Gauge(value: weakest.fill) {
+                    Image(systemName: weakest.symbol)
                 } currentValueLabel: {
-                    // The number without its unit: the ring IS the unit, and
-                    // "7mo" at this diameter is four glyphs where two fit.
-                    Text(company.isProfitable ? "∞" : "\(Int(company.runwayMonths))")
+                    // The number without its label: the symbol IS the label,
+                    // and "MORALE" at this diameter is six glyphs where two
+                    // fit.
+                    Text("\(weakest.value)")
                         .font(NvType.figure(15, weight: .bold))
                         .minimumScaleFactor(0.6)
                 }
@@ -100,7 +114,7 @@ struct BooksRectangularWidget: Widget {
                 .containerBackground(Color.clear, for: .widget)
         }
         .configurationDisplayName("The Books")
-        .description("The company, its runway and its cash, on the Lock Screen.")
+        .description("The company and its three scores, on the Lock Screen.")
         .supportedFamilies([.accessoryRectangular])
     }
 }
@@ -123,12 +137,16 @@ struct BooksRectangularView: View {
                 }
                 .widgetAccentable()
 
-                Text(company.atGate ? "PITCH DUE" : "\(company.runway.text) runway")
+                // Line two is the weakest, named and numbered. It is the one
+                // line on this widget somebody could act on.
+                Text(headline(company))
                     .font(NvType.figure(15, weight: .bold))
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
 
-                Text("\(company.cash.text) cash · \(company.burn.text)/mo")
+                // The rest of the trio, so the weakest has something to be
+                // weak relative to.
+                Text(rest(company))
                     .font(NvType.figure(10, weight: .medium))
                     .opacity(0.75)
                     .lineLimit(1)
@@ -145,25 +163,40 @@ struct BooksRectangularView: View {
             .widgetURL(URL(string: "\(OutsideStore.scheme)://islands"))
         }
     }
+
+    /// "Morale 31", or the gate, or the headstone.
+    private func headline(_ company: OutsideCompany) -> String {
+        if company.atGate { return "PITCH DUE" }
+        if !company.alive { return company.statusLine }
+        guard let weakest = company.weakest else { return company.stageName }
+        return "\(weakest.label.capitalized) \(weakest.value)"
+    }
+
+    /// The other two of the headline trio, in the order `StatRings` draws them.
+    private func rest(_ company: OutsideCompany) -> String {
+        let others = company.headlineScores.filter { $0.label != company.weakest?.label }
+        guard !others.isEmpty else { return company.stageName }
+        return others.map { "\($0.label.capitalized) \($0.value)" }.joined(separator: " · ")
+    }
 }
 
 // ── Inline ──────────────────────────────────────────────────────────────────
 
-struct RunwayInlineWidget: Widget {
-    static let kind = "com.novuspitch.widget.runway.inline"
+struct WeakestInlineWidget: Widget {
+    static let kind = "com.novuspitch.widget.weakest.inline"
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: Self.kind, provider: OutsideProvider()) { entry in
-            RunwayInlineView(snapshot: entry.snapshot)
+            WeakestInlineView(snapshot: entry.snapshot)
                 .containerBackground(Color.clear, for: .widget)
         }
-        .configurationDisplayName("Runway, inline")
+        .configurationDisplayName("Weakest, inline")
         .description("One line above the Lock Screen clock.")
         .supportedFamilies([.accessoryInline])
     }
 }
 
-struct RunwayInlineView: View {
+struct WeakestInlineView: View {
     let snapshot: OutsideSnapshot
 
     var body: some View {
@@ -174,8 +207,10 @@ struct RunwayInlineView: View {
         if let company = snapshot.company {
             if company.atGate {
                 Label("Pitch due · \(company.name)", systemImage: "video.fill")
-            } else if company.alive {
-                Label("\(company.runway.text) runway · \(company.name)", systemImage: company.symbol)
+            } else if company.alive, let weakest = company.weakest {
+                Label(
+                    "\(weakest.label.capitalized) \(weakest.value) · \(company.name)",
+                    systemImage: weakest.symbol)
             } else {
                 Label("\(company.statusLine.capitalized) · \(company.name)", systemImage: "xmark.circle")
             }

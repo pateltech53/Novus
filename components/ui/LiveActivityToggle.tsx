@@ -55,7 +55,7 @@ export function LiveActivityToggle() {
         </span>
         <span className="mt-0.5 block text-2xs leading-snug text-[var(--text-tertiary)]">
           {on
-            ? "Runway, the month, and the year gate — in the Dynamic Island while you are out of the app."
+            ? "Brand, Quality, Morale and the year gate — in the Dynamic Island while you are out of the app."
             : "Off. The Books are still on your Home Screen if you have the widget."}
         </span>
       </span>

@@ -9,7 +9,8 @@ import { appPath } from "@/lib/native/href";
  * Every surface outside the app is a link, and a link that merely opens the
  * app is a wasted one: `native/boot.html` already decides which screen a cold
  * start belongs on, so "open Novus" is what the icon does. A widget is worth
- * having only if tapping the runway ring puts you in front of the runway.
+ * having only if tapping the score ring puts you in front of the stat it is
+ * about.
  *
  * The scheme is `novus://` and the whole vocabulary is four destinations. It
  * is deliberately small — a URL space is a public API the moment one ships in

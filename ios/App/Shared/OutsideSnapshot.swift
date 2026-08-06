@@ -15,9 +15,9 @@ import Foundation
  would be a second implementation of a display rule on the far side of a
  bridge, and the two would disagree the first time either changed.
 
- So `OutsideFigure` arrives as a pair: the quantity, which is what a gauge and
- a sparkline need, and the exact string the app itself would print, which is
- what gets drawn. **Nothing in this extension formats a number that has a
+ So `OutsideFigure` arrives as a pair: the quantity, which is what a gauge or
+ a meter needs, and the exact string the app itself would print, which is what
+ gets drawn. **Nothing in this extension formats a number that has a
  `text` beside it.**
 
  ── Why every field is either non-optional or explicitly optional ────────────
@@ -40,13 +40,37 @@ enum OutsideTone: String, Codable {
 }
 
 struct OutsideFigure: Codable, Hashable {
-    /// The quantity, for a gauge, a bar or a sparkline.
+    /// The quantity, for a gauge or a bar.
     let value: Double
     /// Exactly what the app would print. Draw this; never re-derive it.
     let text: String
     /// Month over month. Null — not "+$0" — when there is no history to compare.
     let deltaText: String?
     let deltaTone: OutsideTone?
+}
+
+/**
+ One of the five stats the game actually steers by.
+
+ Not a dashboard somebody assembled: `weakestCategory()` in
+ lib/engine/events.ts — the function that decides which kind of event to aim at
+ a player next — reads exactly these five. A widget showing them is showing the
+ numbers the engine is looking at when it picks what happens to you next month.
+ */
+struct OutsideScore: Codable, Hashable {
+    /// "BRAND". The app's own label, as `StatRings` prints it.
+    let label: String
+    /// 0–100, already rounded.
+    let value: Int
+    /// SF Symbol.
+    let symbol: String
+    /// The event category this stat is attacked through — MKT, PRD, PPL, CUS, LIF.
+    let category: String
+}
+
+extension OutsideScore {
+    /// 0…1, for a meter.
+    var fill: Double { Double(max(0, min(100, value))) / 100 }
 }
 
 struct OutsideCompany: Codable, Hashable {
@@ -75,36 +99,38 @@ struct OutsideCompany: Codable, Hashable {
 
     let cash: OutsideFigure
     let burn: OutsideFigure
-    let runway: OutsideFigure
     let valuation: OutsideFigure
 
-    /// Months of runway, clamped to [0, 999]. 999 means the company is profitable.
-    let runwayMonths: Double
-    /// 0…1 for the twelve-segment gauge. A full ring is a fiscal year of runway.
-    let runwayFill: Double
+    /// Brand, Quality, Morale, CSAT, Energy — in that order, always all five.
+    /// The order is fixed so a surface with room for three gets `StatRings`'
+    /// own trio: the three levers a founder actually steers.
+    let scores: [OutsideScore]
+    /// Index into `scores` of the lowest — the one events are about to be
+    /// aimed at.
+    let weakestIndex: Int
+    /// That lowest score is under 45, which is the line `weakestCategory()`
+    /// draws in lib/engine/events.ts. Above it the game is not aiming at you.
+    let underPressure: Bool
 
     let employees: Int
     let equityPct: Int
     let peakValuationText: String
-
-    /// Oldest first, live value last. Empty below two points — never a lone dot.
-    let cashSeries: [Double]
-    let valuationSeries: [Double]
 }
 
 extension OutsideCompany {
-    /// Burn ≤ 0. The company makes money and there is no runway to run out of.
-    var isProfitable: Bool { runwayMonths >= 999 }
-
     /**
-     Under three months of runway.
+     The stat the game is about to aim at.
 
-     `lib/engine/sim.ts` sets a `runway_low` flag at five months, which is where
-     the authored cash-crisis events arm. This is a tighter line and a different
-     question: five months is when the game starts applying pressure, three is
-     when a number on a lock screen should stop being grey.
+     Bounds-checked rather than subscripted straight, because `weakestIndex`
+     arrives over a wire: a snapshot from a build that shipped six scores would
+     otherwise crash a widget rather than draw five of them.
      */
-    var isRedline: Bool { !isProfitable && runwayMonths < 3 }
+    var weakest: OutsideScore? {
+        scores.indices.contains(weakestIndex) ? scores[weakestIndex] : scores.first
+    }
+
+    /// `StatRings`' trio — Brand, Quality, Morale. The three a founder steers.
+    var headlineScores: [OutsideScore] { Array(scores.prefix(3)) }
 
     /// Twelve ticks, one per fiscal month, `month` of them filled.
     var monthsElapsed: Int { max(0, min(12, month)) }
@@ -182,7 +208,7 @@ extension OutsideSnapshot {
  has been read off disk.
 
  Deliberately a real, plausible company rather than zeroes: a preview full of
- `$0` and `0mo` tells someone browsing the widget gallery that the widget is
+ `$0` and `0` tells someone browsing the widget gallery that the widget is
  broken. The numbers are the game's own opening position — Cash 25S, Burn 2S/mo
  at stage 1 (GDD §4 T1), which is where every run in this game actually starts.
  */
@@ -208,15 +234,21 @@ extension OutsideSnapshot {
             badgeLabel: "Brewzo. Fiscal year 3.",
             cash: OutsideFigure(value: 412_000, text: "$412K", deltaText: "−$18K", deltaTone: .down),
             burn: OutsideFigure(value: 58_000, text: "$58K", deltaText: "+$4K", deltaTone: .down),
-            runway: OutsideFigure(value: 7, text: "7mo", deltaText: "−1mo", deltaTone: .down),
             valuation: OutsideFigure(value: 4_100_000, text: "$4.1M", deltaText: "+$260K", deltaTone: .up),
-            runwayMonths: 7,
-            runwayFill: 7.0 / 12.0,
+            scores: [
+                OutsideScore(label: "BRAND", value: 61, symbol: "megaphone", category: "MKT"),
+                OutsideScore(label: "QUALITY", value: 74, symbol: "checkmark.seal", category: "PRD"),
+                OutsideScore(label: "MORALE", value: 52, symbol: "person.2", category: "PPL"),
+                OutsideScore(label: "CSAT", value: 68, symbol: "heart", category: "CUS"),
+                OutsideScore(label: "ENERGY", value: 47, symbol: "bolt", category: "LIF"),
+            ],
+            // Energy, at 47 — the lowest of the five and just above the line,
+            // which is the ordinary state of a company that is doing fine.
+            weakestIndex: 4,
+            underPressure: false,
             employees: 6,
             equityPct: 78,
-            peakValuationText: "$4.4M",
-            cashSeries: [512_000, 496_000, 470_000, 455_000, 441_000, 430_000, 412_000],
-            valuationSeries: [3_100_000, 3_300_000, 3_500_000, 3_700_000, 3_840_000, 3_900_000, 4_100_000]
+            peakValuationText: "$4.4M"
         ),
         market: nil,
         islands: [],

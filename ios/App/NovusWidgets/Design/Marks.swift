@@ -5,9 +5,9 @@ import SwiftUI
 
  They are small on purpose. A widget is redrawn by the system on its own
  schedule, in a process with a hard memory ceiling and no animation, so the
- vocabulary that survives contact with it is: a bar, a dial, a line, and a
- figure with a label over it. Everything in this extension is one of those
- four, arranged differently.
+ vocabulary that survives contact with it is: a segmented bar for months, a
+ dial for the same, a figure with a label over it, and a meter for a score.
+ Everything in this extension is one of those four, arranged differently.
 
  All four are drawn from the same tokens the app draws itself from, and none of
  them formats a number — `OutsideFigure` carries the app's own string and that
@@ -17,14 +17,16 @@ import SwiftUI
 // ── The twelve-segment bar ──────────────────────────────────────────────────
 
 /**
- A fiscal year, or a year of runway, as twelve discrete steps.
+ A fiscal year, as twelve discrete steps.
 
  Discrete rather than continuous, and that is the whole point: this game is
  played one month at a time, and a smooth progress bar would say the year is
  65% done when the honest statement is that seven of twelve months are behind
- you. The Books draws runway on exactly this scale — a full bar is a fiscal
- year of it — so the two bars are directly comparable, which is the question a
- player actually has in month nine.
+ you.
+
+ It is deliberately NOT what a score is drawn with. A stat is a magnitude on a
+ hundred-point scale with no steps in it — `ScoreMeter` uses a continuous bar —
+ and drawing the two the same way would say they were the same kind of thing.
  */
 struct SegmentBar: View {
     /// 0…1. Anything above one stays full.
@@ -34,8 +36,8 @@ struct SegmentBar: View {
     var height: CGFloat = 5
 
     private var lit: Int {
-        // Ceil rather than round: a company with two weeks of runway left has
-        // some, and a bar that reads empty says something the numbers do not.
+        // Ceil rather than round: a fiscal year one day in has started, and a
+        // bar that reads empty says something the calendar does not.
         max(0, min(segments, Int(ceil(fill * Double(segments)))))
     }
 
@@ -91,64 +93,6 @@ struct MonthDial<Center: View>: View {
     }
 }
 
-// ── The line ────────────────────────────────────────────────────────────────
-
-/**
- Twelve months of one figure, as the shape it made.
-
- No axis, no grid, no labels — the number it ends on is printed beside it and
- the line exists to say which way the company has been going. Normalised to its
- own range rather than to zero, because a valuation that moved from $4.0M to
- $4.1M is a line with a slope on it and a flat line drawn from zero.
-
- Draws nothing below two points. The ledger makes that distinction
- deliberately (see `SPARK_MIN_POINTS` in lib/engine/ledger.ts) and a lone dot
- pretending to be a trend is worse than an empty space.
- */
-struct Sparkline: Shape {
-    let points: [Double]
-
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        guard points.count >= 2 else { return path }
-
-        let low = points.min() ?? 0
-        let high = points.max() ?? 0
-        let span = high - low
-        // A perfectly flat series is a real state — a company that did not
-        // move — and dividing by its zero range is not. It draws down the
-        // middle, which is what flat looks like.
-        let y = { (value: Double) -> CGFloat in
-            let t = span > 0 ? (value - low) / span : 0.5
-            return rect.maxY - CGFloat(t) * rect.height
-        }
-        let step = rect.width / CGFloat(points.count - 1)
-
-        path.move(to: CGPoint(x: rect.minX, y: y(points[0])))
-        for (index, value) in points.enumerated().dropFirst() {
-            path.addLine(to: CGPoint(x: rect.minX + CGFloat(index) * step, y: y(value)))
-        }
-        return path
-    }
-}
-
-/// The line, its tint, and the wash under it. One view so no caller has to
-/// remember that the fill needs the line closed to the baseline and the stroke
-/// does not.
-struct SparklineMark: View {
-    let points: [Double]
-    var tint: Color = Nv.solvency
-    var lineWidth: CGFloat = 1.5
-
-    var body: some View {
-        ZStack {
-            Sparkline(points: points)
-                .stroke(tint, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
-        }
-        .opacity(points.count >= 2 ? 1 : 0)
-    }
-}
-
 // ── The figure ──────────────────────────────────────────────────────────────
 
 /**
@@ -188,6 +132,80 @@ struct FigureCell: View {
                     .font(NvType.figure(9, weight: .semibold))
                     .foregroundStyle(Nv.tone(figure.deltaTone))
                     .lineLimit(1)
+            }
+        }
+    }
+}
+
+// ── The score ───────────────────────────────────────────────────────────────
+
+/**
+ One of the five, as a label, a number and a bar.
+
+ ── Why they are all one colour ──────────────────────────────────────────────
+
+ `components/StatRings.tsx` settled this and the reasoning transfers verbatim:
+ the three rings once carried the action orange, the solvency green and the
+ prestige gold, which spent three brand colours on what is really one magnitude
+ shown three times. That broke two rules at once — the accent is the primary
+ call to action and nothing else, and solvency is financial upside only, and
+ morale is not money.
+
+ So every meter here is the neutral ink. The ONE exception is the weakest one
+ when the company is under pressure, and that is not decoration: below 45 the
+ engine starts aiming events at that stat, so the colour is reporting a change
+ in what the game is doing rather than ranking five numbers by taste.
+ */
+struct ScoreMeter: View {
+    let score: OutsideScore
+    /// Draws in alert red. Reserved for the weakest stat below the line.
+    var pressured = false
+    var compact = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: compact ? 1 : 2) {
+            HStack(spacing: 0) {
+                Text(score.label)
+                    .font(NvType.label(compact ? 8 : 9, weight: .bold))
+                    .tracking(0.5)
+                    .foregroundStyle(Nv.tertiary)
+                    .lineLimit(1)
+                Spacer(minLength: 3)
+                Text("\(score.value)")
+                    .font(NvType.figure(compact ? 11 : 13, weight: .bold))
+                    .foregroundStyle(pressured ? Nv.alert : Nv.primary)
+            }
+
+            // A continuous bar, not the twelve-tick one. A stat is a magnitude
+            // on a hundred-point scale and has no steps in it; the segmented
+            // bar means "months", and using it here would say the two were the
+            // same kind of thing.
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule(style: .continuous)
+                        .fill(Nv.hairline)
+                    Capsule(style: .continuous)
+                        .fill(pressured ? Nv.alert : Nv.primary.opacity(0.78))
+                        .frame(width: max(2, geo.size.width * score.fill))
+                }
+            }
+            .frame(height: compact ? 3 : 4)
+        }
+    }
+}
+
+/// The trio, side by side. Brand, Quality, Morale — the masthead's own three.
+struct ScoreRow: View {
+    let company: OutsideCompany
+    var compact = false
+
+    var body: some View {
+        HStack(alignment: .top, spacing: compact ? 8 : 10) {
+            ForEach(company.headlineScores, id: \.label) { score in
+                ScoreMeter(
+                    score: score,
+                    pressured: company.underPressure && score.label == company.weakest?.label,
+                    compact: compact)
             }
         }
     }
@@ -235,14 +253,15 @@ extension OutsideCompany {
      · **Gone** — grey. A dead company is a record, not an alarm.
      · **At the gate** — prestige gold. Month twelve, and the fiscal year does
        not close without a scored camera performance.
-     · **Redline** — alert. Under three months of runway.
+     · **Under pressure** — alert. The weakest of the five is below 45, which
+       is where the engine starts aiming events at it.
      · Otherwise the action orange, which is the app's own answer to "this is
        the thing that wants you".
      */
     var accent: Color {
         if !alive { return Nv.tertiary }
         if atGate { return Nv.prestige }
-        if isRedline { return Nv.alert }
+        if underPressure { return Nv.alert }
         return Nv.action
     }
 
@@ -257,7 +276,9 @@ extension OutsideCompany {
             }
         }
         if atGate { return "PITCH DUE" }
-        if isRedline { return "RUNWAY SHORT" }
+        // Names the stat rather than saying "under pressure", because the
+        // player can do something about "MORALE LOW" and nothing about a mood.
+        if underPressure, let weakest { return "\(weakest.label) LOW" }
         return stageName.uppercased()
     }
 }

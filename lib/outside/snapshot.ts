@@ -1,15 +1,8 @@
 import type { Industry, RunState } from "@/lib/engine/types";
 import type { IslandSummary } from "@/lib/engine/save";
 import { INDUSTRIES, STAGE_NAME } from "@/lib/engine/constants";
-import { deriveRunwayMonths } from "@/lib/engine/sim";
-import { previousValue, series } from "@/lib/engine/ledger";
-import {
-  fmtDelta,
-  fmtMoney,
-  fmtMonths,
-  fmtMonthsDelta,
-  monthBadge,
-} from "@/lib/engine/format";
+import { previousValue } from "@/lib/engine/ledger";
+import { fmtDelta, fmtMoney, monthBadge } from "@/lib/engine/format";
 import {
   minuteOf,
   positionValue,
@@ -34,9 +27,9 @@ import {
  * in Swift would put a second implementation of a *display rule* on the other
  * side of a bridge, and the two would disagree the first time either changed.
  *
- * So each figure ships as a pair: the raw number, which is what a gauge and a
- * sparkline need, and the exact string the app itself would print, which is
- * what the widget renders. Swift formats nothing that has a name here.
+ * So each figure ships as a pair: the raw number, which is what a gauge or a
+ * meter needs, and the exact string the app itself would print, which is what
+ * the widget renders. Swift formats nothing that has a name here.
  *
  * ── What is deliberately absent ────────────────────────────────────────────
  *
@@ -65,6 +58,36 @@ export interface OutsideFigure {
   deltaText: string | null;
   /** Already resolved for the direction that is GOOD: cash up is `up`, burn up is `down`. */
   deltaTone: OutsideTone | null;
+}
+
+/**
+ * One of the five stats the game actually steers by.
+ *
+ * ── Why these five and not the other fourteen ──────────────────────────────
+ *
+ * They are not a selection. `weakestCategory()` in lib/engine/events.ts — the
+ * function that decides which category of event to aim at a player next —
+ * reads exactly this list: morale, qual, brand, csat, energy. Everything else
+ * in `Stats` is either money, derived, or hidden.
+ *
+ * So a widget showing these is not a dashboard somebody assembled. It is the
+ * same five numbers the engine is looking at when it picks what happens to you
+ * next month, which is the only reason they are worth a lock screen.
+ */
+export interface OutsideScore {
+  /** "BRAND". The app's own label, as `StatRings` prints it. */
+  label: string;
+  /** 0–100, rounded the way the rings round it. */
+  value: number;
+  /** SF Symbol. */
+  symbol: string;
+  /**
+   * The event category the engine aims at this stat — MKT, PRD, PPL, CUS, LIF.
+   * Not drawn anywhere yet; it is here because the pairing IS the reason the
+   * five are on the card, and a reader of the wire format should be able to see
+   * that without opening events.ts.
+   */
+  category: string;
 }
 
 export interface OutsideCompany {
@@ -96,24 +119,35 @@ export interface OutsideCompany {
 
   cash: OutsideFigure;
   burn: OutsideFigure;
-  runway: OutsideFigure;
   valuation: OutsideFigure;
 
-  /** Months of runway, clamped to [0, 999] so it survives JSON. 999 = profitable. */
-  runwayMonths: number;
   /**
-   * 0..1 for the twelve-segment gauge, on the same scale The Books uses: a
-   * full ring is a year of runway, and everything past that is still full.
+   * Brand, Quality, Morale, CSAT, Energy — in that order, always all five.
+   *
+   * Order is fixed rather than sorted so a widget drawing the first three gets
+   * `StatRings`' own trio every time: the three levers a founder actually
+   * steers, and the ones most events move.
    */
-  runwayFill: number;
+  scores: OutsideScore[];
+  /**
+   * Which of them is lowest — the one the engine is about to aim events at.
+   * An index rather than a copy, so there is one score object per stat and no
+   * way for the two to disagree.
+   */
+  weakestIndex: number;
+  /**
+   * The weakest score is under 45.
+   *
+   * Not a number chosen for a widget: 45 is the line `weakestCategory()` draws
+   * in lib/engine/events.ts, below which the draw starts biasing toward that
+   * stat's category. Above it the game is not aiming at you; below it, it is.
+   * Sent from here rather than compared in Swift so the constant lives once.
+   */
+  underPressure: boolean;
 
   employees: number;
   equityPct: number;
   peakValuationText: string;
-
-  /** Oldest first, live value last. Empty below two points — never a lone dot. */
-  cashSeries: number[];
-  valuationSeries: number[];
 }
 
 /** One held ticker, with everything the extension needs to price it itself. */
@@ -214,10 +248,47 @@ export const industrySymbol = (code: Industry): string =>
 const industryName = (code: Industry): string =>
   INDUSTRIES.find((i) => i.code === code)?.name ?? code;
 
-// ── Figures ─────────────────────────────────────────────────────────────────
+// ── The five ────────────────────────────────────────────────────────────────
 
-/** A full ring is a fiscal year of runway. Past that it stays full. */
-const RUNWAY_FULL_MONTHS = 12;
+/**
+ * The stats the engine aims at, their labels, their symbols and the category
+ * each one is attacked through.
+ *
+ * The order is `StatRings`' first: Brand, Quality, Morale are the three the
+ * masthead draws and the three a widget with room for three should show. CSAT
+ * and Energy follow, so a surface with room for five gets the whole set the
+ * draw is actually reading.
+ *
+ * The category tags are lifted from `weakestCategory()` in
+ * lib/engine/events.ts. If a stat is ever added to or removed from that
+ * function, this list is the other half of the change.
+ */
+const SCORES: {
+  key: "brand" | "qual" | "morale" | "csat" | "energy";
+  label: string;
+  symbol: string;
+  category: string;
+}[] = [
+  { key: "brand", label: "BRAND", symbol: "megaphone", category: "MKT" },
+  { key: "qual", label: "QUALITY", symbol: "checkmark.seal", category: "PRD" },
+  { key: "morale", label: "MORALE", symbol: "person.2", category: "PPL" },
+  { key: "csat", label: "CSAT", symbol: "heart", category: "CUS" },
+  { key: "energy", label: "ENERGY", symbol: "bolt", category: "LIF" },
+];
+
+/**
+ * Below this the engine starts aiming events at your weakest stat.
+ *
+ * Copied from `weakestCategory()` rather than imported, because that function
+ * is private to a protected file (docs/DO-NOT-TOUCH §"Protected files") and
+ * exporting the constant would be a change to `lib/engine/events.ts` for the
+ * benefit of a widget. The comment above `underPressure` says where it comes
+ * from; the pair is checked by nothing, which is exactly why it is written
+ * down twice rather than inferred once.
+ */
+const PRESSURE_LINE = 45;
+
+// ── Figures ─────────────────────────────────────────────────────────────────
 
 /**
  * A money figure and its month-over-month change.
@@ -240,18 +311,17 @@ function moneyFigure(
   };
 }
 
-function monthsFigure(value: number, previous: number | null): OutsideFigure {
-  const change = previous === null ? null : value - previous;
-  return {
-    value,
-    text: fmtMonths(value),
-    deltaText:
-      change === null || Math.round(change) === 0 ? null : fmtMonthsDelta(change),
-    deltaTone: change === null ? null : tone(change),
-  };
-}
-
 const tone = (n: number): OutsideTone => (n > 0 ? "up" : n < 0 ? "down" : "flat");
+
+/** The five, in `StatRings`' order, rounded the way the rings round them. */
+function scoresOf(stats: RunState["stats"]): OutsideScore[] {
+  return SCORES.map((s) => ({
+    label: s.label,
+    value: Math.round(Math.max(0, Math.min(100, stats[s.key]))),
+    symbol: s.symbol,
+    category: s.category,
+  }));
+}
 
 // ── The company ─────────────────────────────────────────────────────────────
 
@@ -265,9 +335,17 @@ const tone = (n: number): OutsideTone => (n > 0 ? "up" : n < 0 ? "down" : "flat"
  */
 export function companySnapshot(run: RunState, slot: number): OutsideCompany {
   const stats = run.stats;
-  const runwayRaw = deriveRunwayMonths(run);
-  const runwayMonths = Number.isFinite(runwayRaw) ? Math.min(999, runwayRaw) : 999;
   const atGate = run.month >= 12;
+
+  const scores = scoresOf(stats);
+  // `reduce` rather than a sort: the order of `scores` is load-bearing (a
+  // widget with room for three draws the first three) and sorting a copy to
+  // find one index is a second array for no reason. Ties keep the earlier
+  // entry, which matches `weakestCategory()`'s stable sort.
+  const weakestIndex = scores.reduce(
+    (low, s, i) => (s.value < scores[low].value ? i : low),
+    0,
+  );
 
   return {
     slot,
@@ -293,18 +371,16 @@ export function companySnapshot(run: RunState, slot: number): OutsideCompany {
     // untouched — "−$4.1K a month" is the company making money, and it should
     // read as exactly that rather than as a formatting accident.
     burn: moneyFigure(stats.burnMonthly, previousValue(run, "b"), -1),
-    runway: monthsFigure(runwayMonths, previousValue(run, "r")),
     valuation: moneyFigure(stats.valuation, previousValue(run, "v"), 1),
 
-    runwayMonths,
-    runwayFill: Math.max(0, Math.min(1, runwayMonths / RUNWAY_FULL_MONTHS)),
+    scores,
+    weakestIndex,
+    underPressure: scores[weakestIndex].value < PRESSURE_LINE,
 
     employees: stats.employees,
     equityPct: Math.round(run.founderEquityPct),
     peakValuationText: fmtMoney(Math.max(run.peakValuation ?? 0, stats.valuation)),
 
-    cashSeries: series(run, "c", stats.cash),
-    valuationSeries: series(run, "v", stats.valuation),
   };
 }
 
