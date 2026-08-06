@@ -23,6 +23,29 @@
 		A9F100000000000000000015 /* GlassSheetController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F100000000000000000005 /* GlassSheetController.swift */; };
 		A9F100000000000000000016 /* GlassOverlayController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F100000000000000000006 /* GlassOverlayController.swift */; };
 		A9F100000000000000000017 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A9F100000000000000000007 /* PrivacyInfo.xcprivacy */; };
+		A9F200000000000000000101 /* OutsideSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F200000000000000000001 /* OutsideSnapshot.swift */; };
+		A9F200000000000000000102 /* OutsideStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F200000000000000000002 /* OutsideStore.swift */; };
+		A9F200000000000000000103 /* NovusActivities.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F200000000000000000003 /* NovusActivities.swift */; };
+		A9F200000000000000000107 /* NovusOutsidePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F200000000000000000007 /* NovusOutsidePlugin.swift */; };
+		A9F200000000000000000108 /* LiveActivityDirector.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F200000000000000000008 /* LiveActivityDirector.swift */; };
+		A9F200000000000000000201 /* OutsideSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F200000000000000000001 /* OutsideSnapshot.swift */; };
+		A9F200000000000000000202 /* OutsideStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F200000000000000000002 /* OutsideStore.swift */; };
+		A9F200000000000000000203 /* NovusActivities.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F200000000000000000003 /* NovusActivities.swift */; };
+		A9F200000000000000000204 /* MarketMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F200000000000000000004 /* MarketMath.swift */; };
+		A9F200000000000000000205 /* MarketFixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F200000000000000000005 /* MarketFixture.swift */; };
+		A9F200000000000000000206 /* NvFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F200000000000000000006 /* NvFormat.swift */; };
+		A9F200000000000000000209 /* NovusWidgetsBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F200000000000000000009 /* NovusWidgetsBundle.swift */; };
+		A9F20000000000000000020A /* OutsideProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F20000000000000000000A /* OutsideProvider.swift */; };
+		A9F20000000000000000020B /* TheBooksWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F20000000000000000000B /* TheBooksWidget.swift */; };
+		A9F20000000000000000020C /* TheYearWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F20000000000000000000C /* TheYearWidget.swift */; };
+		A9F20000000000000000020D /* StillStandingWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F20000000000000000000D /* StillStandingWidget.swift */; };
+		A9F20000000000000000020E /* AccessoryWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F20000000000000000000E /* AccessoryWidgets.swift */; };
+		A9F20000000000000000020F /* FiscalYearActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F20000000000000000000F /* FiscalYearActivity.swift */; };
+		A9F200000000000000000210 /* MarketActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F200000000000000000010 /* MarketActivity.swift */; };
+		A9F200000000000000000211 /* MarketWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F200000000000000000011 /* MarketWidget.swift */; };
+		A9F200000000000000000212 /* NovusPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F200000000000000000012 /* NovusPalette.swift */; };
+		A9F200000000000000000213 /* Marks.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F200000000000000000013 /* Marks.swift */; };
+		A9F200000000000000000301 /* NovusWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A9F200000000000000000017 /* NovusWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -44,6 +67,29 @@
 		A9F100000000000000000005 /* GlassSheetController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassSheetController.swift; sourceTree = "<group>"; };
 		A9F100000000000000000006 /* GlassOverlayController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassOverlayController.swift; sourceTree = "<group>"; };
 		A9F100000000000000000007 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		A9F200000000000000000001 /* OutsideSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutsideSnapshot.swift; sourceTree = "<group>"; };
+		A9F200000000000000000002 /* OutsideStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutsideStore.swift; sourceTree = "<group>"; };
+		A9F200000000000000000003 /* NovusActivities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NovusActivities.swift; sourceTree = "<group>"; };
+		A9F200000000000000000004 /* MarketMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketMath.swift; sourceTree = "<group>"; };
+		A9F200000000000000000005 /* MarketFixture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketFixture.swift; sourceTree = "<group>"; };
+		A9F200000000000000000006 /* NvFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NvFormat.swift; sourceTree = "<group>"; };
+		A9F200000000000000000007 /* NovusOutsidePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NovusOutsidePlugin.swift; sourceTree = "<group>"; };
+		A9F200000000000000000008 /* LiveActivityDirector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityDirector.swift; sourceTree = "<group>"; };
+		A9F200000000000000000009 /* NovusWidgetsBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NovusWidgetsBundle.swift; sourceTree = "<group>"; };
+		A9F20000000000000000000A /* OutsideProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutsideProvider.swift; sourceTree = "<group>"; };
+		A9F20000000000000000000B /* TheBooksWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TheBooksWidget.swift; sourceTree = "<group>"; };
+		A9F20000000000000000000C /* TheYearWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TheYearWidget.swift; sourceTree = "<group>"; };
+		A9F20000000000000000000D /* StillStandingWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StillStandingWidget.swift; sourceTree = "<group>"; };
+		A9F20000000000000000000E /* AccessoryWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessoryWidgets.swift; sourceTree = "<group>"; };
+		A9F20000000000000000000F /* FiscalYearActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FiscalYearActivity.swift; sourceTree = "<group>"; };
+		A9F200000000000000000010 /* MarketActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketActivity.swift; sourceTree = "<group>"; };
+		A9F200000000000000000011 /* MarketWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketWidget.swift; sourceTree = "<group>"; };
+		A9F200000000000000000012 /* NovusPalette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NovusPalette.swift; sourceTree = "<group>"; };
+		A9F200000000000000000013 /* Marks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Marks.swift; sourceTree = "<group>"; };
+		A9F200000000000000000014 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A9F200000000000000000015 /* NovusWidgets.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = NovusWidgets.entitlements; sourceTree = "<group>"; };
+		A9F200000000000000000016 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
+		A9F200000000000000000017 /* NovusWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = NovusWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -55,7 +101,28 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A9F2000000000000000000B2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A9F2000000000000000000B4 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A9F200000000000000000301 /* NovusWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXGroup section */
 		504EC2FB1FED79650016851F = {
@@ -63,6 +130,8 @@
 			children = (
 				958DCC722DB07C7200EA8C5F /* debug.xcconfig */,
 				504EC3061FED79650016851F /* App */,
+				A9F2000000000000000000A1 /* Shared */,
+				A9F2000000000000000000A2 /* NovusWidgets */,
 				504EC3051FED79650016851F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -71,6 +140,7 @@
 			isa = PBXGroup;
 			children = (
 				504EC3041FED79650016851F /* App.app */,
+				A9F200000000000000000017 /* NovusWidgets.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -79,7 +149,9 @@
 			isa = PBXGroup;
 			children = (
 				A9F1000000000000000000A0 /* Native */,
+				A9F2000000000000000000A4 /* Outside */,
 				9582B6822FE993A50072D4E8 /* SceneDelegate.swift */,
+				A9F200000000000000000016 /* App.entitlements */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
@@ -106,6 +178,56 @@
 			path = Native;
 			sourceTree = "<group>";
 		};
+		A9F2000000000000000000A4 /* Outside */ = {
+			isa = PBXGroup;
+			children = (
+				A9F200000000000000000007 /* NovusOutsidePlugin.swift */,
+				A9F200000000000000000008 /* LiveActivityDirector.swift */,
+			);
+			path = Outside;
+			sourceTree = "<group>";
+		};
+		A9F2000000000000000000A1 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				A9F200000000000000000001 /* OutsideSnapshot.swift */,
+				A9F200000000000000000002 /* OutsideStore.swift */,
+				A9F200000000000000000003 /* NovusActivities.swift */,
+				A9F200000000000000000004 /* MarketMath.swift */,
+				A9F200000000000000000006 /* NvFormat.swift */,
+				A9F200000000000000000005 /* MarketFixture.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		A9F2000000000000000000A2 /* NovusWidgets */ = {
+			isa = PBXGroup;
+			children = (
+				A9F2000000000000000000A3 /* Design */,
+				A9F200000000000000000009 /* NovusWidgetsBundle.swift */,
+				A9F20000000000000000000A /* OutsideProvider.swift */,
+				A9F20000000000000000000B /* TheBooksWidget.swift */,
+				A9F20000000000000000000C /* TheYearWidget.swift */,
+				A9F20000000000000000000D /* StillStandingWidget.swift */,
+				A9F200000000000000000011 /* MarketWidget.swift */,
+				A9F20000000000000000000E /* AccessoryWidgets.swift */,
+				A9F20000000000000000000F /* FiscalYearActivity.swift */,
+				A9F200000000000000000010 /* MarketActivity.swift */,
+				A9F200000000000000000014 /* Info.plist */,
+				A9F200000000000000000015 /* NovusWidgets.entitlements */,
+			);
+			path = NovusWidgets;
+			sourceTree = "<group>";
+		};
+		A9F2000000000000000000A3 /* Design */ = {
+			isa = PBXGroup;
+			children = (
+				A9F200000000000000000012 /* NovusPalette.swift */,
+				A9F200000000000000000013 /* Marks.swift */,
+			);
+			path = Design;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -116,10 +238,12 @@
 				504EC3001FED79650016851F /* Sources */,
 				504EC3011FED79650016851F /* Frameworks */,
 				504EC3021FED79650016851F /* Resources */,
+				A9F2000000000000000000B4 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				A9F2000000000000000000D1 /* PBXTargetDependency */,
 			);
 			name = App;
 			packageProductDependencies = (
@@ -129,7 +253,42 @@
 			productReference = 504EC3041FED79650016851F /* App.app */;
 			productType = "com.apple.product-type.application";
 		};
+		A9F2000000000000000000C1 /* NovusWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A9F2000000000000000000C2 /* Build configuration list for PBXNativeTarget "NovusWidgets" */;
+			buildPhases = (
+				A9F2000000000000000000B1 /* Sources */,
+				A9F2000000000000000000B2 /* Frameworks */,
+				A9F2000000000000000000B3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = NovusWidgets;
+			productName = NovusWidgets;
+			productReference = A9F200000000000000000017 /* NovusWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
+
+/* Begin PBXTargetDependency section */
+		A9F2000000000000000000D1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A9F2000000000000000000C1 /* NovusWidgets */;
+			targetProxy = A9F2000000000000000000D2 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXContainerItemProxy section */
+		A9F2000000000000000000D2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A9F2000000000000000000C1;
+			remoteInfo = NovusWidgets;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXProject section */
 		504EC2FC1FED79650016851F /* Project object */ = {
@@ -141,6 +300,10 @@
 					504EC3031FED79650016851F = {
 						CreatedOnToolsVersion = 9.2;
 						LastSwiftMigration = 1100;
+						ProvisioningStyle = Automatic;
+					};
+					A9F2000000000000000000C1 = {
+						CreatedOnToolsVersion = 26.0;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -162,6 +325,7 @@
 			projectRoot = "";
 			targets = (
 				504EC3031FED79650016851F /* App */,
+				A9F2000000000000000000C1 /* NovusWidgets */,
 			);
 		};
 /* End PBXProject section */
@@ -181,6 +345,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A9F2000000000000000000B3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -196,6 +367,35 @@
 				A9F100000000000000000013 /* NovusGlassPlugin.swift in Sources */,
 				A9F100000000000000000014 /* NovusBridgeViewController.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
+				A9F200000000000000000101 /* OutsideSnapshot.swift in Sources */,
+				A9F200000000000000000102 /* OutsideStore.swift in Sources */,
+				A9F200000000000000000103 /* NovusActivities.swift in Sources */,
+				A9F200000000000000000107 /* NovusOutsidePlugin.swift in Sources */,
+				A9F200000000000000000108 /* LiveActivityDirector.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A9F2000000000000000000B1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A9F200000000000000000201 /* OutsideSnapshot.swift in Sources */,
+				A9F200000000000000000202 /* OutsideStore.swift in Sources */,
+				A9F200000000000000000203 /* NovusActivities.swift in Sources */,
+				A9F200000000000000000204 /* MarketMath.swift in Sources */,
+				A9F200000000000000000205 /* MarketFixture.swift in Sources */,
+				A9F200000000000000000206 /* NvFormat.swift in Sources */,
+				A9F200000000000000000212 /* NovusPalette.swift in Sources */,
+				A9F200000000000000000213 /* Marks.swift in Sources */,
+				A9F20000000000000000020A /* OutsideProvider.swift in Sources */,
+				A9F20000000000000000020B /* TheBooksWidget.swift in Sources */,
+				A9F20000000000000000020C /* TheYearWidget.swift in Sources */,
+				A9F20000000000000000020D /* StillStandingWidget.swift in Sources */,
+				A9F200000000000000000211 /* MarketWidget.swift in Sources */,
+				A9F20000000000000000020E /* AccessoryWidgets.swift in Sources */,
+				A9F20000000000000000020F /* FiscalYearActivity.swift in Sources */,
+				A9F200000000000000000210 /* MarketActivity.swift in Sources */,
+				A9F200000000000000000209 /* NovusWidgetsBundle.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -335,6 +535,7 @@
 			baseConfigurationReference = 958DCC722DB07C7200EA8C5F /* debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = App/Info.plist;
@@ -357,6 +558,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = App/Info.plist;
@@ -369,6 +571,61 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.novuspitch.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1";
+			};
+			name = Release;
+		};
+		A9F2000000000000000000C3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = NovusWidgets/NovusWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				INFOPLIST_FILE = NovusWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Novus;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.novuspitch.app.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1";
+			};
+			name = Debug;
+		};
+		A9F2000000000000000000C4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = NovusWidgets/NovusWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				INFOPLIST_FILE = NovusWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Novus;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.novuspitch.app.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1";
 			};
@@ -391,6 +648,15 @@
 			buildConfigurations = (
 				504EC3171FED79650016851F /* Debug */,
 				504EC3181FED79650016851F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A9F2000000000000000000C2 /* Build configuration list for PBXNativeTarget "NovusWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A9F2000000000000000000C3 /* Debug */,
+				A9F2000000000000000000C4 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

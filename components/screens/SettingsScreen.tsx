@@ -7,6 +7,7 @@ import { SHEET_SPRING } from "@/components/ui/Motion";
 import { useGame } from "@/lib/state/GameProvider";
 import { SoundToggle } from "@/components/ui/SoundToggle";
 import { RookieToggle } from "@/components/ui/RookieToggle";
+import { LiveActivityToggle } from "@/components/ui/LiveActivityToggle";
 import {
   GlassButton,
   GlassGroup,
@@ -240,6 +241,9 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
           <div className="space-y-2">
             <RookieToggle />
             <SoundToggle />
+            {/* Renders nothing off iOS, and nothing on an iPhone where Live
+                Activities are already off system-wide. */}
+            <LiveActivityToggle />
           </div>
         </Section>
 

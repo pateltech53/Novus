@@ -21,6 +21,8 @@
     "sync": "npx cap sync",
     "audit:phone": "node scripts/audit-phone.mjs",
     "icons": "node scripts/make-icons.mjs && node scripts/make-app-icons.mjs",
+    "market:fixture": "node scripts/market-fixture.mjs",
+    "test:outside": "node scripts/market-fixture.mjs --check && node scripts/verify-pbxproj.mjs",
     "test:board": "node scripts/leaderboard-test.mjs",
     "test:islands": "node scripts/islands-test.mjs",
     "test:exits": "node scripts/exit-audit.mjs"

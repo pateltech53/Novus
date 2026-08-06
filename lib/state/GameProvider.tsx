@@ -118,6 +118,7 @@ import {
   type IslandSummary,
   type Profile,
 } from "@/lib/engine/save";
+import { useOutside } from "@/components/native/useOutside";
 
 const EVENTS = eventsData as unknown as GameEvent[];
 
@@ -1538,6 +1539,17 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setBusy(false);
   }, [run]);
+
+  /*
+   * The company, as the phone shows it when this app is shut.
+   *
+   * Here rather than on the play screen because this provider is the only
+   * place that holds both the open run and the archipelago, and because a
+   * company founded on `/found` would otherwise be invisible on the lock
+   * screen until its first tap. One publish per change, coalesced and
+   * de-duplicated in lib/outside/publish.ts; a no-op everywhere but iOS.
+   */
+  useOutside(run, island, islands);
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 }

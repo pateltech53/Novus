@@ -1,7 +1,13 @@
 name: iOS build check
 
-# The Liquid Glass chrome is Swift that no other job compiles. This is the only
-# thing standing between a typo in ios/App/App/Native/ and finding it in Xcode.
+# The Liquid Glass chrome and the widget extension are Swift that no other job
+# compiles. This is the only thing standing between a typo in
+# ios/App/App/Native/, ios/App/App/Outside/, ios/App/Shared/ or
+# ios/App/NovusWidgets/ and finding it in Xcode.
+#
+# Building the App scheme builds the extension too: the app target declares a
+# dependency on NovusWidgets and embeds its .appex, so a widget that does not
+# compile fails this job rather than shipping as an app with no widgets in it.
 #
 # Unsigned, simulator-only: it answers "does it build", which is the question
 # CI can answer without a signing identity. Shipping still happens from Xcode.
@@ -36,6 +42,11 @@ jobs:
           cache: npm
 
       - run: npm ci
+
+      # Before xcodebuild, because a malformed project file fails there with a
+      # message that names no line, and here with one that names the object.
+      - name: Project file + the Swift ports' fixture
+        run: npm run test:outside
 
       # A green run has to mean the glass compiled.
       #
