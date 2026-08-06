@@ -71,10 +71,19 @@ function adoptLegacyTape(): void {
   }
 }
 
-/** The tape key for the island currently open. */
-const KEY = (): string => {
+/**
+ * The tape key for an island — the one named, or the one currently open.
+ *
+ * A caller names it when the island cannot answer for itself yet. `startTape`
+ * runs at the moment a company is founded, BEFORE anything has been written to
+ * its island, so "which island is open" is still the island being left: the new
+ * company's tape would land on the old company's key and erase the record of
+ * every tap it took. Everything after founding reads the open island, which by
+ * then is the one holding the run.
+ */
+const KEY = (slot?: number): string => {
   adoptLegacyTape();
-  return keyFor(activeIsland());
+  return keyFor(slot ?? activeIsland());
 };
 
 interface StoredTape {
@@ -111,10 +120,10 @@ function read(): StoredTape | null {
   }
 }
 
-function write(tape: StoredTape | null) {
+function write(tape: StoredTape | null, slot?: number) {
   if (!canStore()) return;
   try {
-    const key = KEY();
+    const key = KEY(slot);
     if (tape) localStorage.setItem(key, JSON.stringify(tape));
     else localStorage.removeItem(key);
   } catch {
@@ -127,19 +136,29 @@ function write(tape: StoredTape | null) {
   }
 }
 
-/** Starts a fresh tape. Called once, from `startRun`. */
-export function startTape(run: RunState) {
-  write({
-    runId: run.id,
-    seed: run.seed,
-    industry: run.industry,
-    tutorial: run.tutorial,
-    entries: [],
-  });
+/**
+ * Starts a fresh tape. Called once, from `startRun`.
+ *
+ * `slot` is the island the company is being founded on. Pass it: at that moment
+ * nothing has been written to that island, so the tape cannot work out where it
+ * belongs by asking which one is open — see `KEY` above.
+ */
+export function startTape(run: RunState, slot?: number) {
+  write(
+    {
+      runId: run.id,
+      seed: run.seed,
+      industry: run.industry,
+      tutorial: run.tutorial,
+      entries: [],
+    },
+    slot,
+  );
 }
 
-export function clearTape() {
-  write(null);
+/** Throws away an island's tape. `slot` for the same reason startTape takes one. */
+export function clearTape(slot?: number) {
+  write(null, slot);
 }
 
 /**
