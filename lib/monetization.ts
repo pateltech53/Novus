@@ -266,15 +266,38 @@ export const priceLabel = (item: OneTimePurchase): string =>
 // ── The limits ───────────────────────────────────────────────────────────────
 
 /**
- * The hard ceiling on companies held at once, for every tier including admin.
+ * The hard ceiling on companies held at once, whatever tier and whatever was
+ * bought.
  *
- * This is a STORAGE bound, not a pricing one. `public.saves` is keyed
- * `(profile_id, slot)` with `slot smallint check (slot between 0 and 9)`, so
- * the eleventh company has nowhere to be written. Pro is described to players
- * as unlimited islands and receives this number; nobody is expected to reach
- * it, and the check constraint is what makes the claim safe to print.
+ * This is a STORAGE bound, not a pricing one — that distinction is the whole
+ * reason it is a separate constant from the tier allowances below, and it was
+ * being asked to do both jobs until 0015. It used to be 10, matching 0001's
+ * `slot between 0 and 9`, which was itself a placeholder: the column comment
+ * there reads "Room for more than one company later. Today the app writes slot
+ * 0 only." Nobody ever decided that ten was how many companies a player should
+ * be able to run.
+ *
+ * ── Where 50 comes from ────────────────────────────────────────────────────
+ *
+ * localStorage, which is this game's PRIMARY store rather than a nicety —
+ * lib/engine/save.ts is synchronous because screens read it during render, and
+ * its header explains why that cannot change. A browser gives an origin about
+ * 5 MB; a long-lived company measures ~90 KB of JSON. Fifty is ~4.5 MB and
+ * fits. A hundred does not, and `flushRun` swallows a quota error by design —
+ * so past the real ceiling, islands a player PAID FOR would quietly stop
+ * appearing on their device. `/api/sync` is the second wall: it returns every
+ * island in one response body.
+ *
+ * A meaningfully larger number is possible and is a different piece of work —
+ * an LRU cache, per-island loading on a cache miss, a paginated sync. Until
+ * that exists this is the biggest ceiling the app can actually keep, and a
+ * ceiling it keeps is worth more than a bigger one it does not.
+ *
+ * Mirrored by `saves.slot between 0 and 49` and by `island_allowance()`'s
+ * outer clamp, both in 0015. All three move together or a purchase fails
+ * somewhere the player cannot see.
  */
-export const ISLAND_CAP = 10;
+export const ISLAND_CAP = 50;
 
 export interface Limits {
   /** New companies you may found per real day. */
@@ -289,9 +312,10 @@ export interface Limits {
    * left has to bury something first; a player with islands free and no
    * foundings left has to wait for tomorrow.
    *
-   * Capped at 10 everywhere by ISLAND_CAP — `saves.slot` is checked
-   * `between 0 and 9`, and an allowance that outruns its own storage is a
-   * promise the database refuses to keep.
+   * This is the TIER's share and not the ceiling. Bought islands stack on top
+   * of it (`islandCapFor`), and ISLAND_CAP is what the sum is finally clamped
+   * to — an allowance that outruns its own storage is a promise the database
+   * refuses to keep.
    */
   islands: number;
   /** Whether a company that went under can be restarted the same day. */
@@ -320,7 +344,18 @@ export const FREE_LIMITS: Limits = {
 
 export const PRO_LIMITS: Limits = {
   runsPerDay: 3,
-  islands: ISLAND_CAP,
+  /*
+   * Ten, written down — not ISLAND_CAP, which is what it used to say.
+   *
+   * The value has not moved: the ceiling was ten, so Pro received ten, and the
+   * two numbers happened to coincide. Reading the ceiling here made Pro's
+   * allowance and the storage bound the same fact, and when the ceiling rose
+   * to 50 that would have handed every subscriber forty islands nobody asked
+   * for — and, worse, kept the Extra Island SKU a no-op for them, because
+   * `min(50, 50 + bought)` is 50 for any number bought. Pro sells ten
+   * companies at once; a purchase is what goes past a tier, on every tier.
+   */
+  islands: 10,
   redoFailedRun: true,
   industries: 12,
   // Matches the gate in lib/engine/activities.ts — three a real day, and
@@ -347,7 +382,8 @@ export const PRO_LIMITS: Limits = {
 export const ADMIN_LIMITS: Limits = {
   runsPerDay: 99,
   // Not 99. Unlike every other number here, this one is bounded by storage
-  // rather than by policy: there is no eleventh row to put a company in.
+  // rather than by policy — there is no fifty-first row to put a company in —
+  // so an operator gets exactly the ceiling and never more.
   islands: ISLAND_CAP,
   redoFailedRun: true,
   industries: 12,
@@ -430,7 +466,10 @@ export const PRO_FEATURES: readonly ProFeature[] = [
     id: "islands",
     title: "Ten islands",
     free: "Two",
-    body: "Companies running at the same time. Switch between them whenever.",
+    // The second sentence is the one that changed with 0015: an island bought
+    // outright stacks on whatever the tier gives, so this is a floor on both
+    // sides of the comparison rather than a Pro-shaped ceiling.
+    body: "Companies running at the same time. Buy more on any tier, up to fifty.",
   },
   {
     id: "cosmetics",

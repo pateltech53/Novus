@@ -10,16 +10,16 @@ export const dynamic = "force-dynamic";
 /**
  * POST /api/admin/islands — set an account's bought islands outright.
  *
- * `{ profileId, islands }` → admin_set_extra_islands (0013). SET rather than
- * increment, because an admin types the number they mean; the 0–20 clamp
- * matches the column's own check constraint.
+ * `{ profileId, islands }` → admin_set_extra_islands (0013, re-bounded by
+ * 0015). SET rather than increment, because an admin types the number they
+ * mean; the 0–48 clamp matches the column's own check constraint.
  *
- * Note the two ceilings do not agree, and that is deliberate: the column
- * accepts 0–20 while `islandCapFor()` and `island_allowance()` both stop at
- * ISLAND_CAP (10), because `saves.slot` has nowhere to put an eleventh
- * company. Setting 20 here is not an error, it just stops buying anything
- * above 10 — the same shape as gifting a player more of something than they
- * can spend.
+ * Forty-eight is not ISLAND_CAP and is not meant to be. It is what a FREE
+ * account has to be able to accumulate to reach the ceiling — 2 + 48 = 50 —
+ * which makes it the largest value that can ever mean anything. A Pro account
+ * needs only 40 to reach the same place and clamps there, so setting 48 on one
+ * is not an error; it is a grant bigger than the account can currently spend,
+ * and it becomes spendable the day the subscription lapses.
  */
 
 const bad = (status: number, error: string) =>
@@ -40,8 +40,8 @@ export async function POST(req: NextRequest) {
   }
 
   const islands = typeof body.islands === "number" ? Math.trunc(body.islands) : NaN;
-  if (!isUuid(body.profileId) || Number.isNaN(islands) || islands < 0 || islands > 20) {
-    return withSession(bad(400, "profileId and islands 0–20 are required"), gate.session);
+  if (!isUuid(body.profileId) || Number.isNaN(islands) || islands < 0 || islands > 48) {
+    return withSession(bad(400, "profileId and islands 0–48 are required"), gate.session);
   }
 
   const db = adminClient();

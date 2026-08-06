@@ -10,7 +10,7 @@ import {
   useNativeOverlay,
   useNativeOverlayOwned,
 } from "@/components/native/useNativeOverlay";
-import { SEA_POSITIONS, Sea } from "@/components/Sea";
+import { Sea, seaPosition } from "@/components/Sea";
 import { ENTER, SETTLE_SPRING, STAGGER, SWAP } from "@/components/ui/Motion";
 import { useUpgrade } from "@/components/upgrade/UpgradeProvider";
 import type { NativeOverlayState } from "@/lib/native/glass";
@@ -21,6 +21,7 @@ import type { IslandSummary } from "@/lib/engine/save";
 import type { StageNum } from "@/lib/engine/types";
 import {
   ISLAND_CAP,
+  PRO_LIMITS,
   islandCapFor,
   isPro,
   loadEntitlements,
@@ -122,7 +123,7 @@ function IslandsPage() {
   /*
    * How many places to draw, and the three things that decide it.
    *
-   * Places are POSITIONAL — place N is island N, at SEA_POSITIONS[N] — so this
+   * Places are POSITIONAL — place N is island N, at `seaPosition(N)` — so this
    * cannot be a count of what exists. An island in slot 5 with 0–4 empty still
    * needs six places, or it simply is not on the water.
    *
@@ -337,7 +338,10 @@ function IslandsPage() {
             <div className="absolute inset-0">
               <div className="relative mx-auto h-full w-full max-w-3xl">
               {Array.from({ length: places }, (_, slot) => {
-                const spot = SEA_POSITIONS[slot];
+                /* `seaPosition`, not `SEA_POSITIONS[slot]`. The table stops at
+                   the authored ten and the cap is fifty — indexing it returned
+                   undefined for island 10 and threw on the next line. */
+                const spot = seaPosition(slot);
                 const island = bySlot.get(slot);
                 return (
                   <motion.div
@@ -392,9 +396,15 @@ function IslandsPage() {
             */}
             <div className="pointer-events-none absolute inset-x-0 bottom-[max(1.75rem,var(--nv-safe-bottom))] z-10 flex justify-center px-6">
               <Boat className="nv-bob pointer-events-auto max-w-[22rem]">
+                {/* This account's OWN number, not the tier's brochure one.
+                    It used to read "Up to 50 at once" for any Pro player,
+                    which was true only while the ceiling and Pro's allowance
+                    were the same ten — since 0015 they are not, and `cap` is
+                    the only figure that stays right for a free player, a Pro
+                    player, and either of them after buying an island. */}
                 <p className="text-2xs leading-relaxed text-[var(--text-secondary)]">
-                  {pro ? `Up to ${ISLAND_CAP} at once.` : `${cap} at once on free.`} Each
-                  island keeps its own year and its own books.
+                  {cap} at once{pro ? "" : " on free"}. Each island keeps its
+                  own year and its own books.
                 </p>
                 {canFound && foundingsLeft === 0 && (
                   <p className="mt-1 text-2xs leading-snug text-[var(--text-tertiary)]">
@@ -620,7 +630,12 @@ function SeaLocked({
           <LockGlyph />
         </span>
       </span>
-      <Label title="Another island" sub={`PRO RUNS ${ISLAND_CAP}`} />
+      {/* PRO_LIMITS, not ISLAND_CAP. This is the locked place a FREE player
+          taps to hear what Pro adds, so it has to name Pro's own allowance —
+          the two were the same number until 0015, and printing the ceiling
+          here would now promise a subscription fifty islands it does not
+          include. */}
+      <Label title="Another island" sub={`PRO RUNS ${PRO_LIMITS.islands}`} />
     </button>
   );
 }

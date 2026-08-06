@@ -1,5 +1,7 @@
 import type { CSSProperties } from "react";
 
+import { ISLAND_CAP } from "@/lib/monetization";
+
 /**
  * The ocean the islands sit on.
  *
@@ -159,3 +161,76 @@ export const SEA_POSITIONS: readonly { x: number; y: number; depth: number }[] =
   { x: 87, y: 52, depth: 0.58 },
   { x: 40, y: 71, depth: 0.52 },
 ];
+
+/**
+ * Where island N sits — the authored ten, then the water behind them.
+ *
+ * ── Why this function exists ───────────────────────────────────────────────
+ *
+ * The table above has exactly ten entries because ten was the whole cap, and
+ * the picker read it as `SEA_POSITIONS[slot]`. 0015 moved the cap to 50, which
+ * turned that read into `undefined` for slot 10 and the next line —
+ * `style={{ left: `${spot.x}%` }}` — into a TypeError. Not a layout that
+ * degrades: the islands screen throws, for exactly the player who bought the
+ * most islands.
+ *
+ * ── What is generated, and what is not ─────────────────────────────────────
+ *
+ * The first ten are untouched, so every player who has ever seen this screen
+ * finds their archipelago where they left it. That is the point of hand-
+ * placing them and the reason the header above gives for not generating: a map
+ * is worth having because you build a memory of it.
+ *
+ * Past ten the same argument runs the other way. Forty more hand-placed points
+ * on this canvas is not art direction, it is a lookup table nobody can verify,
+ * and a player at 30 islands has stopped memorising anything anyway. So they
+ * are generated — deterministically, which is the property that actually
+ * mattered in "randomness would move an island between visits". Island 23 is
+ * at the same place on every device, every visit, forever.
+ *
+ * A golden-angle spiral, because it is the arrangement that does not clump:
+ * successive points land at 137.5°, so no two neighbours share a direction and
+ * the density stays even as the radius grows. `sqrt` on the radius spreads
+ * them by AREA rather than by radius, which is what keeps the middle from
+ * filling up first.
+ *
+ * ── The box it stays inside ────────────────────────────────────────────────
+ *
+ * Exactly the one the header above describes, and for its reasons: nothing
+ * above y=13 or below y=72 (the title's lane and the boat's), nothing outside
+ * x=9..87 (the 13ch caption under an island is what clips first, not the
+ * island). Depth runs 0.50 → 0.34, below the authored minimum of 0.46, so
+ * generated islands read as the far water behind the placed ones.
+ */
+const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+
+export function seaPosition(slot: number): { x: number; y: number; depth: number } {
+  const authored = SEA_POSITIONS[slot];
+  if (authored) return authored;
+
+  const i = Math.max(0, slot - SEA_POSITIONS.length);
+  // Normalised against the number of generated places there can be, so the
+  // spread fills the water whatever ISLAND_CAP becomes rather than bunching
+  // into a disc sized for the old one.
+  const spread = Math.max(1, ISLAND_CAP - SEA_POSITIONS.length);
+  /*
+   * Starts at 0.55 rather than at 0, so island 11 goes to open water.
+   *
+   * A spiral from the middle put the first generated islands exactly where the
+   * authored ones already are — the ten are placed across the whole frame, and
+   * the centre is the fullest part of it. Beginning in the outer band means the
+   * eleventh company, which is the one a player who has just bought an island
+   * is looking for, lands somewhere it can be seen.
+   */
+  const r = 0.55 + 0.45 * Math.min(1, Math.sqrt((i + 1) / spread));
+  const angle = i * GOLDEN_ANGLE;
+
+  // One decimal: enough to separate two points a percent apart, short enough
+  // that the inline style stays readable in devtools.
+  const round = (n: number) => Math.round(n * 10) / 10;
+  return {
+    x: round(48 + Math.cos(angle) * r * 39),
+    y: round(42.5 + Math.sin(angle) * r * 29.5),
+    depth: round(0.5 - r * 0.16),
+  };
+}

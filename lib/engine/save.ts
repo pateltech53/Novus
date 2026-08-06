@@ -496,9 +496,20 @@ export function adoptFromCloud(data: {
         localStorage.setItem(runKey(at), JSON.stringify(restored));
         writeIndexEntry(summarise(restored, at));
       } catch {
-        // Ten companies can exceed a device's quota where one never did. The
-        // islands that fit are kept, the rest stay on the server, and the
-        // picker draws what is actually here rather than throwing.
+        /*
+         * A device's quota, which fifty companies can reach where one never
+         * could. The islands that fit are kept, the rest stay on the server,
+         * and the picker draws what is actually here rather than throwing.
+         *
+         * This catch is why ISLAND_CAP could move to 50 at all, and it is also
+         * why it did not move further. A browser gives an origin about 5 MB
+         * and a long-lived company is ~90 KB, so fifty fits with room; past
+         * that this branch stops being a rare edge and becomes the normal
+         * outcome, and its graceful failure — some islands silently absent on
+         * this device — is a bad thing to make normal for somebody who PAID
+         * for them. Going higher wants per-island loading rather than a bigger
+         * number here.
+         */
       }
     }
   }
@@ -602,7 +613,10 @@ const num = (v: unknown): number => (typeof v === "number" && Number.isFinite(v)
  *
  * Existence only — no JSON.parse. The picker needs the shape of the
  * archipelago far more often than it needs what is on each island, and ten
- * parses of a 90 KB run is not a thing to do on a screen transition.
+ * parses of a 90 KB run is not a thing to do on a screen transition. That
+ * mattered more once ISLAND_CAP became 50: this is ISLAND_CAP `getItem` calls
+ * against a hash lookup, which stays microseconds, where fifty parses would
+ * not have.
  */
 function occupiedSlots(): number[] {
   if (!canStore()) return [];
@@ -740,10 +754,11 @@ export function liveIslandCount(): number {
  *
  *  2. **Is there an empty island?** Take the lowest.
  *
- *  3. **Otherwise, the oldest headstone gives up its place.** Storage is ten
- *     rows whatever the allowance says (`slot between 0 and 9`), so headstones
- *     cannot accumulate forever. Evicting the oldest is the least surprising
- *     rule available: it is the grave the player has looked at least recently,
+ *  3. **Otherwise, the oldest headstone gives up its place.** Storage is
+ *     ISLAND_CAP rows whatever the allowance says (`slot between 0 and 49`, in
+ *     0015), so headstones cannot accumulate forever. Evicting the oldest is
+ *     the least surprising rule available: it is the grave the player has
+ *     looked at least recently,
  *     and the legacy entry survives regardless — `endRun` wrote the company
  *     into `legacy.autopsies` when it ended, which is the record that lasts.
  *
