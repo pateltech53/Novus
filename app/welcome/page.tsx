@@ -42,6 +42,15 @@ import {
 import { speak, stopSpeaking } from "@/lib/ai/speech";
 import { saveProfile, loadProfile } from "@/lib/engine/save";
 import { entryRoute } from "@/lib/entry";
+import {
+  MIN_AGE,
+  TOO_YOUNG_BODY,
+  TOO_YOUNG_TITLE,
+  isAgeBlocked,
+  isOldEnough,
+  isPlausibleAge,
+  recordTooYoung,
+} from "@/lib/auth/age";
 import { usePrefetch } from "@/lib/prefetch";
 import { useNavigating } from "@/lib/navigating";
 
@@ -52,7 +61,7 @@ import { useNavigating } from "@/lib/navigating";
  * The rule for every step here: nothing else on the screen. One idea, one
  * field, one call to action.
  */
-type Step = "wave" | "name" | "age" | "mic" | "explain" | "showme" | "plans";
+type Step = "wave" | "name" | "age" | "too-young" | "mic" | "explain" | "showme" | "plans";
 
 const SHARK_EXPLANATION =
   "Novus is your company's whole life. You found it. You keep it alive year by year — and every year, you close it by talking to me. Tap through months for free. The year costs you a pitch.";
@@ -62,6 +71,19 @@ export default function WelcomePage() {
   const [step, setStep] = useState<Step>("wave");
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
+
+  /*
+   * A device that has already answered under 13 does not get asked again.
+   *
+   * Read after mount rather than in the initial state, because localStorage
+   * does not exist on the server and this page is statically exported — a
+   * first render that disagreed with the client's would be thrown away by
+   * hydration, taking whatever had been typed with it. The same reason
+   * /found reads its profile in an effect.
+   */
+  useEffect(() => {
+    if (isAgeBlocked()) setStep("too-young");
+  }, []);
 
   useEffect(() => () => stopSpeaking(), []);
 
@@ -73,6 +95,17 @@ export default function WelcomePage() {
   const [finishing, go] = useNavigating();
 
   const finish = useCallback(() => {
+    /*
+     * The last line of defence on this page. `finish()` is what writes the
+     * profile and lets the player into the game, and it is reachable from the
+     * plans sheet — so it re-checks rather than trusting that the step machine
+     * above it was walked in order.
+     */
+    if (isAgeBlocked() || !isOldEnough(age)) {
+      recordTooYoung();
+      setStep("too-young");
+      return;
+    }
     const existing = loadProfile();
     saveProfile({
       founderName: name.trim() || "Founder",
@@ -112,6 +145,16 @@ export default function WelcomePage() {
           />
         );
       case "age":
+        /*
+         * ── A neutral age screen ──────────────────────────────────────────
+         *
+         * The label does not mention 13, and the field does not refuse until
+         * CONTINUE is pressed. That is deliberate and it is the standard
+         * shape for this gate: a screen that says "you must be 13" above an
+         * empty box has told the child exactly what to type, and every
+         * regulator's guidance on age screens says not to do that. The
+         * refusal explains itself fully — afterwards.
+         */
         return (
           <FieldStep
             key="age"
@@ -121,10 +164,21 @@ export default function WelcomePage() {
             placeholder="Age"
             inputMode="numeric"
             cta="CONTINUE"
-            onNext={() => setStep("mic")}
-            valid={age.length > 0 && parseInt(age, 10) > 0}
+            onNext={() => {
+              if (!isOldEnough(age)) {
+                // Recorded before the screen changes, so a reload cannot
+                // outrun the write.
+                recordTooYoung();
+                setStep("too-young");
+                return;
+              }
+              setStep("mic");
+            }}
+            valid={isPlausibleAge(age)}
           />
         );
+      case "too-young":
+        return <TooYoung key="too-young" />;
       case "mic":
         return <MicMoment key="mic" onNext={() => setStep("explain")} />;
       case "explain":
@@ -819,6 +873,48 @@ function PlansSheet({ onDone, leaving }: { onDone: () => void; leaving: boolean 
         </div>
       </div>
 
+      {legal && <LegalSheet doc={legal} onClose={() => setLegal(null)} />}
+    </StepShell>
+  );
+}
+
+/**
+ * The refusal. A full stop, not a form.
+ *
+ * There is deliberately no "go back" and no "I typed that wrong" button: a
+ * control that returns to the age field is the gate deleting itself, and one
+ * that a child can find in two seconds is not a gate. The copy carries the
+ * recovery path instead — it is honest about being recoverable, and it costs
+ * an adult thirty seconds while costing a child the intent to do it.
+ *
+ * It says what the rule is, that it is the law rather than a judgement about
+ * them, and when they can come back. Nothing here scolds a thirteen-year-old
+ * for being thirteen.
+ */
+function TooYoung() {
+  const [legal, setLegal] = useState<LegalDocument | null>(null);
+  return (
+    <StepShell>
+      <div className="flex w-full flex-1 flex-col justify-center text-center">
+        <h1 className="text-[1.75rem] font-extrabold leading-tight tracking-[-0.02em] text-[var(--n-11)]">
+          {TOO_YOUNG_TITLE}
+        </h1>
+        <p className="mt-4 text-sm leading-relaxed text-[var(--text-secondary)]">
+          {TOO_YOUNG_BODY}
+        </p>
+        <p className="mt-4 text-2xs leading-relaxed text-[var(--text-tertiary)]">
+          You need to be {MIN_AGE} or older. If you typed the wrong number, clearing
+          this site&rsquo;s data in your browser settings will let you answer again.
+        </p>
+        <div className="mt-8 flex justify-center gap-5 text-2xs font-bold tracking-[0.14em] text-[var(--text-tertiary)]">
+          <button type="button" onClick={() => setLegal(TERMS)} className="underline underline-offset-4">
+            TERMS
+          </button>
+          <button type="button" onClick={() => setLegal(PRIVACY)} className="underline underline-offset-4">
+            PRIVACY
+          </button>
+        </div>
+      </div>
       {legal && <LegalSheet doc={legal} onClose={() => setLegal(null)} />}
     </StepShell>
   );

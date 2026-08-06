@@ -191,6 +191,49 @@ const oneShort = company({
 });
 ok(nextStep(oneShort) === null, "one slot free is left alone — not every gap is a problem", nextStep(oneShort)?.id ?? "null");
 
+// ── 5 · the age gate ────────────────────────────────────────────────────────
+// Novus is a product for minors, and under 13 an online service may not collect
+// a child's personal information without verifiable parental consent — which
+// this app has no way to obtain. So it does not sign them up. This is an age
+// SCREEN, not verification (see lib/auth/age.ts); what is tested here is that
+// the rule is consistent everywhere and that a "no" is remembered.
+console.log("\n=== 5 · nobody under 13 ===");
+
+const { MIN_AGE, isOldEnough, isPlausibleAge, isAgeBlocked, recordTooYoung, clearAgeBlock } =
+  await import(join(root, "lib/auth/age.ts"));
+
+ok(MIN_AGE === 13, "the line is 13", String(MIN_AGE));
+ok(isOldEnough(13) === true, "13 is old enough");
+ok(isOldEnough(12) === false, "12 is not");
+ok(isOldEnough(0) === false, "and neither is 0");
+ok(isOldEnough(null) === false, "an unanswered age is not old enough");
+ok(isOldEnough(undefined) === false, "nor an absent one");
+ok(isOldEnough("") === false, "nor a blank string");
+ok(isOldEnough("abc") === false, "nor a word");
+ok(isOldEnough("14") === true, "a typed number still works");
+// The field takes two characters, so this is about what that field can mean.
+ok(isPlausibleAge(0) === false, "0 is not a plausible age to have typed");
+ok(isPlausibleAge(100) === false, "nor is 100 in a two-character field");
+ok(isPlausibleAge(14) === true, "14 is");
+
+clearAgeBlock();
+ok(isAgeBlocked() === false, "a fresh device is not blocked");
+recordTooYoung();
+ok(isAgeBlocked() === true, "a device that answered under 13 is remembered");
+// The whole point: reloading, going back, or re-running onboarding must not
+// clear it. The storage shim persists for the process, which is the same
+// guarantee localStorage gives the page.
+ok(isAgeBlocked() === true, "and stays blocked on a second read");
+// The age itself is never kept — it is a data point about a child we have just
+// decided not to serve.
+ok(
+  ![...store.keys()].some((k) => k.includes("agegate") && /1[0-2]/.test(store.get(k))),
+  "and the age itself is not stored",
+  [...store.entries()].filter(([k]) => k.includes("agegate")).join(","),
+);
+clearAgeBlock();
+ok(isAgeBlocked() === false, "the operator escape hatch clears it");
+
 console.log(
   `\n${passed} passed, ${failures.length} failed.` +
     (failures.length ? `\n  ${failures.join("\n  ")}\n` : "\n"),
