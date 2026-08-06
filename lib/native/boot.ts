@@ -6,6 +6,7 @@ import { SplashScreen } from "@capacitor/splash-screen";
 import { Style, StatusBar } from "@capacitor/status-bar";
 import { popBack } from "@/lib/native/back";
 import { isAndroid, isIOS, isNative, markPlatformOnRoot } from "@/lib/native/platform";
+import { followOutsideLink, parseOutsideLink } from "@/lib/outside/links";
 
 /**
  * Everything the shell needs told to it once, at launch.
@@ -72,6 +73,25 @@ async function wireBackButton(): Promise<() => void> {
   return () => void handle.remove();
 }
 
+/**
+ * A tap on a widget, or on a Live Activity.
+ *
+ * The shell delivers `novus://…` here through `SceneDelegateProxy`, which is
+ * already wired for it — the only thing that had to be added on the native
+ * side is `CFBundleURLTypes` in Info.plist, declaring the scheme as ours.
+ *
+ * Anything that is not a `novus://` URL is left alone rather than swallowed:
+ * this is a shared channel, and a listener that consumes every URL it is given
+ * is how a future OAuth callback stops arriving.
+ */
+async function wireOutsideLinks(): Promise<() => void> {
+  const handle = await CapApp.addListener("appUrlOpen", ({ url }) => {
+    const link = parseOutsideLink(url);
+    if (link) followOutsideLink(link);
+  });
+  return () => void handle.remove();
+}
+
 /** The keyboard resizes the webview; nothing should be left scrolled under it. */
 async function wireKeyboard(): Promise<() => void> {
   const subs = [
@@ -119,6 +139,7 @@ export function startNativeShell(): () => void {
 
   void wireBackButton().then((d) => disposers.push(d));
   void wireKeyboard().then((d) => disposers.push(d));
+  void wireOutsideLinks().then((d) => disposers.push(d));
 
   return () => {
     disposers.forEach((d) => d());

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- The only thing the app and its widgets share.
+
+	     A widget extension is a separate process with a separate container: it
+	     cannot read the app's localStorage, its Documents directory or its
+	     UserDefaults. Everything that crosses goes through this group — see
+	     ios/App/Shared/OutsideStore.swift.
+
+	     This string appears in exactly three places and all three must agree:
+	     here, App/App.entitlements, and the App Group registered on the
+	     developer account. A group the app can write and the widget cannot
+	     read fails silently and looks precisely like a widget that was never
+	     published to. -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.novuspitch.app</string>
+	</array>
+</dict>
+</plist>

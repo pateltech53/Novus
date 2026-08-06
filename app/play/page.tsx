@@ -24,6 +24,7 @@ import { useNativeTermCoach } from "@/components/native/useNativeTermCoach";
 import { useBackHandler } from "@/lib/native/back";
 import { WorkspaceSlot } from "@/components/screens/Workspace";
 import { useNativeCoachRect } from "@/lib/native/chrome";
+import { consumeOutsideOpen, subscribeOutsideOpen } from "@/lib/outside/links";
 import { Coachmarks, firstRunSteps } from "@/components/Coachmarks";
 
 /*
@@ -477,6 +478,24 @@ function PlayScreen() {
    * order is the order these things stack on screen, so back always peels the
    * top layer rather than the one that happens to be listed first.
    */
+  /*
+   * `novus://market` — a tap on the RobinGhood Live Activity.
+   *
+   * Two arrivals to cover, and they are genuinely different: the link may have
+   * navigated the document to get here, in which case the intent was written
+   * to session storage before the old page died and is read once on mount; or
+   * the board was already on screen, in which case nothing navigated and the
+   * subscription is the only signal there is. Reading consumes, so a remount
+   * never re-opens a phone the player just put down.
+   */
+  useEffect(() => {
+    const open = () => {
+      if (consumeOutsideOpen() === "market") setPhoneApp("robinghood");
+    };
+    open();
+    return subscribeOutsideOpen(open);
+  }, []);
+
   useBackHandler(!!current, game.dismissCard);
   useBackHandler(!!activity, () => setActivity(null));
   useBackHandler(!!phoneApp, () => setPhoneApp(null));

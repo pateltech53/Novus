@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+
+	<!-- What the widget gallery and the Live Activity settings list call this.
+	     Not "Novus Widgets": the player is looking for their game, and every
+	     entry inside the bundle names itself anyway. -->
+	<key>CFBundleDisplayName</key>
+	<string>Novus</string>
+
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+
+	<!-- XPC!, not APPL. An app extension is not an application, and the wrong
+	     package type here is accepted by the build and rejected by the store. -->
+	<key>CFBundlePackageType</key>
+	<string>XPC!</string>
+
+	<!-- Both inherited from the app target's build settings, because a version
+	     mismatch between an app and its embedded extension is a validation
+	     error at upload time rather than a build error where it would be
+	     noticed. -->
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+
+	<key>NSExtension</key>
+	<dict>
+		<key>NSExtensionPointIdentifier</key>
+		<string>com.apple.widgetkit-extension</string>
+	</dict>
+</dict>
+</plist>

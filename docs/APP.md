@@ -328,6 +328,37 @@ the console once per launch. `liquidGlass: false` on a green build is not a
 bug — it is the simulator runtime, and the fix is a newer one in Xcode ▸
 Settings ▸ Components.
 
+---
+
+## Outside the app
+
+The chrome above is what the game looks like while you are in it. The Home
+Screen, the Lock Screen and the Dynamic Island are the other half, and they are
+a second build target — `ios/App/NovusWidgets/` — reading a snapshot the app
+publishes into a shared App Group.
+
+| | |
+|---|---|
+| `lib/outside/` | the snapshot, the plugin contract, the publisher, the links |
+| `ios/App/Shared/` | the Swift both targets compile |
+| `ios/App/App/Outside/` | the Capacitor plugin and the Live Activity director |
+| `ios/App/NovusWidgets/` | nine surfaces, one timeline provider, two Live Activities |
+
+Same contract as the chrome, deliberately: the web layer publishes **the whole
+of what should be true** and native works out whether that means starting an
+activity, updating one, ending one or reloading a timeline. `publish()` is the
+`setChrome()` of this half.
+
+Every figure crosses the bridge twice — as a number, for a gauge and a
+sparkline, and as the exact string `fmtMoney` produced, for the label — so
+nothing in the extension re-implements a display rule. The one exception is
+RobinGhood, which is priced from the real clock and therefore has to produce
+numbers the app never saw; that port and the money format's are both checked
+against the engine on every debug launch by a fixture CI keeps current.
+
+**[docs/WIDGETS.md](WIDGETS.md)** is the whole of it, including the four things
+that need a developer account rather than a commit.
+
 ### If the plugin is not there
 
 Every path degrades to "the web chrome, exactly as before": not iOS, plugin

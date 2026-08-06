@@ -31,6 +31,20 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
 
+      # Two things no other job can see.
+      #
+      # The Xcode project is a hand-maintained graph of object ids, and the
+      # widget extension added a second build target to it. Getting that wrong
+      # does not fail a build — it stops Xcode opening the project at all, on
+      # somebody else's machine, with a message that names no line.
+      #
+      # The fixture is the other half: the widget extension carries a Swift
+      # port of the price maths and the money format, and a change to
+      # market.ts or format.ts that nobody regenerates against turns a lock
+      # screen into a confident wrong number. Both checks are seconds.
+      - name: Project file + the Swift ports' fixture
+        run: npm run test:outside
+
       - name: Balance harness
         run: npm run sim 20 6
 
