@@ -69,9 +69,9 @@ import Foundation
  different for the two of them because they age at completely different rates:
 
  · **The fiscal year does not move on its own.** Time in this game advances
-   only when the player taps (Brand Law 1), so a runway figure from four hours
-   ago is not stale — it is exactly right, and dimming it would say the app had
-   lost track of a company that has not changed. Eight hours is a compromise
+   only when the player taps (Brand Law 1), so a score from four hours ago is
+   not stale — it is exactly right, and dimming it would say the app had lost
+   track of a company that has not changed. Eight hours is a compromise
    with the one thing that IS a clock: the player's own sense of whether they
    have played today.
 

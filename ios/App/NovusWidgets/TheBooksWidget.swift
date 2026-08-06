@@ -4,23 +4,28 @@ import WidgetKit
 /**
  The Books, on the home screen.
 
- The same four figures the play screen carries — cash, monthly burn, runway,
- valuation — drawn on solid ground, because `design.md` §0 is unambiguous about
- it: glass is a material for the control layer, and **money is read on solid
- ground**. A widget is content. There is no glass anywhere in this bundle and
- that is a rule, not an omission.
+ The company's three scores and what it is worth, drawn on solid ground,
+ because `design.md` §0 is unambiguous about it: glass is a material for the
+ control layer, and **money is read on solid ground**. A widget is content.
+ There is no glass anywhere in this bundle and that is a rule, not an omission.
 
- ── Why runway is the hero on the small size ─────────────────────────────────
+ ── What the small size leads with, and why it is not a money figure ─────────
 
- The small widget has room for one number and a supporting line, and the
- question a founder actually has between sessions is not "what is my company
- worth" — it is "how long have I got". Valuation is the number a run is scored
- on and runway is the number that decides whether there is a run left to score.
- So the small size leads with runway and its twelve-segment gauge, and hangs
- cash underneath as the thing runway is made of.
+ The three scores: Brand, Quality, Morale. `components/StatRings.tsx` calls
+ them "the three levers a founder actually steers, and the ones most events
+ move", and that is the whole argument — a money figure between sessions is a
+ consequence, and these three are the causes. They also answer a question a
+ glance can act on: cash going down is a fact, morale at 31 is a thing to go
+ and fix.
 
- The medium size has room for all four and the twelve-month line, which is The
- Books as the app draws it.
+ There is a second reason and it is the stronger one. `weakestCategory()` in
+ lib/engine/events.ts biases the next event draw toward whichever of the five
+ visible stats is lowest, once it falls under 45. So the lowest of these is not
+ a statistic — it is what the game is about to do to you, and the card says so.
+
+ The medium size keeps the money on it, because The Books is what it is called
+ and cash and valuation are what it is: three figures across the top, the three
+ scores under them, the fiscal year along the bottom.
  */
 struct TheBooksWidget: Widget {
     static let kind = "com.novuspitch.widget.books"
@@ -31,7 +36,7 @@ struct TheBooksWidget: Widget {
                 .containerBackground(Nv.bg, for: .widget)
         }
         .configurationDisplayName("The Books")
-        .description("Cash, burn, runway and valuation — and how long you have got.")
+        .description("Brand, Quality and Morale — and what the company is worth.")
         .supportedFamilies([.systemSmall, .systemMedium])
     }
 }
@@ -61,31 +66,21 @@ private struct BooksSmall: View {
         VStack(alignment: .leading, spacing: 0) {
             CompanyEyebrow(company: company, trailing: "FY\(company.year)")
 
-            Spacer(minLength: 8)
+            Spacer(minLength: 9)
 
-            Text("RUNWAY")
-                .font(NvType.label(9, weight: .bold))
-                .tracking(0.6)
-                .foregroundStyle(Nv.tertiary)
-
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(company.runway.text)
-                    .font(NvType.figure(34, weight: .bold))
-                    .foregroundStyle(company.isRedline ? Nv.alert : Nv.primary)
-                    .minimumScaleFactor(0.6)
-                    .lineLimit(1)
-
-                if let delta = company.runway.deltaText {
-                    Text(delta)
-                        .font(NvType.figure(11, weight: .semibold))
-                        .foregroundStyle(Nv.tone(company.runway.deltaTone))
+            // Stacked rather than three columns: at this width three side by
+            // side leaves each label about eleven points wide, and "QUALITY"
+            // does not fit in eleven points without going under the 12px floor
+            // design.md sets for type.
+            VStack(alignment: .leading, spacing: 7) {
+                ForEach(company.headlineScores, id: \.label) { score in
+                    ScoreMeter(
+                        score: score,
+                        pressured: company.underPressure && score.label == company.weakest?.label)
                 }
             }
 
-            SegmentBar(fill: company.runwayFill, tint: company.accent)
-                .padding(.top, 6)
-
-            Spacer(minLength: 8)
+            Spacer(minLength: 9)
 
             HStack(spacing: 0) {
                 Text("CASH")
@@ -133,44 +128,24 @@ private struct BooksMedium: View {
                 Spacer(minLength: 4)
                 FigureCell(label: "BURN / MO", figure: company.burn)
                 Spacer(minLength: 4)
-                FigureCell(
-                    label: "RUNWAY", figure: company.runway,
-                    tint: company.isRedline ? Nv.alert : Nv.primary)
-                Spacer(minLength: 4)
-                FigureCell(label: "VALUATION", figure: company.valuation)
+                FigureCell(label: "VALUATION", figure: company.valuation, alignment: .trailing)
             }
 
             Spacer(minLength: 10)
 
             /*
-             The line under the figures is VALUATION, not cash.
+             Three money figures, then the three causes of them.
 
-             Cash is already told twice above — the figure and its change — and
-             it is the series that moves most per month, so a cash line under a
-             cash figure is the same fact drawn twice in two materials. The
-             valuation series is the only thing on this card that says which
-             way the company as a whole has been going.
+             The valuation sparkline used to sit here and it lost the slot on
+             purpose: a twelve-month line under a valuation figure says which
+             way the company went, and Brand, Quality and Morale say WHY it
+             went that way and what to do about it. One of them is a chart of
+             the past and the other three are the levers.
              */
-            HStack(alignment: .bottom, spacing: 8) {
-                SparklineMark(
-                    points: company.valuationSeries,
-                    tint: company.alive ? Nv.solvency : Nv.tertiary)
-                    .frame(height: 26)
-
-                VStack(alignment: .trailing, spacing: 1) {
-                    Text("12 MONTHS")
-                        .font(NvType.label(8, weight: .bold))
-                        .tracking(0.5)
-                        .foregroundStyle(Nv.tertiary)
-                    Text("PEAK \(company.peakValuationText)")
-                        .font(NvType.figure(9, weight: .semibold))
-                        .foregroundStyle(Nv.secondary)
-                }
-                .fixedSize()
-            }
+            ScoreRow(company: company)
 
             SegmentBar(fill: Double(company.monthsElapsed) / 12, tint: company.accent, height: 3)
-                .padding(.top, 8)
+                .padding(.top, 9)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .widgetURL(URL(string: "\(OutsideStore.scheme)://\(company.atGate ? "gate" : "play")"))

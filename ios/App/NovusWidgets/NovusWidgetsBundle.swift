@@ -53,9 +53,9 @@ struct NovusWidgetsBundle: WidgetBundle {
         MarketWidget()
 
         // The Lock Screen and StandBy.
-        RunwayCircularWidget()
+        WeakestCircularWidget()
         BooksRectangularWidget()
-        RunwayInlineWidget()
+        WeakestInlineWidget()
 
         /*
          The Lock Screen, live, and the Dynamic Island.

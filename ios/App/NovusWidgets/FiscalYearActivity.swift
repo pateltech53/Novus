@@ -17,18 +17,21 @@ import WidgetKit
  there is a company left when you next pick the phone up. Three states, and
  they are ordered by how loudly they need to be said:
 
- · **Ordinary.** Month, runway, the twelve ticks. Quiet, and correct.
- · **Redline.** Under three months of runway. Alert red, and the runway figure
-   is what the Dynamic Island shows in its compact form.
+ · **Ordinary.** Month, the three scores, the twelve ticks. Quiet, and correct.
+ · **Under pressure.** The weakest of the five visible stats has fallen below
+   45, which is where `weakestCategory()` in lib/engine/events.ts starts
+   biasing the event draw toward that stat's category. Alert red, and that
+   stat's number is what the Dynamic Island shows in its compact form.
  · **The gate.** Month twelve. Prestige gold, and the whole card changes what
-   it is about: the number stops being runway and becomes an instruction.
+   it is about: the numbers stop being scores and become an instruction.
 
- ── Why the compact form is runway and not the month ─────────────────────────
+ ── Why the compact form is the weakest score and not the month ──────────────
 
  The compact trailing slot is about four characters wide and it is what a
- player sees a hundred times a day without meaning to. "M7" is trivia. "2mo" is
- the thing that would make somebody open the app, which is the only reason a
- lock screen is allowed to hold onto four characters of anyone's attention.
+ player sees a hundred times a day without meaning to. "M7" is trivia. "31"
+ next to a morale glyph is the thing the game is about to punish you for, which
+ is the only reason a lock screen is allowed to hold onto four characters of
+ anyone's attention.
  */
 @available(iOS 16.2, *)
 struct FiscalYearActivity: Widget {
@@ -59,10 +62,10 @@ struct FiscalYearActivity: Widget {
 
                 DynamicIslandExpandedRegion(.trailing) {
                     VStack(alignment: .trailing, spacing: 1) {
-                        Text(company.atGate ? "FY\(company.year)" : company.runway.text)
+                        Text(company.atGate ? "FY\(company.year)" : "\(company.weakest?.value ?? 0)")
                             .font(NvType.figure(17, weight: .bold))
                             .foregroundStyle(company.atGate ? Nv.prestige : Nv.primary)
-                        Text(company.atGate ? "CLOSING" : "RUNWAY")
+                        Text(company.atGate ? "CLOSING" : (company.weakest?.label ?? "SCORE"))
                             .font(NvType.label(8, weight: .bold))
                             .tracking(0.5)
                             .foregroundStyle(Nv.tertiary)
@@ -75,10 +78,10 @@ struct FiscalYearActivity: Widget {
                             fill: Double(company.monthsElapsed) / 12,
                             tint: company.accent, height: 4)
 
+                        ScoreRow(company: company)
+
                         HStack(alignment: .top, spacing: 0) {
                             FigureCell(label: "CASH", figure: company.cash, size: 15)
-                            Spacer(minLength: 6)
-                            FigureCell(label: "BURN / MO", figure: company.burn, size: 15)
                             Spacer(minLength: 6)
                             FigureCell(
                                 label: "VALUATION", figure: company.valuation, size: 15,
@@ -95,17 +98,17 @@ struct FiscalYearActivity: Widget {
                     .padding(.top, 2)
                 }
             } compactLeading: {
-                Image(systemName: company.atGate ? "video.fill" : company.symbol)
+                Image(systemName: company.atGate ? "video.fill" : (company.weakest?.symbol ?? company.symbol))
                     .foregroundStyle(company.accent)
             } compactTrailing: {
-                Text(company.atGate ? "FY\(company.year)" : company.runway.text)
+                Text(company.atGate ? "FY\(company.year)" : "\(company.weakest?.value ?? 0)")
                     .font(NvType.figure(13, weight: .bold))
                     .foregroundStyle(company.accent)
             } minimal: {
                 // The minimal slot is a circle about eleven points across and
                 // it is shared with whatever else is running. A ring, because
-                // at that size a ring is legible and three characters are not.
-                Gauge(value: company.atGate ? 1 : min(company.runwayFill, 1)) {
+                // at that size a ring is legible and two characters are not.
+                Gauge(value: company.atGate ? 1 : (company.weakest?.fill ?? 0)) {
                     EmptyView()
                 }
                 .gaugeStyle(.accessoryCircularCapacity)
@@ -176,14 +179,12 @@ private struct FiscalYearCard: View {
                     .foregroundStyle(Nv.onPrestige.opacity(0.82))
                     .fixedSize(horizontal: false, vertical: true)
             } else {
+                ScoreRow(company: company)
+
                 HStack(alignment: .top, spacing: 0) {
                     FigureCell(label: "CASH", figure: company.cash, size: 16)
                     Spacer(minLength: 6)
                     FigureCell(label: "BURN / MO", figure: company.burn, size: 16)
-                    Spacer(minLength: 6)
-                    FigureCell(
-                        label: "RUNWAY", figure: company.runway, size: 16,
-                        tint: company.isRedline ? Nv.alert : Nv.primary)
                     Spacer(minLength: 6)
                     FigureCell(
                         label: "VALUATION", figure: company.valuation, size: 16,

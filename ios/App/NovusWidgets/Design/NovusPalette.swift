@@ -70,7 +70,7 @@ enum Nv {
     /// `--solvency` — financial upside ONLY. Never a call to action.
     static let solvency = dynamic(dark: 0x00_D1_8F, light: 0x00_80_4F)
 
-    /// `--alert` — financial damage, and a runway about to run out.
+    /// `--alert` — financial damage, and a stat the engine has started aiming at.
     static let alert = dynamic(dark: 0xFF_52_51, light: 0xC2_17_25)
 
     /**

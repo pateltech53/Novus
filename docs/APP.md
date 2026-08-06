@@ -349,8 +349,8 @@ of what should be true** and native works out whether that means starting an
 activity, updating one, ending one or reloading a timeline. `publish()` is the
 `setChrome()` of this half.
 
-Every figure crosses the bridge twice — as a number, for a gauge and a
-sparkline, and as the exact string `fmtMoney` produced, for the label — so
+Every figure crosses the bridge twice — as a number, for a gauge or a meter,
+and as the exact string `fmtMoney` produced, for the label — so
 nothing in the extension re-implements a display rule. The one exception is
 RobinGhood, which is priced from the real clock and therefore has to produce
 numbers the app never saw; that port and the money format's are both checked

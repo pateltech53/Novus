@@ -139,9 +139,9 @@ shape and `JSONDecoder` is the only thing that reads it.
 a U+2212 minus and a trim rule for the decimal. Re-deriving that in Swift would
 be a second implementation of a *display rule* across a process boundary.
 
-So each figure ships as a pair — the raw number, for a gauge and a sparkline,
-and the exact string the app itself would print, for the label. **Nothing in
-the extension formats a number that has a `text` beside it.**
+So each figure ships as a pair — the raw number, for a gauge or a meter, and
+the exact string the app itself would print, for the label. **Nothing in the
+extension formats a number that has a `text` beside it.**
 
 There is exactly one exception and it is documented at the top of
 `NvFormat.swift`: RobinGhood is priced from the real clock and the extension
@@ -175,20 +175,31 @@ every position on every Lock Screen is repriced.
 
 | Surface | Family | Leads with |
 |---|---|---|
-| The Books | `systemSmall` | Runway, and the twelve-segment gauge under it |
-| The Books | `systemMedium` | All four figures, plus twelve months of valuation |
+| The Books | `systemSmall` | Brand, Quality, Morale — and cash under them |
+| The Books | `systemMedium` | Cash, burn, valuation, then the same three scores |
 | The Year | `systemSmall` | The month dial. Gold, and a different card, at the gate |
 | Still Standing | `systemMedium` / `Large` | Every company, by peak valuation |
 | RobinGhood | `systemSmall` | Book value, priced on a ticking timeline |
-| Runway | `accessoryCircular` | A system `Gauge`. StandBy gets this for free |
-| The Books | `accessoryRectangular` | Who, how long, how much — in that order |
-| Runway | `accessoryInline` | One clause beside the clock |
-| The fiscal year | Live Activity | Runway in the compact slot; the gate in gold |
+| Weakest | `accessoryCircular` | A system `Gauge` on the lowest score. StandBy gets this for free |
+| The Books | `accessoryRectangular` | Who, what is weakest, what the other two are |
+| Weakest | `accessoryInline` | One clause beside the clock |
+| The fiscal year | Live Activity | The weakest score in the compact slot; the gate in gold |
 | RobinGhood | Live Activity | Day change in the compact slot |
 
-Small widgets lead with **runway**, not valuation, and that is a decision:
-valuation is what a run is scored on, runway is what decides whether there is a
-run left to score.
+**Small surfaces lead with the scores, not with money**, and that is a
+decision rather than a layout. Brand, Quality and Morale are what
+`components/StatRings.tsx` calls "the three levers a founder actually steers,
+and the ones most events move" — a money figure between sessions is a
+consequence, these three are the causes, and only one of the two is something a
+glance can act on.
+
+The Lock Screen slots go further and show whichever of the **five** visible
+stats is lowest. That is not a ranking somebody chose: `weakestCategory()` in
+`lib/engine/events.ts` biases the next event draw toward exactly that stat's
+category once it falls below 45. The lowest score is not a statistic — it is
+what the game is about to do to you, which is the only thing worth eleven
+points of somebody's Lock Screen. `underPressure` crosses the wire rather than
+being compared in Swift, so the 45 lives in one place.
 
 `design.md` §0 is enforced throughout — glass is a material for the control
 layer, and **money is read on solid ground**. There is no glass anywhere in the
