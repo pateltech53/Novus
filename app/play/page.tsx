@@ -26,6 +26,9 @@ import { WorkspaceSlot } from "@/components/screens/Workspace";
 import { useNativeCoachRect } from "@/lib/native/chrome";
 import { consumeOutsideOpen, subscribeOutsideOpen } from "@/lib/outside/links";
 import { Coachmarks, firstRunSteps } from "@/components/Coachmarks";
+import { NextStep } from "@/components/NextStep";
+import { appPath } from "@/lib/native/href";
+import { storefront } from "@/lib/commerce";
 
 /*
  * ── Everything below renders behind a flag, so none of it belongs in the
@@ -600,6 +603,16 @@ function PlayScreen() {
           onOpenBoard={() => setShowBoard(true)}
           onOpenStageGuide={() => setStageGuide(true)}
           onOpenKeyTerms={() => setKeyTerms(true)}
+          /*
+           * The way out, from the company's own name. A full navigation
+           * rather than a router push for the same reason the Settings sheet
+           * does it: /islands re-reads the archipelago from storage on mount,
+           * and the run being left has to have flushed first.
+           */
+          onOpenIslands={() => {
+            window.location.href =
+              storefront() === "web" ? "/islands" : appPath("/islands");
+          }}
           dossierOpen={dossier}
           onDossier={setDossier}
           nativeControls={!domChrome}
@@ -607,9 +620,18 @@ function PlayScreen() {
         {/*
           The activities, as a list, desktop only. The phone keeps its bottom
           bar at the foot of the centre column below.
+
+          `data-coach="tabs"` is on BOTH copies, and the tutorial points at
+          whichever one is visible — see `coachTarget` in
+          components/Coachmarks.tsx. Before that, only the phone's bottom bar
+          carried the attribute, and on a desktop that element is `lg:hidden`:
+          still in the document, so `querySelector` found it, and 0×0 at 0,0
+          once measured. Three steps — the bar, PRODUCT and CLOSET — cut a
+          zero-size hole in the top corner of an empty screen while the six
+          tabs they describe sat unhighlighted in this rail.
         */}
         {domChrome ? (
-          <div className="hidden min-h-0 flex-1 overflow-y-auto lg:block">
+          <div className="hidden min-h-0 flex-1 overflow-y-auto lg:block" data-coach="tabs">
             <div className="px-4 pt-3 pb-1 text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
               ACTIVITIES
             </div>
@@ -623,6 +645,16 @@ function PlayScreen() {
         <div data-coach="books">
           <TheBooks run={run} onTermTap={(t) => setTerm({ term: t })} />
         </div>
+
+        {/*
+          One thing worth doing, when there is one — nothing on the shelf,
+          nobody employed, or room the team has already paid for. Directly
+          under the Books because it is about what the Books are saying, and
+          above the feed because a nudge below the fold is a nudge nobody
+          reads. It renders nothing at all when the company is not missing
+          anything, which is most of a healthy run.
+        */}
+        <NextStep run={run} onOpen={(tab) => setActivity(tab)} />
 
         {/*
           One log, two presentations.

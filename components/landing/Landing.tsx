@@ -1000,20 +1000,20 @@ function YourPlan({ label = "YOUR PLAN" }: { label?: string }) {
 /** Photos ship from files named by each person — no guessed mappings. */
 const TEAM = [
   {
-    name: "Yuvan",
+    name: "Yuvan Satish",
     role: "Marketing & media",
     photo: "/landing/team/yuvan.webp",
   },
   {
-    name: "Dhruv",
+    name: "Dhruv Patel",
     role: "Coding, app building & operations",
     photo: "/landing/team/dhruv.webp",
   },
   {
-    name: "Zach",
+    name: "Zach Han",
     role: "Coding & app building",
     photo: "/landing/team/zach.webp",
   },
-  { name: "Ana", role: "Customer research", photo: "/landing/team/ana.webp" },
-  { name: "Monica", role: "Outreach", photo: "/landing/team/monica.webp" },
+  { name: "Ana Hashem", role: "Customer research", photo: "/landing/team/ana.webp" },
+  { name: "Monica Raina", role: "Outreach", photo: "/landing/team/monica.webp" },
 ] as const;

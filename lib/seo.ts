@@ -66,11 +66,11 @@ export const ORGANIZATION_NODE = {
   description:
     "Five students who built Novus at the LaunchX Flagship program, San Diego, summer 2026.",
   member: [
-    { "@type": "Person", name: "Yuvan" },
-    { "@type": "Person", name: "Dhruv" },
-    { "@type": "Person", name: "Zach" },
-    { "@type": "Person", name: "Ana" },
-    { "@type": "Person", name: "Monica" },
+    { "@type": "Person", name: "Yuvan Satish" },
+    { "@type": "Person", name: "Dhruv Patel" },
+    { "@type": "Person", name: "Zach Han" },
+    { "@type": "Person", name: "Ana Hashem" },
+    { "@type": "Person", name: "Monica Raina" },
   ],
 } as const;
 

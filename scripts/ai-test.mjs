@@ -885,6 +885,90 @@ const WORTH_Q = "Run your own math with me: what is this company actually worth?
   check("and told in the prompt that good numbers are not a defence", /GOOD NUMBERS ARE NOT A DEFENCE/.test(rules));
 }
 
+// ── The empty shelf ─────────────────────────────────────────────────────────
+// A founded company owns nothing and the tutorial sends every new player
+// straight to the emptiest screen in the game. The three suggestions have to be
+// LEGAL for the industry — a name the field will hold, a price inside the band,
+// a tag the sim knows how to price — or tapping one produces an item the
+// portfolio cannot reason about.
+console.log("\nProduct suggestions  ·  three things you could sell");
+
+{
+  const { localSuggestions } = await import(
+    pathToFileURL(join(root, "lib/ai/products.ts")).href
+  );
+  const { SPECS } = await import(pathToFileURL(join(root, "lib/engine/industries/index.ts")).href);
+
+  const runFor = (industry, seed = 42) => ({
+    seed, industry, year: 1, companyName: "Loop", portfolio: { items: [] },
+  });
+
+  let illegal = [];
+  let contradictory = [];
+  for (const [code, spec] of Object.entries(SPECS)) {
+    const ideas = localSuggestions(runFor(code), spec);
+    if (ideas.length !== 3) illegal.push(`${code}: ${ideas.length} ideas`);
+    for (const i of ideas) {
+      if (i.price < spec.priceMin || i.price > spec.priceMax) illegal.push(`${code}: $${i.price}`);
+      if (i.name.length > 28) illegal.push(`${code}: name ${i.name.length} chars`);
+      if (i.tags.some((t) => !spec.tags.includes(t))) illegal.push(`${code}: tag ${i.tags}`);
+      // A priced thing tagged "free" is a suggestion arguing with itself.
+      if (i.tags.some((t) => /free|f2p/i.test(t))) contradictory.push(`${code}: ${i.name}`);
+    }
+    // The spread IS the lesson the launch flow teaches.
+    const tiers = ideas.map((i) => i.investTier).join("");
+    if (tiers !== "012") illegal.push(`${code}: tiers ${tiers}`);
+  }
+  check("every industry gets three legal ideas", illegal.length === 0, illegal.slice(0, 3).join(" | "));
+  check("and none of them argues with its own price", contradictory.length === 0, contradictory.slice(0, 3).join(" | "));
+
+  // Two companies must not be handed the same shelf — the fixture problem this
+  // codebase has already paid for twice.
+  const shelves = [1, 2, 3, 4].map((seed) =>
+    localSuggestions(runFor("FOOD", seed), SPECS.FOOD).map((i) => i.name).join("|"),
+  );
+  check("different companies get different shelves", new Set(shelves).size > 1, shelves.join(" / "));
+  // …but the SAME company gets the same one on every render, or the list
+  // reshuffles under the player's thumb.
+  const twice = [0, 1].map(() =>
+    localSuggestions(runFor("FOOD", 7), SPECS.FOOD).map((i) => i.name).join("|"),
+  );
+  check("and one company gets the same shelf twice", twice[0] === twice[1], twice.join(" / "));
+}
+
+{
+  // The route, with a model that answers. The client refuses anything under
+  // three ideas and falls back, so the route must return what it was given.
+  const products = await import(pathToFileURL(join(root, "app/api/products/route.ts")).href);
+  const payload = {
+    ideas: [
+      { name: "Midnight Chili Oil", price: 9, invest_tier: 0, tags: ["spicy"], why: "Cheap to make." },
+      { name: "House Noodles", price: 13, invest_tier: 1, tags: ["vegetarian"], why: "Middle of the road." },
+      { name: "Signature Bowl", price: 24, invest_tier: 2, tags: ["invented-tag"], why: "Costs more." },
+    ],
+  };
+  handler = () => Response.json({ choices: [{ message: { content: JSON.stringify(payload) } }] });
+
+  const res = await products.POST(
+    json("http://localhost/api/products", {
+      companyName: "Loop",
+      industry: "FOOD",
+      noun: "Menu item",
+      tags: ["spicy", "vegetarian"],
+      priceMin: 3,
+      priceMax: 40,
+      baselinePrice: 13,
+    }),
+  );
+  const body = await res.json();
+  check("the route returns three ideas", body.ideas?.length === 3, JSON.stringify(body.ideas?.length));
+  check("and drops a tag the industry does not have", body.ideas[2].tags.length === 0, JSON.stringify(body.ideas[2].tags));
+  check("and keeps one it does", body.ideas[0].tags[0] === "spicy", JSON.stringify(body.ideas[0].tags));
+
+  const bad = await products.POST(json("http://localhost/api/products", {}));
+  check("and refuses a call with no company", bad.status === 400, `HTTP ${bad.status}`);
+}
+
 // ── /api/ai ─────────────────────────────────────────────────────────────────
 // The whole-picture endpoint. Exists because "the key is set and it still
 // sounds wrong" needed a redeploy to answer, three times running.

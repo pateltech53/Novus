@@ -6,6 +6,15 @@ import Link from "next/link";
 
 import { MAX_NAME_LENGTH, loadAccount, signOut as forgetLocalAccount } from "@/lib/account";
 import {
+  MIN_AGE,
+  TOO_YOUNG_BODY,
+  TOO_YOUNG_TITLE,
+  isAgeBlocked,
+  isOldEnough,
+  recordTooYoung,
+} from "@/lib/auth/age";
+import { loadProfile } from "@/lib/engine/save";
+import {
   PROVIDER_LABEL,
   enabledProviders,
   type OAuthProvider,
@@ -330,6 +339,29 @@ export function AccountGate() {
 
   const submitSignUp = async () => {
     if (!canSignUp || busy) return;
+
+    /*
+     * ── The age gate, on the door that actually creates the account ────────
+     *
+     * Onboarding asks first (app/welcome/page.tsx), but this form is reachable
+     * without it — the landing page offers it to anyone, and a player can
+     * arrive here from a link having never seen a step of onboarding. The
+     * check that matters is the one on the surface that makes the account, and
+     * this is that surface.
+     *
+     * Two sources, and either one is enough to refuse: a device that already
+     * answered under 13, and a profile written by onboarding that carries an
+     * age under 13. Neither is verification — see lib/auth/age.ts, which is
+     * candid about what an age screen can and cannot do — but this is where a
+     * "no" already given has to be honoured rather than forgotten.
+     */
+    const profileAge = loadProfile()?.playerAge ?? null;
+    if (isAgeBlocked() || (profileAge !== null && !isOldEnough(profileAge))) {
+      recordTooYoung();
+      setError(`${TOO_YOUNG_TITLE} ${TOO_YOUNG_BODY}`);
+      return;
+    }
+
     setBusy(true);
     setError(null);
 
