@@ -117,7 +117,7 @@ select test.eq(public.player_allowance('11111111-1111-1111-1111-111111111111'), 
 
 
 \echo ''
-\echo '=== 5. Pro holds ten, and the eleventh has nowhere to go ==='
+\echo '=== 5. Pro holds ten, and an eleventh needs buying ==='
 insert into public.entitlements (profile_id, pro)
 values ('22222222-2222-2222-2222-222222222222', true);
 
@@ -127,15 +127,52 @@ select test.eq((select count(*)::bigint from public.saves
                 where profile_id = '22222222-2222-2222-2222-222222222222'), 10::bigint,
                'Pro holds ten companies at once');
 
--- Slot 10 fails on 0001's own `slot between 0 and 9` check before the cap
--- trigger has an opinion, which is the point of capping island_allowance at
--- 10: the allowance can never promise storage the table refuses.
+-- 0015 moved the storage ceiling to 50, so slot 10 now clears 0001's own
+-- column check and is refused by the CAP TRIGGER instead — same errcode, a
+-- different and more interesting reason. Before 0015 the tier WAS the ceiling,
+-- so this line could not distinguish "Pro's allowance is spent" from "the
+-- table has no room", and the two are now different facts.
 select test.throws('23514', $$
   select test.found('22222222-2222-2222-2222-222222222222', 10)
-$$, 'there is no eleventh slot to sell');
+$$, 'Pro stops at ten until an island is bought');
 
 select test.eq(public.player_allowance('22222222-2222-2222-2222-222222222222'), 3,
                'Pro still founds three a day, unchanged by islands');
+
+
+\echo ''
+\echo '=== 5b. a bought island works ON PRO — the 0015 fix ==='
+-- The bug this proves gone: `island_allowance` handed a Pro account a flat 10,
+-- which was the whole ceiling, so `least(10, 10 + bought)` was 10 for any
+-- number bought and a subscriber's $1.99 purchased nothing whatsoever.
+select test.eq(public.island_allowance('22222222-2222-2222-2222-222222222222'), 10,
+               'Pro alone allows ten islands');
+
+select public.grant_extra_island('22222222-2222-2222-2222-222222222222');
+select test.eq(public.island_allowance('22222222-2222-2222-2222-222222222222'), 11,
+               'a bought island raises a PRO account''s allowance');
+
+-- And the eleventh company now actually lands, which is the thing that was
+-- being sold.
+select test.found('22222222-2222-2222-2222-222222222222', 10);
+select test.eq((select count(*)::bigint from public.saves
+                where profile_id = '22222222-2222-2222-2222-222222222222'), 11::bigint,
+               'the island that was bought holds a company');
+
+-- The ceiling is still real, and it is the storage one rather than a tier.
+select public.admin_set_extra_islands('22222222-2222-2222-2222-222222222222', 48);
+select test.eq(public.island_allowance('22222222-2222-2222-2222-222222222222'), 50,
+               'fifty is the ceiling, whatever the arithmetic says');
+select test.eq((select extra_islands from public.entitlements
+                where profile_id = '22222222-2222-2222-2222-222222222222'), 48,
+               'forty-eight is the most that can be held');
+
+-- Slot 50 fails on the column check — the allowance can never promise storage
+-- the table refuses, which is the invariant the outer `least(50, …)` exists
+-- for.
+select test.throws('23514', $$
+  select test.found('22222222-2222-2222-2222-222222222222', 50)
+$$, 'there is no fifty-first slot to sell');
 
 
 \echo ''
@@ -162,7 +199,7 @@ $$, 'a player cannot set their own island count');
 -- construction. Asserted anyway: it is now the only thing standing between one
 -- player and another player's ten companies.
 select test.eq((select count(*)::bigint from public.saves), 3::bigint,
-               'A sees only their own three, not B''s ten');
+               'A sees only their own three, not B''s eleven');
 
 update public.saves set company_name = 'Stolen'
  where profile_id = '22222222-2222-2222-2222-222222222222';
@@ -178,6 +215,6 @@ reset role;
 delete from auth.users where id = '22222222-2222-2222-2222-222222222222';
 select test.eq((select count(*)::bigint from public.saves
                 where profile_id = '22222222-2222-2222-2222-222222222222'), 0::bigint,
-               'ten islands cascade away with the account that held them');
+               'every island cascades away with the account that held them');
 
 \echo '=== islands_test: all checks passed ==='

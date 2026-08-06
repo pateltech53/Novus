@@ -33,8 +33,11 @@ import { play } from "@/lib/sound";
  * ── What each row is ───────────────────────────────────────────────────────
  *
  * · **Extra Island, $1.99, once.** One more company running at the same time,
- *   stacked on the plan's allowance. Useful on free; Pro already holds the ten
- *   the storage allows, so the row is honest rather than universally useful.
+ *   stacked on the plan's allowance — on EVERY plan, which is 0015's doing and
+ *   worth naming here because it was false before it. Pro used to be handed
+ *   the whole storage ceiling, so `min(cap, cap + bought)` meant a subscriber's
+ *   $1.99 bought a no-op. Pro is ten again, the ceiling is fifty, and a bought
+ *   island is worth exactly one island to anybody until they reach it.
  * · **Industry Pack, $2.99, once.** ONE locked industry, named here and
  *   carried to the webhook in metadata, kept for good. Meaningless on Pro —
  *   Pro already opens all twelve — so the row withdraws itself for Pro
@@ -56,13 +59,10 @@ import { play } from "@/lib/sound";
  * the packs a player owns are precisely the ones missing from the picker at the
  * end of the row, and an absence is not a receipt.
  *
- * The one sale that is now refused outright is an island with nowhere to go:
- * `ISLAND_CAP` is a storage bound — `saves.slot` is checked `between 0 and 9` —
- * so past the free tier's two plus eight bought there is no eleventh row for the
- * ninth to live in, on any tier, ever. A PRO player at the same ceiling is a
- * different case and keeps the button, with the caveat said beside it: the
- * subscription is what makes the purchase redundant today, and the purchase is
- * what outlives the subscription.
+ * The one sale refused outright is an island with nowhere to go: `ISLAND_CAP`
+ * is a storage bound — `saves.slot` is checked `between 0 and 49` since 0015 —
+ * so past the free tier's two plus forty-eight bought there is no fifty-first
+ * row for the next one to live in, on any tier, ever.
  */
 
 interface ShelfState {
@@ -106,21 +106,23 @@ export function OneTimeShelf({
   const pro = isPro(entitlements);
   const ownedIslands = Math.max(0, entitlements.extraIslands);
   /*
-   * When another island could never do anything for this account.
+   * When another island could never do anything for this account, on any tier.
    *
-   * Measured against the FREE tier's own allowance plus what has been bought,
-   * not against `islandCapFor` — and the difference is the whole judgement.
-   * `islandCapFor` says a Pro player is already at the ceiling, which is true
-   * and is not a reason to withdraw the row from them: an island is bought
-   * outright, it outlives a subscription, and it is what holds their tenth
-   * place if Pro ever lapses. A free player who has bought eight is a
-   * different case entirely — there is no eleventh row in `public.saves` for
-   * the ninth to live in, on any tier, ever. That is the only sale worth
-   * refusing, so it is the only one refused.
+   * Measured against the FREE tier's allowance plus what has been bought, not
+   * against `islandCapFor`, and the difference is the judgement: an island is
+   * bought outright and outlives a subscription, so what matters is whether it
+   * could ever be spent — not whether today's tier happens to leave room for
+   * it. Free's two plus forty-eight bought is ISLAND_CAP, and there is no
+   * fifty-first row in `public.saves` for a forty-ninth purchase to live in.
+   * That is the only sale worth refusing, so it is the only one refused.
+   *
+   * Before 0015 there was a second case here, and it is worth knowing why it
+   * is gone: Pro used to receive the whole ceiling, so `min(cap, 50 + bought)`
+   * meant a subscriber's purchase did nothing at all and the row carried a
+   * paragraph apologising for it. Pro is ten again and a bought island stacks
+   * on top, so there is no longer anything to apologise for.
    */
   const islandsMaxed = FREE_LIMITS.islands + ownedIslands >= ISLAND_CAP;
-  /** Pro is at the ceiling by tier alone — worth saying, not worth refusing. */
-  const islandsSpareOnPro = pro && !islandsMaxed;
 
   const island = ONE_TIME_PURCHASES.find((p) => p.id === "extra_island")!;
   const pack = ONE_TIME_PURCHASES.find((p) => p.id === "industry_pack")!;
@@ -236,18 +238,15 @@ export function OneTimeShelf({
               You are at the {ISLAND_CAP}-island ceiling — there is nowhere to
               put another.
             </span>
-          ) : islandsSpareOnPro ? (
-            /* Said before the money moves, not after. Pro already runs the ten
-               the storage allows, so an island bought today changes nothing
-               today — it is worth having only because it survives the
-               subscription that is currently making it redundant. */
+          ) : (
+            /* On any tier, said plainly, because "does this do anything for
+               ME?" is the question this row could not answer before 0015. */
             <span className="text-[var(--text-tertiary)]">
               {" "}
-              Pro already runs {ISLAND_CAP} at once, so this adds nothing while
-              it lasts — an island is yours for good and holds its place if Pro
-              ever lapses.
+              Stacks on whatever your plan gives, up to {ISLAND_CAP}. Yours for
+              good — an island outlives a subscription.
             </span>
-          ) : null}
+          )}
         </p>
       </div>
       {/* Still offered after the first one: islands stack. Withdrawn only at

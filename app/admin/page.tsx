@@ -23,6 +23,7 @@ import {
   CHAPTER_CUSTOM_MIN_SEATS,
   CHAPTER_LICENCES,
   FREE_LIMITS,
+  ISLAND_CAP,
   isCustomSeatCount,
   PRO_LIMITS,
 } from "@/lib/monetization";
@@ -1143,13 +1144,14 @@ function DetailPanel({
           className="tnum w-16 rounded-[var(--radius-row)] border border-[var(--hairline)] bg-transparent px-2 py-1.5 text-center text-sm focus:border-[var(--n-11)] focus-visible:outline-none!"
         />
         <Chip
-          onClick={() => onSetIslands(Math.min(20, Number(islandsText) || 0))}
+          onClick={() => onSetIslands(Math.min(48, Number(islandsText) || 0))}
           disabled={busy !== null}
         >
           SET
         </Chip>
         <span className="text-2xs text-[var(--text-tertiary)]">
-          0&ndash;20, on top of the tier&rsquo;s islands &mdash; capped at 10 held at once
+          0&ndash;48, on top of the tier&rsquo;s islands &mdash; capped at{" "}
+          {ISLAND_CAP} held at once
         </span>
       </div>
 
