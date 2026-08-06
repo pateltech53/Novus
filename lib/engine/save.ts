@@ -523,6 +523,47 @@ export function adoptFromCloud(data: {
       JSON.stringify({ ...data.prefs, playerAge: local?.playerAge ?? null } satisfies Profile),
     );
   }
+  if (data.runs?.length) announceIslands();
+}
+
+/**
+ * Told when islands ARRIVE from somewhere other than the screen that is open.
+ *
+ * There is exactly one source: the boot restore adopting companies this device
+ * had never seen (lib/cloud/sync.ts). It is a network round trip, so it lands
+ * after every screen has already read localStorage and decided what to draw —
+ * and the app's answer to that used to be a reload. The reload is now skipped
+ * the moment the player has touched anything, for good reasons stated at
+ * `markAndReload`, which left the other half undone: the islands landed and
+ * nothing on screen said so. On a second device that reads as "my companies are
+ * not here", which is the complaint the cloud copy exists to answer.
+ *
+ * Deliberately not the `storage` event, for the reason lib/monetization.ts
+ * gives about entitlements: that one fires in OTHER tabs and never in the tab
+ * that wrote, which is backwards — the tab holding the stale screen is this one.
+ *
+ * Listeners are handed nothing and re-read through `listIslands()`, so a write
+ * localStorage refused resolves to what is actually here.
+ */
+type IslandListener = () => void;
+
+const islandListeners = new Set<IslandListener>();
+
+/** Returns its own unsubscribe, for a `useEffect` cleanup to return directly. */
+export function onIslandsChange(fn: IslandListener): () => void {
+  islandListeners.add(fn);
+  return () => islandListeners.delete(fn);
+}
+
+function announceIslands(): void {
+  // One listener throwing must not stop the next from hearing about it.
+  islandListeners.forEach((fn) => {
+    try {
+      fn();
+    } catch {
+      /* a screen that cannot refresh is not a save that failed */
+    }
+  });
 }
 
 
@@ -612,11 +653,33 @@ const num = (v: unknown): number => (typeof v === "number" && Number.isFinite(v)
  * The slots that currently hold a company.
  *
  * Existence only — no JSON.parse. The picker needs the shape of the
- * archipelago far more often than it needs what is on each island, and ten
- * parses of a 90 KB run is not a thing to do on a screen transition. That
- * mattered more once ISLAND_CAP became 50: this is ISLAND_CAP `getItem` calls
- * against a hash lookup, which stays microseconds, where fifty parses would
- * not have.
+ * archipelago far more often than it needs what is on each island, and fifty
+ * parses of a 90 KB run is not a thing to do on a screen transition. This is
+ * ISLAND_CAP `getItem` calls against a hash lookup, which stays microseconds;
+ * it mattered less at ten and matters a great deal at fifty.
+ *
+ * ── A held write counts as an island ───────────────────────────────────────
+ *
+ * `saveRun` coalesces its localStorage write over 120 ms, so for that window a
+ * company exists in `pendingRuns` and nowhere else. Every other read in this
+ * file flushes before answering — "a held write must never be invisible to a
+ * read", as loadRun says — and this one did not, which made it the exception
+ * that broke founding:
+ *
+ *   startRun writes island 1 and points `novus:island:v1` at it
+ *   → /play mounts inside the 120 ms and asks activeIsland()
+ *   → island 1 reads as EMPTY, so the pointer is refused as stale
+ *   → the fallback opens the lowest occupied island instead
+ *
+ * The player founded a company and was handed the one they already had. Worse,
+ * the same blindness let `firstFreeIsland` hand out a slot whose write was
+ * still in the buffer, so a second founding inside that window landed on top of
+ * the first.
+ *
+ * Consulted rather than flushed: this is a read on the path of a screen
+ * transition, and serialising up to ISLAND_CAP 90 KB runs to answer "which
+ * slots exist" is the cost the coalescing exists to avoid. The buffer is the
+ * truth about what has been saved; the disk catches up 120 ms later.
  */
 function occupiedSlots(): number[] {
   if (!canStore()) return [];
@@ -624,12 +687,23 @@ function occupiedSlots(): number[] {
   const out: number[] = [];
   for (let slot = 0; slot < ISLAND_CAP; slot += 1) {
     try {
-      if (localStorage.getItem(runKey(slot)) !== null) out.push(slot);
+      if (pendingRuns.has(slot) || localStorage.getItem(runKey(slot)) !== null) out.push(slot);
     } catch {
       /* one unreadable key is not the whole archipelago */
     }
   }
   return out;
+}
+
+/**
+ * Is there a company on this island — living, dead, or still in the buffer?
+ *
+ * The question founding asks before it honours a slot somebody named. Existence
+ * only, like `occupiedSlots` above: "may I write here" is answered by whether
+ * anything is there, never by what it is.
+ */
+export function islandOccupied(slot: number): boolean {
+  return occupiedSlots().includes(safeSlot(slot));
 }
 
 function readIndex(): IslandSummary[] {

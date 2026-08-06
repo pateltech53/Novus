@@ -64,14 +64,30 @@ function FoundPage() {
    * Which island this company goes on.
    *
    * The picker sends `?island=N` when the player taps a specific empty card,
-   * so founding lands where they pointed. Reached without one — a bookmark,
-   * the onboarding hand-off — it is left undefined and `startRun` picks with
-   * `slotForNewCompany`, which is the same rule the picker used to draw the
-   * card in the first place.
+   * so founding lands where they pointed. Reached without one — a bookmark, the
+   * onboarding hand-off, the return from Stripe (`/found?purchase=ok`) — it is
+   * left undefined and `startRun` picks with `slotForNewCompany`, which is the
+   * same rule the picker used to draw the card in the first place.
+   *
+   * ── Why this is not `Number(params.get("island"))` ─────────────────────────
+   *
+   * It was, and `Number(null)` is 0 — not NaN. So every arrival WITHOUT the
+   * query string, which is every arrival the comment above describes, asked to
+   * found on island 0 specifically. A player with a company on island 0 who
+   * reached this screen by any door but the picker founded straight over it:
+   * `startRun` wrote the new company to that slot, the picker showed one island
+   * back at Year 1 Month 1, and the debounced push replaced the cloud row too,
+   * so the loss followed them onto every other device.
+   *
+   * `Number("")` is 0 as well, so an empty `?island=` gets the same answer as no
+   * `?island` at all rather than a slot number nobody typed.
    */
-  const askedFor = Number(params.get("island"));
+  const askedFor = (params.get("island") ?? "").trim();
+  const parsedSlot = askedFor === "" ? Number.NaN : Number(askedFor);
   const targetSlot =
-    Number.isInteger(askedFor) && askedFor >= 0 && askedFor < ISLAND_CAP ? askedFor : undefined;
+    Number.isInteger(parsedSlot) && parsedSlot >= 0 && parsedSlot < ISLAND_CAP
+      ? parsedSlot
+      : undefined;
 
   /** Companies still going, and how many are allowed. Read after mount. */
   const [living, setLiving] = useState(0);
