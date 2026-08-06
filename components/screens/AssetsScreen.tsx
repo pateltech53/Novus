@@ -153,7 +153,7 @@ export function AssetsScreen({
         <div
           role="tablist"
           aria-label="Asset ledger"
-          className="flex gap-1 rounded-full bg-[var(--chip)] p-1"
+          className="flex gap-2 rounded-full bg-[var(--chip)] p-1.5"
         >
           {TABS.map((tab) => {
             const active = tab.kind === kind;

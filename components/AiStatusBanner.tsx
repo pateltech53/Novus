@@ -74,7 +74,7 @@ export function AiStatusBanner() {
       // Above the home indicator and the native tab bar, both of which report
       // their height as CSS variables the rest of the app already uses.
       className="pointer-events-none fixed inset-x-0 z-[60] flex justify-center px-3"
-      style={{ bottom: "calc(var(--nv-chrome-bottom, 0px) + env(safe-area-inset-bottom, 0px) + 12px)" }}
+      style={{ bottom: "calc(var(--nv-chrome-bottom, 0px) + var(--nv-safe-bottom) + 12px)" }}
       role="status"
       aria-live="polite"
     >

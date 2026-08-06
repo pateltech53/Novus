@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { SHEET_SPRING } from "@/components/ui/Motion";
 import { useGame } from "@/lib/state/GameProvider";
 import { SoundToggle } from "@/components/ui/SoundToggle";
 import { RookieToggle } from "@/components/ui/RookieToggle";
+import { LiveActivityToggle } from "@/components/ui/LiveActivityToggle";
 import {
   GlassButton,
   GlassGroup,
@@ -36,6 +38,14 @@ import { isAdminAccount } from "@/lib/cloud/admin-skip";
 import { restoreForSignIn } from "@/lib/cloud/sync";
 import { fmtMoney } from "@/lib/engine/format";
 import { isPro, loadEntitlements } from "@/lib/monetization";
+import {
+  ownedLine,
+  planStanding,
+  planWord,
+  standingLine,
+  standingNote,
+  useEntitlements,
+} from "@/lib/plan";
 import { MANAGE_SUBSCRIPTION_NOTE, storefront, useSellsHere } from "@/lib/commerce";
 import { BuyOnWeb, RestoreButton } from "@/components/upgrade/BuyOnWeb";
 import { appPath } from "@/lib/native/href";
@@ -147,7 +157,7 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
       {/* Centred column on desktop rather than a stretched sheet. The top pad
           clears the native toolbar where there is one, and is the plain safe
           area everywhere else — `--nv-overlay-top` is 0 off iOS. */}
-      <div className="mx-auto w-full max-w-lg px-5 pt-[max(1.25rem,env(safe-area-inset-top),var(--nv-overlay-top))] pb-[max(2.5rem,env(safe-area-inset-bottom),calc(var(--nv-overlay-bottom)+1rem))]">
+      <div className="mx-auto w-full max-w-lg px-5 pt-[max(1.25rem,var(--nv-safe-top),var(--nv-overlay-top))] pb-[max(2.5rem,var(--nv-safe-bottom),calc(var(--nv-overlay-bottom)+1rem))]">
         <div className="flex items-center justify-between">
           {/* UIKit draws both of these when it owns the screen. Not rendered
               rather than hidden: a hidden button still takes a tap on iOS. */}
@@ -182,8 +192,14 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
             Deliberately NOT the control material: the selected one is a raised
             surface with a shadow under it, which is what says "here" on a
             picker that is part of a list rather than part of the chrome.
+
+            `gap-3`, not `gap-2`. The selected option carries a shadow, and a
+            shadow needs somewhere to fall: at 8px the three panels read as one
+            segmented bar with two hairlines in it, and the raised one had
+            nothing to be raised ABOVE. Twelve is where three separate objects
+            appear, which is what a radio group is.
           */}
-          <div role="radiogroup" aria-label="Theme" className="grid grid-cols-3 gap-2">
+          <div role="radiogroup" aria-label="Theme" className="grid grid-cols-3 gap-3">
             {(
               [
                 { id: "system", label: "System" },
@@ -225,6 +241,9 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
           <div className="space-y-2">
             <RookieToggle />
             <SoundToggle />
+            {/* Renders nothing off iOS, and nothing on an iPhone where Live
+                Activities are already off system-wide. */}
+            <LiveActivityToggle />
           </div>
         </Section>
 
@@ -910,6 +929,19 @@ function AdminSection() {
  * is a screen rather than a Settings row. What Settings owes a player who has
  * already paid is different — proof it arrived, a way to get it back on a new
  * device, and a way to cancel.
+ *
+ * ── Proof, in the detail the receipt actually has ──────────────────────────
+ *
+ * This row said "Pro is on" and stopped there, which answers less than it looks
+ * like it does. It did not say WHICH plan — so a player deciding whether to
+ * switch, or working out what the charge on the card is for, had to open the
+ * billing portal to find out — and it said nothing whatsoever about anything
+ * bought outside a subscription. An island and an industry pack are purchases
+ * that attach to this account exactly as Pro does, and until now the only place
+ * either of them was visible was indirectly, as a number on the islands screen
+ * or an industry that happened not to be locked. A receipt that omits what you
+ * bought is not a receipt. Both come from lib/plan.ts, which is also what the
+ * front door and the price list read, so the three cannot word it differently.
  */
 function ProSection() {
   const game = useGame();
@@ -918,6 +950,14 @@ function ProSection() {
   const [pro, setPro] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+
+  /* The detail behind `pro`: which plan, and what was bought once. Live rather
+     than read at mount, because Restore below changes it without leaving the
+     screen — as does the once-a-minute heartbeat. Null until the client has
+     read localStorage, which is why every line built from it is conditional. */
+  const entitlements = useEntitlements();
+  const standing = entitlements ? planStanding(entitlements) : null;
+  const bought = entitlements ? ownedLine(entitlements) : null;
 
   useEffect(() => setPro(isPro(loadEntitlements())), []);
 
@@ -957,23 +997,54 @@ function ProSection() {
   return (
     <Section label="NOVUS PRO">
       <div className="rounded-[var(--radius-row)] bg-[var(--surface)] p-4">
-        <div className="flex items-baseline justify-between gap-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <p className="text-sm font-semibold text-[var(--text-primary)]">
             {pro ? "Pro is on" : "Free"}
           </p>
+          {/* The chip carries the cadence, because it is already the all-caps
+              word beside "Pro is on" and ACTIVE was the least specific thing it
+              could have said. Back to ACTIVE for a Pro with no plan of its own
+              — a chapter seat, an operator account — and while the entitlements
+              are still unreadable. */}
           <span
             className={`text-2xs font-bold tracking-[0.12em] ${
               pro ? "text-[var(--color-prestige)]" : "text-[var(--text-tertiary)]"
             }`}
           >
-            {pro ? "ACTIVE" : "THE WHOLE GAME"}
+            {pro
+              ? standing?.plan
+                ? planWord(standing.plan)
+                : "ACTIVE"
+              : "THE WHOLE GAME"}
           </span>
         </div>
+
+        {/* This account's own numbers, not the tier's brochure copy: the
+            island count here includes any that were bought, which is the
+            plainest proof a one-time purchase landed. */}
+        {entitlements ? (
+          <p className="tnum mt-1 text-2xs leading-snug text-[var(--text-secondary)]">
+            {standingLine(entitlements)}
+          </p>
+        ) : null}
+
         <p className="mt-1 text-2xs leading-snug text-[var(--text-secondary)]">
-          {pro
-            ? "Twelve industries, The Room, three runs a day, the long wardrobe."
-            : "Free is the whole game — same year, same pitch, same panel, same board. Pro adds content, never an advantage."}
+          {standing
+            ? standingNote(standing)
+            : pro
+              ? "Twelve industries, The Room, three runs a day, the long wardrobe."
+              : "Free is the whole game — same year, same pitch, same panel, same board. Pro adds content, never an advantage."}
         </p>
+
+        {/* Everything bought outright, by name. Its own line under a rule,
+            because a one-time purchase is a different fact from the plan and
+            outlives it: cancelling Pro does not take an island back. */}
+        {bought ? (
+          <p className="mt-2 border-t border-[var(--hairline)] pt-2 text-2xs leading-snug text-[var(--text-secondary)]">
+            <span className="font-bold tracking-[0.1em] text-[var(--text-tertiary)]">BOUGHT </span>
+            {bought}
+          </p>
+        ) : null}
 
         {/* A store build cannot take the money, so the offer is a link out to
             the browser that can — the same component the Pro sheet and the
@@ -985,8 +1056,15 @@ function ProSection() {
         {/* On the web this opens Stripe's portal — cancel, switch plan, update
             card, receipts. In a store build there is nothing for the app to
             open, so it states where the subscription lives instead of offering
-            a button that cannot work. */}
-        {pro &&
+            a button that cannot work.
+
+            Gated on there being a subscription rather than on Pro being on. A
+            chapter seat and an operator account are both Pro with no plan of
+            their own behind them, and the portal opens on nothing for either —
+            `openBillingPortal` answers false and the row does nothing at all.
+            Falls back to the bare flag only while the detail is still
+            unreadable, which is the behaviour this row has always had. */}
+        {(standing ? standing.via === "subscription" : pro) &&
           (sellsHere === true ? (
             <GlassButton
               onClick={() => void openBillingPortal()}
@@ -1023,9 +1101,26 @@ function ProSection() {
  * `switchIsland` before the navigation, not after: it is synchronous, and
  * doing it here means /play mounts with the right company already in context
  * rather than opening the old one and swapping it under the player.
+ *
+ * ── Why this one pushes rather than navigates ───────────────────────────────
+ *
+ * Every other exit from this screen empties the device — signing out, deleting
+ * the account — and has to load a fresh document so nothing carries the old
+ * player's values across in memory. This one changes nothing: it is a trip
+ * between two screens of the same game, and /found already makes the same trip
+ * with a router push.
+ *
+ * It USED to load a document too, and the cost was not the reload. A document
+ * navigation destroys the React tree without running one effect cleanup, and
+ * this screen's chrome is a UIKit view owned by the view controller rather
+ * than by the page — so Settings' toolbar and its account dock followed the
+ * player to the islands and stayed there, over a screen that had never
+ * declared any chrome, with the dock sitting where the play screen's ADVANCE
+ * capsule lands. Unmounting properly is what takes them down.
  */
 function IslandsSection({ onClose }: { onClose: () => void }) {
   const game = useGame();
+  const router = useRouter();
   const others = game.islands.filter((i) => i.slot !== game.island);
 
   return (
@@ -1033,7 +1128,7 @@ function IslandsSection({ onClose }: { onClose: () => void }) {
       <GlassButton
         onClick={() => {
           onClose();
-          window.location.href = storefront() === "web" ? "/islands" : appPath("/islands");
+          router.push("/islands");
         }}
         className="text-sm font-bold"
       >

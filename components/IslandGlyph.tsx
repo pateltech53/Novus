@@ -59,7 +59,11 @@ export function IslandGlyph({
   const cliff = alive
     ? "color-mix(in oklch, var(--solvency) 22%, var(--n-7))"
     : "var(--n-7)";
-  const sea = "var(--hairline)";
+  /* The rings the island sits in, and they are the sea's own crest colour —
+     not `--hairline`, which is the divider grey and which put the water two or
+     three points of lightness away from the water it was drawn on. An island
+     with no visible waterline is a shape floating on a coloured rectangle. */
+  const sea = "var(--sea-crest)";
   const built = alive ? "var(--text-primary)" : "var(--n-8)";
 
   return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { NovusGlass, type NativeSheetSpec } from "@/lib/native/glass";
 import { useNativeChromeOwned } from "@/lib/native/chrome";
 import { useResolvedTheme } from "@/lib/native/theme";
@@ -76,16 +76,94 @@ function build(options: NativeSheetOptions, theme: "light" | "dark"): NativeShee
   };
 }
 
+/**
+ * How long the web waits for UIKit to say the card is on screen.
+ *
+ * Not a latency target: a sheet that is coming confirms itself in a frame or
+ * two. This is the line past which "still arriving" and "never arriving" stop
+ * being worth telling apart, set well clear of a cold first present on a slow
+ * device — the cost of being wrong is a card drawn in the DOM instead of in
+ * glass, and the cost of not having it is a month nobody can answer.
+ */
+const PRESENT_TIMEOUT_MS = 1200;
+
+/**
+ * The shortest panel that could be a card, in points.
+ *
+ * A sheet reports its own height when it appears, and anything under this is
+ * not a card the player can read — it is the backdrop with nothing in it,
+ * which is a screen that looks blank and answers only the dismiss tap. Set far
+ * below the smallest real card (eyebrow, title, a line of body and two
+ * choices) so it only ever catches a collapse, never a short question.
+ *
+ * A binary that predates the measurement sends no height at all. That is
+ * treated as unknown and accepted — the watchdog above is what covers those.
+ */
+const MIN_PANEL_PX = 80;
+
 /** True when UIKit is presenting the card, so React must not. */
 export function useNativeSheet(options: NativeSheetOptions): boolean {
   const owned = useNativeChromeOwned();
   const theme = useResolvedTheme();
+
+  /**
+   * The native renderer did not put a card on screen, so the DOM one takes
+   * over — for good, on this screen.
+   *
+   * ── Why this is not paranoia ────────────────────────────────────────────
+   *
+   * "The card did not appear" has no visible form for a player. The play
+   * chrome withdraws whenever a decision is open, and the DOM sheet is not
+   * rendered behind a native one — so a presentation that does not happen is a
+   * month with a decision in it, nothing on screen to answer it with, and no
+   * chrome to do anything else with either. The screen is the background
+   * colour and one disabled button. The game is over and nothing looks broken.
+   *
+   * And it can happen quietly. `presentSheet` resolving means the bridge took
+   * the call, nothing more; UIKit refuses to present onto a controller that is
+   * already presenting and it refuses without a throw, a completion or an
+   * error. So resolution is not evidence. Only `sheetPresented` is, because
+   * the controller sends it from its own `viewDidAppear`.
+   *
+   * Sticky, because a renderer that has dropped one card is not the one to
+   * hand the next one to — and because flipping back and forth mid-run would
+   * change what a decision looks like between one month and the next.
+   */
+  const [refused, setRefused] = useState(false);
 
   const optionsRef = useRef(options);
   optionsRef.current = options;
 
   /** The id currently on screen, so a re-render does not re-present it. */
   const presented = useRef<string | null>(null);
+  /** The id UIKit has confirmed is actually visible. */
+  const confirmed = useRef<string | null>(null);
+  const watchdog = useRef<number | null>(null);
+
+  const clearWatchdog = () => {
+    if (watchdog.current !== null) {
+      window.clearTimeout(watchdog.current);
+      watchdog.current = null;
+    }
+  };
+
+  /**
+   * Hand the card back to React, whatever went wrong over there.
+   *
+   * Takes down anything half-presented first. A native backdrop left frosting
+   * the webview composites ABOVE it, so leaving one up would put the same
+   * blank screen on top of the sheet React is about to draw.
+   */
+  const fallBackToDom = useCallback(() => {
+    if (watchdog.current !== null) {
+      window.clearTimeout(watchdog.current);
+      watchdog.current = null;
+    }
+    presented.current = null;
+    confirmed.current = null;
+    NovusGlass.dismissSheet().catch(() => {});
+    setRefused(true);
+  }, []);
 
   useEffect(() => {
     if (!owned) return;
@@ -112,6 +190,18 @@ export function useNativeSheet(options: NativeSheetOptions): boolean {
     const answering = (id: string) => presented.current === id;
 
     void (async () => {
+      await add<{ id: string; height?: number }>("sheetPresented", (d) => {
+        if (presented.current !== d.id) return;
+        // A panel too short to be a card is the backdrop and nothing else: a
+        // screen that looks blank and answers only the dismiss tap. Treat it
+        // as a card that never arrived, because to the player it is one.
+        if (typeof d.height === "number" && d.height < MIN_PANEL_PX) {
+          fallBackToDom();
+          return;
+        }
+        confirmed.current = d.id;
+        clearWatchdog();
+      });
       await add<{ id: string; index: number }>("sheetChoice", (d) => {
         if (!answering(d.id)) return;
         presented.current = null;
@@ -135,17 +225,20 @@ export function useNativeSheet(options: NativeSheetOptions): boolean {
       cancelled = true;
       subs.forEach((s) => s.remove());
     };
-  }, [owned]);
+  }, [owned, fallBackToDom]);
 
-  const spec = owned ? build(options, theme) : null;
+  const live = owned && !refused;
+  const spec = live ? build(options, theme) : null;
   const id = spec?.id ?? null;
 
   useEffect(() => {
-    if (!owned) return;
+    if (!live) return;
 
     if (!id) {
+      clearWatchdog();
       if (presented.current !== null) {
         presented.current = null;
+        confirmed.current = null;
         NovusGlass.dismissSheet().catch(() => {});
       }
       return;
@@ -153,21 +246,43 @@ export function useNativeSheet(options: NativeSheetOptions): boolean {
 
     if (presented.current === id) return;
     presented.current = id;
+    confirmed.current = null;
     const current = build(optionsRef.current, theme);
-    if (current) NovusGlass.presentSheet(current).catch(() => {});
+    if (!current) return;
+
+    NovusGlass.presentSheet(current).catch(fallBackToDom);
+
+    /*
+     * Armed on every card, disarmed by `sheetPresented`.
+     *
+     * The budget is deliberately loose. A sheet that is genuinely coming
+     * announces itself in a frame or two — this is not a latency target, it is
+     * the line past which "still arriving" and "never arriving" stop being
+     * worth telling apart, and the cost of guessing wrong is one card drawn in
+     * the DOM instead of UIKit.
+     *
+     * It is also what makes an older native binary safe. Nothing before this
+     * change sends `sheetPresented`, so an app whose web layer updated ahead of
+     * its shell simply falls through to the DOM sheet after the timeout rather
+     * than showing a month nobody can answer.
+     */
+    clearWatchdog();
+    watchdog.current = window.setTimeout(fallBackToDom, PRESENT_TIMEOUT_MS);
     // Only the identity of the card matters here. Rebuilding the spec on every
     // render would re-present the same sheet and cut its own entrance short.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [owned, id, theme]);
+  }, [live, id, theme]);
 
   // Leaving the screen with a card up must not leave the card up.
   useEffect(() => {
     if (!owned) return;
     return () => {
+      clearWatchdog();
       presented.current = null;
+      confirmed.current = null;
       NovusGlass.dismissSheet().catch(() => {});
     };
   }, [owned]);
 
-  return owned;
+  return live;
 }

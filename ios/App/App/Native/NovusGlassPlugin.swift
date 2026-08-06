@@ -95,8 +95,32 @@ public class NovusGlassPlugin: CAPPlugin, CAPBridgedPlugin {
                 self.overlay = overlayController
             }
 
-            let insets = controller.install(in: host)
+            controller.install(in: host)
             overlayController.install(in: host)
+
+            /*
+             A new document inherits the chrome of the one before it, so this
+             clears it.
+
+             `configure()` runs once per launch of the web layer, and the web
+             layer launches again on every document navigation — signing out,
+             deleting an account, the door out of Settings back to the islands.
+             A document navigation destroys the React tree without running one
+             effect cleanup, and both controllers here are subviews of the view
+             controller rather than of the page, so everything the previous
+             screen declared survived: Settings arrived on the islands screen
+             as a floating toolbar and a dock still offering to sign you out,
+             on top of a page that had never heard of either. The dock sits
+             exactly where the play screen's ADVANCE capsule does, so the
+             control that moves time was taking taps meant for it and answering
+             a screen that no longer existed.
+
+             The web side pushes the same withdrawal from `pagehide`, which is
+             what keeps the gap BETWEEN the two documents clean. This is the
+             one that is guaranteed to run.
+             */
+            let insets = controller.reset()
+            overlayController.reset()
             // A first paint with the wrong ground is worse than a late one:
             // the webview's own background shows through for the frame before
             // the page has painted, and it must match the theme it is about
@@ -180,6 +204,19 @@ public class NovusGlassPlugin: CAPPlugin, CAPBridgedPlugin {
             }
 
             let controller = GlassSheetController(spec: spec)
+            /*
+             The only honest signal that the card is on screen.
+
+             `call.resolve()` below means the bridge took the call and nothing
+             more. UIKit refuses to present onto a controller that is already
+             presenting, and it refuses silently — so the web layer cannot
+             infer presentation from anything this method returns. It waits for
+             this instead, and draws the card itself if it never comes.
+             */
+            controller.onPresented = { [weak self] id, height in
+                self?.notifyListeners(
+                    "sheetPresented", data: ["id": id, "height": Double(height)])
+            }
             controller.onChoose = { [weak self] id, index in
                 self?.sheet = nil
                 self?.notifyListeners("sheetChoice", data: ["id": id, "index": index])
@@ -193,19 +230,56 @@ public class NovusGlassPlugin: CAPPlugin, CAPBridgedPlugin {
                 self?.notifyListeners("sheetDismissed", data: ["id": id])
             }
 
-            let present = {
+            /*
+             ── Why this is not one line ──────────────────────────────────────
+
+             `present` onto a controller that is already presenting does
+             nothing. It does not throw and it does not call back; it writes a
+             line to the console and returns, and the sheet simply never
+             appears.
+
+             That is a dead game rather than a missed animation. The web layer
+             records the card as presented BEFORE the call — that is what stops
+             a re-render re-presenting it — and it renders no DOM sheet behind
+             a native one. So a refused presentation is a month with a decision
+             open, no card on screen to answer it with, and the play chrome
+             withdrawn because a card is open. Nothing on the screen does
+             anything.
+
+             This used to replace one sheet with another by dismissing the old
+             one and presenting the new one 50ms later. An animated dismissal
+             takes about five times that, so the second card lost the race with
+             the first card's exit whenever the engine queued two.
+
+             Waiting for the dismissal is what makes THIS site correct. It does
+             not make the outcome certain, which is why the controller reports
+             `sheetPresented` and the web holds a watchdog on it: the two
+             together are what turn "the card did not appear" from a dead run
+             into a card drawn one material down.
+             */
+            let present: () -> Void = { [weak self] in
+                guard let self else { return }
                 self.sheet = controller
                 // Unanimated on purpose — GlassSheetController choreographs its
                 // own entrance so the backdrop and the panel can move
                 // independently.
                 host.present(controller, animated: false)
+                // Resolving says the call was taken, and deliberately claims
+                // nothing more. `sheetPresented` is what says it worked.
                 call.resolve()
             }
 
             if let existing = self.sheet {
-                existing.closeWithoutAnswering()
                 self.sheet = nil
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05, execute: present)
+                // In the completion, never on a timer: the dismissal is what
+                // frees the presenter, so it is the only thing that knows when
+                // presenting again can work.
+                existing.closeWithoutAnswering(then: present)
+            } else if let blocking = host.presentedViewController {
+                // Something this plugin did not put there, or a sheet whose
+                // dismissal outlived the reference to it. Either way it is what
+                // would refuse the presentation.
+                blocking.dismiss(animated: false, completion: present)
             } else {
                 present()
             }

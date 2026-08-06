@@ -33,10 +33,22 @@ export type Cents = number;
 
 export type Cadence = "month" | "year" | "once";
 
-/** "$6.99" — and "$299" rather than "$299.00", because that is how it is sold. */
+/**
+ * "$6.99" — and "$299" rather than "$299.00", because that is how it is sold.
+ *
+ * Grouped above a thousand. Nothing here reached four figures while a custom
+ * chapter stopped at 500 seats; now that it does not, the same function prints
+ * the largest number on the site, and "$59900" is a figure a buyer has to stop
+ * and count digits on. Only values over $999 change — every published price is
+ * three digits or fewer and formats exactly as before.
+ */
 export function formatPrice(cents: Cents): string {
   const whole = cents % 100 === 0;
-  return `$${(cents / 100).toFixed(whole ? 0 : 2)}`;
+  const dollars = cents / 100;
+  return `$${dollars.toLocaleString("en-US", {
+    minimumFractionDigits: whole ? 0 : 2,
+    maximumFractionDigits: whole ? 0 : 2,
+  })}`;
 }
 
 /** "$1.99–$4.99". Used for the bundles, which are a shelf and not one item. */
@@ -135,11 +147,30 @@ export const perSeatCents = (licence: ChapterLicence): Cents =>
 /**
  * The floor is where a "classroom" stops being one: below ten seats a custom
  * licence undercuts buying Pro for each person, and a licence priced under a
- * couple of personal plans is a discount code, not a chapter. The ceiling is
- * the database's own sanity bound on `chapters.seats` (0007).
+ * couple of personal plans is a discount code, not a chapter.
+ *
+ * ── Why the ceiling moved off 500 ──────────────────────────────────────────
+ *
+ * 500 was 0007's sanity bound on `chapters.seats`, adopted here because it was
+ * the number already in the schema — not because 500 was a size anybody had
+ * decided a chapter stops at. It turned out to be one: a secondary school with
+ * a year group in the programme, a district running it across campuses, a
+ * summer programme with a thousand places. Those buyers hit a form that told
+ * them their number was invalid, which is the worst possible answer to give
+ * the largest cheque on the page.
+ *
+ * The ceiling is still a real bound, because an unbounded seat field is a
+ * typo away from a six-figure charge and a chapter nobody can fill. 10,000 is
+ * chosen to sit far above any real buyer and well below a pasted phone number
+ * or a doubled keystroke, so it only ever catches mistakes.
+ *
+ * Two things follow this number and must move with it, or a quote is taken
+ * that cannot be stored: `chapters.seats` in the schema, and the guard inside
+ * `admin_create_comp_chapter`. Both are widened in
+ * supabase/migrations/0014_chapter_seats_ceiling.sql.
  */
 export const CHAPTER_CUSTOM_MIN_SEATS = 10;
-export const CHAPTER_CUSTOM_MAX_SEATS = 500;
+export const CHAPTER_CUSTOM_MAX_SEATS = 10_000;
 
 export const isCustomSeatCount = (v: unknown): v is number =>
   typeof v === "number" &&
@@ -235,15 +266,38 @@ export const priceLabel = (item: OneTimePurchase): string =>
 // ── The limits ───────────────────────────────────────────────────────────────
 
 /**
- * The hard ceiling on companies held at once, for every tier including admin.
+ * The hard ceiling on companies held at once, whatever tier and whatever was
+ * bought.
  *
- * This is a STORAGE bound, not a pricing one. `public.saves` is keyed
- * `(profile_id, slot)` with `slot smallint check (slot between 0 and 9)`, so
- * the eleventh company has nowhere to be written. Pro is described to players
- * as unlimited islands and receives this number; nobody is expected to reach
- * it, and the check constraint is what makes the claim safe to print.
+ * This is a STORAGE bound, not a pricing one — that distinction is the whole
+ * reason it is a separate constant from the tier allowances below, and it was
+ * being asked to do both jobs until 0015. It used to be 10, matching 0001's
+ * `slot between 0 and 9`, which was itself a placeholder: the column comment
+ * there reads "Room for more than one company later. Today the app writes slot
+ * 0 only." Nobody ever decided that ten was how many companies a player should
+ * be able to run.
+ *
+ * ── Where 50 comes from ────────────────────────────────────────────────────
+ *
+ * localStorage, which is this game's PRIMARY store rather than a nicety —
+ * lib/engine/save.ts is synchronous because screens read it during render, and
+ * its header explains why that cannot change. A browser gives an origin about
+ * 5 MB; a long-lived company measures ~90 KB of JSON. Fifty is ~4.5 MB and
+ * fits. A hundred does not, and `flushRun` swallows a quota error by design —
+ * so past the real ceiling, islands a player PAID FOR would quietly stop
+ * appearing on their device. `/api/sync` is the second wall: it returns every
+ * island in one response body.
+ *
+ * A meaningfully larger number is possible and is a different piece of work —
+ * an LRU cache, per-island loading on a cache miss, a paginated sync. Until
+ * that exists this is the biggest ceiling the app can actually keep, and a
+ * ceiling it keeps is worth more than a bigger one it does not.
+ *
+ * Mirrored by `saves.slot between 0 and 49` and by `island_allowance()`'s
+ * outer clamp, both in 0015. All three move together or a purchase fails
+ * somewhere the player cannot see.
  */
-export const ISLAND_CAP = 10;
+export const ISLAND_CAP = 50;
 
 export interface Limits {
   /** New companies you may found per real day. */
@@ -258,9 +312,10 @@ export interface Limits {
    * left has to bury something first; a player with islands free and no
    * foundings left has to wait for tomorrow.
    *
-   * Capped at 10 everywhere by ISLAND_CAP — `saves.slot` is checked
-   * `between 0 and 9`, and an allowance that outruns its own storage is a
-   * promise the database refuses to keep.
+   * This is the TIER's share and not the ceiling. Bought islands stack on top
+   * of it (`islandCapFor`), and ISLAND_CAP is what the sum is finally clamped
+   * to — an allowance that outruns its own storage is a promise the database
+   * refuses to keep.
    */
   islands: number;
   /** Whether a company that went under can be restarted the same day. */
@@ -289,7 +344,18 @@ export const FREE_LIMITS: Limits = {
 
 export const PRO_LIMITS: Limits = {
   runsPerDay: 3,
-  islands: ISLAND_CAP,
+  /*
+   * Ten, written down — not ISLAND_CAP, which is what it used to say.
+   *
+   * The value has not moved: the ceiling was ten, so Pro received ten, and the
+   * two numbers happened to coincide. Reading the ceiling here made Pro's
+   * allowance and the storage bound the same fact, and when the ceiling rose
+   * to 50 that would have handed every subscriber forty islands nobody asked
+   * for — and, worse, kept the Extra Island SKU a no-op for them, because
+   * `min(50, 50 + bought)` is 50 for any number bought. Pro sells ten
+   * companies at once; a purchase is what goes past a tier, on every tier.
+   */
+  islands: 10,
   redoFailedRun: true,
   industries: 12,
   // Matches the gate in lib/engine/activities.ts — three a real day, and
@@ -304,7 +370,8 @@ export const PRO_LIMITS: Limits = {
  * What an operator's own account plays at. Never sold, never granted by any
  * purchase path: the only way `Entitlements.admin` becomes true is the server
  * overlay in lib/admin/entitlements.ts reading `profiles.role = 'admin'` — a
- * cell flipped in the Supabase dashboard (docs/ADMIN.md).
+ * cell flipped by an admin (the console's ROLE band) or, for the first one,
+ * in the Supabase dashboard (docs/ADMIN.md).
  *
  * 99 rather than Infinity so every surface that formats the number stays
  * honest and finite. The server-side ledger allows 999 for the same account;
@@ -315,7 +382,8 @@ export const PRO_LIMITS: Limits = {
 export const ADMIN_LIMITS: Limits = {
   runsPerDay: 99,
   // Not 99. Unlike every other number here, this one is bounded by storage
-  // rather than by policy: there is no eleventh row to put a company in.
+  // rather than by policy — there is no fifty-first row to put a company in —
+  // so an operator gets exactly the ceiling and never more.
   islands: ISLAND_CAP,
   redoFailedRun: true,
   industries: 12,
@@ -398,7 +466,10 @@ export const PRO_FEATURES: readonly ProFeature[] = [
     id: "islands",
     title: "Ten islands",
     free: "Two",
-    body: "Companies running at the same time. Switch between them whenever.",
+    // The second sentence is the one that changed with 0015: an island bought
+    // outright stacks on whatever the tier gives, so this is a floor on both
+    // sides of the comparison rather than a Pro-shaped ceiling.
+    body: "Companies running at the same time. Buy more on any tier, up to fifty.",
   },
   {
     id: "cosmetics",

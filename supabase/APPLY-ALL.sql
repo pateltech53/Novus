@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════════════
--- APPLY ALL · the complete Novus schema (0001 → 0013), idempotently
+-- APPLY ALL · the complete Novus schema (0001 → 0015), idempotently
 -- ═══════════════════════════════════════════════════════════════════════════
 --
 -- Paste the whole file into the Supabase SQL editor of the NOVUS project and
@@ -2479,6 +2479,160 @@ $$;
 revoke execute on function public.admin_stats() from public, anon, authenticated;
 grant  execute on function public.admin_stats() to service_role;
 
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 0014 · Chapters bigger than a classroom
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Folded in late: this file stopped at 0013 while two migrations went past it,
+-- so an operator pasting it got a database that refused the seat counts and
+-- the island counts the app had already shipped. The header above says "when a
+-- migration changes, regenerate this file too" — this is that, for both.
+--
+-- Both bounds move to 10,000. The reasoning is in the migration; the short
+-- version is that 500 was 0007's sanity bound, not a size anybody decided a
+-- chapter stops at, and it was refusing the largest cheque on the page.
+
+alter table public.chapters
+  drop constraint if exists chapters_seats_check;
+
+alter table public.chapters
+  add constraint chapters_seats_check
+  check (seats between 1 and 10000);
+
+create or replace function public.admin_create_comp_chapter(
+  p_owner   uuid,
+  p_licence text,
+  p_until   timestamptz default null,
+  p_seats   int default null
+)
+returns uuid
+language plpgsql
+set search_path = public, pg_temp
+as $$
+declare
+  v_seats int := case p_licence when 'chapter_35'  then 35
+                                when 'chapter_100' then 100 end;
+  v_id uuid;
+begin
+  if p_licence = 'chapter_custom' then
+    if p_seats is null or p_seats < 1 or p_seats > 10000 then
+      raise exception 'a custom chapter needs p_seats between 1 and 10000'
+        using errcode = '23514';
+    end if;
+    v_seats := p_seats;
+  elsif v_seats is null then
+    raise exception 'unknown licence %', p_licence using errcode = '23514';
+  elsif p_seats is not null and p_seats <> v_seats then
+    raise exception '% is % seats — p_seats is only for chapter_custom', p_licence, v_seats
+      using errcode = '23514';
+  end if;
+
+  if exists (select 1 from public.chapters c
+              where c.owner_profile_id = p_owner and c.status = 'active') then
+    raise exception 'already owns an active chapter' using errcode = '23505';
+  end if;
+
+  insert into public.chapters
+    (owner_profile_id, licence, seats, source, status, current_period_end, stripe_subscription_id)
+  values
+    (p_owner, p_licence, v_seats, 'comp', 'active', p_until, null)
+  returning id into v_id;
+
+  return v_id;
+end;
+$$;
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 0015 · Islands past ten, and a purchase that works on every tier
+-- ═══════════════════════════════════════════════════════════════════════════
+-- The ceiling moves 10 → 50, and the tier stops BEING the ceiling: free is
+-- 2 + bought, Pro is 10 + bought, both clamp at 50. Pro used to receive a flat
+-- 10 — the whole ceiling — so a subscriber's Extra Island purchased nothing at
+-- all. Full reasoning, including why 50 and not "no limit", is in the
+-- migration; the short version is that localStorage is the game's primary
+-- store and gives an origin about 5 MB against ~90 KB a company.
+
+alter table public.saves
+  drop constraint if exists saves_slot_check;
+
+alter table public.saves
+  add constraint saves_slot_check
+  check (slot between 0 and 49);
+
+-- Two possible names: the constraint was born in 0001 on `extra_run_slots` and
+-- renamed by 0013 only where the old name was found. At most one exists.
+alter table public.entitlements
+  drop constraint if exists entitlements_extra_run_slots_check;
+
+alter table public.entitlements
+  drop constraint if exists entitlements_extra_islands_check;
+
+alter table public.entitlements
+  add constraint entitlements_extra_islands_check
+  check (extra_islands between 0 and 48);
+
+create or replace function public.island_allowance(p_profile uuid)
+returns int
+language sql
+stable
+set search_path = public, pg_temp
+as $$
+  select least(50, case
+    when p.role = 'admin' then
+      case coalesce(p.admin_view, 'all')
+        when 'free' then 2 + coalesce(e.extra_islands, 0)
+        when 'pro'  then 10 + coalesce(e.extra_islands, 0)
+        else 50
+      end
+    else
+      case when coalesce(e.pro, false)
+             or (coalesce(e.comp_pro, false)
+                 and (e.comp_until is null or e.comp_until > now()))
+             or e.chapter is not null
+           then 10 + coalesce(e.extra_islands, 0)
+           else 2 + coalesce(e.extra_islands, 0) end
+  end)
+  from public.profiles p
+  left join public.entitlements e on e.profile_id = p.id
+  where p.id = p_profile;
+$$;
+
+revoke execute on function public.island_allowance(uuid) from public, anon, authenticated;
+grant  execute on function public.island_allowance(uuid) to service_role;
+
+create or replace function public.grant_extra_island(p_profile uuid)
+returns void
+language sql
+set search_path = public, pg_temp
+as $$
+  insert into public.entitlements (profile_id, extra_islands)
+  values (p_profile, 1)
+  on conflict (profile_id) do update
+    set extra_islands = least(public.entitlements.extra_islands + 1, 48);
+$$;
+
+revoke execute on function public.grant_extra_island(uuid) from public, anon, authenticated;
+grant  execute on function public.grant_extra_island(uuid) to service_role;
+
+create or replace function public.admin_set_extra_islands(
+  p_profile uuid,
+  p_islands int
+)
+returns void
+language sql
+set search_path = public, pg_temp
+as $$
+  insert into public.entitlements (profile_id, extra_islands)
+  values (p_profile, least(greatest(coalesce(p_islands, 0), 0), 48))
+  on conflict (profile_id) do update
+    set extra_islands = least(greatest(coalesce(p_islands, 0), 0), 48);
+$$;
+
+revoke execute on function public.admin_set_extra_islands(uuid, int) from public, anon, authenticated;
+grant  execute on function public.admin_set_extra_islands(uuid, int) to service_role;
+
+
 -- ═══════════════════════════════════════════════════════════════════════════
 -- The report — read this before closing the tab
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -2554,5 +2708,16 @@ from (
       and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                    where n.nspname = 'public' and p.proname = 'island_allowance')
       and exists (select 1 from pg_trigger g
-                   where g.tgname = 'saves_island_cap' and not g.tgisinternal))
+                   where g.tgname = 'saves_island_cap' and not g.tgisinternal)),
+    ('0014 chapter seats ceiling',
+      exists (select 1 from pg_constraint c
+               where c.conname = 'chapters_seats_check'
+                 and pg_get_constraintdef(c.oid) like '%10000%')),
+    ('0015 island ceiling',
+      exists (select 1 from pg_constraint c
+               where c.conname = 'saves_slot_check'
+                 and pg_get_constraintdef(c.oid) like '%49%')
+      and exists (select 1 from pg_constraint c
+                   where c.conname = 'entitlements_extra_islands_check'
+                     and pg_get_constraintdef(c.oid) like '%48%'))
 ) as t(migration, present);

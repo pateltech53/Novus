@@ -89,7 +89,7 @@ export function PlaySkeleton() {
             the real screen has it, static in the desktop rail. */}
         <div className="fixed inset-x-0 bottom-0 z-20 border-t border-[var(--hairline)] bg-[var(--bg)] px-3 pt-2 lg:static lg:bg-[var(--surface)]">
           <div className="h-14 rounded-[var(--radius-pill)] bg-[var(--n-1)]" />
-          <div className="mx-auto mt-1.5 grid w-full max-w-2xl grid-cols-3 gap-2 pt-1 pb-[max(0.375rem,env(safe-area-inset-bottom))] min-[360px]:grid-cols-6">
+          <div className="mx-auto mt-1.5 grid w-full max-w-2xl grid-cols-3 gap-2 pt-1 pb-[max(0.375rem,var(--nv-safe-bottom))] min-[360px]:grid-cols-6">
             {[0, 1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="h-9 rounded-[var(--radius-card)] bg-[var(--n-1)]" />
             ))}

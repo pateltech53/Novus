@@ -496,9 +496,20 @@ export function adoptFromCloud(data: {
         localStorage.setItem(runKey(at), JSON.stringify(restored));
         writeIndexEntry(summarise(restored, at));
       } catch {
-        // Ten companies can exceed a device's quota where one never did. The
-        // islands that fit are kept, the rest stay on the server, and the
-        // picker draws what is actually here rather than throwing.
+        /*
+         * A device's quota, which fifty companies can reach where one never
+         * could. The islands that fit are kept, the rest stay on the server,
+         * and the picker draws what is actually here rather than throwing.
+         *
+         * This catch is why ISLAND_CAP could move to 50 at all, and it is also
+         * why it did not move further. A browser gives an origin about 5 MB
+         * and a long-lived company is ~90 KB, so fifty fits with room; past
+         * that this branch stops being a rare edge and becomes the normal
+         * outcome, and its graceful failure — some islands silently absent on
+         * this device — is a bad thing to make normal for somebody who PAID
+         * for them. Going higher wants per-island loading rather than a bigger
+         * number here.
+         */
       }
     }
   }
@@ -512,6 +523,47 @@ export function adoptFromCloud(data: {
       JSON.stringify({ ...data.prefs, playerAge: local?.playerAge ?? null } satisfies Profile),
     );
   }
+  if (data.runs?.length) announceIslands();
+}
+
+/**
+ * Told when islands ARRIVE from somewhere other than the screen that is open.
+ *
+ * There is exactly one source: the boot restore adopting companies this device
+ * had never seen (lib/cloud/sync.ts). It is a network round trip, so it lands
+ * after every screen has already read localStorage and decided what to draw —
+ * and the app's answer to that used to be a reload. The reload is now skipped
+ * the moment the player has touched anything, for good reasons stated at
+ * `markAndReload`, which left the other half undone: the islands landed and
+ * nothing on screen said so. On a second device that reads as "my companies are
+ * not here", which is the complaint the cloud copy exists to answer.
+ *
+ * Deliberately not the `storage` event, for the reason lib/monetization.ts
+ * gives about entitlements: that one fires in OTHER tabs and never in the tab
+ * that wrote, which is backwards — the tab holding the stale screen is this one.
+ *
+ * Listeners are handed nothing and re-read through `listIslands()`, so a write
+ * localStorage refused resolves to what is actually here.
+ */
+type IslandListener = () => void;
+
+const islandListeners = new Set<IslandListener>();
+
+/** Returns its own unsubscribe, for a `useEffect` cleanup to return directly. */
+export function onIslandsChange(fn: IslandListener): () => void {
+  islandListeners.add(fn);
+  return () => islandListeners.delete(fn);
+}
+
+function announceIslands(): void {
+  // One listener throwing must not stop the next from hearing about it.
+  islandListeners.forEach((fn) => {
+    try {
+      fn();
+    } catch {
+      /* a screen that cannot refresh is not a save that failed */
+    }
+  });
 }
 
 
@@ -601,8 +653,33 @@ const num = (v: unknown): number => (typeof v === "number" && Number.isFinite(v)
  * The slots that currently hold a company.
  *
  * Existence only — no JSON.parse. The picker needs the shape of the
- * archipelago far more often than it needs what is on each island, and ten
- * parses of a 90 KB run is not a thing to do on a screen transition.
+ * archipelago far more often than it needs what is on each island, and fifty
+ * parses of a 90 KB run is not a thing to do on a screen transition. This is
+ * ISLAND_CAP `getItem` calls against a hash lookup, which stays microseconds;
+ * it mattered less at ten and matters a great deal at fifty.
+ *
+ * ── A held write counts as an island ───────────────────────────────────────
+ *
+ * `saveRun` coalesces its localStorage write over 120 ms, so for that window a
+ * company exists in `pendingRuns` and nowhere else. Every other read in this
+ * file flushes before answering — "a held write must never be invisible to a
+ * read", as loadRun says — and this one did not, which made it the exception
+ * that broke founding:
+ *
+ *   startRun writes island 1 and points `novus:island:v1` at it
+ *   → /play mounts inside the 120 ms and asks activeIsland()
+ *   → island 1 reads as EMPTY, so the pointer is refused as stale
+ *   → the fallback opens the lowest occupied island instead
+ *
+ * The player founded a company and was handed the one they already had. Worse,
+ * the same blindness let `firstFreeIsland` hand out a slot whose write was
+ * still in the buffer, so a second founding inside that window landed on top of
+ * the first.
+ *
+ * Consulted rather than flushed: this is a read on the path of a screen
+ * transition, and serialising up to ISLAND_CAP 90 KB runs to answer "which
+ * slots exist" is the cost the coalescing exists to avoid. The buffer is the
+ * truth about what has been saved; the disk catches up 120 ms later.
  */
 function occupiedSlots(): number[] {
   if (!canStore()) return [];
@@ -610,12 +687,23 @@ function occupiedSlots(): number[] {
   const out: number[] = [];
   for (let slot = 0; slot < ISLAND_CAP; slot += 1) {
     try {
-      if (localStorage.getItem(runKey(slot)) !== null) out.push(slot);
+      if (pendingRuns.has(slot) || localStorage.getItem(runKey(slot)) !== null) out.push(slot);
     } catch {
       /* one unreadable key is not the whole archipelago */
     }
   }
   return out;
+}
+
+/**
+ * Is there a company on this island — living, dead, or still in the buffer?
+ *
+ * The question founding asks before it honours a slot somebody named. Existence
+ * only, like `occupiedSlots` above: "may I write here" is answered by whether
+ * anything is there, never by what it is.
+ */
+export function islandOccupied(slot: number): boolean {
+  return occupiedSlots().includes(safeSlot(slot));
 }
 
 function readIndex(): IslandSummary[] {
@@ -740,51 +828,17 @@ export function liveIslandCount(): number {
  *
  *  2. **Is there an empty island?** Take the lowest.
  *
- *  3. **Otherwise, the oldest headstone gives up its place.** Storage is ten
- *     rows whatever the allowance says (`slot between 0 and 9`), so headstones
- *     cannot accumulate forever. Evicting the oldest is the least surprising
- *     rule available: it is the grave the player has looked at least recently,
+ *  3. **Otherwise, the oldest headstone gives up its place.** Storage is
+ *     ISLAND_CAP rows whatever the allowance says (`slot between 0 and 49`, in
+ *     0015), so headstones cannot accumulate forever. Evicting the oldest is
+ *     the least surprising rule available: it is the grave the player has
+ *     looked at least recently,
  *     and the legacy entry survives regardless — `endRun` wrote the company
  *     into `legacy.autopsies` when it ended, which is the record that lasts.
  *
  * Returns null only when the allowance is spent, which is the case the caller
  * should be selling Pro against rather than silently overwriting something.
  */
-/**
- * An `?island=` query parameter, read honestly.
- *
- * ── The company this deleted ───────────────────────────────────────────────
- *
- * /found did this inline, and it was one coercion away from destroying saves:
- *
- *     const askedFor = Number(params.get("island"));
- *     const targetSlot =
- *       Number.isInteger(askedFor) && askedFor >= 0 && askedFor < ISLAND_CAP
- *         ? askedFor : undefined;
- *
- * `URLSearchParams.get` answers `null` when the parameter is absent, and
- * `Number(null)` is `0` — an integer, in range, indistinguishable from a
- * player who tapped island 0 on purpose. So EVERY route to /found that did not
- * carry the parameter founded onto slot 0 and overwrote whatever company was
- * living there. Stripe's success URL is `/found?purchase=ok`, which meant the
- * most reliable way to lose your company was to pay for a second one.
- *
- * A parameter that is absent, blank or not a slot number is not a slot: it is
- * the absence of an answer, and the caller must be told so rather than handed
- * a plausible zero. `Number("")` is also 0, so blank is rejected explicitly
- * rather than left to the range check.
- */
-export function parseIslandSlot(raw: string | null | undefined): number | undefined {
-  if (typeof raw !== "string" || raw.trim() === "") return undefined;
-  const n = Number(raw);
-  return Number.isInteger(n) && n >= 0 && n < ISLAND_CAP ? n : undefined;
-}
-
-/** True when a company that has NOT ended is sitting on this slot. */
-export function islandIsOccupied(slot: number): boolean {
-  return listIslands().some((i) => i.slot === slot && i.alive);
-}
-
 export function slotForNewCompany(cap: number): number | null {
   const islands = listIslands();
   const limit = Math.min(ISLAND_CAP, Math.max(1, Math.trunc(cap)));

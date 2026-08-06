@@ -1,8 +1,10 @@
 # Admin — the operator's role and console
 
 An admin is an ordinary Novus account whose `profiles.role` cell says
-`admin`. That cell lives in the Supabase table, is flipped **in the Supabase
-dashboard and nowhere else**, and unlocks three things:
+`admin`. That cell lives in the Supabase table, is unwritable from any
+signed-in session — **the first admin is made in the Supabase dashboard, and
+every one after that by an admin, from the console** — and unlocks three
+things:
 
 - **The console at `/admin`** — user records, gifting, comped enterprise
   chapters, the board moderation queue, and the site's numbers.
@@ -21,7 +23,13 @@ dashboard and nowhere else**, and unlocks three things:
 3. 用这个账号访问 `https://<你的域名>/admin` —— 控制台就在那里。
    **手机 App 里**：游戏内打开 Settings（齿轮）→ 会多出一个只有管理员
    账号可见的 **OPERATOR → Admin console** 行，点进去就是同一个控制台。
-   降权同理：把 `role` 改回 `player`，一切立即恢复，无需清理任何数据。
+
+**只有第一个管理员需要走 Supabase 后台**（因为那时还没有人有权授权）。之后
+再加管理员不用碰数据库、也不用跑 SQL：在控制台 ACCOUNTS 里搜到那个账号，
+展开 → **ROLE** 一栏 → 照着提示把对方邮箱打一遍解锁按钮 → **MAKE ADMIN**，
+下一次请求就生效。收回权限点同一栏的 **DEMOTE TO PLAYER**，一切立即恢复，
+无需清理任何数据。自己的那一行没有按钮：管理员不能改自己的 `role`（自降会
+把自己关在门外），要么让另一个管理员操作，要么回 Supabase 后台改那一格。
 
 前提：`supabase/APPLY-ALL.sql`（0001 → 0012）已在 Novus 项目跑过，部署配置了
 `SUPABASE_SERVICE_ROLE_KEY`（计费同款，见 `docs/ACCOUNTS-SETUP.md`）。
@@ -34,26 +42,44 @@ dashboard and nowhere else**, and unlocks three things:
 Admin specifically is `supabase/migrations/0009_admin.sql`,
 `0010_admin_analytics.sql` and `0012_year_closes.sql`, and
 `supabase/tests/admin_test.sql` proves their claims under `npm run test:db`
-(74 checks: self-promotion refused, gifts expire, a granted pace clamps to its
-column's bound, the directory answers to the service role alone, demotion is
-total, cohort math holds).
+(76 checks: self-promotion refused, promotion by the service role allowed,
+gifts expire, a granted pace clamps to its column's bound, the directory
+answers to the service role alone, demotion is total, cohort math holds).
 
 No new environment variables. The routes run on `SUPABASE_SERVICE_ROLE_KEY`,
 which billing already requires.
 
-## 2. Why the role is a table cell and not a route
+## 2. Why the role is a table cell, and who may write it
 
-The moderation endpoint said it first (app/api/leaderboard/moderate): an
-admin *account* with a password-reset flow is a bigger thing to hold
-correctly than a cell only the dashboard can write. So there is deliberately
-**no API path that changes `role`** — not for admins, not for anyone. The
-guard trigger in 0009 refuses the column from `anon` and `authenticated`
-outright (players can update their own profiles row; without the trigger,
-`role` on that row would be a self-service promotion), while the dashboard
-(`postgres`) and the service role stay free to flip it.
+The guard trigger in 0009 refuses `role` and `admin_view` from `anon` and
+`authenticated` outright — players can update their own profiles row, so
+without the trigger `role` on that row would be a self-service promotion.
+It keys on `current_user`, not a JWT claim, because the role in effect *is*
+the caller's provenance: PostgREST runs as `anon`/`authenticated`, the
+dashboard as `postgres`, and these routes as `service_role`.
 
-Bootstrap is therefore the dashboard, by design, and so is emergency
-revocation: one cell edit, effective on the admin's next request.
+So there is **no API path a player's own session can take to `role`** — that
+is the property, and it is unchanged. What the trigger never refused is the
+service role, which is how `/api/admin/role` promotes and demotes
+(`POST { profileId, role }`, §7). The authorisation is the same one every
+other console write uses: the caller proves `role = 'admin'` on their own row
+through their own session, and the work then runs on the service role, with
+an `admin_audit` line naming both accounts.
+
+**The dashboard still owns two moments.** The *first* admin, because a
+console that can only be opened by an admin has nobody to authorise the first
+promotion; and getting back in if the last admin is lost, because the route
+refuses to change the caller's own row — a self-demotion would close the door
+from the inside, and refusing it is also what guarantees a promotion always
+leaves at least one admin standing. Emergency revocation of *someone else* is
+now either place: the console's `DEMOTE TO PLAYER`, or one cell edit,
+effective on that admin's next request.
+
+Two accounts the route will not promote: an anonymous one (it signs in with a
+device and no credential — an operator nobody can be, and a console anyone
+holding that device can open) and one with no email (the audit log
+denormalises emails so it still reads after the account is gone; an operator
+it cannot name is one it cannot describe).
 
 ## 3. What an admin's own account gets
 
@@ -155,10 +181,19 @@ entitlements (paid and gifted), billing state, chapters owned, seat held,
 companies (the saves listing cache), legacy, board entries, and the audit
 tail for that account.
 
+**Promotion (把用户改成 admin)** is the ROLE band on that panel, and the one
+grant here that is not content or pace — it hands over the console itself, so
+it is armed the way deletion is: type the account's email, then `MAKE ADMIN`.
+The account becomes a full operator on its next request, with nothing written
+anywhere but the one cell (§3), and `DEMOTE TO PLAYER` takes it back just as
+completely, clearing `admin_view` with the role. The band shows no button on
+the operator's own row, and `/api/admin/role` refuses it there regardless
+(§2). Both directions write `role_set` to the audit log.
+
 **Deletion** is the support tool for "please delete my child's account":
 type the email to arm the button; `auth.users` cascades through profiles to
-every table. Admins cannot be deleted from the console (demote in the
-dashboard first), and the caller cannot delete themselves (Settings has the
+every table. Admins cannot be deleted from the console (demote them in the
+ROLE band first), and the caller cannot delete themselves (Settings has the
 self-serve path).
 
 ## 8. The charts (0010)
@@ -188,7 +223,8 @@ orange, solvency green, prestige gold) appear in a chart.
 
 ## 9. The audit log
 
-Every grant, revoke, view switch, board decision and deletion writes a row
+Every grant, revoke, promotion, demotion, view switch, board decision and
+deletion writes a row
 to `admin_audit` — who, what, whom, when, with emails denormalised so the
 log still reads after the account it is about is gone. No RLS policy and no
 grants: PostgREST cannot expose it to anyone. The console's overview shows

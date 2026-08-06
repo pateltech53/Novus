@@ -1,20 +1,27 @@
 "use client";
 
-import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 
 import { Boat } from "@/components/Boat";
 import { IslandGlyph } from "@/components/IslandGlyph";
-import { SEA_POSITIONS, Sea } from "@/components/Sea";
+import {
+  useNativeOverlay,
+  useNativeOverlayOwned,
+} from "@/components/native/useNativeOverlay";
+import { Sea, seaPosition } from "@/components/Sea";
 import { ENTER, SETTLE_SPRING, STAGGER, SWAP } from "@/components/ui/Motion";
 import { useUpgrade } from "@/components/upgrade/UpgradeProvider";
+import type { NativeOverlayState } from "@/lib/native/glass";
+import { useResolvedTheme } from "@/lib/native/theme";
 import { INDUSTRIES, STAGE_NAME } from "@/lib/engine/constants";
 import { fmtMoney } from "@/lib/engine/format";
 import type { IslandSummary } from "@/lib/engine/save";
 import type { StageNum } from "@/lib/engine/types";
 import {
   ISLAND_CAP,
+  PRO_LIMITS,
   islandCapFor,
   isPro,
   loadEntitlements,
@@ -116,7 +123,7 @@ function IslandsPage() {
   /*
    * How many places to draw, and the three things that decide it.
    *
-   * Places are POSITIONAL — place N is island N, at SEA_POSITIONS[N] — so this
+   * Places are POSITIONAL — place N is island N, at `seaPosition(N)` — so this
    * cannot be a count of what exists. An island in slot 5 with 0–4 empty still
    * needs six places, or it simply is not on the water.
    *
@@ -190,6 +197,78 @@ function IslandsPage() {
 
   const focused = focus === null ? null : (bySlot.get(focus) ?? null);
 
+  /*
+   * ── The gallery's chrome, in the real material ────────────────────────────
+   *
+   * Everything on the sea is scenery — the water, the islands, one line of
+   * small print in a boat — and scenery has no chrome. The gallery does: a way
+   * back, a way along the row, and the one thing this screen exists to ask.
+   * Those are controls, and on iOS a control is a UIKit view or it is an
+   * impression of one (components/ui/Glass.tsx: the CSS material is retired).
+   *
+   * So the three of them are handed over. Back rides the leading cluster with
+   * its name on it, ‹ › become a merged pair of glass circles in the trailing
+   * one, and CONTINUE is the prominent control in the floating dock. Which
+   * moves the arrows off the island they were flanking — deliberately: a
+   * toolbar pager is the iOS idiom for walking a row, and it buys the island
+   * the full width of the screen to be drawn in. The DOM keeps the flanking
+   * arrows for the web and Android, where there is no material to move them to.
+   *
+   * Declared HERE rather than inside `Gallery` so the sea has an opinion too:
+   * `null` is a screen actively saying it wants no chrome, which withdraws
+   * whatever the last screen left up. The hook is a stack, and a page that
+   * never joins it is a page that cannot clear it.
+   */
+  const nativeChrome = useNativeOverlayOwned();
+  const theme = useResolvedTheme();
+  const many = islands.length > 1;
+  const overlay = useMemo<NativeOverlayState | null>(() => {
+    if (!focused) return null;
+    return {
+      mode: "shown",
+      theme,
+      // No title plate: the company's name is already set 26px high in the
+      // middle of the screen, and a second copy 60pt above it is the same
+      // words twice.
+      title: null,
+      leading: [
+        {
+          id: "back",
+          symbol: "chevron.backward",
+          title: "All islands",
+          label: "Back to all your islands",
+          style: "plain",
+        },
+      ],
+      trailing: many
+        ? [
+            { id: "prev", symbol: "chevron.left", label: "Previous island", style: "plain" },
+            { id: "next", symbol: "chevron.right", label: "Next island", style: "plain" },
+          ]
+        : [],
+      actions: [
+        {
+          id: "enter",
+          title: opening ? "OPENING…" : focused.alive ? "CONTINUE" : "READ THE BOOKS",
+          label: focused.alive
+            ? `Open ${focused.companyName}`
+            : `Read the books for ${focused.companyName}`,
+          style: "prominent",
+          enabled: !opening,
+        },
+      ],
+    };
+  }, [focused, theme, many, opening]);
+
+  useNativeOverlay(overlay, {
+    onAction: (id) => {
+      if (id === "back") setFocus(null);
+      else if (id === "prev") step(-1);
+      else if (id === "next") step(1);
+      else if (id === "enter" && focus !== null) enter(focus);
+    },
+  });
+
   return (
     /*
      * The water is the page, edge to edge — no column, no panel, no corners.
@@ -209,6 +288,7 @@ function IslandsPage() {
             index={islands.findIndex((i) => i.slot === focused.slot)}
             total={islands.length}
             busy={opening}
+            native={nativeChrome}
             onStep={step}
             onBack={() => setFocus(null)}
             onEnter={() => enter(focused.slot)}
@@ -227,7 +307,14 @@ function IslandsPage() {
               none` so it never swallows a tap meant for an island drifting
               underneath it — nothing here is tappable.
             */}
-            <header className="pointer-events-none absolute inset-x-0 top-0 z-10 px-6 pt-[max(1.5rem,env(safe-area-inset-top))]">
+            {/*
+              A whole extra rem on top of `--nv-safe-top`, which already clears
+              the island. This is a title on open water with nothing above it,
+              and the gap is composition rather than clearance — the eyebrow
+              wants to read as floating on the sea, not as pinned to the top of
+              the phone.
+            */}
+            <header className="pointer-events-none absolute inset-x-0 top-0 z-10 px-6 pt-[max(2.5rem,calc(var(--nv-safe-top)+1rem))]">
               <p className="text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]">
                 YOUR ISLANDS
               </p>
@@ -251,7 +338,10 @@ function IslandsPage() {
             <div className="absolute inset-0">
               <div className="relative mx-auto h-full w-full max-w-3xl">
               {Array.from({ length: places }, (_, slot) => {
-                const spot = SEA_POSITIONS[slot];
+                /* `seaPosition`, not `SEA_POSITIONS[slot]`. The table stops at
+                   the authored ten and the cap is fifty — indexing it returned
+                   undefined for island 10 and threw on the next line. */
+                const spot = seaPosition(slot);
                 const island = bySlot.get(slot);
                 return (
                   <motion.div
@@ -304,11 +394,17 @@ function IslandsPage() {
               one, versus tomorrow — and a screen that says "you have hit the
               limit" without saying which is how a player buys the wrong fix.
             */}
-            <div className="pointer-events-none absolute inset-x-0 bottom-[max(1.75rem,env(safe-area-inset-bottom))] z-10 flex justify-center px-6">
+            <div className="pointer-events-none absolute inset-x-0 bottom-[max(1.75rem,var(--nv-safe-bottom))] z-10 flex justify-center px-6">
               <Boat className="nv-bob pointer-events-auto max-w-[22rem]">
+                {/* This account's OWN number, not the tier's brochure one.
+                    It used to read "Up to 50 at once" for any Pro player,
+                    which was true only while the ceiling and Pro's allowance
+                    were the same ten — since 0015 they are not, and `cap` is
+                    the only figure that stays right for a free player, a Pro
+                    player, and either of them after buying an island. */}
                 <p className="text-2xs leading-relaxed text-[var(--text-secondary)]">
-                  {pro ? `Up to ${ISLAND_CAP} at once.` : `${cap} at once on free.`} Each
-                  island keeps its own year and its own books.
+                  {cap} at once{pro ? "" : " on free"}. Each island keeps its
+                  own year and its own books.
                 </p>
                 {canFound && foundingsLeft === 0 && (
                   <p className="mt-1 text-2xs leading-snug text-[var(--text-tertiary)]">
@@ -534,7 +630,12 @@ function SeaLocked({
           <LockGlyph />
         </span>
       </span>
-      <Label title="Another island" sub={`PRO RUNS ${ISLAND_CAP}`} />
+      {/* PRO_LIMITS, not ISLAND_CAP. This is the locked place a FREE player
+          taps to hear what Pro adds, so it has to name Pro's own allowance —
+          the two were the same number until 0015, and printing the ceiling
+          here would now promise a subscription fifty islands it does not
+          include. */}
+      <Label title="Another island" sub={`PRO RUNS ${PRO_LIMITS.islands}`} />
     </button>
   );
 }
@@ -547,6 +648,7 @@ function Gallery({
   index,
   total,
   busy,
+  native,
   onStep,
   onBack,
   onEnter,
@@ -556,6 +658,15 @@ function Gallery({
   index: number;
   total: number;
   busy: boolean;
+  /**
+   * UIKit is drawing this screen's controls, so React must not draw them too.
+   *
+   * Not rendered rather than hidden, which is the rule every native-chrome
+   * caller in this app follows: a hidden button still takes a tap on iOS if
+   * the native view above it lets the touch through, and the player gets a
+   * dead zone nobody can see.
+   */
+  native: boolean;
   onStep: (by: number) => void;
   onBack: () => void;
   onEnter: () => void;
@@ -575,20 +686,32 @@ function Gallery({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={SWAP}
-      className="relative mx-auto flex min-h-dvh w-full max-w-lg flex-col px-5 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+      /* The pads clear whatever chrome is actually there: the safe area plus a
+         gap on the web, and the measured height of the UIKit toolbar and dock
+         where UIKit drew them. `--nv-overlay-*` is 0 everywhere else. */
+      className="relative mx-auto flex min-h-dvh w-full max-w-lg flex-col px-5 pt-[max(1.5rem,var(--nv-safe-top),calc(var(--nv-overlay-top)+0.75rem))] pb-[max(1.5rem,var(--nv-safe-bottom),calc(var(--nv-overlay-bottom)+0.75rem))]"
     >
-      <button
-        type="button"
-        onClick={onBack}
-        className="-ml-1 flex min-h-11 items-center gap-1.5 self-start text-2xs font-bold tracking-[0.08em] text-[var(--text-secondary)]"
-      >
-        <span aria-hidden>◂</span> ALL ISLANDS
-      </button>
+      {/* UIKit carries this in the leading cluster when it owns the screen. */}
+      {native ? null : (
+        <button
+          type="button"
+          onClick={onBack}
+          className="-ml-1 flex min-h-11 items-center gap-1.5 self-start text-2xs font-bold tracking-[0.08em] text-[var(--text-secondary)]"
+        >
+          <span aria-hidden>◂</span> ALL ISLANDS
+        </button>
+      )}
 
       {/* ── The island, arrows either side ──────────────────────────────── */}
-      <div className="relative mt-1 h-56 w-full sm:h-64">
+      {/* Except on iOS, where ‹ › are a merged pair of glass circles in the
+          toolbar and the island gets the whole width to be drawn in. */}
+      <div className={`relative h-56 w-full sm:h-64 ${native ? "mt-0" : "mt-1"}`}>
         <div className="absolute inset-0 flex items-center justify-between gap-1">
-          {many ? <Arrow dir={-1} onClick={() => onStep(-1)} /> : <span className="w-11" />}
+          {native ? null : many ? (
+            <Arrow dir={-1} onClick={() => onStep(-1)} />
+          ) : (
+            <span className="w-11" />
+          )}
 
           {/*
             No `mode="wait"`: the island is the thing being looked at, and
@@ -632,7 +755,11 @@ function Gallery({
             </AnimatePresence>
           </div>
 
-          {many ? <Arrow dir={1} onClick={() => onStep(1)} /> : <span className="w-11" />}
+          {native ? null : many ? (
+            <Arrow dir={1} onClick={() => onStep(1)} />
+          ) : (
+            <span className="w-11" />
+          )}
         </div>
       </div>
 
@@ -700,16 +827,20 @@ function Gallery({
         <Figure label="LAST PLAYED" value={lastPlayed(island.savedAt) || "—"} />
       </dl>
 
-      <div className="mt-auto w-full pt-6">
-        <button
-          type="button"
-          onClick={onEnter}
-          disabled={busy}
-          className="nv-gc w-full truncate rounded-[var(--radius-card)] nv-t-action px-5 py-4 text-base font-extrabold tracking-[0.06em] disabled:cursor-not-allowed disabled:opacity-35"
-        >
-          {busy ? "OPENING…" : island.alive ? "CONTINUE ▸" : "READ THE BOOKS ▸"}
-        </button>
-      </div>
+      {/* The screen's one ask. UIKit floats it in the glass dock where it owns
+          the chrome; everywhere else it is the last thing in the column. */}
+      {native ? null : (
+        <div className="mt-auto w-full pt-6">
+          <button
+            type="button"
+            onClick={onEnter}
+            disabled={busy}
+            className="nv-gc w-full truncate rounded-[var(--radius-card)] nv-t-action px-5 py-4 text-base font-extrabold tracking-[0.06em] disabled:cursor-not-allowed disabled:opacity-35"
+          >
+            {busy ? "OPENING…" : island.alive ? "CONTINUE ▸" : "READ THE BOOKS ▸"}
+          </button>
+        </div>
+      )}
     </motion.div>
   );
 }

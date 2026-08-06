@@ -33,6 +33,16 @@ than a CSS impression of it — and the height they take is measured after
 layout and handed back as a CSS variable, so nothing is ever occluded by a
 number somebody guessed. See **[docs/APP.md](docs/APP.md)**.
 
+The company also exists on the phone while the app is shut: Brand, Quality and
+Morale as Home Screen and Lock Screen widgets, whichever of the five visible
+stats the engine is about to aim events at as a StandBy ring, and two Live
+Activities — the year, which turns prestige gold at the gate
+because it will not close without a pitch, and RobinGhood, which is the one
+thing in this game that keeps moving while you are not looking. A second build
+target reading a snapshot the app publishes into a shared App Group. See
+**[docs/WIDGETS.md](docs/WIDGETS.md)**, which also lists the four things that
+need a developer account rather than a commit.
+
 **Nothing is sold inside the app.** Pro is bought on the web and attaches to a
 Novus account, so a store build carries no price, no checkout and no link to
 one — App Store Guideline 3.1.1, and Google Play's Payments policy, say the
@@ -57,6 +67,7 @@ and what is still a form to fill in are in
 | `npm run test:db` | Applies every migration to a scratch database and runs the RLS suite |
 | `npm run build:native` | Static export for the apps, then `cap sync` |
 | `npm run audit:phone` | Type, tap targets and occlusion at 320–430px |
+| `npm run test:outside` | The Xcode project graph, and the widgets' Swift ports against the engine |
 | `npm run ios` / `npm run android` | Build, sync, open the native project |
 
 ## How it fits together

@@ -232,7 +232,7 @@ export function PitchScore({
       animate={{ opacity: 1, y: 0 }}
       transition={{ ...ENTER }}
     >
-      <div className="mx-auto w-full max-w-lg px-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))]">
+      <div className="mx-auto w-full max-w-lg px-6 pt-[max(1.5rem,var(--nv-safe-top))] pb-[max(2rem,var(--nv-safe-bottom))]">
         <SharkStage state={score >= 8 ? "celebrate" : "verdict"} className="h-36 w-full" />
 
         <div className="flex items-end justify-between gap-4">

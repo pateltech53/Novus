@@ -1,6 +1,7 @@
 import { adoptEntitlements } from "@/lib/cloud/billing";
 import { RESTORED_FLAG } from "@/lib/cloud/keys";
 import { API_CREDENTIALS, apiUrl } from "@/lib/native/origin";
+import type { IslandSummary } from "@/lib/engine/save";
 import type { LegacyState, RunState } from "@/lib/engine/types";
 import type { Entitlements } from "@/lib/monetization";
 
@@ -567,6 +568,52 @@ async function boot(): Promise<void> {
 }
 
 /**
+ * May this cloud island be written over what the device holds?
+ *
+ * ── "Local always wins", decided PER ISLAND, with one exception ─────────────
+ *
+ * It used to be one device-level boolean: any company on this device at all
+ * meant the cloud copy was refused wholesale. With islands that rule is not
+ * conservative, it is lossy — a device holding one company would refuse to
+ * adopt the other nine, forever, with nothing on screen to say so. Per slot it
+ * means what it always meant and means it more precisely: a company in progress
+ * on THIS device is not replaced by a server copy, and an island this device
+ * has never seen is simply restored.
+ *
+ * ── The exception, and the bug it answers ──────────────────────────────────
+ *
+ * "This device has a copy" is not the same question as "this device has THE
+ * copy". A player who reached year 3 on their phone and then opened the tablet
+ * they last played in year 1 was shown year 1 — the tablet held that slot, so
+ * the newer copy was refused — and the moment they touched anything, the
+ * tablet's year 1 was pushed up and became the account's only copy. Progress
+ * did not fail to sync; it was overwritten by a device that knew it was behind.
+ * /api/sync has been sending `updatedAt` per island for exactly this decision
+ * and nothing here ever read it.
+ *
+ * So a cloud copy is also adopted when it is THE SAME COMPANY, strictly further
+ * through the calendar than the one here. Both halves are load-bearing:
+ *
+ *   · **same company** — a different run in that slot is one this device
+ *     founded, and a restore never undoes a founding.
+ *   · **strictly further** — time only moves forward (`advanceMonth` is the
+ *     only thing that moves it), so "ahead" is a fact about the run rather than
+ *     a race between two devices' clocks, neither of which can be trusted.
+ *     Level pegging keeps the local copy, which is where this session's
+ *     in-month work is.
+ *
+ * Exported for the archipelago suite (scripts/islands-test.mjs): this is the
+ * rule that decides whether a player's other device wins, and it is worth being
+ * able to state it in tests rather than only in a comment.
+ */
+export function adoptable(here: IslandSummary | undefined, there: RunState | null): boolean {
+  if (!there) return false;
+  if (!here) return true;
+  if (there.id !== here.runId) return false;
+  return there.year > here.year || (there.year === here.year && there.month > here.month);
+}
+
+/**
  * Pulls the account's copy onto this device and adopts what the device is
  * missing. Goes nowhere and reloads nothing — the caller decides that.
  *
@@ -576,7 +623,12 @@ async function boot(): Promise<void> {
  * localStorage a moment later is chosen for nobody.
  */
 async function pullAndAdopt(): Promise<{
-  /** A company landed on a device that had none. The only one worth a reload. */
+  /**
+   * A company landed — an island this device did not have, or a later copy of
+   * one it did (see `adoptable`). The only category worth a reload, and the
+   * screens that are already open hear about it through `onIslandsChange`
+   * either way, because the reload is skipped once a player is interacting.
+   */
   run: boolean;
   legacy: boolean;
   prefs: boolean;
@@ -599,20 +651,8 @@ async function pullAndAdopt(): Promise<{
   // static cycle between the two would leave one of them half-initialised.
   const { adoptFromCloud, listIslands } = await import("@/lib/engine/save");
 
-  /*
-   * "Local always wins" — now decided PER ISLAND.
-   *
-   * It used to be one device-level boolean: any company here at all meant the
-   * cloud copy was refused wholesale. With islands that rule is not
-   * conservative, it is lossy — a device holding one company would refuse to
-   * adopt the other nine, forever, with nothing on screen to say so.
-   *
-   * Per slot it means what it always meant, and means it more precisely: a
-   * company in progress on THIS device is never replaced by a server copy,
-   * and an island this device has never seen is simply restored.
-   */
-  const held = new Set(listIslands().map((i) => i.slot));
-  const runs = (cloud.runs ?? []).filter((i) => !held.has(i.slot));
+  const held = new Map(listIslands().map((i) => [i.slot, i]));
+  const runs = (cloud.runs ?? []).filter(({ slot, state }) => adoptable(held.get(slot), state));
   const legacy = hasLocalLegacy ? undefined : cloud.legacy;
   const prefs = hasLocalProfile ? undefined : cloud.prefs;
 

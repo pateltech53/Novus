@@ -61,6 +61,40 @@
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.simulation-games</string>
 
+	<!-- The company keeps existing while the app is shut.
+
+	     Without this key `Activity.request` throws `unsupported` on every call
+	     and nothing at all appears — no error the player can see, no entry in
+	     Settings ▸ Face ID & Passcode ▸ Live Activities. It is the switch that
+	     makes ios/App/NovusWidgets/FiscalYearActivity.swift reachable at all.
+
+	     Deliberately NOT paired with NSSupportsLiveActivitiesFrequentUpdates:
+	     this app updates an activity when the player moves time, which is a
+	     handful of times a session, and asking for the frequent-updates budget
+	     for that would be claiming a need the app does not have. -->
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+
+	<!-- Where a tap on a widget lands.
+
+	     Four destinations, read in lib/outside/links.ts: novus://play,
+	     novus://gate, novus://island/<slot> and novus://market. Capacitor's
+	     SceneDelegateProxy already forwards openURLContexts, so declaring the
+	     scheme here is the whole of the native side — the routing is web. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.novuspitch.app.widgets</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>novus</string>
+			</array>
+		</dict>
+	</array>
+
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

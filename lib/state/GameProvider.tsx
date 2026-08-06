@@ -101,21 +101,24 @@ import {
   activeIsland,
   clearRun,
   flushRun,
+  islandOccupied,
   listIslands,
+  liveIslandCount,
   loadLegacy,
   loadProfile,
   loadRun,
   loadTable,
+  onIslandsChange,
   saveLegacy,
   saveProfile,
   saveRun,
   saveTable,
   setActiveIsland,
   slotForNewCompany,
-  islandIsOccupied,
   type IslandSummary,
   type Profile,
 } from "@/lib/engine/save";
+import { useOutside } from "@/components/native/useOutside";
 
 const EVENTS = eventsData as unknown as GameEvent[];
 
@@ -128,6 +131,20 @@ const EVENTS = eventsData as unknown as GameEvent[];
  * `applyAllocation` seeds its RNG with.
  */
 export const allocationFlag = (year: number) => `alloc-y${year}`;
+
+/**
+ * Is `stored` the same company as `open`, further through the calendar?
+ *
+ * The one condition under which a run already on screen may be replaced by one
+ * that arrived from the cloud. Same run id, because a different company in that
+ * slot is one this device founded and a restore never undoes a founding; and
+ * strictly later, because time only moves forward — `advanceMonth` is the only
+ * thing that moves it — so "ahead" is a fact about the run rather than a race
+ * between two devices' clocks. Level pegging keeps what is on screen.
+ */
+const isLaterCopy = (open: RunState, stored: RunState): boolean =>
+  stored.id === open.id &&
+  (stored.year > open.year || (stored.year === open.year && stored.month > open.month));
 
 /** Which visible stats moved, phrased the way the life log phrases them. */
 function diffStats(
@@ -405,6 +422,71 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   /**
+   * …and the companies that arrive from the cloud a second later.
+   *
+   * The boot restore is a network round trip, so it lands after the effect
+   * above has already read localStorage and decided what this device has. Its
+   * answer to that was a reload, and the reload is now skipped the moment the
+   * player has touched anything (lib/cloud/sync.ts, `markAndReload`) — which
+   * left the islands adopted and nothing on screen showing them. On a second
+   * device that reads as "my companies are not here", which is precisely what
+   * the cloud copy exists to prevent.
+   *
+   * Two things can have landed, and the second one is the sharp one:
+   *
+   *  · **An island this device had none of.** Draw it. If nothing is open,
+   *    open it — this is the new phone, and the alternative is a player staring
+   *    at a screen that says they have no companies while their companies sit
+   *    in storage.
+   *
+   *  · **A later copy of the company that is OPEN.** The restore only writes
+   *    one when it is the same run, strictly further through the calendar
+   *    (lib/cloud/sync.ts) — the tablet last played in year 1 catching up with
+   *    the phone that reached year 3. Memory has to follow it, because memory
+   *    is what `commit()` writes: leaving the older run in state means the next
+   *    tap saves year 1 back over year 3 and pushes that up as the account's
+   *    only copy. Which is the bug, one layer down from where it was fixed.
+   *
+   * Anything else is refused. A different company in that slot is never
+   * replaced, and a local copy that is level or ahead keeps the screen — the
+   * in-month work of this session lives there.
+   */
+  useEffect(() => {
+    if (!hydrated) return;
+    return onIslandsChange(() => {
+      setIslands(listIslands());
+      const open = runRef.current;
+      const at = open ? islandRef.current : activeIsland();
+      const stored = loadRun(at);
+      if (!stored) return;
+      if (open && !isLaterCopy(open, stored)) return;
+
+      stored.avatar = normalizeAvatar(stored.avatar);
+      islandRef.current = at;
+      setIsland(at);
+      runRef.current = stored;
+      setRun(stored);
+      // The transient state belongs to the copy being replaced: a card, a
+      // statement or an autopsy drawn against year 1 means nothing to year 3.
+      setQueue([]);
+      setMarketId(null);
+      setYearEnd(null);
+      setPortfolioYear(null);
+      setPerform(null);
+      setAutopsy(stored.alive ? null : buildAutopsy(stored));
+      setAtGate(stored.month >= 12);
+      // loadTable refuses a table written at a different run/year/month, so
+      // this restores the cards only when nothing actually moved.
+      const table = loadTable(stored, at);
+      if (table) {
+        setQueue(table.cards);
+        setMarketId(table.marketId);
+        setYearEnd(table.yearEnd);
+      }
+    });
+  }, [hydrated]);
+
+  /**
    * …and every change to the table goes straight back to disk.
    *
    * One effect rather than a save call in advance/choose/dismiss/submit: those
@@ -454,32 +536,34 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       /*
        * Which island this company goes on, decided BEFORE anything is written.
        *
-       * `startTape` below keys off the island that is currently open
-       * (lib/leaderboard/recorder.ts), so the pointer has to move first or the
-       * new company's tape is written onto the one being left. `firstFreeIsland`
-       * answers null when the archipelago is full — /found checks the cap before
-       * calling, and this is the backstop that refuses rather than overwriting
-       * a company the player still has.
-       */
-      /*
-       * ── The backstop that was missing ──────────────────────────────────
+       * ── A named slot is a request, not an instruction ──────────────────────
        *
-       * `slotForNewCompany` never returns an occupied slot, so the auto-picked
-       * path was always safe. An EXPLICIT `opts.slot` skipped it entirely and
-       * wrote straight over whatever was there — and /found handed this an
-       * explicit 0 every time it was opened without an `?island=` parameter,
-       * because `Number(null)` is 0 (see `parseIslandSlot`). The player tapped
-       * "found a new company" and their existing one was gone.
+       * `opts.slot` arrives from a query string (`/found?island=N`), which is to
+       * say from a bookmark, a back button, or a picker that drew its empty card
+       * some seconds ago. It used to be taken at its word and written to, and
+       * founding is the one action in this app that overwrites a company without
+       * ever having asked: `saveRun` does not care what was in the slot, so the
+       * old run went with no autopsy, no legacy entry and no question — and the
+       * debounced push carried the loss to every other device.
        *
-       * Fixing the parse fixes the reported bug. This fixes the CLASS: a
-       * caller that names a slot holding a living company no longer gets to
-       * overwrite it, it gets the same free slot the picker would have chosen.
-       * Founding onto a headstone stays allowed — that is how graves are
-       * reused, and `slotForNewCompany` does it deliberately.
+       * So the request is honoured only while it is true: the island is empty
+       * (held writes included — see `islandOccupied`) and the allowance has room
+       * for another living company. Anything else falls through to
+       * `slotForNewCompany`, which is the same rule the picker drew the card
+       * with, and which answers null when there is genuinely nowhere to put it.
+       * Burying a company stays an explicit act (endRun / abandonRun); it is not
+       * something founding does on the player's behalf.
+       *
+       * `startTape` below is handed this slot rather than reading the open
+       * island for itself. The pointer moves first regardless, but the tape must
+       * not depend on that ordering: writing it against the island being LEFT
+       * erases the previous company's record of every tap it took.
        */
-      const auto = () => slotForNewCompany(islandCapFor(loadEntitlements()));
+      const cap = islandCapFor(loadEntitlements());
       const target =
-        opts.slot === undefined || islandIsOccupied(opts.slot) ? auto() : opts.slot;
+        opts.slot !== undefined && !islandOccupied(opts.slot) && liveIslandCount() < cap
+          ? opts.slot
+          : slotForNewCompany(cap);
       if (target === null) return;
       recordRunStart();
       islandRef.current = target;
@@ -511,7 +595,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       // in the storage layer cannot leave a run running against another run's
       // tape — `record` refuses a mismatched runId, so the failure mode is a
       // company that cannot be submitted rather than one that submits a lie.
-      startTape(next);
+      //
+      // Keyed by `target` explicitly: nothing has been written to that island
+      // yet at this line, so a tape that asked which island was open would be
+      // answered with the one being left and would overwrite ITS tape.
+      startTape(next, target);
       if (next.pro) recordTap(next, { t: "pro", on: true });
       setQueue([]);
       setYearEnd(null);
@@ -830,9 +918,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     // a mismatched runId anyway, and this makes the intent explicit rather than
     // leaving a spent tape in storage until something overwrites it.
     //
-    // BEFORE clearRun: the tape's key is the island that is currently open
-    // (lib/leaderboard/recorder.ts), and clearRun frees the slot.
-    clearTape();
+    // Named rather than inferred, and BEFORE clearRun: the island being buried
+    // is the one this provider has open, which is the only island whose tape
+    // this is — and clearRun frees the slot out from under anything that tried
+    // to work it out afterwards.
+    clearTape(islandRef.current);
     clearRun(islandRef.current);
     setIslands(listIslands());
     runRef.current = null;
@@ -1040,9 +1130,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       legacy.autopsies = legacy.autopsies.slice(0, 10);
       saveLegacy(legacy);
     }
-    // Tape before clearRun, for the reason abandonRun states: the tape's key
-    // is whichever island is open, and clearRun frees the slot.
-    clearTape();
+    // Tape before clearRun, and named, for the reason abandonRun states.
+    clearTape(islandRef.current);
     clearRun(islandRef.current);
     setIslands(listIslands());
     runRef.current = null;
@@ -1450,6 +1539,17 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setBusy(false);
   }, [run]);
+
+  /*
+   * The company, as the phone shows it when this app is shut.
+   *
+   * Here rather than on the play screen because this provider is the only
+   * place that holds both the open run and the archipelago, and because a
+   * company founded on `/found` would otherwise be invisible on the lock
+   * screen until its first tap. One publish per change, coalesced and
+   * de-duplicated in lib/outside/publish.ts; a no-op everywhere but iOS.
+   */
+  useOutside(run, island, islands);
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 }

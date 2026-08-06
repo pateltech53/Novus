@@ -24,6 +24,7 @@ import { useNativeTermCoach } from "@/components/native/useNativeTermCoach";
 import { useBackHandler } from "@/lib/native/back";
 import { WorkspaceSlot } from "@/components/screens/Workspace";
 import { useNativeCoachRect } from "@/lib/native/chrome";
+import { consumeOutsideOpen, subscribeOutsideOpen } from "@/lib/outside/links";
 import { Coachmarks, firstRunSteps } from "@/components/Coachmarks";
 import { NextStep } from "@/components/NextStep";
 import { appPath } from "@/lib/native/href";
@@ -239,11 +240,29 @@ function PlayScreen() {
     return () => clearTimeout(t);
   }, []);
 
+  /*
+   * Nothing to play. Where that sends the player is not "the founding form".
+   *
+   * The islands the device holds are the first question, exactly as
+   * `entryRoute()` asks it (lib/entry.ts). A player can arrive here with no run
+   * and companies in storage — a pointer left behind by a buried island, a
+   * bookmark, a slot that has not finished restoring — and sending them to
+   * /found in that state offers a NEW company as the only way out of a screen
+   * their existing ones are one tap from. That is how a founding lands on top
+   * of something: the form is reached by accident, and founding is what it does.
+   *
+   * `game.islands` rather than a fresh read: it is the same list the picker
+   * draws and it is refreshed on every change, including a cloud restore that
+   * lands after this screen mounted.
+   */
   useEffect(() => {
-    if (checked && !run) {
-      router.replace(profile?.onboarded ? "/found" : "/welcome");
+    if (!checked || run) return;
+    if (game.islands.length > 0) {
+      router.replace("/islands");
+      return;
     }
-  }, [checked, run, profile, router]);
+    router.replace(profile?.onboarded ? "/found" : "/welcome");
+  }, [checked, run, game.islands, profile, router]);
 
   // Every resolution floats its consequences, so a choice is never silent.
   useEffect(() => {
@@ -480,6 +499,24 @@ function PlayScreen() {
    * order is the order these things stack on screen, so back always peels the
    * top layer rather than the one that happens to be listed first.
    */
+  /*
+   * `novus://market` — a tap on the RobinGhood Live Activity.
+   *
+   * Two arrivals to cover, and they are genuinely different: the link may have
+   * navigated the document to get here, in which case the intent was written
+   * to session storage before the old page died and is read once on mount; or
+   * the board was already on screen, in which case nothing navigated and the
+   * subscription is the only signal there is. Reading consumes, so a remount
+   * never re-opens a phone the player just put down.
+   */
+  useEffect(() => {
+    const open = () => {
+      if (consumeOutsideOpen() === "market") setPhoneApp("robinghood");
+    };
+    open();
+    return subscribeOutsideOpen(open);
+  }, []);
+
   useBackHandler(!!current, game.dismissCard);
   useBackHandler(!!activity, () => setActivity(null));
   useBackHandler(!!phoneApp, () => setPhoneApp(null));

@@ -19,7 +19,7 @@ import type { LegalDocument } from "@/lib/legal/documents";
  */
 export function LegalPage({ doc }: { doc: LegalDocument }) {
   return (
-    <main className="mx-auto w-full max-w-2xl px-6 pt-[max(2.5rem,env(safe-area-inset-top))] pb-[max(3rem,env(safe-area-inset-bottom))]">
+    <main className="mx-auto w-full max-w-2xl px-6 pt-[max(2.5rem,var(--nv-safe-top))] pb-[max(3rem,var(--nv-safe-bottom))]">
       <Link
         href="/"
         className="text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]"

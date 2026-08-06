@@ -123,7 +123,26 @@ final class GlassOverlayController: NSObject {
         static let clusterInset: CGFloat = 20
         static let topGap: CGFloat = 8
         static let circle: CGFloat = 40
+        /// The gap between two circles in a top cluster, and — because it is
+        /// also the container's merge distance there — what makes that cluster
+        /// read as one control group the way a system toolbar does.
         static let rowSpacing: CGFloat = 8
+        /**
+         The gap between two controls that have WORDS in them, which is a
+         different problem from the gap between two glyphs.
+
+         `UIGlassContainerEffect.spacing` is a merge distance: neighbours closer
+         than it fuse into one pane. Merging is right for a cluster of circles
+         and wrong for everything else — two 52pt capsules reading "Sign out"
+         and "Delete account" 8pt apart, inside a container that merges at 8,
+         are not two buttons. They are one bar with a seam down it, which is
+         what the boards row and the account dock both looked like.
+
+         So these rows sit wider than they merge: `pieceSpacing` apart, in a
+         container that merges at `mergeSpacing`, which is strictly less.
+         */
+        static let pieceSpacing: CGFloat = 12
+        static let mergeSpacing: CGFloat = 6
         static let segmentHeight: CGFloat = 38
         static let dockHeight: CGFloat = 52
         static let dockBottomGap: CGFloat = 12
@@ -262,8 +281,15 @@ final class GlassOverlayController: NSObject {
     /// Wraps a stack in a `UIGlassContainerEffect` where the OS has one, and
     /// hands back both the view to lay out and the container to hide with it —
     /// an empty glass group is a visible smudge over whatever is behind it.
-    private func boxed(_ stack: UIStackView) -> (view: UIView, group: UIVisualEffectView?) {
-        guard let group = GlassKit.container(spacing: Metric.rowSpacing) else {
+    ///
+    /// `merge` is the distance below which the OS fuses two of the stack's
+    /// pieces into one pane. It defaults to the gap a cluster of circles sits
+    /// at, which is exactly the merge a toolbar wants; the rows whose pieces
+    /// carry words pass something smaller. See `Metric.pieceSpacing`.
+    private func boxed(_ stack: UIStackView, merge: CGFloat = Metric.rowSpacing) -> (
+        view: UIView, group: UIVisualEffectView?
+    ) {
+        guard let group = GlassKit.container(spacing: merge) else {
             return (stack, nil)
         }
         group.contentView.addSubview(stack)
@@ -278,12 +304,12 @@ final class GlassOverlayController: NSObject {
 
     private func buildSegments() {
         segmentStack.axis = .horizontal
-        segmentStack.spacing = 4
+        segmentStack.spacing = Metric.pieceSpacing
         segmentStack.alignment = .fill
         segmentStack.distribution = .fillEqually
         segmentStack.translatesAutoresizingMaskIntoConstraints = false
 
-        let wrapped = boxed(segmentStack)
+        let wrapped = boxed(segmentStack, merge: Metric.mergeSpacing)
         segmentGroup = wrapped.group
         let box = wrapped.view
         host.addSubview(box)
@@ -298,7 +324,7 @@ final class GlassOverlayController: NSObject {
 
     private func buildDock() {
         dock.axis = .horizontal
-        dock.spacing = Metric.rowSpacing
+        dock.spacing = Metric.pieceSpacing
         dock.alignment = .fill
         // Equal widths. A dock of two where one is 60% of the row is a
         // judgement about which matters more that the web layer has already
@@ -306,7 +332,7 @@ final class GlassOverlayController: NSObject {
         dock.distribution = .fillEqually
         dock.translatesAutoresizingMaskIntoConstraints = false
 
-        let wrapped = boxed(dock)
+        let wrapped = boxed(dock, merge: Metric.mergeSpacing)
         dockGroup = wrapped.group
         let box = wrapped.view
         host.addSubview(box)
@@ -350,6 +376,32 @@ final class GlassOverlayController: NSObject {
         // has gone there is nothing underneath still laying out around it.
         lastInsets = state.mode == "shown" ? measure() : OverlayInsets()
         return lastInsets
+    }
+
+    /**
+     Withdrawn entirely: every cluster emptied, the dock cleared, the
+     reservation zeroed.
+
+     The same case `GlassChromeController.reset()` exists for, and the one this
+     controller was actually caught by. Settings leaves for the islands with
+     `window.location`, which destroys the React tree without running a single
+     effect cleanup — so the entry this screen pushed onto the overlay stack was
+     never popped, and its toolbar and its account dock went on floating over
+     whatever document loaded next, with nothing left alive that knew they were
+     there. `configure()` runs again on the new document; this is what it calls.
+     */
+    func reset() {
+        apply(
+            OverlayState(
+                mode: "hidden",
+                theme: current?.theme ?? "dark",
+                title: nil,
+                eyebrow: nil,
+                leading: [],
+                trailing: [],
+                segments: [],
+                activeSegment: nil,
+                actions: []))
     }
 
     private func setHidden(_ hidden: Bool) {

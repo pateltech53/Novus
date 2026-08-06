@@ -1,241 +1,238 @@
+#!/usr/bin/env node
 /**
- * The rules that decide what a device holds, and what a run is still missing.
+ * The archipelago's rules, tested against the real persistence layer.
  *
- *   node scripts/islands-test.mjs
+ *   npm run test:islands
  *
  * ── Why this file exists ────────────────────────────────────────────────────
  *
- * A player reported that tapping "found a new island" reset the island they
- * already had, and they were right. /found resolved its target slot with:
+ * Islands are ten companies sharing one device, and every question about them
+ * is answered by which localStorage keys exist: which island is open, which are
+ * free, where a new company may go. That made the whole feature vulnerable to a
+ * single ordering bug — `saveRun` holds its write for 120 ms, so for that
+ * window a company exists in a buffer and not on disk, and every reader that
+ * did not know about the buffer answered as if the company were not there.
  *
- *     const askedFor = Number(params.get("island"));
+ * The cost was not subtle. A player founded a second company and was handed the
+ * first one back, because the pointer at the new island read as stale and the
+ * fallback opened the lowest occupied slot instead. From there /play had no run
+ * for the island it thought was open, sent the player to the founding form, and
+ * the form — reached without `?island=` — founded on top of island 0.
  *
- * `URLSearchParams.get` answers `null` when the parameter is absent and
- * `Number(null)` is `0` — an integer, in range, indistinguishable from a
- * deliberate tap on island 0. Every route to /found that did not carry the
- * parameter therefore founded onto slot 0 and overwrote whatever was living
- * there. Stripe's success URL is `/found?purchase=ok`, so the most reliable
- * way to lose a company was to pay for a second one.
- *
- * The bug is one coercion and the damage is a deleted save, which is the worst
- * ratio in the codebase. Both halves of the fix are checked here: the parse
- * that stopped inventing a zero, and the backstop in `startRun` that makes any
- * FUTURE caller naming an occupied slot harmless rather than destructive.
- *
- * localStorage is shimmed because the island index lives there — lib/engine
- * is otherwise pure, and this is the one place a test has to bring the browser
- * with it.
+ * None of that is reachable from the balance harness or the leaderboard suite,
+ * because none of it is engine. So it is tested here, against the real module,
+ * with a localStorage that behaves like the browser's.
  */
-
-import { register } from "node:module";
-import { dirname, join } from "node:path";
+import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { register } from "node:module";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-// ── The browser, in the smallest quantity that will do ──────────────────────
-const store = new Map();
-globalThis.localStorage = {
-  getItem: (k) => (store.has(k) ? store.get(k) : null),
-  setItem: (k, v) => store.set(k, String(v)),
-  removeItem: (k) => store.delete(k),
-  clear: () => store.clear(),
-  key: (i) => [...store.keys()][i] ?? null,
-  get length() {
-    return store.size;
-  },
-};
-/*
- * `save.ts` reaches the cloud sync module, which registers wake-up listeners at
- * import time. Stubbed rather than avoided: the alternative is restructuring a
- * persistence layer to be testable, and the thing under test here is which slot
- * a company lands on, not how the tab notices it woke up.
- */
-globalThis.window = globalThis;
-globalThis.addEventListener = () => {};
-globalThis.removeEventListener = () => {};
-globalThis.document = { addEventListener: () => {}, removeEventListener: () => {}, hidden: false };
-// Node 22 already provides `navigator` as a getter-only global; leave it be.
-
-register("./ts-loader.mjs", import.meta.url);
-
-const { parseIslandSlot, islandIsOccupied, slotForNewCompany, saveRun, listIslands, flushRun } =
-  await import(join(root, "lib/engine/save.ts"));
-const { createRun } = await import(join(root, "lib/engine/run.ts"));
-
-let passed = 0;
-const failures = [];
-
-function ok(condition, label, detail = "") {
-  if (condition) {
-    passed++;
-    console.log(`  ✓ ${label}`);
-  } else {
-    failures.push(label);
-    console.log(`  ✗ ${label}${detail ? ` — ${detail}` : ""}`);
+// ── A browser, as far as the save layer is concerned ────────────────────────
+// Enough of one that `canStore()` is true and the flush hooks install. The
+// timers are real: the coalescing window is the thing under test, so it is
+// never faked away.
+class MemoryStorage {
+  #map = new Map();
+  getItem(k) {
+    return this.#map.has(String(k)) ? this.#map.get(String(k)) : null;
+  }
+  setItem(k, v) {
+    this.#map.set(String(k), String(v));
+  }
+  removeItem(k) {
+    this.#map.delete(String(k));
+  }
+  clear() {
+    this.#map.clear();
   }
 }
 
-// ── 1 · the coercion that deleted a company ─────────────────────────────────
-console.log("\n=== 1 · an absent ?island= is not island 0 ===");
-
-ok(parseIslandSlot(null) === undefined, "a missing parameter is no answer, not zero");
-ok(parseIslandSlot(undefined) === undefined, "and neither is undefined");
-ok(parseIslandSlot("") === undefined, "nor a blank one — Number(\"\") is also 0");
-ok(parseIslandSlot("   ") === undefined, "nor whitespace");
-ok(parseIslandSlot("banana") === undefined, "nor a word");
-ok(parseIslandSlot("1.5") === undefined, "nor a fraction of an island");
-ok(parseIslandSlot("-1") === undefined, "nor a negative slot");
-ok(parseIslandSlot("10") === undefined, "nor one past the cap the database enforces");
-// And the thing it must still do, or the picker stops working.
-ok(parseIslandSlot("0") === 0, "an explicit island 0 is still island 0");
-ok(parseIslandSlot("3") === 3, "and an explicit 3 is 3");
-
-// ── 2 · the backstop ────────────────────────────────────────────────────────
-console.log("\n=== 2 · a named slot cannot overwrite a living company ===");
-
-const found = (slot, companyName) => {
-  const run = createRun({
-    founderName: "Ana",
-    playerAge: 15,
-    companyName,
-    industry: "FOOD",
-    rookieMode: true,
-    tutorial: false,
-  });
-  saveRun(run, slot);
-  flushRun(slot);
-  return run;
+const storage = new MemoryStorage();
+globalThis.localStorage = storage;
+globalThis.sessionStorage = new MemoryStorage();
+globalThis.document = { addEventListener() {}, removeEventListener() {} };
+globalThis.window = {
+  localStorage: storage,
+  sessionStorage: globalThis.sessionStorage,
+  addEventListener() {},
+  removeEventListener() {},
+  setTimeout: (fn, ms) => setTimeout(fn, ms),
+  clearTimeout: (id) => clearTimeout(id),
+  location: { pathname: "/play" },
 };
 
-found(0, "First Company");
-ok(listIslands().length === 1, "one company on the water", String(listIslands().length));
-ok(islandIsOccupied(0) === true, "island 0 reads as occupied");
-ok(islandIsOccupied(1) === false, "island 1 reads as free");
+register("./ts-loader.mjs", import.meta.url);
 
-/*
- * The exact decision `startRun` now makes. Kept as a small local mirror rather
- * than driving the React provider, because the rule is the thing under test
- * and a renderer in the way only adds ways for this to pass for the wrong
- * reason. If the provider's expression changes, this assertion is what says
- * the change was a behaviour change.
- */
-const targetFor = (asked, cap = 2) =>
-  asked === undefined || islandIsOccupied(asked) ? slotForNewCompany(cap) : asked;
+const save = await import(join(root, "lib/engine/save.ts"));
+const { adoptable } = await import(join(root, "lib/cloud/sync.ts"));
 
-ok(targetFor(0) === 1, "founding onto the occupied island 0 is redirected to a free one", String(targetFor(0)));
-ok(targetFor(undefined) === 1, "and an unspecified slot picks the free one", String(targetFor(undefined)));
-ok(targetFor(1) === 1, "a genuinely free named slot is honoured", String(targetFor(1)));
+// ── Harness ─────────────────────────────────────────────────────────────────
+let passed = 0;
+let failed = 0;
 
-// The company that was reported destroyed is still there afterwards.
-found(targetFor(0), "Second Company");
-const names = listIslands()
-  .sort((a, b) => a.slot - b.slot)
-  .map((i) => i.companyName);
-ok(names.length === 2, "two companies now exist", names.join(","));
-ok(names[0] === "First Company", "and the first one was not overwritten", names.join(","));
-ok(names[1] === "Second Company", "the second landed beside it", names.join(","));
+function ok(label, condition) {
+  if (condition) {
+    passed += 1;
+    console.log(`  ✓ ${label}`);
+  } else {
+    failed += 1;
+    console.log(`  ✗ ${label}`);
+  }
+}
 
-// ── 3 · the allowance still binds ───────────────────────────────────────────
-console.log("\n=== 3 · the cap is still a cap ===");
-
-ok(slotForNewCompany(2) === null, "a full archipelago refuses rather than evicting", String(slotForNewCompany(2)));
-ok(slotForNewCompany(3) === 2, "and a raised cap opens the next island", String(slotForNewCompany(3)));
-
-// ── 4 · what the run is still missing ───────────────────────────────────────
-// The two tabs players report never finding are PRODUCT and TEAM. The tutorial
-// names both, once, at minute zero — to someone who has not yet met the
-// problem. `nextStep` says it again at the moment it becomes true, and its one
-// hard rule is that it must never fire for a company that is not missing
-// anything: a nudge that is wrong teaches players to stop reading nudges.
-console.log("\n=== 4 · the one thing worth doing ===");
-
-const { nextStep } = await import(join(root, "lib/engine/nudges.ts"));
-
-const company = (over = {}) => {
-  const run = createRun({
-    founderName: "Ana", playerAge: 15, companyName: "Loop",
-    industry: "FOOD", rookieMode: true, tutorial: false,
-  });
-  return { ...run, ...over, stats: { ...run.stats, ...(over.stats ?? {}) } };
+const eq = (label, actual, expected) => {
+  const same = JSON.stringify(actual) === JSON.stringify(expected);
+  ok(`${label}${same ? "" : ` — got ${JSON.stringify(actual)}, wanted ${JSON.stringify(expected)}`}`, same);
 };
-const item = (n) => ({ id: `i${n}`, name: `Item ${n}`, state: "live", history: [] });
 
-const empty = company({ stats: { employees: 0 }, portfolio: { items: [], nextId: 1 } });
-ok(nextStep(empty)?.id === "no-product", "an empty shelf is the first thing said", nextStep(empty)?.id);
-ok(nextStep(empty)?.tab === "product", "and it points at PRODUCT");
-
-const selling = company({ stats: { employees: 0 }, portfolio: { items: [item(1)], nextId: 2 } });
-ok(nextStep(selling)?.id === "no-team", "something to sell and nobody to sell it comes second", nextStep(selling)?.id);
-ok(nextStep(selling)?.tab === "team", "and it points at TEAM");
-
-const dead = company({ alive: false, stats: { employees: 0 }, portfolio: { items: [], nextId: 1 } });
-ok(nextStep(dead) === null, "a company that has ended is not nagged about hiring");
-
-/*
- * The rule that matters most: silence when nothing is missing. `portfolioCap`
- * is read rather than hardcoded, so this stays true if the cap is retuned.
- */
-const { portfolioCap } = await import(join(root, "lib/engine/portfolio.ts"));
-const staffed = company({ stats: { employees: 3 } });
-const cap = portfolioCap(staffed);
-const full = company({
-  stats: { employees: 3 },
-  portfolio: { items: Array.from({ length: cap }, (_, i) => item(i)), nextId: cap + 1 },
+/** A run with the fields the listing cache reads, and nothing it does not. */
+const company = (name, over = {}) => ({
+  id: `run-${name}`,
+  seed: 7,
+  companyName: name,
+  founderName: "Founder",
+  industry: "FOOD",
+  year: 1,
+  month: 1,
+  stage: 1,
+  alive: true,
+  flags: {},
+  log: [],
+  stats: { valuation: 0, cash: 1000, revenueAnnual: 0, employees: 0 },
+  lastPlayedISO: "2026-01-15",
+  ...over,
 });
-ok(nextStep(full)?.id === "team-caps-products", "a full shelf is a hiring decision, not a wall", nextStep(full)?.id);
 
-const oneShort = company({
-  stats: { employees: 3 },
-  portfolio: { items: Array.from({ length: cap - 1 }, (_, i) => item(i)), nextId: cap },
-});
-ok(nextStep(oneShort) === null, "one slot free is left alone — not every gap is a problem", nextStep(oneShort)?.id ?? "null");
+/** Start each case on a device with nothing on it. */
+function fresh() {
+  save.dropPendingRun();
+  storage.clear();
+}
 
-// ── 5 · the age gate ────────────────────────────────────────────────────────
-// Novus is a product for minors, and under 13 an online service may not collect
-// a child's personal information without verifiable parental consent — which
-// this app has no way to obtain. So it does not sign them up. This is an age
-// SCREEN, not verification (see lib/auth/age.ts); what is tested here is that
-// the rule is consistent everywhere and that a "no" is remembered.
-console.log("\n=== 5 · nobody under 13 ===");
+console.log("\n=== 1 · a held write is a company that exists ===");
+{
+  fresh();
+  save.saveRun(company("Novice"), 0);
+  // Nothing has reached localStorage yet — that is the whole point of the
+  // coalescing, and the assertion that makes the rest of this case meaningful.
+  ok("the write is still in the buffer", storage.getItem("novus:run:v1:0") === null);
+  ok("…and the device still knows it has a company", save.hasAnySavedRun());
+  eq("…and it is not offered as a free island", save.firstFreeIsland(), 1);
+  ok("…and the island reads as occupied", save.islandOccupied(0));
+  save.flushRun();
+  ok("flushing puts it where a reload can find it", storage.getItem("novus:run:v1:0") !== null);
+}
 
-const { MIN_AGE, isOldEnough, isPlausibleAge, isAgeBlocked, recordTooYoung, clearAgeBlock } =
-  await import(join(root, "lib/auth/age.ts"));
+console.log("\n=== 2 · founding a second company opens the second company ===");
+{
+  fresh();
+  // Island 0 is settled: a company played for a while, written and flushed.
+  save.saveRun(company("Novice", { year: 3, month: 5 }), 0);
+  save.flushRun();
 
-ok(MIN_AGE === 13, "the line is 13", String(MIN_AGE));
-ok(isOldEnough(13) === true, "13 is old enough");
-ok(isOldEnough(12) === false, "12 is not");
-ok(isOldEnough(0) === false, "and neither is 0");
-ok(isOldEnough(null) === false, "an unanswered age is not old enough");
-ok(isOldEnough(undefined) === false, "nor an absent one");
-ok(isOldEnough("") === false, "nor a blank string");
-ok(isOldEnough("abc") === false, "nor a word");
-ok(isOldEnough("14") === true, "a typed number still works");
-// The field takes two characters, so this is about what that field can mean.
-ok(isPlausibleAge(0) === false, "0 is not a plausible age to have typed");
-ok(isPlausibleAge(100) === false, "nor is 100 in a two-character field");
-ok(isPlausibleAge(14) === true, "14 is");
+  // …and this is `startRun`: point the device at the new island, then save.
+  // The navigation to /play happens inside the coalescing window, which is
+  // where the bug lived.
+  save.setActiveIsland(1);
+  save.saveRun(company("Ice Cream"), 1);
 
-clearAgeBlock();
-ok(isAgeBlocked() === false, "a fresh device is not blocked");
-recordTooYoung();
-ok(isAgeBlocked() === true, "a device that answered under 13 is remembered");
-// The whole point: reloading, going back, or re-running onboarding must not
-// clear it. The storage shim persists for the process, which is the same
-// guarantee localStorage gives the page.
-ok(isAgeBlocked() === true, "and stays blocked on a second read");
-// The age itself is never kept — it is a data point about a child we have just
-// decided not to serve.
-ok(
-  ![...store.keys()].some((k) => k.includes("agegate") && /1[0-2]/.test(store.get(k))),
-  "and the age itself is not stored",
-  [...store.entries()].filter(([k]) => k.includes("agegate")).join(","),
-);
-clearAgeBlock();
-ok(isAgeBlocked() === false, "the operator escape hatch clears it");
+  eq("the open island is the one just founded", save.activeIsland(), 1);
+  eq("the run under it is the new company", save.loadRun().companyName, "Ice Cream");
+  eq("…and the old one is untouched", save.loadRun(0).companyName, "Novice");
+  eq("…at the year it was left on", save.loadRun(0).year, 3);
+  eq("both islands are on the picker", save.listIslands().map((i) => i.companyName), [
+    "Novice",
+    "Ice Cream",
+  ]);
+}
 
-console.log(
-  `\n${passed} passed, ${failures.length} failed.` +
-    (failures.length ? `\n  ${failures.join("\n  ")}\n` : "\n"),
-);
-process.exit(failures.length === 0 ? 0 : 1);
+console.log("\n=== 3 · a free island is never one that already has a company ===");
+{
+  fresh();
+  save.saveRun(company("Novice"), 0);
+  // Held, not flushed: the second founding of a fast double tap asks this
+  // question before the first has reached disk.
+  eq("the next founding goes to island 1", save.firstFreeIsland(), 1);
+  eq("…and so does slotForNewCompany", save.slotForNewCompany(2), 1);
+  save.saveRun(company("Ice Cream"), 1);
+  eq("a third would go to island 2", save.firstFreeIsland(), 2);
+  eq("…but the free tier's allowance refuses it", save.slotForNewCompany(2), null);
+}
+
+console.log("\n=== 4 · headstones keep their island and never spend the allowance ===");
+{
+  fresh();
+  save.saveRun(company("Novice", { alive: false, endedBy: "chapter7" }), 0);
+  save.flushRun();
+  eq("a grave does not count against the two", save.slotForNewCompany(2), 1);
+  eq("…and it keeps its own island", save.islandOccupied(0), true);
+  eq("live companies are counted alone", save.liveIslandCount(), 0);
+}
+
+console.log("\n=== 5 · the pointer survives, and gives up honestly ===");
+{
+  fresh();
+  save.saveRun(company("Novice"), 0);
+  save.saveRun(company("Ice Cream"), 1);
+  save.flushRun();
+  save.setActiveIsland(1);
+  eq("the island the player chose is the island they get", save.activeIsland(), 1);
+
+  save.clearRun(1);
+  eq("burying it falls back to a company that exists", save.activeIsland(), 0);
+  eq("…and the buried island is free again", save.firstFreeIsland(), 1);
+  eq("…and off the picker", save.listIslands().map((i) => i.slot), [0]);
+}
+
+console.log("\n=== 6 · a company adopted from the cloud lands on its own island ===");
+{
+  fresh();
+  save.adoptFromCloud({
+    runs: [
+      { slot: 0, state: company("Novice", { year: 4 }) },
+      { slot: 3, state: company("Ice Cream", { year: 2 }) },
+    ],
+  });
+  eq("both islands are here", save.listIslands().map((i) => i.slot), [0, 3]);
+  eq("…at the years the account left them on", save.listIslands().map((i) => i.year), [4, 2]);
+  eq("the next founding fills the gap rather than the end", save.firstFreeIsland(), 1);
+  eq("a device that has never opened one still opens something", save.activeIsland(), 0);
+}
+
+console.log("\n=== 7 · the other device wins only when it is genuinely ahead ===");
+{
+  fresh();
+  save.saveRun(company("Novice", { year: 1, month: 4 }), 0);
+  save.flushRun();
+  const [here] = save.listIslands();
+
+  ok(
+    "an island this device has never seen is restored",
+    adoptable(undefined, company("Ice Cream")),
+  );
+  ok(
+    "the phone's year 3 replaces the tablet's year 1",
+    adoptable(here, company("Novice", { year: 3, month: 1 })),
+  );
+  ok(
+    "…and so does the same year, a month further on",
+    adoptable(here, company("Novice", { year: 1, month: 5 })),
+  );
+  ok(
+    "a copy level with this one does not — the in-month work is here",
+    !adoptable(here, company("Novice", { year: 1, month: 4 })),
+  );
+  ok(
+    "a copy behind this one never rolls the device back",
+    !adoptable(here, company("Novice", { year: 1, month: 2 })),
+  );
+  ok(
+    "and a DIFFERENT company in that slot is never overwritten",
+    !adoptable(here, { ...company("Ice Cream", { year: 9 }), id: "run-other" }),
+  );
+}
+
+console.log(`\n${passed} passed, ${failed} failed`);
+process.exit(failed === 0 ? 0 : 1);

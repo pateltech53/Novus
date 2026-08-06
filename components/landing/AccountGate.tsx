@@ -19,6 +19,8 @@ import {
   enabledProviders,
   type OAuthProvider,
 } from "@/lib/auth/providers";
+import { ownedLine, standingLine, standingNote, usePlan } from "@/lib/plan";
+import { openBillingPortal } from "@/lib/cloud/billing";
 import { ChooseName } from "@/components/ChooseName";
 import {
   deleteAccount,
@@ -37,7 +39,7 @@ import { ENTRY_ROUTES, entryRoute } from "@/lib/entry";
 import { play } from "@/lib/sound";
 import { Turnstile, turnstileEnabled } from "@/components/landing/Turnstile";
 import { usePrefetch } from "@/lib/prefetch";
-import { storefront } from "@/lib/commerce";
+import { storefront, useSellsHere } from "@/lib/commerce";
 import { appPath } from "@/lib/native/href";
 
 /**
@@ -73,8 +75,20 @@ const RETRY_AFTER_MS = 6000;
  *   create    the resting state, one button
  *   signUp    name + email + password + policy checkbox
  *   signIn    email + password, with a way to ask for a reset
- *   signedIn  CONTINUE AS <NAME>
+ *   signedIn  CONTINUE AS <NAME>, over what that account is on
  *   naming    a provider account, one screen old, choosing what to be called
+ *
+ * ── What signedIn says now ─────────────────────────────────────────────────
+ *
+ * It used to say a name and nothing else, which was fine while the account was
+ * a name and nothing else. It is not any more: a subscription, an island and an
+ * industry pack all attach to it, and none of them appeared anywhere a player
+ * arriving at the front door could see. Somebody who had paid for Pro that
+ * morning met the identical screen they met the day before, scrolled to the
+ * prices and found MONTHLY and YEARLY offered to them as though they were on
+ * neither — which is what "did my purchase go through?" looks like from the
+ * outside. `PlanStanding` below is the answer, and lib/plan.ts holds the
+ * wording so this screen and the price list cannot disagree about it.
  *
  * ── The provider buttons ───────────────────────────────────────────────────
  *
@@ -725,9 +739,12 @@ export function AccountGate() {
       )}
 
       {mode === "signedIn" ? (
-        <GateButton onClick={() => void enter()} disabled={entering}>
-          {entering ? "OPENING…" : `CONTINUE AS ${displayName.toUpperCase()}`}
-        </GateButton>
+        <>
+          <GateButton onClick={() => void enter()} disabled={entering}>
+            {entering ? "OPENING…" : `CONTINUE AS ${displayName.toUpperCase()}`}
+          </GateButton>
+          <PlanStanding />
+        </>
       ) : mode === "create" ? (
         <GateButton onClick={() => go("signUp")}>CREATE ACCOUNT</GateButton>
       ) : null}
@@ -842,6 +859,122 @@ export function AccountGate() {
           </p>
         </>
       )}
+    </div>
+  );
+}
+
+/**
+ * What the account under CONTINUE AS is actually on.
+ *
+ * ── Why it is here and not only in Settings ────────────────────────────────
+ *
+ * Settings is inside the game, behind a company, behind CONTINUE. The front
+ * door is where a player stands when the question occurs to them — they paid
+ * ten minutes ago, or on another device, or they are not sure whether the card
+ * went through — and answering it here costs one line and saves a support
+ * email. It is also the screen a lapsed subscription has to be visible on: Pro
+ * ending is not an event the player is told about, so the first honest place to
+ * find out is the door.
+ *
+ * ── Three lines, and the third is the receipt ──────────────────────────────
+ *
+ * The chip is the standing, the line under it is what that standing gets you in
+ * this account's own numbers, and BOUGHT is everything that was paid for once
+ * rather than subscribed to — the island, the industry pack. That last line is
+ * the only place outside Settings a one-time purchase has ever appeared, which
+ * is why it names each item rather than counting them: "1 extra island · Gaming"
+ * answers "what did I buy", and "2 items" does not.
+ *
+ * ── And why it can render nothing ──────────────────────────────────────────
+ *
+ * `usePlan()` answers null until the client has mounted and read localStorage —
+ * see lib/plan.ts. Drawing a FREE chip at a subscriber for one frame is the
+ * exact failure this component exists to fix, so the empty first render is the
+ * point rather than a gap to fill with a placeholder.
+ */
+function PlanStanding() {
+  const plan = usePlan();
+  /* The portal is Stripe's, and it is a web page. A store build must not offer
+     a button that cannot open — same rule Settings follows, where the row
+     becomes a sentence about where the subscription lives instead. */
+  const sells = useSellsHere();
+  const [opening, setOpening] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null);
+
+  if (!plan) return null;
+  const { entitlements, standing } = plan;
+  const bought = ownedLine(entitlements);
+
+  const manage = async () => {
+    if (opening) return;
+    play("click");
+    setOpening(true);
+    setFailed(null);
+    const opened = await openBillingPortal();
+    if (opened) return; // leaving for Stripe
+    setOpening(false);
+    // The honest failure. A device-local grant (a deploy with no Stripe keys)
+    // and a Pro that arrived as a gift both reach this line, and neither has a
+    // subscription for the portal to open — which is a fact about the account,
+    // not an error the player did something to cause.
+    setFailed("There is no Stripe subscription on this account to manage.");
+  };
+
+  return (
+    /* A plain card, deliberately not `.nv-gc`. The glass press rule is
+       `.nv-gc:active`, and `:active` matches ancestors as well as the element
+       pressed — so a lens here would shrink the whole standing card every time
+       somebody tapped MANAGE OR CANCEL inside it. This is a statement, not a
+       control; it should not move when its one button is pressed. */
+    <div className="mt-3 rounded-[var(--radius-card)] bg-[var(--surface-elevated)] px-4 py-3 text-left ring-1 ring-[var(--hairline)]">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <span
+          className={`text-2xs font-bold tracking-[0.14em] ${
+            standing.pro ? "text-[var(--color-prestige)]" : "text-[var(--text-tertiary)]"
+          }`}
+        >
+          {standing.badge}
+        </span>
+        <span className="tnum text-2xs text-[var(--text-tertiary)]">
+          {standingLine(entitlements)}
+        </span>
+      </div>
+
+      <p className="mt-1 text-2xs leading-relaxed text-[var(--text-secondary)]">
+        {standingNote(standing)}
+      </p>
+
+      {bought ? (
+        <p className="mt-1.5 border-t border-[var(--hairline)] pt-1.5 text-2xs leading-relaxed text-[var(--text-secondary)]">
+          <span className="font-bold tracking-[0.1em] text-[var(--text-tertiary)]">BOUGHT </span>
+          {bought}
+        </p>
+      ) : null}
+
+      {/* Only for a subscription this player pays for themselves. A chapter
+          seat has no card to change and an operator account has no plan, so
+          offering either of them a portal is a door onto nothing. */}
+      {standing.via === "subscription" && sells === true ? (
+        <button
+          type="button"
+          onClick={() => void manage()}
+          disabled={opening}
+          style={{ touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
+          /* 44px tall, like FootLink and for the same reason: 12px text is a
+             miss-target on a phone held one-handed, and this app is used by
+             children on shared school hardware. `-mb-2` takes back the padding
+             at the card's edge without shrinking what you can hit. */
+          className="-mb-2 mt-0.5 flex min-h-11 items-center py-2.5 text-2xs font-bold tracking-[0.08em] text-[var(--text-tertiary)] underline underline-offset-4 disabled:opacity-50"
+        >
+          {opening ? "OPENING…" : "MANAGE OR CANCEL"}
+        </button>
+      ) : null}
+
+      {failed ? (
+        <p role="status" className="mt-1 text-2xs leading-relaxed text-[var(--text-tertiary)]">
+          {failed}
+        </p>
+      ) : null}
     </div>
   );
 }

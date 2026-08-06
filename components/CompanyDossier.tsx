@@ -115,7 +115,7 @@ export function CompanyDossier({
     <motion.div
       className={`fixed inset-0 flex justify-center ${
         overlay
-          ? "z-[90] items-start px-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3"
+          ? "z-[90] items-start px-3 pt-[max(0.75rem,var(--nv-safe-top))] pb-3"
           : "z-50 items-end"
       }`}
       initial={{ opacity: 0 }}
@@ -136,7 +136,7 @@ export function CompanyDossier({
         className={`relative flex w-full flex-col overflow-y-auto bg-[var(--sheet)] shadow-[var(--e3)] ${
           overlay
             ? "max-h-full max-w-md rounded-[var(--radius-card)] pb-4"
-            : "max-h-[min(88dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] max-w-2xl rounded-t-[var(--radius-sheet)] pb-[max(1rem,env(safe-area-inset-bottom))]"
+            : "max-h-[min(88dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] max-w-2xl rounded-t-[var(--radius-sheet)] pb-[max(1rem,var(--nv-safe-bottom))]"
         }`}
         initial={overlay ? { opacity: 0, scale: 0.98 } : { y: "8%", opacity: 0 }}
         animate={overlay ? { opacity: 1, scale: 1 } : { y: 0, opacity: 1 }}

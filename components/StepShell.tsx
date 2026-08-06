@@ -24,7 +24,7 @@ export function StepShell({ children }: { children: React.ReactNode }) {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.28 }}
     >
-      <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center px-6 pt-[max(2rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))] lg:max-w-xl lg:pt-[max(3.5rem,env(safe-area-inset-top))]">
+      <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center px-6 pt-[max(2rem,var(--nv-safe-top))] pb-[max(2rem,var(--nv-safe-bottom))] lg:max-w-xl lg:pt-[max(3.5rem,var(--nv-safe-top))]">
         {children}
       </div>
     </motion.section>

@@ -350,7 +350,7 @@ export default function ChapterPage() {
 
   if (phase !== "ready") {
     return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-[26rem] flex-col justify-center px-6 pb-16 pt-[max(4rem,env(safe-area-inset-top),calc(var(--nv-overlay-top)+1rem))]">
+      <main className="mx-auto flex min-h-dvh w-full max-w-[26rem] flex-col justify-center px-6 pb-16 pt-[max(4rem,var(--nv-safe-top),calc(var(--nv-overlay-top)+1rem))]">
         <p className="text-2xs font-bold tracking-[0.18em] text-[var(--color-prestige)]">
           NOVUS CHAPTER
         </p>
@@ -415,7 +415,7 @@ export default function ChapterPage() {
     : null;
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-6 pb-[max(6rem,calc(var(--nv-overlay-bottom)+2rem))] pt-[max(2.5rem,env(safe-area-inset-top),calc(var(--nv-overlay-top)+0.75rem))]">
+    <main className="mx-auto w-full max-w-3xl px-6 pb-[max(6rem,calc(var(--nv-overlay-bottom)+2rem))] pt-[max(2.5rem,var(--nv-safe-top),calc(var(--nv-overlay-top)+0.75rem))]">
       {/* ── Masthead ────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>

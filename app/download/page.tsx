@@ -75,7 +75,7 @@ export default function DownloadPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON_LD }}
       />
-      <main className="mx-auto w-full max-w-3xl px-6 pt-[max(2.5rem,env(safe-area-inset-top))] pb-[max(3rem,env(safe-area-inset-bottom))]">
+      <main className="mx-auto w-full max-w-3xl px-6 pt-[max(2.5rem,var(--nv-safe-top))] pb-[max(3rem,var(--nv-safe-bottom))]">
         <p className="text-2xs font-extrabold tracking-[0.24em] text-[var(--text-tertiary)]">
           <Link
             href="/"

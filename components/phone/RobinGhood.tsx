@@ -89,7 +89,7 @@ export function RobinGhood({
         under it, which is the thing the material is for and the clause
         design.md allows a header glass under.
       */}
-      <div className="min-h-0 flex-1 overflow-y-auto pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+      <div className="min-h-0 flex-1 overflow-y-auto pb-[max(1.25rem,var(--nv-safe-bottom))]">
         <Glass as="header" className="sticky top-0 z-10 px-4 pt-4 pb-3">
           <div className="flex items-end justify-between gap-3">
             <h1 className="min-w-0 truncate text-xl font-extrabold tracking-[-0.02em]">
@@ -106,7 +106,7 @@ export function RobinGhood({
           <div
             role="tablist"
             aria-label="RobinGhood sections"
-            className="mt-3 flex gap-1 rounded-[var(--radius-pill)] bg-[var(--chip)] p-1"
+            className="mt-3 flex gap-2 rounded-[var(--radius-pill)] bg-[var(--chip)] p-1.5"
           >
             {TABS.map((t) => (
               <button
