@@ -85,6 +85,9 @@ struct FiscalYearActivity: Widget {
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
                     }
+                    // The island's top-left corner takes a bite out of
+                    // whatever is flush against it. See `NvIsland`.
+                    .padding(.leading, NvIsland.inset)
                 }
 
                 DynamicIslandExpandedRegion(.trailing) {
@@ -100,6 +103,7 @@ struct FiscalYearActivity: Widget {
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
                     }
+                    .padding(.trailing, NvIsland.inset)
                 }
 
                 DynamicIslandExpandedRegion(.bottom) {
@@ -129,6 +133,11 @@ struct FiscalYearActivity: Widget {
                         }
                     }
                     .padding(.top, 2)
+                    // Both lower corners, and the lower edge. The segment bar
+                    // is inset with everything else: a twelve-tick bar missing
+                    // its first and last tick reads as an eleven-month year.
+                    .padding(.horizontal, NvIsland.inset)
+                    .padding(.bottom, NvIsland.bottomInset)
                 }
             } compactLeading: {
                 Image(systemName: company.atGate ? "video.fill" : (company.weakest?.symbol ?? company.symbol))

@@ -50,12 +50,15 @@ struct MarketActivity: Widget {
                             .font(NvType.label(12, weight: .black))
                             .tracking(0.5)
                             .foregroundStyle(Nv.primary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
                         Text(context.state.companyName.uppercased())
                             .font(NvType.label(9, weight: .bold))
                             .tracking(0.5)
                             .foregroundStyle(Nv.tertiary)
                             .lineLimit(1)
                     }
+                    .padding(.leading, NvIsland.inset)
                 }
 
                 DynamicIslandExpandedRegion(.trailing) {
@@ -74,6 +77,7 @@ struct MarketActivity: Widget {
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
                     }
+                    .padding(.trailing, NvIsland.inset)
                 }
 
                 DynamicIslandExpandedRegion(.bottom) {
@@ -83,6 +87,8 @@ struct MarketActivity: Widget {
                         }
                     }
                     .padding(.top, 2)
+                    .padding(.horizontal, NvIsland.inset)
+                    .padding(.bottom, NvIsland.bottomInset)
                 }
             } compactLeading: {
                 Image(systemName: book.arrow)
