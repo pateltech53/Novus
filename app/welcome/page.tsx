@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ENTER, SETTLE_SPRING, useStill } from "@/components/ui/Motion";
@@ -13,6 +14,7 @@ import { billingStatus, goToCheckout } from "@/lib/cloud/billing";
 import { useSellsHere } from "@/lib/commerce";
 import { BuyOnWeb } from "@/components/upgrade/BuyOnWeb";
 import { LegalSheet } from "@/components/LegalSheet";
+import { ScreenSheet } from "@/components/screens/ScreenSheet";
 import { PRIVACY, TERMS, type LegalDocument } from "@/lib/legal/documents";
 import {
   CADENCE_SUFFIX,
@@ -69,6 +71,8 @@ const SHARK_EXPLANATION =
 export default function WelcomePage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>("wave");
+  /** The account sheet, over the opening screen. */
+  const [signingIn, setSigningIn] = useState(false);
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
 
@@ -130,7 +134,9 @@ export default function WelcomePage() {
   const screen = (() => {
     switch (step) {
       case "wave":
-        return <Wave key="wave" onNext={() => setStep("name")} />;
+        return (
+          <Wave key="wave" onNext={() => setStep("name")} onSignIn={() => setSigningIn(true)} />
+        );
       case "name":
         return (
           <FieldStep
@@ -196,7 +202,51 @@ export default function WelcomePage() {
   return (
     <main className="relative flex min-h-dvh flex-col overflow-hidden">
       {screen}
+      {/*
+        Loaded on the tap, never before it.
+
+        `next/dynamic` puts `AccountSection` and everything under it — the
+        sign-in form, the provider sheet, `restoreForSignIn` and the Supabase
+        client it reaches for — in a chunk of its own. Most players who land
+        here are new and will never open this, and the opening screen is the
+        one place in the app where First Load JS is the whole experience.
+      */}
+      {signingIn && <SignInSheet onClose={() => setSigningIn(false)} />}
     </main>
+  );
+}
+
+/**
+ * The account, over the opening screen.
+ *
+ * No `onSignedIn`, deliberately. `AccountSection` navigates the page itself
+ * once a sign-in succeeds, and it has to: signing in EMPTIES this device and
+ * pulls the account's own companies down (lib/cloud/auth.ts), so a callback
+ * that merely closed the sheet would leave onboarding running on top of
+ * somebody else's save.
+ */
+const AccountSection = dynamic(
+  () => import("@/components/account/AccountSection").then((m) => m.AccountSection),
+  { ssr: false },
+);
+
+function SignInSheet({ onClose }: { onClose: () => void }) {
+  // The narration is about founding a company; it has no business playing over
+  // a password field.
+  useEffect(() => stopSpeaking(), []);
+
+  return (
+    <ScreenSheet
+      label="Sign in to your account"
+      closeLabel="Close sign in"
+      onClose={onClose}
+      title="Welcome back"
+      blurb="Sign in and your companies come back to this phone — every island, every year, exactly where you left them."
+    >
+      <div className="px-5 pb-6">
+        <AccountSection />
+      </div>
+    </ScreenSheet>
   );
 }
 
@@ -213,7 +263,7 @@ export default function WelcomePage() {
  * 5 founder — the tuxedo and the gold watch — because that is the thing being
  * offered, and the first screen should say what the game is for.
  */
-function Wave({ onNext }: { onNext: () => void }) {
+function Wave({ onNext, onSignIn }: { onNext: () => void; onSignIn: () => void }) {
   useEffect(() => {
     play("splash");
     void speak("Welcome to Novus.", "narrator");
@@ -260,6 +310,27 @@ function Wave({ onNext }: { onNext: () => void }) {
         transition={{ ...ENTER, delay: 0.34 }}
       >
         <PrimaryButton onClick={onNext}>START</PrimaryButton>
+
+        {/*
+          ── The door for somebody who already has an account ────────────────
+
+          This screen is where a new phone lands (lib/entry.ts), and until now
+          it had exactly one way forward: make a founder, name a company, and
+          only then — inside Settings, inside that company — discover that
+          signing in was possible all along. A player restoring on a new phone
+          had to create the thing they were trying to get back.
+
+          Under START rather than beside it. Founding is what this screen is
+          for and it keeps the accent and the weight; this is the quiet second
+          answer, which is the shape it has everywhere else in the app.
+        */}
+        <button
+          type="button"
+          onClick={onSignIn}
+          className="mt-3 w-full py-2 text-2xs font-bold tracking-[0.1em] text-[var(--n-7)]"
+        >
+          I ALREADY HAVE AN ACCOUNT
+        </button>
       </motion.div>
     </StepShell>
   );

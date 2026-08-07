@@ -249,7 +249,12 @@ export function HomeStage({
         `lg:` puts the centred column back, because the desktop rail was never
         the problem: it is a 100dvh column with room for the full portrait.
       */}
-      <div className="relative flex items-center gap-3.5 lg:flex-col lg:items-center lg:gap-0">
+      {/* `mt-2.5` on a phone: the founder's head was landing directly against
+          the FREE/PRO capsule's underside — two objects at different depths
+          touching, which reads as a collision rather than a stack. Desktop
+          keeps its own rhythm; there the capsule row and the portrait are in
+          separate columns. */}
+      <div className="relative mt-2.5 flex items-center gap-3.5 lg:mt-0 lg:flex-col lg:items-center lg:gap-0">
         {/* The player's own founder, not a generic mascot. This is the same
             character that sits in the panel, the Closet and the year-end
             statement — previously the avatar existed only on the screen that
@@ -331,7 +336,11 @@ export function HomeStage({
       {/* The three abilities sit under the identity row on a phone and under
           the centred column on desktop — one place in both, so the coachmark
           that points at the masthead points at the same shape either way. */}
-      <div className="mt-4 flex justify-center lg:mt-4">
+      {/* Full width on a phone, where the three abilities are bars that share
+          the row; centred on desktop, where they are rings sized to
+          themselves. `justify-center` on a full-width flex child is a no-op,
+          so one class carries both. */}
+      <div className="mt-3.5 flex justify-center lg:mt-4">
         <StatRings run={run} />
       </div>
 

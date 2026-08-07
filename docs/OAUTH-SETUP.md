@@ -243,8 +243,15 @@ Enable it, then:
 
 ### 4.5 Xcode
 
-Target → **Signing & Capabilities → + Capability → Sign in with Apple**. Without
-it the system sheet does not appear and the plugin call fails.
+**Nothing to click.** `com.apple.developer.applesignin` is committed in
+`ios/App/App/App.entitlements`, so the target already carries the capability and
+a fresh clone builds with the same entitlements as the machine that shipped the
+last build.
+
+What still has to be true is §4.1: the App ID must carry **Sign in with Apple**
+in the developer portal. Without it the provisioning profile does not include
+the entitlement and the signature is rejected at install — which reads as a
+build that will not run rather than as a missing capability.
 
 ---
 
@@ -256,10 +263,9 @@ browser the webview cannot read, and the player returns exactly as signed out as
 they left. The app uses the native sheets instead and posts the resulting token
 to `/api/auth/oauth/native`.
 
-```sh
-npm i @capgo/capacitor-social-login
-npx cap sync
-```
+`@capgo/capacitor-social-login` is **already in `package.json`**. `npx cap sync`
+— which `npm run build:native` runs — adds it to `ios/App/CapApp-SPM/Package.swift`
+and to the Android project. There is nothing to install by hand.
 
 `lib/cloud/native-oauth.ts` reaches the plugin through Capacitor's
 `registerPlugin("SocialLogin")` rather than importing the package, so:
@@ -271,6 +277,21 @@ npx cap sync
 
 Android also needs the SHA-1s from §3.3 registered, or the Google sheet closes
 immediately with no error a user can act on.
+
+### 5.1 Where a player finds it
+
+Two doors, and the first one is the one that was missing:
+
+- **The opening screen** (`/welcome`) — `I ALREADY HAVE AN ACCOUNT`, under
+  START. This is where a new phone lands, so without it a player restoring on a
+  new device had to create the founder and the company they were trying to get
+  back, and only then find Settings.
+- **Settings → Account**, inside a company, as before.
+
+Both render `components/account/AccountSection.tsx`, which asks the bridge what
+this build can honour rather than reading `NEXT_PUBLIC_OAUTH_PROVIDERS` — so on
+iOS the Apple button appears whenever the plugin is in the project, and the env
+var governs the web alone.
 
 ### On the nonce
 

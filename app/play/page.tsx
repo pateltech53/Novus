@@ -647,16 +647,6 @@ function PlayScreen() {
         </div>
 
         {/*
-          One thing worth doing, when there is one — nothing on the shelf,
-          nobody employed, or room the team has already paid for. Directly
-          under the Books because it is about what the Books are saying, and
-          above the feed because a nudge below the fold is a nudge nobody
-          reads. It renders nothing at all when the company is not missing
-          anything, which is most of a healthy run.
-        */}
-        <NextStep run={run} onOpen={(tab) => setActivity(tab)} />
-
-        {/*
           One log, two presentations.
 
           On the phone the feed is compressed into a single glass row — the
@@ -677,6 +667,28 @@ function PlayScreen() {
         >
           <LogButton month={run.month} year={run.year} onOpen={() => setLogOpen(true)} />
         </div>
+
+        {/*
+          One thing worth doing, when there is one — nothing on the shelf,
+          nobody employed, or room the team has already paid for. It renders
+          nothing at all when the company is not missing anything, which is
+          most of a healthy run.
+
+          ── Why it is under the log row rather than over it ─────────────────
+
+          It used to sit directly under The Books, and its own comment gave the
+          reason: "a nudge below the fold is a nudge nobody reads." Measured on
+          an iPhone 15 Pro, it WAS below the fold — 131px of card starting 8px
+          above it — and it was pushing the one permanent row on this screen
+          another 131px further down, which is what "the story so far needs
+          scrolling" turned out to be.
+
+          Both cannot be above the fold; the screen is not tall enough. So the
+          fixture wins over the nudge: THE STORY SO FAR is always there and is
+          48px, this is conditional and dismissible and is 131. Under a healthy
+          company nothing renders here at all and the order is moot.
+        */}
+        <NextStep run={run} onOpen={(tab) => setActivity(tab)} />
         {/*
           The centre column's own slack, so the decision and ADVANCE sit where
           they always did rather than floating at the top.
@@ -721,6 +733,23 @@ function PlayScreen() {
               ref={setFooterEl}
               className="fixed inset-x-0 bottom-0 z-20 border-t border-[var(--hairline)] bg-[var(--bg)] pt-2 lg:static lg:bg-[var(--surface)]"
             >
+              {/*
+                ── Content dissolves under this dock; it does not get sliced ──
+
+                Reported as "what is this?" — a card whose top 25px showed
+                above the dock's hard border and whose remainder was gone. The
+                page is taller than any phone once a nudge is up, so something
+                IS under here; the question was only whether that reads as
+                "there is more below" or as a rendering fault.
+
+                A border with a fade above it says the first. Phone only: on
+                desktop this block is `lg:static` at the foot of a column with
+                nothing passing beneath it.
+              */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-0 bottom-full h-9 bg-gradient-to-t from-[var(--bg)] to-transparent lg:hidden"
+              />
               <TermCoach
                 term={term?.term ?? null}
                 detail={term?.detail}
