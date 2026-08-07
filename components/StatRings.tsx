@@ -26,10 +26,74 @@ export function StatRings({ run }: { run: RunState }) {
   ];
 
   return (
-    <div className="flex gap-6 lg:gap-5">
-      {rings.map((ring) => (
-        <Ring key={ring.label} {...ring} />
-      ))}
+    <>
+      {/*
+        ── Two treatments, and the phone's is the one that had to change ─────
+
+        Three 72px donuts cost the masthead 110px — a fifth of an iPhone 15
+        Pro's usable height — to say three two-digit numbers. That was
+        affordable until it was measured against what sits under it:
+
+          fold (top of the fixed bar)   678px
+          masthead                      313
+          The Books                     349
+                                        ───
+                                        662, leaving 16px
+
+        THE STORY SO FAR needs 60, so it fell below the fold and had to be
+        scrolled to. There is no other slack on this screen — the books are the
+        point of it, and the founder's portrait is the brand — so the 110px the
+        rings were spending is where the row had to come from.
+
+        The bar says the same thing the arc did. Both are one magnitude out of
+        a hundred; an arc is simply the expensive way to draw it, and it costs
+        three times the height for the same reading. The number, the label and
+        the neutral are all unchanged.
+
+        Desktop keeps the rings. The left rail is a 100dvh column with nothing
+        underneath competing for it, which is the condition the rings were
+        composed under and the only one where they are free.
+      */}
+      <div className="flex w-full gap-4 lg:hidden">
+        {rings.map((ring) => (
+          <Bar key={ring.label} {...ring} />
+        ))}
+      </div>
+      <div className="hidden lg:flex lg:gap-5">
+        {rings.map((ring) => (
+          <Ring key={ring.label} {...ring} />
+        ))}
+      </div>
+    </>
+  );
+}
+
+/**
+ * The phone's reading of the same number.
+ *
+ * One neutral, for the reason the header above gives: hue here would be a
+ * third brand colour spent on magnitude, and the accent belongs to ADVANCE
+ * MONTH — which is 200px below this and would be competing with it.
+ */
+function Bar({ label, value }: { label: string; value: number }) {
+  const pct = Math.max(0, Math.min(100, value));
+  return (
+    <div className="min-w-0 flex-1" role="img" aria-label={`${label} ${pct} of 100`}>
+      <div className="flex items-baseline justify-between gap-1.5">
+        <span className="truncate text-2xs font-semibold tracking-[0.08em] text-[var(--n-8)]">
+          {label}
+        </span>
+        <span className="tnum shrink-0 text-sm font-extrabold text-[var(--n-11)]">{pct}</span>
+      </div>
+      <div className="mt-1 h-[3px] w-full overflow-hidden rounded-[var(--radius-pill)] bg-[color-mix(in_oklch,var(--n-11)_16%,transparent)]">
+        <div
+          className="h-full rounded-[var(--radius-pill)] bg-[color-mix(in_oklch,var(--n-11)_78%,transparent)]"
+          /* The same clock as the arc it replaces, and as The Books' flash and
+             the impact chip — three reactions to one decision that must agree
+             or a choice reads as several unrelated glitches. */
+          style={{ width: `${pct}%`, transition: `width ${IMPACT_MS}ms var(--ease-out)` }}
+        />
+      </div>
     </div>
   );
 }

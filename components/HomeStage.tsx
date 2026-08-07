@@ -331,7 +331,11 @@ export function HomeStage({
       {/* The three abilities sit under the identity row on a phone and under
           the centred column on desktop — one place in both, so the coachmark
           that points at the masthead points at the same shape either way. */}
-      <div className="mt-4 flex justify-center lg:mt-4">
+      {/* Full width on a phone, where the three abilities are bars that share
+          the row; centred on desktop, where they are rings sized to
+          themselves. `justify-center` on a full-width flex child is a no-op,
+          so one class carries both. */}
+      <div className="mt-3.5 flex justify-center lg:mt-4">
         <StatRings run={run} />
       </div>
 
