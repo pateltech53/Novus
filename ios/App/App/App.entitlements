@@ -9,5 +9,21 @@
 	<array>
 		<string>group.com.novuspitch.app</string>
 	</array>
+
+	<!-- Sign in with Apple.
+	     Xcode writes this key when you add the capability by hand; it is here
+	     so nobody has to, and so a fresh clone builds with the same
+	     entitlements as the machine that shipped the last build. Without it
+	     the system sheet does not appear at all and the plugin call fails
+	     with an error no player can act on.
+
+	     This is only half of it. The App ID (com.novuspitch.app) has to carry
+	     the capability in the developer portal as well, or the provisioning
+	     profile will not include this entitlement and the signature is
+	     rejected at install. docs/OAUTH-SETUP.md §4.1 is that half. -->
+	<key>com.apple.developer.applesignin</key>
+	<array>
+		<string>Default</string>
+	</array>
 </dict>
 </plist>
