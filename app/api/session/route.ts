@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { configured } from "@/lib/supabase/config";
-import { attachSession, sessionFromRequest } from "@/lib/supabase/route";
+import { attachSession, crossSite, sessionFromRequest } from "@/lib/supabase/route";
 
 export const runtime = "nodejs";
 // Sessions are per-player state; caching this would hand one player's identity
@@ -40,6 +40,12 @@ export const dynamic = "force-dynamic";
  * person, in exchange for something they can actually use.
  */
 export async function POST(req: NextRequest) {
+  // Not from our own pages. See crossSite() — a cross-site form post is not
+  // preflighted, and req.json() parses the body whatever type it claims.
+  if (crossSite(req)) {
+    return NextResponse.json({ error: "cross-site request refused" }, { status: 403 });
+  }
+
   if (!configured()) {
     return NextResponse.json({ configured: false, signedIn: false });
   }

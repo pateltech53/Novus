@@ -9,6 +9,7 @@ import {
 } from "@/lib/ai/server/providers";
 import { claimAiCall } from "@/lib/ai/server/limit";
 import { PITCH_SYSTEM_PROMPT } from "@/lib/ai/server/pitch-prompt";
+import { crossSite } from "@/lib/supabase/route";
 
 /*
  * The provider is allowed a minute (PROVIDER_TIMEOUT_MS); the platform was
@@ -76,6 +77,12 @@ const CASH_BY_DIFFICULTY = [2, 4, 7, 11, 16];
 const DILUTION_BY_DIFFICULTY = [3, 5, 7, 9, 12];
 
 export async function POST(req: NextRequest) {
+  // Not from our own pages. See crossSite() — a cross-site form post is not
+  // preflighted, and req.json() parses the body whatever type it claims.
+  if (crossSite(req)) {
+    return NextResponse.json({ error: "cross-site request refused" }, { status: 403 });
+  }
+
   if (!OPENROUTER_API_KEY) {
     return NextResponse.json(NOT_CONFIGURED, { status: 501 });
   }

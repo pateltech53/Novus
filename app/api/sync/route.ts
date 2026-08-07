@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { wireEntitlements, type EntitlementRow, type ProfileRoleRow } from "@/lib/admin/entitlements";
 import type { LegacyState, RunState } from "@/lib/engine/types";
 import { configured } from "@/lib/supabase/config";
-import { attachSession, sessionFromRequest, type Session } from "@/lib/supabase/route";
+import { attachSession, crossSite, sessionFromRequest, type Session } from "@/lib/supabase/route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -142,6 +142,12 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
+  // Not from our own pages. See crossSite() — a cross-site form post is not
+  // preflighted, and req.json() parses the body whatever type it claims.
+  if (crossSite(req)) {
+    return NextResponse.json({ error: "cross-site request refused" }, { status: 403 });
+  }
+
   const session = await sessionFromRequest(req);
   if (!session) return noSession();
 

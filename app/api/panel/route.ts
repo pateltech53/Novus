@@ -16,6 +16,7 @@ import {
   whoWalked,
 } from "@/lib/ai/panel-dynamics";
 import type { PanelLogLine, SharkId } from "@/lib/ai/types";
+import { crossSite } from "@/lib/supabase/route";
 
 /*
  * The provider is allowed a minute (PROVIDER_TIMEOUT_MS); the platform was
@@ -166,6 +167,12 @@ interface RawTurn {
 }
 
 export async function POST(req: NextRequest) {
+  // Not from our own pages. See crossSite() — a cross-site form post is not
+  // preflighted, and req.json() parses the body whatever type it claims.
+  if (crossSite(req)) {
+    return NextResponse.json({ error: "cross-site request refused" }, { status: 403 });
+  }
+
   if (!OPENROUTER_API_KEY) return NextResponse.json(NOT_CONFIGURED, { status: 501 });
 
   let body: PanelRequest;

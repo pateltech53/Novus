@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { adminClient } from "@/lib/supabase/admin";
-import { attachSession, sessionFromRequest, withSession } from "@/lib/supabase/route";
+import { attachSession, crossSite, sessionFromRequest, withSession } from "@/lib/supabase/route";
 import { stripe } from "@/lib/stripe/client";
 import { SITE_URL, billingConfigured } from "@/lib/stripe/config";
 
@@ -23,6 +23,12 @@ export const dynamic = "force-dynamic";
  * customer that does not exist.
  */
 export async function POST(req: NextRequest) {
+  // Not from our own pages. See crossSite() — a cross-site form post is not
+  // preflighted, and req.json() parses the body whatever type it claims.
+  if (crossSite(req)) {
+    return NextResponse.json({ error: "cross-site request refused" }, { status: 403 });
+  }
+
   if (!billingConfigured()) {
     return NextResponse.json({ configured: false }, { status: 200 });
   }
