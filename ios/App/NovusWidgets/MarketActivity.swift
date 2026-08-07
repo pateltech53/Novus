@@ -38,7 +38,7 @@ struct MarketActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: MarketAttributes.self) { context in
             MarketCard(book: MarketBook(context.state.market), companyName: context.state.companyName)
-                .padding(14)
+                .padding(13)
                 .activitySystemActionForegroundColor(Nv.action)
         } dynamicIsland: { context in
             let book = MarketBook(context.state.market)
@@ -60,12 +60,19 @@ struct MarketActivity: Widget {
 
                 DynamicIslandExpandedRegion(.trailing) {
                     VStack(alignment: .trailing, spacing: 1) {
+                        // The trailing region is about ninety points wide and
+                        // a book worth $1.2M is eight glyphs of monospace.
+                        // Both of these shrink rather than wrap.
                         Text(book.valueText)
-                            .font(NvType.figure(17, weight: .bold))
+                            .font(NvType.figure(16, weight: .bold))
                             .foregroundStyle(Nv.primary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
                         Text(book.unrealisedText)
                             .font(NvType.figure(11, weight: .bold))
                             .foregroundStyle(book.tint)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
                     }
                 }
 
@@ -165,7 +172,7 @@ struct MarketCard: View {
     let companyName: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 9) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Image(systemName: "chart.line.uptrend.xyaxis")
                     .font(.system(size: 11, weight: .bold))
@@ -236,6 +243,11 @@ struct PositionRow: View {
             Text(row.valueText)
                 .font(NvType.figure(11, weight: .bold))
                 .foregroundStyle(Nv.secondary)
+                // The one text on this row with no fixed width. Without a
+                // limit a long figure wraps, and a wrapped row in a region
+                // measured in points is a row that gets clipped.
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
 
             Text(row.changeText)
                 .font(NvType.figure(11, weight: .bold))
