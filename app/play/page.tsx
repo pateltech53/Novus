@@ -141,6 +141,28 @@ const PositioningSheet = dynamic(
   () => import("@/components/PositioningSheet").then((m) => m.PositioningSheet),
   { ssr: false, loading: () => null },
 );
+/*
+ * The height of the fade that sits ON TOP of the flow, immediately above the
+ * fixed dock — `h-9` on the gradient below, kept here as a number because the
+ * spacer at the end of the flow has to out-measure it.
+ *
+ * The gradient is drawn outside the dock's own box (`bottom-full`), so it is
+ * not part of the measured footer height and it dims whatever the last 36px of
+ * the document happens to be. While the flow ended in a log row that was never
+ * the last thing on screen that cost nothing. It stopped being free the moment
+ * a nudge card could be the final element: scrolled to the very end, its last
+ * 36px sat under a page-coloured wash with nothing below it to justify the
+ * wash — read, correctly, as a card being cut off.
+ */
+const DOCK_FADE = 36;
+
+/**
+ * And the air after it. Clearing the fade by exactly zero is correct
+ * arithmetic and still reads as a card jammed against the dock; this is the
+ * same gap the flow already uses at both of its ends.
+ */
+const FLOW_TAIL = 12;
+
 const DecisionSheet = dynamic(
   () => import("@/components/DecisionSheet").then((m) => m.DecisionSheet),
   { ssr: false, loading: () => null },
@@ -659,12 +681,17 @@ function PlayScreen() {
           the log was always short of, so there is nothing to compress. Same
           `lg:` seam as the rest of this file's two compositions.
         */}
-        <div
-          className="px-3 pt-3 lg:hidden"
-          // The native deck floats over the page's end; on a short phone the
-          // row is the page's end, so it reserves the deck's measured height.
-          style={domChrome ? undefined : { paddingBottom: "var(--nv-chrome-bottom, 0px)" }}
-        >
+        {/*
+          The bottom reservation used to live here, as this row's padding, on
+          the reading that "on a short phone the row is the page's end". It is
+          not: <NextStep/> renders BELOW it and is the page's end whenever the
+          company is missing something. So the padding reserved the deck's
+          height in the wrong place — above the only element that needed it —
+          and the nudge card was laid out into the space the native dock
+          occupies and composited under it. The reservation now sits after
+          everything, next to the web one, where the flow actually ends.
+        */}
+        <div className="px-3 pt-3 lg:hidden">
           <LogButton month={run.month} year={run.year} onOpen={() => setLogOpen(true)} />
         </div>
 
@@ -723,11 +750,17 @@ function PlayScreen() {
 
         {domChrome ? (
           <>
-            {/* The height the fixed bar takes, given back to the flow. */}
+            {/*
+              The height the fixed bar takes, given back to the flow — plus the
+              fade that hangs above it, so that scrolling to the very end lands
+              the last card clear of BOTH. Without the extra 36px the end of the
+              document is the bottom of the fade, and the final element is
+              always partly washed out however far you scroll.
+            */}
             <div
               aria-hidden="true"
               className="shrink-0 lg:hidden"
-              style={{ height: footerHeight }}
+              style={{ height: footerHeight + DOCK_FADE + FLOW_TAIL }}
             />
             <div
               ref={setFooterEl}
@@ -771,7 +804,24 @@ function PlayScreen() {
               </div>
             </div>
           </>
-        ) : null}
+        ) : (
+          /*
+            The same reservation, for the deck UIKit draws instead. It floats
+            over the page rather than taking space in it, and `--nv-chrome-bottom`
+            is what it measured itself to be (safe area included) — so the flow
+            ends with exactly that much air plus the design's own gap, and the
+            last card in it clears the glass.
+
+            Tolerating 0 is the contract in globals.css: the variable is 0 for
+            the frame between first paint and the first measurement, and on the
+            web branch above this element does not exist at all.
+          */
+          <div
+            aria-hidden="true"
+            className="shrink-0 lg:hidden"
+            style={{ height: "calc(var(--nv-chrome-bottom, 0px) + 0.75rem)" }}
+          />
+        )}
       </div>
 
       {/*

@@ -55,6 +55,11 @@ export function NextStep({
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0 }}
         transition={{ ...ENTER }}
+        /* Named so a probe can measure it. This card is the LAST thing in the
+           phone flow whenever it renders, which makes it the one element that
+           can end up under the dock and under the fade above the dock — see
+           `npm run test:home:fold`, which now fails if it does. */
+        data-nudge="next-step"
         className="nv-gc relative mx-3 mt-2 rounded-[var(--radius-card)]"
       >
         {/*

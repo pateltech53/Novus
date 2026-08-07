@@ -1,10 +1,27 @@
 #!/usr/bin/env node
 /**
- * Is THE STORY SO FAR reachable without scrolling?
+ * Two questions about the foot of the play screen.
+ *
+ * ── 1. Is THE STORY SO FAR reachable without scrolling? ─────────────────────
  *
  * The phone play screen is a scrolling document with a FIXED bar at the foot
  * of it, so "above the fold" means "above the top of that bar" — not above the
  * viewport, which is 174px further down and would pass a row nobody can see.
+ *
+ * ── 2. Does the END of the document clear that bar, scrolled all the way? ───
+ *
+ * Not the same question, and it is the one that was answered wrong. The nudge
+ * card renders below the log row and is therefore the last element in the flow
+ * whenever it renders at all — nothing to sell, nobody employed. Reported as a
+ * card at the bottom of the home screen that is cut off, twice, and both
+ * times the report was right: the flow reserved the bar's height but not the
+ * 36px fade that hangs above it, so the last card was washed out at maximum
+ * scroll with nothing below it to justify the wash.
+ *
+ * So this scrolls to the very end and asserts the last card clears the fade,
+ * not just the bar. That is `must` on every device here including the SE: it
+ * costs nothing but slack at the end of a document, so no screen is too short
+ * for it.
  *
  * Run against `out/` (`npm run build:native:only`) at real device geometry.
  * `env(safe-area-inset-*)` cannot be simulated headless, so the two variables
@@ -109,6 +126,37 @@ const MEASURE = () => {
   };
 };
 
+/**
+ * The end of the document, once it has been scrolled to.
+ *
+ * The fade is found rather than assumed: it is the absolutely-positioned,
+ * non-interactive child the dock hangs above itself, and its own top edge — not
+ * the dock's — is the highest pixel that a card at the end of the flow is
+ * allowed to reach. Hard-coding 36 here would keep passing if `h-9` changed.
+ */
+const TAIL = () => {
+  const bar = [...document.querySelectorAll("div")].find(
+    (d) => getComputedStyle(d).position === "fixed" && d.querySelector('[data-coach="advance"]'),
+  );
+  const fade = bar
+    ? [...bar.children].find((c) => {
+        const s = getComputedStyle(c);
+        return s.position === "absolute" && s.pointerEvents === "none";
+      })
+    : null;
+  const box = (el) => {
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return { top: Math.round(r.top), bottom: Math.round(r.bottom), h: Math.round(r.height) };
+  };
+  return {
+    nudge: box(document.querySelector('[data-nudge="next-step"]')),
+    bar: box(bar),
+    fade: box(fade),
+    atEnd: Math.round(document.documentElement.scrollHeight - window.innerHeight - window.scrollY),
+  };
+};
+
 let failed = 0;
 for (const dev of DEVICES) {
   const ctx = await browser.newContext({
@@ -161,6 +209,29 @@ for (const dev of DEVICES) {
         : `✗ ${m.log ? m.log.bottom - m.fold : "?"}px below it` + (dev.must ? "" : "  (reported only)")),
   );
   await page.screenshot({ path: join(SHOTS, `${dev.name.replace(/\s+/g, "-")}.png`) });
+
+  /*
+   * Now the other end. The seeded run has nothing on the shelf, so the nudge
+   * IS rendered and IS the last element in the flow; if it is missing the
+   * probe has stopped testing the thing it is named after and says so rather
+   * than passing quietly.
+   */
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await page.waitForTimeout(400);
+  const t = await page.evaluate(TAIL);
+  const ceiling = t.fade?.top ?? t.bar?.top ?? null;
+  const clear = !!t.nudge && ceiling !== null && t.nudge.bottom <= ceiling;
+  if (!clear) failed++;
+
+  console.log(
+    `  nudge card ${t.nudge ? `${t.nudge.top}..${t.nudge.bottom}` : "— not rendered"}   ` +
+      (clear
+        ? `✓ clears the fade at ${ceiling} (${ceiling - t.nudge.bottom}px of air, ${t.atEnd}px left to scroll)`
+        : t.nudge
+          ? `✗ ${t.nudge.bottom - ceiling}px under the fade/dock at maximum scroll`
+          : "✗ nothing to measure — this probe is not testing what it claims"),
+  );
+  await page.screenshot({ path: join(SHOTS, `${dev.name.replace(/\s+/g, "-")}-end.png`) });
   await ctx.close();
 }
 
@@ -168,7 +239,10 @@ await browser.close();
 server.close();
 
 if (failed) {
-  console.log(`\n✗ THE STORY SO FAR needs scrolling on ${failed} device(s) that must fit it`);
+  console.log(`\n✗ ${failed} failure(s) above — the fold, the end of the flow, or both`);
   process.exit(1);
 }
-console.log("\n✓ THE STORY SO FAR is above the fold on every device that can hold it");
+console.log(
+  "\n✓ THE STORY SO FAR is above the fold on every device that can hold it," +
+    "\n✓ and the end of the flow clears the dock and its fade on all of them",
+);
