@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef } from "react";
+import { useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { animate, motion, useMotionValue } from "framer-motion";
 import { EASE_IN, ENTER, EXIT, SCRIM, SETTLE_SPRING } from "@/components/ui/Motion";
@@ -171,55 +171,40 @@ export function ScreenSheet({
    */
   const y = useMotionValue(0);
   const sheetRef = useRef<HTMLElement | null>(null);
-  const drag = useRef<{ id: number; from: number; at: number; last: number } | null>(null);
+  const drag = useRef<{ id: number; from: number; at: number } | null>(null);
 
-  /** Far enough, or fast enough. Either dismisses; neither snaps back. */
-  const DISMISS_PX = 96;
-  const DISMISS_VELOCITY = 0.55; // px per ms
+  const onGrab = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (docked) return;
+    drag.current = { id: e.pointerId, from: e.clientY, at: e.timeStamp };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
 
-  const glideOut = useCallback(async () => {
-    const height = sheetRef.current?.offsetHeight ?? 600;
-    await animate(y, height, { duration: 0.2, ease: EASE_IN });
-    onClose();
-  }, [onClose, y]);
+  const onGrabMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    if (!d || d.id !== e.pointerId) return;
+    // Down only. Dragging a sheet upward past its own top edge is a gesture
+    // that promises more sheet, and there is no more sheet.
+    y.set(Math.max(0, e.clientY - d.from));
+  };
 
-  const onGrab = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      if (docked) return;
-      drag.current = { id: e.pointerId, from: e.clientY, at: performance.now(), last: e.clientY };
-      e.currentTarget.setPointerCapture(e.pointerId);
-    },
-    [docked],
-  );
-
-  const onGrabMove = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      const d = drag.current;
-      if (!d || d.id !== e.pointerId) return;
-      d.last = e.clientY;
-      // Down only. Dragging a sheet upward past its own top edge is a gesture
-      // that promises more sheet, and there is no more sheet.
-      y.set(Math.max(0, e.clientY - d.from));
-    },
-    [y],
-  );
-
-  const onGrabEnd = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      const d = drag.current;
-      if (!d || d.id !== e.pointerId) return;
-      drag.current = null;
-      const travelled = e.clientY - d.from;
-      const velocity = travelled / Math.max(1, performance.now() - d.at);
-      if (travelled > DISMISS_PX || velocity > DISMISS_VELOCITY) {
-        void glideOut();
-        return;
-      }
-      // Back where it was, on the spring the rest of the app settles with.
-      animate(y, 0, SETTLE_SPRING);
-    },
-    [glideOut, y],
-  );
+  const onGrabEnd = (e: React.PointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    if (!d || d.id !== e.pointerId) return;
+    drag.current = null;
+    const travelled = e.clientY - d.from;
+    // Far enough, or fast enough. 96px, or 0.55px per millisecond — a flick
+    // that has barely moved is still a dismissal, which is the whole reason
+    // the start time is kept.
+    if (travelled > 96 || travelled / Math.max(1, e.timeStamp - d.at) > 0.55) {
+      void animate(y, sheetRef.current?.offsetHeight ?? 600, {
+        duration: 0.2,
+        ease: EASE_IN,
+      }).then(onClose);
+      return;
+    }
+    // Back where it was, on the spring the rest of the app settles with.
+    animate(y, 0, SETTLE_SPRING);
+  };
 
   useNativeOverlay(
     useMemo(
