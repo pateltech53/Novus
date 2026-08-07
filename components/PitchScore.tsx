@@ -298,20 +298,43 @@ export function PitchScore({
             WHAT YOU ACTUALLY SAID
           </h2>
           {transcript.text ? (
-            <p className="mt-2 flex flex-wrap gap-x-[0.28em] gap-y-1 text-sm leading-relaxed text-[var(--n-8)]">
-              {transcript.words.map((word, i) => (
-                <span
-                  key={`${word.w}-${i}`}
-                  className={
-                    word.filler
-                      ? "rounded-[3px] bg-[var(--alert)]/15 px-1 font-semibold text-[var(--alert)]"
-                      : undefined
-                  }
-                >
-                  {word.w}
-                </span>
-              ))}
-            </p>
+            /*
+             ── Why the transcript is a box and not a paragraph ───────────────
+             *
+             * A pitch runs to two minutes, and two minutes of talking is three
+             * hundred words. Laid out as an ordinary paragraph that is most of
+             * a phone screen of grey text sitting between the scores above it
+             * and the seven beats, the room and the CONTINUE button below —
+             * so the longer somebody talked, the further their own verdict
+             * scrolled away from them. The player who most needs to read the
+             * rest of this page is exactly the one who gave the longest pitch.
+             *
+             * So it takes a fixed share of the screen and scrolls inside
+             * itself. `overscroll-contain` is what stops flicking through it
+             * from carrying on into the page underneath once it hits the end,
+             * which is the thing that makes a nested scroller feel broken.
+             *
+             * It is framed rather than free-floating, and that is doing real
+             * work: text meeting an unmarked boundary reads as clipped, and
+             * the same text meeting the edge of a panel reads as continuing.
+             * Same pixels, opposite conclusions.
+             */
+            <div className="mt-2 max-h-[13.5rem] overflow-y-auto overscroll-contain rounded-[var(--radius-row)] bg-[var(--n-2)] px-3 py-2.5 ring-1 ring-[var(--hairline)]">
+              <p className="flex flex-wrap gap-x-[0.28em] gap-y-1 text-sm leading-relaxed text-[var(--n-8)]">
+                {transcript.words.map((word, i) => (
+                  <span
+                    key={`${word.w}-${i}`}
+                    className={
+                      word.filler
+                        ? "rounded-[3px] bg-[var(--alert)]/15 px-1 font-semibold text-[var(--alert)]"
+                        : undefined
+                    }
+                  >
+                    {word.w}
+                  </span>
+                ))}
+              </p>
+            </div>
           ) : (
             <p className="mt-2 text-sm leading-relaxed text-[var(--n-8)]">
               Nothing came through. That is a microphone problem rather than a pitch
