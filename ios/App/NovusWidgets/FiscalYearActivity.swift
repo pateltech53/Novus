@@ -140,12 +140,47 @@ struct FiscalYearActivity: Widget {
                     .padding(.bottom, NvIsland.bottomInset)
                 }
             } compactLeading: {
-                Image(systemName: company.atGate ? "video.fill" : (company.weakest?.symbol ?? company.symbol))
-                    .foregroundStyle(company.accent)
+                /*
+                 The wordmark, not a symbol.
+
+                 The compact island is the app's smallest storefront and it is
+                 seen more often than any screen in the game. An industry glyph
+                 said which company; nothing said whose app it was. "NOVUS" in
+                 the action orange does both jobs at a width the slot has —
+                 five capitals at nine points, tracked tight, and allowed to
+                 shrink rather than truncate on a narrower island.
+                 */
+                Text("NOVUS")
+                    .font(NvType.label(9, weight: .black))
+                    .tracking(0.4)
+                    .foregroundStyle(company.atGate ? Nv.prestige : Nv.action)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
             } compactTrailing: {
-                Text(company.atGate ? "FY\(company.year)" : "\(company.weakest?.value ?? 0)")
-                    .font(NvType.figure(13, weight: .bold))
-                    .foregroundStyle(company.accent)
+                /*
+                 Three scores rather than one.
+
+                 One number is a fact with no scale on it — 47 is meaningless
+                 without knowing what the others are. Three is the smallest set
+                 that reads as a SHAPE: `B61 Q74 M52` says at a glance that
+                 morale is the soft one, and the banded colour says whether any
+                 of them has crossed the line the engine acts on.
+
+                 Still one thing at the gate. Month twelve is not a moment to
+                 offer three numbers to think about.
+                 */
+                if company.atGate {
+                    Text("FY\(company.year)")
+                        .font(NvType.figure(13, weight: .bold))
+                        .foregroundStyle(Nv.prestige)
+                } else {
+                    HStack(spacing: 3) {
+                        ForEach(company.headlineScores, id: \.label) { score in
+                            ScoreChip(score: score, size: 11)
+                        }
+                    }
+                    .minimumScaleFactor(0.7)
+                }
             } minimal: {
                 // The minimal slot is a circle about eleven points across and
                 // it is shared with whatever else is running. A ring, because

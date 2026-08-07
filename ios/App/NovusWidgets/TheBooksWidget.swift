@@ -74,9 +74,7 @@ private struct BooksSmall: View {
             // design.md sets for type.
             VStack(alignment: .leading, spacing: 7) {
                 ForEach(company.headlineScores, id: \.label) { score in
-                    ScoreMeter(
-                        score: score,
-                        pressured: company.underPressure && score.label == company.weakest?.label)
+                    ScoreMeter(score: score)
                 }
             }
 
