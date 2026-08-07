@@ -41,7 +41,11 @@ const NEXT = join(root, ".next");
 /** kB gzipped, First Load JS. `null` = report only, no budget. */
 const BUDGETS = {
   "/page": 150,
-  "/play/page": 340,
+  // 342, not 340: the activity sheets became dismissible by their grabber, and
+  // the pointer handling that does it lands in this chunk because all five
+  // screens share `ScreenSheet`. ~0.4 kB gzipped for a control that has been
+  // drawn on every sheet since the shell existed without doing anything.
+  "/play/page": 342,
   "/found/page": 325,
   // The picker is the front door for anyone with a company, so it is on the
   // critical path for every returning player. 320 is a little above where it

@@ -1660,6 +1660,29 @@ textarea {
   will-change: transform;
 }
 
+/*
+ * A scroller with no scrollbar drawn on it.
+ *
+ * Exactly one caller: the archipelago, where the water can be longer than the
+ * screen. The islands page says in its own comment that "a horizontal
+ * scrollbar on the front door is the least forgivable place to have one" — and
+ * a track and thumb laid across the sea is a UI chrome element on a picture of
+ * water. What says there is more is the hint that names the direction in
+ * words, which is a better affordance than a 4px bar and works on a phone,
+ * where the bar is invisible until you already know to swipe.
+ *
+ * Reach for this only where something ELSE carries the affordance. A scroller
+ * with neither a bar nor a hint is content nobody can find.
+ */
+.nv-noscrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.nv-noscrollbar::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
 /* The stage box travels further than the type it sits beside. */
 .nv-rise-stage {
   animation-name: nvRiseStage;
