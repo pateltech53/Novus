@@ -190,6 +190,7 @@ export function PitchScore({
         offers: outcome.offers,
         accepted: outcome.accepted,
         acceptedFrom: outcome.acceptedFrom,
+        acceptedWith: outcome.acceptedWith,
         panelWasOffline: outcome.offline,
       });
       setDebrief(data);

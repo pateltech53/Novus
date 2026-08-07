@@ -3,11 +3,13 @@ import { reportFallback, reportLive } from "./report";
 import type { PanelContext } from "./panel-context";
 import { localNegotiateTurn, localOfferTurn, localQuestionTurn } from "./panel-local";
 import type {
+  PanelLogLine,
   SharkId,
   SharkNegotiateTurn,
   SharkOffer,
   SharkOfferTurn,
   SharkQuestions,
+  TableOffer,
 } from "./types";
 
 /**
@@ -40,14 +42,20 @@ export interface PanelSessionState {
   pitchTranscript: string;
   /** 0..10 for this year's pitch, used by the offline offer maths. */
   score: number;
-  /** Public log — what each shark said, in order. */
-  log: { speaker: string; spoken: string; questions?: string[] }[];
+  /**
+   * Public log — what each shark said, in order, and what they DID.
+   *
+   * The decision and the terms are carried as well as the words because both
+   * rooms now read this to talk to each other: a shark cannot say "Viktor's
+   * out and I'm not far behind" from a list of sentences alone.
+   */
+  log: PanelLogLine[];
   /** Every question asked by anybody, so nobody asks it twice. */
   askedQuestions: string[];
   /** Attack-point ids already used, for the offline shark's pool. */
   usedAttackIds: string[];
   answers: { question: string; answer: string; declined: boolean }[];
-  offersOnTable: { shark: SharkId; offer: SharkOffer }[];
+  offersOnTable: TableOffer[];
 }
 
 export type TurnSource = "api" | "local";
@@ -73,6 +81,7 @@ export async function sharkQuestionTurn(opts: {
       usedIds: opts.session.usedAttackIds,
       askedQuestions: opts.session.askedQuestions,
       lastAnswer: opts.lastAnswer,
+      log: opts.session.log,
       round: opts.round,
     }),
     source: "local",
@@ -98,7 +107,31 @@ export async function sharkQuestionTurn(opts: {
   if (opts.session.askedQuestions.some((q) => similar(q, live.questions[0]))) {
     return local();
   }
+  if (echoesTheRoom(opts.session.log, opts.shark, live.spoken)) return local();
   return { ...live, source: "api" };
+}
+
+/**
+ * A shark saying, in its own mouth, what the shark before it just said.
+ *
+ * The house rules now require the panel to talk to each other, and the failure
+ * mode of asking for that is the one the room already had: five investors
+ * reaching one verdict and stating it in one set of words. NOBODY ELSE'S WORDS
+ * asks the model not to; this checks. The same reasoning as the repeated
+ * question directly above — the prompt carries the whole log and a prompt is
+ * still not a guarantee, and a fall to the offline shark cannot echo by
+ * construction because its lines are per seat.
+ *
+ * Compared against the two most recent speakers rather than the whole session:
+ * a callback to something said five turns ago is a room with a memory, and only
+ * the sentence immediately above yours reads as parroting.
+ */
+function echoesTheRoom(log: PanelLogLine[], me: SharkId, spoken: string): boolean {
+  if (!spoken || spoken.trim().length < 12) return false;
+  const recent = log
+    .filter((line) => line.speaker !== me && line.spoken)
+    .slice(-2);
+  return recent.some((line) => similar(line.spoken, spoken));
 }
 
 export async function sharkOfferTurn(opts: {
@@ -111,13 +144,18 @@ export async function sharkOfferTurn(opts: {
     round: 1,
     session: opts.session,
   });
-  if (live && live.spoken) return { ...live, source: "api" };
+  // The offer phase runs five seats back to back with no founder in between,
+  // so it is where an echo is both most likely and most obvious.
+  if (live && live.spoken && !echoesTheRoom(opts.session.log, opts.shark, live.spoken)) {
+    return { ...live, source: "api" };
+  }
   return {
     ...localOfferTurn({
       shark: opts.shark,
       ctx: opts.session.ctx,
       answers: opts.session.answers,
       offersOnTable: opts.session.offersOnTable,
+      log: opts.session.log,
       score: opts.session.score,
     }),
     source: "local",
@@ -136,13 +174,17 @@ export async function sharkNegotiateTurn(opts: {
     round: 2,
     session: opts.session,
   });
-  if (live && live.spoken) return { ...live, source: "api" };
+  if (live && live.spoken && !echoesTheRoom(opts.session.log, opts.shark, live.spoken)) {
+    return { ...live, source: "api" };
+  }
   return {
     ...localNegotiateTurn({
       shark: opts.shark,
       ctx: opts.session.ctx,
       current: opts.current,
       counter: opts.counter,
+      offersOnTable: opts.session.offersOnTable,
+      log: opts.session.log,
     }),
     source: "local",
   };
@@ -199,6 +241,9 @@ async function ask<T>(opts: {
         answers: opts.session.answers,
         offersOnTable: opts.session.offersOnTable.map((o) => ({
           shark: o.shark,
+          // The second name, so a shark can see that two of them already teamed
+          // up — and so the server can refuse a third joining the same deal.
+          with: o.with,
           amount_usd: o.offer.amount_usd,
           equity_pct: o.offer.equity_pct,
           implied_valuation_usd: o.offer.implied_valuation_usd,

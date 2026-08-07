@@ -14,7 +14,7 @@ import type {
   PitchCritique,
   TankDebriefData,
 } from "./debrief-types";
-import type { SharkId, SharkOffer } from "./types";
+import type { SharkId, SharkOffer, TableOffer } from "./types";
 
 /**
  * BUILDING THE DEBRIEF — live where possible, real always.
@@ -54,9 +54,11 @@ export interface DebriefInput {
   answers: { question: string; answer: string; declined: boolean; askedBy: string }[];
   log: { speaker: string; spoken: string; questions?: string[] }[];
   privateNotes: { shark: SharkId; note: string }[];
-  offers: { shark: SharkId; offer: SharkOffer }[];
+  offers: TableOffer[];
   accepted: SharkOffer | null;
   acceptedFrom: SharkId | null;
+  /** The second name on the accepted deal, when two sharks went in together. */
+  acceptedWith?: SharkId | null;
   /** True when not one panel turn reached a model. */
   panelWasOffline: boolean;
 }
@@ -110,6 +112,10 @@ async function askDebrief(
         })),
         offers: input.offers.map((o) => ({
           shark: CAST[o.shark]?.name ?? o.shark,
+          // The debrief has to be able to say "you took Marcus AND Dev" —
+          // which of them the founder actually signed with is half the lesson
+          // of a joint offer, and the analyst cannot see it from the terms.
+          joint_with: o.with ? (CAST[o.with]?.name ?? o.with) : null,
           amount_usd: o.offer.amount_usd,
           equity_pct: o.offer.equity_pct,
           implied_valuation_usd: o.offer.implied_valuation_usd,
@@ -119,6 +125,7 @@ async function askDebrief(
         outcome: {
           result: input.accepted ? "deal" : input.offers.length > 0 ? "walked_away" : "no_deal",
           accepted_from: input.acceptedFrom ? CAST[input.acceptedFrom]?.name : null,
+          accepted_jointly_with: input.acceptedWith ? CAST[input.acceptedWith]?.name : null,
           accepted_offer: input.accepted,
         },
         // Nothing about delivery. See the header of app/api/debrief/route.ts.
