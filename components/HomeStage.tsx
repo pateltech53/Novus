@@ -249,7 +249,12 @@ export function HomeStage({
         `lg:` puts the centred column back, because the desktop rail was never
         the problem: it is a 100dvh column with room for the full portrait.
       */}
-      <div className="relative flex items-center gap-3.5 lg:flex-col lg:items-center lg:gap-0">
+      {/* `mt-2.5` on a phone: the founder's head was landing directly against
+          the FREE/PRO capsule's underside — two objects at different depths
+          touching, which reads as a collision rather than a stack. Desktop
+          keeps its own rhythm; there the capsule row and the portrait are in
+          separate columns. */}
+      <div className="relative mt-2.5 flex items-center gap-3.5 lg:mt-0 lg:flex-col lg:items-center lg:gap-0">
         {/* The player's own founder, not a generic mascot. This is the same
             character that sits in the panel, the Closet and the year-end
             statement — previously the avatar existed only on the screen that

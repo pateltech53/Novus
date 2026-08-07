@@ -173,13 +173,28 @@ export function ScreenSheet({
   const sheetRef = useRef<HTMLElement | null>(null);
   const drag = useRef<{ id: number; from: number; at: number } | null>(null);
 
-  const onGrab = (e: React.PointerEvent<HTMLDivElement>) => {
+  const onGrab = (e: React.PointerEvent<HTMLElement>) => {
     if (docked) return;
+    /*
+     * The header is a handle too, not just the pill.
+     *
+     * Reported: dragging it on a desktop "does not work". The pill is 22px
+     * tall and a mouse is not a thumb — you aim at the sheet's top edge, miss
+     * the strip, and nothing happens. iOS lets you drag a sheet by its whole
+     * header, which is a target of about 90px, and so does this now.
+     *
+     * Anything interactive inside it is exempt: a press that starts on CLOSE
+     * is a press of CLOSE, and capturing the pointer for a drag would eat the
+     * click.
+     */
+    if ((e.target as HTMLElement | null)?.closest("button,a,input,select,textarea")) {
+      if (e.currentTarget.getAttribute("aria-label") !== "Drag down to close") return;
+    }
     drag.current = { id: e.pointerId, from: e.clientY, at: e.timeStamp };
     e.currentTarget.setPointerCapture(e.pointerId);
   };
 
-  const onGrabMove = (e: React.PointerEvent<HTMLDivElement>) => {
+  const onGrabMove = (e: React.PointerEvent<HTMLElement>) => {
     const d = drag.current;
     if (!d || d.id !== e.pointerId) return;
     // Down only. Dragging a sheet upward past its own top edge is a gesture
@@ -187,15 +202,20 @@ export function ScreenSheet({
     y.set(Math.max(0, e.clientY - d.from));
   };
 
-  const onGrabEnd = (e: React.PointerEvent<HTMLDivElement>) => {
+  const onGrabEnd = (e: React.PointerEvent<HTMLElement>) => {
     const d = drag.current;
     if (!d || d.id !== e.pointerId) return;
     drag.current = null;
     const travelled = e.clientY - d.from;
-    // Far enough, or fast enough. 96px, or 0.55px per millisecond — a flick
-    // that has barely moved is still a dismissal, which is the whole reason
-    // the start time is kept.
-    if (travelled > 96 || travelled / Math.max(1, e.timeStamp - d.at) > 0.55) {
+    /*
+     * Far enough, or fast enough. 56px, or 0.35px per millisecond.
+     *
+     * It was 96 and 0.55, which is a comfortable flick on a phone and a long
+     * way to drag a mouse — reported as "drag it a little and it just goes
+     * back". 56px is about a third of a sheet header and still well past
+     * anything a tap or a scroll-attempt produces.
+     */
+    if (travelled > 56 || travelled / Math.max(1, e.timeStamp - d.at) > 0.35) {
       void animate(y, sheetRef.current?.offsetHeight ?? 600, {
         duration: 0.2,
         ease: EASE_IN,
@@ -260,8 +280,16 @@ export function ScreenSheet({
          * is the books' bottom border, squared off against it.
          */
         className={`sticky top-0 z-10 shrink-0 px-5 pb-3.5 ${
-          docked ? "pt-3.5" : "rounded-t-[var(--radius-sheet)] pt-2.5"
+          docked ? "pt-3.5" : "cursor-grab touch-none rounded-t-[var(--radius-sheet)] pt-2.5 active:cursor-grabbing"
         }`}
+        {...(docked
+          ? {}
+          : {
+              onPointerDown: onGrab,
+              onPointerMove: onGrabMove,
+              onPointerUp: onGrabEnd,
+              onPointerCancel: onGrabEnd,
+            })}
       >
         {/* A grabber says "drag me down to dismiss", and now it does. A panel
             in a column does not go anywhere, so it does not claim to.

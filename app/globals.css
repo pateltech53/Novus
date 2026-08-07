@@ -388,6 +388,35 @@ body {
 }
 
 /*
+ * ── The same argument, for the insets themselves ────────────────────────────
+ *
+ * `env(safe-area-inset-top)` answers 0 on WKWebView's FIRST load, before the
+ * web view has been laid out inside its safe area. Reported as: the islands
+ * title sits under the status bar and the mascot's head is behind the Dynamic
+ * Island, on the first screen after launch and only there — navigate into a
+ * company and back and it is right. `--nv-safe-top` collapses to its 0.75rem
+ * gap, so ~59pt of hardware becomes 12pt of padding on the screen a player
+ * opens the app to.
+ *
+ * `data-notch` is set before first paint from the screen's long edge — see
+ * lib/native/platform.ts for why that is the only signal available that early
+ * and where 812 comes from.
+ *
+ * These are `max()`, so they are inert as soon as `env()` tells the truth:
+ *   · Dynamic Island   59 + 12 = 71  →  71 wins
+ *   · notch (12–14)    47 + 12 = 59  →  a wash
+ *   · notch (X, XS)    44 + 12 = 56  →  59, three points over, and still right
+ *   · first paint       0 + 12 = 12  →  59, which is the whole point
+ *
+ * Never applied off a notched iPhone, so an SE and an iPad keep the gap they
+ * were composed with rather than paying for hardware they do not have.
+ */
+:root[data-notch="true"] {
+  --nv-safe-top: max(calc(env(safe-area-inset-top, 0px) + 0.75rem), 59px);
+  --nv-safe-bottom: max(calc(env(safe-area-inset-bottom, 0px) + 0.5rem), 34px);
+}
+
+/*
  * In the app, a long press is a game input and never a text selection. On the
  * web it stays selectable, because a life log is a thing people quote.
  * Inputs are exempt everywhere: a field you cannot select text in is broken.
