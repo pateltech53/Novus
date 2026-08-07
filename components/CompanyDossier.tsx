@@ -133,22 +133,53 @@ export function CompanyDossier({
         role="dialog"
         aria-modal="true"
         aria-label={`${run.companyName} — company dossier`}
-        className={`relative flex w-full flex-col overflow-y-auto bg-[var(--sheet)] shadow-[var(--e3)] ${
+        /*
+          ── A frame, with the scrolling inside it ────────────────────────────
+
+          The whole section used to be the scroller, so opening the dossier
+          mid-take gave you a card whose header — the company's name and the
+          way BACK — left the screen the moment you read anything, and whose
+          bottom edge was wherever the viewport happened to cut it. On the
+          pitch screen that is the worst version of it: the camera is running,
+          the clock is going, and the way out has scrolled away.
+
+          Now the card is a fixed frame with its corners visible on all four
+          sides, the header is pinned, and the body is the only thing that
+          moves. `overflow-hidden` on the frame is what makes the rounded
+          corners clip what passes under them.
+        */
+        className={`relative flex w-full flex-col overflow-hidden bg-[var(--sheet)] shadow-[var(--e3)] ${
           overlay
-            ? "max-h-full max-w-md rounded-[var(--radius-card)] pb-4"
-            : "max-h-[min(88dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] max-w-2xl rounded-t-[var(--radius-sheet)] pb-[max(1rem,var(--nv-safe-bottom))]"
+            ? "max-h-full max-w-md rounded-[var(--radius-card)]"
+            : "max-h-[min(88dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] max-w-2xl rounded-t-[var(--radius-sheet)]"
         }`}
         initial={overlay ? { opacity: 0, scale: 0.98 } : { y: "8%", opacity: 0 }}
         animate={overlay ? { opacity: 1, scale: 1 } : { y: 0, opacity: 1 }}
         transition={{ ...ENTER }}
       >
-        <Header run={run} overlay={overlay} onClose={onClose} native={native} />
-        <Body run={run} />
-        <p className="px-4 pt-5 text-2xs leading-snug text-[var(--text-tertiary)]">
-          {overlay
-            ? "The camera is still running. Nothing here is a projection — every figure is a year that already closed."
-            : "Nothing here advances time, and nothing here is a projection. Every figure is a month or a year that already closed."}
-        </p>
+        {/* Pinned. `shrink-0` because the frame is a flex column with a
+            bounded height, and a header that may shrink is a header that
+            disappears when the body is long. */}
+        <div className="shrink-0">
+          <Header run={run} overlay={overlay} onClose={onClose} native={native} />
+        </div>
+
+        {/* The only thing that scrolls. `min-h-0` so it may actually be
+            shorter than its content — a flex child's automatic minimum is its
+            content, and without this the frame grows instead of the body
+            scrolling, which is the whole bug. */}
+        <div
+          className={`min-h-0 flex-1 overflow-y-auto overscroll-contain ${
+            overlay ? "pb-4" : "pb-[max(1rem,var(--nv-safe-bottom))]"
+          }`}
+        >
+          <Body run={run} />
+          <p className="px-4 pt-5 text-2xs leading-snug text-[var(--text-tertiary)]">
+            {overlay
+              ? "The camera is still running. Nothing here is a projection — every figure is a year that already closed."
+              : "Nothing here advances time, and nothing here is a projection. Every figure is a month or a year that already closed."}
+          </p>
+        </div>
       </motion.section>
     </motion.div>
   );

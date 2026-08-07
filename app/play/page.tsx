@@ -733,6 +733,23 @@ function PlayScreen() {
               ref={setFooterEl}
               className="fixed inset-x-0 bottom-0 z-20 border-t border-[var(--hairline)] bg-[var(--bg)] pt-2 lg:static lg:bg-[var(--surface)]"
             >
+              {/*
+                ── Content dissolves under this dock; it does not get sliced ──
+
+                Reported as "what is this?" — a card whose top 25px showed
+                above the dock's hard border and whose remainder was gone. The
+                page is taller than any phone once a nudge is up, so something
+                IS under here; the question was only whether that reads as
+                "there is more below" or as a rendering fault.
+
+                A border with a fade above it says the first. Phone only: on
+                desktop this block is `lg:static` at the foot of a column with
+                nothing passing beneath it.
+              */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-0 bottom-full h-9 bg-gradient-to-t from-[var(--bg)] to-transparent lg:hidden"
+              />
               <TermCoach
                 term={term?.term ?? null}
                 detail={term?.detail}

@@ -458,7 +458,18 @@ function IslandsPage() {
                   action: leaving is not what this screen is asking you to do. */}
               {account?.email ? (
                 <GlassButton
-                  tone="quiet"
+                  /*
+                   * The full material, not `quiet`.
+                   *
+                   * `quiet` thins the tint to 55%, the ring to 70% and drops
+                   * the shadow entirely — which is right for a cancel sitting
+                   * beside a confirm, and wrong for the only control on an
+                   * open ocean. With nothing around it to be quiet next to it
+                   * read as a flat grey pill rather than a lens over water,
+                   * which is what it was reported as. Neutral keeps the ring,
+                   * the specular edge and the drop, so it is glass with the
+                   * sea visibly behind it.
+                   */
                   shape="pill"
                   onClick={() => void leaveAccount()}
                   disabled={leaving}

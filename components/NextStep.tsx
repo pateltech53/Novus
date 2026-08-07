@@ -55,34 +55,57 @@ export function NextStep({
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0 }}
         transition={{ ...ENTER }}
-        className="nv-gc mx-3 mt-2 rounded-[var(--radius-card)] p-3"
+        className="nv-gc relative mx-3 mt-2 rounded-[var(--radius-card)]"
       >
-        <div className="flex items-start justify-between gap-3">
-          <p className="text-sm font-bold leading-snug text-[var(--text-primary)]">
-            {nudge.title}
-          </p>
-          <button
-            type="button"
-            onClick={() => setDismissed((d) => [...d, key])}
-            aria-label="Dismiss this suggestion"
-            /* 30px minimum, the bar `npm run audit:phone` enforces. */
-            className="nv-press -my-1 -mr-1 flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[var(--radius-chip)] text-[var(--text-tertiary)]"
-          >
-            <span aria-hidden="true" className="text-sm leading-none">
-              ✕
-            </span>
-          </button>
-        </div>
-        <p className="mt-1 text-2xs leading-snug text-[var(--text-secondary)]">{nudge.body}</p>
+        {/*
+          ── The card IS the button ────────────────────────────────────────
+
+          It used to carry a full-width action button of its own under the
+          copy, which cost 48px to repeat what the card already said and made
+          this 131px on a screen that measures its slack in tens. On a phone
+          that mattered: the row under it is the log, the fixed dock is under
+          that, and 131px was the difference between "there is more below" and
+          a card sliced in half by the dock — which is exactly what it was
+          reported as.
+
+          So the whole surface opens the tab, the chevron says so, and the ✕
+          sits above it in the stacking order rather than inside it, because a
+          dismiss nested in a button is a tap that does both.
+        */}
         <button
           type="button"
           onClick={() => {
             haptic("choice");
             onOpen(nudge.tab);
           }}
-          className="nv-gc mt-2.5 w-full rounded-[var(--radius-row)] px-4 py-2.5 text-2xs font-extrabold tracking-[0.08em] text-[var(--n-10)]"
+          className="nv-press-row flex w-full items-start gap-3 rounded-[var(--radius-card)] p-3 text-left"
         >
-          {nudge.action} ▸
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-bold leading-snug text-[var(--text-primary)]">
+              {nudge.title}
+            </span>
+            <span className="mt-0.5 block text-2xs leading-snug text-[var(--text-secondary)]">
+              {nudge.body}
+            </span>
+            <span className="mt-1 block text-2xs font-extrabold tracking-[0.08em] text-[var(--n-10)]">
+              {nudge.action} ▸
+            </span>
+          </span>
+          {/* The dismiss's own footprint, kept out of the label so the row's
+              text never runs under it. */}
+          <span aria-hidden="true" className="h-[30px] w-[30px] shrink-0" />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setDismissed((d) => [...d, key])}
+          aria-label="Dismiss this suggestion"
+          /* 30px minimum, the bar `npm run audit:phone` enforces. */
+          className="nv-press absolute right-2 top-2 flex h-[30px] w-[30px] items-center justify-center rounded-[var(--radius-chip)] text-[var(--text-tertiary)]"
+        >
+          <span aria-hidden="true" className="text-sm leading-none">
+            ✕
+          </span>
         </button>
       </motion.div>
     </AnimatePresence>
