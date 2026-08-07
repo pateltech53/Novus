@@ -6,14 +6,18 @@ import type {
   SharkQuestions,
   SharkOfferTurn,
   SharkNegotiateTurn,
+  TableOffer,
 } from "./types";
 import { CAST } from "./panel-cast";
 import {
+  backs,
   crossTalkOnQuestion,
   lastOtherBeat,
   nothingToPriceLine,
   onRivalBid,
   onRivalWalking,
+  openedOnTheRoom,
+  relationOf,
   whoWalked,
 } from "./panel-dynamics";
 import { scoreAnswer, scoreAnswers, DEFENCE_FLOOR } from "./pitch-content";
@@ -242,10 +246,16 @@ export function localQuestionTurn(opts: {
    * Roughly two turns in three, and only when somebody else has actually
    * spoken — the first questioner follows the Chair and has nobody to agree
    * with, which is exactly the case where a forced "as Marcus said" would give
-   * the whole device away.
+   * the whole device away. `openedOnTheRoom` is the other half of that: a die
+   * roll at 0.7 produces three-in-a-row about a third of the time it gets the
+   * chance, and three consecutive turns opening on a rival is the tic this
+   * feature would otherwise have introduced while removing another one.
    */
   const previous = lastOtherBeat(opts.log, shark);
-  const cross = previous && rng() < 0.7 ? crossTalkOnQuestion(shark, previous.shark, rng) : "";
+  const cross =
+    previous && !openedOnTheRoom(opts.log) && rng() < 0.7
+      ? crossTalkOnQuestion(shark, previous.shark, rng)
+      : "";
   /*
    * Two sentences, never three. `spoken` sits above the question in the beat
    * row and the house rules cap it — so when the founder's answer and a rival
@@ -332,7 +342,7 @@ export function localOfferTurn(opts: {
   shark: SharkId;
   ctx: PanelContext;
   answers: { question: string; answer: string; declined: boolean }[];
-  offersOnTable: { shark: SharkId; offer: SharkOffer }[];
+  offersOnTable: TableOffer[];
   /** The public record, so a shark knows who has already folded and why. */
   log?: PanelLogLine[];
   /** 0..10, this year's pitch score. */
@@ -341,6 +351,10 @@ export function localOfferTurn(opts: {
   const { shark, ctx } = opts;
   const rng = rngFor(ctx, `${shark}:offer`);
   const walked = whoWalked(opts.log).filter((id) => id !== shark);
+  /* The tic guard — see `openedOnTheRoom`. Five offers run back to back with no
+   * founder in between, so this phase is where a cross-talk habit compounds
+   * fastest. */
+  const chatty = openedOnTheRoom(opts.log);
   /*
    * Each answer counts for what it was worth, not merely for existing. The old
    * test here was `answer.trim().length > 0`, which priced "asdf asdf" exactly
@@ -408,7 +422,7 @@ export function localOfferTurn(opts: {
 
   if (conviction < OUT_BELOW[shark]) {
     return {
-      spoken: outLine(shark, ctx, walked, opts.offersOnTable, rng),
+      spoken: outLine(shark, ctx, walked, opts.offersOnTable, chatty, rng),
       decision: "out",
       offer: null,
       join_with: "",
@@ -484,8 +498,32 @@ export function localOfferTurn(opts: {
     conditions: conditionsFor(shark, ctx),
   };
 
+  /*
+   * ── Two names on one cheque ───────────────────────────────────────────────
+   *
+   * Rather than bid against somebody they already back. Dev's persona calls the
+   * joint offer his favourite play and says he will join Marcus's structures
+   * for a board seat; Lily splits brand deals with Serena as "she buys the
+   * reach, I build the love"; Viktor never joins anybody and his appetite here
+   * is zero, which is the persona stated as a number. Only ever proposed to a
+   * seat this shark actually backs (`RELATIONS`), that is already on the table,
+   * and that is not already half of a joint offer — nobody stacks three names.
+   */
+  const partner = joinTarget(shark, opts.offersOnTable, rng);
+  if (partner) {
+    const joint = mergedOffer(partner.offer, amount, shark, partner.shark, ctx);
+    return {
+      spoken: JOIN_LINE[shark](CAST[partner.shark].name, termsOf(joint)),
+      decision: "join",
+      offer: joint,
+      join_with: partner.shark,
+      reason: `Joined ${CAST[partner.shark].name} rather than bid against a thesis I agree with.`,
+      private_notes: `Conviction ${conviction.toFixed(2)}. Joined ${partner.shark} at their valuation; combined cheque.`,
+    };
+  }
+
   return {
-    spoken: offerLine(shark, offer, opts.offersOnTable, walked, rng),
+    spoken: offerLine(shark, offer, opts.offersOnTable, walked, chatty, rng),
     decision: "offer",
     offer,
     join_with: "",
@@ -493,6 +531,92 @@ export function localOfferTurn(opts: {
     private_notes: `Conviction ${conviction.toFixed(2)}. Anchored at ${anchor} of the fair band.`,
   };
 }
+
+/**
+ * How often each of them would rather join than outbid.
+ *
+ * Straight from the personas: Dev "frequently proposes joint offers", Lily
+ * "likes joint offers with Serena or Dev", Serena "will joint-offer with Lily
+ * on brand-led plays", Marcus's "favourite structure" is Dev's hands on his
+ * money — and Viktor "never joins other sharks' offers; occasionally they join
+ * yours", which is a zero here and nothing else.
+ */
+const JOIN_APPETITE: Record<SharkId, number> = {
+  marcus: 0.3,
+  serena: 0.35,
+  dev: 0.65,
+  lily: 0.4,
+  viktor: 0,
+};
+
+/** The seat this shark would rather stand beside than bid against. */
+function joinTarget(
+  shark: SharkId,
+  onTable: TableOffer[],
+  rng: () => number,
+): TableOffer | null {
+  if (rng() >= JOIN_APPETITE[shark]) return null;
+  const eligible = onTable.filter(
+    (o) => o.shark !== shark && !o.with && o.offer && backs(relationOf(shark, o.shark).stance),
+  );
+  if (!eligible.length) return null;
+  // An outright ally first, then the biggest cheque already committed.
+  const allies = eligible.filter((o) => relationOf(shark, o.shark).stance === "ally");
+  const pool = allies.length ? allies : eligible;
+  return pool.reduce((a, b) => (b.offer.amount_usd > a.offer.amount_usd ? b : a));
+}
+
+/**
+ * Two cheques, one price.
+ *
+ * The joiner comes in at the terms the first shark already set — that is what
+ * joining means — so the VALUATION is the partner's and only the cheque grows.
+ * The equity follows from the bigger cheque at that same price, which is why
+ * the founder gives up more for a joint offer and gets more money for it.
+ * Equity is rounded before the implied valuation is derived from it, so the
+ * division shown to the player is the division that was done.
+ */
+function mergedOffer(
+  partnerOffer: SharkOffer,
+  myAmount: number,
+  me: SharkId,
+  partner: SharkId,
+  ctx: PanelContext,
+): SharkOffer {
+  const valuation = Math.max(1, partnerOffer.implied_valuation_usd);
+  const cap = Math.min(60, MAX_EQUITY[me] + MAX_EQUITY[partner]);
+  let amount = roundMoney(partnerOffer.amount_usd + myAmount);
+  let equityRaw = (amount / valuation) * 100;
+  if (equityRaw > cap) {
+    equityRaw = cap;
+    amount = roundMoney((valuation * cap) / 100);
+  }
+  const equity = Number(Math.max(3, equityRaw).toFixed(1));
+  return {
+    amount_usd: amount,
+    equity_pct: equity,
+    implied_valuation_usd: Math.round(amount / (equity / 100)),
+    deal_type: partnerOffer.deal_type,
+    // Both sharks' conditions travel with the deal — the founder is signing up
+    // to two investors, and that is most of what the second name costs them.
+    conditions: [...new Set([...partnerOffer.conditions, ...conditionsFor(me, ctx)])].slice(0, 3),
+  };
+}
+
+const termsOf = (o: SharkOffer) =>
+  `${money(o.amount_usd)} for ${o.equity_pct}%, which values you at ${money(o.implied_valuation_usd)}`;
+
+const JOIN_LINE: Record<SharkId, (partner: string, terms: string) => string> = {
+  marcus: (p, t) =>
+    `${p}, I'll come in alongside you rather than bid against you. Together that's ${t}, and my half goes in as a note.`,
+  serena: (p, t) =>
+    `${p} — let's not bid each other up over something we both want. Together: ${t}, all equity, and I'll open the doors.`,
+  dev: (p, t) =>
+    `${p}, I'd rather join you than outbid you: your cheque, my hands. Together that's ${t}, and I want the board seat.`,
+  lily: (p, t) =>
+    `${p}, I'd like to do this one with you — you buy the reach, I build the love. Together: ${t}.`,
+  viktor: (p, t) => `${p}, I'll take a piece of yours, on your terms, unchanged. Together: ${t}.`,
+};
 
 /**
  * The founder pushed back. Hold, move, or leave.
@@ -512,7 +636,7 @@ export function localNegotiateTurn(opts: {
   /** What the founder said when they countered. */
   counter: string;
   /** Who else is still holding an offer, so this one can be measured against them. */
-  offersOnTable?: { shark: SharkId; offer: SharkOffer }[];
+  offersOnTable?: TableOffer[];
   log?: PanelLogLine[];
 }): SharkNegotiateTurn {
   const { shark, ctx } = opts;
@@ -568,7 +692,9 @@ export function localNegotiateTurn(opts: {
   // The best rival still standing, named and quoted — the founder is choosing
   // between these people, so they may as well hear them choose against each other.
   const rival = bestRival(shark, opts.offersOnTable ?? []);
-  const lead = rival ? `${onRivalBid(shark, rival.shark, money(rival.offer.amount_usd), rng)} ` : "";
+  const lead = rival
+    ? `${onRivalBid(shark, rival.shark, money(rival.offer.amount_usd), rng, rival.with)} `
+    : "";
 
   return {
     spoken: lead + REVISE[shark](improved.equity_pct, opts.current.equity_pct),
@@ -629,11 +755,9 @@ const REVISE: Record<SharkId, (next: number, was: number) => string> = {
 };
 
 /** The biggest cheque on the table that isn't this shark's own. */
-function bestRival(
-  shark: SharkId,
-  onTable: { shark: SharkId; offer: SharkOffer }[],
-): { shark: SharkId; offer: SharkOffer } | null {
-  const others = onTable.filter((o) => o.shark !== shark && o.offer);
+function bestRival(shark: SharkId, onTable: TableOffer[]): TableOffer | null {
+  // A deal this shark is already half of is not a rival's deal.
+  const others = onTable.filter((o) => o.shark !== shark && o.with !== shark && o.offer);
   if (!others.length) return null;
   return others.reduce((a, b) => (b.offer.amount_usd > a.offer.amount_usd ? b : a));
 }
@@ -731,7 +855,8 @@ function outLine(
   shark: SharkId,
   ctx: PanelContext,
   walked: SharkId[],
-  onTable: { shark: SharkId; offer: SharkOffer }[],
+  onTable: TableOffer[],
+  tooMuchRoomTalk: boolean,
   rng: () => number,
 ): string {
   const worst = ctx.attackPoints[0];
@@ -744,11 +869,11 @@ function outLine(
    * the time, though: five sharks each nodding at the last one is its own kind
    * of sameness, and the second version of a tic is still a tic.
    */
-  const rival = [...onTable].reverse().find((o) => o.shark !== shark && o.offer);
+  const rival = [...onTable].reverse().find((o) => o.shark !== shark && o.with !== shark && o.offer);
   const lead =
-    rng() < 0.55
+    !tooMuchRoomTalk && rng() < 0.55
       ? rival
-        ? `${onRivalBid(shark, rival.shark, money(rival.offer.amount_usd), rng)} `
+        ? `${onRivalBid(shark, rival.shark, money(rival.offer.amount_usd), rng, rival.with)} `
         : before
           ? `${onRivalWalking(shark, before, rng)} `
           : ""
@@ -795,21 +920,24 @@ function outReason(shark: SharkId, ctx: PanelContext): string {
 function offerLine(
   shark: SharkId,
   offer: SharkOffer,
-  onTable: { shark: SharkId; offer: SharkOffer }[],
+  onTable: TableOffer[],
   walked: SharkId[],
+  tooMuchRoomTalk: boolean,
   rng: () => number,
 ): string {
   const terms = `${money(offer.amount_usd)} for ${offer.equity_pct}%, which values you at ${money(
     offer.implied_valuation_usd,
   )}`;
 
-  const rival = [...onTable].reverse().find((o) => o.shark !== shark && o.offer);
+  const rival = [...onTable].reverse().find((o) => o.shark !== shark && o.with !== shark && o.offer);
   const before = walked.at(-1);
-  const lead = rival
-    ? `${onRivalBid(shark, rival.shark, money(rival.offer.amount_usd), rng)} `
-    : before
-      ? `${onRivalWalking(shark, before, rng)} `
-      : "";
+  const lead = tooMuchRoomTalk
+    ? ""
+    : rival
+      ? `${onRivalBid(shark, rival.shark, money(rival.offer.amount_usd), rng, rival.with)} `
+      : before
+        ? `${onRivalWalking(shark, before, rng)} `
+        : "";
 
   switch (shark) {
     case "marcus":

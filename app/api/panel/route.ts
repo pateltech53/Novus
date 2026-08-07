@@ -10,7 +10,9 @@ import {
   isSharkId,
   lastOtherBeat,
   nothingToPriceLine,
+  openedOnTheRoom,
   relationOf,
+  resolveShark,
   whoWalked,
 } from "@/lib/ai/panel-dynamics";
 import type { PanelLogLine, SharkId } from "@/lib/ai/types";
@@ -249,6 +251,17 @@ function turnBrief(body: PanelRequest, phase: string, you: SharkId) {
      */
     the_room: {
       you_are: CAST[you]?.name,
+      /*
+       * The roster is a STATUS line per seat, not a transcript per seat.
+       *
+       * It carried `the_last_thing_they_said` at 300 characters for each of the
+       * four, which is a second copy of `panel_log` — ~500 extra tokens on
+       * every one of the nine turns in a year gate, five years a run, for words
+       * the model is already reading below. What a shark actually needs about
+       * the three people who are not speaking to it right now is who they are,
+       * what they want, and where they stand. The one whose sentence it is
+       * about to answer is handed over in full, separately.
+       */
       the_other_four: PANEL.filter((s) => s.id !== you).map((s) => {
         const theirLast = [...log].reverse().find((l) => l.speaker === s.id);
         const bid = body.offersOnTable?.find(
@@ -267,8 +280,6 @@ function turnBrief(body: PanelRequest, phase: string, you: SharkId) {
                 ? "still in"
                 : "has not spoken yet",
           their_offer: bid ?? null,
-          the_last_thing_they_said: str(theirLast?.spoken, 300) || null,
-          what_they_asked: theirLast?.questions?.[0] ?? null,
         };
       }),
       /*
@@ -279,6 +290,22 @@ function turnBrief(body: PanelRequest, phase: string, you: SharkId) {
       who_spoke_immediately_before_you: speakerBefore(log, you),
       how_to_use_this:
         "Take a position on the last thing another shark said — agree and add, or disagree and say why — using their name. Never invent a line they did not say. If you reach the same verdict as somebody above you, credit them by name and say the part they missed; never repeat their sentence in your own mouth.",
+      /*
+       * ── The tic guard ─────────────────────────────────────────────────────
+       *
+       * "Roughly two turns in three" is not an instruction a model follows; it
+       * reads the rule, sees the roster, and opens every single turn with "I
+       * agree with Serena" — which is a new tic wearing the old one's clothes,
+       * and would be a fair complaint about this change rather than a fix for
+       * the original one. So the cadence is measured off what the room has
+       * actually just done, and the correction is stated only when it is true.
+       */
+      ...(openedOnTheRoom(log, 2)
+        ? {
+            cadence_correction:
+              "The last two sharks BOTH opened by reacting to somebody else at this table. Do not make it three. Open on the founder and their numbers this turn — react to the room later in your block, or not at all.",
+          }
+        : {}),
     },
 
     // The company, exactly as the founder sees it on their own notes card.
@@ -514,11 +541,26 @@ function shapeTurn(raw: RawTurn, phase: string, body: PanelRequest, you: SharkId
         private_notes: `Answer substance ${defence.held.toFixed(2)} across ${defence.asked} questions (${defence.answered} answered) — overridden to out.`,
       };
     }
+    /*
+     * ── A joint offer with somebody who never made one ────────────────────
+     *
+     * `join_with` is free text from a model, and the same "bound it rather than
+     * trust it" rule the deal terms get applies to it: a shark may only join a
+     * seat that is actually holding an offer right now, that is not itself, and
+     * that has not already been joined — nobody stacks three names on one
+     * cheque. Anything else and the decision degrades to a plain offer, which
+     * is what the terms already describe. Left untouched, a model naming a
+     * shark who went out five turns ago would put a deal on the table in the
+     * name of somebody the founder just watched leave.
+     */
+    const partner = joinPartner(raw.join_with, body, you);
+    const settled = decision === "join" && !partner ? "offer" : decision;
+
     return {
       spoken,
-      decision: ["offer", "out", "join"].includes(decision) ? decision : "out",
+      decision: ["offer", "out", "join"].includes(settled) ? settled : "out",
       offer,
-      join_with: str(raw.join_with, 40),
+      join_with: partner ?? "",
       reason: str(raw.reason, 260),
       private_notes: privateNotes,
     };
@@ -531,6 +573,24 @@ function shapeTurn(raw: RawTurn, phase: string, body: PanelRequest, you: SharkId
     reason: str(raw.reason, 260),
     private_notes: privateNotes,
   };
+}
+
+/**
+ * The seat a shark may actually join, or null.
+ *
+ * Null is a refusal, not a lookup miss: every one of these conditions is a way
+ * a joint offer would be a lie on screen — a partner who never bid, a partner
+ * who already has somebody else's name on the deal, or a shark joining itself.
+ */
+function joinPartner(named: unknown, body: PanelRequest, you: SharkId): SharkId | null {
+  const id = resolveShark(named);
+  if (!id || id === you) return null;
+  const standing = (Array.isArray(body.offersOnTable) ? body.offersOnTable : []).find(
+    (o) => (o as { shark?: string }).shark === id,
+  ) as { with?: unknown; amount_usd?: unknown } | undefined;
+  if (!standing) return null;
+  if (standing.with) return null;
+  return id;
 }
 
 function clampOffer(raw: RawTurn, fair: { low: number; high: number }) {

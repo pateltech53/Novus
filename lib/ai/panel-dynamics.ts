@@ -54,6 +54,27 @@ export function lastOtherBeat(log: PanelLogLine[] | undefined, me: SharkId): Roo
   return null;
 }
 
+/**
+ * Did the last `n` sharks all OPEN by naming somebody else at this table?
+ *
+ * The tic guard, shared by both rooms. A shark who mentions Marcus in their
+ * third sentence is having a conversation; one that starts there every single
+ * turn is running a template — so only the opening clause is searched, and
+ * "roughly two turns in three" is measured against what the room actually just
+ * did rather than left to a die roll (offline) or to a probability the model
+ * was asked to honour (live). Both of those produce three-in-a-row eventually,
+ * and three "I agree with Serena" openings in a row is a new tic wearing the
+ * old one's clothes.
+ */
+export function openedOnTheRoom(log: PanelLogLine[] | undefined, n = 2): boolean {
+  const recent = (log ?? []).filter((l) => l && isSharkId(l.speaker) && l.spoken).slice(-n);
+  if (recent.length < n) return false;
+  return recent.every((line) => {
+    const opening = line.spoken.slice(0, 90);
+    return IDS.some((id) => id !== line.speaker && opening.includes(firstName(id)));
+  });
+}
+
 /** Everyone who has folded so far, oldest first. */
 export function whoWalked(log: PanelLogLine[] | undefined): SharkId[] {
   const out: SharkId[] = [];
@@ -229,6 +250,28 @@ export const backs = (stance: Stance): boolean => stance === "ally" || stance ==
 
 /** First names, because that is how a panel actually addresses each other. */
 export const firstName = (id: SharkId): string => (CAST[id]?.name ?? "").split(" ")[0] || "";
+
+/**
+ * Whoever a shark just named, turned back into a seat.
+ *
+ * `join_with` is free text from a model: it may come back as "dev", "Dev",
+ * "Dev Okafor", or "Dev Okafor (The Wrench)". The offline room writes the id.
+ * Matching all of those here means neither caller has to guess, and an
+ * unresolvable name returns null so the caller can refuse the join rather than
+ * invent a partner.
+ */
+export function resolveShark(text: unknown): SharkId | null {
+  if (typeof text !== "string") return null;
+  const t = text.trim().toLowerCase();
+  if (!t) return null;
+  if (isSharkId(t)) return t;
+  return (
+    IDS.find((id) => {
+      const full = (CAST[id]?.name ?? "").toLowerCase();
+      return t === full || t.startsWith(firstName(id).toLowerCase()) || t.includes(full);
+    }) ?? null
+  );
+}
 
 // ── What one shark says about another, out loud ─────────────────────────────
 
@@ -418,17 +461,30 @@ const ON_A_RIVAL_WALKING: Record<SharkId, { with: (r: string) => string; against
   },
 };
 
-/** "Serena's in at $500K." — said before this shark states their own terms. */
+/**
+ * "Serena's in at $500K." — said before this shark states their own terms.
+ *
+ * `partner` is the second name when the rival's offer is a joint one. Without
+ * it a $300K deal from Marcus AND Dev gets announced as Marcus's, which is
+ * wrong on a screen that shows both their faces on that row — and the "deal"
+ * phrasing is what lets one set of templates carry one name or two without the
+ * verb going plural underneath them.
+ */
 export function onRivalBid(
   shark: SharkId,
   rival: SharkId,
   moneyLabel: string,
   rng: () => number,
+  partner?: SharkId,
 ): string {
-  if (shark === rival) return "";
+  if (shark === rival || shark === partner) return "";
   const { stance } = relationOf(shark, rival);
   const agreeing = rng() < (backs(stance) ? 0.8 : 0.2);
-  return ON_A_RIVAL_BID[shark][agreeing ? "with" : "against"](firstName(rival), moneyLabel);
+  const label =
+    partner && partner !== rival
+      ? `${firstName(rival)} and ${firstName(partner)}'s deal`
+      : firstName(rival);
+  return ON_A_RIVAL_BID[shark][agreeing ? "with" : "against"](label, moneyLabel);
 }
 
 /** "Viktor's out. I'm not far behind." */

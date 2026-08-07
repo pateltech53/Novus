@@ -99,6 +99,24 @@ the house rules tell the shark to use it and not to reuse anybody's sentence.
 The offline room in `lib/ai/panel-local.ts` reads the same table, so a keyless
 deploy gets the cross-talk too. Both are covered by `npm run test:ai`.
 
+Two guards sit behind the house rules, because a prompt is not a guarantee and
+this is the same class of failure the repeated-question guard already exists
+for. **The echo guard** (`lib/ai/panel.ts`) compares a live shark's `spoken`
+against the last two speakers with the same word-overlap test used for repeated
+questions; an echo falls to the offline shark, whose lines are per seat and
+cannot echo by construction. **The tic guard** (`openedOnTheRoom`) notices when
+two sharks in a row opened by naming a rival and stops the third — a model does
+not honour "roughly two turns in three", and "I agree with Serena" every single
+turn would be a new tic replacing the old one.
+
+**Joint offers work now.** `decision: "join"` and `join_with` were produced by
+the route and read by nothing — no screen, no state, no scorer — and the
+offline room hardcoded the field empty. A shark may now join a seat that is
+actually holding a solo offer, coming in at that shark's valuation so only the
+cheque grows; the server refuses a join naming somebody who never bid, a shark
+joining itself, and a third name on one deal. The table shows both faces and
+both names, and the debrief is told who signed with whom.
+
 ⚠️ **`next.config.ts` pins `lib/ai/prompts/**/*.md` into the `/api/panel` and
 `/api/debrief` bundles via `outputFileTracingIncludes`.** They are read with
 `readFileSync`, which file tracing cannot see. Remove that entry and both routes

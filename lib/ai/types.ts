@@ -74,6 +74,27 @@ export interface SharkOffer {
   conditions: string[];
 }
 
+/**
+ * One offer as it sits on the table, with the second name on it when there is
+ * one.
+ *
+ * Panel Rulebook rule 3 has always allowed a shark to "propose a joint offer
+ * with a named shark (state the split)", the offer schema has always carried
+ * `decision: "join"` and `join_with`, and the personas are full of it — Dev
+ * calls the joint offer his favourite play, Serena and Lily split brand deals
+ * as "she buys the reach, I build the love". Nothing ever read the field: the
+ * route produced `join_with` and no screen, no state and no scorer looked at
+ * it, and the offline room hardcoded it empty. `with` is the field that makes
+ * the strongest interaction in the pack reachable.
+ */
+export interface TableOffer {
+  /** The shark who set the terms. A joint offer is accepted through them. */
+  shark: SharkId;
+  offer: SharkOffer;
+  /** The second shark on the deal, when one joined. */
+  with?: SharkId;
+}
+
 /** phase "questions" output — verbatim shape */
 export interface SharkQuestions {
   spoken: string;

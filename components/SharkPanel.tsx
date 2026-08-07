@@ -13,7 +13,8 @@ import { CAST, CHAIR, PANEL, type SeatState } from "@/lib/ai/panel-cast";
 import { speak, stopSpeaking } from "@/lib/ai/speech";
 import { SkipVoice } from "@/components/ui/SkipVoice";
 import { stanceQuestionFor } from "@/lib/engine/positioning";
-import type { SharkId, SharkOffer } from "@/lib/ai/types";
+import type { SharkId, SharkOffer, TableOffer } from "@/lib/ai/types";
+import { resolveShark } from "@/lib/ai/panel-dynamics";
 import { fmtMoney } from "@/lib/engine/format";
 import { S_UNIT } from "@/lib/engine/constants";
 import { haptic } from "@/lib/haptics";
@@ -116,6 +117,8 @@ interface Beat {
   question?: string;
   offer?: SharkOffer | null;
   decision?: string;
+  /** The shark whose offer this one joined, when this beat was a joint offer. */
+  jointWith?: SharkId;
   /** The founder's reply to this beat's question, once it exists. */
   answer?: { text: string; spoken: boolean; declined: boolean };
   /** True when this beat came from the offline shark rather than the model. */
@@ -125,9 +128,11 @@ interface Beat {
 export interface TankOutcome {
   beats: Beat[];
   answers: { question: string; answer: string; declined: boolean; askedBy: string }[];
-  offers: { shark: SharkId; offer: SharkOffer }[];
+  offers: TableOffer[];
   accepted: SharkOffer | null;
   acceptedFrom: SharkId | null;
+  /** The second name on the accepted deal, when it was a joint offer. */
+  acceptedWith: SharkId | null;
   /** Investor-only reads, surfaced only in the debrief. */
   privateNotes: { shark: SharkId; note: string }[];
   /** True when no turn in the session reached a model. */
@@ -153,7 +158,7 @@ export function SharkPanel({
   const [beats, setBeats] = useState<Beat[]>([]);
   const [cursor, setCursor] = useState(0);
   const [thinking, setThinking] = useState(true);
-  const [accepted, setAccepted] = useState<{ shark: SharkId; offer: SharkOffer } | null>(null);
+  const [accepted, setAccepted] = useState<TableOffer | null>(null);
   /*
    * The Tank's mic level — a ref, so it never re-renders this component.
    *
@@ -460,9 +465,37 @@ export function SharkPanel({
           if (turn.private_notes) {
             privateNotesRef.current.push({ shark: next.shark, note: turn.private_notes });
           }
+          /*
+           * Whoever this shark said they were joining — but only if that seat
+           * is still holding a solo offer. The server checks the same thing;
+           * this is the offline path's copy of it, and the reason both exist is
+           * that a joint offer names somebody on screen. A deal in the name of
+           * a shark the founder just watched walk out is worse than no joint
+           * offers at all.
+           */
+          const partner =
+            turn.decision === "join" ? resolveShark(turn.join_with) : null;
+          const joining =
+            partner && partner !== next.shark
+              ? session.offersOnTable.find((o) => o.shark === partner && !o.with)
+              : undefined;
+
           if (turn.decision === "out" || !turn.offer) {
             setSeat(next.shark, "out");
             session.offersOnTable = session.offersOnTable.filter((o) => o.shark !== next.shark);
+          } else if (joining && turn.offer) {
+            /*
+             * Two names, one row. The joint deal replaces the partner's solo
+             * offer rather than sitting beside it — a founder choosing from
+             * this list is choosing a cheque, and the same money must not
+             * appear twice because two people are behind it.
+             */
+            setSeat(next.shark, "bidding");
+            session.offersOnTable = session.offersOnTable.map((o) =>
+              o.shark === joining.shark
+                ? { shark: joining.shark, offer: turn.offer!, with: next.shark }
+                : o,
+            );
           } else {
             setSeat(next.shark, "bidding");
             session.offersOnTable = [
@@ -490,6 +523,7 @@ export function SharkPanel({
             spoken: turn.spoken,
             offer: turn.offer,
             decision: turn.decision,
+            jointWith: joining ? joining.shark : undefined,
             offline: turn.source === "local",
           });
           break;
@@ -534,8 +568,13 @@ export function SharkPanel({
             session.offersOnTable = session.offersOnTable.filter((o) => o.shark !== next.shark);
           } else if (turn.offer) {
             setSeat(next.shark, "bidding");
+            // Spread the standing entry rather than rebuilding it: a joint
+            // offer that moves on the counter keeps the second name on it. The
+            // rebuilt version dropped `with`, so a founder who pushed back on
+            // "Marcus + Dev" got back an offer from Marcus alone, with Dev's
+            // conditions still attached and his face gone from the row.
             session.offersOnTable = session.offersOnTable.map((o) =>
-              o.shark === next.shark ? { shark: next.shark, offer: turn.offer! } : o,
+              o.shark === next.shark ? { ...o, offer: turn.offer! } : o,
             );
           }
           session.log = [
@@ -552,6 +591,7 @@ export function SharkPanel({
             spoken: turn.spoken,
             offer: turn.offer,
             decision: turn.decision,
+            jointWith: standing.with,
             offline: turn.source === "local",
           });
           break;
@@ -674,9 +714,9 @@ export function SharkPanel({
   const atEnd = cursor >= fullSteps.length && !awaiting && !countering;
 
   const accept = useCallback(
-    (shark: SharkId, offer: SharkOffer) => {
+    (entry: TableOffer) => {
       if (!run || !session) return;
-      setAccepted({ shark, offer });
+      setAccepted(entry);
       haptic("dealSigned");
       play("money");
     },
@@ -695,6 +735,7 @@ export function SharkPanel({
       offers: session.offersOnTable,
       accepted: accepted?.offer ?? null,
       acceptedFrom: accepted?.shark ?? null,
+      acceptedWith: accepted?.with ?? null,
       privateNotes: privateNotesRef.current,
       // True only when NOT ONE turn reached a model. The debrief says so out
       // loud rather than presenting an offline session as a live one.
@@ -894,41 +935,60 @@ export function SharkPanel({
                   ON THE TABLE
                 </h2>
                 <ul className="mt-2">
-                  {offers.map(({ shark, offer }) => (
-                    <li key={shark}>
+                  {offers.map((entry) => (
+                    <li key={entry.shark}>
                       <button
                         type="button"
                         disabled={!!accepted}
-                        onClick={() => accept(shark, offer)}
+                        onClick={() => accept(entry)}
                         className={`flex w-full items-center gap-3 border-b border-[var(--hairline)] py-3 text-left disabled:cursor-default ${
-                          accepted?.shark === shark ? "" : accepted ? "opacity-35" : ""
+                          accepted?.shark === entry.shark ? "" : accepted ? "opacity-35" : ""
                         }`}
                       >
-                        <img
-                          src={CAST[shark].portrait}
-                          alt=""
-                          width={44}
-                          height={44}
-                          className="h-11 w-11 shrink-0 object-contain"
-                        />
+                        {/* Two faces when two of them are behind the cheque —
+                            the founder is choosing who they take on, and that
+                            has to be visible before they tap, not after. */}
+                        <span className="relative flex h-11 w-11 shrink-0 items-center justify-center">
+                          <img
+                            src={CAST[entry.shark].portrait}
+                            alt=""
+                            width={44}
+                            height={44}
+                            className="h-11 w-11 object-contain"
+                          />
+                          {entry.with && (
+                            <img
+                              src={CAST[entry.with].portrait}
+                              alt=""
+                              width={30}
+                              height={30}
+                              className="absolute -bottom-0.5 -right-1.5 h-[1.9rem] w-[1.9rem] rounded-full bg-[var(--bg)] object-contain ring-1 ring-[var(--hairline)]"
+                            />
+                          )}
+                        </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block text-sm font-semibold">{CAST[shark].name}</span>
+                          <span className="block text-sm font-semibold">
+                            {entry.with
+                              ? `${CAST[entry.shark].name} + ${CAST[entry.with].name}`
+                              : CAST[entry.shark].name}
+                          </span>
                           <span className="block text-2xs text-[var(--text-tertiary)]">
-                            {offer.deal_type}
+                            {entry.with ? `joint offer · ${entry.offer.deal_type}` : entry.offer.deal_type}
                           </span>
                         </span>
                         <span className="tnum shrink-0 text-right">
                           <span className="block text-sm font-bold">
-                            {fmtMoney(offer.amount_usd)}
+                            {fmtMoney(entry.offer.amount_usd)}
                           </span>
                           {/* Dilution, said out loud: what you give and what you keep. */}
                           <span className="block text-2xs text-[var(--text-tertiary)]">
-                            {offer.equity_pct}% · you keep {(100 - offer.equity_pct).toFixed(1)}%
+                            {entry.offer.equity_pct}% · you keep{" "}
+                            {(100 - entry.offer.equity_pct).toFixed(1)}%
                           </span>
                           {/* And the price that ratio puts on the company —
                               the same division the beat row spells out. */}
                           <span className="block text-2xs text-[var(--text-tertiary)]">
-                            says you&rsquo;re worth {fmtMoney(offer.implied_valuation_usd)}
+                            says you&rsquo;re worth {fmtMoney(entry.offer.implied_valuation_usd)}
                           </span>
                         </span>
                       </button>
@@ -1074,6 +1134,14 @@ function BeatRow({ beat }: { beat: Beat }) {
           )}
           {beat.decision === "out" && (
             <span className="text-2xs font-bold tracking-[0.12em] text-[var(--alert)]">OUT</span>
+          )}
+          {/* Two names on the cheque. Said in the header rather than only in
+              the dialogue, because the terms below are the COMBINED terms and
+              a founder reading them has to know they are taking on two people. */}
+          {beat.jointWith && (
+            <span className="text-2xs font-bold tracking-[0.12em] text-[var(--color-prestige)]">
+              JOINT WITH {(CAST[beat.jointWith]?.name ?? "").split(" ")[0].toUpperCase()}
+            </span>
           )}
         </p>
         {beat.spoken && (
