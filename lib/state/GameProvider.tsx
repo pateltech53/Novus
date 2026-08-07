@@ -270,6 +270,12 @@ interface GameContextValue {
   setRookieMode(on: boolean): void;
   markTermSeen(term: string): void;
   advanceTutorial(step: number): void;
+  /**
+   * The company is finished and stays on the map as a headstone. What Chapter
+   * Seven offers; `abandonRun` is the separate, explicit act of clearing the
+   * island.
+   */
+  retireRun(): void;
   abandonRun(): void;
   /**
    * Open a different company.
@@ -899,20 +905,64 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     [commit],
   );
 
+  /**
+   * Write a company into legacy, exactly once, whatever route it took there.
+   *
+   * ── Why this needs a guard at all ─────────────────────────────────────────
+   *
+   * Recording and burying used to be one act, because burying was the only
+   * exit a finished company had. With islands they are two: a company can be
+   * finished and still on the map — that is what a headstone IS — and it may
+   * be buried an hour later or never. Both moments would otherwise write the
+   * same autopsy, and `runsCompleted` would climb by two for one company.
+   *
+   * Keyed by run id rather than by name, because two companies may be called
+   * the same thing and a player who founds "GlorpCo" twice has run twice.
+   */
+  const recordLegacyOnce = useCallback((state: RunState, closedOnPurpose: boolean) => {
+    const legacy = loadLegacy();
+    if (legacy.autopsies.some((a) => a.runId && a.runId === state.id)) return;
+    const report = buildAutopsy(state);
+    legacy.runsCompleted += 1;
+    legacy.autopsies.unshift({
+      runId: state.id,
+      companyName: report.companyName,
+      years: report.yearsSurvived,
+      causes: closedOnPurpose
+        ? ["Closed by the founder."]
+        : report.fatalDecisions.map((d) => d.choiceLabel),
+    });
+    legacy.autopsies = legacy.autopsies.slice(0, 10);
+    saveLegacy(legacy);
+  }, []);
+
+  /**
+   * The company is finished, and stays on the map.
+   *
+   * What Chapter Seven's "found another one" does now. It used to call
+   * `abandonRun`, which DELETED the company — so the headstone the islands
+   * screen is built to draw could never appear, and a player who lost their
+   * only company arrived at a picker with two empty places on it and no
+   * record that anything had ever been there.
+   *
+   * Everything that makes a grave legible is already written and was simply
+   * unreachable: `IslandSummary.endedBy`, the CHAPTER SEVEN plate, READ THE
+   * BOOKS, PEAK VALUATION beside AT THE END, and the note in lib/entry.ts
+   * saying a finished company's books stay readable.
+   */
+  const retireRun = useCallback(() => {
+    const state = runRef.current;
+    if (state) recordLegacyOnce(state, state.alive);
+    // Deliberately no `clearRun`: the save IS the headstone. The in-memory
+    // session is left alone too — the caller navigates away, and a player who
+    // comes back to this island through READ THE BOOKS should find the report
+    // where they left it.
+    setIslands(listIslands());
+  }, [recordLegacyOnce]);
+
   const abandonRun = useCallback(() => {
     const state = runRef.current;
-    if (state && !state.alive) {
-      const legacy = loadLegacy();
-      legacy.runsCompleted += 1;
-      const report = buildAutopsy(state);
-      legacy.autopsies.unshift({
-        companyName: report.companyName,
-        years: report.yearsSurvived,
-        causes: report.fatalDecisions.map((d) => d.choiceLabel),
-      });
-      legacy.autopsies = legacy.autopsies.slice(0, 10);
-      saveLegacy(legacy);
-    }
+    if (state) recordLegacyOnce(state, false);
     // The tape goes with the company. A player who buries this one and founds
     // another must not carry the old taps into the new tape — `record` refuses
     // a mismatched runId anyway, and this makes the intent explicit rather than
@@ -1118,18 +1168,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
    */
   const endRun = useCallback(() => {
     const state = runRef.current;
-    if (state) {
-      const legacy = loadLegacy();
-      legacy.runsCompleted += 1;
-      const report = buildAutopsy(state);
-      legacy.autopsies.unshift({
-        companyName: report.companyName,
-        years: report.yearsSurvived,
-        causes: state.alive ? ["Closed by the founder."] : report.fatalDecisions.map((d) => d.choiceLabel),
-      });
-      legacy.autopsies = legacy.autopsies.slice(0, 10);
-      saveLegacy(legacy);
-    }
+    if (state) recordLegacyOnce(state, state.alive);
     // Tape before clearRun, and named, for the reason abandonRun states.
     clearTape(islandRef.current);
     clearRun(islandRef.current);
@@ -1498,6 +1537,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setRookieMode,
       markTermSeen,
       advanceTutorial,
+      retireRun,
       abandonRun,
       saveProfileFields,
       choicesFor,
@@ -1530,7 +1570,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       island, islands, switchIsland,
       startRun, advance, choose, dismissCard, openYearGate, skipYearGate, cancelPerform, submitPerform,
       chooseAllocation, closeYearEnd, setRookieMode, markTermSeen,
-      advanceTutorial, abandonRun, saveProfileFields, choicesFor, runActivity,
+      advanceTutorial, retireRun, abandonRun, saveProfileFields, choicesFor, runActivity,
       hire, fire, buyHolding, sellHolding, buyStock, sellStock,
       transferToBrokerage, setAvatar, setFounderName, setCompanyName, endRun, markMailRead, setPro, lastDeltas, tierUnlock, dismissTierUnlock,
     ],

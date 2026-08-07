@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { haptic } from "@/lib/haptics";
 import { play } from "@/lib/sound";
 
@@ -9,6 +9,8 @@ import { EXIT } from "@/components/ui/Motion";
 import { useGame } from "@/lib/state/GameProvider";
 import type { AutopsyReport } from "@/lib/engine/autopsy";
 import { fmtMoney } from "@/lib/engine/format";
+import { appPath } from "@/lib/native/href";
+import { storefront } from "@/lib/commerce";
 
 /**
  * Chapter 7 — the autopsy. A toe-tag document, deliberately narrow and
@@ -16,6 +18,9 @@ import { fmtMoney } from "@/lib/engine/format";
  * company, quoted from the actual run log. Death is content.
  */
 export function ChapterSeven({ report }: { report: AutopsyReport }) {
+  /** First tap arms the burial, second commits it. */
+  const [burying, setBurying] = useState(false);
+
   // Fires on mount rather than on a tap: the company died as a consequence,
   // not because the player pressed something.
   useEffect(() => {
@@ -104,9 +109,32 @@ export function ChapterSeven({ report }: { report: AutopsyReport }) {
           )}
         </div>
 
+        {/*
+          ── Two acts, not one ──────────────────────────────────────────────
+
+          This button used to call `abandonRun`, which DELETES the company. It
+          was written when a player had one run and burying it was the only way
+          to start again; with islands that is two different things, and doing
+          both at once is why a player who lost their only company arrived at
+          the picker with two empty places on it and no sign anything had ever
+          been there.
+
+          Everything needed to draw the grave was already written and simply
+          unreachable — `IslandSummary.endedBy`, the CHAPTER SEVEN plate, READ
+          THE BOOKS, PEAK VALUATION beside AT THE END. So the loud button keeps
+          the headstone and takes the player to the water, where founding is one
+          tap and this company is still on the map beside the new one.
+
+          Burying is still offered, quietly, because the island cap is real and
+          a slot occupied by a grave is a slot. It is the second button and it
+          says what it does.
+        */}
         <button
           type="button"
-          onClick={game.abandonRun}
+          onClick={() => {
+            game.retireRun();
+            window.location.href = storefront() === "web" ? "/islands" : appPath("/islands");
+          }}
           className="nv-gc mt-6 w-full rounded-[var(--radius-card)] nv-t-action px-5 py-4 text-base font-extrabold tracking-[0.06em]"
         >
           FOUND ANOTHER ONE ▸
@@ -114,6 +142,28 @@ export function ChapterSeven({ report }: { report: AutopsyReport }) {
         <p className="mt-2 text-center text-2xs tracking-[0.1em] text-[var(--text-tertiary)]">
           THE SHARK REMEMBERS. SO DO YOU.
         </p>
+
+        {/* The island stays on the map unless this is pressed. Two taps, because
+            a headstone is the only record of a company and one tap is how a
+            record gets destroyed by a thumb. */}
+        <button
+          type="button"
+          onClick={() => {
+            if (!burying) {
+              setBurying(true);
+              return;
+            }
+            game.abandonRun();
+            window.location.href = storefront() === "web" ? "/islands" : appPath("/islands");
+          }}
+          className={`mt-4 w-full rounded-[var(--radius-row)] px-5 py-3 text-2xs font-bold tracking-[0.12em] ${
+            burying
+              ? "bg-[var(--alert)]/15 text-[var(--alert)]"
+              : "text-[var(--text-tertiary)]"
+          }`}
+        >
+          {burying ? "TAP AGAIN TO BURY IT FOR GOOD" : "BURY THIS ISLAND"}
+        </button>
       </motion.div>
     </div>
   );

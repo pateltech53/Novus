@@ -447,5 +447,19 @@ export interface LegacyState {
   runsCompleted: number;
   sharkRespect: number; // carries across runs
   badges: string[];
-  autopsies: { companyName: string; years: number; causes: string[] }[];
+  autopsies: {
+    /**
+     * Which run this is the autopsy of.
+     *
+     * Optional, and every reader must treat missing as "from before this
+     * existed" rather than as a match: entries written before islands have
+     * none. It is here so a company can be recorded once and buried later —
+     * two acts that used to be the same one. See `recordLegacyOnce` in
+     * lib/state/GameProvider.tsx.
+     */
+    runId?: string;
+    companyName: string;
+    years: number;
+    causes: string[];
+  }[];
 }
