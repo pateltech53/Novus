@@ -5,6 +5,15 @@ import { claimAiCall } from "@/lib/ai/server/limit";
 import { askOpenRouter, str } from "@/lib/ai/server/openrouter";
 import { sharkSystemPrompt } from "@/lib/ai/server/panel-prompts";
 import { scoreAnswers, DEFENCE_FLOOR } from "@/lib/ai/pitch-content";
+import { CAST, PANEL } from "@/lib/ai/panel-cast";
+import {
+  isSharkId,
+  lastOtherBeat,
+  nothingToPriceLine,
+  relationOf,
+  whoWalked,
+} from "@/lib/ai/panel-dynamics";
+import type { PanelLogLine, SharkId } from "@/lib/ai/types";
 
 /*
  * The provider is allowed a minute (PROVIDER_TIMEOUT_MS); the platform was
@@ -166,7 +175,8 @@ export async function POST(req: NextRequest) {
 
   const phase =
     body.phase === "offer" || body.phase === "negotiate" ? body.phase : "questions";
-  const shark = String(body.shark ?? "marcus");
+  const raw = String(body.shark ?? "marcus");
+  const shark: SharkId = isSharkId(raw) ? raw : "marcus";
   const system = sharkSystemPrompt(shark);
   if (!system) {
     // The prompt files did not make it into the bundle. Reported as 502 rather
@@ -188,7 +198,7 @@ export async function POST(req: NextRequest) {
 
   const result = await askOpenRouter<RawTurn>({
     system,
-    user: turnBrief(body, phase),
+    user: turnBrief(body, phase, shark),
     schema,
     schemaName: `shark_${phase}`,
     /*
@@ -205,18 +215,71 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "The room is quiet." }, { status: result.status });
   }
 
-  return NextResponse.json(shapeTurn(result.data, phase, body));
+  return NextResponse.json(shapeTurn(result.data, phase, body, shark));
 }
 
 /** What the shark is shown for this turn. */
-function turnBrief(body: PanelRequest, phase: string) {
+function turnBrief(body: PanelRequest, phase: string, you: SharkId) {
   const ctx = body.context ?? ({} as PanelRequest["context"]);
   const defence = scoreAnswers(answerRecords(body));
+  const log = panelLog(body);
+  const walked = whoWalked(log);
   return {
     phase,
     round: Number(body.round ?? 1),
     you_are: body.shark,
     founder_name: str(ctx?.founderName, 48) || "the founder",
+
+    /*
+     * ── The other four ────────────────────────────────────────────────────
+     *
+     * Panel Rulebook rule 2 asks every shark to react to the panel log in
+     * character, name the others, spar with them and team up with them. It has
+     * never been possible: the log arrived as `{speaker: "serena"}` and nothing
+     * in the request said who Serena is, what she wants, whether she is still
+     * in, or what she just put on the table. A model cannot agree with somebody
+     * it has not been introduced to, so it did the only safe thing and ignored
+     * the other four entirely — five monologues sharing a table, and in the
+     * situations where they all reach the same verdict, five identical ones.
+     *
+     * `how_you_read_them` is this shark's own PANEL DYNAMICS line from their
+     * persona file, turned into data (`lib/ai/panel-dynamics.ts`) so it is
+     * about the specific person who just spoke rather than a general
+     * instruction to be panel-aware.
+     */
+    the_room: {
+      you_are: CAST[you]?.name,
+      the_other_four: PANEL.filter((s) => s.id !== you).map((s) => {
+        const theirLast = [...log].reverse().find((l) => l.speaker === s.id);
+        const bid = body.offersOnTable?.find(
+          (o) => (o as { shark?: string }).shark === s.id,
+        );
+        return {
+          name: s.name,
+          known_as: s.tag,
+          they_care_about: s.cares,
+          how_you_read_them: relationOf(you, s.id).read,
+          status: walked.includes(s.id)
+            ? "has gone out"
+            : bid
+              ? "has an offer on the table"
+              : theirLast
+                ? "still in"
+                : "has not spoken yet",
+          their_offer: bid ?? null,
+          the_last_thing_they_said: str(theirLast?.spoken, 300) || null,
+          what_they_asked: theirLast?.questions?.[0] ?? null,
+        };
+      }),
+      /*
+       * The specific line you are answering. Handed over separately from the
+       * log because "react to the conversation" is vague and "here is the
+       * sentence spoken immediately before yours" is not.
+       */
+      who_spoke_immediately_before_you: speakerBefore(log, you),
+      how_to_use_this:
+        "Take a position on the last thing another shark said — agree and add, or disagree and say why — using their name. Never invent a line they did not say. If you reach the same verdict as somebody above you, credit them by name and say the part they missed; never repeat their sentence in your own mouth.",
+    },
 
     // The company, exactly as the founder sees it on their own notes card.
     business_brief: ctx?.brief,
@@ -288,8 +351,20 @@ function turnBrief(body: PanelRequest, phase: string) {
       str(body.pitchTranscript, MAX_TRANSCRIPT) ||
       "(The transcript did not come through. Ask them to state the business plainly; never comment on their microphone, their speech or their delivery.)",
 
-    // Everything said so far, so nobody repeats anybody.
-    panel_log: (body.log ?? []).slice(-MAX_LOG),
+    /*
+     * Everything said so far, so nobody repeats anybody — now with the
+     * speaker's NAME and what they decided, not just their id and their words.
+     * "marcus" is a database key; "Marcus Cole, went out" is something a shark
+     * can answer.
+     */
+    panel_log: log.slice(-MAX_LOG).map((entry) => ({
+      speaker: entry.speaker,
+      speaker_name: CAST[entry.speaker as SharkId]?.name ?? "The Chair",
+      spoken: entry.spoken,
+      questions: entry.questions,
+      decision: entry.decision,
+      offer: entry.offer ?? undefined,
+    })),
     questions_already_asked_by_anyone: (body.askedQuestions ?? []).slice(-MAX_LOG),
     founder_answers_so_far: (body.answers ?? []).slice(-MAX_ANSWERS),
     offers_on_the_table: body.offersOnTable ?? [],
@@ -312,6 +387,52 @@ function turnBrief(body: PanelRequest, phase: string) {
   };
 }
 
+/** The public record, defensively shaped from the wire. */
+function panelLog(body: PanelRequest): PanelLogLine[] {
+  return (Array.isArray(body.log) ? body.log : []).map((entry) => {
+    const e = entry as Partial<PanelLogLine>;
+    return {
+      speaker: typeof e.speaker === "string" ? e.speaker : "",
+      spoken: typeof e.spoken === "string" ? e.spoken : "",
+      questions: Array.isArray(e.questions) ? e.questions.filter((q) => typeof q === "string") : undefined,
+      decision: typeof e.decision === "string" ? e.decision : undefined,
+      offer: e.offer && typeof e.offer === "object" ? e.offer : null,
+    };
+  });
+}
+
+/**
+ * The line this shark is about to answer.
+ *
+ * Null on the first turn, and it says so in words rather than by omission: a
+ * model handed an absent field improvises, and the improvisation here is
+ * agreeing with somebody who has not spoken.
+ */
+function speakerBefore(log: PanelLogLine[], you: SharkId) {
+  const beat = lastOtherBeat(log, you);
+  if (!beat) {
+    return {
+      nobody_yet:
+        "You are the first shark to speak this round. There is nothing to react to — do not pretend otherwise, and do not reference anybody else's position.",
+    };
+  }
+  return {
+    name: CAST[beat.shark]?.name,
+    what_they_did:
+      beat.did === "bid"
+        ? "put an offer on the table"
+        : beat.did === "walked"
+          ? "went out"
+          : beat.did === "held"
+            ? "held their offer where it was"
+            : "asked the founder a question",
+    their_exact_words: str(beat.spoken, 400),
+    the_question_they_asked: beat.question ?? null,
+    their_offer: beat.offer ?? null,
+    how_you_read_them: relationOf(you, beat.shark).read,
+  };
+}
+
 /**
  * The model's answer, made safe and made to tie out.
  *
@@ -326,7 +447,7 @@ function turnBrief(body: PanelRequest, phase: string) {
  *      asks the model to do that division correctly; a game that teaches
  *      valuation must not ship an example where it was done wrong.
  */
-function shapeTurn(raw: RawTurn, phase: string, body: PanelRequest) {
+function shapeTurn(raw: RawTurn, phase: string, body: PanelRequest, you: SharkId) {
   const spoken = str(raw.spoken, 700);
   const privateNotes = str(raw.private_notes, 500);
 
@@ -367,8 +488,23 @@ function shapeTurn(raw: RawTurn, phase: string, body: PanelRequest) {
     const defence = scoreAnswers(answerRecords(body));
     if (defence.asked >= 2 && defence.held < DEFENCE_FLOOR) {
       return {
-        spoken:
-          "You were asked real questions and the room got nothing back. Unanswered questions are the diligence. I'm out.",
+        /*
+         * ── The one line five sharks used to say word for word ────────────
+         *
+         * This override fires for every seat in turn, so when it fires at all
+         * it fires five times — and it used to emit one identical sentence
+         * each time. A founder who answered nothing watched five investors
+         * deliver the same paragraph in a row, which reads as a bug rather
+         * than as a verdict, and it is the clearest case of the complaint
+         * that the panel says the same thing in specific situations.
+         *
+         * `nothingToPriceLine` gives each seat their own sentence and lets
+         * the later ones acknowledge whoever already walked, so the same
+         * conclusion is reached five times instead of being announced once
+         * and echoed four times. It stays a server override: the point of
+         * the override is that the model does not get a vote here.
+         */
+        spoken: nothingToPriceLine(you, whoWalked(panelLog(body))),
         decision: "out",
         offer: null,
         join_with: "",

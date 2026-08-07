@@ -3,6 +3,7 @@ import { reportFallback, reportLive } from "./report";
 import type { PanelContext } from "./panel-context";
 import { localNegotiateTurn, localOfferTurn, localQuestionTurn } from "./panel-local";
 import type {
+  PanelLogLine,
   SharkId,
   SharkNegotiateTurn,
   SharkOffer,
@@ -40,8 +41,14 @@ export interface PanelSessionState {
   pitchTranscript: string;
   /** 0..10 for this year's pitch, used by the offline offer maths. */
   score: number;
-  /** Public log — what each shark said, in order. */
-  log: { speaker: string; spoken: string; questions?: string[] }[];
+  /**
+   * Public log — what each shark said, in order, and what they DID.
+   *
+   * The decision and the terms are carried as well as the words because both
+   * rooms now read this to talk to each other: a shark cannot say "Viktor's
+   * out and I'm not far behind" from a list of sentences alone.
+   */
+  log: PanelLogLine[];
   /** Every question asked by anybody, so nobody asks it twice. */
   askedQuestions: string[];
   /** Attack-point ids already used, for the offline shark's pool. */
@@ -73,6 +80,7 @@ export async function sharkQuestionTurn(opts: {
       usedIds: opts.session.usedAttackIds,
       askedQuestions: opts.session.askedQuestions,
       lastAnswer: opts.lastAnswer,
+      log: opts.session.log,
       round: opts.round,
     }),
     source: "local",
@@ -118,6 +126,7 @@ export async function sharkOfferTurn(opts: {
       ctx: opts.session.ctx,
       answers: opts.session.answers,
       offersOnTable: opts.session.offersOnTable,
+      log: opts.session.log,
       score: opts.session.score,
     }),
     source: "local",
@@ -143,6 +152,8 @@ export async function sharkNegotiateTurn(opts: {
       ctx: opts.session.ctx,
       current: opts.current,
       counter: opts.counter,
+      offersOnTable: opts.session.offersOnTable,
+      log: opts.session.log,
     }),
     source: "local",
   };

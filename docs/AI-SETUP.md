@@ -82,7 +82,22 @@ says so rather than pretending.
 The prompts are the ones already in `lib/ai/prompts/` (verbatim from the pack),
 assembled rulebook + persona + a **HOUSE RULES** block this codebase owns. The
 house rules revoke Marcus's "chief" habit, forbid repeating a question, require
-jargon to be defined once in character, and restate Brand Law 5.
+jargon to be defined once in character, restate Brand Law 5, and — see below —
+require each shark to take a position on what the last one said.
+
+**The five of them are in the same room.** Panel Rulebook rule 2 has always
+asked a shark to react to the panel log by name, and it was never possible: the
+log arrived as `{speaker: "serena"}` and nothing in the request said who Serena
+is, what she wants, whether she is still in, or what she just bid. So the model
+ignored the other four and the room was five monologues sharing a table — most
+visibly when all five reached the same verdict and said it in the same words.
+`lib/ai/panel-dynamics.ts` turns each persona's PANEL DYNAMICS line into data:
+for every ordered pair, how that shark reads the other and whether they are
+inclined to back them or take them on. The route ships the roster, the standing
+offers, who has folded and the exact line spoken immediately before this turn;
+the house rules tell the shark to use it and not to reuse anybody's sentence.
+The offline room in `lib/ai/panel-local.ts` reads the same table, so a keyless
+deploy gets the cross-talk too. Both are covered by `npm run test:ai`.
 
 ⚠️ **`next.config.ts` pins `lib/ai/prompts/**/*.md` into the `/api/panel` and
 `/api/debrief` bundles via `outputFileTracingIncludes`.** They are read with

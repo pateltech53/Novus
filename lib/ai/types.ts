@@ -107,6 +107,27 @@ export interface PanelLogEntry {
   content: unknown;
 }
 
+/**
+ * One line of the public record, as the room actually carries it.
+ *
+ * Everything a shark needs to react to somebody else: who spoke, what they
+ * said, what they asked, and — the part that was missing — what they DID.
+ * Without `decision` the log could not tell a shark that two seats had already
+ * folded, so nobody could ever say "Viktor's out and I'm not far behind"; the
+ * offer terms are here for the same reason, so a rival's number can be quoted
+ * rather than guessed at. Lives here rather than in `panel.ts` because the
+ * live route, the offline shark and the session state all read it.
+ */
+export interface PanelLogLine {
+  speaker: string;
+  spoken: string;
+  questions?: string[];
+  /** "offer" | "out" | "join" | "hold" | "revise" — absent on question turns. */
+  decision?: string;
+  /** The headline terms, when this beat had any. */
+  offer?: { amount_usd: number; equity_pct: number; implied_valuation_usd: number } | null;
+}
+
 // ── Debrief Analyst (schema verbatim from pack §9) ───────────────────────────
 
 export interface DebriefReport {

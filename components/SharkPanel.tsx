@@ -470,7 +470,21 @@ export function SharkPanel({
               { shark: next.shark, offer: turn.offer },
             ];
           }
-          session.log = [...session.log, { speaker: next.shark, spoken: turn.spoken }];
+          /*
+           * The decision and the terms go into the public record, not just the
+           * words. The next shark to speak reads this log to take a position on
+           * the room — "Serena's in at $500K", "Viktor's out and I'm not far
+           * behind" — and neither sentence is derivable from prose alone.
+           */
+          session.log = [
+            ...session.log,
+            {
+              speaker: next.shark,
+              spoken: turn.spoken,
+              decision: turn.decision,
+              offer: turn.offer ?? null,
+            },
+          ];
           emit({
             speaker: next.shark,
             spoken: turn.spoken,
@@ -524,7 +538,15 @@ export function SharkPanel({
               o.shark === next.shark ? { shark: next.shark, offer: turn.offer! } : o,
             );
           }
-          session.log = [...session.log, { speaker: next.shark, spoken: turn.spoken }];
+          session.log = [
+            ...session.log,
+            {
+              speaker: next.shark,
+              spoken: turn.spoken,
+              decision: turn.decision,
+              offer: turn.offer ?? null,
+            },
+          ];
           emit({
             speaker: next.shark,
             spoken: turn.spoken,
