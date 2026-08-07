@@ -344,7 +344,47 @@ function IslandsPage() {
   const theme = useResolvedTheme();
   const many = islands.length > 1;
   const overlay = useMemo<NativeOverlayState | null>(() => {
-    if (!focused) return null;
+    if (!focused) {
+      /*
+       * ── The sea has one control after all ────────────────────────────────
+       *
+       * It declared `null` — no chrome, because everything on the water is
+       * scenery. That was right until the account's own door landed here, and
+       * a DOM pill was the only place to put it.
+       *
+       * Which is why it did not read as Liquid Glass, and could not: `.nv-gc`
+       * blurs what is behind it, and behind it is open water — a near-flat
+       * field with a few hairline crests. Blurring almost nothing produces
+       * almost nothing, and under a 70% tint what is left is a dark pill.
+       * No tone fixes that; the material was working and had nothing to work
+       * with.
+       *
+       * On iOS the answer is not a better impression. It is the system's own
+       * `UIGlassEffect` — which is the rule the rest of this app already
+       * follows (components/ui/Glass.tsx, and the play screen's whole chrome).
+       * So the sea declares a toolbar with exactly one button in it, and the
+       * DOM pill is not rendered at all where UIKit has drawn one.
+       */
+      if (!account?.email) return null;
+      return {
+        mode: "shown",
+        theme,
+        // No title plate: "YOUR ISLANDS" is already set on the water 40pt
+        // below this, and a second copy would be the same words twice.
+        title: null,
+        leading: [],
+        trailing: [
+          {
+            id: "signout",
+            symbol: "rectangle.portrait.and.arrow.right",
+            label: `Sign out of ${account.email}`,
+            style: "plain",
+            enabled: !leaving,
+          },
+        ],
+        actions: [],
+      };
+    }
     return {
       mode: "shown",
       theme,
@@ -379,13 +419,14 @@ function IslandsPage() {
         },
       ],
     };
-  }, [focused, theme, many, opening]);
+  }, [focused, theme, many, opening, account?.email, leaving]);
 
   useNativeOverlay(overlay, {
     onAction: (id) => {
       if (id === "back") setFocus(null);
       else if (id === "prev") step(-1);
       else if (id === "next") step(1);
+      else if (id === "signout") void leaveAccount();
       else if (id === "enter" && focus !== null) enter(focus);
     },
   });
@@ -437,7 +478,11 @@ function IslandsPage() {
             */}
             <header
               ref={setHeaderEl}
-              className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start gap-3 px-6 pt-[max(2.5rem,calc(var(--nv-safe-top)+1rem))] pb-3"
+              /* `--nv-overlay-top` is what UIKit measured its toolbar to be,
+                 and 0 on the web and Android where there is not one. The sea
+                 declares a toolbar now (the sign-out), so the title has to
+                 clear it for the same reason the gallery's column does. */
+              className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start gap-3 px-6 pt-[max(2.5rem,calc(var(--nv-safe-top)+1rem),calc(var(--nv-overlay-top)+0.75rem))] pb-3"
             >
               <div className="min-w-0 flex-1">
                 <p className="text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]">
@@ -456,7 +501,12 @@ function IslandsPage() {
                   against a header that is not — the title must never swallow a
                   tap meant for an island drifting under it. Quiet glass, not
                   action: leaving is not what this screen is asking you to do. */}
-              {account?.email ? (
+              {/* Not rendered rather than hidden, which is the rule every
+                  native-chrome caller in this app follows: a hidden button
+                  still takes a tap on iOS if the native view above it passes
+                  the touch through, and the player gets a dead zone nobody can
+                  see. */}
+              {nativeChrome || !account?.email ? null : (
                 <GlassButton
                   /*
                    * The full material, not `quiet`.
@@ -474,11 +524,27 @@ function IslandsPage() {
                   onClick={() => void leaveAccount()}
                   disabled={leaving}
                   aria-label={`Sign out of ${account.email}`}
+                  /*
+                   * A thinner tint than the default, for this control only.
+                   *
+                   * The material reads as glass by showing you something
+                   * through it. Everywhere else in this app there is a board,
+                   * a ledger or a photograph behind a control; here there is
+                   * open water — near-flat, with a few hairline crests — and
+                   * at the standard 70% tint the crests do not come through at
+                   * all. Half of it, and the swell passes behind the pill,
+                   * which is the whole difference between a lens and a chip.
+                   */
+                  style={
+                    {
+                      "--gc-tint": "color-mix(in oklch, var(--glass-tint) 50%, transparent)",
+                    } as CSSProperties
+                  }
                   className="pointer-events-auto shrink-0 text-2xs tracking-[0.12em] disabled:opacity-50"
                 >
                   {leaving ? "SIGNING OUT…" : "SIGN OUT"}
                 </GlassButton>
-              ) : null}
+              )}
             </header>
 
             {/*
