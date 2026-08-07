@@ -148,18 +148,22 @@ const PositioningSheet = dynamic(
  *
  * The gradient is drawn outside the dock's own box (`bottom-full`), so it is
  * not part of the measured footer height and it dims whatever the last 36px of
- * the document happens to be. While the flow ended in a log row that was never
- * the last thing on screen that cost nothing. It stopped being free the moment
- * a nudge card could be the final element: scrolled to the very end, its last
- * 36px sat under a page-coloured wash with nothing below it to justify the
- * wash — read, correctly, as a card being cut off.
+ * the document happens to be. Scrolled to the very end, the final element of
+ * the flow sat under a page-coloured wash with nothing below it to justify the
+ * wash — which reads as content cut in half rather than content passing under
+ * a dock. The nudge card that made this visible has since floated out of the
+ * document entirely; the log row it leaves behind is the last element now, and
+ * it was being washed the same way for the same reason.
  */
 const DOCK_FADE = 36;
 
 /**
- * And the air after it. Clearing the fade by exactly zero is correct
- * arithmetic and still reads as a card jammed against the dock; this is the
- * same gap the flow already uses at both of its ends.
+ * The air after the obstruction — under the flow's last row, and under the
+ * floating nudge, which uses this as its own gap above the dock.
+ *
+ * Clearing an edge by exactly zero is correct arithmetic and still reads as
+ * jammed against it. One number for both so the two never drift apart on
+ * screen, where they are 12px from the same dock.
  */
 const FLOW_TAIL = 12;
 
@@ -701,21 +705,37 @@ function PlayScreen() {
           nothing at all when the company is not missing anything, which is
           most of a healthy run.
 
-          ── Why it is under the log row rather than over it ─────────────────
+          ── Why neither order worked, and why it now has no order ───────────
 
-          It used to sit directly under The Books, and its own comment gave the
-          reason: "a nudge below the fold is a nudge nobody reads." Measured on
-          an iPhone 15 Pro, it WAS below the fold — 131px of card starting 8px
-          above it — and it was pushing the one permanent row on this screen
-          another 131px further down, which is what "the story so far needs
-          scrolling" turned out to be.
+          It sat directly under The Books once, on "a nudge below the fold is a
+          nudge nobody reads", and that pushed the one permanent row on this
+          screen 131px further down — which is what "the story so far needs
+          scrolling" turned out to be. It was moved below the log row, and the
+          comment here reasoned that the fixture should win: the log row is
+          always there and is 48px, the nudge is conditional and dismissible.
 
-          Both cannot be above the fold; the screen is not tall enough. So the
-          fixture wins over the nudge: THE STORY SO FAR is always there and is
-          48px, this is conditional and dismissible and is 131. Under a healthy
-          company nothing renders here at all and the order is moot.
+          Both readings shared an assumption, and it was the wrong one. The
+          flow above this point — masthead, The Books, log row — is already
+          taller than an iPhone 15 Pro, so there is no position in this document
+          from which BOTH are on screen, and the loser is not merely lower, it
+          is off the bottom of the phone. Reported as: it is down there and I
+          cannot tap it. Ordering could never have fixed that.
+
+          So it left the document. On the phone the card pins itself above
+          whatever chrome is drawn — the measured DOM dock, or the height UIKit
+          reports for its own deck, which is the one number it cannot work out
+          for itself. Desktop keeps it in the flow, where the column is a
+          thousand pixels and none of this was ever a problem.
         */}
-        <NextStep run={run} onOpen={(tab) => setActivity(tab)} />
+        <NextStep
+          run={run}
+          onOpen={(tab) => setActivity(tab)}
+          bottom={
+            domChrome
+              ? `${footerHeight + FLOW_TAIL}px`
+              : `calc(var(--nv-chrome-bottom, 0px) + ${FLOW_TAIL}px)`
+          }
+        />
         {/*
           The centre column's own slack, so the decision and ADVANCE sit where
           they always did rather than floating at the top.
