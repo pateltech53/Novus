@@ -224,24 +224,30 @@ struct InlineFigure: View {
 /**
  One of the five, as a label, a number and a bar.
 
- ── Why they are all one colour ──────────────────────────────────────────────
+ ── Why the number is banded and the three are not hued ──────────────────────
 
- `components/StatRings.tsx` settled this and the reasoning transfers verbatim:
- the three rings once carried the action orange, the solvency green and the
- prestige gold, which spent three brand colours on what is really one magnitude
- shown three times. That broke two rules at once — the accent is the primary
- call to action and nothing else, and solvency is financial upside only, and
- morale is not money.
+ `components/StatRings.tsx` settled one half of this and the reasoning
+ transfers verbatim: the three rings once carried the action orange, the
+ solvency green and the prestige gold, which spent three brand colours on what
+ is really one magnitude shown three times. The accent is the primary call to
+ action and nothing else; solvency is financial upside only, and morale is not
+ money. So Brand, Quality and Morale are never three different colours from
+ each other — that rule holds here.
 
- So every meter here is the neutral ink. The ONE exception is the weakest one
- when the company is under pressure, and that is not decoration: below 45 the
- engine starts aiming events at that stat, so the colour is reporting a change
- in what the game is doing rather than ranking five numbers by taste.
+ What they DO carry is one scale applied to each of them, which is a different
+ statement: not "this is the brand one", but "this one has fallen past the line
+ the engine acts on". Under 45 is `alert` because that is where
+ `weakestCategory()` in lib/engine/events.ts starts aiming events at a stat;
+ above 70 is full-weight ink; between them is a step quieter. Three figures
+ read as a shape rather than as arithmetic, which is the whole reason there are
+ three of them.
+
+ `OutsideScore.tint` is the single definition, shared with `ScoreChip` so that
+ the same number is never a different colour in a meter than it is in the
+ island.
  */
 struct ScoreMeter: View {
     let score: OutsideScore
-    /// Draws in alert red. Reserved for the weakest stat below the line.
-    var pressured = false
     var compact = false
 
     var body: some View {
@@ -255,7 +261,7 @@ struct ScoreMeter: View {
                 Spacer(minLength: 3)
                 Text("\(score.value)")
                     .font(NvType.figure(compact ? 11 : 13, weight: .bold))
-                    .foregroundStyle(pressured ? Nv.alert : Nv.primary)
+                    .foregroundStyle(score.tint)
             }
 
             // A continuous bar, not the twelve-tick one. A stat is a magnitude
@@ -267,12 +273,71 @@ struct ScoreMeter: View {
                     Capsule(style: .continuous)
                         .fill(Nv.hairline)
                     Capsule(style: .continuous)
-                        .fill(pressured ? Nv.alert : Nv.primary.opacity(0.78))
+                        .fill(score.tint)
                         .frame(width: max(2, geo.size.width * score.fill))
                 }
             }
             .frame(height: compact ? 3 : 4)
         }
+    }
+}
+
+// ── The score, at four characters ───────────────────────────────────────────
+
+/**
+ One score as an initial and a number — `B61` — for the compact Dynamic Island.
+
+ ── Why an initial ───────────────────────────────────────────────────────────
+
+ The compact trailing slot is about sixty points wide and it has to hold three
+ of these. "BRAND" does not fit next to "QUALITY" and "MORALE" at any size that
+ is still type. An initial does, and it is unambiguous in this set: B, Q and M
+ share no first letter, and they are always drawn in that order, so the letter
+ is a position as much as a name.
+
+ ── The colour, and the one it is not ────────────────────────────────────────
+
+ The number is banded, which is what makes three figures readable as a state
+ rather than as arithmetic:
+
+ · **under 45** — `alert`. Not a threshold picked for a widget: it is the line
+   `weakestCategory()` draws in lib/engine/events.ts, below which the engine
+   starts aiming events at that stat.
+ · **45 to 69** — `secondary`. Fine, and not worth looking at.
+ · **70 and up** — `primary`, at full weight. Strong.
+
+ There is no green in that list and its absence is the design, not an omission.
+ `design.md` gives solvency green to financial upside and nothing else, and a
+ high morale score is not money. Red-to-grey-to-white is a real scale on the
+ island's black ground — arguably a stronger one than a hue ramp, because the
+ Lock Screen renders accessory content in `.vibrant` and hue is the first thing
+ it takes away.
+ */
+struct ScoreChip: View {
+    let score: OutsideScore
+    var size: CGFloat = 12
+
+    var body: some View {
+        HStack(spacing: 0.5) {
+            // The initial rides a step quieter than the number: it is the
+            // label, and the figure is the news.
+            Text(String(score.label.prefix(1)))
+                .font(NvType.label(size - 3, weight: .black))
+                .foregroundStyle(Nv.tertiary)
+            Text("\(score.value)")
+                .font(NvType.figure(size, weight: .bold))
+                .foregroundStyle(score.tint)
+        }
+        .lineLimit(1)
+    }
+}
+
+extension OutsideScore {
+    /// The three-band scale. See `ScoreChip` for why there is no green in it.
+    var tint: Color {
+        if value < 45 { return Nv.alert }
+        if value < 70 { return Nv.secondary }
+        return Nv.primary
     }
 }
 
@@ -284,10 +349,7 @@ struct ScoreRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: compact ? 8 : 10) {
             ForEach(company.headlineScores, id: \.label) { score in
-                ScoreMeter(
-                    score: score,
-                    pressured: company.underPressure && score.label == company.weakest?.label,
-                    compact: compact)
+                ScoreMeter(score: score, compact: compact)
             }
         }
     }
