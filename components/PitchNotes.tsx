@@ -139,8 +139,25 @@ export const PitchNotes = memo(function PitchNotes({
 
   return (
    <>
+    {/*
+      `shrink-0` is load-bearing, and the reason is not obvious.
+
+      Every mount of this card sits inside a flex column, and two of the three
+      are the scrolling column itself. `overflow-hidden` — which is here only to
+      clip the tab row against the rounded corners — resolves this element's
+      `min-height: auto` to ZERO. A flex item that may shrink to zero does,
+      before its container ever overflows, so the browser crushed the card
+      instead of scrolling the column: measured at 393×852 with real device
+      insets, the notes on the brief were 40px tall — the tabs and nothing else —
+      and at 375×667 they were 0px. The card looked like a header with the box
+      under it cut off, because that is exactly what it was.
+
+      Flex shrinking happens BEFORE overflow, so no amount of `overflow-y-auto`
+      on an ancestor fixes this. Refusing to shrink is what makes the column
+      overflow, and overflowing is what makes it scroll.
+    */}
     <section
-      className={`overflow-hidden rounded-[var(--radius-card)] ${surface} ${className}`}
+      className={`shrink-0 overflow-hidden rounded-[var(--radius-card)] ${surface} ${className}`}
       aria-label="Your notes"
     >
       <div className="flex items-center gap-2 border-b border-[var(--hairline)] px-2 pt-2 pb-2">
@@ -175,18 +192,27 @@ export const PitchNotes = memo(function PitchNotes({
       </div>
 
       {/*
-        Sized in viewport units rather than fixed rem, so the card holds its
-        share of a phone and stops wasting a laptop.
+        ── One scroll surface on stage, two in the room ────────────────────────
 
-        The stage cap was a quarter of the screen when the live view owned the
-        rest — every pixel here came off the founder's own face. The camera is
-        a picture-in-picture now, so the trade has reversed: these notes are
-        what the screen is FOR while pitching, and they take the reading share
-        of it. The room keeps its third — there the sharks own the rest.
+        The room caps this in viewport units and scrolls it internally, because
+        there the card is a header block and the sharks own the scrolling region
+        beneath it. Capping is the only way the notes cannot push the room off
+        screen.
+
+        On stage the cap was wrong, and measurably so. The camera column IS a
+        scroller and this card is what it exists to scroll, so the cap put a
+        358px window over 1132px of THE NUMBERS and left the rest behind a
+        gesture that fights its own parent — drag inside the box and the box
+        moves, drag a pixel outside and the column moves instead. Nested
+        scrollers on a touch screen read as content that got cut off, which is
+        what they were reported as.
+
+        So: natural height on stage, and the column carries it. The floor stays
+        so switching tabs doesn't collapse the card to a couple of lines.
       */}
       <div
-        className={`overflow-y-auto px-3 pb-3 pt-2.5 ${
-          onStage ? "max-h-[42vh] min-h-[10rem]" : "max-h-[38vh] min-h-[14rem]"
+        className={`px-3 pb-3 pt-2.5 ${
+          onStage ? "min-h-[10rem]" : "max-h-[38vh] min-h-[14rem] overflow-y-auto"
         }`}
       >
         {tab === "company" && (

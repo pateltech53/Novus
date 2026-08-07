@@ -840,7 +840,26 @@ export function PerformScreen() {
               )}
             </motion.div>
 
-            <div className="shrink-0 px-6 pt-3 pb-[max(1.5rem,var(--nv-safe-bottom))]">
+            {/*
+              ── The dock, and why it has a surface ──────────────────────────
+
+              The notes above are taller than any phone — THE NUMBERS is over
+              1100px — so this fold is permanent, and what mattered was whether
+              it reads as "there is more under here" or as "this app cut my card
+              in half". It read as the second, because the column ended at a
+              hard edge against the same background it was drawn on.
+
+              So the controls sit on the stage's own floor colour and the notes
+              dissolve into it. Solid, not glass: `data-live-3d` on this screen
+              turns every backdrop-filter off (globals.css), so glass here would
+              be a flat fill pretending to be a lens — and design.md puts the
+              live camera outside the material anyway.
+            */}
+            <div className="relative shrink-0 bg-[var(--stage-floor)] px-6 pt-3 pb-[max(1.5rem,var(--nv-safe-bottom))]">
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-0 bottom-full h-10 bg-gradient-to-t from-[var(--stage-floor)] to-transparent"
+              />
               <div className="mx-auto w-full max-w-2xl">
               {error && (
                 <p className="mb-3 text-sm leading-snug text-[var(--alert)]">{error}</p>
