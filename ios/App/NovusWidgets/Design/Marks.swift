@@ -14,6 +14,50 @@ import SwiftUI
  is what gets rendered. See `NovusPalette.swift`.
  */
 
+// ── Where the corners are ───────────────────────────────────────────────────
+
+/**
+ How far in from the edge content has to start to clear a rounded corner.
+
+ ── The geometry ─────────────────────────────────────────────────────────────
+
+ A rounded rectangle does not lose the corner point — it loses everything
+ outside an arc, and the deepest bite is along the 45° diagonal. For a corner
+ radius `r` the boundary there sits `r − r/√2 ≈ 0.29r` in from the corner on
+ both axes, so a straight-edge inset of `p` only clears the corner when
+ `p > 0.29r`.
+
+ The expanded Dynamic Island is a very round shape — call it a 44-point radius
+ — which puts its diagonal boundary about **13 points** in from each corner.
+ SwiftUI adds no inset of its own, and every corner of this layout has a word
+ in it, so the first and last glyphs get bitten off at all four.
+
+ ── Why twelve ───────────────────────────────────────────────────────────────
+
+ The clipped region is a quarter-disc, not a square, so a horizontal inset buys
+ vertical clearance too. At 12 points in from the left edge the arc has already
+ fallen to about 15 points down from the top, and the leading and trailing
+ regions sit lower than that anyway — they flank the sensor housing rather than
+ starting at the island's ceiling.
+
+ Twelve is also the ceiling on generosity. Each of those regions is only around
+ a hundred points wide; take much more and a company's name starts truncating,
+ which trades a clipped glyph for a missing one.
+
+ **This is calculated rather than measured** — there is no way to render a
+ Dynamic Island outside Xcode. If a corner still bites, this constant is the
+ one thing to change, and it is deliberately in one place for that reason.
+
+ The Lock Screen banner is a far gentler shape (about a 22-point radius, so a
+ 6-point diagonal bite) and its own 13 points of padding already clears it.
+ */
+enum NvIsland {
+    /// Horizontal inset for every expanded region. See above for the 0.29r.
+    static let inset: CGFloat = 12
+    /// The bottom region sits against the island's lower edge as well.
+    static let bottomInset: CGFloat = 4
+}
+
 // ── The twelve-segment bar ──────────────────────────────────────────────────
 
 /**
