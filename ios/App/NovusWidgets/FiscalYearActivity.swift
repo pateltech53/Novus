@@ -38,7 +38,11 @@ struct FiscalYearActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: FiscalYearAttributes.self) { context in
             FiscalYearCard(company: context.state.company)
-                .padding(14)
+                // 13, not 14. The Lock Screen banner is capped at the same 160
+                // points the expanded island is, and this card runs to about
+                // 130 of them — close enough that a large Dynamic Type setting
+                // is what would push it over.
+                .padding(13)
                 .activityBackgroundTint(background(context.state.company))
                 .activitySystemActionForegroundColor(
                     context.state.company.atGate ? Nv.onPrestige : Nv.action)
@@ -46,6 +50,22 @@ struct FiscalYearActivity: Widget {
             let company = context.state.company
 
             return DynamicIsland {
+                /*
+                 ── The 160-point ceiling ─────────────────────────────────────
+
+                 An expanded Dynamic Island is capped at 160 points tall, and
+                 anything past it is CLIPPED rather than scaled: no warning, no
+                 scroll, just a number cut through the middle. The leading and
+                 trailing regions and the bottom region stack, so the budget is
+                 shared between all three and it is the bottom one that has to
+                 give.
+
+                 Everything below is therefore one line where it can be. The
+                 leading and trailing regions are two short lines each, every
+                 one of them limited and allowed to shrink; the bottom is a bar,
+                 a row of meters and a single line of money. Nothing here is
+                 three lines tall.
+                 */
                 DynamicIslandExpandedRegion(.leading) {
                     VStack(alignment: .leading, spacing: 1) {
                         Text(company.name.uppercased())
@@ -53,46 +73,59 @@ struct FiscalYearActivity: Widget {
                             .tracking(0.5)
                             .foregroundStyle(Nv.primary)
                             .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                        // "PUBLIC/UNICORN" is fourteen characters and the
+                        // leading region is about a hundred points wide, so
+                        // this one is allowed to shrink rather than wrap into
+                        // a second line the layout has no room for.
                         Text(company.statusLine)
                             .font(NvType.label(9, weight: .bold))
                             .tracking(0.5)
                             .foregroundStyle(company.accent)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
                     }
                 }
 
                 DynamicIslandExpandedRegion(.trailing) {
                     VStack(alignment: .trailing, spacing: 1) {
                         Text(company.atGate ? "FY\(company.year)" : "\(company.weakest?.value ?? 0)")
-                            .font(NvType.figure(17, weight: .bold))
+                            .font(NvType.figure(16, weight: .bold))
                             .foregroundStyle(company.atGate ? Nv.prestige : Nv.primary)
+                            .lineLimit(1)
                         Text(company.atGate ? "CLOSING" : (company.weakest?.label ?? "SCORE"))
                             .font(NvType.label(8, weight: .bold))
                             .tracking(0.5)
                             .foregroundStyle(Nv.tertiary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
                     }
                 }
 
                 DynamicIslandExpandedRegion(.bottom) {
-                    VStack(spacing: 8) {
+                    VStack(spacing: 7) {
                         SegmentBar(
                             fill: Double(company.monthsElapsed) / 12,
                             tint: company.accent, height: 4)
 
-                        ScoreRow(company: company)
-
-                        HStack(alignment: .top, spacing: 0) {
-                            FigureCell(label: "CASH", figure: company.cash, size: 15)
-                            Spacer(minLength: 6)
-                            FigureCell(
-                                label: "VALUATION", figure: company.valuation, size: 15,
-                                alignment: .trailing)
-                        }
+                        ScoreRow(company: company, compact: true)
 
                         if company.atGate {
+                            // At the gate the money is not the point and the
+                            // sentence is. One or the other, never both — two
+                            // of them is what put this region over the ceiling.
                             Text("The year will not close until you have pitched it.")
                                 .font(NvType.label(11, weight: .semibold))
                                 .foregroundStyle(Nv.prestige)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.85)
                                 .frame(maxWidth: .infinity, alignment: .leading)
+                        } else {
+                            HStack(spacing: 0) {
+                                InlineFigure(label: "CASH", figure: company.cash)
+                                Spacer(minLength: 8)
+                                InlineFigure(label: "VALUE", figure: company.valuation)
+                            }
                         }
                     }
                     .padding(.top, 2)
@@ -145,7 +178,7 @@ private struct FiscalYearCard: View {
     private var quiet: Color { company.atGate ? Nv.onPrestige.opacity(0.72) : Nv.tertiary }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 9) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Image(systemName: company.atGate ? "video.fill" : company.symbol)
                     .font(.system(size: 11, weight: .bold))

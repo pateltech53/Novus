@@ -137,6 +137,44 @@ struct FigureCell: View {
     }
 }
 
+/**
+ The same figure on one line, for the places that do not have three lines.
+
+ ── Why this exists rather than a smaller `FigureCell` ───────────────────────
+
+ The expanded Dynamic Island is capped at 160 points tall, and that ceiling is
+ not a guideline: content past it is CLIPPED, silently, with no layout warning
+ and nothing on screen to say a number was cut in half. `FigureCell` is three
+ lines — label, figure, month-over-month — and two of them side by side cost
+ about 42 points. Shrinking the type to fit would take the label under the 12px
+ floor design.md sets.
+
+ So the delta is what goes. It is the least of the three: on a surface a player
+ glances at between sessions, "$412K" is the fact and "−$18K since last month"
+ is a footnote that the app itself tells them properly the moment they open it.
+ */
+struct InlineFigure: View {
+    let label: String
+    let figure: OutsideFigure
+    var size: CGFloat = 14
+    var tint: Color = Nv.primary
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Text(label)
+                .font(NvType.label(9, weight: .bold))
+                .tracking(0.5)
+                .foregroundStyle(Nv.tertiary)
+                .lineLimit(1)
+            Text(figure.text)
+                .font(NvType.figure(size, weight: .bold))
+                .foregroundStyle(tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+    }
+}
+
 // ── The score ───────────────────────────────────────────────────────────────
 
 /**
