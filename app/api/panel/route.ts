@@ -390,7 +390,9 @@ function turnBrief(body: PanelRequest, phase: string, you: SharkId) {
 /** The public record, defensively shaped from the wire. */
 function panelLog(body: PanelRequest): PanelLogLine[] {
   return (Array.isArray(body.log) ? body.log : []).map((entry) => {
-    const e = entry as Partial<PanelLogLine>;
+    // Defensive down to the entry: this is parsed straight off the wire, and a
+    // null in the array must not be able to throw the route.
+    const e = (entry && typeof entry === "object" ? entry : {}) as Partial<PanelLogLine>;
     return {
       speaker: typeof e.speaker === "string" ? e.speaker : "",
       spoken: typeof e.spoken === "string" ? e.spoken : "",

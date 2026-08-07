@@ -985,6 +985,28 @@ const SHARKS = ["marcus", "serena", "dev", "lily", "viktor"];
     const moved = SHARKS.map((shark) => localNegotiateTurn({ shark, ctx, current, counter: "180k for 12%" }).spoken);
     check("and one who counters with terms", new Set(moved).size === 5, JSON.stringify(moved));
     check("every revision is still a real move on the equity", moved.every((s) => /%/.test(s)));
+
+    /*
+     * A revised offer's arithmetic has to tie out, and for a long time it did
+     * not: `equity_pct` was rounded to one decimal while
+     * `implied_valuation_usd` was computed from the unrounded 15.8399…%, so the
+     * beat row printed "$2.7M ÷ 15.8% = $17,045,455" — which is not what that
+     * division equals. This is a game that teaches a teenager to read a
+     * valuation; the worked example on screen cannot be wrong.
+     */
+    const ties = [];
+    for (const equity_pct of [3, 4.7, 15.83, 22.5, 31.1, 45, 59.9]) {
+      for (const amount_usd of [7_500, 120_000, 2_700_000, 48_000_000]) {
+        const revised = localNegotiateTurn({
+          shark: "serena", ctx, counter: "200k for 10%",
+          current: { amount_usd, equity_pct, implied_valuation_usd: 0, deal_type: "equity", conditions: [] },
+        }).offer;
+        ties.push(
+          revised.implied_valuation_usd === Math.round(revised.amount_usd / (revised.equity_pct / 100)),
+        );
+      }
+    }
+    check("a revised offer's division ties out at every size", ties.every(Boolean), `${ties.filter((t) => !t).length} of ${ties.length} did not`);
   }
 
   {
@@ -1144,6 +1166,51 @@ const SHARKS = ["marcus", "serena", "dev", "lily", "viktor"];
   const rules = (await import(pathToFileURL(join(root, "lib/ai/server/panel-prompts.ts")).href)).sharkSystemPrompt("serena");
   check("and told in the prompt to talk to the other four", /TALK TO EACH OTHER/.test(rules));
   check("and told not to reuse another shark's words", /NOBODY ELSE'S WORDS/.test(rules));
+
+  /*
+   * The log is now READ by the server rather than merely forwarded — it decides
+   * who has folded and who spoke last. That makes it an input, and an input
+   * parsed off the wire has to survive being wrong. A `log: [null]` used to
+   * throw inside the reader and take the route to a 500; the round is supposed
+   * to degrade to the offline shark on any failure, never to a stack trace.
+   */
+  const junkLogs = [
+    [null],
+    [undefined],
+    [{}],
+    [{ speaker: 42 }],
+    "not an array",
+    [{ speaker: "ghost", decision: "banana", offer: "nope" }],
+    Array(400).fill({ speaker: "lily", spoken: "x", decision: "out" }),
+  ];
+  let survived = 0;
+  for (const log of junkLogs) {
+    try {
+      const res = await panel.POST(
+        json("http://localhost/api/panel", {
+          phase: "questions",
+          shark: "dev",
+          pitchTranscript: "We make hoodies.",
+          context: { fairValuation: { low: 1_000, high: 2_000 } },
+          log,
+        }),
+      );
+      if (res.status < 500) survived += 1;
+    } catch {
+      /* counted as a failure below */
+    }
+  }
+  check("a malformed panel log never 500s the route", survived === junkLogs.length, `${survived}/${junkLogs.length}`);
+
+  const unknownShark = await panel.POST(
+    json("http://localhost/api/panel", {
+      phase: "questions",
+      shark: "../../etc/passwd",
+      pitchTranscript: "We make hoodies.",
+      context: { fairValuation: { low: 1_000, high: 2_000 } },
+    }),
+  );
+  check("and an unknown shark id falls back to a real seat", unknownShark.status < 500, `HTTP ${unknownShark.status}`);
 }
 
 // ── The empty shelf ─────────────────────────────────────────────────────────

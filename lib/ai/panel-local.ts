@@ -543,14 +543,25 @@ export function localNegotiateTurn(opts: {
     };
   }
 
-  // Move the STRUCTURE before the price — the thing every one of these
-  // personas actually does, and the more useful lesson for the player.
+  /*
+   * Move the STRUCTURE before the price — the thing every one of these personas
+   * actually does, and the more useful lesson for the player.
+   *
+   * The equity is rounded to one decimal FIRST and the valuation derived from
+   * the rounded figure. It used to be the other way round: `equity_pct` was
+   * `toFixed(1)` while `implied_valuation_usd` was computed from the unrounded
+   * 15.8399…%, so the two disagreed by tens of thousands of dollars and the
+   * beat row printed the division wrong — "$2.7M ÷ 15.8% = $17,045,455", which
+   * is not what that division equals. Everywhere else in this room the implied
+   * valuation is recomputed from the two numbers actually shown, for exactly
+   * this reason (Panel Rulebook rule 3); this was the one place that computed
+   * it from a number the founder never sees.
+   */
+  const nextEquity = Number(Math.max(3, opts.current.equity_pct * 0.88).toFixed(1));
   const improved: SharkOffer = {
     ...opts.current,
-    equity_pct: Number(Math.max(3, opts.current.equity_pct * 0.88).toFixed(1)),
-    implied_valuation_usd: Math.round(
-      opts.current.amount_usd / (Math.max(3, opts.current.equity_pct * 0.88) / 100),
-    ),
+    equity_pct: nextEquity,
+    implied_valuation_usd: Math.round(opts.current.amount_usd / (nextEquity / 100)),
     conditions: [...opts.current.conditions, "Terms revised once. This is the last move."],
   };
 

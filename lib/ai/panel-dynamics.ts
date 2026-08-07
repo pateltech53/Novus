@@ -16,8 +16,12 @@ export interface RoomBeat {
   offer?: { amount_usd: number; equity_pct: number; implied_valuation_usd: number } | null;
 }
 
-function beatOf(line: PanelLogLine): RoomBeat | null {
-  if (!isSharkId(line.speaker)) return null;
+function beatOf(line: PanelLogLine | null | undefined): RoomBeat | null {
+  // A null entry is not a hypothetical: the log arrives on the wire at
+  // /api/panel, and a POST carrying `log: [null]` used to throw here and take
+  // the whole route to a 500 rather than a handled error. Nothing about a
+  // malformed log should be able to end the round.
+  if (!line || !isSharkId(line.speaker)) return null;
   const did: RoomBeat["did"] =
     line.decision === "out"
       ? "walked"
