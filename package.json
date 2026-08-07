@@ -29,7 +29,9 @@
     "test:exits": "node scripts/exit-audit.mjs",
     "test:notes": "node scripts/notes-clip-probe.mjs",
     "test:islands:layout": "node scripts/islands-layout-probe.mjs",
-    "test:home:fold": "node scripts/home-fold-probe.mjs"
+    "test:home:fold": "node scripts/home-fold-probe.mjs",
+    "test:safearea": "node scripts/safe-area-probe.mjs",
+    "test:welcome:nav": "node scripts/welcome-nav-probe.mjs"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",
