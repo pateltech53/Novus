@@ -7,7 +7,7 @@ import {
   isCustomSeatCount,
 } from "@/lib/monetization";
 import { adminClient } from "@/lib/supabase/admin";
-import { attachSession, sessionFromRequest, withSession, type Session } from "@/lib/supabase/route";
+import { attachSession, crossSite, sessionFromRequest, withSession, type Session } from "@/lib/supabase/route";
 import { CATALOGUE, isChapterSku, isSellableIndustry, isSkuId, priceIdFor, type Sku } from "@/lib/stripe/catalogue";
 import { stripe } from "@/lib/stripe/client";
 import { resolvePrice } from "@/lib/stripe/prices";
@@ -74,6 +74,12 @@ const refuse = (session: Session | null, error: string, status = 400) =>
   withSession(NextResponse.json({ error }, { status }), session);
 
 export async function POST(req: NextRequest) {
+  // Not from our own pages. See crossSite() — a cross-site form post is not
+  // preflighted, and req.json() parses the body whatever type it claims.
+  if (crossSite(req)) {
+    return NextResponse.json({ error: "cross-site request refused" }, { status: 403 });
+  }
+
   if (!billingConfigured()) {
     // The same shape lib/cloud/sync.ts already expects from an unconfigured
     // project: a normal answer, not an error. The caller falls back to the

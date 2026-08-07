@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { AI_LIMITS, NOT_CONFIGURED } from "@/lib/ai/server/providers";
 import { claimAiCall } from "@/lib/ai/server/limit";
 import { askOpenRouter, str } from "@/lib/ai/server/openrouter";
+import { crossSite } from "@/lib/supabase/route";
 
 /*
  * The provider is allowed a minute (PROVIDER_TIMEOUT_MS); the platform was
@@ -112,6 +113,12 @@ const SCHEMA = {
 const MAX_FIELD = 140;
 
 export async function POST(req: NextRequest) {
+  // Not from our own pages. See crossSite() — a cross-site form post is not
+  // preflighted, and req.json() parses the body whatever type it claims.
+  if (crossSite(req)) {
+    return NextResponse.json({ error: "cross-site request refused" }, { status: 403 });
+  }
+
   const limited = await claimAiCall(req, "coach", {
     perIp: AI_LIMITS.coachPerIp,
     perDay: AI_LIMITS.coachPerDay,

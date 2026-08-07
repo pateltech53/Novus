@@ -9,6 +9,7 @@ import {
 } from "@/lib/ai/server/providers";
 import { claimAiCall } from "@/lib/ai/server/limit";
 import type { TranscriptWord } from "@/lib/ai/types";
+import { crossSite } from "@/lib/supabase/route";
 
 /*
  * The provider is allowed a minute (PROVIDER_TIMEOUT_MS); the platform was
@@ -98,6 +99,12 @@ const FILLER =
   /^(um+|uh+|er+|erm+|a+h+|hm+|m+hm+|mm+|uh+huh|uhuh|nuhuh|like|basically|literally|actually|honestly)$/i;
 
 export async function POST(req: NextRequest) {
+  // Not from our own pages. See crossSite() — a cross-site form post is not
+  // preflighted, and req.json() parses the body whatever type it claims.
+  if (crossSite(req)) {
+    return NextResponse.json({ error: "cross-site request refused" }, { status: 403 });
+  }
+
   if (!DEEPGRAM_API_KEY) {
     return NextResponse.json(NOT_CONFIGURED, { status: 501 });
   }
