@@ -150,6 +150,7 @@ export function Sea({ className = "" }: { className?: string }) {
  * not move when BASE_SIZE does.
  */
 export const SEA_POSITIONS: readonly { x: number; y: number; depth: number }[] = [
+  // screen 0 — the archipelago you know, one phone wide.
   { x: 27, y: 57, depth: 1.0 },
   { x: 71, y: 34, depth: 0.78 },
   { x: 23, y: 19, depth: 0.56 },
@@ -163,7 +164,7 @@ export const SEA_POSITIONS: readonly { x: number; y: number; depth: number }[] =
 ];
 
 /**
- * Where island N sits — the authored ten, then the water behind them.
+ * Where island N sits — the authored ten, then the water past them.
  *
  * ── Why this function exists ───────────────────────────────────────────────
  *
@@ -174,63 +175,102 @@ export const SEA_POSITIONS: readonly { x: number; y: number; depth: number }[] =
  * degrades: the islands screen throws, for exactly the player who bought the
  * most islands.
  *
- * ── What is generated, and what is not ─────────────────────────────────────
+ * ── What `screen` is, and why the answer is not one number ─────────────────
  *
- * The first ten are untouched, so every player who has ever seen this screen
- * finds their archipelago where they left it. That is the point of hand-
- * placing them and the reason the header above gives for not generating: a map
- * is worth having because you build a memory of it.
+ * The first fix generated the extra forty as a golden-angle spiral inside the
+ * SAME box as the authored ten, on the theory that a spiral does not clump.
+ * A spiral does not clump against itself. It knows nothing about the ten points
+ * already on the water, and it landed on them: island 11 came out at (29.3,
+ * 55.5) against island 0's (27, 57) — measured 21px apart on a phone, under
+ * captions that are 13 characters wide. Two companies drawn on top of each
+ * other, with their names overlapping.
  *
- * Past ten the same argument runs the other way. Forty more hand-placed points
- * on this canvas is not art direction, it is a lookup table nobody can verify,
- * and a player at 30 islands has stopped memorising anything anyway. So they
- * are generated — deterministically, which is the property that actually
- * mattered in "randomness would move an island between visits". Island 23 is
- * at the same place on every device, every visit, forever.
+ * And it could not be fixed by spacing alone. That box is 78 by 59 percent;
+ * fifty points inside it with enough room for their captions is not a packing
+ * problem, it is an impossible one. Something had to give and it was never
+ * going to be the caption.
  *
- * A golden-angle spiral, because it is the arrangement that does not clump:
- * successive points land at 137.5°, so no two neighbours share a direction and
- * the density stays even as the radius grows. `sqrt` on the radius spreads
- * them by AREA rather than by radius, which is what keeps the middle from
- * filling up first.
+ * So the water gets longer instead. `screen` is which phone-width of sea the
+ * island is on: the authored ten keep screen 0 and their exact coordinates —
+ * every player who has seen this screen finds their archipelago where they left
+ * it — and everything past them is drawn on new water, four to a screen, which
+ * the picker scrolls sideways through.
  *
- * ── The box it stays inside ────────────────────────────────────────────────
+ * ── How the new water is laid out ──────────────────────────────────────────
  *
- * Exactly the one the header above describes, and for its reasons: nothing
- * above y=13 or below y=72 (the title's lane and the boat's), nothing outside
- * x=9..87 (the 13ch caption under an island is what clips first, not the
- * island). Depth runs 0.50 → 0.34, below the authored minimum of 0.46, so
- * generated islands read as the far water behind the placed ones.
+ * Four lanes across, alternating near and far so that two islands sharing a
+ * screen are never at the same height: the lane sets the band, the golden angle
+ * jitters within it. That is what makes the spacing provable rather than hoped
+ * for — adjacent lanes are 19% of a screen apart horizontally AND at least 16%
+ * of the band apart vertically, so the closest generated pair is looser than
+ * the closest AUTHORED pair, which has been on screen since this shipped.
+ *
+ * Deterministic, which is the property that actually mattered in "randomness
+ * would move an island between visits". Island 23 is at the same place on every
+ * device, every visit, forever — and founding island 24 does not move it.
+ *
+ * ── The box each screen stays inside ───────────────────────────────────────
+ *
+ * y=13..72 as before (the title's lane and the boat's — the picker measures
+ * both and stretches this band across what is left), and x=20..81 within a
+ * screen, tighter than the authored 9..87 because a generated island has water
+ * on both sides of it rather than a screen edge.
  */
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 
-export function seaPosition(slot: number): { x: number; y: number; depth: number } {
-  const authored = SEA_POSITIONS[slot];
-  if (authored) return authored;
+/** Islands per screen of new water. Four lanes, 19% of a screen apart. */
+const PER_NEW_SCREEN = 4;
 
-  const i = Math.max(0, slot - SEA_POSITIONS.length);
-  // Normalised against the number of generated places there can be, so the
-  // spread fills the water whatever ISLAND_CAP becomes rather than bunching
-  // into a disc sized for the old one.
-  const spread = Math.max(1, ISLAND_CAP - SEA_POSITIONS.length);
-  /*
-   * Starts at 0.55 rather than at 0, so island 11 goes to open water.
-   *
-   * A spiral from the middle put the first generated islands exactly where the
-   * authored ones already are — the ten are placed across the whole frame, and
-   * the centre is the fullest part of it. Beginning in the outer band means the
-   * eleventh company, which is the one a player who has just bought an island
-   * is looking for, lands somewhere it can be seen.
-   */
-  const r = 0.55 + 0.45 * Math.min(1, Math.sqrt((i + 1) / spread));
+export interface SeaSpot {
+  /** Which phone-width of water this is on. The authored ten are all 0. */
+  screen: number;
+  /** Percent across THAT screen. */
+  x: number;
+  /** Percent down the band, before the picker stretches it. */
+  y: number;
+  depth: number;
+}
+
+/**
+ * How wide the water has to be for `places` islands, as a percentage of one
+ * screen. 100 means it fits, and it fits for every player with ten or fewer.
+ *
+ * Measured from the islands actually drawn rather than rounded up to whole
+ * screens. Rounding up gave fifteen places three full screens, and the third
+ * held one locked place in an otherwise empty ocean — a page of nothing, which
+ * reads as a screen that failed to load rather than as open water. The margin
+ * is for the 13ch caption hanging off the last island, not for the island.
+ */
+export function seaFieldWidth(places: number): number {
+  let far = 0;
+  for (let slot = 0; slot < places; slot++) {
+    const spot = seaPosition(slot);
+    far = Math.max(far, spot.screen * 100 + spot.x);
+  }
+  return Math.max(100, Math.round(far + 18));
+}
+
+export function seaPosition(slot: number): SeaSpot {
+  const authored = SEA_POSITIONS[slot];
+  if (authored) return { screen: 0, ...authored };
+
+  const i = Math.min(ISLAND_CAP, Math.max(0, slot - SEA_POSITIONS.length));
+  const screen = 1 + Math.floor(i / PER_NEW_SCREEN);
+  const lane = i % PER_NEW_SCREEN;
   const angle = i * GOLDEN_ANGLE;
+  /* Lanes 0 and 2 ride the near band, 1 and 3 the far one — so neighbours in a
+     row are never at the same height and never the same size. */
+  const near = lane % 2 === 0;
 
   // One decimal: enough to separate two points a percent apart, short enough
   // that the inline style stays readable in devtools.
   const round = (n: number) => Math.round(n * 10) / 10;
   return {
-    x: round(48 + Math.cos(angle) * r * 39),
-    y: round(42.5 + Math.sin(angle) * r * 29.5),
-    depth: round(0.5 - r * 0.16),
+    screen,
+    x: round(22 + lane * 19 + Math.cos(angle) * 2),
+    y: round((near ? 30 : 58) + Math.sin(angle) * 6),
+    /* Paler and flatter the further out, so the new water reads as distance
+       rather than as a second copy of the first screen. */
+    depth: round(Math.max(0.32, (near ? 0.54 : 0.44) - (screen - 1) * 0.015)),
   };
 }

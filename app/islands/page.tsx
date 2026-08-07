@@ -1,18 +1,24 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 
 import { Boat } from "@/components/Boat";
+import { GlassButton } from "@/components/ui/Glass";
 import { IslandGlyph } from "@/components/IslandGlyph";
 import {
   useNativeOverlay,
   useNativeOverlayOwned,
 } from "@/components/native/useNativeOverlay";
-import { Sea, seaPosition } from "@/components/Sea";
+import { SEA_POSITIONS, Sea, seaFieldWidth, seaPosition } from "@/components/Sea";
 import { ENTER, SETTLE_SPRING, STAGGER, SWAP } from "@/components/ui/Motion";
 import { useUpgrade } from "@/components/upgrade/UpgradeProvider";
+import { loadAccount, type Account } from "@/lib/account";
+import { signOut } from "@/lib/cloud/auth";
+import { entryRoute } from "@/lib/entry";
+import { storefront } from "@/lib/commerce";
+import { appPath } from "@/lib/native/href";
 import type { NativeOverlayState } from "@/lib/native/glass";
 import { useResolvedTheme } from "@/lib/native/theme";
 import { INDUSTRIES, STAGE_NAME } from "@/lib/engine/constants";
@@ -111,6 +117,35 @@ function IslandsPage() {
   usePrefetch("/play");
   usePrefetch("/found");
 
+  /*
+   * The account, for the way out of it.
+   *
+   * Signing out lived only inside the Settings sheet, which is inside a
+   * company — so a player who wanted to leave the account had to enter a
+   * company first. This is the screen you arrive on and the screen the account
+   * owns; the door belongs here. Null when nobody is signed in, and then
+   * nothing is drawn: there is no account to leave.
+   */
+  const [account, setAccount] = useState<Account | null>(null);
+  const [leaving, setLeaving] = useState(false);
+  useEffect(() => setAccount(loadAccount()), []);
+
+  /** Where signing out lands. Same reasoning as SettingsScreen's `leave`: the
+   *  device is emptied, so it is a navigation and not a router push, and the
+   *  app cannot go to "/" because that page carries prices a store build may
+   *  not show (Guideline 3.1.1). */
+  const leaveAccount = async () => {
+    if (leaving) return;
+    setLeaving(true);
+    await signOut();
+    const route = entryRoute();
+    if (storefront() === "web") {
+      window.location.href = route === "/islands" ? "/" : route;
+      return;
+    }
+    window.location.href = appPath(route === "/islands" ? "/welcome" : route);
+  };
+
   /** null = the sea. A slot number = that island, alone, in the gallery. */
   const [focus, setFocus] = useState<number | null>(null);
   /** Which way the last ‹ › went, so the gallery slides the right way. */
@@ -142,8 +177,94 @@ function IslandsPage() {
   const floor = Math.max(occupiedThrough, canFound ? 2 : 0);
   const extra = canFound ? (floor === occupiedThrough ? 1 : 0) : pro ? 0 : 1;
   const places = Math.min(ISLAND_CAP, floor + extra);
-  /* How big an island is drawn, given how many are sharing the water. */
-  const islandSize = baseSizeFor(places);
+
+  /*
+   * ── When there is more sea than screen ──────────────────────────────────
+   *
+   * `baseSizeFor` used to absorb every extra company by shrinking all of them,
+   * which is the right answer up to a point and a bad one past it: the names
+   * under the islands are a fixed 13ch column whatever the island does, so past
+   * about ten the captions collide even though the islands do not. Shrinking is
+   * a budget with a floor, and past that floor the only thing left to give is
+   * water.
+   *
+   * So the water gets longer. `seaFieldWidth` measures how much of it this
+   * archipelago needs — in percent of one phone, from the islands actually
+   * drawn — and the picker scrolls sideways through it. Nothing changes for ten
+   * islands or fewer, which is every player: one screen, the authored table,
+   * exactly as before.
+   */
+  const field = seaFieldWidth(places);
+  /* How big an island is drawn — by how many share ONE screen of water, not by
+     how many exist, now that the water can be longer than the screen. */
+  const islandSize = baseSizeFor(Math.min(places, SEA_POSITIONS.length));
+
+  /*
+   * The water between the title and the boat, measured rather than assumed.
+   *
+   * `SEA_POSITIONS` keeps two lanes clear — nothing above y=13 or below y=72 —
+   * and those numbers were chosen against a title of one line. Two companies
+   * make it "2 companies, all yours.", which wraps at 320px, and a wrapped
+   * title reaches further down the screen than 13% of it: the island in slot 7
+   * sits at y=13 and landed under the second line. Reported as islands
+   * overlapping the text above them, and it is not a margin that can be tuned
+   * because the thing it has to clear changes height with the sentence in it.
+   *
+   * So the field is inset by what the header and the boat actually measure, and
+   * the band is stretched across what is left. Nothing can overlap either,
+   * whatever they end up being — including a name long enough to wrap twice.
+   */
+  const [headerEl, setHeaderEl] = useState<HTMLElement | null>(null);
+  const [boatEl, setBoatEl] = useState<HTMLDivElement | null>(null);
+  const [lanes, setLanes] = useState({ top: 0, bottom: 0 });
+  useEffect(() => {
+    if (!headerEl && !boatEl) return;
+    const measure = () =>
+      setLanes({
+        top: headerEl?.offsetHeight ?? 0,
+        bottom: boatEl?.offsetHeight ?? 0,
+      });
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (headerEl) ro.observe(headerEl);
+    if (boatEl) ro.observe(boatEl);
+    return () => ro.disconnect();
+  }, [headerEl, boatEl]);
+
+  /*
+   * Which way there is still water. Read from the scroller itself rather than
+   * derived from the screen count, because the answer depends on where the player
+   * has sailed to and a hint pointing at the edge you are already standing on
+   * is worse than no hint.
+   */
+  const seaScrollRef = useRef<HTMLDivElement>(null);
+  const [more, setMore] = useState({ left: false, right: false });
+  const onSeaScroll = useCallback(() => {
+    const el = seaScrollRef.current;
+    /*
+     * Gated on the screen count, not on `scrollWidth`.
+     *
+     * A one-screen archipelago still overflows by a few pixels — island 7 sits
+     * at x=87 and its caption is a 13ch column centred on it, so ~11px of the
+     * name hangs past the right edge and is clipped, exactly as it always was.
+     * Reading that as "there is more water over there" put the hint on screen
+     * for eight islands, pointing at nothing.
+     */
+    if (!el || field <= 100) {
+      setMore({ left: false, right: false });
+      return;
+    }
+    const slack = el.scrollWidth - el.clientWidth;
+    setMore({
+      left: el.scrollLeft > 24,
+      right: el.scrollLeft < slack - 24,
+    });
+  }, [field]);
+  /* Once on arrival, and again whenever the archipelago changes size — the
+     hint has to be right before the first gesture, not after it. */
+  useEffect(() => {
+    onSeaScroll();
+  }, [onSeaScroll, places, field, focus, lanes.top, lanes.bottom]);
 
   const enter = useCallback(
     (slot: number) => {
@@ -314,17 +435,39 @@ function IslandsPage() {
               wants to read as floating on the sea, not as pinned to the top of
               the phone.
             */}
-            <header className="pointer-events-none absolute inset-x-0 top-0 z-10 px-6 pt-[max(2.5rem,calc(var(--nv-safe-top)+1rem))]">
-              <p className="text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]">
-                YOUR ISLANDS
-              </p>
-              <h1 className="mt-1 max-w-[15ch] text-[1.75rem] font-extrabold leading-tight tracking-[-0.02em] sm:max-w-none">
-                {living.length === 0
-                  ? "Nothing running yet."
-                  : living.length === 1
-                    ? "One company on the water."
-                    : `${living.length} companies, all yours.`}
-              </h1>
+            <header
+              ref={setHeaderEl}
+              className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start gap-3 px-6 pt-[max(2.5rem,calc(var(--nv-safe-top)+1rem))] pb-3"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]">
+                  YOUR ISLANDS
+                </p>
+                <h1 className="mt-1 max-w-[15ch] text-[1.75rem] font-extrabold leading-tight tracking-[-0.02em] sm:max-w-none">
+                  {living.length === 0
+                    ? "Nothing running yet."
+                    : living.length === 1
+                      ? "One company on the water."
+                      : `${living.length} companies, all yours.`}
+                </h1>
+              </div>
+
+              {/* The one control on the water, and it is `pointer-events-auto`
+                  against a header that is not — the title must never swallow a
+                  tap meant for an island drifting under it. Quiet glass, not
+                  action: leaving is not what this screen is asking you to do. */}
+              {account?.email ? (
+                <GlassButton
+                  tone="quiet"
+                  shape="pill"
+                  onClick={() => void leaveAccount()}
+                  disabled={leaving}
+                  aria-label={`Sign out of ${account.email}`}
+                  className="pointer-events-auto shrink-0 text-2xs tracking-[0.12em] disabled:opacity-50"
+                >
+                  {leaving ? "SIGNING OUT…" : "SIGN OUT"}
+                </GlassButton>
+              ) : null}
             </header>
 
             {/*
@@ -335,8 +478,28 @@ function IslandsPage() {
               the archipelago stays an archipelago and the extra width is the
               ocean it is in, which is the point.
             */}
-            <div className="absolute inset-0">
-              <div className="relative mx-auto h-full w-full max-w-3xl">
+            <div
+              ref={seaScrollRef}
+              onScroll={onSeaScroll}
+              /* `overscroll-x-contain` so sailing to the end of the archipelago
+                 does not hand the gesture to the browser and trigger a back
+                 swipe on the front door. The scrollbar is hidden because this
+                 is water, not a list — the hint below is what says there is
+                 more, and it says it in words. */
+              className={`nv-noscrollbar absolute inset-x-0 overscroll-x-contain ${
+                field > 100 ? "overflow-x-auto" : "overflow-x-hidden"
+              }`}
+              style={{ top: lanes.top, bottom: lanes.bottom }}
+            >
+              {/* `max-w-3xl` PER SCREEN, not for the whole field. The cap is
+                  there so ten islands on a 2560px monitor are an archipelago
+                  rather than ten specks a mile apart; multiplying it by the
+                  field width keeps that density and still lets the water be
+                  longer than the window. */}
+              <div
+                className="relative mx-auto h-full"
+                style={{ width: `${field}%`, maxWidth: `calc(48rem * ${field / 100})` }}
+              >
               {Array.from({ length: places }, (_, slot) => {
                 /* `seaPosition`, not `SEA_POSITIONS[slot]`. The table stops at
                    the authored ten and the cap is fifty — indexing it returned
@@ -350,7 +513,13 @@ function IslandsPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ ...ENTER, delay: slot * STAGGER }}
                     className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center"
-                    style={{ left: `${spot.x}%`, top: `${spot.y}%` }}
+                    /* `x` is a percent of its OWN screen, and the field is
+                       `field`% of one screen wide — so the screen offset and
+                       the position within it are rescaled together. */
+                    style={{
+                      left: `${((spot.screen * 100 + spot.x) / field) * 100}%`,
+                      top: `${bandY(spot.y)}%`,
+                    }}
                   >
                     {island ? (
                       <SeaIsland
@@ -386,6 +555,54 @@ function IslandsPage() {
             </div>
 
             {/*
+              ── There is more over there ─────────────────────────────────────
+
+              Only when there genuinely is, and only on the side it is on. A
+              permanent arrow is decoration; one that disappears when you reach
+              the end is the sea telling you where you are.
+
+              It sits in the strip between the bottom of the island band and the
+              boat — `bandY` stops at 85% of the field on purpose, and this is
+              what that last 15% is for. Floated in the middle of the water it
+              landed on whichever island happened to be under it, which is a
+              hint that creates the problem it is describing.
+            */}
+            <AnimatePresence>
+              {more.right && (
+                <motion.div
+                  key="more-right"
+                  initial={{ opacity: 0, x: 6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 6 }}
+                  transition={SWAP}
+                  className="pointer-events-none absolute right-4 z-10"
+                  style={{ bottom: lanes.bottom }}
+                >
+                  <span className="nv-gc flex items-center gap-1.5 rounded-[var(--radius-pill)] px-3 py-1.5 text-2xs font-bold tracking-[0.1em] text-[var(--text-secondary)]">
+                    MORE OVER THERE
+                    <span aria-hidden>▸</span>
+                  </span>
+                </motion.div>
+              )}
+              {more.left && (
+                <motion.div
+                  key="more-left"
+                  initial={{ opacity: 0, x: -6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -6 }}
+                  transition={SWAP}
+                  className="pointer-events-none absolute left-4 z-10"
+                  style={{ bottom: lanes.bottom }}
+                >
+                  <span className="nv-gc flex items-center gap-1.5 rounded-[var(--radius-pill)] px-3 py-1.5 text-2xs font-bold tracking-[0.1em] text-[var(--text-secondary)]">
+                    <span aria-hidden>◂</span>
+                    BACK THAT WAY
+                  </span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/*
               ── The small print, in a boat ──────────────────────────────────
               Everything on this screen that is not an island lives here. Two
               sentences at most, and the second only when a limit is actually
@@ -394,7 +611,10 @@ function IslandsPage() {
               one, versus tomorrow — and a screen that says "you have hit the
               limit" without saying which is how a player buys the wrong fix.
             */}
-            <div className="pointer-events-none absolute inset-x-0 bottom-[max(1.75rem,var(--nv-safe-bottom))] z-10 flex justify-center px-6">
+            <div
+              ref={setBoatEl}
+              className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center px-6 pt-4 pb-[max(1.75rem,var(--nv-safe-bottom))]"
+            >
               <Boat className="nv-bob pointer-events-auto max-w-[22rem]">
                 {/* This account's OWN number, not the tier's brochure one.
                     It used to read "Up to 50 at once" for any Pro player,
@@ -497,6 +717,22 @@ function Label({
  */
 const baseSizeFor = (places: number): number =>
   Math.round(Math.min(185, Math.max(113, 185 - (places - 2) * 9)));
+
+/**
+ * `SEA_POSITIONS`' y, mapped onto the water that is actually left.
+ *
+ * The table reserves y=0..13 for the title and y=72..100 for the boat. The
+ * field is now inset by what those two MEASURE, so those lanes are already
+ * gone and reserving them twice would squeeze every island into the middle
+ * three-fifths of the screen. This stretches the authored band across the
+ * water instead, keeping 10% at the top and 15% at the bottom — an island is
+ * placed by its centre and its name hangs underneath it, so the bottom margin
+ * is the larger of the two.
+ */
+const BAND_TOP = 13;
+const BAND_BOTTOM = 72;
+const bandY = (y: number): number =>
+  Math.round((10 + ((y - BAND_TOP) / (BAND_BOTTOM - BAND_TOP)) * 75) * 10) / 10;
 
 function SeaIsland({
   island,
@@ -829,16 +1065,31 @@ function Gallery({
 
       {/* The screen's one ask. UIKit floats it in the glass dock where it owns
           the chrome; everywhere else it is the last thing in the column. */}
+      {/*
+        The material component rather than a hand-written class string.
+
+        `nv-gc nv-t-action` resolves to the same tokens, but only the tokens —
+        `GlassButton` is what carries the rest of the lens: the press that
+        deforms and brightens rather than only scaling, the specular edge, and
+        the `solid` fallback the `@supports` block needs where no browser can
+        blur. A control that has to read as Liquid Glass has to go through the
+        thing that draws Liquid Glass, or it is an impression of one, which is
+        the exact comparison design.md §0 says an approximation cannot win.
+
+        `h-14` over the preset's `h-12`: this is the screen's one ask and it
+        sat at py-4 before, and shrinking a CTA is not what "make it glass"
+        asked for.
+      */}
       {native ? null : (
         <div className="mt-auto w-full pt-6">
-          <button
-            type="button"
+          <GlassButton
+            tone="action"
             onClick={onEnter}
             disabled={busy}
-            className="nv-gc w-full truncate rounded-[var(--radius-card)] nv-t-action px-5 py-4 text-base font-extrabold tracking-[0.06em] disabled:cursor-not-allowed disabled:opacity-35"
+            className="h-14 truncate text-base font-extrabold tracking-[0.06em] disabled:cursor-not-allowed disabled:opacity-35"
           >
             {busy ? "OPENING…" : island.alive ? "CONTINUE ▸" : "READ THE BOOKS ▸"}
-          </button>
+          </GlassButton>
         </div>
       )}
     </motion.div>

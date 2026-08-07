@@ -27,7 +27,8 @@
     "test:islands": "node scripts/islands-test.mjs",
     "test:rules": "node scripts/rules-test.mjs",
     "test:exits": "node scripts/exit-audit.mjs",
-    "test:notes": "node scripts/notes-clip-probe.mjs"
+    "test:notes": "node scripts/notes-clip-probe.mjs",
+    "test:islands:layout": "node scripts/islands-layout-probe.mjs"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",

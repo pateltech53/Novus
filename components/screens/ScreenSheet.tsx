@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
-import { motion } from "framer-motion";
-import { ENTER, EXIT, SCRIM } from "@/components/ui/Motion";
+import { animate, motion, useMotionValue } from "framer-motion";
+import { EASE_IN, ENTER, EXIT, SCRIM, SETTLE_SPRING } from "@/components/ui/Motion";
 
 import { Glass, GlassButton, GlassScrim } from "@/components/ui/Glass";
 import { useNativeOverlay, useNativeOverlayOwned } from "@/components/native/useNativeOverlay";
@@ -140,6 +140,87 @@ export function ScreenSheet({
   // three conditions, for the reasons set out in Workspace.tsx.
   const docked = !!workspace && !!slot && wide && !native;
 
+  /*
+   * ── The grabber does what it says ───────────────────────────────────────
+   *
+   * It has been drawn since this shell existed and it has never done anything:
+   * a 5×36 pill that means "drag me down to dismiss" on every sheet on the
+   * platform, over a sheet that could only be closed by finding the chip in the
+   * opposite corner. A control that states an affordance it does not have is
+   * worse than no control, because the player tries it first.
+   *
+   * ── Why this is hand-written and not `drag="y"` ─────────────────────────
+   *
+   * The sheet IS the scroll container — `overflow-y-auto` is on the same
+   * element — and Framer's `drag` sets `touch-action` on whatever it is applied
+   * to, which would take the vertical scroll gesture away from the content on
+   * every one of these screens. `dragListener={false}` moves where a drag can
+   * START; it does not give the touch-action back.
+   *
+   * So the pointer handling lives on the grabber, which is the only element
+   * that should own a downward gesture, and it drives the same motion value the
+   * entrance animates. `touch-action: none` is scoped to that 36px pill.
+   *
+   * ── Why it animates itself out rather than leaving through `exit` ───────
+   *
+   * `exit` is authored at 8% and is read when the element unmounts. A sheet
+   * flung 300px down would animate UP to 8% and then fade, which is the one
+   * shape a dismissal must not have. Instead it drives itself off the bottom
+   * first and calls `onClose` after — by which point `exit` is fading something
+   * already off screen.
+   */
+  const y = useMotionValue(0);
+  const sheetRef = useRef<HTMLElement | null>(null);
+  const drag = useRef<{ id: number; from: number; at: number; last: number } | null>(null);
+
+  /** Far enough, or fast enough. Either dismisses; neither snaps back. */
+  const DISMISS_PX = 96;
+  const DISMISS_VELOCITY = 0.55; // px per ms
+
+  const glideOut = useCallback(async () => {
+    const height = sheetRef.current?.offsetHeight ?? 600;
+    await animate(y, height, { duration: 0.2, ease: EASE_IN });
+    onClose();
+  }, [onClose, y]);
+
+  const onGrab = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (docked) return;
+      drag.current = { id: e.pointerId, from: e.clientY, at: performance.now(), last: e.clientY };
+      e.currentTarget.setPointerCapture(e.pointerId);
+    },
+    [docked],
+  );
+
+  const onGrabMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      const d = drag.current;
+      if (!d || d.id !== e.pointerId) return;
+      d.last = e.clientY;
+      // Down only. Dragging a sheet upward past its own top edge is a gesture
+      // that promises more sheet, and there is no more sheet.
+      y.set(Math.max(0, e.clientY - d.from));
+    },
+    [y],
+  );
+
+  const onGrabEnd = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      const d = drag.current;
+      if (!d || d.id !== e.pointerId) return;
+      drag.current = null;
+      const travelled = e.clientY - d.from;
+      const velocity = travelled / Math.max(1, performance.now() - d.at);
+      if (travelled > DISMISS_PX || velocity > DISMISS_VELOCITY) {
+        void glideOut();
+        return;
+      }
+      // Back where it was, on the spring the rest of the app settles with.
+      animate(y, 0, SETTLE_SPRING);
+    },
+    [glideOut, y],
+  );
+
   useNativeOverlay(
     useMemo(
       () =>
@@ -197,13 +278,30 @@ export function ScreenSheet({
           docked ? "pt-3.5" : "rounded-t-[var(--radius-sheet)] pt-2.5"
         }`}
       >
-        {/* A grabber says "drag me down to dismiss". A panel in a column
-            does not go anywhere, so it does not claim to. */}
+        {/* A grabber says "drag me down to dismiss", and now it does. A panel
+            in a column does not go anywhere, so it does not claim to.
+
+            The pill is 5px; the thing you can grab is 22px tall and the full
+            width of the header, because a 5px target is a target nobody hits.
+            `touch-action: none` is scoped here and nowhere else — it is what
+            stops the browser reading the drag as a scroll of the sheet, and
+            putting it on the sheet would stop the sheet scrolling at all. */}
         {docked ? null : (
           <div
-            aria-hidden="true"
-            className="mx-auto mb-2.5 h-[5px] w-9 rounded-full bg-[var(--n-6)]"
-          />
+            role="button"
+            tabIndex={-1}
+            aria-label="Drag down to close"
+            onPointerDown={onGrab}
+            onPointerMove={onGrabMove}
+            onPointerUp={onGrabEnd}
+            onPointerCancel={onGrabEnd}
+            className="-mt-1 mb-1 flex h-[22px] cursor-grab touch-none items-center justify-center active:cursor-grabbing"
+          >
+            <span
+              aria-hidden="true"
+              className="h-[5px] w-9 rounded-full bg-[var(--n-6)]"
+            />
+          </div>
         )}
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -309,9 +407,15 @@ export function ScreenSheet({
       <GlassScrim label={closeLabel} onClose={onClose} />
 
       <motion.section
+        ref={sheetRef}
         role="dialog"
         aria-modal="true"
         aria-label={label}
+        /* One motion value, two writers: the entrance animates it from 8% to
+           0, the grabber sets it directly afterwards. Sharing it is what keeps
+           a dragged sheet from snapping back to wherever `animate` last left
+           its own copy. */
+        style={{ y }}
         /*
          * The height is capped by the chrome above it as well as by the screen.
          *
