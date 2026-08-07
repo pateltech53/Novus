@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
@@ -15,6 +15,15 @@ import { useSellsHere } from "@/lib/commerce";
 import { BuyOnWeb } from "@/components/upgrade/BuyOnWeb";
 import { LegalSheet } from "@/components/LegalSheet";
 import { ScreenSheet } from "@/components/screens/ScreenSheet";
+import { GlassButton, GlassGroup } from "@/components/ui/Glass";
+import {
+  useNativeOverlay,
+  useNativeOverlayOwned,
+} from "@/components/native/useNativeOverlay";
+import { useResolvedTheme } from "@/lib/native/theme";
+import type { NativeOverlayState } from "@/lib/native/glass";
+import { storefront } from "@/lib/commerce";
+import { appPath } from "@/lib/native/href";
 import { PRIVACY, TERMS, type LegalDocument } from "@/lib/legal/documents";
 import {
   CADENCE_SUFFIX,
@@ -97,6 +106,97 @@ export default function WelcomePage() {
   usePrefetch("/found", "/play");
 
   const [finishing, go] = useNavigating();
+
+  /*
+   * ── Getting out, and going back one ────────────────────────────────────
+   *
+   * Onboarding was a one-way corridor: seven steps, no way back to the one
+   * before, and no way out except finishing it. A player who mistyped their
+   * name on step two had to answer everything after it before the app would
+   * let them near the field again.
+   *
+   * BACK walks the same order the machine below advances in. The two states
+   * it deliberately does not appear on:
+   *
+   *   · `wave` — the first screen. There is nothing behind it.
+   *   · `too-young` — a gate. A back button there is a second guess at the
+   *     question the gate exists to ask once, which is the whole reason the
+   *     age is recorded before the screen changes.
+   */
+  const PREVIOUS: Partial<Record<Step, Step>> = {
+    name: "wave",
+    age: "name",
+    mic: "age",
+    explain: "mic",
+    showme: "explain",
+    plans: "showme",
+  };
+  const canLeave = step !== "wave" && step !== "too-young";
+  const back = useCallback(() => {
+    setStep((at) => PREVIOUS[at] ?? at);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /*
+   * HOME means "the place I would be if I were not here".
+   *
+   * For a returning player re-running onboarding that is their company or
+   * their islands; `entryRoute()` answers it, and it answers "/welcome" for a
+   * device with no run and no profile — which is a brand-new player, for whom
+   * there is nowhere else and home is the opening screen.
+   *
+   * A full navigation rather than a router push, for the reason the rest of
+   * this app gives: /islands and /found re-read storage on mount, and the
+   * profile written on the way past has to have flushed first.
+   */
+  const home = useCallback(() => {
+    const route = entryRoute();
+    if (route === "/welcome") {
+      stopSpeaking();
+      setStep("wave");
+      return;
+    }
+    go(() => {
+      window.location.href = storefront() === "web" ? route : appPath(route);
+    });
+  }, [go]);
+
+  /*
+   * ── On iOS these are UIKit's, not ours ─────────────────────────────────
+   *
+   * "都要液态玻璃" — and on this platform that means the system's own
+   * `UIGlassEffect`, not a CSS impression of it one row away from the real
+   * thing. Same rule the islands' sign-out follows and the one
+   * components/ui/Glass.tsx states: the only Liquid Glass is UIKit's.
+   *
+   * `null` on the two steps without an exit, which withdraws the toolbar
+   * rather than leaving one up with nothing in it.
+   */
+  const nativeChrome = useNativeOverlayOwned();
+  const theme = useResolvedTheme();
+  const overlay = useMemo<NativeOverlayState | null>(() => {
+    if (!canLeave) return null;
+    return {
+      mode: "shown",
+      theme,
+      // No title plate. Every step already says what it is, in type twice this
+      // size, forty points below.
+      title: null,
+      leading: [
+        { id: "back", symbol: "chevron.backward", label: "Back a step", style: "plain" },
+        { id: "home", symbol: "house", label: "Leave setting up", style: "plain" },
+      ],
+      trailing: [],
+      actions: [],
+    };
+  }, [canLeave, theme]);
+
+  useNativeOverlay(overlay, {
+    onAction: (id) => {
+      if (id === "back") back();
+      else if (id === "home") home();
+    },
+  });
 
   const finish = useCallback(() => {
     /*
@@ -200,8 +300,76 @@ export default function WelcomePage() {
   // never resolves when the direct child is a component rather than a motion
   // element, which strands the whole flow on step one.
   return (
-    <main className="relative flex min-h-dvh flex-col overflow-hidden">
+    <main
+      className="relative flex min-h-dvh flex-col overflow-hidden"
+      /*
+       * What the DOM pair below occupies, declared as the same variable UIKit
+       * writes when it owns the chrome — so `StepShell` clears whichever
+       * toolbar is actually there without knowing which shell it is in. Its
+       * top edge plus its 40px height; unset where UIKit has drawn its own and
+       * written the real number to the document.
+       */
+      style={
+        canLeave && !nativeChrome
+          ? ({
+              "--nv-overlay-top": "calc(max(1rem, var(--nv-safe-top)) + 2.5rem)",
+            } as CSSProperties)
+          : undefined
+      }
+    >
       {screen}
+
+      {/*
+        ── The way back and the way out ──────────────────────────────────────
+
+        A merged pair of glass circles in the top-left, which is where a
+        toolbar's leading cluster is on every screen in this app — and exactly
+        what UIKit draws when it owns the chrome, so the two shells put the
+        same control in the same place.
+
+        NOT RENDERED where UIKit has drawn it. Not hidden: a hidden button
+        still takes a tap on iOS if the native view above it passes the touch
+        through, and the player gets a dead zone nobody can see.
+
+        Absolutely positioned over the step rather than inside `StepShell`, so
+        no step's composition moves to make room for it — every one of them is
+        built around a single centred idea, and a row at the top of the column
+        would push all seven down by the same 44px to serve two of them.
+      */}
+      {canLeave && !nativeChrome ? (
+        /*
+          The placement is on a WRAPPER, not on the group.
+
+          `.nv-ggroup` sets `position: relative` and it is unlayered, so it
+          beats a Tailwind `absolute` utility — Tailwind's live in
+          `@layer utilities` and an unlayered declaration wins outright. The
+          pair rendered in normal flow at the foot of a `min-h-dvh` column,
+          963px down a 852px screen, which the probe caught and the eye would
+          have taken a while to.
+        */
+        <div className="absolute left-4 top-[max(1rem,var(--nv-safe-top))] z-20">
+        <GlassGroup className="flex items-center">
+          <GlassButton
+            shape="circle"
+            flat
+            onClick={back}
+            aria-label="Back a step"
+            className="text-base text-[var(--n-10)]"
+          >
+            <span aria-hidden="true" className="-mt-px">‹</span>
+          </GlassButton>
+          <GlassButton
+            shape="circle"
+            flat
+            onClick={home}
+            aria-label="Leave setting up"
+            className="text-[var(--n-10)]"
+          >
+            <HomeGlyph />
+          </GlassButton>
+        </GlassGroup>
+        </div>
+      ) : null}
       {/*
         Loaded on the tap, never before it.
 
@@ -263,6 +431,21 @@ function SignInSheet({ onClose }: { onClose: () => void }) {
  * 5 founder — the tuxedo and the gold watch — because that is the thing being
  * offered, and the first screen should say what the game is for.
  */
+/** A house, at the weight the rest of this app's glyphs are drawn at. */
+function HomeGlyph() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path
+        d="M2.75 7.6 9 2.75l6.25 4.85V14a1.25 1.25 0 0 1-1.25 1.25H4A1.25 1.25 0 0 1 2.75 14V7.6Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path d="M7.1 15.25v-4.1h3.8v4.1" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function Wave({ onNext, onSignIn }: { onNext: () => void; onSignIn: () => void }) {
   useEffect(() => {
     play("splash");

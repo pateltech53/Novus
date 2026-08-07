@@ -24,7 +24,17 @@ export function StepShell({ children }: { children: React.ReactNode }) {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.28 }}
     >
-      <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center px-6 pt-[max(2rem,var(--nv-safe-top))] pb-[max(2rem,var(--nv-safe-bottom))] lg:max-w-xl lg:pt-[max(3.5rem,var(--nv-safe-top))]">
+      {/*
+        `--nv-overlay-top` is the third term, and it is what stops a step
+        sliding under the toolbar above it.
+
+        On iOS that variable is what UIKit measured its own chrome to be. On
+        the web and Android it is 0 by default — and `app/welcome/page.tsx`
+        sets it locally to the height of the DOM back/home pair it draws, so
+        one expression covers both shells rather than each of them carrying its
+        own guess at the other's geometry.
+      */}
+      <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center px-6 pt-[max(2rem,var(--nv-safe-top),calc(var(--nv-overlay-top)+0.75rem))] pb-[max(2rem,var(--nv-safe-bottom))] lg:max-w-xl lg:pt-[max(3.5rem,var(--nv-safe-top),calc(var(--nv-overlay-top)+0.75rem))]">
         {children}
       </div>
     </motion.section>
