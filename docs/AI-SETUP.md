@@ -82,7 +82,40 @@ says so rather than pretending.
 The prompts are the ones already in `lib/ai/prompts/` (verbatim from the pack),
 assembled rulebook + persona + a **HOUSE RULES** block this codebase owns. The
 house rules revoke Marcus's "chief" habit, forbid repeating a question, require
-jargon to be defined once in character, and restate Brand Law 5.
+jargon to be defined once in character, restate Brand Law 5, and — see below —
+require each shark to take a position on what the last one said.
+
+**The five of them are in the same room.** Panel Rulebook rule 2 has always
+asked a shark to react to the panel log by name, and it was never possible: the
+log arrived as `{speaker: "serena"}` and nothing in the request said who Serena
+is, what she wants, whether she is still in, or what she just bid. So the model
+ignored the other four and the room was five monologues sharing a table — most
+visibly when all five reached the same verdict and said it in the same words.
+`lib/ai/panel-dynamics.ts` turns each persona's PANEL DYNAMICS line into data:
+for every ordered pair, how that shark reads the other and whether they are
+inclined to back them or take them on. The route ships the roster, the standing
+offers, who has folded and the exact line spoken immediately before this turn;
+the house rules tell the shark to use it and not to reuse anybody's sentence.
+The offline room in `lib/ai/panel-local.ts` reads the same table, so a keyless
+deploy gets the cross-talk too. Both are covered by `npm run test:ai`.
+
+Two guards sit behind the house rules, because a prompt is not a guarantee and
+this is the same class of failure the repeated-question guard already exists
+for. **The echo guard** (`lib/ai/panel.ts`) compares a live shark's `spoken`
+against the last two speakers with the same word-overlap test used for repeated
+questions; an echo falls to the offline shark, whose lines are per seat and
+cannot echo by construction. **The tic guard** (`openedOnTheRoom`) notices when
+two sharks in a row opened by naming a rival and stops the third — a model does
+not honour "roughly two turns in three", and "I agree with Serena" every single
+turn would be a new tic replacing the old one.
+
+**Joint offers work now.** `decision: "join"` and `join_with` were produced by
+the route and read by nothing — no screen, no state, no scorer — and the
+offline room hardcoded the field empty. A shark may now join a seat that is
+actually holding a solo offer, coming in at that shark's valuation so only the
+cheque grows; the server refuses a join naming somebody who never bid, a shark
+joining itself, and a third name on one deal. The table shows both faces and
+both names, and the debrief is told who signed with whom.
 
 ⚠️ **`next.config.ts` pins `lib/ai/prompts/**/*.md` into the `/api/panel` and
 `/api/debrief` bundles via `outputFileTracingIncludes`.** They are read with

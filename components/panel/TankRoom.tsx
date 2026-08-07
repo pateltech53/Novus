@@ -46,6 +46,7 @@ export const TankRoom = memo(function TankRoom({
   cameraStream,
   year,
   phase,
+  maxHeightClass = "",
 }: {
   states: Partial<Record<SharkId, SeatState>>;
   speaking: SharkId | null;
@@ -63,13 +64,24 @@ export const TankRoom = memo(function TankRoom({
   year: number;
   /** Only used for the caption strip — the ROOM itself never changes. */
   phase?: string;
+  /**
+   * A ceiling on how much of the screen the set is allowed to take.
+   *
+   * The plate is 3:2, so at full width it claims 66% of the width in height —
+   * which on a short phone left the conversation beneath it a few lines tall
+   * and the newest message clipped by the composer. A max-height wins over
+   * `aspect-ratio`, and the photograph is `object-cover`, so the room simply
+   * crops rather than squashing. Empty by default: every other caller wants
+   * the full plate.
+   */
+  maxHeightClass?: string;
 }) {
   const micLevel = useSeatLean(levelRef, Object.values(states).includes("listening"));
 
   return (
     <div className="relative isolate w-full overflow-hidden rounded-[var(--radius-card)] bg-[var(--n-0)] shadow-[var(--e3)]">
       {/* The room, at full strength. 3:2 to match the plate. */}
-      <div className="relative aspect-[3/2] w-full">
+      <div className={`relative aspect-[3/2] w-full ${maxHeightClass}`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/sharks/tank-set.webp"
@@ -139,18 +151,30 @@ export const TankRoom = memo(function TankRoom({
         {/* Caption stack, bottom-LEFT and nothing else there. The speaker's
             name used to sit bottom-right, where the camera lands — so the two
             overlapped and both became unreadable. */}
+        {/*
+          ── These captions are NOT theme tokens, and that is the fix ─────────
+          │
+          │ They sit on a photograph of a dark television set, and that
+          │ photograph does not have a light mode. The ramp does: `--n-10` and
+          │ `--n-11` are near-white on a dark ground and near-black on a light
+          │ one, so in light theme "THE TANK" and the speaker's name turned
+          │ into dark type on a dark still and disappeared. Ink that sits on a
+          │ fixed image is fixed too.
+        */}
         <div className="pointer-events-none absolute bottom-0 left-0 max-w-[62%] p-3">
-          <p className="text-2xs font-bold tracking-[0.24em] text-[var(--n-7)]">
+          <p className="text-2xs font-bold tracking-[0.24em] text-[oklch(0.82_0.002_260)] [text-shadow:0_1px_3px_oklch(0_0_0/0.6)]">
             FISCAL YEAR {year}
             {phase ? ` · ${phase.toUpperCase()}` : ""}
           </p>
-          <p className="text-sm font-extrabold tracking-[0.14em] text-[var(--n-10)]">THE TANK</p>
+          <p className="text-sm font-extrabold tracking-[0.14em] text-[oklch(0.98_0.001_260)] [text-shadow:0_1px_4px_oklch(0_0_0/0.7)]">
+            THE TANK
+          </p>
           {speaking && (
             <motion.p
               key={speaking}
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mt-1 inline-block truncate rounded-[var(--radius-pill)] bg-[oklch(0.08_0.004_260/0.8)] px-2.5 py-1 text-2xs font-bold tracking-[0.08em] text-[var(--n-11)]"
+              className="mt-1 inline-block truncate rounded-[var(--radius-pill)] bg-[oklch(0.08_0.004_260/0.8)] px-2.5 py-1 text-2xs font-bold tracking-[0.08em] text-[oklch(0.98_0.001_260)]"
             >
               {PANEL.find((s) => s.id === speaking)?.name ?? ""}
             </motion.p>

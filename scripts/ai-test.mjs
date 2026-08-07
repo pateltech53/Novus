@@ -885,6 +885,605 @@ const WORTH_Q = "Run your own math with me: what is this company actually worth?
   check("and told in the prompt that good numbers are not a defence", /GOOD NUMBERS ARE NOT A DEFENCE/.test(rules));
 }
 
+// ── Five investors, or one investor with five faces ─────────────────────────
+// The reported failure: "in certain situations their answers are completely
+// identical." They were. The defence-floor override in app/api/panel/route.ts
+// put ONE sentence in all five mouths in a row, and the offline negotiate turn
+// drew every line from a single pool shared by the whole panel — so the room
+// most obviously broke exactly when all five sharks agreed, which is the moment
+// a founder most needs to believe five people got there separately.
+//
+// The other half of the same problem: nobody in this room had ever
+// acknowledged that anybody else was in it. Panel Rulebook rule 2 asks for it,
+// every persona file has a PANEL DYNAMICS line, and none of it reached a model
+// or the offline room.
+console.log("\nThe Tank  ·  five investors, not one in five voices");
+
+const SHARKS = ["marcus", "serena", "dev", "lily", "viktor"];
+
+{
+  const { localQuestionTurn, localNegotiateTurn } = await import(
+    pathToFileURL(join(root, "lib/ai/panel-local.ts")).href
+  );
+  const { relationOf, lastOtherBeat, whoWalked, resolveShark } = await import(
+    pathToFileURL(join(root, "lib/ai/panel-dynamics.ts")).href
+  );
+  const { CAST } = await import(pathToFileURL(join(root, "lib/ai/panel-cast.ts")).href);
+
+  const ctx = {
+    founderName: "Ama",
+    company: {
+      name: "Kettle & Co",
+      industry: "Food",
+      stage: "Garage",
+      year: 2,
+      cash: 40_000,
+      burnMonthly: 9_000,
+      runwayMonths: 4,
+      revenueAnnual: 120_000,
+      grossMarginPt: 38,
+      netMarginPt: 2,
+      valuation: 600_000,
+      founderEquityPct: 100,
+      employees: 3,
+      customerSatisfaction: 51,
+    },
+    brief: { companyType: "", whatItDoes: "", usp: "", whyCustomers: "", mission: "", missing: false },
+    metrics: { growthYoyPct: 20, tam: 4e9, monthlyChurnPct: 8, mrr: 10_000, ltvCacRatio: 1.8 },
+    competitors: [],
+    attackPoints: [
+      { id: "runway", claim: "Runway is 4 months.", question: "What happens in month five?", owner: "viktor", severity: 10 },
+      { id: "margin", claim: "Gross margin is 38%.", question: "Where do the other 62 cents go?", owner: "marcus", severity: 7 },
+      { id: "churn", claim: "Monthly churn is 8%.", question: "Do you know why they leave?", owner: "lily", severity: 6 },
+      { id: "csat", claim: "Satisfaction is 51/100.", question: "What is the complaint you hear most?", owner: "dev", severity: 5 },
+      { id: "flat", claim: "Growth is slowing.", question: "Is that the market or the product?", owner: "serena", severity: 5 },
+    ],
+    fairValuation: { low: 420_000, high: 870_000 },
+    ask: { amountUsd: 150_000, equityPct: 15, impliedValuationUsd: 1_000_000 },
+    coveredBeats: [],
+  };
+
+  /** A company good enough that the room bids rather than walks. */
+  const jointCtx = {
+    ...ctx,
+    company: { ...ctx.company, grossMarginPt: 58, runwayMonths: 14, customerSatisfaction: 78, valuation: 900_000 },
+    metrics: { growthYoyPct: 90, tam: 6e11, monthlyChurnPct: 3, mrr: 35_000, ltvCacRatio: 4 },
+    fairValuation: { low: 630_000, high: 1_300_000 },
+  };
+
+  // Everybody walks for the same reason: three questions, three jokes.
+  const nothing = [
+    { question: CHURN_Q, answer: "i like pickles", declined: false },
+    { question: SCALE_Q, answer: "pickles are nice", declined: false },
+    { question: WORTH_Q, answer: "lol idk", declined: false },
+  ];
+
+  {
+    // The offline room, walking one seat at a time — each one reading the log
+    // the ones before it left behind.
+    const log = [];
+    const spoken = [];
+    for (const shark of SHARKS) {
+      const turn = localOfferTurn({ shark, ctx, answers: nothing, offersOnTable: [], log, score: 3 });
+      spoken.push(turn.spoken);
+      log.push({ speaker: shark, spoken: turn.spoken, decision: turn.decision, offer: turn.offer });
+    }
+    check("all five walk when nothing was answered", log.every((l) => l.decision === "out"));
+    check(
+      "and no two of them say it in the same words",
+      new Set(spoken).size === 5,
+      JSON.stringify(spoken.filter((s, i) => spoken.indexOf(s) !== i)),
+    );
+    check(
+      "the ones who follow acknowledge the ones who went first, by name",
+      spoken.slice(1).some((s) => SHARKS.some((id) => s.includes(id[0].toUpperCase() + id.slice(1)))),
+      spoken.slice(1).join(" | "),
+    );
+    check("the log knows who folded", whoWalked(log).length === 5);
+  }
+
+  {
+    // The counter nobody made. This was one hardcoded string for the whole panel.
+    const current = { amount_usd: 120_000, equity_pct: 20, implied_valuation_usd: 600_000, deal_type: "equity", conditions: [] };
+    const silent = SHARKS.map((shark) => localNegotiateTurn({ shark, ctx, current, counter: "" }).spoken);
+    check("a founder who doesn't counter hears five different replies", new Set(silent).size === 5, JSON.stringify(silent));
+
+    const vague = SHARKS.map((shark) => localNegotiateTurn({ shark, ctx, current, counter: "I want more" }).spoken);
+    check("and so does one who counters without a number", new Set(vague).size === 5, JSON.stringify(vague));
+
+    const moved = SHARKS.map((shark) => localNegotiateTurn({ shark, ctx, current, counter: "180k for 12%" }).spoken);
+    check("and one who counters with terms", new Set(moved).size === 5, JSON.stringify(moved));
+    check("every revision is still a real move on the equity", moved.every((s) => /%/.test(s)));
+
+    /*
+     * A revised offer's arithmetic has to tie out, and for a long time it did
+     * not: `equity_pct` was rounded to one decimal while
+     * `implied_valuation_usd` was computed from the unrounded 15.8399…%, so the
+     * beat row printed "$2.7M ÷ 15.8% = $17,045,455" — which is not what that
+     * division equals. This is a game that teaches a teenager to read a
+     * valuation; the worked example on screen cannot be wrong.
+     */
+    const ties = [];
+    for (const equity_pct of [3, 4.7, 15.83, 22.5, 31.1, 45, 59.9]) {
+      for (const amount_usd of [7_500, 120_000, 2_700_000, 48_000_000]) {
+        const revised = localNegotiateTurn({
+          shark: "serena", ctx, counter: "200k for 10%",
+          current: { amount_usd, equity_pct, implied_valuation_usd: 0, deal_type: "equity", conditions: [] },
+        }).offer;
+        ties.push(
+          revised.implied_valuation_usd === Math.round(revised.amount_usd / (revised.equity_pct / 100)),
+        );
+      }
+    }
+    check("a revised offer's division ties out at every size", ties.every(Boolean), `${ties.filter((t) => !t).length} of ${ties.length} did not`);
+  }
+
+  {
+    // The first voice in the room has nobody to agree with, and must not
+    // pretend otherwise — the tell that gives the whole device away.
+    const opening = localQuestionTurn({ shark: "viktor", ctx, usedIds: [], askedQuestions: [], log: [], round: 1 });
+    check(
+      "the first shark to speak references nobody",
+      !SHARKS.some((id) => id !== "viktor" && opening.spoken.includes(id[0].toUpperCase() + id.slice(1))),
+      opening.spoken,
+    );
+
+    // ...and the ones after them do. Sampled across the seats because whether
+    // a given turn cross-talks is a die roll by design: a shark who reacts to
+    // the room EVERY time is a tic, and a tic is the thing being fixed.
+    const log = [
+      { speaker: "viktor", spoken: opening.spoken, questions: [opening.questions[0]] },
+    ];
+    const followers = SHARKS.filter((s) => s !== "viktor").map((shark) =>
+      localQuestionTurn({ shark, ctx, usedIds: ["runway"], askedQuestions: [opening.questions[0]], log, round: 2 }).spoken,
+    );
+    check(
+      "the sharks who follow take a position on the one before them, by name",
+      followers.some((s) => s.includes("Viktor")),
+      followers.join(" | "),
+    );
+    check(
+      "and none of them reacts to somebody who has not spoken",
+      !followers.some((s) => /Marcus|Serena|Dev|Lily/.test(s.replace(/Viktor/g, ""))),
+      followers.join(" | "),
+    );
+    check("nobody agrees with themselves", lastOtherBeat(log, "viktor") === null);
+  }
+
+  {
+    /*
+     * ── Two names on one cheque ─────────────────────────────────────────────
+     *
+     * Panel Rulebook rule 3 has always allowed a joint offer, the schema has
+     * always carried `decision: "join"` and `join_with`, and no screen, scorer
+     * or state ever read the field — the offline room hardcoded it empty and
+     * the route emitted a name nobody looked at. Dev calls this his favourite
+     * play and Serena and Lily split brand deals; the room could not do it.
+     */
+    const defended = [
+      { question: CHURN_Q, answer: "About 3% a month, mostly the free-trial cohort, because setup took a week and we fixed it.", declined: false },
+      { question: SCALE_Q, answer: "The heat press. A second one is 40k plus one more operator, and I have the quote.", declined: false },
+      { question: WORTH_Q, answer: "The books say 900 thousand and I'm asking at a million on 90 percent growth.", declined: false },
+    ];
+
+    let joins = 0;
+    const pairs = new Set();
+    let jointTermsTieOut = true;
+    let neverStacked = true;
+    let alwaysNamed = true;
+
+    for (let year = 1; year <= 60; year += 1) {
+      const ctx = { ...jointCtx, company: { ...jointCtx.company, year } };
+      const onTable = [];
+      for (const shark of SHARKS) {
+        const turn = localOfferTurn({ shark, ctx, answers: defended, offersOnTable: [...onTable], log: [], score: 8 });
+        if (turn.decision === "join") {
+          joins += 1;
+          pairs.add(`${shark}->${turn.join_with}`);
+          const target = onTable.find((o) => o.shark === turn.join_with);
+          // A joint offer must name a seat that is actually holding a solo
+          // offer right now. Anything else puts a deal on screen in the name
+          // of somebody the founder never saw bid.
+          if (!target || target.with || turn.join_with === shark) neverStacked = false;
+          if (!turn.spoken.includes(CAST[turn.join_with]?.name ?? " ")) alwaysNamed = false;
+          const o = turn.offer;
+          if (o.implied_valuation_usd !== Math.round(o.amount_usd / (o.equity_pct / 100))) {
+            jointTermsTieOut = false;
+          }
+          // Joining means coming in at the price the first shark already set.
+          if (target && o.amount_usd <= target.offer.amount_usd) jointTermsTieOut = false;
+          const i = onTable.findIndex((e) => e.shark === turn.join_with && !e.with);
+          if (i >= 0) onTable[i] = { shark: turn.join_with, offer: o, with: shark };
+        } else if (turn.offer) {
+          onTable.push({ shark, offer: turn.offer });
+        }
+      }
+    }
+
+    check("sharks propose joint offers at all", joins > 0, String(joins));
+    check("and only to a seat actually holding a solo offer", neverStacked);
+    check("the joint line names the partner out loud", alwaysNamed);
+    check("the combined cheque is bigger than the one it joined", jointTermsTieOut);
+    check(
+      "Dev joins Marcus, which his persona calls his favourite play",
+      pairs.has("dev->marcus"),
+      [...pairs].join(", "),
+    );
+    check(
+      "Lily joins Serena — she buys the reach, Lily builds the love",
+      pairs.has("lily->serena"),
+      [...pairs].join(", "),
+    );
+    check(
+      "Viktor never joins anybody, exactly as his persona says",
+      ![...pairs].some((p) => p.startsWith("viktor->")),
+      [...pairs].join(", "),
+    );
+  }
+
+  {
+    // The relationships are the persona files, not invention: Marcus trusts
+    // Viktor's diligence and needles Serena, and the code has to agree.
+    check("Marcus and Viktor are allies, per their persona files", relationOf("marcus", "viktor").stance === "ally");
+    check("Marcus and Serena are not", relationOf("marcus", "serena").stance === "spar");
+    check("Serena and Lily are the brand-led alliance", relationOf("serena", "lily").stance === "ally");
+    check(
+      "and every ordered pair has a read the prompt can ship",
+      SHARKS.every((a) => SHARKS.filter((b) => b !== a).every((b) => relationOf(a, b).read.length > 20)),
+    );
+  }
+}
+
+{
+  // The live room. Same override, same requirement — and the model gets told
+  // who else is at the table, which is the thing that made rule 2 unusable.
+  const panel = await import(pathToFileURL(join(root, "app/api/panel/route.ts")).href);
+  handler = () =>
+    Response.json({
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({
+              spoken: "I love this. I'm in.",
+              decision: "offer",
+              amount_usd: 500_000,
+              equity_pct: 6,
+              deal_type: "equity",
+              conditions: [],
+              join_with: "",
+              reason: "Great margins.",
+              private_notes: "",
+            }),
+          },
+        },
+      ],
+    });
+
+  const nothing = [
+    { question: CHURN_Q, answer: "i like pickles" },
+    { question: SCALE_Q, answer: "pickles are nice" },
+    { question: WORTH_Q, answer: "lol idk" },
+  ];
+
+  const log = [];
+  const spoken = [];
+  for (const shark of SHARKS) {
+    const body = await (
+      await panel.POST(
+        json("http://localhost/api/panel", {
+          phase: "offer",
+          shark,
+          pitchTranscript: "We make hoodies for school teams.",
+          context: { fairValuation: { low: 5_600_000, high: 11_600_000 } },
+          answers: nothing,
+          log,
+        }),
+      )
+    ).json();
+    spoken.push(body.spoken);
+    log.push({ speaker: shark, spoken: body.spoken, decision: body.decision, offer: body.offer });
+  }
+  check("the server still overrides every offer the answers did not earn", log.every((l) => l.decision === "out"));
+  check(
+    "but no longer in one sentence spoken five times",
+    new Set(spoken).size === 5,
+    JSON.stringify(spoken.filter((s, i) => spoken.indexOf(s) !== i)),
+  );
+
+  // What the model is actually handed about the other four.
+  await panel.POST(
+    json("http://localhost/api/panel", {
+      phase: "questions",
+      shark: "serena",
+      pitchTranscript: "We make hoodies for school teams.",
+      context: { fairValuation: { low: 1_000, high: 2_000 } },
+      log: [
+        { speaker: "marcus", spoken: "Give me the margin.", questions: ["What is your gross margin?"] },
+      ],
+    }),
+  );
+  const brief = JSON.parse(JSON.parse(lastRequest.init.body).messages[1].content);
+  check("the shark is introduced to the other four by name", brief.the_room.the_other_four.length === 4);
+  check(
+    "and told what each of them cares about",
+    brief.the_room.the_other_four.every((s) => s.they_care_about?.length > 10),
+  );
+  check(
+    "and how this particular shark reads them",
+    /rearview mirror/.test(
+      brief.the_room.the_other_four.find((s) => s.name.startsWith("Marcus")).how_you_read_them,
+    ),
+  );
+  check(
+    "and handed the exact line spoken immediately before theirs",
+    brief.the_room.who_spoke_immediately_before_you.their_exact_words === "Give me the margin.",
+  );
+  check(
+    "and what that shark just did",
+    brief.the_room.who_spoke_immediately_before_you.what_they_did === "asked the founder a question",
+  );
+  check(
+    "the panel log carries names, not just database ids",
+    brief.panel_log[0].speaker_name === "Marcus Cole",
+  );
+
+  await panel.POST(
+    json("http://localhost/api/panel", {
+      phase: "questions",
+      shark: "marcus",
+      pitchTranscript: "We make hoodies for school teams.",
+      context: { fairValuation: { low: 1_000, high: 2_000 } },
+      log: [],
+    }),
+  );
+  const first = JSON.parse(JSON.parse(lastRequest.init.body).messages[1].content);
+  check(
+    "the first shark to speak is told there is nobody to react to yet",
+    typeof first.the_room.who_spoke_immediately_before_you.nobody_yet === "string",
+    JSON.stringify(first.the_room.who_spoke_immediately_before_you),
+  );
+
+  const rules = (await import(pathToFileURL(join(root, "lib/ai/server/panel-prompts.ts")).href)).sharkSystemPrompt("serena");
+  check("and told in the prompt to talk to the other four", /TALK TO EACH OTHER/.test(rules));
+  check("and told not to reuse another shark's words", /NOBODY ELSE'S WORDS/.test(rules));
+
+  /*
+   * The log is now READ by the server rather than merely forwarded — it decides
+   * who has folded and who spoke last. That makes it an input, and an input
+   * parsed off the wire has to survive being wrong. A `log: [null]` used to
+   * throw inside the reader and take the route to a 500; the round is supposed
+   * to degrade to the offline shark on any failure, never to a stack trace.
+   */
+  const junkLogs = [
+    [null],
+    [undefined],
+    [{}],
+    [{ speaker: 42 }],
+    "not an array",
+    [{ speaker: "ghost", decision: "banana", offer: "nope" }],
+    Array(400).fill({ speaker: "lily", spoken: "x", decision: "out" }),
+  ];
+  let survived = 0;
+  for (const log of junkLogs) {
+    try {
+      const res = await panel.POST(
+        json("http://localhost/api/panel", {
+          phase: "questions",
+          shark: "dev",
+          pitchTranscript: "We make hoodies.",
+          context: { fairValuation: { low: 1_000, high: 2_000 } },
+          log,
+        }),
+      );
+      if (res.status < 500) survived += 1;
+    } catch {
+      /* counted as a failure below */
+    }
+  }
+  check("a malformed panel log never 500s the route", survived === junkLogs.length, `${survived}/${junkLogs.length}`);
+
+  const unknownShark = await panel.POST(
+    json("http://localhost/api/panel", {
+      phase: "questions",
+      shark: "../../etc/passwd",
+      pitchTranscript: "We make hoodies.",
+      context: { fairValuation: { low: 1_000, high: 2_000 } },
+    }),
+  );
+  check("and an unknown shark id falls back to a real seat", unknownShark.status < 500, `HTTP ${unknownShark.status}`);
+
+  /*
+   * ── The tic guard ──────────────────────────────────────────────────────
+   *
+   * "Roughly two turns in three" is not an instruction a model follows. Left
+   * alone it reads the roster and opens EVERY turn with "I agree with Serena",
+   * which is a new tic wearing the old one's clothes — and a fair complaint
+   * about this change rather than a fix for the original one. The correction is
+   * measured off what the room just did and stated only when it is true.
+   */
+  const briefWith = async (log) => {
+    await panel.POST(
+      json("http://localhost/api/panel", {
+        phase: "questions",
+        shark: "viktor",
+        pitchTranscript: "We make hoodies.",
+        context: { fairValuation: { low: 1_000, high: 2_000 } },
+        log,
+      }),
+    );
+    return JSON.parse(JSON.parse(lastRequest.init.body).messages[1].content);
+  };
+  const chatty = await briefWith([
+    { speaker: "marcus", spoken: "Serena is pricing a story. I'm pricing a company." },
+    { speaker: "lily", spoken: "Marcus is counting. I'd like to ask who's being counted." },
+  ]);
+  check(
+    "two room-facing openings in a row and the next shark is told to stop",
+    typeof chatty.the_room.cadence_correction === "string",
+    JSON.stringify(chatty.the_room.cadence_correction),
+  );
+  const calm = await briefWith([
+    { speaker: "marcus", spoken: "Give me the margin, in a number." },
+    { speaker: "lily", spoken: "Marcus is counting. I'd like to ask who's being counted." },
+  ]);
+  check("and is not nagged when the room is not doing it", calm.the_room.cadence_correction === undefined);
+
+  /*
+   * ── A joint offer with somebody who never made one ─────────────────────
+   *
+   * `join_with` is free text from a model. Unbounded, a shark names somebody
+   * who went out five turns ago and a deal appears on screen in the name of an
+   * investor the founder just watched leave. Same "bound it rather than trust
+   * it" rule the deal terms get.
+   */
+  const joinBody = async (joinWith, offersOnTable) => {
+    handler = () =>
+      Response.json({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                spoken: "I'll come in with them.",
+                decision: "join",
+                amount_usd: 200_000,
+                equity_pct: 12,
+                deal_type: "equity",
+                conditions: [],
+                join_with: joinWith,
+                reason: "Better together.",
+                private_notes: "",
+              }),
+            },
+          },
+        ],
+      });
+    return (
+      await panel.POST(
+        json("http://localhost/api/panel", {
+          phase: "offer",
+          shark: "dev",
+          pitchTranscript: "We make hoodies.",
+          context: { fairValuation: { low: 900_000, high: 1_900_000 } },
+          answers: [
+            { question: CHURN_Q, answer: "About 2%, from the free-trial cohort, setup took a week." },
+            { question: SCALE_Q, answer: "The heat press. A second one is 40k and one more operator." },
+          ],
+          offersOnTable,
+        }),
+      )
+    ).json();
+  };
+
+  const standing = [{ shark: "marcus", amount_usd: 150_000, equity_pct: 15 }];
+  const ok = await joinBody("Marcus Cole", standing);
+  check("a join names a seat that really is on the table", ok.decision === "join", JSON.stringify(ok.decision));
+  check("and the partner comes back as a seat id, not free text", ok.join_with === "marcus", JSON.stringify(ok.join_with));
+
+  const ghost = await joinBody("Viktor Reyes", standing);
+  check("joining a shark who never bid degrades to a plain offer", ghost.decision === "offer", JSON.stringify(ghost.decision));
+  check("and carries no partner", ghost.join_with === "");
+
+  const itself = await joinBody("dev", [{ shark: "dev", amount_usd: 1, equity_pct: 1 }]);
+  check("a shark cannot join itself", itself.decision === "offer", JSON.stringify(itself.decision));
+
+  const stacked = await joinBody("marcus", [
+    { shark: "marcus", with: "lily", amount_usd: 150_000, equity_pct: 15 },
+  ]);
+  check("and nobody stacks a third name on one cheque", stacked.decision === "offer", JSON.stringify(stacked.decision));
+
+  const nonsense = await joinBody("the guy in the blue jacket", standing);
+  check("an unresolvable partner is refused rather than guessed", nonsense.decision === "offer", JSON.stringify(nonsense.decision));
+}
+
+// ── Nobody says the sentence above them ─────────────────────────────────────
+// The house rules ask a shark not to restate what the shark before it just
+// said. This is the check, and it is the same pattern the repeated-question
+// guard already uses: a prompt carries the whole log and a prompt is still not
+// a guarantee, so an echo falls to the offline shark, whose lines are per seat
+// and cannot echo by construction.
+console.log("\nThe Tank  ·  nobody parrots the seat above them");
+
+{
+  const { sharkOfferTurn } = await import(pathToFileURL(join(root, "lib/ai/panel.ts")).href);
+  const said = "The margin is thin and the runway is short. I'm out.";
+
+  const session = (log) => ({
+    ctx: {
+      founderName: "Ama",
+      company: { name: "Kettle & Co", industry: "Food", stage: "Garage", year: 4, cash: 90_000, burnMonthly: 9_000, runwayMonths: 12, revenueAnnual: 420_000, grossMarginPt: 58, netMarginPt: 9, valuation: 900_000, founderEquityPct: 100, employees: 4, customerSatisfaction: 78 },
+      brief: { companyType: "", whatItDoes: "", usp: "", whyCustomers: "", mission: "", missing: false },
+      metrics: { growthYoyPct: 90, tam: 6e11, monthlyChurnPct: 3, mrr: 35_000, ltvCacRatio: 4 },
+      competitors: [],
+      attackPoints: [{ id: "a", claim: "Churn is 3%.", question: "Why do they leave?", owner: "lily", severity: 5 }],
+      fairValuation: { low: 630_000, high: 1_300_000 },
+      ask: { amountUsd: 150_000, equityPct: 15, impliedValuationUsd: 1_000_000 },
+      coveredBeats: [],
+    },
+    pitchTranscript: "We make hoodies for school teams.",
+    score: 8,
+    log,
+    askedQuestions: [],
+    usedAttackIds: [],
+    answers: [
+      { question: CHURN_Q, answer: "About 3% a month, mostly the free-trial cohort, setup took a week and we fixed it.", declined: false },
+      { question: SCALE_Q, answer: "The heat press. A second one is 40k plus one more operator.", declined: false },
+    ],
+    offersOnTable: [],
+  });
+
+  /*
+   * This stubs /api/panel itself, not the provider behind it. `sharkOfferTurn`
+   * is the CLIENT half — it calls the route and decides whether to keep the
+   * answer — so the stub has to speak the route's response shape, which is the
+   * already-shaped turn rather than an OpenRouter completion.
+   */
+  const reply = (spoken) => {
+    handler = () =>
+      Response.json({
+        spoken,
+        decision: "offer",
+        offer: {
+          amount_usd: 150_000,
+          equity_pct: 15,
+          implied_valuation_usd: 1_000_000,
+          deal_type: "equity",
+          conditions: [],
+        },
+        join_with: "",
+        reason: "Fine business.",
+        private_notes: "",
+      });
+  };
+
+  reply("I'll put in $150K for 15% because the cohort retention convinced me.");
+  const fresh = await sharkOfferTurn({ shark: "serena", session: session([{ speaker: "marcus", spoken: said }]) });
+  check("a shark with something of its own to say goes through live", fresh.source === "api", fresh.source);
+
+  reply(said);
+  const parrot = await sharkOfferTurn({ shark: "serena", session: session([{ speaker: "marcus", spoken: said }]) });
+  check("one that repeats the seat above it falls to the offline shark", parrot.source === "local", parrot.source);
+  check("and the offline line is not the echo", parrot.spoken !== said, parrot.spoken);
+
+  reply("The runway is short, the margin is thin, and I am out of this one.");
+  const reworded = await sharkOfferTurn({ shark: "serena", session: session([{ speaker: "marcus", spoken: said }]) });
+  check("rewording it is still parroting", reworded.source === "local", reworded.source);
+
+  reply(said);
+  const older = await sharkOfferTurn({
+    shark: "serena",
+    session: session([
+      { speaker: "marcus", spoken: said },
+      { speaker: "dev", spoken: "Walk me through the heat press." },
+      { speaker: "lily", spoken: "Tell me about your hundredth customer." },
+    ]),
+  });
+  check(
+    "but a callback to something said three turns ago is a room with a memory",
+    older.source === "api",
+    older.source,
+  );
+}
+
 // ── The empty shelf ─────────────────────────────────────────────────────────
 // A founded company owns nothing and the tutorial sends every new player
 // straight to the emptiest screen in the game. The three suggestions have to be

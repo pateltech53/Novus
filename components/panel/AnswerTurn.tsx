@@ -259,35 +259,73 @@ export function AnswerTurn({
   }
 
   return (
+    /*
+     * ── THE COMPOSER ────────────────────────────────────────────────────────
+     *
+     * Docked under the conversation rather than sitting in it. This used to be
+     * a card inside the scroll region, which meant the question you were
+     * answering could scroll above the fold while you answered it, and the
+     * whole panel had to be scrolled back down to find the button.
+     *
+     * It is deliberately SHORT in its resting state — one line of label, one
+     * row of controls. Everything that makes it taller (the timer, the live
+     * transcript, the textarea) only appears once the founder has chosen how
+     * they are answering, and `SharkPanel` re-pins the thread to its floor
+     * whenever this element changes height, so growing it can never push the
+     * newest message out of sight.
+     */
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={ENTER}
-      className="rounded-[var(--radius-card)] bg-[var(--surface-elevated)] p-4 shadow-[var(--e3)]"
     >
-      <p className="text-2xs font-bold tracking-[0.16em] text-[var(--text-tertiary)]">{label}</p>
-      <p className="mt-1.5 text-base font-semibold leading-snug text-[var(--text-primary)]">
-        {question}
+      {/* The label only. The question itself is already a bubble directly
+          above this, in the thread — printing it twice was the single largest
+          block of duplicated text on the screen. */}
+      <p className="px-1 text-2xs font-bold tracking-[0.16em] text-[var(--text-tertiary)]">
+        {label}
       </p>
 
-      {err && <p className="mt-3 text-sm leading-snug text-[var(--text-secondary)]">{err}</p>}
+      {err && <p className="mt-2 px-1 text-sm leading-snug text-[var(--text-secondary)]">{err}</p>}
 
       {mode === "choose" && (
-        <div className="mt-4 space-y-2">
-          <button
-            type="button"
-            onClick={beginRecording}
-            className="nv-gc h-14 w-full rounded-[var(--radius-card)] nv-t-action text-base font-extrabold tracking-[0.04em] shadow-[var(--e3)]"
-          >
-            {speakLabel}
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("typing")}
-            className="nv-gc h-12 w-full rounded-[var(--radius-card)] text-sm font-bold tracking-[0.04em] text-[var(--text-primary)]"
-          >
-            Type it instead
-          </button>
+        <div className="mt-2 space-y-2">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={beginRecording}
+              className="nv-gc h-14 flex-1 rounded-[var(--radius-card)] nv-t-action text-sm font-extrabold tracking-[0.04em] shadow-[var(--e3)]"
+            >
+              {speakLabel}
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("typing")}
+              aria-label="Type your answer instead"
+              className="nv-gc flex h-14 w-14 shrink-0 items-center justify-center rounded-[var(--radius-card)] text-sm font-bold text-[var(--text-primary)]"
+            >
+              {/* A keyboard, because the alternative to talking is typing and
+                  the word "instead" made it read as the lesser option. It is
+                  judged identically — see the header. */}
+              <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5" fill="none">
+                <rect
+                  x="2.5"
+                  y="6"
+                  width="19"
+                  height="12"
+                  rx="2.5"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                />
+                <path
+                  d="M7 10h.01M10.5 10h.01M14 10h.01M17 10h.01M7 13.5h.01M17 13.5h.01M10 13.5h4"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
+          </div>
           {/* Only before the microphone opens. Reading a hint while recording
               is how a hint becomes a script being read aloud. */}
           {helpFacts && onHelpUsed && (
@@ -303,7 +341,7 @@ export function AnswerTurn({
             <button
               type="button"
               onClick={onDecline}
-              className="h-10 w-full text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]"
+              className="h-9 w-full text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]"
             >
               {declineLabel}
             </button>
@@ -312,23 +350,15 @@ export function AnswerTurn({
       )}
 
       {mode === "recording" && (
-        <div className="mt-4">
-          <p className="tnum text-center text-2xl font-extrabold text-[var(--text-primary)]">
-            0:{String(seconds).padStart(2, "0")}
-          </p>
-          <p className="mt-0.5 text-center text-2xs tracking-[0.1em] text-[var(--text-tertiary)]">
-            {maxSeconds - seconds}s LEFT
-          </p>
-
+        <div className="mt-2">
           {/* What the room is going to read, while you are still saying it.
               The sharks answer these words now, so hiding them would mean
-              being judged on something you never got to see. */}
+              being judged on something you never got to see. Capped and
+              scrollable: a long answer must not grow the dock without limit
+              and squeeze the conversation above it. */}
           {(heard || interim) && (
-            <div className="mt-3 max-h-24 overflow-y-auto rounded-[var(--radius-row)] bg-[var(--surface)] px-3 py-2">
-              <p className="text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
-                WHAT THEY HEARD
-              </p>
-              <p className="mt-1 text-sm leading-snug text-[var(--text-primary)]">
+            <div className="mb-2 max-h-20 overflow-y-auto overscroll-contain rounded-[var(--radius-card)] bg-[var(--surface)] px-3 py-2 ring-1 ring-[var(--hairline)]">
+              <p className="text-sm leading-snug text-[var(--text-primary)]">
                 {heard}
                 {interim && <span className="text-[var(--text-tertiary)]"> {interim}</span>}
               </p>
@@ -338,46 +368,90 @@ export function AnswerTurn({
               letting a working microphone with a broken recogniser land as a
               refusal to answer. */}
           {seconds >= 8 && !heard && !interim && (
-            <p className="mt-3 text-2xs leading-snug text-[var(--text-tertiary)]">
-              Nothing is coming through yet. Finish anyway and the recording is
-              still sent, or type it instead — typed answers are judged the same.
+            <p className="mb-2 px-1 text-2xs leading-snug text-[var(--text-tertiary)]">
+              Nothing is coming through yet. Finish anyway and the recording is still
+              sent, or type it instead — typed answers are judged the same.
             </p>
           )}
 
-          <button
-            type="button"
-            onClick={() => void finish()}
-            className="nv-gc mt-4 h-14 w-full rounded-[var(--radius-card)] nv-t-action text-base font-extrabold tracking-[0.04em] shadow-[var(--e3)]"
-          >
-            THAT&rsquo;S MY ANSWER
-          </button>
+          <div className="flex items-center gap-3">
+            <span className="flex shrink-0 items-center gap-2 px-1">
+              <motion.span
+                aria-hidden="true"
+                className="block h-2.5 w-2.5 rounded-full bg-[var(--alert)]"
+                animate={{ opacity: [1, 0.25, 1] }}
+                transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+              />
+              <span className="tnum text-base font-extrabold text-[var(--text-primary)]">
+                0:{String(seconds).padStart(2, "0")}
+              </span>
+              <span className="text-2xs tracking-[0.08em] text-[var(--text-tertiary)]">
+                {maxSeconds - seconds}s LEFT
+              </span>
+            </span>
+            <button
+              type="button"
+              onClick={() => void finish()}
+              className="nv-gc h-14 flex-1 rounded-[var(--radius-card)] nv-t-action text-sm font-extrabold tracking-[0.04em] shadow-[var(--e3)]"
+            >
+              THAT&rsquo;S MY ANSWER
+            </button>
+          </div>
         </div>
       )}
 
       {mode === "transcribing" && (
-        <p className="mt-5 text-center text-sm text-[var(--text-secondary)]">
+        <p className="mt-3 pb-1 text-center text-sm text-[var(--text-secondary)]">
           Reading back what you said&hellip;
         </p>
       )}
 
       {mode === "typing" && (
-        <div className="mt-4">
-          <textarea
-            autoFocus
-            value={typed}
-            onChange={(e) => setTyped(e.target.value.slice(0, 600))}
-            rows={4}
-            placeholder="Answer them."
-            className="w-full resize-none rounded-[var(--radius-row)] bg-[var(--surface)] p-3 text-sm leading-snug text-[var(--text-primary)] outline-none ring-1 ring-[var(--hairline)] focus:ring-[var(--text-secondary)] placeholder:text-[var(--text-tertiary)]"
-          />
-          <button
-            type="button"
-            disabled={!typed.trim()}
-            onClick={() => onAnswer({ text: typed.trim(), spoken: false, seconds: 0 })}
-            className="nv-gc mt-3 h-14 w-full rounded-[var(--radius-card)] nv-t-action text-base font-extrabold tracking-[0.04em] shadow-[var(--e3)] disabled:opacity-40"
-          >
-            THAT&rsquo;S MY ANSWER
-          </button>
+        <div className="mt-2">
+          <div className="flex items-end gap-2">
+            <textarea
+              autoFocus
+              value={typed}
+              onChange={(e) => setTyped(e.target.value.slice(0, 600))}
+              onKeyDown={(e) => {
+                // Enter sends, Shift+Enter breaks the line — the convention of
+                // every message box this control now looks like.
+                if (e.key === "Enter" && !e.shiftKey && typed.trim()) {
+                  e.preventDefault();
+                  onAnswer({ text: typed.trim(), spoken: false, seconds: 0 });
+                }
+              }}
+              rows={2}
+              placeholder="Answer them."
+              className="max-h-28 min-h-[3.5rem] w-full flex-1 resize-none rounded-[var(--radius-card)] bg-[var(--surface)] px-3 py-2.5 text-sm leading-snug text-[var(--text-primary)] outline-none ring-1 ring-[var(--hairline)] placeholder:text-[var(--text-tertiary)] focus:ring-[var(--text-secondary)]"
+            />
+            <button
+              type="button"
+              disabled={!typed.trim()}
+              aria-label="Send your answer"
+              onClick={() => onAnswer({ text: typed.trim(), spoken: false, seconds: 0 })}
+              className="nv-gc flex h-14 w-14 shrink-0 items-center justify-center rounded-[var(--radius-card)] nv-t-action shadow-[var(--e3)] disabled:opacity-40"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5" fill="none">
+                <path
+                  d="M4 12h15M12.5 5.5 19 12l-6.5 6.5"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
+          {allowDecline && (
+            <button
+              type="button"
+              onClick={onDecline}
+              className="mt-1.5 h-8 w-full text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]"
+            >
+              {declineLabel}
+            </button>
+          )}
         </div>
       )}
     </motion.div>

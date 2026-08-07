@@ -74,6 +74,27 @@ export interface SharkOffer {
   conditions: string[];
 }
 
+/**
+ * One offer as it sits on the table, with the second name on it when there is
+ * one.
+ *
+ * Panel Rulebook rule 3 has always allowed a shark to "propose a joint offer
+ * with a named shark (state the split)", the offer schema has always carried
+ * `decision: "join"` and `join_with`, and the personas are full of it — Dev
+ * calls the joint offer his favourite play, Serena and Lily split brand deals
+ * as "she buys the reach, I build the love". Nothing ever read the field: the
+ * route produced `join_with` and no screen, no state and no scorer looked at
+ * it, and the offline room hardcoded it empty. `with` is the field that makes
+ * the strongest interaction in the pack reachable.
+ */
+export interface TableOffer {
+  /** The shark who set the terms. A joint offer is accepted through them. */
+  shark: SharkId;
+  offer: SharkOffer;
+  /** The second shark on the deal, when one joined. */
+  with?: SharkId;
+}
+
 /** phase "questions" output — verbatim shape */
 export interface SharkQuestions {
   spoken: string;
@@ -105,6 +126,27 @@ export interface PanelLogEntry {
   phase: PanelPhase | "answers";
   speaker: SharkId | "founder" | "chair";
   content: unknown;
+}
+
+/**
+ * One line of the public record, as the room actually carries it.
+ *
+ * Everything a shark needs to react to somebody else: who spoke, what they
+ * said, what they asked, and — the part that was missing — what they DID.
+ * Without `decision` the log could not tell a shark that two seats had already
+ * folded, so nobody could ever say "Viktor's out and I'm not far behind"; the
+ * offer terms are here for the same reason, so a rival's number can be quoted
+ * rather than guessed at. Lives here rather than in `panel.ts` because the
+ * live route, the offline shark and the session state all read it.
+ */
+export interface PanelLogLine {
+  speaker: string;
+  spoken: string;
+  questions?: string[];
+  /** "offer" | "out" | "join" | "hold" | "revise" — absent on question turns. */
+  decision?: string;
+  /** The headline terms, when this beat had any. */
+  offer?: { amount_usd: number; equity_pct: number; implied_valuation_usd: number } | null;
 }
 
 // ── Debrief Analyst (schema verbatim from pack §9) ───────────────────────────

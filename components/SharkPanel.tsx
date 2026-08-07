@@ -2,18 +2,24 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ENTER, STAGGER } from "@/components/ui/Motion";
+import { ENTER } from "@/components/ui/Motion";
 import { useGame } from "@/lib/state/GameProvider";
-import { FounderAvatar } from "@/components/FounderAvatar";
 import { TankRoom } from "@/components/panel/TankRoom";
 import { AnswerTurn } from "@/components/panel/AnswerTurn";
+import {
+  FounderMessage,
+  SharkMessage,
+  SystemMessage,
+  TypingBubble,
+} from "@/components/panel/Message";
 import { PitchNotes } from "@/components/PitchNotes";
 import { TermCoach } from "@/components/TermCoach";
-import { CAST, CHAIR, PANEL, type SeatState } from "@/lib/ai/panel-cast";
+import { CAST, PANEL, type SeatState } from "@/lib/ai/panel-cast";
 import { speak, stopSpeaking } from "@/lib/ai/speech";
 import { SkipVoice } from "@/components/ui/SkipVoice";
 import { stanceQuestionFor } from "@/lib/engine/positioning";
-import type { SharkId, SharkOffer } from "@/lib/ai/types";
+import type { SharkId, SharkOffer, TableOffer } from "@/lib/ai/types";
+import { resolveShark } from "@/lib/ai/panel-dynamics";
 import { fmtMoney } from "@/lib/engine/format";
 import { S_UNIT } from "@/lib/engine/constants";
 import { haptic } from "@/lib/haptics";
@@ -116,6 +122,8 @@ interface Beat {
   question?: string;
   offer?: SharkOffer | null;
   decision?: string;
+  /** The shark whose offer this one joined, when this beat was a joint offer. */
+  jointWith?: SharkId;
   /** The founder's reply to this beat's question, once it exists. */
   answer?: { text: string; spoken: boolean; declined: boolean };
   /** True when this beat came from the offline shark rather than the model. */
@@ -125,9 +133,11 @@ interface Beat {
 export interface TankOutcome {
   beats: Beat[];
   answers: { question: string; answer: string; declined: boolean; askedBy: string }[];
-  offers: { shark: SharkId; offer: SharkOffer }[];
+  offers: TableOffer[];
   accepted: SharkOffer | null;
   acceptedFrom: SharkId | null;
+  /** The second name on the accepted deal, when it was a joint offer. */
+  acceptedWith: SharkId | null;
   /** Investor-only reads, surfaced only in the debrief. */
   privateNotes: { shark: SharkId; note: string }[];
   /** True when no turn in the session reached a model. */
@@ -153,7 +163,7 @@ export function SharkPanel({
   const [beats, setBeats] = useState<Beat[]>([]);
   const [cursor, setCursor] = useState(0);
   const [thinking, setThinking] = useState(true);
-  const [accepted, setAccepted] = useState<{ shark: SharkId; offer: SharkOffer } | null>(null);
+  const [accepted, setAccepted] = useState<TableOffer | null>(null);
   /*
    * The Tank's mic level — a ref, so it never re-renders this component.
    *
@@ -177,7 +187,20 @@ export function SharkPanel({
   const [cam, setCam] = useState<MediaStream | null>(null);
   const [helpLeft, setHelpLeft] = useState(COACH_USES);
 
-  const logRef = useRef<HTMLDivElement>(null);
+  /** The scrolling conversation, and the floor it is pinned to. */
+  const threadRef = useRef<HTMLDivElement>(null);
+  const endRef = useRef<HTMLDivElement>(null);
+  const footerRef = useRef<HTMLDivElement>(null);
+  /**
+   * Whether the thread should keep following the newest message.
+   *
+   * True until the player scrolls up to re-read something, and true again the
+   * moment they scroll back down. Yanking somebody back to the bottom while
+   * they are checking what a shark said two questions ago is the one way an
+   * auto-scrolling thread becomes hostile — and it is the reason this is a
+   * threshold rather than an unconditional scroll.
+   */
+  const stickRef = useRef(true);
   /** The stance question fires at most once per panel session. */
   const askedStanceRef = useRef(false);
   /** Terms already explained this session, so no card appears twice. */
@@ -352,9 +375,59 @@ export function SharkPanel({
     };
   }, []);
 
+  const onThreadScroll = useCallback(() => {
+    const el = threadRef.current;
+    if (!el) return;
+    stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+  }, []);
+
+  const pinToFloor = useCallback((force = false) => {
+    const el = threadRef.current;
+    if (!el || (!stickRef.current && !force)) return;
+    /*
+     * One frame later, always. A bubble that was added in this render has not
+     * been laid out yet, so `scrollHeight` read now is the height BEFORE the
+     * new message — which is exactly how a thread ends up one message short of
+     * the bottom every single time.
+     */
+    requestAnimationFrame(() => {
+      const node = threadRef.current;
+      if (!node) return;
+      node.scrollTo({ top: node.scrollHeight, behavior: "smooth" });
+    });
+  }, []);
+
+  // Somebody new spoke, somebody started thinking, or the room moved on.
   useEffect(() => {
-    logRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [beats.length, awaiting, countering]);
+    pinToFloor();
+  }, [beats, thinking, cursor, pinToFloor]);
+
+  /*
+   * A question, a counter, or the verdict PULLS the player back down even if
+   * they had scrolled away. These are the three moments the thread is asking
+   * them for something, and an ask they cannot see is an ask that looks like a
+   * frozen screen.
+   */
+  useEffect(() => {
+    if (!awaiting && !countering) return;
+    stickRef.current = true;
+    pinToFloor(true);
+  }, [awaiting, countering, pinToFloor]);
+
+  /*
+   * The composer changes height — the microphone panel opens, the textarea
+   * appears, the live transcript grows. Every one of those shrinks the thread
+   * from below, and without this the newest bubble slides out of sight under a
+   * control that just got taller. This is the cutoff nobody notices until they
+   * are mid-answer and cannot see the question.
+   */
+  useEffect(() => {
+    const node = footerRef.current;
+    if (!node || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => pinToFloor());
+    ro.observe(node);
+    return () => ro.disconnect();
+  }, [pinToFloor, awaiting, countering]);
 
   /** Push a beat, speak it, and surface any jargon in it exactly once. */
   const emit = useCallback((beat: Beat) => {
@@ -460,9 +533,37 @@ export function SharkPanel({
           if (turn.private_notes) {
             privateNotesRef.current.push({ shark: next.shark, note: turn.private_notes });
           }
+          /*
+           * Whoever this shark said they were joining — but only if that seat
+           * is still holding a solo offer. The server checks the same thing;
+           * this is the offline path's copy of it, and the reason both exist is
+           * that a joint offer names somebody on screen. A deal in the name of
+           * a shark the founder just watched walk out is worse than no joint
+           * offers at all.
+           */
+          const partner =
+            turn.decision === "join" ? resolveShark(turn.join_with) : null;
+          const joining =
+            partner && partner !== next.shark
+              ? session.offersOnTable.find((o) => o.shark === partner && !o.with)
+              : undefined;
+
           if (turn.decision === "out" || !turn.offer) {
             setSeat(next.shark, "out");
             session.offersOnTable = session.offersOnTable.filter((o) => o.shark !== next.shark);
+          } else if (joining && turn.offer) {
+            /*
+             * Two names, one row. The joint deal replaces the partner's solo
+             * offer rather than sitting beside it — a founder choosing from
+             * this list is choosing a cheque, and the same money must not
+             * appear twice because two people are behind it.
+             */
+            setSeat(next.shark, "bidding");
+            session.offersOnTable = session.offersOnTable.map((o) =>
+              o.shark === joining.shark
+                ? { shark: joining.shark, offer: turn.offer!, with: next.shark }
+                : o,
+            );
           } else {
             setSeat(next.shark, "bidding");
             session.offersOnTable = [
@@ -470,12 +571,27 @@ export function SharkPanel({
               { shark: next.shark, offer: turn.offer },
             ];
           }
-          session.log = [...session.log, { speaker: next.shark, spoken: turn.spoken }];
+          /*
+           * The decision and the terms go into the public record, not just the
+           * words. The next shark to speak reads this log to take a position on
+           * the room — "Serena's in at $500K", "Viktor's out and I'm not far
+           * behind" — and neither sentence is derivable from prose alone.
+           */
+          session.log = [
+            ...session.log,
+            {
+              speaker: next.shark,
+              spoken: turn.spoken,
+              decision: turn.decision,
+              offer: turn.offer ?? null,
+            },
+          ];
           emit({
             speaker: next.shark,
             spoken: turn.spoken,
             offer: turn.offer,
             decision: turn.decision,
+            jointWith: joining ? joining.shark : undefined,
             offline: turn.source === "local",
           });
           break;
@@ -520,16 +636,30 @@ export function SharkPanel({
             session.offersOnTable = session.offersOnTable.filter((o) => o.shark !== next.shark);
           } else if (turn.offer) {
             setSeat(next.shark, "bidding");
+            // Spread the standing entry rather than rebuilding it: a joint
+            // offer that moves on the counter keeps the second name on it. The
+            // rebuilt version dropped `with`, so a founder who pushed back on
+            // "Marcus + Dev" got back an offer from Marcus alone, with Dev's
+            // conditions still attached and his face gone from the row.
             session.offersOnTable = session.offersOnTable.map((o) =>
-              o.shark === next.shark ? { shark: next.shark, offer: turn.offer! } : o,
+              o.shark === next.shark ? { ...o, offer: turn.offer! } : o,
             );
           }
-          session.log = [...session.log, { speaker: next.shark, spoken: turn.spoken }];
+          session.log = [
+            ...session.log,
+            {
+              speaker: next.shark,
+              spoken: turn.spoken,
+              decision: turn.decision,
+              offer: turn.offer ?? null,
+            },
+          ];
           emit({
             speaker: next.shark,
             spoken: turn.spoken,
             offer: turn.offer,
             decision: turn.decision,
+            jointWith: standing.with,
             offline: turn.source === "local",
           });
           break;
@@ -652,9 +782,9 @@ export function SharkPanel({
   const atEnd = cursor >= fullSteps.length && !awaiting && !countering;
 
   const accept = useCallback(
-    (shark: SharkId, offer: SharkOffer) => {
+    (entry: TableOffer) => {
       if (!run || !session) return;
-      setAccepted({ shark, offer });
+      setAccepted(entry);
       haptic("dealSigned");
       play("money");
     },
@@ -673,6 +803,7 @@ export function SharkPanel({
       offers: session.offersOnTable,
       accepted: accepted?.offer ?? null,
       acceptedFrom: accepted?.shark ?? null,
+      acceptedWith: accepted?.with ?? null,
       privateNotes: privateNotesRef.current,
       // True only when NOT ONE turn reached a model. The debrief says so out
       // loud rather than presenting an offline session as a live one.
@@ -690,26 +821,106 @@ export function SharkPanel({
   // The step that is about to run, for the button's label.
   const upcoming = fullSteps[cursor];
 
+  /*
+   * What the founder is being asked to do, if anything.
+   *
+   * Computed once, so the dock can be ABSENT rather than present and empty: a
+   * hairline and a strip of padding under a thinking room reads as a control
+   * that has stopped working. There is exactly one of these on screen at a
+   * time, and when the room is thinking there is none.
+   */
+  const footer = awaiting ? (
+    <AnswerTurn
+      key={awaiting.question}
+      question={awaiting.question}
+      onAnswer={answered}
+      onDecline={declined}
+      levelRef={micLevelRef}
+      /* Help exists on the QUESTIONS and not on the counter below:
+         a question has a right answer sitting in your own numbers, and
+         a counter is a decision about what you are willing to give up.
+         Nobody can hint you into that one. */
+      shark={CAST[awaiting.shark]?.name ?? "an investor"}
+      helpFacts={helpFacts}
+      helpRemaining={helpLeft}
+      onHelpUsed={() => setHelpLeft((n) => n - 1)}
+    />
+  ) : countering ? (
+    <AnswerTurn
+      key="counter"
+      label="YOUR MOVE"
+      question="Push back, or take what's on the table. Say the terms you want — a number and a percentage — and they'll tell you if it exists."
+      speakLabel="COUNTER OUT LOUD"
+      declineLabel="DON'T COUNTER"
+      onAnswer={countered}
+      onDecline={() => setCountering(false)}
+      levelRef={micLevelRef}
+    />
+  ) : atEnd ? (
+    <>
+      <button
+        type="button"
+        onClick={finish}
+        className="nv-gc h-14 w-full rounded-[var(--radius-card)] nv-t-action text-base font-extrabold tracking-[0.04em] shadow-[var(--e3)]"
+      >
+        {accepted ? "SIGN IT ▸" : offers.length > 0 ? "TAKE NO DEAL ▸" : "READ THE DEBRIEF ▸"}
+      </button>
+      {offers.length > 0 && !accepted && (
+        <p className="mt-2 text-center text-2xs tracking-[0.1em] text-[var(--text-tertiary)]">
+          WALKING AWAY IS A REAL ANSWER
+        </p>
+      )}
+    </>
+  ) : !thinking && upcoming ? (
+    // Nothing moves unless the player moves it.
+    <button
+      type="button"
+      onClick={() => void step()}
+      className="nv-gc h-14 w-full rounded-[var(--radius-card)] nv-t-action text-base font-extrabold tracking-[0.04em] shadow-[var(--e3)]"
+    >
+      {nextLabel(upcoming)}
+    </button>
+  ) : null;
+
   return (
     /*
-     * The set is a fixed header, not a sticky one. `position: sticky` needs the
-     * nearest scrolling ancestor to be the one you think it is, and here the
-     * page scrolled rather than the section — so the room slid off the top
-     * mid-question. A fixed header plus its own scroll region is deterministic.
+     * ── THE ROOM AS A THREAD ──────────────────────────────────────────────
+     *
+     * Three regions, and the middle one is the only thing that scrolls: the
+     * set, the conversation, and whatever the founder is being asked to do.
+     *
+     * The composer is a SIBLING of the scroll region, not an overlay on it.
+     * That is the whole reason it cannot cover the last message — there is no
+     * z-order to get wrong, and no bottom padding to keep in sync with a
+     * control whose height changes when the microphone opens. The answer turn
+     * used to live inside the scroll area, which meant the question you were
+     * answering could sit above the fold while you answered it.
+     *
+     * On a desktop the same three regions become two columns: the set and the
+     * notes on the left, the conversation on the right, sized so the thread
+     * gets the height rather than the photograph.
      */
     <motion.section
-      className="flex h-dvh flex-col overflow-hidden"
+      className="flex h-dvh flex-col overflow-hidden bg-[var(--bg)] lg:mx-auto lg:grid lg:max-w-[78rem] lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:gap-5 lg:px-5 lg:py-5"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.25 }}
     >
-      <div className="mx-auto w-full max-w-lg shrink-0 px-4 pt-[max(0.5rem,var(--nv-safe-top))]">
+      {/* THE SET — a header on a phone, a column on a desktop. */}
+      <div className="mx-auto w-full max-w-lg shrink-0 px-4 pt-[max(0.5rem,var(--nv-safe-top))] lg:mx-0 lg:min-h-0 lg:max-w-none lg:overflow-y-auto lg:px-0 lg:pt-0">
+        {/*
+          Capped rather than free. At 3:2 the plate takes 66% of the width in
+          height, which on a short phone left the thread a few lines tall and
+          the newest message clipped by the composer. The cap makes the room a
+          header instead of the screen.
+        */}
         <TankRoom
           states={seats}
           speaking={(lastSpeaker(beats) as SharkId) ?? null}
           levelRef={micLevelRef}
           cameraStream={cam}
           year={run.year}
+          maxHeightClass="max-h-[30vh] lg:max-h-none"
         />
 
         {/* Only on screen while something is actually being said. A player who
@@ -731,10 +942,12 @@ export function SharkPanel({
         <button
           type="button"
           onClick={() => setNotesOpen((v) => !v)}
-          className="nv-gc mt-2 flex w-full items-center justify-between rounded-[var(--radius-card)] px-4 py-2 text-2xs font-bold tracking-[0.1em] text-[var(--text-secondary)]"
+          className="nv-gc mt-2 flex w-full items-center justify-between gap-3 rounded-[var(--radius-card)] px-4 py-2 text-2xs font-bold tracking-[0.1em] text-[var(--text-secondary)]"
         >
-          <span>YOUR NOTES · BRIEF, NUMBERS, THE ORDER</span>
-          <span>{notesOpen ? "HIDE" : "OPEN"}</span>
+          {/* Truncated, not wrapped: at 360px the label and its own OPEN ran
+              into each other and read as one word. */}
+          <span className="min-w-0 truncate">YOUR NOTES · BRIEF, NUMBERS, THE ORDER</span>
+          <span className="shrink-0">{notesOpen ? "HIDE" : "OPEN"}</span>
         </button>
         {notesOpen && (
           <PitchNotes
@@ -754,193 +967,213 @@ export function SharkPanel({
         )}
       </div>
 
-      {/* Everything else scrolls beneath the set, on solid ground — dialogue
-          over a photograph is the reason text was unreadable. */}
-      <div className="mx-auto w-full max-w-lg flex-1 overflow-y-auto bg-[var(--bg)] px-4 pb-[max(2rem,var(--nv-safe-bottom))]">
-        <ol className="mt-5 space-y-3">
-          <AnimatePresence initial={false}>
-            {beats.map((beat, i) => (
-              <motion.li
-                key={i}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={ENTER}
-              >
-                <BeatRow beat={beat} />
-                {beat.answer && <YourAnswer entry={beat.answer} run={run} />}
-              </motion.li>
-            ))}
-          </AnimatePresence>
-        </ol>
+      {/* THE CONVERSATION */}
+      <div className="mx-auto flex w-full min-h-0 max-w-lg flex-1 flex-col overflow-hidden lg:mx-0 lg:h-full lg:max-w-none lg:rounded-[var(--radius-card)] lg:bg-[var(--surface)] lg:shadow-[var(--e2)]">
+        <div
+          ref={threadRef}
+          onScroll={onThreadScroll}
+          data-thread=""
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 lg:px-5"
+        >
+          {/*
+            Short conversations sit ON the floor, not at the ceiling.
+
+            The first two beats of a round are the Chair and one shark, and
+            top-aligned that left two thirds of the screen empty above the
+            composer — the room read as unfinished rather than as just
+            starting. `justify-end` inside a `min-h-full` column is the
+            standard message-thread trick: the newest message is always at the
+            bottom edge whether there are two of them or forty, and the
+            container still scrolls normally once they overflow.
+          */}
+          <div className="flex min-h-full flex-col justify-end">
+          <ol className="space-y-2.5">
+            <AnimatePresence initial={false}>
+              {beats.map((beat, i) => {
+                const previous = beats[i - 1];
+                /*
+                 * Grouped when the same shark speaks twice with nothing in
+                 * between — no founder reply, no Chair. The face and the name
+                 * appear once at the top of the run, the way a message thread
+                 * does; five copies of the same portrait down a column is noise
+                 * that makes the thread harder to read, not easier.
+                 */
+                const grouped =
+                  !!previous &&
+                  previous.speaker === beat.speaker &&
+                  beat.speaker !== "chair" &&
+                  !previous.answer;
+
+                return (
+                  <motion.li
+                    key={i}
+                    className="space-y-2.5"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={ENTER}
+                  >
+                    {beat.speaker === "chair" ? (
+                      <SystemMessage text={beat.spoken} />
+                    ) : (
+                      <SharkMessage
+                        shark={beat.speaker}
+                        spoken={beat.spoken}
+                        question={beat.question}
+                        offer={beat.offer}
+                        decision={beat.decision}
+                        jointWith={beat.jointWith}
+                        grouped={grouped}
+                      />
+                    )}
+                    {beat.answer && <FounderMessage entry={beat.answer} avatar={run.avatar} />}
+                  </motion.li>
+                );
+              })}
+            </AnimatePresence>
+          </ol>
+
+          {/*
+            A room that is thinking should look occupied, not stopped.
+
+            This was one static line of text, held for however long the provider
+            took, five times per year gate. Nothing on the screen moved while it
+            waited, so the most common reading of a slow turn was that the app
+            had crashed. It is a typing bubble now — the same vocabulary as the
+            rest of the thread, under the face of the shark who is about to
+            speak, which the old line could not say at all.
+          */}
+          {thinking && !awaiting && (
+            <div className="pt-2.5">
+              <TypingBubble
+                shark={upcoming && "shark" in upcoming ? upcoming.shark : undefined}
+                label={beats.length === 0 ? "The room" : undefined}
+              />
+            </div>
+          )}
+
+          {/* The table, at the end of the conversation that produced it. */}
+          {atEnd && (
+            <div className="pt-4">
+              {offers.length > 0 ? (
+                <>
+                  <h2 className="px-1 text-2xs font-bold tracking-[0.16em] text-[var(--text-tertiary)]">
+                    ON THE TABLE
+                  </h2>
+                  <ul className="mt-2 overflow-hidden rounded-[var(--radius-card)] bg-[var(--surface-elevated)] shadow-[var(--e2)]">
+                    {offers.map((entry) => (
+                      <li key={entry.shark}>
+                        <button
+                          type="button"
+                          disabled={!!accepted}
+                          onClick={() => accept(entry)}
+                          className={`block w-full border-b border-[var(--hairline)] px-3 py-3 text-left last:border-b-0 disabled:cursor-default ${
+                            accepted?.shark === entry.shark
+                              ? "bg-[color-mix(in_oklch,var(--color-prestige)_14%,transparent)]"
+                              : accepted
+                                ? "opacity-35"
+                                : ""
+                          }`}
+                        >
+                          {/*
+                            Two rows, not two columns.
+
+                            The name and the terms used to sit in a left and a
+                            right column of the same line, and a joint offer's
+                            "Marcus Cole + Dev Okafor" wraps to two lines on a
+                            390px phone — straight through the percentages
+                            beside it. Who and how much go on the top line; the
+                            dilution and the valuation get the width of the row
+                            to themselves underneath, where they are also
+                            easier to compare between offers.
+                          */}
+                          <span className="flex items-center gap-3">
+                            {/* Two faces when two of them are behind the cheque —
+                                the founder is choosing who they take on, and that
+                                has to be visible before they tap, not after. */}
+                            <span className="relative flex h-11 w-11 shrink-0 items-center justify-center">
+                              <img
+                                src={CAST[entry.shark].portrait}
+                                alt=""
+                                width={44}
+                                height={44}
+                                className="h-11 w-11 object-contain"
+                              />
+                              {entry.with && (
+                                <img
+                                  src={CAST[entry.with].portrait}
+                                  alt=""
+                                  width={26}
+                                  height={26}
+                                  className="absolute -bottom-1 -right-2 h-[1.6rem] w-[1.6rem] rounded-full bg-[var(--surface-elevated)] object-contain ring-1 ring-[var(--hairline)]"
+                                />
+                              )}
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-sm font-semibold">
+                                {entry.with
+                                  ? `${CAST[entry.shark].name} + ${CAST[entry.with].name}`
+                                  : CAST[entry.shark].name}
+                              </span>
+                              <span className="block truncate text-2xs text-[var(--text-tertiary)]">
+                                {entry.with
+                                  ? `joint offer · ${entry.offer.deal_type}`
+                                  : entry.offer.deal_type}
+                              </span>
+                            </span>
+                            <span className="tnum shrink-0 text-base font-bold">
+                              {fmtMoney(entry.offer.amount_usd)}
+                            </span>
+                          </span>
+                          {/* Dilution and the price it implies, said out loud:
+                              what you give, what you keep, and the division the
+                              bubble above already spelled out. */}
+                          <span className="tnum mt-1.5 block text-2xs leading-snug text-[var(--text-tertiary)]">
+                            {entry.offer.equity_pct}% · you keep{" "}
+                            {(100 - entry.offer.equity_pct).toFixed(1)}% · says you&rsquo;re worth{" "}
+                            {fmtMoney(entry.offer.implied_valuation_usd)}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <p className="border-l-2 border-[var(--alert)] pl-3 text-sm leading-relaxed text-[var(--text-secondary)]">
+                  Nobody bid. The year still closes — you just close it alone. The
+                  debrief has every reason they gave.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* The thread's floor. Scrolled to, never seen. */}
+          <div ref={endRef} aria-hidden="true" className="h-px" />
+          </div>
+        </div>
+
+        {/* The jargon card, above the composer and below the conversation it
+            came out of — it explains a word that was just said. */}
+        <TermCoach term={term} onDismiss={() => setTerm(null)} />
 
         {/*
-          ── A room that is thinking should look occupied, not stopped ────────
+          ── WHAT THE FOUNDER DOES NEXT ────────────────────────────────────
           │
-          │ This was one static line, held for however long the provider took —
-          │ up to 60 s before the client timeout in lib/ai/panel.ts, and five
-          │ times per year gate. Nothing on the screen moved while it waited,
-          │ so the most common reading of a slow turn was that the app had
-          │ crashed.
-          │
-          │ Three dots on one clock, offset by STAGGER. It is the smallest
-          │ honest thing that says "still going" — and it says it about the
-          │ room rather than about a loading state, which is why it sits inline
-          │ with the sentence instead of being a spinner somewhere else.
+          │ Docked, and only rendered when there is something to do: an empty
+          │ bar with a hairline above it reads as a broken control while the
+          │ room is thinking. Nothing here advances on a timer — a shark speaks
+          │ and the room STOPS until the founder answers, declines, or presses
+          │ on, which is the entire point of the feature.
         */}
-        {thinking && !awaiting && (
-          <p className="mt-4 flex items-center gap-1.5 text-sm text-[var(--text-secondary)]">
-            <span>
-              {beats.length === 0
-                ? "The room is reading your numbers"
-                : "They're thinking about it"}
-            </span>
-            <span aria-hidden="true" className="flex items-end gap-[3px] pb-[3px]">
-              {[0, 1, 2].map((i) => (
-                <motion.span
-                  key={i}
-                  className="block h-[3px] w-[3px] rounded-full bg-current"
-                  animate={{ opacity: [0.25, 1, 0.25] }}
-                  transition={{
-                    duration: 1.2,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                    delay: i * STAGGER * 2,
-                  }}
-                />
-              ))}
-            </span>
-          </p>
-        )}
-
-        {/* The room is stopped, waiting on you. */}
-        {awaiting && (
-          <div className="mt-4">
-            <AnswerTurn
-              key={awaiting.question}
-              question={awaiting.question}
-              onAnswer={answered}
-              onDecline={declined}
-              levelRef={micLevelRef}
-              /* Help exists on the QUESTIONS and not on the counter below:
-                 a question has a right answer sitting in your own numbers, and
-                 a counter is a decision about what you are willing to give up.
-                 Nobody can hint you into that one. */
-              shark={CAST[awaiting.shark]?.name ?? "an investor"}
-              helpFacts={helpFacts}
-              helpRemaining={helpLeft}
-              onHelpUsed={() => setHelpLeft((n) => n - 1)}
-            />
+        {footer && (
+          <div
+            ref={footerRef}
+            data-dock=""
+            className="shrink-0 border-t border-[var(--hairline)] bg-[var(--bg)] px-4 pb-[max(0.75rem,var(--nv-safe-bottom))] pt-3 lg:rounded-b-[var(--radius-card)] lg:bg-[var(--surface)] lg:px-5 lg:pb-4"
+          >
+            {footer}
           </div>
         )}
-
-        {countering && (
-          <div className="mt-4">
-            <AnswerTurn
-              key="counter"
-              label="YOUR MOVE"
-              question="Push back, or take what's on the table. Say the terms you want — a number and a percentage — and they'll tell you if it exists."
-              speakLabel="COUNTER OUT LOUD"
-              declineLabel="DON'T COUNTER"
-              onAnswer={countered}
-              onDecline={() => setCountering(false)}
-              levelRef={micLevelRef}
-            />
-          </div>
-        )}
-
-        {/* Nothing moves unless the player moves it. */}
-        {!awaiting && !countering && !atEnd && !thinking && (
-          <button
-            type="button"
-            onClick={() => void step()}
-            className="nv-gc mt-5 h-14 w-full rounded-[var(--radius-card)] nv-t-action text-base font-extrabold tracking-[0.04em] shadow-[var(--e3)]"
-          >
-            {nextLabel(upcoming)}
-          </button>
-        )}
-
-        {atEnd && (
-          <motion.div
-            className="mt-7"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
-          >
-            {offers.length > 0 ? (
-              <>
-                <h2 className="text-2xs font-bold tracking-[0.16em] text-[var(--text-tertiary)]">
-                  ON THE TABLE
-                </h2>
-                <ul className="mt-2">
-                  {offers.map(({ shark, offer }) => (
-                    <li key={shark}>
-                      <button
-                        type="button"
-                        disabled={!!accepted}
-                        onClick={() => accept(shark, offer)}
-                        className={`flex w-full items-center gap-3 border-b border-[var(--hairline)] py-3 text-left disabled:cursor-default ${
-                          accepted?.shark === shark ? "" : accepted ? "opacity-35" : ""
-                        }`}
-                      >
-                        <img
-                          src={CAST[shark].portrait}
-                          alt=""
-                          width={44}
-                          height={44}
-                          className="h-11 w-11 shrink-0 object-contain"
-                        />
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-sm font-semibold">{CAST[shark].name}</span>
-                          <span className="block text-2xs text-[var(--text-tertiary)]">
-                            {offer.deal_type}
-                          </span>
-                        </span>
-                        <span className="tnum shrink-0 text-right">
-                          <span className="block text-sm font-bold">
-                            {fmtMoney(offer.amount_usd)}
-                          </span>
-                          {/* Dilution, said out loud: what you give and what you keep. */}
-                          <span className="block text-2xs text-[var(--text-tertiary)]">
-                            {offer.equity_pct}% · you keep {(100 - offer.equity_pct).toFixed(1)}%
-                          </span>
-                          {/* And the price that ratio puts on the company —
-                              the same division the beat row spells out. */}
-                          <span className="block text-2xs text-[var(--text-tertiary)]">
-                            says you&rsquo;re worth {fmtMoney(offer.implied_valuation_usd)}
-                          </span>
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            ) : (
-              <p className="border-l-2 border-[var(--alert)] pl-3 text-sm leading-relaxed text-[var(--text-secondary)]">
-                Nobody bid. The year still closes — you just close it alone. The
-                debrief has every reason they gave.
-              </p>
-            )}
-
-            <button
-              type="button"
-              onClick={finish}
-              className="nv-gc mt-6 h-14 w-full rounded-[var(--radius-card)] nv-t-action text-base font-extrabold tracking-[0.04em] shadow-[var(--e3)]"
-            >
-              {accepted ? "SIGN IT ▸" : offers.length > 0 ? "TAKE NO DEAL ▸" : "READ THE DEBRIEF ▸"}
-            </button>
-            {offers.length > 0 && !accepted && (
-              <p className="mt-2 text-center text-2xs tracking-[0.1em] text-[var(--text-tertiary)]">
-                WALKING AWAY IS A REAL ANSWER
-              </p>
-            )}
-          </motion.div>
-        )}
-
-        <div ref={logRef} />
       </div>
-
-      {/* The jargon card. Docked above everything, dismissable, once per term. */}
-      <TermCoach term={term} onDismiss={() => setTerm(null)} />
     </motion.section>
   );
 }
@@ -995,98 +1228,4 @@ function nextLabel(next?: Step): string {
     default:
       return "CONTINUE ▸";
   }
-}
-
-/** The founder's own answer, shown in their own portrait. */
-function YourAnswer({
-  entry,
-  run,
-}: {
-  entry: { text: string; spoken: boolean; declined: boolean };
-  run: { avatar: { gender: "male" | "female"; tier: 1 | 2 | 3 | 4 | 5 } };
-}) {
-  return (
-    <div className="mt-2 flex items-start gap-2 pl-3">
-      {/* FounderAvatar, not FounderPortrait: the panel seat wears whatever the
-          player earned and equipped. Cosmetic only — the sharks judge the books. */}
-      <FounderAvatar avatar={run.avatar} size={32} />
-      <p className="mt-1 text-2xs leading-snug text-[var(--text-tertiary)]">
-        {/*
-          The words, whether they were spoken or typed. This used to say only
-          "You answered out loud", because a spoken answer genuinely carried no
-          text — the recording was thrown away. It carries text now, so it is
-          shown: a founder must be able to see what the room actually heard.
-        */}
-        {entry.declined || !entry.text
-          ? "You said nothing."
-          : `"${entry.text}"`}
-      </p>
-    </div>
-  );
-}
-
-function BeatRow({ beat }: { beat: Beat }) {
-  const cast = beat.speaker === "chair" ? null : CAST[beat.speaker];
-  const who = cast ?? { name: CHAIR.name, tag: CHAIR.tag };
-
-  return (
-    <div className="flex gap-2.5">
-      {cast ? (
-        <img
-          src={cast.portrait}
-          alt=""
-          width={40}
-          height={40}
-          className="h-10 w-10 shrink-0 object-contain"
-        />
-      ) : (
-        <span className="h-10 w-10 shrink-0" />
-      )}
-      <div className="min-w-0 flex-1">
-        <p className="flex items-baseline gap-2">
-          <span className="text-2xs font-bold tracking-[0.04em]">{who.name}</span>
-          {who.tag && (
-            <span className="text-2xs tracking-[0.1em] text-[var(--text-tertiary)]">
-              {who.tag.toUpperCase()}
-            </span>
-          )}
-          {beat.decision === "out" && (
-            <span className="text-2xs font-bold tracking-[0.12em] text-[var(--alert)]">OUT</span>
-          )}
-        </p>
-        {beat.spoken && (
-          <p className="mt-1 text-sm leading-relaxed text-[var(--text-secondary)]">{beat.spoken}</p>
-        )}
-        {beat.question && (
-          <p className="mt-1.5 text-base font-semibold leading-snug">{beat.question}</p>
-        )}
-        {beat.offer && (
-          <div className="mt-1.5">
-            <p className="tnum text-sm font-bold text-[var(--color-prestige)]">
-              {fmtMoney(beat.offer.amount_usd)} for {beat.offer.equity_pct}%
-            </p>
-            {/*
-              The offer's arithmetic, done in front of the player. "Post-money"
-              as a bare label taught nothing; cheque ÷ slice = what this shark
-              just said the whole company is worth, written as the division, is
-              the sentence the game exists to make second nature.
-            */}
-            <p className="tnum mt-0.5 text-2xs leading-snug text-[var(--text-tertiary)]">
-              Their math: {fmtMoney(beat.offer.amount_usd)} ÷ {beat.offer.equity_pct}% = they
-              believe the company is worth {fmtMoney(beat.offer.implied_valuation_usd)}.
-            </p>
-          </div>
-        )}
-        {beat.offer?.conditions && beat.offer.conditions.length > 0 && (
-          <ul className="mt-1 space-y-0.5">
-            {beat.offer.conditions.map((c) => (
-              <li key={c} className="text-2xs leading-snug text-[var(--text-tertiary)]">
-                · {c}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </div>
-  );
 }
