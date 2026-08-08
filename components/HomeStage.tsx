@@ -167,7 +167,27 @@ export function HomeStage({
 
       {/* Phone lives in the masthead: it is a device you own, not a menu item. */}
       {!nativeControls && (
-      <div className="relative flex items-start justify-between">
+      /*
+        ── Why this row wraps ──────────────────────────────────────────────
+        Six controls: the FREE/PRO capsule and five 36px buttons. Laid out on
+        one line they need 280px — 60 for the capsule, 220 for the cluster —
+        and the phone has it. The DESKTOP RAIL DOES NOT: `18rem` minus this
+        section's `px-5` leaves 248, so the phone button ended 12px past the
+        panel and the panel is `lg:overflow-hidden`. Not cramped — GONE, with
+        no scrollbar to hint that anything was there.
+
+        No amount of tightening fixes that: five 36px targets and the capsule
+        are 240px before a single gap, so one line in 248 means controls that
+        touch. So the row wraps, and on the rail the cluster takes a line of
+        its own and spreads across the full width — two rows that each span
+        the panel's content box, rather than one that overruns it.
+
+        `flex-wrap` with no column gap is deliberate: the phone still measures
+        280 into 280 at 320px and stays on one line, so the smallest screen
+        keeps its height. The wrap is the floor under every width, not a
+        layout the phone opts into.
+      */
+      <div className="relative flex flex-wrap items-start justify-between gap-y-2">
         <button
           type="button"
           onClick={onOpenPro}
@@ -182,7 +202,15 @@ export function HomeStage({
         >
           {run.pro ? "PRO" : "FREE"}
         </button>
-        <div className="flex items-center gap-2.5">
+        {/* `ml-auto` rather than leaning on the parent's `justify-between`:
+            once the row can wrap, a cluster alone on the second line is the
+            only item on it, and `space-between` puts a lone item at the START.
+            The auto margin keeps it against the right edge on a phone whether
+            it wrapped or not. On the rail it is `w-full` instead — its own
+            line by construction, spread edge to edge, so the gap between the
+            buttons is whatever the rail has left rather than a number that
+            has to be re-guessed every time the count changes. */}
+        <div className="ml-auto flex items-center gap-2.5 lg:ml-0 lg:w-full lg:justify-between">
         {/* The book — the key terms page, and the Rookie switch on it. First
             in the row because it is the door a confused player is looking
             for, and the tutorial points at it by name. */}
