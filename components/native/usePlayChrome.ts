@@ -3,7 +3,12 @@
 import { useMemo } from "react";
 import { useNativeChrome, useNativeChromeOwned } from "@/lib/native/chrome";
 import { useResolvedTheme } from "@/lib/native/theme";
-import type { NativeChromeState, NativeControl, NativeTab } from "@/lib/native/glass";
+import type {
+  NativeChromeState,
+  NativeControl,
+  NativeNudge,
+  NativeTab,
+} from "@/lib/native/glass";
 import type { ActivityTab } from "@/components/ActivityBar";
 import { monthBadge, monthBadgeLabel } from "@/lib/engine/format";
 
@@ -60,10 +65,23 @@ export interface PlayChromeOptions {
   canAdvance: boolean;
   pro: boolean;
   activeTab: ActivityTab | null;
+  /**
+   * The one thing worth doing, or null.
+   *
+   * The page computes it and holds the dismissal, because both renderers of
+   * this card have to agree about which one is up: the DOM card would
+   * otherwise keep its own `dismissed` list and a player who closed the native
+   * one would find the web one still open the next time the chrome handed
+   * back — which is every time the plugin is missing or the OS is too old.
+   */
+  nudge: NativeNudge | null;
   onTab: (tab: ActivityTab) => void;
   onAdvance: () => void;
   onOpenGate: () => void;
   onControl: (id: NativeControlId) => void;
+  /** The card was tapped. The page knows which tab its id opens. */
+  onNudgeAction: (id: string) => void;
+  onNudgeDismiss: (id: string) => void;
 }
 
 /** True when UIKit is drawing the chrome, so the DOM must not. */
@@ -71,7 +89,7 @@ export function usePlayChrome(options: PlayChromeOptions): boolean {
   const owned = useNativeChromeOwned();
   const theme = useResolvedTheme();
 
-  const { visible, coach, month, year, atGate, canAdvance, pro, activeTab } = options;
+  const { visible, coach, month, year, atGate, canAdvance, pro, activeTab, nudge } = options;
 
   const state = useMemo<NativeChromeState | null>(() => {
     if (!owned) return null;
@@ -123,13 +141,24 @@ export function usePlayChrome(options: PlayChromeOptions): boolean {
         locked: atGate,
       },
       controls,
+      /*
+       * Not gated on `visible`, and it does not need to be. The mode already
+       * carries that: "hidden" takes every surface this controller draws off
+       * screen together, and the nudge is one of them. Dropping the card from
+       * the state instead would make it a NEW nudge on the way back — same id,
+       * but the controller would have forgotten it — and it would play its
+       * entrance again every time a sheet closed.
+       */
+      nudge,
     };
-  }, [owned, visible, coach, theme, month, year, atGate, canAdvance, pro, activeTab]);
+  }, [owned, visible, coach, theme, month, year, atGate, canAdvance, pro, activeTab, nudge]);
 
   useNativeChrome(state, {
     onTab: (id) => options.onTab(id as ActivityTab),
     onPrimary: () => (atGate ? options.onOpenGate() : options.onAdvance()),
     onControl: (id) => options.onControl(id as NativeControlId),
+    onNudgeAction: (id) => options.onNudgeAction(id),
+    onNudgeDismiss: (id) => options.onNudgeDismiss(id),
   });
 
   return owned;

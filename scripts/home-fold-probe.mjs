@@ -8,20 +8,24 @@
  * of it, so "above the fold" means "above the top of that bar" — not above the
  * viewport, which is 174px further down and would pass a row nobody can see.
  *
- * ── 2. Does the END of the document clear that bar, scrolled all the way? ───
+ * ── 2. Can the nudge card be TAPPED, without scrolling? ────────────────────
  *
- * Not the same question, and it is the one that was answered wrong. The nudge
- * card renders below the log row and is therefore the last element in the flow
- * whenever it renders at all — nothing to sell, nobody employed. Reported as a
- * card at the bottom of the home screen that is cut off, twice, and both
- * times the report was right: the flow reserved the bar's height but not the
- * 36px fade that hangs above it, so the last card was washed out at maximum
- * scroll with nothing below it to justify the wash.
+ * Not the same question, and it is the one that was answered wrong twice. The
+ * nudge is the app's "one thing worth doing" and it lived in the flow, which on
+ * a phone put it past the end of a document that is already taller than the
+ * screen. First it was washed out by the dock's fade; then, with that fixed, it
+ * was still simply down there — reported, exactly, as: I cannot tap it.
  *
- * So this scrolls to the very end and asserts the last card clears the fade,
- * not just the bar. That is `must` on every device here including the SE: it
- * costs nothing but slack at the end of a document, so no screen is too short
- * for it.
+ * Geometry could not catch that, and did not: the card measured as "clear of
+ * the fade" while being off the bottom of the phone. So this asks the reported
+ * question literally instead. Load the screen, DO NOT scroll, and hit-test the
+ * card's body and its ✕ with `elementFromPoint` — the same call the browser
+ * makes to decide what a finger landed on. Anything that leaves the card
+ * unreachable from a standing start fails, on every device including the SE.
+ *
+ * The card is now fixed above the dock, so it deliberately covers the log row
+ * measured in part 1 while it is up. That is the toast bargain design.md §3
+ * allows, and the ✕ this asserts on is what gives the row back.
  *
  * Run against `out/` (`npm run build:native:only`) at real device geometry.
  * `env(safe-area-inset-*)` cannot be simulated headless, so the two variables
@@ -127,33 +131,33 @@ const MEASURE = () => {
 };
 
 /**
- * The end of the document, once it has been scrolled to.
+ * Is the nudge card actually reachable by a finger, right now?
  *
- * The fade is found rather than assumed: it is the absolutely-positioned,
- * non-interactive child the dock hangs above itself, and its own top edge — not
- * the dock's — is the highest pixel that a card at the end of the flow is
- * allowed to reach. Hard-coding 36 here would keep passing if `h-9` changed.
+ * `elementFromPoint` is the whole point of this and not a stand-in for a
+ * bounding box: a card can be inside the viewport and still not be what a tap
+ * at its own coordinates hits, because the dock, the dock's fade or any other
+ * fixed layer may be over it. Both the card's body — which opens the tab — and
+ * the ✕ — which is now the only way to get the log row back — are tested,
+ * because they are separate targets with separate failure modes.
  */
-const TAIL = () => {
-  const bar = [...document.querySelectorAll("div")].find(
-    (d) => getComputedStyle(d).position === "fixed" && d.querySelector('[data-coach="advance"]'),
-  );
-  const fade = bar
-    ? [...bar.children].find((c) => {
-        const s = getComputedStyle(c);
-        return s.position === "absolute" && s.pointerEvents === "none";
-      })
-    : null;
-  const box = (el) => {
-    if (!el) return null;
-    const r = el.getBoundingClientRect();
-    return { top: Math.round(r.top), bottom: Math.round(r.bottom), h: Math.round(r.height) };
+const REACH = () => {
+  const card = document.querySelector('[data-nudge="next-step"]');
+  if (!card) return { card: null };
+  const r = card.getBoundingClientRect();
+  const dismiss = card.querySelector('[aria-label="Dismiss this suggestion"]');
+  const d = dismiss?.getBoundingClientRect() ?? null;
+  const hits = (x, y, within) => {
+    const el = document.elementFromPoint(Math.round(x), Math.round(y));
+    return !!el && (within === el || within.contains(el));
   };
   return {
-    nudge: box(document.querySelector('[data-nudge="next-step"]')),
-    bar: box(bar),
-    fade: box(fade),
-    atEnd: Math.round(document.documentElement.scrollHeight - window.innerHeight - window.scrollY),
+    box: { top: Math.round(r.top), bottom: Math.round(r.bottom), h: Math.round(r.height) },
+    // Fully on screen, before anything is scrolled.
+    onScreen: r.top >= 0 && r.bottom <= window.innerHeight && r.width > 0,
+    // The title line, which is inside the card's own full-surface button.
+    body: hits(r.left + r.width / 2, r.top + 16, card),
+    dismiss: !!d && hits(d.left + d.width / 2, d.top + d.height / 2, dismiss),
+    scrollY: Math.round(window.scrollY),
   };
 };
 
@@ -211,27 +215,30 @@ for (const dev of DEVICES) {
   await page.screenshot({ path: join(SHOTS, `${dev.name.replace(/\s+/g, "-")}.png`) });
 
   /*
-   * Now the other end. The seeded run has nothing on the shelf, so the nudge
-   * IS rendered and IS the last element in the flow; if it is missing the
-   * probe has stopped testing the thing it is named after and says so rather
-   * than passing quietly.
+   * The nudge, from a standing start — nothing scrolled, which is the state a
+   * player opens this screen in. The seeded run has nothing on the shelf, so
+   * the card IS rendered; if it is missing the probe has stopped testing the
+   * thing it is named after and says so rather than passing quietly.
    */
-  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-  await page.waitForTimeout(400);
-  const t = await page.evaluate(TAIL);
-  const ceiling = t.fade?.top ?? t.bar?.top ?? null;
-  const clear = !!t.nudge && ceiling !== null && t.nudge.bottom <= ceiling;
-  if (!clear) failed++;
+  const t = await page.evaluate(REACH);
+  const reachable = !!t.box && t.onScreen && t.body && t.dismiss;
+  if (!reachable) failed++;
 
   console.log(
-    `  nudge card ${t.nudge ? `${t.nudge.top}..${t.nudge.bottom}` : "— not rendered"}   ` +
-      (clear
-        ? `✓ clears the fade at ${ceiling} (${ceiling - t.nudge.bottom}px of air, ${t.atEnd}px left to scroll)`
-        : t.nudge
-          ? `✗ ${t.nudge.bottom - ceiling}px under the fade/dock at maximum scroll`
-          : "✗ nothing to measure — this probe is not testing what it claims"),
+    `  nudge card ${t.box ? `${t.box.top}..${t.box.bottom}` : "— not rendered"}   ` +
+      (reachable
+        ? `✓ tappable at scroll ${t.scrollY} — body and ✕ both hit`
+        : t.box
+          ? `✗ ${[
+              t.onScreen ? null : "off screen",
+              t.body ? null : "body not hit",
+              t.dismiss ? null : "✕ not hit",
+            ]
+              .filter(Boolean)
+              .join(", ")}`
+          : "✗ nothing to test — this probe is not checking what it claims"),
   );
-  await page.screenshot({ path: join(SHOTS, `${dev.name.replace(/\s+/g, "-")}-end.png`) });
+  await page.screenshot({ path: join(SHOTS, `${dev.name.replace(/\s+/g, "-")}-nudge.png`) });
   await ctx.close();
 }
 
@@ -239,10 +246,10 @@ await browser.close();
 server.close();
 
 if (failed) {
-  console.log(`\n✗ ${failed} failure(s) above — the fold, the end of the flow, or both`);
+  console.log(`\n✗ ${failed} failure(s) above — the fold, the nudge's reachability, or both`);
   process.exit(1);
 }
 console.log(
   "\n✓ THE STORY SO FAR is above the fold on every device that can hold it," +
-    "\n✓ and the end of the flow clears the dock and its fade on all of them",
+    "\n✓ and the nudge can be tapped on all of them without scrolling",
 );

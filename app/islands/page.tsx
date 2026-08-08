@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -11,9 +18,14 @@ import {
   useNativeOverlay,
   useNativeOverlayOwned,
 } from "@/components/native/useNativeOverlay";
-import { SEA_POSITIONS, Sea, seaFieldWidth, seaPosition } from "@/components/Sea";
+import {
+  SEA_POSITIONS,
+  Sea,
+  seaFieldWidth,
+  seaPosition,
+} from "@/components/Sea";
 import { ENTER, SETTLE_SPRING, STAGGER, SWAP } from "@/components/ui/Motion";
-import { useUpgrade } from "@/components/upgrade/UpgradeProvider";
+import { UPGRADE_WARM, useUpgrade } from "@/components/upgrade/UpgradeProvider";
 import { loadAccount, type Account } from "@/lib/account";
 import { signOut } from "@/lib/cloud/auth";
 import { entryRoute } from "@/lib/entry";
@@ -36,6 +48,7 @@ import {
 } from "@/lib/monetization";
 import { useNavigating } from "@/lib/navigating";
 import { usePrefetch } from "@/lib/prefetch";
+import { useWarm } from "@/lib/warm";
 import { play } from "@/lib/sound";
 import { GameProvider, useGame } from "@/lib/state/GameProvider";
 
@@ -116,6 +129,16 @@ function IslandsPage() {
   const [opening, open] = useNavigating();
   usePrefetch("/play");
   usePrefetch("/found");
+  /*
+   * The two routes are the navigation; this is the refusal.
+   *
+   * A locked industry on this screen answers with the upgrade notice, which is
+   * `dynamic()` and therefore renders nothing at all on the first gate of a
+   * session while its module arrives — a refusal that appears a beat after the
+   * tap reads as the tap having done nothing. Warmed here rather than in the
+   * provider, which the root layout mounts on pages that have no gates.
+   */
+  useWarm(UPGRADE_WARM);
 
   /*
    * The account, for the way out of it.
@@ -403,14 +426,28 @@ function IslandsPage() {
       ],
       trailing: many
         ? [
-            { id: "prev", symbol: "chevron.left", label: "Previous island", style: "plain" },
-            { id: "next", symbol: "chevron.right", label: "Next island", style: "plain" },
+            {
+              id: "prev",
+              symbol: "chevron.left",
+              label: "Previous island",
+              style: "plain",
+            },
+            {
+              id: "next",
+              symbol: "chevron.right",
+              label: "Next island",
+              style: "plain",
+            },
           ]
         : [],
       actions: [
         {
           id: "enter",
-          title: opening ? "OPENING…" : focused.alive ? "CONTINUE" : "READ THE BOOKS",
+          title: opening
+            ? "OPENING…"
+            : focused.alive
+              ? "CONTINUE"
+              : "READ THE BOOKS",
           label: focused.alive
             ? `Open ${focused.companyName}`
             : `Read the books for ${focused.companyName}`,
@@ -537,7 +574,8 @@ function IslandsPage() {
                    */
                   style={
                     {
-                      "--gc-tint": "color-mix(in oklch, var(--glass-tint) 50%, transparent)",
+                      "--gc-tint":
+                        "color-mix(in oklch, var(--glass-tint) 50%, transparent)",
                     } as CSSProperties
                   }
                   className="pointer-events-auto shrink-0 text-2xs tracking-[0.12em] disabled:opacity-50"
@@ -575,59 +613,62 @@ function IslandsPage() {
                   longer than the window. */}
               <div
                 className="relative mx-auto h-full"
-                style={{ width: `${field}%`, maxWidth: `calc(48rem * ${field / 100})` }}
+                style={{
+                  width: `${field}%`,
+                  maxWidth: `calc(48rem * ${field / 100})`,
+                }}
               >
-              {Array.from({ length: places }, (_, slot) => {
-                /* `seaPosition`, not `SEA_POSITIONS[slot]`. The table stops at
+                {Array.from({ length: places }, (_, slot) => {
+                  /* `seaPosition`, not `SEA_POSITIONS[slot]`. The table stops at
                    the authored ten and the cap is fifty — indexing it returned
                    undefined for island 10 and threw on the next line. */
-                const spot = seaPosition(slot);
-                const island = bySlot.get(slot);
-                return (
-                  <motion.div
-                    key={slot}
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ ...ENTER, delay: slot * STAGGER }}
-                    className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center"
-                    /* `x` is a percent of its OWN screen, and the field is
+                  const spot = seaPosition(slot);
+                  const island = bySlot.get(slot);
+                  return (
+                    <motion.div
+                      key={slot}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ ...ENTER, delay: slot * STAGGER }}
+                      className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center"
+                      /* `x` is a percent of its OWN screen, and the field is
                        `field`% of one screen wide — so the screen offset and
                        the position within it are rescaled together. */
-                    style={{
-                      left: `${((spot.screen * 100 + spot.x) / field) * 100}%`,
-                      top: `${bandY(spot.y)}%`,
-                    }}
-                  >
-                    {island ? (
-                      <SeaIsland
-                        island={island}
-                        depth={spot.depth}
-                        base={islandSize}
-                        current={slot === game.island}
-                        onOpen={() => {
-                          play("click");
-                          setDir(1);
-                          setFocus(slot);
-                        }}
-                      />
-                    ) : canFound ? (
-                      <SeaEmpty
-                        slot={slot}
-                        depth={spot.depth}
-                        base={islandSize}
-                        busy={opening}
-                        onFound={() => found(slot)}
-                      />
-                    ) : (
-                      <SeaLocked
-                        depth={spot.depth}
-                        base={islandSize}
-                        onAsk={() => upgrade.open("islands")}
-                      />
-                    )}
-                  </motion.div>
-                );
-              })}
+                      style={{
+                        left: `${((spot.screen * 100 + spot.x) / field) * 100}%`,
+                        top: `${bandY(spot.y)}%`,
+                      }}
+                    >
+                      {island ? (
+                        <SeaIsland
+                          island={island}
+                          depth={spot.depth}
+                          base={islandSize}
+                          current={slot === game.island}
+                          onOpen={() => {
+                            play("click");
+                            setDir(1);
+                            setFocus(slot);
+                          }}
+                        />
+                      ) : canFound ? (
+                        <SeaEmpty
+                          slot={slot}
+                          depth={spot.depth}
+                          base={islandSize}
+                          busy={opening}
+                          onFound={() => found(slot)}
+                        />
+                      ) : (
+                        <SeaLocked
+                          depth={spot.depth}
+                          base={islandSize}
+                          onAsk={() => upgrade.open("islands")}
+                        />
+                      )}
+                    </motion.div>
+                  );
+                })}
               </div>
             </div>
 
@@ -864,7 +905,13 @@ function SeaIsland({
       <Label
         title={island.companyName}
         muted={!island.alive}
-        sub={island.alive ? (current ? "OPEN NOW" : `YEAR ${island.year}`) : "ENDED"}
+        sub={
+          island.alive
+            ? current
+              ? "OPEN NOW"
+              : `YEAR ${island.year}`
+            : "ENDED"
+        }
         /* The one spot of colour on the whole scene, and it marks exactly one
            thing: where you left off. A bar under the island read as a
            highlighter pen; a dot beside the word it qualifies reads as a
@@ -905,7 +952,11 @@ function SeaEmpty({
       >
         <span
           className="flex items-center justify-center rounded-[var(--radius-pill)] border border-dashed border-[var(--n-6)] leading-none text-[var(--text-tertiary)]"
-          style={{ width: size * 0.36, height: size * 0.36, fontSize: size * 0.18 }}
+          style={{
+            width: size * 0.36,
+            height: size * 0.36,
+            fontSize: size * 0.18,
+          }}
         >
           +
         </span>
@@ -984,7 +1035,9 @@ function Gallery({
   onBack: () => void;
   onEnter: () => void;
 }) {
-  const ending = island.alive ? null : (ENDING[island.endedBy ?? "chapter7"] ?? ENDING.chapter7);
+  const ending = island.alive
+    ? null
+    : (ENDING[island.endedBy ?? "chapter7"] ?? ENDING.chapter7);
   const many = total > 1;
 
   return (
@@ -1018,7 +1071,9 @@ function Gallery({
       {/* ── The island, arrows either side ──────────────────────────────── */}
       {/* Except on iOS, where ‹ › are a merged pair of glass circles in the
           toolbar and the island gets the whole width to be drawn in. */}
-      <div className={`relative h-56 w-full sm:h-64 ${native ? "mt-0" : "mt-1"}`}>
+      <div
+        className={`relative h-56 w-full sm:h-64 ${native ? "mt-0" : "mt-1"}`}
+      >
         <div className="absolute inset-0 flex items-center justify-between gap-1">
           {native ? null : many ? (
             <Arrow dir={-1} onClick={() => onStep(-1)} />
@@ -1084,7 +1139,9 @@ function Gallery({
             <span
               key={i}
               className={`h-1.5 rounded-[var(--radius-pill)] ${
-                i === index ? "w-4 bg-[var(--text-primary)]" : "w-1.5 bg-[var(--n-6)]"
+                i === index
+                  ? "w-4 bg-[var(--text-primary)]"
+                  : "w-1.5 bg-[var(--n-6)]"
               }`}
             />
           ))}
@@ -1102,7 +1159,8 @@ function Gallery({
           {island.companyName}
         </h1>
         <p className="mt-1 text-xs text-[var(--text-tertiary)]">
-          {industryName(island.industry)} · {STAGE_NAME[clampStage(island.stage)]} ·{" "}
+          {industryName(island.industry)} ·{" "}
+          {STAGE_NAME[clampStage(island.stage)]} ·{" "}
           {island.alive
             ? `Year ${island.year}, ${MONTHS[clampMonth(island.month) - 1]}`
             : `${island.year} ${island.year === 1 ? "year" : "years"} survived`}
@@ -1126,12 +1184,16 @@ function Gallery({
       <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-4 rounded-[var(--radius-sheet)] bg-[var(--surface)] p-5 shadow-[var(--e3)]">
         <Figure
           label={island.alive ? "VALUATION" : "PEAK VALUATION"}
-          value={fmtMoney(island.alive ? island.valuation : island.peakValuation)}
+          value={fmtMoney(
+            island.alive ? island.valuation : island.peakValuation,
+          )}
           strong
         />
         <Figure
           label={island.alive ? "PEAK" : "AT THE END"}
-          value={fmtMoney(island.alive ? island.peakValuation : island.valuation)}
+          value={fmtMoney(
+            island.alive ? island.peakValuation : island.valuation,
+          )}
           strong
         />
         <Figure label="CASH" value={fmtMoney(island.cash)} />
@@ -1165,7 +1227,11 @@ function Gallery({
             disabled={busy}
             className="h-14 truncate text-base font-extrabold tracking-[0.06em] disabled:cursor-not-allowed disabled:opacity-35"
           >
-            {busy ? "OPENING…" : island.alive ? "CONTINUE ▸" : "READ THE BOOKS ▸"}
+            {busy
+              ? "OPENING…"
+              : island.alive
+                ? "CONTINUE ▸"
+                : "READ THE BOOKS ▸"}
           </GlassButton>
         </div>
       )}
@@ -1192,7 +1258,15 @@ function Arrow({ dir, onClick }: { dir: number; onClick: () => void }) {
 
 // ── Shared bits ──────────────────────────────────────────────────────────────
 
-function Figure({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+function Figure({
+  label,
+  value,
+  strong,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+}) {
   return (
     <div className="min-w-0">
       <dt className="text-[0.5625rem] font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
@@ -1221,7 +1295,11 @@ function LockGlyph() {
         stroke="currentColor"
         strokeWidth="1.4"
       />
-      <path d="M5.5 7V5.25a2.5 2.5 0 0 1 5 0V7" stroke="currentColor" strokeWidth="1.4" />
+      <path
+        d="M5.5 7V5.25a2.5 2.5 0 0 1 5 0V7"
+        stroke="currentColor"
+        strokeWidth="1.4"
+      />
     </svg>
   );
 }
@@ -1230,8 +1308,18 @@ const industryName = (code: IslandSummary["industry"]): string =>
   INDUSTRIES.find((i) => i.code === code)?.name ?? code;
 
 const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ] as const;
 
 /** What ended it, in the words the rest of the app uses for each. */
@@ -1242,9 +1330,10 @@ const ENDING: Record<string, { label: string; tone: string }> = {
 };
 
 const clampStage = (n: number): StageNum =>
-  (Math.min(5, Math.max(1, Math.trunc(n) || 1)) as StageNum);
+  Math.min(5, Math.max(1, Math.trunc(n) || 1)) as StageNum;
 
-const clampMonth = (n: number): number => Math.min(12, Math.max(1, Math.trunc(n) || 1));
+const clampMonth = (n: number): number =>
+  Math.min(12, Math.max(1, Math.trunc(n) || 1));
 
 /**
  * "Last played", from the device clock.

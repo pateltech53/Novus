@@ -69,6 +69,28 @@ export interface NativeControl {
  */
 export type ChromeMode = "full" | "hidden" | "coach";
 
+/**
+ * The one thing worth doing, drawn by UIKit.
+ *
+ * The web build renders the identical card itself (components/NextStep.tsx) —
+ * this is the same information handed to the renderer that has somewhere to
+ * put it. On a phone the play document is taller than the phone, so a card in
+ * the flow lands past the bottom of the screen however it is ordered; native
+ * composites over the webview, above the deck, and it is real Liquid Glass
+ * rather than the solid fallback the CSS material resolves to everywhere now.
+ *
+ * Every field is required. The Swift side drops a nudge missing any of them
+ * rather than drawing a card with a blank in it.
+ */
+export interface NativeNudge {
+  /** The engine's own id — `no-product`, `no-team`, … Comes back with the tap. */
+  id: string;
+  title: string;
+  body: string;
+  /** The label on the line that opens the tab: "ADD YOUR FIRST". */
+  action: string;
+}
+
 export interface NativeChromeState {
   mode: ChromeMode;
   theme: "light" | "dark";
@@ -76,6 +98,8 @@ export interface NativeChromeState {
   activeTab: string | null;
   cta: NativeCta | null;
   controls: NativeControl[];
+  /** The floating nudge, or null when the company is not missing anything. */
+  nudge?: NativeNudge | null;
   /**
    * Which surface the tutorial is teaching, in `coach` mode. `"advance"`,
    * `"tabs"`, or a control id. Null when the step is teaching something the
@@ -271,6 +295,23 @@ export interface NovusGlassPlugin {
   addListener(
     event: "insetsChanged",
     fn: (data: ChromeInsets) => void,
+  ): Promise<PluginListenerHandle>;
+  /**
+   * The nudge card was tapped — open the tab it names.
+   *
+   * Two events rather than one with a flag, because they are opposite answers
+   * to the same card and the cost of confusing them is opening a screen the
+   * player just closed a suggestion to avoid.
+   */
+  addListener(
+    event: "nudgeAction",
+    fn: (data: { id: string }) => void,
+  ): Promise<PluginListenerHandle>;
+  /** Its ✕ was tapped. The card is already gone; this is what makes it stay
+   *  gone, since dismissal is held for the game month in React. */
+  addListener(
+    event: "nudgeDismissed",
+    fn: (data: { id: string }) => void,
   ): Promise<PluginListenerHandle>;
   addListener(
     event: "overlayAction",
