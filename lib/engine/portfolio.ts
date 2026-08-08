@@ -183,7 +183,12 @@ export interface IndustrySpec {
   demandUnit: string;
   /** Year-end report heading. "THE MENU", "THE CATALOG"… */
   reportLabel: string;
-  /** Price stepper bounds and increment, in dollars. */
+  /**
+   * The band this market actually runs in, and the finest increment worth
+   * offering, all in dollars. `priceMin` IS a floor — nothing is sold for less
+   * than nothing. `priceMax` is a description, not a stop: the player may type
+   * their way past it, up to `priceCeiling`, and find out what happens.
+   */
   priceMin: number;
   priceMax: number;
   priceStep: number;
@@ -295,16 +300,34 @@ export function priceRatio(item: LineItem, state: RunState, spec: IndustrySpec):
   return pv <= 0 ? 1 : item.price / pv;
 }
 
+/** Where "rich" ends and nobody is making excuses for you any more. */
+export const GREEDY_RATIO = 1.6;
+
 export function elasticityBand(ratio: number): ElasticityBand {
   if (ratio < 0.7) return "underpriced";
   if (ratio <= 1.15) return "sweet";
-  if (ratio <= 1.6) return "rich";
+  if (ratio <= GREEDY_RATIO) return "rich";
   return "greedy";
 }
 
-/** Units multiplier for the band. The shape of the whole pricing lesson. */
-function bandUnitsMult(band: ElasticityBand): number {
-  switch (band) {
+/**
+ * Units multiplier for the band. The shape of the whole pricing lesson.
+ *
+ * The greedy band is a curve rather than a floor, and that is what lets the
+ * price field have a ceiling worth typing into. A flat 0.24 says a quarter of
+ * the market buys at ANY price: at four times what the thing is worth that is
+ * revenue ×0.96, at forty times it is revenue ×9.6, and "charge the maximum"
+ * becomes the dominant strategy in a game whose entire pricing lesson is that
+ * it is not. Past 1.6× the tail decays faster than the price climbs, so every
+ * dollar of greed past that point costs more units than it earns — which is
+ * what overpricing does in the world, and it needs no cap to enforce it.
+ *
+ * Nothing a player could reach before moves: at exactly 1.6× this still returns
+ * the 0.24 it always did, and the whole curve below that is untouched. Only the
+ * far tail — which no lens's old stepper could get to — is new.
+ */
+export function bandUnitsMult(ratio: number): number {
+  switch (elasticityBand(ratio)) {
     case "underpriced":
       return 1.45;
     case "sweet":
@@ -312,7 +335,7 @@ function bandUnitsMult(band: ElasticityBand): number {
     case "rich":
       return 0.62;
     case "greedy":
-      return 0.24;
+      return 0.24 * Math.pow(GREEDY_RATIO / Math.max(ratio, GREEDY_RATIO), 2.2);
   }
 }
 
@@ -479,7 +502,7 @@ export function tickPortfolioYear(
   const rows: { item: LineItem; row: LineItemYear }[] = [];
 
   for (const item of earning) {
-    const band = elasticityBand(priceRatio(item, state, spec));
+    const ratio = priceRatio(item, state, spec);
     const { loss, culprit } = cannibalizationLoss(item, p, year);
     const life = lifecycleMult(item, year);
 
@@ -488,7 +511,7 @@ export function tickPortfolioYear(
     const gross =
       spec.baseUnits *
       Math.sqrt(stageScale) *
-      bandUnitsMult(band) *
+      bandUnitsMult(ratio) *
       life *
       marketPull *
       seasonAvg *
@@ -684,10 +707,76 @@ export function launchItem(
   return item;
 }
 
+/**
+ * The highest price this lens will accept, which is NOT `priceMax`.
+ *
+ * `priceMin`/`priceMax` describe the band the market here actually runs in —
+ * what the suggestions are drawn from and what the launch sheet quotes. They
+ * were also, until now, a hard stop, so a TECH founder could not ask for four
+ * figures and a FOOD founder could not put a $200 tasting menu on the list. A
+ * band is a description of a market; refusing to let the player leave it is the
+ * app deciding the answer to the one question this screen exists to ask.
+ *
+ * So the stop moves out to a guard rail: a hundred times the anchor, rounded up
+ * to a number a person would type, and never less than four figures. Nothing
+ * defends this ceiling except arithmetic — price past the band and
+ * `bandUnitsMult` stops selling the thing, which is the honest punishment and a
+ * far better teacher than a button that will not move.
+ */
+export function priceCeiling(spec: IndustrySpec): number {
+  return Math.max(1000, roundUpNice(spec.baselinePrice * 100), spec.priceMax);
+}
+
+/** 1, 2 or 5 × a power of ten — the shape of a number people say out loud. */
+function roundUpNice(n: number): number {
+  if (!(n > 0)) return 1000;
+  const decade = Math.pow(10, Math.floor(Math.log10(n)));
+  for (const m of [1, 2, 5, 10]) if (n <= m * decade) return m * decade;
+  return 10 * decade;
+}
+
+/**
+ * A legal price: inside the lens's range, and whole cents.
+ *
+ * It used to snap to `priceStep` as well, which was right when the only way to
+ * set a price was two buttons walking that grid and wrong the moment a player
+ * could type one. $1,234 is a decision; rewriting it to $1,225 because this
+ * lens steps in twenty-fives is the app correcting a number nobody got wrong.
+ * The grid now lives in `nudgePrice`, where the buttons that need it are.
+ */
 export function clampPrice(price: number, spec: IndustrySpec): number {
-  const steps = Math.round((price - spec.priceMin) / spec.priceStep);
-  const snapped = spec.priceMin + steps * spec.priceStep;
-  return Math.min(spec.priceMax, Math.max(spec.priceMin, Number(snapped.toFixed(2))));
+  if (!Number.isFinite(price)) return spec.baselinePrice;
+  const bounded = Math.min(priceCeiling(spec), Math.max(spec.priceMin, price));
+  return Math.round(bounded * 100) / 100;
+}
+
+/**
+ * What one tap of − or + is worth at this price.
+ *
+ * A fixed step cannot serve a range this wide: TECH's dollar is the right
+ * increment at $39 and a rounding error at $3,900. So the step grows with the
+ * number — a tenth of its decade, never finer than the lens's own step — and a
+ * tap is worth roughly a percent of the price whether you are at $9 or $9,000.
+ *
+ * Deliberately still fine rather than fast. Crossing the whole range in taps is
+ * not what the buttons are for any more; that is what the field is for. These
+ * are for the last few dollars once you know roughly where you are standing.
+ */
+export function priceStepFor(price: number, spec: IndustrySpec): number {
+  const decade = Math.pow(10, Math.max(0, Math.floor(Math.log10(Math.max(price, 1))) - 1));
+  return Math.max(spec.priceStep, decade);
+}
+
+/** The price one tap away, snapped to that step's own grid. */
+export function nudgePrice(price: number, dir: 1 | -1, spec: IndustrySpec): number {
+  const step = priceStepFor(price, spec);
+  // Snapped rather than added, so a run of taps walks round numbers even when
+  // it started off-grid: a typed $137 going up lands on $140, not $147.
+  const next =
+    dir > 0
+      ? Math.floor(price / step) * step + step
+      : Math.ceil(price / step) * step - step;
+  return clampPrice(next, spec);
 }
 
 export function retireItem(state: RunState, itemId: string): LineItem | null {

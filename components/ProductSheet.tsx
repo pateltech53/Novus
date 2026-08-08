@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGame } from "@/lib/state/GameProvider";
 import { specForRun } from "@/lib/engine/industries/index";
@@ -9,14 +9,16 @@ import {
   earningItems,
   ensurePortfolio,
   liveItems,
+  nudgePrice,
   portfolioCap,
+  priceCeiling,
   priceHint,
   sanitizeName,
   type IndustrySpec,
   type LineItem,
   type Verdict,
 } from "@/lib/engine/portfolio";
-import { fmtMoney } from "@/lib/engine/format";
+import { fmtMoney, fmtPrice } from "@/lib/engine/format";
 import { S_UNIT, industryByCode } from "@/lib/engine/constants";
 import { suggestProducts, type ProductIdea } from "@/lib/ai/products";
 
@@ -117,7 +119,7 @@ export function ProductSheet() {
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-bold">{it.name}</span>
                   <span className="block text-2xs text-[var(--text-tertiary)]">
-                    {fmtMoney(it.price)} · starts earning next year
+                    {fmtPrice(it.price)} · starts earning next year
                   </span>
                 </span>
               </li>
@@ -188,7 +190,7 @@ function ItemRow({
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-bold">{item.name}</span>
           <span className="tnum block text-2xs text-[var(--text-tertiary)]">
-            {fmtMoney(item.price)}
+            {fmtPrice(item.price)}
             {last && ` · ${last.units.toLocaleString()} ${spec.demandUnit}`}
             {item.state === "declining" && " · past peak"}
           </span>
@@ -267,7 +269,7 @@ function ItemDetail({
       </button>
       <h3 className="mt-2 text-lg font-extrabold tracking-[-0.01em]">{item.name}</h3>
       <p className="tnum mt-0.5 text-2xs text-[var(--text-tertiary)]">
-        {fmtMoney(item.price)} · {item.tier} · launched FY{item.launchedYear}
+        {fmtPrice(item.price)} · {item.tier} · launched FY{item.launchedYear}
         {item.refreshCount > 0 && ` · reworked ${item.refreshCount}×`}
       </p>
       {item.verdict && (
@@ -307,7 +309,7 @@ function ItemDetail({
           {(() => {
             const h = item.history.at(-1)!;
             const bits = [
-              `At ${fmtMoney(item.price)} you sold ${h.units.toLocaleString()} ${spec.demandUnit} in FY${h.year}.`,
+              `At ${fmtPrice(item.price)} you sold ${h.units.toLocaleString()} ${spec.demandUnit} in FY${h.year}.`,
             ];
             if (h.leakPct >= 5)
               bits.push(`${h.leakPct}% of it went to ${spec.leakLabel.toLowerCase()}.`);
@@ -354,6 +356,143 @@ function ItemDetail({
         </div>
       )}
     </div>
+  );
+}
+
+// ── The price ───────────────────────────────────────────────────────────────
+
+/**
+ * A stepper you can also type into.
+ *
+ * A stepper and not a slider, still, and for the original reason: a slider
+ * invites hunting for a sweet spot that is deliberately not visible. But two
+ * buttons were the ONLY way in, and two buttons are an opinion about how far
+ * you are allowed to go — $8 to $150 in dollar taps is a hundred and forty-two
+ * presses to cross a band, and no number of presses reached the price the
+ * player had in mind if it sat past `priceMax`. So the number in the middle is
+ * a field: type it, or walk to it with taps that scale with the number
+ * (`priceStepFor`), whichever you were going to do anyway.
+ *
+ * The typing is deliberately unpoliced. Every keystroke that parses is pushed
+ * up as a real price, clamped only to what the lens will actually accept, so
+ * the field never argues with a half-typed number and never lets an illegal one
+ * reach the launch. What it will not do is snap a typed price onto the stepper's
+ * grid — see `clampPrice`.
+ */
+function PriceField({
+  price,
+  onChange,
+  spec,
+}: {
+  price: number;
+  onChange: (next: number) => void;
+  spec: IndustrySpec;
+}) {
+  /** The characters in the field while it has focus. Null means "show the number". */
+  const [draft, setDraft] = useState<string | null>(null);
+  // Not `draft !== null`: a click on − or + blurs the input first, so by the
+  // time the tap handler runs the draft has already been cleared and the render
+  // that cleared it may not have happened yet. A ref is the only honest answer
+  // to "is the caret still in here".
+  const focused = useRef(false);
+  const ceiling = priceCeiling(spec);
+  // Grouped when idle, plain while being typed into — `fmtPrice` carries the $
+  // that the field renders beside itself.
+  const shown = draft ?? fmtPrice(price).slice(1);
+
+  const type = (raw: string) => {
+    // Digits, at most one point, at most two places past it.
+    const clean = raw.replace(/[^\d.]/g, "").replace(/^(\d*\.?\d{0,2}).*$/, "$1").slice(0, 9);
+    setDraft(clean);
+    if (clean !== "" && clean !== ".") onChange(clampPrice(Number(clean), spec));
+  };
+
+  const tap = (dir: 1 | -1) => {
+    const next = nudgePrice(price, dir, spec);
+    // A tap while the field has focus rewrites what is in it, unformatted. The
+    // idle field is grouped ("1,299") and the focused one is not, because the
+    // next keystroke lands in the middle of whatever is there and a stray comma
+    // would be read as another digit.
+    if (focused.current) setDraft(String(next));
+    onChange(next);
+  };
+
+  return (
+    <>
+      <div className="mt-4 flex items-center gap-2 rounded-[var(--radius-row)] bg-[var(--surface)] px-3 py-3">
+        <button
+          type="button"
+          aria-label="Lower the price"
+          disabled={price <= spec.priceMin}
+          onClick={() => tap(-1)}
+          className="nv-gc flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-lg font-extrabold disabled:text-[var(--n-7)]"
+        >
+          −
+        </button>
+        {/* The gap clears the focus ring's 2px offset — at gap-0.5 the ring
+            drew straight through the dollar sign. */}
+        <div className="flex min-w-0 flex-1 items-baseline justify-center gap-1.5">
+          <span aria-hidden="true" className="text-[1.25rem] font-extrabold text-[var(--text-tertiary)]">
+            $
+          </span>
+          <input
+            aria-label="Price in dollars"
+            inputMode="decimal"
+            enterKeyHint="done"
+            value={shown}
+            /*
+             * Sized to its own digits rather than filling the row, so the $ sits
+             * against the number and the focus ring lands around a price rather
+             * than around a third of the sheet. `tnum` makes a ch a real digit.
+             */
+            style={{ width: `${Math.min(Math.max(shown.length, 2), 9) + 0.6}ch` }}
+            onChange={(e) => type(e.target.value)}
+            onFocus={(e) => {
+              // Opens on the whole number selected: the commonest edit here is
+              // replacing the price outright, not amending a digit of it.
+              focused.current = true;
+              setDraft(String(price));
+              requestAnimationFrame(() => e.target.select());
+            }}
+            onBlur={() => {
+              focused.current = false;
+              setDraft(null);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.currentTarget.blur();
+              if (e.key === "ArrowUp") {
+                e.preventDefault();
+                tap(1);
+              }
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                tap(-1);
+              }
+            }}
+            className="tnum max-w-full border-0 bg-transparent text-center text-[1.75rem] font-extrabold tracking-[-0.02em]"
+          />
+        </div>
+        <button
+          type="button"
+          aria-label="Raise the price"
+          disabled={price >= ceiling}
+          onClick={() => tap(1)}
+          className="nv-gc flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-lg font-extrabold disabled:text-[var(--n-7)]"
+        >
+          +
+        </button>
+      </div>
+      {/*
+        The band, stated as a fact about the market rather than as advice about
+        your price — the same fact the two buttons used to state by refusing to
+        move. Where they stopped, this says what is out there and gets out of
+        the way.
+      */}
+      <p className="mt-1.5 text-2xs leading-snug text-[var(--text-tertiary)]">
+        Most {spec.nounPlural.toLowerCase()} here go for {fmtPrice(spec.priceMin)}–
+        {fmtPrice(spec.priceMax)}. You can ask up to {fmtPrice(ceiling)}.
+      </p>
+    </>
   );
 }
 
@@ -500,7 +639,7 @@ function LaunchFlow({ spec, onDone }: { spec: IndustrySpec; onDone: () => void }
                             {idea.name}
                           </span>
                           <span className="tnum shrink-0 text-2xs font-bold text-[var(--text-secondary)]">
-                            {fmtMoney(idea.price)} ·{" "}
+                            {fmtPrice(idea.price)} ·{" "}
                             {spec.investTiers[idea.investTier]?.label ?? ""}
                           </span>
                         </div>
@@ -525,27 +664,7 @@ function LaunchFlow({ spec, onDone }: { spec: IndustrySpec; onDone: () => void }
               What does it cost?
             </h3>
 
-            {/* A stepper, not a slider: a slider invites hunting for a sweet spot
-                that is deliberately not visible. */}
-            <div className="mt-4 flex items-center justify-between rounded-[var(--radius-row)] bg-[var(--surface)] px-3 py-3">
-              <button
-                type="button"
-                aria-label="Lower the price"
-                onClick={() => setPrice((p) => clampPrice(p - spec.priceStep, spec))}
-                className="nv-gc flex h-9 w-9 items-center justify-center rounded-full text-lg font-extrabold"
-              >
-                −
-              </button>
-              <span className="tnum text-[1.75rem] font-extrabold">{fmtMoney(price)}</span>
-              <button
-                type="button"
-                aria-label="Raise the price"
-                onClick={() => setPrice((p) => clampPrice(p + spec.priceStep, spec))}
-                className="nv-gc flex h-9 w-9 items-center justify-center rounded-full text-lg font-extrabold"
-              >
-                +
-              </button>
-            </div>
+            <PriceField price={price} onChange={setPrice} spec={spec} />
 
             <h4 className="mt-5 text-2xs font-bold tracking-[0.14em] text-[var(--text-tertiary)]">
               HOW WELL DO YOU MAKE IT
@@ -641,7 +760,7 @@ function LaunchFlow({ spec, onDone }: { spec: IndustrySpec; onDone: () => void }
               {sanitizeName(name)}
             </h3>
             <p className="tnum mt-1 text-sm text-[var(--text-secondary)]">
-              {fmtMoney(price)} · {invest.label.toLowerCase()}
+              {fmtPrice(price)} · {invest.label.toLowerCase()}
               {spec.launchChoice &&
                 ` · ${spec.launchChoice.options[choiceIdx].label.toLowerCase()}`}
               {tags.length > 0 && ` · ${tags.join(", ")}`}

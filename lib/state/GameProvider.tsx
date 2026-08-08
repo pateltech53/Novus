@@ -96,7 +96,7 @@ import { refreshBooks } from "@/lib/engine/sim";
 import { applyOutcome } from "@/lib/engine/effects";
 import { hashString, runRng } from "@/lib/engine/rng";
 import { makeLine } from "@/lib/engine/log";
-import { fmtMoney } from "@/lib/engine/format";
+import { fmtMoney, fmtPrice } from "@/lib/engine/format";
 import {
   activeIsland,
   clearRun,
@@ -1284,7 +1284,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         makeLine(
           working,
           "decision",
-          `You put ${item.name} out at ${fmtMoney(item.price)}. Now you find out what it was worth.`,
+          `You put ${item.name} out at ${fmtPrice(item.price)}. Now you find out what it was worth.`,
         ),
       );
       commit(working);
