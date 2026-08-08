@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 import { Browser } from "@capacitor/browser";
 
-import { WEB_ORIGIN } from "@/lib/native/origin";
+import { API_CREDENTIALS, WEB_ORIGIN, apiUrl } from "@/lib/native/origin";
 import { isNative, platform, type NativePlatform } from "@/lib/native/platform";
 
 /**
@@ -113,18 +113,104 @@ export const MANAGE_SUBSCRIPTION_NOTE =
 export const PRO_PURCHASE_URL = `${WEB_ORIGIN}/#pro`;
 
 /**
+ * WHICH ACCOUNT THE APP IS SIGNED IN AS, stated on the way out.
+ *
+ * `Browser.open` is a real Safari view sharing Safari's cookies — the thing
+ * that keeps this link legal, and the thing that makes the browser a different
+ * session from the app. Different session, different account: a player signed
+ * into the app as one address and into the web as an older one used to pay
+ * there and get Pro on an account that never opens the app. Restore cannot
+ * mend that, because Restore correctly reports that the app's account owns
+ * nothing.
+ *
+ * `?h=` is a signed claim and not a credential — it cannot sign anybody in,
+ * and the only thing it can do is make the checkout refuse
+ * (lib/billing/handoff.ts). Best effort in every sense: no server, no session,
+ * no answer, and the link opens exactly as it did before, unchecked.
+ */
+interface Handoff {
+  token: string | null;
+  /** The app's account, masked. Null when the server would not say. */
+  account: string | null;
+}
+
+const NO_HANDOFF: Handoff = { token: null, account: null };
+
+/*
+ * Held for ten minutes, well inside the token's own half hour.
+ *
+ * The pricing surface asks for the account on mount and the button asks for a
+ * token on tap, and those are the same question — a player who reads the line
+ * and then presses the button should not cost two round trips. Short enough
+ * that signing out and back in as somebody else inside the app is reflected
+ * before the cached answer could send them to the wrong account.
+ */
+const CACHE_MS = 10 * 60 * 1000;
+let cached: { at: number; value: Handoff } | null = null;
+
+async function handoff(): Promise<Handoff> {
+  if (cached && Date.now() - cached.at < CACHE_MS) return cached.value;
+  let value = NO_HANDOFF;
+  try {
+    const res = await fetch(apiUrl("/api/billing/handoff"), {
+      method: "POST",
+      credentials: API_CREDENTIALS,
+    });
+    if (res.ok) {
+      const body = (await res.json()) as { token?: string; account?: string | null };
+      value = { token: body.token ?? null, account: body.account ?? null };
+    }
+  } catch {
+    // Offline, or no server behind this build. The link still opens; it just
+    // opens the way it did before any of this existed.
+  }
+  cached = { at: Date.now(), value };
+  return value;
+}
+
+/** Forget the cached claim — sign-out inside the app must not keep naming it. */
+export function forgetPurchaseAccount(): void {
+  cached = null;
+}
+
+/**
+ * Which account the purchase will attach to, masked, or null when the app
+ * cannot say. Shown beside the link so the answer arrives before the browser
+ * does rather than as a correction from it.
+ */
+export async function purchaseAccount(): Promise<string | null> {
+  return (await handoff()).account;
+}
+
+/** The pricing page, carrying the claim when there is one to carry. */
+async function purchaseUrl(): Promise<string> {
+  const { token } = await handoff();
+  if (!token) return PRO_PURCHASE_URL;
+  // Query before fragment: `/#pro?h=…` would make the whole thing part of the
+  // fragment and the page would never see a search parameter.
+  return `${WEB_ORIGIN}/?h=${encodeURIComponent(token)}#pro`;
+}
+
+/**
  * Leaves the app for the pricing page.
  *
- * `Browser.open` on a device: a real Safari view sharing Safari's cookies, so
- * a player already signed in on the web is still signed in when they get
- * there, and the purchase attaches to the account it should. A plain tab on
- * the web, where this is only ever reached by someone who wants the full
- * pricing page rather than the sheet they are standing in.
+ * `Browser.open` on a device: a real Safari view sharing Safari's cookies. A
+ * plain tab on the web, where this is only ever reached by someone who wants
+ * the full pricing page rather than the sheet they are standing in.
+ *
+ * The trip is recorded before it starts, so that whatever happens next — a
+ * `novus://purchase` hop home, or the player simply switching back — ends with
+ * the app re-reading its receipt rather than sitting on the paywall they just
+ * paid to remove. See lib/cloud/purchase-return.ts.
  */
 export async function openProPurchase(): Promise<void> {
+  const url = isNative() ? await purchaseUrl() : PRO_PURCHASE_URL;
+
   if (isNative()) {
+    const { purchaseStarted } = await import("@/lib/cloud/purchase-return");
+    purchaseStarted();
     try {
-      await Browser.open({ url: PRO_PURCHASE_URL });
+      await Browser.open({ url });
       return;
     } catch {
       // A binary that predates the Browser plugin being linked, or a native
@@ -134,7 +220,7 @@ export async function openProPurchase(): Promise<void> {
       // handler that has no way to catch it.
     }
   }
-  window.open(PRO_PURCHASE_URL, "_blank", "noopener,noreferrer");
+  window.open(url, "_blank", "noopener,noreferrer");
 }
 
 /**
@@ -154,4 +240,4 @@ export async function openProPurchase(): Promise<void> {
  * moment they press a plan reads as the purchase being broken.
  */
 export const BUY_IN_BROWSER_NOTE =
-  "Pro is bought on the web and attaches to your Novus account, not to this device. The link opens your browser, which will ask you to sign in to that account first — being signed in here does not sign you in there. Then come back and tap Restore, or it arrives on the next sync.";
+  "Pro is bought on the web and attaches to your Novus account, not to this device. The link opens your browser, which will ask you to sign in to that same account first — being signed in here does not sign you in there. Paying brings you back and Pro is on when you land; Restore is there if anything goes wrong on the way.";

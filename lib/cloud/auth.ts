@@ -1,6 +1,7 @@
 import { createAccount, loadAccount, signOut as forgetLocalAccount } from "@/lib/account";
 import { PROVIDER_LABEL, type OAuthProvider, type OAuthState } from "@/lib/auth/providers";
 import { RESTORED_FLAG } from "@/lib/cloud/keys";
+import { forgetPurchaseAccount } from "@/lib/commerce";
 import { dropPendingRun } from "@/lib/engine/save";
 import { API_CREDENTIALS, apiUrl } from "@/lib/native/origin";
 
@@ -498,6 +499,12 @@ function wipeDevice(): void {
    * and nothing on it reaches back to this file.
    */
   dropPendingRun();
+  /*
+   * The cached "the app is signed in as…" claim belongs to the outgoing player.
+   * Left in place it would name the wrong account on the very next purchase
+   * link — quietly, and for ten minutes, which is long enough to be pressed.
+   */
+  forgetPurchaseAccount();
   /*
    * Collected first, then removed. Iterating localStorage while deleting from
    * it re-indexes the collection underneath the loop and silently skips keys —

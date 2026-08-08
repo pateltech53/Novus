@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 /*
@@ -33,7 +33,7 @@ import {
   type ProPlanId,
   type SubscriptionPlan,
 } from "@/lib/monetization";
-import { goToCheckout, openBillingPortal } from "@/lib/cloud/billing";
+import { checkHandoff, goToCheckout, openBillingPortal, type HandoffCheck } from "@/lib/cloud/billing";
 import { planName, usePlan } from "@/lib/plan";
 import { PickMark } from "@/components/ui/PickMark";
 import { OneTimeShelf } from "@/components/upgrade/OneTimeShelf";
@@ -428,6 +428,25 @@ function PricingSection() {
   /** What the CUSTOM row's input holds — kept as text so a half-typed number
    *  ("2", on the way to "25") is not fought by the field. */
   const [customSeatsText, setCustomSeatsText] = useState("");
+  /**
+   * Whether this browser is the account the app said it was.
+   *
+   * Null on every ordinary visit — a claim only exists for a player who
+   * arrived from a store build's GET PRO link (lib/billing/handoff.ts), which
+   * is the one journey where the two sessions can silently disagree and the
+   * money can land somewhere the phone will never see it.
+   */
+  const [handoff, setHandoff] = useState<HandoffCheck | null>(null);
+  useEffect(() => {
+    // captureHandoff runs in ReturnToApp on every load; this only reads it.
+    let live = true;
+    void checkHandoff().then((answer) => {
+      if (live) setHandoff(answer);
+    });
+    return () => {
+      live = false;
+    };
+  }, [standing?.pro]);
 
   const enter = async () => {
     // Settled state first, exactly as AccountGate's CONTINUE does and for the
@@ -552,6 +571,28 @@ function PricingSection() {
 
     setBusy(null);
 
+    /*
+     * The browser and the app are two different accounts.
+     *
+     * Refused server-side rather than warned about, because this is the one
+     * failure on this page that cannot be undone from the app: Pro would be on
+     * an account the phone never signs into, and Restore would keep correctly
+     * reporting that the app's account owns nothing. The plan is remembered and
+     * the gate is where they are sent, exactly as for a signed-out visitor —
+     * the fix is the same fix, it is just a sign-in as somebody else.
+     */
+    if (result.reason === "other-account") {
+      rememberPendingPro(plan.id);
+      setError(
+        result.message ??
+          "This browser is signed in to a different account from the app. Sign in as the account you use in the app, and checkout opens by itself.",
+      );
+      document
+        .getElementById(ACCOUNT_ANCHOR)
+        ?.scrollIntoView({ block: "center", behavior: "smooth" });
+      return;
+    }
+
     if (result.reason === "signed-out" || result.reason === "needs-account") {
       rememberPendingPro(plan.id);
       setError(
@@ -657,6 +698,9 @@ function PricingSection() {
           Same twelve months, same pitch, same scoring, same board. Pro opens
           more of the world — never a better game.
         </p>
+
+        {/* Said before a plan is pressed, not after it is refused. */}
+        <FromTheApp check={handoff} />
 
         <div className="mt-8 grid gap-4 lg:grid-cols-3">
           {/* Free — first, and a real column, not a foil. */}
@@ -986,6 +1030,59 @@ function PricingSection() {
  * the orange on the one control per screen that asks you to act, and this asks
  * for nothing — it is a label on a card the player has already bought.
  */
+/**
+ * WHO THIS BROWSER IS, when an app sent the player here to pay.
+ *
+ * Two sessions on one phone. The app's is a webview cookie; this one is
+ * Safari's, and a player signed into the app as one address and into the web
+ * as an older one has no way to notice — the pricing page looks identical
+ * either way, and the purchase quietly lands on whichever account happens to
+ * be signed in HERE. From inside the app that is indistinguishable from a
+ * payment that did not work.
+ *
+ * The checkout refuses that outright (lib/billing/handoff.ts), so nothing can
+ * be lost. This is the same fact said thirty seconds earlier, while it is still
+ * a thing to do rather than an error to read.
+ *
+ * Renders nothing for the visitor who simply came to the website, which is
+ * almost everyone: `check` is null unless a claim actually travelled.
+ */
+function FromTheApp({ check }: { check: HandoffCheck | null }) {
+  if (!check || check.match) return null;
+
+  return (
+    <p
+      role="status"
+      className="mt-6 rounded-[var(--radius-card)] bg-[var(--n-3)] px-4 py-3 text-sm leading-relaxed text-[var(--text-secondary)] ring-1 ring-[var(--hairline)]"
+    >
+      {check.signedIn ? (
+        <>
+          <strong className="font-extrabold text-[var(--text-primary)]">
+            This browser is a different account from your app.
+          </strong>{" "}
+          Pro attaches to whichever account buys it, so paying here would put it
+          somewhere your phone cannot see.{" "}
+          {check.account
+            ? `Sign in as ${check.account} first.`
+            : "Sign in as the account you use in the app first."}
+        </>
+      ) : (
+        <>
+          <strong className="font-extrabold text-[var(--text-primary)]">
+            Sign in before you pay.
+          </strong>{" "}
+          Pro attaches to a Novus account rather than to a device, and this
+          browser is not signed in to one —{" "}
+          {check.account
+            ? `your app is signed in as ${check.account}.`
+            : "your app is signed in to the account this belongs on."}{" "}
+          Use the same one and the purchase lands where the app will find it.
+        </>
+      )}
+    </p>
+  );
+}
+
 function YourPlan({ label = "YOUR PLAN" }: { label?: string }) {
   return (
     /* `--surface`, a step BELOW the card it sits on, not `--surface-elevated`

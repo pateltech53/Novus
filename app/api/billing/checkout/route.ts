@@ -6,6 +6,7 @@ import {
   customChapterPriceCents,
   isCustomSeatCount,
 } from "@/lib/monetization";
+import { maskEmail, readHandoff } from "@/lib/billing/handoff";
 import { adminClient } from "@/lib/supabase/admin";
 import { attachSession, crossSite, sessionFromRequest, withSession, type Session } from "@/lib/supabase/route";
 import { CATALOGUE, isChapterSku, isSellableIndustry, isSkuId, priceIdFor, type Sku } from "@/lib/stripe/catalogue";
@@ -58,6 +59,12 @@ interface Body {
   industry?: unknown;
   /** `chapter_custom` only: how many seats the buyer chose. */
   seats?: unknown;
+  /**
+   * The signed "the app on my phone is signed in as <user>" the browser was
+   * handed on its way here, when it came from a store build's GET PRO link.
+   * Absent for an ordinary web purchase, which is most of them.
+   */
+  handoff?: unknown;
 }
 
 const bad = (error: string, status = 400) => NextResponse.json({ error }, { status });
@@ -160,6 +167,39 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  /*
+   * The account the app said it was, against the account this browser is.
+   *
+   * This is the only place the two can be compared before money moves, and it
+   * is a REFUSAL rather than a redirect: a player who signed into the web as an
+   * old address and pays there gets Pro on an account that will never open the
+   * app, and no amount of tapping Restore in the app can undo it — Restore
+   * correctly reports what the app's account owns, which is nothing.
+   *
+   * A token that is absent, expired or not ours says nothing and changes
+   * nothing. Only a valid claim that DISAGREES stops the sale. See
+   * lib/billing/handoff.ts.
+   */
+  const fromApp = readHandoff(body.handoff);
+  if (fromApp && fromApp !== session.userId) {
+    const wanted = maskEmail(await appAccountEmail(fromApp));
+    return withSession(
+      NextResponse.json(
+        {
+          configured: true,
+          signedIn: true,
+          otherAccount: true,
+          account: wanted,
+          error: wanted
+            ? `This browser is signed in to a different account from the app. Sign in as ${wanted} first, or Pro lands somewhere the app cannot see it.`
+            : "This browser is signed in to a different account from the app. Sign in as the account you use in the app first, or Pro lands somewhere the app cannot see it.",
+        },
+        { status: 409 },
+      ),
+      session,
+    );
+  }
+
   // Same upsert /api/session does. A purchase can be someone's first ever
   // request — the profile row is the foreign key every table below hangs off,
   // including billing_customers, so it has to exist before Stripe is called.
@@ -193,6 +233,8 @@ export async function POST(req: NextRequest) {
   }
 
   const skuId = custom !== null ? "chapter_custom" : sku!.id;
+  /** Set only when the claim above proved this browser and the app agree. */
+  const appReturn = fromApp ? "&app=1" : "";
   // Travels on the session AND the subscription, so every later
   // customer.subscription.* event knows the licence size with no lookup.
   const seatsMetadata: Record<string, string> =
@@ -249,14 +291,22 @@ export async function POST(req: NextRequest) {
             }
           : {}),
 
-        // A licence buyer lands on the seat console their purchase just
-        // opened; everyone else returns to the game.
+        /*
+         * A licence buyer lands on the seat console their purchase just
+         * opened; everyone else returns to the game.
+         *
+         * `&app=1` when the buyer walked in from a store build's GET PRO link,
+         * which is the only signal the returning page gets that there is an app
+         * behind this browser waiting to be told. components/ReturnToApp.tsx
+         * turns it into a `novus://` hop back, so paying does not end with a
+         * player looking at a web page wondering what to do with it.
+         */
         success_url: chapterPurchase
-          ? `${SITE_URL}/chapter?purchase=ok`
-          : `${SITE_URL}/found?purchase=ok`,
+          ? `${SITE_URL}/chapter?purchase=ok${appReturn}`
+          : `${SITE_URL}/found?purchase=ok${appReturn}`,
         cancel_url: chapterPurchase
-          ? `${SITE_URL}/chapter?purchase=cancelled`
-          : `${SITE_URL}/found?purchase=cancelled`,
+          ? `${SITE_URL}/chapter?purchase=cancelled${appReturn}`
+          : `${SITE_URL}/found?purchase=cancelled${appReturn}`,
 
         // A checkout left open on a school iPad should not still be a live
         // payment link an hour later. Stripe's floor is 30 minutes and it
@@ -272,6 +322,24 @@ export async function POST(req: NextRequest) {
     return attachSession(NextResponse.json({ configured: true, url: checkout.url }), session);
   } catch (e) {
     return refuse(session, `stripe: ${(e as Error).message}`, 502);
+  }
+}
+
+/**
+ * The address on the account the app claimed to be, for the refusal above.
+ *
+ * Read with the service role because the caller is, by construction, signed in
+ * as somebody else — there is no session that may read this user. Masked by the
+ * caller; a failure is null and the message says "the account you use in the
+ * app" instead.
+ */
+async function appAccountEmail(userId: string): Promise<string | null> {
+  try {
+    const { data, error } = await adminClient().auth.admin.getUserById(userId);
+    if (error) return null;
+    return data.user?.email ?? null;
+  } catch {
+    return null;
   }
 }
 

@@ -1,6 +1,8 @@
 "use client";
 
-import { BUY_IN_BROWSER_NOTE, openProPurchase } from "@/lib/commerce";
+import { useEffect, useState } from "react";
+
+import { BUY_IN_BROWSER_NOTE, openProPurchase, purchaseAccount } from "@/lib/commerce";
 import { PRO_MONTHLY, PRO_YEARLY, formatPrice } from "@/lib/monetization";
 
 /**
@@ -25,6 +27,30 @@ import { PRO_MONTHLY, PRO_YEARLY, formatPrice } from "@/lib/monetization";
  * checkout charges, so the number on the link is the number on the invoice.
  */
 export function BuyOnWeb({ className = "" }: { className?: string }) {
+  /**
+   * The account the purchase will land on, masked, asked for on mount.
+   *
+   * The single most expensive thing that can go wrong on this journey is buying
+   * Pro while the browser is signed in as somebody else — a sibling's account,
+   * an old address — because the app can never see it afterwards and Restore
+   * correctly keeps saying there is nothing to restore. The checkout refuses
+   * that outright now (lib/billing/handoff.ts); naming the account HERE is what
+   * turns the refusal into something the player has already been told.
+   *
+   * Null while it is being asked for, and on any build with no server behind
+   * it, in which case this line simply is not drawn.
+   */
+  const [account, setAccount] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    void purchaseAccount().then((masked) => {
+      if (live) setAccount(masked);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+
   return (
     <div className={className}>
       {/* A button rather than an <a>: on a device this does not navigate, it
@@ -42,6 +68,12 @@ export function BuyOnWeb({ className = "" }: { className?: string }) {
       <p className="tnum mt-2 text-center text-2xs font-bold tracking-[0.06em] text-[var(--text-secondary)]">
         {formatPrice(PRO_YEARLY.priceCents)} A YEAR · {formatPrice(PRO_MONTHLY.priceCents)} A MONTH
       </p>
+
+      {account && (
+        <p className="mt-1.5 text-center text-2xs font-bold leading-relaxed text-[var(--text-secondary)]">
+          Buying for {account} — sign in as that account in the browser.
+        </p>
+      )}
 
       <p className="mt-1.5 text-center text-2xs leading-relaxed text-[var(--text-tertiary)]">
         {BUY_IN_BROWSER_NOTE}

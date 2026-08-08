@@ -23,20 +23,30 @@ import { appPath } from "@/lib/native/href";
  *     novus://island/3         that company, then the board
  *     novus://islands          the picker
  *     novus://market           the board, with RobinGhood open on the phone
+ *     novus://purchase         a purchase finished in the browser — read the
+ *                              receipt, and do not move the player anywhere
+ *
+ * The last one is not a widget and is the only member with no destination.
+ * A purchase is made from wherever the player was standing when they pressed
+ * GET PRO, and coming back is supposed to return them to it — navigating would
+ * reload the board and throw away the decision card that may be open on it.
+ * See lib/cloud/purchase-return.ts.
  */
 
 export const OUTSIDE_SCHEME = "novus";
 
 export interface OutsideLink {
-  /** The document to be on. */
-  route: "/play" | "/islands";
+  /** The document to be on. Null means "stay exactly where you are". */
+  route: "/play" | "/islands" | null;
   /** Switch to this company first. Null when the link does not name one. */
   island: number | null;
   /** An app on the in-fiction phone to open once the board is up. */
   open: "market" | null;
+  /** A purchase made outside the app has finished, one way or the other. */
+  purchase: "ok" | "cancelled" | null;
 }
 
-const PLAY: OutsideLink = { route: "/play", island: null, open: null };
+const PLAY: OutsideLink = { route: "/play", island: null, open: null, purchase: null };
 
 /**
  * Read a `novus://` URL. Pure, and total: anything at all resolves to a
@@ -62,15 +72,27 @@ export function parseOutsideLink(raw: string): OutsideLink | null {
 
   switch (head) {
     case "islands":
-      return { route: "/islands", island: null, open: null };
+      return { route: "/islands", island: null, open: null, purchase: null };
     case "island": {
       const slot = Number(tail[0]);
       return Number.isInteger(slot) && slot >= 0
-        ? { route: "/play", island: slot, open: null }
-        : { route: "/islands", island: null, open: null };
+        ? { route: "/play", island: slot, open: null, purchase: null }
+        : { route: "/islands", island: null, open: null, purchase: null };
     }
     case "market":
-      return { route: "/play", island: null, open: "market" };
+      return { route: "/play", island: null, open: "market", purchase: null };
+    case "purchase":
+      return {
+        route: null,
+        island: null,
+        open: null,
+        // Anything that is not an explicit cancel is treated as a completed
+        // purchase, because the cost of the two mistakes is not symmetric:
+        // reading the receipt after a cancelled checkout finds nothing and
+        // costs one request, and NOT reading it after a real one leaves a
+        // player who paid looking at the paywall.
+        purchase: url.searchParams.get("state") === "cancelled" ? "cancelled" : "ok",
+      };
     // "play", "gate", and anything a future widget invents.
     default:
       return PLAY;
@@ -136,15 +158,31 @@ export function subscribeOutsideOpen(fn: () => void): () => void {
 export function followOutsideLink(link: OutsideLink): void {
   if (typeof window === "undefined") return;
 
+  /*
+   * A purchase carries no destination. It closes the browser the app opened,
+   * re-reads the receipt in place, and leaves the player on the screen they
+   * pressed GET PRO from — the entitlement listeners are what redraw it.
+   *
+   * Imported lazily so this module stays loadable outside a Capacitor shell:
+   * the purchase path is the only thing here that reaches for a native plugin,
+   * and a widget tap must not pay for it.
+   */
+  if (link.purchase) {
+    void import("@/lib/cloud/purchase-return").then((m) => m.finishPurchase());
+    if (link.route === null) return;
+  }
+
   if (link.island !== null) {
     try {
       setActiveIsland(link.island);
     } catch {
       // An empty slot, or storage refused. The picker is a better answer than
       // a board with nothing on it.
-      link = { route: "/islands", island: null, open: null };
+      link = { route: "/islands", island: null, open: null, purchase: null };
     }
   }
+
+  if (link.route === null) return;
 
   stashOpen(link.open);
 

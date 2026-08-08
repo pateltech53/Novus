@@ -4,6 +4,7 @@ import "./globals.css";
 import { Motion } from "@/components/ui/Motion";
 import { Sound } from "@/components/ui/Sound";
 import { CloudSync } from "@/components/CloudSync";
+import { ReturnToApp } from "@/components/ReturnToApp";
 import { AdminSkipPrompt } from "@/components/admin/AdminSkipPrompt";
 import { NativeShell } from "@/components/native/NativeShell";
 import { UpgradeProvider } from "@/components/upgrade/UpgradeProvider";
@@ -230,6 +231,9 @@ export default function RootLayout({
         <NativeShell />
         <Sound />
         <CloudSync />
+        {/* The hop home for a purchase a store build sent out to this browser.
+            Silent on every other load, which is nearly all of them. */}
+        <ReturnToApp />
         {/* Renders nothing for players, ever — it wakes only when an admin
             session presses a paid button (lib/cloud/admin-skip.ts). */}
         <AdminSkipPrompt />

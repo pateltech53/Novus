@@ -92,6 +92,31 @@ async function wireOutsideLinks(): Promise<() => void> {
   return () => void handle.remove();
 }
 
+/**
+ * Back from wherever they went, with a purchase possibly finished behind us.
+ *
+ * The `novus://purchase` hop is the designed path home and it is not a
+ * guarantee: a browser may decline to follow a scheme link, a player may use
+ * the app switcher instead of the button, and a payment may complete minutes
+ * later in a tab nobody came back from. Every one of those still ends with the
+ * app coming to the foreground, which is what this listens for.
+ *
+ * Gated on there being an outstanding purchase, so an ordinary player switching
+ * apps all day never makes a request — see lib/cloud/purchase-return.ts.
+ */
+async function wirePurchaseReturn(): Promise<() => void> {
+  const handle = await CapApp.addListener("appStateChange", ({ isActive }) => {
+    if (!isActive) return;
+    void import("@/lib/cloud/purchase-return").then((m) => {
+      if (!m.purchaseInFlight()) return;
+      // The browser has already gone if we are the foreground app; asking it to
+      // close again is the one thing that could steal a frame from the return.
+      void m.finishPurchase(false);
+    });
+  });
+  return () => void handle.remove();
+}
+
 /** The keyboard resizes the webview; nothing should be left scrolled under it. */
 async function wireKeyboard(): Promise<() => void> {
   const subs = [
@@ -140,6 +165,7 @@ export function startNativeShell(): () => void {
   void wireBackButton().then((d) => disposers.push(d));
   void wireKeyboard().then((d) => disposers.push(d));
   void wireOutsideLinks().then((d) => disposers.push(d));
+  void wirePurchaseReturn().then((d) => disposers.push(d));
 
   return () => {
     disposers.forEach((d) => d());
