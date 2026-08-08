@@ -14,6 +14,25 @@ function trim(x: number): string {
   return s.endsWith(".0") ? s.slice(0, -2) : s;
 }
 
+/**
+ * A sticker price, digit for digit — "$13.50", "$1,299", "$12,000".
+ *
+ * Not `fmtMoney`, which is right for a revenue line and wrong for a price:
+ * it rounds cents away, so a lens that steps in fifty-cent increments drew
+ * $13.50 and $14.00 as the same "$14" and the − button looked broken; and it
+ * compresses past ten thousand, so a price the player typed came back to them
+ * as "$12K". A number somebody entered is shown back to them as they entered
+ * it.
+ */
+export function fmtPrice(n: number): string {
+  const abs = Math.round(Math.abs(n) * 100) / 100;
+  const hasCents = Math.round(abs * 100) % 100 !== 0;
+  return `${n < 0 ? "−" : ""}$${abs.toLocaleString("en-US", {
+    minimumFractionDigits: hasCents ? 2 : 0,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
 export function fmtMonths(m: number): string {
   if (!isFinite(m) || m > 99) return "∞";
   return `${Math.max(0, Math.floor(m))}mo`;

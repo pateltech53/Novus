@@ -5,7 +5,7 @@ import { useNativeGlassClose } from "@/components/native/useNativeOverlay";
 import { motion } from "framer-motion";
 import { ENTER } from "@/components/ui/Motion";
 import type { RunState, StageNum } from "@/lib/engine/types";
-import { fmtMoney, fmtMonths, fmtPct, MONTH_NAMES } from "@/lib/engine/format";
+import { fmtMoney, fmtMonths, fmtPct, fmtPrice, MONTH_NAMES } from "@/lib/engine/format";
 import { deriveRunwayMonths } from "@/lib/engine/sim";
 import {
   KNOBS,
@@ -370,7 +370,7 @@ function Body({ run }: { run: RunState }) {
                   <span className="min-w-0">
                     <span className="block truncate text-xs font-bold">{item.name}</span>
                     <span className="tnum block truncate text-2xs text-[var(--text-tertiary)]">
-                      {fmtMoney(item.price)}
+                      {fmtPrice(item.price)}
                       {h
                         ? ` · ${h.units.toLocaleString()} ${spec.demandUnit} in FY${h.year}`
                         : " · no closed year yet"}
@@ -398,7 +398,7 @@ function Body({ run }: { run: RunState }) {
                 <span className="min-w-0">
                   <span className="block truncate text-xs font-bold">{item.name}</span>
                   <span className="tnum block truncate text-2xs text-[var(--text-tertiary)]">
-                    {fmtMoney(item.price)} · starts earning next year
+                    {fmtPrice(item.price)} · starts earning next year
                   </span>
                 </span>
               </li>
