@@ -52,6 +52,99 @@ export function billingStatus(): Promise<BillingStatus> {
   return statusCache;
 }
 
+// ── The app's account, carried into this browser ────────────────────────────
+
+/**
+ * Where the claim lives between landing here and pressing a plan.
+ *
+ * A store build's GET PRO link arrives as `/?h=<claim>#pro` — see
+ * lib/commerce.ts — and the press that matters is several steps later: most
+ * people who take that link land signed out, sign in, and the sign-in RELOADS
+ * the page (AccountGate has to run the cloud restore). A claim read off the
+ * URL and held in a variable would not survive that, and the check would
+ * silently stop happening for exactly the players it was written for.
+ *
+ * sessionStorage for the same reasons lib/cloud/pending-pro.ts uses it: this
+ * belongs to one attempt in one tab, not to the device.
+ */
+const HANDOFF_KEY = "novus:pro-handoff";
+const HANDOFF_PARAM = "h";
+
+/**
+ * Lifts `?h=` off the URL into the tab, and takes it out of the address bar.
+ *
+ * Idempotent and safe on every load, which is what lets both callers — the
+ * return component in the layout and the pricing section — call it without
+ * either one having to run first.
+ *
+ * The parameter is removed once it is held. It is an assertion rather than a
+ * credential and it expires by itself, but a URL is the most copied, pasted and
+ * shared object on a phone, and a claim about which account somebody uses has
+ * no business riding along in one for longer than it takes to read it.
+ */
+export function captureHandoff(): void {
+  if (typeof window === "undefined") return;
+  try {
+    const url = new URL(window.location.href);
+    const claim = url.searchParams.get(HANDOFF_PARAM);
+    if (!claim) return;
+    window.sessionStorage.setItem(HANDOFF_KEY, claim);
+    url.searchParams.delete(HANDOFF_PARAM);
+    // replaceState, not push: the back button must not walk into a URL still
+    // carrying it. The fragment survives, so `#pro` still lands on the plans.
+    window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+  } catch {
+    // Private mode, or a URL the parser refused. The purchase still works; it
+    // just is not checked against the app's account, which is where this whole
+    // flow was a week ago.
+  }
+}
+
+/** The claim this tab is carrying, if it is carrying one. */
+export function handoffClaim(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.sessionStorage.getItem(HANDOFF_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export interface HandoffCheck {
+  /** Was there a claim at all, and was it still in date? */
+  valid: boolean;
+  signedIn: boolean;
+  /** Null when nothing was claimed. */
+  match: boolean | null;
+  /** The app's account, masked, and only when it differs from this browser's. */
+  account: string | null;
+}
+
+/**
+ * Asks the server whether this browser is the account the app said it was.
+ *
+ * Answers `null` when there is nothing to ask about — no claim, no server, a
+ * failed request — and every caller treats that as "carry on as before".
+ */
+export async function checkHandoff(): Promise<HandoffCheck | null> {
+  // Called here too, so no caller has to have run before this one.
+  captureHandoff();
+  const claim = handoffClaim();
+  if (!claim) return null;
+  try {
+    const res = await fetch(
+      apiUrl(`/api/billing/handoff?token=${encodeURIComponent(claim)}`),
+      { credentials: API_CREDENTIALS },
+    );
+    if (!res.ok) return null;
+    const body = (await res.json()) as HandoffCheck & { configured?: boolean };
+    if (body.configured === false || !body.valid) return null;
+    return body;
+  } catch {
+    return null;
+  }
+}
+
 export type CheckoutSku =
   | "pro_monthly"
   | "pro_yearly"
@@ -89,8 +182,17 @@ export type CheckoutResult =
         | "owned"
         | "error"
         | "admin-skip"
-        | "admin-cancel";
+        | "admin-cancel"
+        /**
+         * This browser is signed in as somebody other than the app that sent
+         * the player here. Refused rather than redirected: Pro bought on the
+         * wrong account is money spent somewhere the phone will never see it,
+         * and Restore cannot undo it — see lib/billing/handoff.ts.
+         */
+        | "other-account";
       message?: string;
+      /** The account the app is on, masked. Only on `other-account`. */
+      account?: string | null;
     };
 
 /**
@@ -112,12 +214,18 @@ export async function startCheckout(
         sku,
         ...(industry ? { industry } : {}),
         ...(seats !== undefined ? { seats } : {}),
+        // Present only for a browser that arrived from a store build's GET PRO
+        // link. The server compares it with this browser's session and refuses
+        // a purchase that would land on the wrong account.
+        ...(handoffClaim() ? { handoff: handoffClaim() } : {}),
       }),
     });
     const body = (await res.json()) as {
       configured?: boolean;
       signedIn?: boolean;
       needsAccount?: boolean;
+      otherAccount?: boolean;
+      account?: string | null;
       url?: string;
       error?: string;
     };
@@ -127,6 +235,14 @@ export async function startCheckout(
     if (body.configured === false) return { ok: false, reason: "not-configured" };
     if (body.needsAccount) {
       return { ok: false, reason: "needs-account", message: body.error };
+    }
+    if (body.otherAccount) {
+      return {
+        ok: false,
+        reason: "other-account",
+        message: body.error,
+        account: body.account ?? null,
+      };
     }
     if (body.signedIn === false) return { ok: false, reason: "signed-out" };
     if (res.status === 409) return { ok: false, reason: "owned", message: body.error };
@@ -284,7 +400,19 @@ export async function restorePurchases(): Promise<RestoreResult> {
  */
 const POLL_MS = [400, 800, 1200, 2000, 3000, 4000] as const;
 
-export async function awaitPurchase(): Promise<boolean> {
+/**
+ * Poll until the receipt changes, and adopt it. No navigation.
+ *
+ * Adopting is what fires `onEntitlementsChange`, and the screens that care —
+ * the board, the industry grid, the wardrobe, the islands picker — are all
+ * subscribed. So on a device this is the whole of "the thing I paid for
+ * appeared": no reload, and nothing lost from the year in progress.
+ *
+ * Answers false when the ceiling passed with nothing new, which is not a
+ * failure. The webhook is authoritative and lands in its own time; the
+ * heartbeat picks it up within the minute.
+ */
+export async function pollForPurchase(): Promise<boolean> {
   for (const wait of POLL_MS) {
     await new Promise((resolve) => setTimeout(resolve, wait));
 
@@ -299,20 +427,23 @@ export async function awaitPurchase(): Promise<boolean> {
       continue; // a dropped poll is not a failed purchase
     }
     if (body.signedIn === false) return false;
-
-    if (adoptEntitlements(body.entitlements)) {
-      // Clear the boot guard before reloading, or restoreOnBoot's early return
-      // is the next thing to run and this looks like it did nothing.
-      try {
-        window.sessionStorage.removeItem(RESTORED_FLAG);
-      } catch {
-        /* private mode: the adopt already happened, only the reload is lost */
-      }
-      window.location.reload();
-      return true;
-    }
+    if (adoptEntitlements(body.entitlements)) return true;
   }
   return false;
+}
+
+export async function awaitPurchase(): Promise<boolean> {
+  if (!(await pollForPurchase())) return false;
+
+  // Clear the boot guard before reloading, or restoreOnBoot's early return is
+  // the next thing to run and this looks like it did nothing.
+  try {
+    window.sessionStorage.removeItem(RESTORED_FLAG);
+  } catch {
+    /* private mode: the adopt already happened, only the reload is lost */
+  }
+  window.location.reload();
+  return true;
 }
 
 /**

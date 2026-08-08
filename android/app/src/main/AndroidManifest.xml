@@ -23,6 +23,27 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!--
+                novus:// — the app's own URL space (lib/outside/links.ts).
+
+                iOS has declared this since the widgets shipped and Android
+                never needed it, because Android has no widgets. It needs it
+                now: a purchase made in the browser comes home through
+                `novus://purchase`, and without this filter that link dead-ends
+                in Chrome and the player is left holding a receipt on a page
+                with no way back into the app that sent them.
+
+                singleTask above is what makes it a return rather than a
+                relaunch — the running activity gets the intent through
+                onNewIntent, and Capacitor turns it into `appUrlOpen`.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="novus" />
+            </intent-filter>
+
         </activity>
 
         <provider
