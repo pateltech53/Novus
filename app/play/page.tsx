@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState, useMemo } from "react";
+import {
+  startTransition,
+  useCallback,
+  useEffect,
+  useState,
+  useMemo,
+} from "react";
 import dynamic from "next/dynamic";
 import { AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -18,7 +24,10 @@ import { ImpactProvider, useImpact } from "@/components/ImpactLayer";
 import type { PhoneApp } from "@/components/phone/Phone";
 import { deriveRunwayMonths } from "@/lib/engine/sim";
 import { fmtMonths } from "@/lib/engine/format";
-import { usePlayChrome, type NativeControlId } from "@/components/native/usePlayChrome";
+import {
+  usePlayChrome,
+  type NativeControlId,
+} from "@/components/native/usePlayChrome";
 import { useNativeSheet } from "@/components/native/useNativeSheet";
 import { useNativeTermCoach } from "@/components/native/useNativeTermCoach";
 import { useBackHandler } from "@/lib/native/back";
@@ -26,7 +35,9 @@ import { WorkspaceSlot } from "@/components/screens/Workspace";
 import { useNativeCoachRect } from "@/lib/native/chrome";
 import { consumeOutsideOpen, subscribeOutsideOpen } from "@/lib/outside/links";
 import { Coachmarks, firstRunSteps } from "@/components/Coachmarks";
-import { NextStep } from "@/components/NextStep";
+import { NextStep, useNudge } from "@/components/NextStep";
+import { useWarm, warm, type Preloadable } from "@/lib/warm";
+import { UPGRADE_WARM } from "@/components/upgrade/UpgradeProvider";
 import { appPath } from "@/lib/native/href";
 import { storefront } from "@/lib/commerce";
 
@@ -58,14 +69,36 @@ import { storefront } from "@/lib/commerce";
  * year gate must never open onto nothing.
  */
 /*
- * The options object below is repeated at every call site rather than shared.
- * That is not a style choice: next/dynamic is compiled by a SWC transform that
- * reads its second argument statically, and it rejects anything that is not an
- * object literal — "next/dynamic options must be an object literal."
+ * ── Why the overlays are `warm()` and the pitch is still `dynamic()` ────────
+ *
+ * Both split the same way — `import()` is what makes webpack emit a chunk, and
+ * it is still the loader in both. What differs is what happens between the tap
+ * and the first frame.
+ *
+ * `dynamic(…, { loading: () => null })` is `React.lazy` in a `Suspense`. The
+ * first render of one commits a fallback, and React then throttles replacing a
+ * committed fallback by ~300ms so that a boundary resolving a few frames later
+ * does not flash. Measured on the built export, tap to the sheet existing in
+ * the DOM: 315ms unthrottled, 343ms at CPU ×6 — a cost that does not move with
+ * the CPU, because it is a timer rather than work. That was most of "the tabs
+ * stutter, then the screen comes out". `warm()` renders null until its module
+ * is in hand and the screen immediately after, which is the same visible
+ * contract without a boundary to throttle. See lib/warm.tsx.
+ *
+ * `PerformScreen` keeps `dynamic()`, because the thing that makes the throttle
+ * hurt is exactly what it does not do: it REPLACES the board rather than
+ * covering it, so it wants a real holding screen rather than `null` — batch B's
+ * rule that the year gate must never open onto nothing — and against a screen
+ * that takes a second to assemble, 300ms is not what anybody notices.
+ *
+ * The options object is written out at that one call site rather than shared:
+ * next/dynamic is compiled by a SWC transform that reads its second argument
+ * statically and rejects anything that is not an object literal.
  */
 
+const loadPerformScreen = () => import("@/components/PerformScreen");
 const PerformScreen = dynamic(
-  () => import("@/components/PerformScreen").then((m) => m.PerformScreen),
+  () => loadPerformScreen().then((m) => m.PerformScreen),
   {
     ssr: false,
     loading: () => (
@@ -73,73 +106,66 @@ const PerformScreen = dynamic(
         <p className="text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]">
           THE YEAR CLOSES
         </p>
-        <p className="text-sm text-[var(--text-secondary)]">Setting up the room…</p>
+        <p className="text-sm text-[var(--text-secondary)]">
+          Setting up the room…
+        </p>
       </main>
     ),
   },
 );
 
-const CompanyScreen = dynamic(
-  () => import("@/components/screens/CompanyScreen").then((m) => m.CompanyScreen),
-  { ssr: false, loading: () => null },
+const CompanyScreen = warm(() =>
+  import("@/components/screens/CompanyScreen").then((m) => m.CompanyScreen),
 );
-const ProductScreen = dynamic(
-  () => import("@/components/screens/ProductScreen").then((m) => m.ProductScreen),
-  { ssr: false, loading: () => null },
+const ProductScreen = warm(() =>
+  import("@/components/screens/ProductScreen").then((m) => m.ProductScreen),
 );
-const TeamScreen = dynamic(
-  () => import("@/components/screens/TeamScreen").then((m) => m.TeamScreen),
-  { ssr: false, loading: () => null },
+const TeamScreen = warm(() =>
+  import("@/components/screens/TeamScreen").then((m) => m.TeamScreen),
 );
-const AssetsScreen = dynamic(
-  () => import("@/components/screens/AssetsScreen").then((m) => m.AssetsScreen),
-  { ssr: false, loading: () => null },
+const AssetsScreen = warm(() =>
+  import("@/components/screens/AssetsScreen").then((m) => m.AssetsScreen),
 );
-const ClosetScreen = dynamic(
-  () => import("@/components/screens/ClosetScreen").then((m) => m.ClosetScreen),
-  { ssr: false, loading: () => null },
+const ClosetScreen = warm(() =>
+  import("@/components/screens/ClosetScreen").then((m) => m.ClosetScreen),
 );
-const SettingsScreen = dynamic(
-  () => import("@/components/screens/SettingsScreen").then((m) => m.SettingsScreen),
-  { ssr: false, loading: () => null },
+const SettingsScreen = warm(() =>
+  import("@/components/screens/SettingsScreen").then((m) => m.SettingsScreen),
 );
-const StillStandingScreen = dynamic(
-  () => import("@/components/screens/StillStandingScreen").then((m) => m.StillStandingScreen),
-  { ssr: false, loading: () => null },
+const StillStandingScreen = warm(() =>
+  import("@/components/screens/StillStandingScreen").then(
+    (m) => m.StillStandingScreen,
+  ),
 );
-const StageGuide = dynamic(
-  () => import("@/components/StageGuide").then((m) => m.StageGuide),
-  { ssr: false, loading: () => null },
+const StageGuide = warm(() =>
+  import("@/components/StageGuide").then((m) => m.StageGuide),
 );
-const KeyTermsSheet = dynamic(
-  () => import("@/components/KeyTermsSheet").then((m) => m.KeyTermsSheet),
-  { ssr: false, loading: () => null },
+const KeyTermsSheet = warm(() =>
+  import("@/components/KeyTermsSheet").then((m) => m.KeyTermsSheet),
 );
-const ProSheet = dynamic(() => import("@/components/ProSheet").then((m) => m.ProSheet), { ssr: false, loading: () => null });
-const ChapterSeven = dynamic(
-  () => import("@/components/ChapterSeven").then((m) => m.ChapterSeven),
-  { ssr: false, loading: () => null },
+const ProSheet = warm(() =>
+  import("@/components/ProSheet").then((m) => m.ProSheet),
 );
-const YearEndStatement = dynamic(
-  () => import("@/components/YearEndStatement").then((m) => m.YearEndStatement),
-  { ssr: false, loading: () => null },
+const ChapterSeven = warm(() =>
+  import("@/components/ChapterSeven").then((m) => m.ChapterSeven),
 );
-const TierUnlock = dynamic(
-  () => import("@/components/TierUnlock").then((m) => m.TierUnlock),
-  { ssr: false, loading: () => null },
+const YearEndStatement = warm(() =>
+  import("@/components/YearEndStatement").then((m) => m.YearEndStatement),
 );
-const Phone = dynamic(() => import("@/components/phone/Phone").then((m) => m.Phone), { ssr: false, loading: () => null });
-const RobinGhood = dynamic(
-  () => import("@/components/phone/RobinGhood").then((m) => m.RobinGhood),
-  { ssr: false, loading: () => null },
+const TierUnlock = warm(() =>
+  import("@/components/TierUnlock").then((m) => m.TierUnlock),
 );
-const LinkedOut = dynamic(
-  () => import("@/components/phone/LinkedOut").then((m) => m.LinkedOut),
-  { ssr: false, loading: () => null },
+const Phone = warm(() =>
+  import("@/components/phone/Phone").then((m) => m.Phone),
 );
-const PositioningSheet = dynamic(
-  () => import("@/components/PositioningSheet").then((m) => m.PositioningSheet),
-  { ssr: false, loading: () => null },
+const RobinGhood = warm(() =>
+  import("@/components/phone/RobinGhood").then((m) => m.RobinGhood),
+);
+const LinkedOut = warm(() =>
+  import("@/components/phone/LinkedOut").then((m) => m.LinkedOut),
+);
+const PositioningSheet = warm(() =>
+  import("@/components/PositioningSheet").then((m) => m.PositioningSheet),
 );
 /*
  * The height of the fade that sits ON TOP of the flow, immediately above the
@@ -167,10 +193,58 @@ const DOCK_FADE = 36;
  */
 const FLOW_TAIL = 12;
 
-const DecisionSheet = dynamic(
-  () => import("@/components/DecisionSheet").then((m) => m.DecisionSheet),
-  { ssr: false, loading: () => null },
+const DecisionSheet = warm(() =>
+  import("@/components/DecisionSheet").then((m) => m.DecisionSheet),
 );
+
+/**
+ * The order this screen's overlays are fetched and parsed in, before anything
+ * asks for them.
+ *
+ * Each `warm()` component carries its own `preload`, so this list cannot name
+ * a chunk that is not the one the component renders — the loader is written
+ * once, above, and both the render and the warm go through it. A warm list
+ * holding its own copies of the import specifiers would be two sources of
+ * truth about which chunk each screen is in, and getting that wrong fails
+ * silently: a warm that faithfully preloads the wrong module.
+ *
+ * Ordered by when a run actually reaches them, because the queue is walked one
+ * per idle callback and the early entries are the ones that get there first on
+ * a slow phone. `PerformScreen` is absent because it has its own warm below,
+ * held until `atGate` makes it the next thing that can happen.
+ */
+const WARM: Preloadable[] = [
+  // The tab bar's six, in the order the bar draws them. These are the ones the
+  // report was about — a player opens them dozens of times in a run.
+  CompanyScreen.preload,
+  TeamScreen.preload,
+  ProductScreen.preload,
+  AssetsScreen.preload,
+  StillStandingScreen.preload,
+  ClosetScreen.preload,
+  // The phone, and the two apps inside it. The apps are reached from the
+  // phone's own home screen, so they are a second tap rather than a first.
+  Phone.preload,
+  RobinGhood.preload,
+  LinkedOut.preload,
+  // The month's decision. Not opened by a tap at all — it arrives on ADVANCE,
+  // which makes it the one overlay whose wait lands in the middle of an action
+  // the player has already committed to.
+  DecisionSheet.preload,
+  PositioningSheet.preload,
+  // Everything that needs a reason to open.
+  KeyTermsSheet.preload,
+  StageGuide.preload,
+  SettingsScreen.preload,
+  ProSheet.preload,
+  YearEndStatement.preload,
+  TierUnlock.preload,
+  ChapterSeven.preload,
+  // The refusal surfaces, warmed from here rather than from the provider that
+  // owns them — it is mounted by the root layout, and warming there would put
+  // these back into /privacy and /terms. This screen has gates; those do not.
+  ...UPGRADE_WARM,
+];
 
 export default function PlayPage() {
   return (
@@ -180,16 +254,60 @@ export default function PlayPage() {
   );
 }
 
-
 function PlayScreen() {
   const router = useRouter();
   const game = useGame();
   const {
-    run, profile, current, currentIsMarket, atGate, yearEnd, autopsy, perform, lastDeltas,
+    run,
+    profile,
+    current,
+    currentIsMarket,
+    atGate,
+    yearEnd,
+    autopsy,
+    perform,
+    lastDeltas,
   } = game;
   const impact = useImpact();
 
   const [activity, setActivity] = useState<ActivityTab | null>(null);
+
+  /**
+   * OPENING A TAB IS A TRANSITION, and that is worth ~300ms of the tap.
+   *
+   * Reported as: the six tabs stutter in the app, then the screen comes out.
+   * The chunk was one cause and is warmed above. This is the other, and it was
+   * the larger one — measured on the built export, tap to the sheet existing in
+   * the DOM:
+   *
+   *     unthrottled  307ms      CPU ×4  335ms      CPU ×6  343ms
+   *
+   * A cost that does not move when the CPU gets six times slower is not work,
+   * it is a timer. A CPU profile over the same window agreed: no JS ran in it.
+   *
+   * The timer is React's. Every screen here is `dynamic(…, { loading: () =>
+   * null })`, so the first render of one suspends and commits a fallback —
+   * `null`, but a fallback. React then THROTTLES replacing a fallback with the
+   * real content, deliberately, so that a boundary which resolves a few frames
+   * later does not flash. That throttle is about 300ms, and it is charged in
+   * full even when the module was already in memory, because the fallback was
+   * still committed.
+   *
+   * A transition never shows the fallback. React keeps the current screen up,
+   * resolves the lazy component off to the side, and commits when it is ready —
+   * so with the module already warm, "when it is ready" is the next frame.
+   *
+   * Nothing is lost on the path where the module ISN'T warm: `loading` renders
+   * null, so a fallback and no fallback look identical, and the difference is
+   * that the play screen behind stays interactive instead of being a blank.
+   *
+   * Closing is not routed through this. An unmount cannot suspend, so there is
+   * nothing to gain, and a transition on the way out would let React defer the
+   * dismissal behind whatever else it had queued.
+   */
+  const openActivity = useCallback((tab: ActivityTab) => {
+    startTransition(() => setActivity(tab));
+  }, []);
   // The centre column's working area, handed to the activity screens so they
   // can render into it instead of over the page. A state node rather than a
   // ref: the portal has to re-render once the div exists, and a ref does not
@@ -211,7 +329,9 @@ function PlayScreen() {
   const [keyTerms, setKeyTerms] = useState(false);
   /** The phone's log sheet. Desktop keeps the log inline and never sets this. */
   const [logOpen, setLogOpen] = useState(false);
-  const [term, setTerm] = useState<{ term: string; detail?: string } | null>(null);
+  const [term, setTerm] = useState<{ term: string; detail?: string } | null>(
+    null,
+  );
 
   /*
    * ── Why the bar is fixed and not sticky ───────────────────────────────────
@@ -393,7 +513,7 @@ function PlayScreen() {
     [run?.rookieMode],
   );
 
-  const coachTarget = coaching ? coachSteps[coachIndex]?.native ?? "" : null;
+  const coachTarget = coaching ? (coachSteps[coachIndex]?.native ?? "") : null;
 
   /**
    * A native control that is being taught completes its step when it fires.
@@ -428,7 +548,7 @@ function PlayScreen() {
   const onNativeTab = useCallback(
     (tab: ActivityTab) => {
       completeCoachStep("tabs");
-      setActivity(tab);
+      openActivity(tab);
     },
     [completeCoachStep],
   );
@@ -444,8 +564,20 @@ function PlayScreen() {
    * Splitting PerformScreen out is only free if the code is already there when
    * the player presses CLOSE THE YEAR — otherwise the split has moved the wait
    * to the worst possible moment in the game. `atGate` goes true at month 12,
-   * which is a whole screen's worth of reading before the tap, and
-   * `dynamic().preload()` fetches without rendering.
+   * which is a whole screen's worth of reading before the tap.
+   *
+   * ── This called `preload()` and preloaded nothing ──────────────────────────
+   *
+   * It used to read `(PerformScreen as { preload?: () => void }).preload?.()`.
+   * `preload()` is a react-loadable method from the PAGES router; App Router
+   * `next/dynamic` is a wrapper over `React.lazy` and puts no such method on
+   * what it returns, so the `?.` was guarding a property that has never
+   * existed. The warm compiled, ran on schedule, and did nothing, for as long
+   * as this comment has claimed otherwise — found by measuring the chunk still
+   * being fetched after the tap it was supposed to have preloaded.
+   *
+   * Calling the loader is what fetches and evaluates the module; webpack caches
+   * the chunk promise, so `dynamic`'s own loader then resolves from cache.
    *
    * Idle rather than immediate, and a timeout underneath it, for the same
    * reason lib/prefetch.ts is written that way: the screen the player is
@@ -454,7 +586,7 @@ function PlayScreen() {
    */
   useEffect(() => {
     if (!atGate) return;
-    const warm = () => void (PerformScreen as { preload?: () => void }).preload?.();
+    const warm = () => void loadPerformScreen();
     const idle = window.requestIdleCallback;
     if (idle) {
       const id = idle(warm, { timeout: 1500 });
@@ -463,6 +595,40 @@ function PlayScreen() {
     const id = window.setTimeout(warm, 400);
     return () => window.clearTimeout(id);
   }, [atGate]);
+
+  /*
+   * Every other overlay on this screen, warmed the same way — see WARM below
+   * for the queue and lib/warm.tsx for why it is walked one entry at a time.
+   * Gated on the run having loaded, so it never competes with the mount that
+   * puts this screen on screen in the first place.
+   */
+  useWarm(WARM, !!run);
+
+  /*
+   * The one thing worth doing, and who is drawing it.
+   *
+   * Held here rather than inside the card because there are two cards: this
+   * screen's DOM one, and a UIKit panel above the native deck. Both read this
+   * hook, so a nudge dismissed in either is dismissed in both — which matters
+   * on every path where the chrome hands back to the DOM mid-run (no plugin,
+   * an OS older than 26, a native throw).
+   */
+  const { nudge, dismiss: dismissNudge } = useNudge(run);
+
+  /** The same card, as the four strings UIKit needs. `tab` stays on this side:
+   *  native answers with an id and the tab it opens is this screen's business. */
+  const nativeNudge = useMemo(
+    () =>
+      nudge
+        ? {
+            id: nudge.id,
+            title: nudge.title,
+            body: nudge.body,
+            action: nudge.action,
+          }
+        : null,
+    [nudge],
+  );
 
   const nativeChromeOwned = usePlayChrome({
     visible: !!run && !overlay,
@@ -473,10 +639,16 @@ function PlayScreen() {
     canAdvance: !!run?.alive && !current,
     pro: !!run?.pro,
     activeTab: activity,
+    nudge: nativeNudge,
     onTab: onNativeTab,
     onAdvance: onNativeAdvance,
     onOpenGate: game.openYearGate,
     onControl: onNativeControl,
+    // The id comes back rather than the tab, so this is where it becomes one.
+    onNudgeAction: () => {
+      if (nudge) openActivity(nudge.tab);
+    },
+    onNudgeDismiss: dismissNudge,
   });
 
   /** True when React still renders the tab bar and the advance button. */
@@ -504,9 +676,11 @@ function PlayScreen() {
     industry: run?.industry ?? "FOOD",
     rookieMode: !!run?.rookieMode,
     isMarket: currentIsMarket,
-    explain: !!run?.tutorial && run?.year === 1 && !run?.seenTerms.includes("choices"),
+    explain:
+      !!run?.tutorial && run?.year === 1 && !run?.seenTerms.includes("choices"),
     onChoose: (i) => {
-      if (run?.tutorial && !run.seenTerms.includes("choices")) game.markTermSeen("choices");
+      if (run?.tutorial && !run.seenTerms.includes("choices"))
+        game.markTermSeen("choices");
       game.choose(i);
     },
     onDismiss: game.dismissCard,
@@ -518,7 +692,11 @@ function PlayScreen() {
      version docks above the advance bar so it cannot cover the number it is
      quoting; the native one arrives from the opposite edge for the same
      reason, because that number now lives in a UIKit deck. */
-  useNativeTermCoach(domChrome ? null : (term?.term ?? null), term?.detail, () => setTerm(null));
+  useNativeTermCoach(
+    domChrome ? null : (term?.term ?? null),
+    term?.detail,
+    () => setTerm(null),
+  );
 
   /*
    * Android's back button, and nothing else on this screen claims it. The
@@ -657,11 +835,18 @@ function PlayScreen() {
           tabs they describe sat unhighlighted in this rail.
         */}
         {domChrome ? (
-          <div className="hidden min-h-0 flex-1 overflow-y-auto lg:block" data-coach="tabs">
+          <div
+            className="hidden min-h-0 flex-1 overflow-y-auto lg:block"
+            data-coach="tabs"
+          >
             <div className="px-4 pt-3 pb-1 text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
               ACTIVITIES
             </div>
-            <ActivityBar active={activity} onOpen={setActivity} layout="rail" />
+            <ActivityBar
+              active={activity}
+              onOpen={openActivity}
+              layout="rail"
+            />
           </div>
         ) : null}
       </div>
@@ -696,7 +881,11 @@ function PlayScreen() {
           everything, next to the web one, where the flow actually ends.
         */}
         <div className="px-3 pt-3 lg:hidden">
-          <LogButton month={run.month} year={run.year} onOpen={() => setLogOpen(true)} />
+          <LogButton
+            month={run.month}
+            year={run.year}
+            onOpen={() => setLogOpen(true)}
+          />
         </div>
 
         {/*
@@ -721,21 +910,29 @@ function PlayScreen() {
           is off the bottom of the phone. Reported as: it is down there and I
           cannot tap it. Ordering could never have fixed that.
 
-          So it left the document. On the phone the card pins itself above
-          whatever chrome is drawn — the measured DOM dock, or the height UIKit
-          reports for its own deck, which is the one number it cannot work out
-          for itself. Desktop keeps it in the flow, where the column is a
-          thousand pixels and none of this was ever a problem.
+          So it left the document. On the phone the card pins itself above the
+          dock this screen measured. Desktop keeps it in the flow, where the
+          column is a thousand pixels and none of this was ever a problem.
+
+          ── And on iOS it is not this component at all ──────────────────────
+
+          `domChrome` gates it for the same reason it gates the tab bar and the
+          advance button: native views composite above the webview, so a DOM
+          card left rendered under a UIKit one is a card sitting behind glass,
+          and hiding it is not good enough — a hidden element still takes a tap
+          on iOS if the native view above it lets the touch through. The app
+          draws this as a real `UIGlassEffect` panel over the deck instead
+          (GlassChromeController.buildNudge), pushed through `usePlayChrome`
+          with the same four strings and answering with the same two taps.
         */}
-        <NextStep
-          run={run}
-          onOpen={(tab) => setActivity(tab)}
-          bottom={
-            domChrome
-              ? `${footerHeight + FLOW_TAIL}px`
-              : `calc(var(--nv-chrome-bottom, 0px) + ${FLOW_TAIL}px)`
-          }
-        />
+        {domChrome ? (
+          <NextStep
+            nudge={nudge}
+            onOpen={openActivity}
+            onDismiss={dismissNudge}
+            bottom={`${footerHeight + FLOW_TAIL}px`}
+          />
+        ) : null}
         {/*
           The centre column's own slack, so the decision and ADVANCE sit where
           they always did rather than floating at the top.
@@ -751,7 +948,10 @@ function PlayScreen() {
           to load. It says nothing at all while a decision is up, because the
           sheet is then the thing being read.
         */}
-        <div ref={setWorkspaceEl} className="hidden min-h-0 flex-1 lg:flex lg:flex-col">
+        <div
+          ref={setWorkspaceEl}
+          className="hidden min-h-0 flex-1 lg:flex lg:flex-col"
+        >
           {!activity && !current && run.alive ? (
             <div className="flex flex-1 items-center justify-center px-6">
               <div className="max-w-[24rem] text-center">
@@ -820,7 +1020,7 @@ function PlayScreen() {
               </div>
               {/* Phone only: on desktop these six live in the left rail. */}
               <div className="mt-1.5 lg:hidden" data-coach="tabs">
-                <ActivityBar active={activity} onOpen={setActivity} />
+                <ActivityBar active={activity} onOpen={openActivity} />
               </div>
             </div>
           </>
@@ -878,7 +1078,9 @@ function PlayScreen() {
           industry={run.industry}
           event={current}
           positioning={run.positioning ?? null}
-          onChoose={(stance) => game.choose(STANCE_CHOICE_ORDER.indexOf(stance))}
+          onChoose={(stance) =>
+            game.choose(STANCE_CHOICE_ORDER.indexOf(stance))
+          }
           onDismiss={game.dismissCard}
         />
       ) : (
@@ -890,9 +1092,14 @@ function PlayScreen() {
             rookieMode={run.rookieMode}
             isMarket={currentIsMarket}
             // Once, on the first decision of a guided run.
-            explain={run.tutorial && run.year === 1 && !run.seenTerms.includes("choices")}
+            explain={
+              run.tutorial &&
+              run.year === 1 &&
+              !run.seenTerms.includes("choices")
+            }
             onChoose={(i) => {
-              if (run.tutorial && !run.seenTerms.includes("choices")) game.markTermSeen("choices");
+              if (run.tutorial && !run.seenTerms.includes("choices"))
+                game.markTermSeen("choices");
               game.choose(i);
             }}
             onDismiss={game.dismissCard}
@@ -932,44 +1139,72 @@ function PlayScreen() {
         │ opening the next.
         */}
       <WorkspaceSlot.Provider value={workspaceEl}>
-      <AnimatePresence>
-      {/* ── Each tab is a full screen now, not a list of options ─────────── */}
-      {activity === "company" && <CompanyScreen key="company" onClose={() => setActivity(null)} />}
-      {activity === "team" && (
-        <TeamScreen
-          key="team"
-          onClose={() => setActivity(null)}
-          onFire={game.fire}
-          onOpenPhone={() => {
-            setActivity(null);
-            setPhoneApp("linkedout");
-          }}
-        />
-      )}
-      {activity === "product" && <ProductScreen key="product" onClose={() => setActivity(null)} />}
-      {activity === "assets" && (
-        <AssetsScreen
-          key="assets"
-          onClose={() => setActivity(null)}
-          onBuy={game.buyHolding}
-          onSell={game.sellHolding}
-        />
-      )}
-      {activity === "market" && phoneNode("robinghood")}
-      {activity === "closet" && (
-        <ClosetScreen key="closet" onClose={() => setActivity(null)} onChange={game.setAvatar} />
-      )}
+        <AnimatePresence>
+          {/* ── Each tab is a full screen now, not a list of options ─────────── */}
+          {activity === "company" && (
+            <CompanyScreen key="company" onClose={() => setActivity(null)} />
+          )}
+          {activity === "team" && (
+            <TeamScreen
+              key="team"
+              onClose={() => setActivity(null)}
+              onFire={game.fire}
+              onOpenPhone={() => {
+                setActivity(null);
+                setPhoneApp("linkedout");
+              }}
+            />
+          )}
+          {activity === "product" && (
+            <ProductScreen key="product" onClose={() => setActivity(null)} />
+          )}
+          {activity === "assets" && (
+            <AssetsScreen
+              key="assets"
+              onClose={() => setActivity(null)}
+              onBuy={game.buyHolding}
+              onSell={game.sellHolding}
+            />
+          )}
+          {activity === "market" && phoneNode("robinghood")}
+          {activity === "closet" && (
+            <ClosetScreen
+              key="closet"
+              onClose={() => setActivity(null)}
+              onChange={game.setAvatar}
+            />
+          )}
 
-      {phoneApp && activity !== "market" && phoneNode(phoneApp)}
+          {phoneApp && activity !== "market" && phoneNode(phoneApp)}
 
-      {stageGuide && <StageGuide key="stage-guide" run={run} onClose={() => setStageGuide(false)} />}
-      {keyTerms && <KeyTermsSheet key="key-terms" onClose={() => setKeyTerms(false)} />}
+          {stageGuide && (
+            <StageGuide
+              key="stage-guide"
+              run={run}
+              onClose={() => setStageGuide(false)}
+            />
+          )}
+          {keyTerms && (
+            <KeyTermsSheet key="key-terms" onClose={() => setKeyTerms(false)} />
+          )}
 
-      {showPro && <ProSheet key="pro" onClose={() => setShowPro(false)} />}
-      {showSettings && <SettingsScreen key="settings" onClose={() => setShowSettings(false)} />}
-      {showBoard && <StillStandingScreen key="board" onClose={() => setShowBoard(false)} />}
-      {logOpen && <LogSheet key="log" run={run} onClose={() => setLogOpen(false)} />}
-      </AnimatePresence>
+          {showPro && <ProSheet key="pro" onClose={() => setShowPro(false)} />}
+          {showSettings && (
+            <SettingsScreen
+              key="settings"
+              onClose={() => setShowSettings(false)}
+            />
+          )}
+          {showBoard && (
+            <StillStandingScreen
+              key="board"
+              onClose={() => setShowBoard(false)}
+            />
+          )}
+          {logOpen && (
+            <LogSheet key="log" run={run} onClose={() => setLogOpen(false)} />
+          )}
+        </AnimatePresence>
       </WorkspaceSlot.Provider>
 
       {/* Fires the moment a stage promotion opens a new tier. It sits above

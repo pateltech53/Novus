@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ENTER, SETTLE_SPRING, useStill } from "@/components/ui/Motion";
@@ -54,6 +53,7 @@ import {
   recordTooYoung,
 } from "@/lib/auth/age";
 import { usePrefetch } from "@/lib/prefetch";
+import { useWarm, warm, type Preloadable } from "@/lib/warm";
 import { useNavigating } from "@/lib/navigating";
 
 /**
@@ -63,7 +63,15 @@ import { useNavigating } from "@/lib/navigating";
  * The rule for every step here: nothing else on the screen. One idea, one
  * field, one call to action.
  */
-type Step = "wave" | "name" | "age" | "too-young" | "mic" | "explain" | "showme" | "plans";
+type Step =
+  | "wave"
+  | "name"
+  | "age"
+  | "too-young"
+  | "mic"
+  | "explain"
+  | "showme"
+  | "plans";
 
 const SHARK_EXPLANATION =
   "Novus is your company's whole life. You found it. You keep it alive year by year — and every year, you close it by talking to me. Tap through months for free. The year costs you a pitch.";
@@ -95,6 +103,15 @@ export default function WelcomePage() {
   // Someone re-running onboarding with a company still open goes back to it
   // instead (lib/entry.ts), so both are warmed.
   usePrefetch("/found", "/play");
+  /*
+   * And the sheet this screen can open without leaving it.
+   *
+   * "I already have an account" is a returning player's first tap in the app,
+   * and `AccountSection` is code-split — so that tap rendered a sheet with an
+   * empty body until its module arrived. The wait was landing on the one
+   * screen where the player has no reason yet to believe the app works.
+   */
+  useWarm(WELCOME_WARM);
 
   const [finishing, go] = useNavigating();
 
@@ -115,7 +132,8 @@ export default function WelcomePage() {
       founderName: name.trim() || "Founder",
       playerAge: age ? parseInt(age, 10) : null,
       // Under-16s start with the plain-English layer on.
-      rookieMode: !age || parseInt(age, 10) < 16 ? true : (existing?.rookieMode ?? true),
+      rookieMode:
+        !age || parseInt(age, 10) < 16 ? true : (existing?.rookieMode ?? true),
       onboarded: true,
       micCalibration: existing?.micCalibration ?? null,
     });
@@ -135,7 +153,11 @@ export default function WelcomePage() {
     switch (step) {
       case "wave":
         return (
-          <Wave key="wave" onNext={() => setStep("name")} onSignIn={() => setSigningIn(true)} />
+          <Wave
+            key="wave"
+            onNext={() => setStep("name")}
+            onSignIn={() => setSigningIn(true)}
+          />
         );
       case "name":
         return (
@@ -205,7 +227,7 @@ export default function WelcomePage() {
       {/*
         Loaded on the tap, never before it.
 
-        `next/dynamic` puts `AccountSection` and everything under it — the
+        `warm()` puts `AccountSection` and everything under it — the
         sign-in form, the provider sheet, `restoreForSignIn` and the Supabase
         client it reaches for — in a chunk of its own. Most players who land
         here are new and will never open this, and the opening screen is the
@@ -225,10 +247,15 @@ export default function WelcomePage() {
  * that merely closed the sheet would leave onboarding running on top of
  * somebody else's save.
  */
-const AccountSection = dynamic(
-  () => import("@/components/account/AccountSection").then((m) => m.AccountSection),
-  { ssr: false },
+const AccountSection = warm(() =>
+  import("@/components/account/AccountSection").then((m) => m.AccountSection),
 );
+
+/** Fetched and parsed while the player reads the first screen, so the sign-in
+ *  sheet has a body in it the moment it opens — and, because `warm()` is not a
+ *  Suspense boundary, without the ~300ms React charges for replacing a
+ *  committed fallback. See lib/warm.tsx. */
+const WELCOME_WARM: Preloadable[] = [AccountSection.preload];
 
 function SignInSheet({ onClose }: { onClose: () => void }) {
   // The narration is about founding a company; it has no business playing over
@@ -263,7 +290,13 @@ function SignInSheet({ onClose }: { onClose: () => void }) {
  * 5 founder — the tuxedo and the gold watch — because that is the thing being
  * offered, and the first screen should say what the game is for.
  */
-function Wave({ onNext, onSignIn }: { onNext: () => void; onSignIn: () => void }) {
+function Wave({
+  onNext,
+  onSignIn,
+}: {
+  onNext: () => void;
+  onSignIn: () => void;
+}) {
   useEffect(() => {
     play("splash");
     void speak("Welcome to Novus.", "narrator");
@@ -496,7 +529,10 @@ function Explanation({ onNext }: { onNext: () => void }) {
     const CPS = 45; // characters a second — the old 22 ms interval, honestly stated
     const tick = (now: number) => {
       start ||= now;
-      const n = Math.min(SHARK_EXPLANATION.length, Math.floor(((now - start) / 1000) * CPS));
+      const n = Math.min(
+        SHARK_EXPLANATION.length,
+        Math.floor(((now - start) / 1000) * CPS),
+      );
       setShown((prev) => (prev === n ? prev : n));
       if (n < SHARK_EXPLANATION.length) raf = requestAnimationFrame(tick);
     };
@@ -526,7 +562,10 @@ function Explanation({ onNext }: { onNext: () => void }) {
       </p>
       <div className="mt-auto w-full">
         {done && (
-          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
             <PrimaryButton onClick={onNext}>SHOW ME ▸</PrimaryButton>
           </motion.div>
         )}
@@ -575,7 +614,13 @@ function Explanation({ onNext }: { onNext: () => void }) {
  * Prices, seat counts and every entitlement come from lib/monetization.ts so
  * Settings and the eventual paywall read the same numbers as this screen.
  */
-function PlansSheet({ onDone, leaving }: { onDone: () => void; leaving: boolean }) {
+function PlansSheet({
+  onDone,
+  leaving,
+}: {
+  onDone: () => void;
+  leaving: boolean;
+}) {
   const [plan, setPlan] = useState<SubscriptionPlan>(PRO_YEARLY);
   const [panel, setPanel] = useState<"pro" | "chapter">("pro");
   const reduced = useReducedMotion();
@@ -677,9 +722,7 @@ function PlansSheet({ onDone, leaving }: { onDone: () => void; leaving: boolean 
     );
   };
 
-  const enter = reduced
-    ? { opacity: 1, y: 0 }
-    : { opacity: 0, y: 8 };
+  const enter = reduced ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 };
 
   return (
     <StepShell>
@@ -705,14 +748,19 @@ function PlansSheet({ onDone, leaving }: { onDone: () => void; leaving: boolean 
             >
               <ul className="mt-4">
                 {PRO_FEATURES.map((f) => (
-                  <li key={f.id} className="border-t border-[var(--hairline)] py-2.5">
+                  <li
+                    key={f.id}
+                    className="border-t border-[var(--hairline)] py-2.5"
+                  >
                     <div className="flex items-baseline justify-between gap-3">
                       <h2 className="text-sm font-extrabold">{f.title}</h2>
                       <span className="shrink-0 text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]">
                         FREE · {f.free.toUpperCase()}
                       </span>
                     </div>
-                    <p className="mt-0.5 text-xs text-[var(--text-secondary)]">{f.body}</p>
+                    <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
+                      {f.body}
+                    </p>
                   </li>
                 ))}
               </ul>
@@ -726,7 +774,11 @@ function PlansSheet({ onDone, leaving }: { onDone: () => void; leaving: boolean 
                   pay it is a dead end, and a price with a way to pay it that
                   is not the store's is a rejection. */}
               {sellsHere === true && (
-                <div className="mt-4 grid grid-cols-2 gap-2" role="group" aria-label="Billing period">
+                <div
+                  className="mt-4 grid grid-cols-2 gap-2"
+                  role="group"
+                  aria-label="Billing period"
+                >
                   {[PRO_MONTHLY, PRO_YEARLY].map((p) => {
                     const on = p.id === plan.id;
                     const monthly = p.id === PRO_MONTHLY.id;
@@ -750,7 +802,9 @@ function PlansSheet({ onDone, leaving }: { onDone: () => void; leaving: boolean 
                         <span className="flex items-start justify-between gap-2">
                           <span
                             className={`tnum block text-base font-extrabold ${
-                              on ? "text-[var(--text-primary)]" : "text-[var(--text-secondary)]"
+                              on
+                                ? "text-[var(--text-primary)]"
+                                : "text-[var(--text-secondary)]"
                             }`}
                           >
                             {formatPrice(p.priceCents)}
@@ -759,7 +813,9 @@ function PlansSheet({ onDone, leaving }: { onDone: () => void; leaving: boolean 
                         </span>
                         <span
                           className={`block text-2xs font-bold tracking-[0.1em] ${
-                            on ? "text-[var(--text-secondary)]" : "text-[var(--text-tertiary)]"
+                            on
+                              ? "text-[var(--text-secondary)]"
+                              : "text-[var(--text-tertiary)]"
                           }`}
                         >
                           {monthly ? "A MONTH" : "A YEAR"}
@@ -796,12 +852,16 @@ function PlansSheet({ onDone, leaving }: { onDone: () => void; leaving: boolean 
                     key={l.id}
                     className="flex items-baseline justify-between gap-3 border-t border-[var(--hairline)] py-2"
                   >
-                    <span className="text-sm font-extrabold">{l.seats} users</span>
+                    <span className="text-sm font-extrabold">
+                      {l.seats} users
+                    </span>
                     <span className="text-right">
                       <span className="tnum text-sm font-extrabold">
                         {formatPrice(l.priceCents)}
                       </span>
-                      <span className="text-2xs text-[var(--text-tertiary)]">/year</span>
+                      <span className="text-2xs text-[var(--text-tertiary)]">
+                        /year
+                      </span>
                       <span className="tnum ml-2 text-2xs text-[var(--text-tertiary)]">
                         {formatPrice(perSeatCents(l))} a seat
                       </span>
@@ -859,7 +919,9 @@ function PlansSheet({ onDone, leaving }: { onDone: () => void; leaving: boolean 
             onClick={() => swap(panel === "pro" ? "chapter" : "pro")}
             className="mt-2.5 text-xs text-[var(--text-tertiary)] underline underline-offset-4"
           >
-            {panel === "pro" ? "Classrooms, clubs and one-time buys" : "What Pro adds"}
+            {panel === "pro"
+              ? "Classrooms, clubs and one-time buys"
+              : "What Pro adds"}
           </button>
         )}
       </div>
@@ -974,14 +1036,23 @@ function TooYoung() {
           {TOO_YOUNG_BODY}
         </p>
         <p className="mt-4 text-2xs leading-relaxed text-[var(--text-tertiary)]">
-          You need to be {MIN_AGE} or older. If you typed the wrong number, clearing
-          this site&rsquo;s data in your browser settings will let you answer again.
+          You need to be {MIN_AGE} or older. If you typed the wrong number,
+          clearing this site&rsquo;s data in your browser settings will let you
+          answer again.
         </p>
         <div className="mt-8 flex justify-center gap-5 text-2xs font-bold tracking-[0.14em] text-[var(--text-tertiary)]">
-          <button type="button" onClick={() => setLegal(TERMS)} className="underline underline-offset-4">
+          <button
+            type="button"
+            onClick={() => setLegal(TERMS)}
+            className="underline underline-offset-4"
+          >
             TERMS
           </button>
-          <button type="button" onClick={() => setLegal(PRIVACY)} className="underline underline-offset-4">
+          <button
+            type="button"
+            onClick={() => setLegal(PRIVACY)}
+            className="underline underline-offset-4"
+          >
             PRIVACY
           </button>
         </div>
@@ -993,7 +1064,14 @@ function TooYoung() {
 
 function MicGlyph() {
   return (
-    <svg width="24" height="30" viewBox="0 0 22 28" fill="none" className="relative" aria-hidden="true">
+    <svg
+      width="24"
+      height="30"
+      viewBox="0 0 22 28"
+      fill="none"
+      className="relative"
+      aria-hidden="true"
+    >
       <rect x="7" y="1.5" width="8" height="14" rx="4" fill="currentColor" />
       <path
         d="M3.5 12.5a7.5 7.5 0 0 0 15 0M11 20v5.5"

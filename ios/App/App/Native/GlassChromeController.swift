@@ -36,6 +36,35 @@ struct ChromeCta {
     let locked: Bool
 }
 
+/**
+ The one thing worth doing, floated over the board.
+
+ Nothing on the shelf, nobody employed, or room the team has already paid for
+ — computed in the engine (`lib/engine/nudges.ts`), which owns every word of
+ it. This is chrome by the same test the term-on-first-use note passes: it
+ explains the board rather than being part of it, and it is gone the moment
+ the company stops being short of the thing it names.
+
+ It is here rather than in the web layer because of where the web layer's
+ bottom is. The play document on a phone is taller than the phone, so anything
+ the flow puts after The Books and the log row is off the screen — the card
+ spent two revisions being moved around inside a document that had no room for
+ it. UIKit has room: it composites over the webview, above the deck, and it is
+ real Liquid Glass rather than the solid fallback the CSS material resolves to
+ on every platform now.
+ */
+struct ChromeNudge {
+    /// `no-product`, `no-team`, … — the engine's own id. Sent back with every
+    /// tap so the web layer knows which nudge was answered, and used here to
+    /// tell "the same one, restated" from "a different one has taken its
+    /// place": only the second is worth animating in again.
+    let id: String
+    let title: String
+    let body: String
+    /// The label on the line that opens the tab — "ADD YOUR FIRST".
+    let action: String
+}
+
 struct ChromeState {
     let mode: String  // "full" | "hidden" | "coach"
     let theme: String  // "light" | "dark"
@@ -43,6 +72,9 @@ struct ChromeState {
     let activeTab: String?
     let cta: ChromeCta?
     let controls: [ChromeControl]
+    /// The floating nudge, or nil when the company is not missing anything —
+    /// which is most of a healthy run.
+    let nudge: ChromeNudge?
     /**
      Which surface the guided first play is teaching right now.
 
@@ -103,6 +135,12 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
     var onPrimary: (() -> Void)?
     var onControl: ((String) -> Void)?
     var onInsetsChanged: ((ChromeInsets) -> Void)?
+    /// The nudge card was tapped: open the tab it names.
+    var onNudgeAction: ((String) -> Void)?
+    /// Its ✕ was tapped. Distinct from the above because they are opposite
+    /// answers to the same card, and a dismiss routed through the action would
+    /// open the tab the player just declined.
+    var onNudgeDismiss: ((String) -> Void)?
 
     // ── Views ────────────────────────────────────────────────────────────────
 
@@ -116,6 +154,17 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
     private let leadingControls = PassthroughStackView()
     private let trailingControls = PassthroughStackView()
 
+    /// The nudge: one glass panel, three labels, and two taps that mean
+    /// opposite things. Built once at install and reused, like the deck —
+    /// a card rebuilt per push would restart its own entrance every time the
+    /// month badge changed.
+    private var nudgeGlass: UIVisualEffectView?
+    private let nudgeTitleLabel = UILabel()
+    private let nudgeBodyLabel = UILabel()
+    private let nudgeActionLabel = UILabel()
+    private let nudgeTapButton = UIButton(type: .system)
+    private let nudgeCloseButton = UIButton(type: .system)
+
     /// The iOS 26 containers the clusters live in, when the OS has them. Held
     /// because hiding a cluster has to hide its container too — an empty glass
     /// group is a visible smudge over the mascot.
@@ -128,6 +177,12 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
     private var deckGroup: UIVisualEffectView?
 
     private var currentToast: Toast?
+    /// What the nudge card is currently showing, or nil when it is not up.
+    private var currentNudge: ChromeNudge?
+    /// The deck's outermost box — the iOS 26 container when there is one, the
+    /// stack itself when there is not. Held because the nudge hangs off its
+    /// top edge and must not care which of the two it got.
+    private var deckBox: UIView?
     private var tabIds: [String] = []
     private var controlIds: [Int: String] = [:]
     /// The other direction of controlIds: id → the capsule, so a coachmark can
@@ -154,6 +209,15 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
         static let ctaHeight: CGFloat = 56
         static let deckSpacing: CGFloat = 8
         static let deckBottomGap: CGFloat = 10
+        /// Between the nudge card and the deck under it. The same 12 the web
+        /// composition leaves at the foot of its flow, so a player who sees
+        /// both builds sees one app.
+        static let nudgeGap: CGFloat = 12
+        /// The nudge's own inner padding and its ✕, which is the app's control
+        /// size so the card's dismiss is the same target as every other round
+        /// control in this chrome.
+        static let nudgePadding: CGFloat = 14
+        static let nudgeCloseSize: CGFloat = 36
         /// Breathing room either side of the month badge's label.
         static let badgePadding: CGFloat = 14
         /// What an un-spotlit surface fades to during the guided first play.
@@ -184,6 +248,10 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
 
         buildTabBar()
         buildDeck()
+        // After the deck, which is what it hangs off, and after the tab bar,
+        // which is what the deck hangs off. Order is a real dependency here,
+        // not a preference.
+        buildNudge()
         buildControls()
 
         host.onLayout = { [weak self] in
@@ -314,6 +382,7 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
             host.addSubview(deck)
             box = deck
         }
+        deckBox = box
 
         NSLayoutConstraint.activate([
             box.leadingAnchor.constraint(equalTo: host.leadingAnchor, constant: Metric.sideMargin),
@@ -322,6 +391,116 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
             box.bottomAnchor.constraint(
                 equalTo: tabBar.topAnchor, constant: -Metric.deckBottomGap),
         ])
+    }
+
+    /**
+     The nudge card.
+
+     Deliberately NOT inside the deck's glass container. The container is what
+     makes the advance capsule and the month badge read as one control, and a
+     third pane joining it would make the thing that moves time look like part
+     of a suggestion. This is its own panel, floating above that group with the
+     same gap the web build uses — one glass surface for the seconds it is up,
+     which is the allowance design.md §3 gives a toast.
+
+     Two overlapping tap targets, and the order they are added is the whole of
+     what keeps them apart: the full-card button first, the ✕ over it. A
+     dismiss nested inside the card's own button is a tap that does both.
+     */
+    private func buildNudge() {
+        let glass = GlassKit.panel(corner: 16, interactive: true, tint: nil)
+        nudgeGlass = glass
+        glass.isHidden = true
+        glass.isUserInteractionEnabled = true
+        glass.isAccessibilityElement = false
+
+        let column = UIStackView()
+        column.axis = .vertical
+        column.spacing = 4
+        column.alignment = .fill
+        column.isUserInteractionEnabled = false
+        column.translatesAutoresizingMaskIntoConstraints = false
+
+        nudgeTitleLabel.numberOfLines = 2
+        nudgeTitleLabel.font = .systemFont(ofSize: 15, weight: .bold)
+        nudgeTitleLabel.textColor = .label
+        column.addArrangedSubview(nudgeTitleLabel)
+
+        nudgeBodyLabel.numberOfLines = 0
+        nudgeBodyLabel.font = .systemFont(ofSize: 13, weight: .regular)
+        nudgeBodyLabel.textColor = .secondaryLabel
+        column.addArrangedSubview(nudgeBodyLabel)
+
+        // The one line that says a tap does something. Kerned and upper-cased
+        // to match the web card's own action line rather than dressed as a
+        // second button — the card IS the button.
+        nudgeActionLabel.numberOfLines = 1
+        nudgeActionLabel.textColor = .label
+        column.addArrangedSubview(nudgeActionLabel)
+        column.setCustomSpacing(8, after: nudgeBodyLabel)
+
+        glass.contentView.addSubview(column)
+
+        nudgeTapButton.translatesAutoresizingMaskIntoConstraints = false
+        nudgeTapButton.backgroundColor = .clear
+        nudgeTapButton.addTarget(self, action: #selector(nudgeTapped), for: .touchUpInside)
+        glass.contentView.addSubview(nudgeTapButton)
+
+        nudgeCloseButton.translatesAutoresizingMaskIntoConstraints = false
+        nudgeCloseButton.setImage(
+            UIImage(systemName: "xmark", withConfiguration: UIImage.SymbolConfiguration(
+                pointSize: 12, weight: .bold)),
+            for: .normal)
+        nudgeCloseButton.tintColor = .tertiaryLabel
+        nudgeCloseButton.accessibilityLabel = "Dismiss this suggestion"
+        nudgeCloseButton.addTarget(self, action: #selector(nudgeDismissTapped), for: .touchUpInside)
+        glass.contentView.addSubview(nudgeCloseButton)
+
+        host.addSubview(glass)
+        NSLayoutConstraint.activate([
+            // The column stops short of the ✕ rather than running under it,
+            // which is what keeps a two-line title off the glyph.
+            column.leadingAnchor.constraint(
+                equalTo: glass.contentView.leadingAnchor, constant: Metric.nudgePadding),
+            column.trailingAnchor.constraint(
+                equalTo: nudgeCloseButton.leadingAnchor, constant: -4),
+            column.topAnchor.constraint(
+                equalTo: glass.contentView.topAnchor, constant: Metric.nudgePadding),
+            column.bottomAnchor.constraint(
+                equalTo: glass.contentView.bottomAnchor, constant: -Metric.nudgePadding),
+
+            nudgeCloseButton.topAnchor.constraint(equalTo: glass.contentView.topAnchor, constant: 4),
+            nudgeCloseButton.trailingAnchor.constraint(
+                equalTo: glass.contentView.trailingAnchor, constant: -4),
+            nudgeCloseButton.widthAnchor.constraint(equalToConstant: Metric.nudgeCloseSize),
+            nudgeCloseButton.heightAnchor.constraint(equalToConstant: Metric.nudgeCloseSize),
+
+            nudgeTapButton.leadingAnchor.constraint(equalTo: glass.contentView.leadingAnchor),
+            nudgeTapButton.trailingAnchor.constraint(equalTo: glass.contentView.trailingAnchor),
+            nudgeTapButton.topAnchor.constraint(equalTo: glass.contentView.topAnchor),
+            nudgeTapButton.bottomAnchor.constraint(equalTo: glass.contentView.bottomAnchor),
+
+            glass.leadingAnchor.constraint(equalTo: host.leadingAnchor, constant: Metric.sideMargin),
+            glass.trailingAnchor.constraint(
+                equalTo: host.trailingAnchor, constant: -Metric.sideMargin),
+        ])
+
+        // Above the deck when there is one to sit above, and above the tab bar
+        // on the screens where the CTA is absent — the card is chrome either
+        // way and must never be the thing the tab bar covers.
+        if let deckBox {
+            glass.bottomAnchor.constraint(
+                equalTo: deckBox.topAnchor, constant: -Metric.nudgeGap).isActive = true
+        } else {
+            glass.bottomAnchor.constraint(
+                equalTo: tabBar.topAnchor, constant: -Metric.nudgeGap).isActive = true
+        }
+
+        // The ✕ is added after the full-card button, so it wins the hit test
+        // inside its own 36pt. Stated rather than left to insertion order,
+        // because a later `addSubview` anywhere in this file would silently
+        // take the corner back.
+        glass.contentView.bringSubviewToFront(nudgeCloseButton)
     }
 
     private func buildControls() {
@@ -389,10 +568,18 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
         applyTabs(state.tabs, active: state.activeTab)
         applyCta(state.cta)
         applyControls(state.controls)
+        let nudgeArriving = applyNudge(state.nudge)
 
         setHidden(state.mode == "hidden")
         applyCoach(mode: state.mode, spotlight: state.coach)
         host.layoutIfNeeded()
+
+        // After layout, so the card springs from where it will actually be
+        // rather than from wherever the constraints last put it. Only on a
+        // genuinely new nudge: `setChrome` is pushed on every month, every tab
+        // and every theme change, and a card that re-entered on each of those
+        // would be the one thing on this screen that moves without being moved.
+        if nudgeArriving, nudgeGlass?.isHidden == false { animateNudgeIn() }
 
         /*
          * Hiding the chrome must not collapse what it reserved.
@@ -442,14 +629,61 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
                 activeTab: nil,
                 cta: nil,
                 controls: [],
+                nudge: nil,
                 coach: nil))
         lastInsets = ChromeInsets()
         return lastInsets
     }
 
+    /**
+     The nudge's content, and whether this is a card the player has not seen.
+
+     Returns true only when the id changed — restating the same nudge with a
+     new month in the badge beside it is not an arrival, and animating it as
+     one is how a suggestion becomes a nag.
+     */
+    private func applyNudge(_ nudge: ChromeNudge?) -> Bool {
+        guard let nudge else {
+            currentNudge = nil
+            return false
+        }
+        let arriving = currentNudge?.id != nudge.id
+        currentNudge = nudge
+
+        nudgeTitleLabel.text = nudge.title
+        nudgeBodyLabel.text = nudge.body
+        nudgeActionLabel.attributedText = NSAttributedString(
+            string: "\(nudge.action.uppercased())  ▸",
+            attributes: [
+                .font: UIFont.systemFont(ofSize: 12, weight: .heavy),
+                .foregroundColor: UIColor.label,
+                .kern: 1.0,
+            ])
+
+        // One target, one sentence. VoiceOver reads the card as the button it
+        // is rather than as three labels and a mystery control.
+        nudgeTapButton.accessibilityLabel = "\(nudge.title) \(nudge.body) \(nudge.action)"
+        return arriving
+    }
+
+    /// Up from under the deck, on the same spring the deck's own controls use.
+    private func animateNudgeIn() {
+        guard let glass = nudgeGlass else { return }
+        glass.alpha = 0
+        glass.transform = CGAffineTransform(translationX: 0, y: 10)
+        UIView.animate(
+            withDuration: 0.34, delay: 0, usingSpringWithDamping: 0.86, initialSpringVelocity: 0.3,
+            options: [.allowUserInteraction]
+        ) {
+            glass.alpha = 1
+            glass.transform = .identity
+        }
+    }
+
     private func setHidden(_ hidden: Bool) {
         tabBar.isHidden = hidden || tabBar.items?.isEmpty != false
         deck.isHidden = hidden || currentState?.cta == nil
+        nudgeGlass?.isHidden = hidden || currentNudge == nil
         leadingControls.isHidden = hidden || leadingControls.arrangedSubviews.isEmpty
         trailingControls.isHidden = hidden || trailingControls.arrangedSubviews.isEmpty
         leadingGroup?.isHidden = leadingControls.isHidden
@@ -590,6 +824,11 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
         light(deck, spotlight == "advance")
         if let deckGroup { light(deckGroup, spotlight == "advance") }
         light(tabBar, spotlight == "tabs")
+        // The nudge is never taught and is therefore never the spotlight: the
+        // tutorial is the one moment the game already has the player's whole
+        // attention, and a second suggestion competing for it is the exact
+        // thing coach mode dims everything else to prevent.
+        if let nudgeGlass { light(nudgeGlass, false) }
 
         // A group is lit only when it holds the spotlight, and its unlit
         // siblings dim inside it — alpha compounds, so a dimmed control in a
@@ -615,7 +854,7 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
             view.alpha = 1
             view.isUserInteractionEnabled = true
         }
-        for view in [leadingGroup, trailingGroup, deckGroup].compactMap({ $0 }) {
+        for view in [leadingGroup, trailingGroup, deckGroup, nudgeGlass].compactMap({ $0 }) {
             view.alpha = 1
             view.isUserInteractionEnabled = true
         }
@@ -932,6 +1171,53 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
         guard let id = controlIds[sender.tag] else { return }
         tapFeedback.impactOccurred()
         onControl?(id)
+    }
+
+    /**
+     The card was tapped: open the tab it names.
+
+     Nothing is animated away here, and that is deliberate. The web layer
+     answers this by opening an activity, which is a full-screen overlay, which
+     pushes `mode: "hidden"` and takes the whole chrome down with it. Fading
+     the card out first would be a second, faster disappearance layered under
+     the real one.
+     */
+    @objc private func nudgeTapped() {
+        guard let id = currentNudge?.id else { return }
+        tapFeedback.impactOccurred()
+        onNudgeAction?(id)
+    }
+
+    /**
+     The ✕: gone now, not gone when the round trip completes.
+
+     The web layer owns whether this nudge comes back — dismissal is held for
+     the current game month, in React — and it will push a state without it.
+     But that push crosses a bridge, and a card that sits there for the length
+     of a round trip after being closed is a card whose ✕ did not work. So the
+     view leaves on the tap and the state push confirms it.
+
+     `currentNudge` is cleared here too. Otherwise `setHidden` — which runs on
+     every subsequent push — would read "there is a nudge" and put the hidden
+     card straight back on screen before the web layer's own state caught up.
+     */
+    @objc private func nudgeDismissTapped() {
+        guard let id = currentNudge?.id, let glass = nudgeGlass else { return }
+        tapFeedback.impactOccurred()
+        currentNudge = nil
+        UIView.animate(withDuration: 0.18, delay: 0, options: [.curveEaseIn]) {
+            glass.alpha = 0
+            glass.transform = CGAffineTransform(translationX: 0, y: 10)
+        } completion: { _ in
+            glass.isHidden = true
+            // Left ready for the next card rather than at the end of this
+            // one's exit: `animateNudgeIn` sets both again, but a card that is
+            // re-shown WITHOUT arriving — a sheet opening and closing over a
+            // nudge that never changed — would otherwise come back invisible.
+            glass.alpha = 1
+            glass.transform = .identity
+        }
+        onNudgeDismiss?(id)
     }
 
     /// The same 0.97 the web build uses on its own buttons, so the two chrome

@@ -70,6 +70,12 @@ public class NovusGlassPlugin: CAPPlugin, CAPBridgedPlugin {
                 controller.onInsetsChanged = { [weak self] insets in
                     self?.notifyListeners("insetsChanged", data: Self.payload(insets))
                 }
+                controller.onNudgeAction = { [weak self] id in
+                    self?.notifyListeners("nudgeAction", data: ["id": id])
+                }
+                controller.onNudgeDismiss = { [weak self] id in
+                    self?.notifyListeners("nudgeDismissed", data: ["id": id])
+                }
                 self.chrome = controller
             }
 
@@ -357,6 +363,24 @@ public class NovusGlassPlugin: CAPPlugin, CAPBridgedPlugin {
                 locked: bool(raw, "locked", false))
         }
 
+        /*
+         Every field is required, and a nudge missing one is dropped rather
+         than drawn with a blank in it. There is no sensible default for any of
+         them: the title names what the company is short of, the body says why
+         that costs money, and the action is the only thing on the card that
+         says a tap does something. A card with an empty action line is a card
+         nobody presses.
+         */
+        var nudge: ChromeNudge?
+        if let raw = call.getObject("nudge"),
+            let id = str(raw, "id"),
+            let title = str(raw, "title"),
+            let body = str(raw, "body"),
+            let action = str(raw, "action")
+        {
+            nudge = ChromeNudge(id: id, title: title, body: body, action: action)
+        }
+
         return ChromeState(
             mode: call.getString("mode") ?? "hidden",
             theme: call.getString("theme") ?? "dark",
@@ -364,6 +388,7 @@ public class NovusGlassPlugin: CAPPlugin, CAPBridgedPlugin {
             activeTab: call.getString("activeTab"),
             cta: cta,
             controls: controls,
+            nudge: nudge,
             coach: call.getString("coach"))
     }
 

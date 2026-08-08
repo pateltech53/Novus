@@ -13,7 +13,7 @@ import { AnimatePresence } from "framer-motion";
 import { play } from "@/lib/sound";
 import { isPro, loadEntitlements } from "@/lib/monetization";
 import { gateFor, type Gate, type GateId } from "@/lib/upgrade";
-import dynamic from "next/dynamic";
+import { warm, type Preloadable } from "@/lib/warm";
 
 /*
  * Both of these render behind a gate that most sessions never trip, and this
@@ -27,14 +27,29 @@ import dynamic from "next/dynamic";
  * these arrive; a spinner in the doorway would be a second answer to the same
  * question.
  */
-const UpgradeNotice = dynamic(
-  () => import("@/components/upgrade/UpgradeNotice").then((m) => m.UpgradeNotice),
-  { ssr: false, loading: () => null },
+const UpgradeNotice = warm(() =>
+  import("@/components/upgrade/UpgradeNotice").then((m) => m.UpgradeNotice),
 );
-const UpgradeScreen = dynamic(
-  () => import("@/components/upgrade/UpgradeScreen").then((m) => m.UpgradeScreen),
-  { ssr: false, loading: () => null },
+const UpgradeScreen = warm(() =>
+  import("@/components/upgrade/UpgradeScreen").then((m) => m.UpgradeScreen),
 );
+
+/**
+ * These two, for a screen that can actually trip a gate to warm — see
+ * lib/warm.tsx. Both render nothing until their module is in hand, so the
+ * first refusal in a session used to arrive a beat after the tap that earned
+ * it — which reads as the tap having failed.
+ *
+ * Exported rather than warmed here, and that is the whole point of it being a
+ * list instead of an effect: this provider is mounted by the ROOT LAYOUT, so
+ * warming from inside it would pull the upgrade chunks into /privacy, /terms,
+ * /download and /join — the pages the comment above split them out of. A
+ * screen with gates opts in; a legal page never does.
+ */
+export const UPGRADE_WARM: Preloadable[] = [
+  UpgradeNotice.preload,
+  UpgradeScreen.preload,
+];
 
 /**
  * One place that answers "you cannot do that, here is why, here is Pro".
@@ -141,7 +156,10 @@ export function UpgradeProvider({ children }: { children: React.ReactNode }) {
     setNotice(null);
   }, [clearTimer]);
 
-  const value = useMemo<UpgradeContextValue>(() => ({ notify, open }), [notify, open]);
+  const value = useMemo<UpgradeContextValue>(
+    () => ({ notify, open }),
+    [notify, open],
+  );
 
   return (
     <UpgradeContext.Provider value={value}>

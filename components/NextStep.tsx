@@ -1,11 +1,57 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useCallback, useMemo, useState, type CSSProperties } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { RunState } from "@/lib/engine/types";
-import { nextStep } from "@/lib/engine/nudges";
+import { nextStep, type Nudge } from "@/lib/engine/nudges";
 import { ENTER } from "@/components/ui/Motion";
 import { haptic } from "@/lib/haptics";
+
+/**
+ * WHICH NUDGE IS UP, for whichever renderer is drawing it.
+ *
+ * The page owns this rather than the card owning it, because on iOS the card
+ * is not this component at all — it is a UIKit panel above the deck, pushed
+ * through `usePlayChrome` (see GlassChromeController.buildNudge). Two
+ * renderers, one answer to "is there a nudge and has it been dismissed": if
+ * the state lived in the DOM card, closing the native one would leave the web
+ * one still open for every fallback path — no plugin, an older OS, Android,
+ * the browser — and the two would disagree the moment the chrome handed back.
+ *
+ * Dismissal is held for the current game month and for that nudge only. Advance
+ * time and a nudge that is STILL true comes back once, which is the honest
+ * cadence for "this is still costing you". One that stopped being true never
+ * returns, because `nextStep` recomputes from the run rather than a checklist.
+ */
+export function useNudge(run: RunState | null): {
+  nudge: Nudge | null;
+  dismiss: (id: string) => void;
+} {
+  /** `${nudge.id}:${year}:${month}` for everything dismissed so far. */
+  const [dismissed, setDismissed] = useState<string[]>([]);
+
+  // Nullable because the page runs its hooks before it knows whether a run
+  // loaded — /play renders a skeleton until storage answers, and a hook cannot
+  // be called conditionally.
+  const nudge = useMemo(() => {
+    if (!run) return null;
+    const next = nextStep(run);
+    if (!next) return null;
+    return dismissed.includes(`${next.id}:${run.year}:${run.month}`)
+      ? null
+      : next;
+  }, [run, dismissed]);
+
+  const dismiss = useCallback(
+    (id: string) => {
+      if (!run) return;
+      setDismissed((d) => [...d, `${id}:${run.year}:${run.month}`]);
+    },
+    [run],
+  );
+
+  return { nudge, dismiss };
+}
 
 /**
  * ONE THING WORTH DOING — the nudge row on /play.
@@ -55,13 +101,16 @@ import { haptic } from "@/lib/haptics";
  * its own column.
  */
 export function NextStep({
-  run,
+  nudge,
   onOpen,
+  onDismiss,
   bottom,
 }: {
-  run: RunState;
+  /** From `useNudge`, which the page owns — see the hook above for why. */
+  nudge: Nudge | null;
   /** Opens the tab this nudge is about — the page owns the activity state. */
   onOpen: (tab: "product" | "team") => void;
+  onDismiss: (id: string) => void;
   /**
    * How much chrome stands under it on a phone, as a CSS length.
    *
@@ -73,19 +122,12 @@ export function NextStep({
    */
   bottom: string;
 }) {
-  /** `${nudge.id}:${year}:${month}` for whatever is currently dismissed. */
-  const [dismissed, setDismissed] = useState<string[]>([]);
-
-  const nudge = nextStep(run);
   if (!nudge) return null;
-
-  const key = `${nudge.id}:${run.year}:${run.month}`;
-  if (dismissed.includes(key)) return null;
 
   return (
     <AnimatePresence>
       <motion.div
-        key={key}
+        key={nudge.id}
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 8 }}
@@ -162,7 +204,7 @@ export function NextStep({
 
           <button
             type="button"
-            onClick={() => setDismissed((d) => [...d, key])}
+            onClick={() => onDismiss(nudge.id)}
             aria-label="Dismiss this suggestion"
             /* 30px minimum, the bar `npm run audit:phone` enforces. */
             className="nv-press absolute right-2 top-2 flex h-[30px] w-[30px] items-center justify-center rounded-[var(--radius-chip)] text-[var(--text-tertiary)]"

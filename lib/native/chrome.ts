@@ -205,6 +205,11 @@ export interface ChromeHandlers {
   onTab: (id: string) => void;
   onPrimary: () => void;
   onControl: (id: string) => void;
+  /** The floating nudge was tapped — open the tab it names. */
+  onNudgeAction: (id: string) => void;
+  /** Its ✕ was tapped. UIKit has already taken the card off screen; this is
+   *  what stops the next state push putting it straight back. */
+  onNudgeDismiss: (id: string) => void;
 }
 
 /**
@@ -229,7 +234,13 @@ export function useNativeChrome(state: NativeChromeState | null, handlers: Chrom
 
     const attach = async () => {
       const add = async <T,>(
-        event: "tabSelected" | "primaryAction" | "controlSelected" | "insetsChanged",
+        event:
+          | "tabSelected"
+          | "primaryAction"
+          | "controlSelected"
+          | "insetsChanged"
+          | "nudgeAction"
+          | "nudgeDismissed",
         fn: (data: T) => void,
       ) => {
         // The overload set on the plugin is precise per event; this call site
@@ -249,6 +260,8 @@ export function useNativeChrome(state: NativeChromeState | null, handlers: Chrom
       await add<void>("primaryAction", () => handlerRef.current.onPrimary());
       await add<{ id: string }>("controlSelected", (d) => handlerRef.current.onControl(d.id));
       await add<ChromeInsets>("insetsChanged", (d) => writeInsets(d));
+      await add<{ id: string }>("nudgeAction", (d) => handlerRef.current.onNudgeAction(d.id));
+      await add<{ id: string }>("nudgeDismissed", (d) => handlerRef.current.onNudgeDismiss(d.id));
     };
 
     // A rejection here would be an unhandled promise, and the only thing that
