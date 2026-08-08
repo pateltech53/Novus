@@ -41,11 +41,23 @@ const NEXT = join(root, ".next");
 /** kB gzipped, First Load JS. `null` = report only, no budget. */
 const BUDGETS = {
   "/page": 150,
-  // 342, not 340: the activity sheets became dismissible by their grabber, and
-  // the pointer handling that does it lands in this chunk because all five
-  // screens share `ScreenSheet`. ~0.4 kB gzipped for a control that has been
-  // drawn on every sheet since the shell existed without doing anything.
-  "/play/page": 342,
+  // 346, not 342. Two things landed in this chunk, +1.6 kB gzipped between
+  // them, measured against the same build of main on the same machine:
+  //
+  //   · the nudge's native half — the four strings, the two events and the
+  //     dismissal state that let UIKit draw the card instead of the DOM, so
+  //     that on iOS it is real Liquid Glass above the deck rather than a
+  //     CSS impression of it at the bottom of a document
+  //   · lib/warm.tsx, which is what stopped every overlay on this screen
+  //     paying React's ~300ms Suspense fallback throttle on its first open
+  //
+  // The second one is why the first is affordable: this chunk got 1.6 kB
+  // bigger and every screen it can open got ~295ms faster to appear.
+  //
+  // The 342 this replaces was itself "342, not 340: the activity sheets became
+  // dismissible by their grabber, and the pointer handling that does it lands
+  // in this chunk because all five screens share `ScreenSheet`."
+  "/play/page": 346,
   "/found/page": 325,
   // The picker is the front door for anyone with a company, so it is on the
   // critical path for every returning player. 320 is a little above where it
