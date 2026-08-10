@@ -844,7 +844,7 @@ const TEAM = [
     photo: "/landing/team/yuvan.webp",
   },
   {
-    name: "Dhruv",
+    name: "Dhruv Amit Patel",
     role: "Coding, app building & operations",
     photo: "/landing/team/dhruv.webp",
   },
