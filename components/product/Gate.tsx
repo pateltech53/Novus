@@ -86,7 +86,7 @@ export function Gate() {
 
         <div className="pb-4 text-center">
           <h1
-            className="font-display nv-rise mx-auto max-w-[14em] text-[2.375rem] font-normal leading-[1.04] tracking-[-0.015em] sm:text-[3rem] lg:text-[3.375rem]"
+            className="nv-rise mx-auto max-w-[14em] text-[2rem] font-extrabold leading-[1.05] tracking-[-0.03em] sm:text-[2.5rem] lg:text-[2.75rem]"
             style={{ "--nv-rise-delay": "80ms" } as React.CSSProperties}
           >
             One game. Two ways in.

@@ -1973,6 +1973,25 @@ textarea {
 }
 
 /*
+ * The kicker's shoulder: a short hairline before a scene label — and after
+ * it too, when the label stands centred. The editorial detail that makes a
+ * numbered kicker read as a chapter head rather than a stray caption.
+ */
+.pv-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.pv-kicker::before,
+.pv-kicker-c::after {
+  content: "";
+  height: 1px;
+  width: 1.5rem;
+  background: var(--hairline);
+}
+
+/*
  * The reading rail: a 2px hairline across the top of a story page, scaled by
  * how much of it has been read. Written by Scroll.tsx's <Rail /> as a scaleX
  * — never a width. Mid-strength ink at half opacity is the one value that

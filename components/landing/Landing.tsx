@@ -218,10 +218,10 @@ export function Landing() {
       <section aria-label="The product, at length">
         <div className="mx-auto w-full max-w-6xl px-6 pt-16 lg:px-10 lg:pt-24">
           <div className="pv-dark overflow-hidden rounded-[2rem] p-7 shadow-[var(--e3)] sm:p-10 lg:p-14">
-            <p className="text-2xs font-bold tracking-[0.24em] text-[var(--text-tertiary)]">
+            <p className="pv-kicker text-2xs font-bold tracking-[0.24em] text-[var(--text-tertiary)]">
               THE PRODUCT, AT LENGTH
             </p>
-            <h2 className="font-display mt-3 max-w-[14em] text-[2rem] font-normal leading-[1.06] tracking-[-0.015em] sm:text-[2.5rem] lg:text-[2.75rem]">
+            <h2 className="mt-3 max-w-[17em] text-[1.75rem] font-extrabold leading-[1.12] tracking-[-0.02em] sm:text-[2.25rem] lg:text-[2.75rem]">
               One game. Two ways in.
             </h2>
             <p className="mt-3 max-w-[30rem] text-sm leading-relaxed text-[var(--text-secondary)] lg:text-[0.9375rem]">
@@ -240,7 +240,7 @@ export function Landing() {
                 <a
                   key={door.href}
                   href={door.href}
-                  className="pv-door flex items-center justify-between gap-4 rounded-[var(--radius-card)] bg-[var(--surface)] px-5 py-4 shadow-[var(--e1)] ring-1 ring-[var(--hairline)]"
+                  className="pv-door group flex items-center justify-between gap-4 rounded-[var(--radius-card)] bg-[var(--surface)] px-5 py-4 shadow-[var(--e1)] ring-1 ring-[var(--hairline)]"
                 >
                   <span className="min-w-0">
                     <span className="block text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]">
@@ -252,7 +252,7 @@ export function Landing() {
                   </span>
                   <span
                     aria-hidden="true"
-                    className="text-lg leading-none text-[var(--text-secondary)]"
+                    className="text-lg leading-none text-[var(--text-secondary)] transition-transform duration-200 group-hover:translate-x-1"
                   >
                     →
                   </span>
