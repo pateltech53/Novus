@@ -927,7 +927,7 @@ function PlansSheet({
       </div>
 
       {/* The promise sits above the buttons, not in a footnote, because it is
-          the thing a teacher has to be able to read before spending $299. */}
+          the thing a teacher has to be able to read before spending $799. */}
       <div className="mt-4 w-full">
         <p className="border-t border-[var(--hairline)] pt-3.5 text-xs leading-relaxed text-[var(--text-secondary)]">
           {PRO_PROMISE}{" "}

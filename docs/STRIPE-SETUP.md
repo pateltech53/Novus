@@ -57,8 +57,8 @@ Six products. Dashboard → **Product catalogue → Add product**.
 | Novus Pro — Yearly | $39.99 | Recurring, yearly | `STRIPE_PRICE_PRO_YEARLY` |
 | Industry Pack | $2.99 | One-off | `STRIPE_PRICE_INDUSTRY_PACK` |
 | Extra Island | $1.99 | One-off | `STRIPE_PRICE_EXTRA_ISLAND` |
-| Novus Chapter — 35 seats | $299 | Recurring, yearly | `STRIPE_PRICE_CHAPTER_35` |
-| Novus Chapter — 100 seats | $599 | Recurring, yearly | `STRIPE_PRICE_CHAPTER_100` |
+| Novus Chapter — 35 seats | $799 | Recurring, yearly | `STRIPE_PRICE_CHAPTER_35` |
+| Novus Chapter — 100 seats | $1,599 | Recurring, yearly | `STRIPE_PRICE_CHAPTER_100` |
 
 The two chapter licences already exist in the live account — `lib/stripe/
 catalogue.ts` carries their product ids as defaults, so their env vars only
@@ -299,7 +299,7 @@ them belongs to the screens, and the realistic options are:
 2. **Sell to schools and parents only.** Chapter licences and a separate adult
    purchase flow; no in-game checkout at all. This is the model the pricing
    copy already leans towards ("the thing a teacher has to be able to read
-   before spending $299") — and it is the reason chapter seats, not the monthly
+   before spending $799") — and it is the reason chapter seats, not the monthly
    subscription, are arguably the feature to build next.
 3. **Ship as-is.** Defensible only with a deliberate read of Stripe's terms and
    the relevant consumer-protection rules for your markets. It is not the
