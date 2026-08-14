@@ -7,10 +7,11 @@ import { StoryFooter, Wordbar } from "@/components/product/Bits";
 import { CountUp, Pin, Rail, fx } from "@/components/product/Scroll";
 
 /**
- * /product/you — the player's story, told by the scrollbar.
+ * /product/you — the player's story, told in slides.
  *
- * Four pinned scenes and a close, choreographed in scene-progress windows
- * (see Scroll.tsx for the engine and globals.css for the `.pv-*` vocabulary):
+ * Four scenes and a close. Each scene is one viewport; it PLAYS as the
+ * visitor arrives — entrances on a clock, one flick per scene (see
+ * Scroll.tsx for the player and globals.css for the `.pv-*` vocabulary):
  *
  *   1 · THE PROMISE   navy stage, the two lines of the promise, one per beat.
  *   2 · THE BOOKS     a phone assembles itself: four figures roll to life,
@@ -22,7 +23,7 @@ import { CountUp, Pin, Rail, fx } from "@/components/product/Scroll";
  *   5 · THE DOOR      the account gate, on the same navy the story opened on.
  *
  * Every scene's finished state is its resting state, so reduced motion, a
- * crawler and a no-JS visitor read the same page the scroll performs.
+ * crawler and a no-JS visitor read the same page the entrances perform.
  */
 
 const MONEY = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
@@ -84,12 +85,12 @@ const EVENTS = [
 
 export function YouStory() {
   return (
-    <main className="min-h-dvh">
+    <main data-pv-snap className="min-h-dvh">
       <Rail />
       {/* ── 1 · The promise ─────────────────────────────────────────────── */}
       <Pin
-        length={2.2}
-        initial={0}
+        beat={2000}
+        playOnMount
         ariaLabel="The promise"
         className="pv-dark nv-stage rounded-b-[2.5rem]"
       >
@@ -133,7 +134,7 @@ export function YouStory() {
       </Pin>
 
       {/* ── 2 · The Books ───────────────────────────────────────────────── */}
-      <Pin length={4.5} ariaLabel="The simulation and The Books">
+      <Pin beat={3000} ariaLabel="The simulation and The Books">
         <div className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 content-center items-center gap-6 px-6 lg:grid-cols-12 lg:gap-10 lg:px-10">
           <div className="pt-[max(1rem,var(--nv-safe-top))] lg:col-span-5 lg:pt-0">
             <p
@@ -311,7 +312,7 @@ export function YouStory() {
       </Pin>
 
       {/* ── 3 · The world pushes back ───────────────────────────────────── */}
-      <Pin length={3.6} ariaLabel="The event library">
+      <Pin beat={2800} ariaLabel="The event library">
         <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center px-6 lg:px-10">
           <div className="text-center">
             <p
@@ -406,7 +407,7 @@ export function YouStory() {
       </Pin>
 
       {/* ── 4 · The pitch ───────────────────────────────────────────────── */}
-      <Pin length={5} ariaLabel="The camera pitch and the shark panel" className="pv-dark nv-stage rounded-t-[2.5rem]">
+      <Pin beat={4200} ariaLabel="The camera pitch and the shark panel" className="pv-dark nv-stage rounded-t-[2.5rem]">
         <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-6 lg:px-10">
           <p
             className="pv-kicker pv-kicker-c tnum pv-t pv-fx text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]"
@@ -423,7 +424,7 @@ export function YouStory() {
 
           {/* The viewfinder assembles around the take. */}
           <div
-            className="pv-t pv-fx relative w-full max-w-[34rem]"
+            className="pv-t pv-fx relative w-full max-w-[32rem]"
             style={fx(0.16, 0.12, { dy: 30 })}
           >
             <div className="relative aspect-[4/3] w-full sm:aspect-[16/10]">
@@ -504,7 +505,7 @@ export function YouStory() {
           </div>
 
           {/* The panel takes its seats. */}
-          <div className="mt-6 flex items-end justify-center gap-2.5 sm:gap-4">
+          <div className="mt-5 flex items-end justify-center gap-2.5 sm:gap-4">
             {SHARKS.map((shark, i) => (
               <figure
                 key={shark.name}
@@ -528,7 +529,7 @@ export function YouStory() {
           </div>
 
           <div
-            className="pv-t pv-fx mt-5 w-full max-w-[26rem] rounded-[var(--radius-card)] bg-[var(--surface)] p-3.5 shadow-[var(--e2)] ring-1 ring-[var(--hairline)]"
+            className="pv-t pv-fx mt-3 w-full max-w-[26rem] rounded-[var(--radius-card)] bg-[var(--surface)] p-3.5 shadow-[var(--e2)] ring-1 ring-[var(--hairline)]"
             style={fx(0.72, 0.1, { dy: 26 })}
           >
             <p className="text-2xs font-bold tracking-[0.16em] text-[var(--text-tertiary)]">
@@ -559,7 +560,7 @@ export function YouStory() {
           </div>
 
           <p
-            className="pv-t pv-fx mt-6 text-center text-sm font-extrabold tracking-[0.02em] text-[var(--text-secondary)]"
+            className="pv-t pv-fx mt-4 text-center text-sm font-extrabold tracking-[0.02em] text-[var(--text-secondary)]"
             style={fx(0.955, 0.045, { dy: 14 })}
           >
             Score it. Survive it. Go again.

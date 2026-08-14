@@ -1750,83 +1750,146 @@ textarea {
 
 /* ══ The product pages · /product ═══════════════════════════════════════════
  *
- * A scroll-told story: pinned scenes whose animation is driven by ONE custom
- * property, `--p`, written by components/product/Scroll.tsx as the visitor
- * scrolls through the pinned section. Everything visual derives from it in
- * CSS — so the JS cost per frame is one setProperty per scene, and every
- * element still animates only transform and opacity (design.md §5).
+ * A story told in slides: each scene is one viewport of normal flow, and it
+ * PLAYS when the visitor arrives — every element runs an eased entrance
+ * after its authored delay. Triggered, not scrubbed: the first build tied
+ * the choreography to scroll position and the owner's verdict was that you
+ * had to feed it the page inch by inch. See components/product/Scroll.tsx
+ * for the player and the history.
  *
  * ── The contract ────────────────────────────────────────────────────────────
  *
- *   .pv-scene   the pinned section. Declares `--p: 1`, which is the FINAL
- *               state — so the server render, a no-JS visitor and a crawler
- *               all see the finished composition, never a page of opacity-0.
- *               The client writes the true progress before the scene is
- *               reached (every scene after the first starts below the fold).
+ * Three states, carried as attributes on the scene root:
  *
- *   .pv-t       computes `--t`: this element's own 0→1 within the scene.
- *               `--a` is where its window opens (in scene progress), `--w` how
- *               long the window is. `--oa`/`--ow` open a LEAVING window; both
- *               default far past 1 so nothing leaves unless asked to.
+ *   (rest)      no attribute: the FINISHED composition. The server render,
+ *               a crawler, no-JS and reduced motion all read this — never a
+ *               page of opacity-0.
+ *   [data-arm]  hidden at start positions, transitions off. Set by the
+ *               client after hydration, below the fold, unwatched.
+ *   [data-play] the entrance runs — each element transitions to its rest
+ *               state after `--a` (its authored moment, 0–1) of the scene's
+ *               `--pv-beat`.
  *
- *   .pv-fx      spends `--t` on the two properties allowed to animate:
- *               opacity, and a translate/scale composed from the knobs
- *               `--pv-dx` / `--pv-dy` / `--pv-ds`.
- *
- *   .pv-draw    an SVG path with pathLength="1" drawing itself in.
- *   .pv-bar     a waveform bar growing to its authored height `--h`.
- *   .pv-dim     lit at rest, extinguished by its window — the runway gauge.
- *
- * Reduced motion is a cut, not a shortening: Scroll.tsx renders the scene
- * unpinned at natural height and never writes `--p`, so the default — the
- * finished state — is simply the page.
+ * The pieces: .pv-fx moves opacity/transform through the knobs --pv-dx/-dy/
+ * -dr/-ds; .pv-draw is an SVG line drawing in; .pv-bar a meter bar; .pv-dim
+ * the gauge segment that goes out; .pv-wipe the strike/underline. Only
+ * transform and opacity animate (design.md §5) — stroke-dashoffset being the
+ * one licensed exception, a scrubbed-in illustration rather than UI motion.
  */
 
 .pv-scene {
-  --p: 1;
+  --pv-beat: 2600ms;
 }
 
+/* Markup compatibility with the scrubbed engine's storyboards. */
 .pv-t {
-  --t: clamp(0, calc((var(--p) - var(--a, 0)) / var(--w, 0.18)), 1);
-  /* The leaving window. Defaults to "never". */
-  --u: clamp(0, calc((var(--p) - var(--oa, 9)) / var(--ow, 0.12)), 1);
+}
+
+/*
+ * Every animating element's shared arithmetic: its authored moment `--a`
+ * (a 0–1 fraction of the scene) becomes a transition delay into the beat.
+ * `max(0, …)` because one storyboard uses -1 for "from the very first
+ * frame", and a negative delay would skip the start of the entrance.
+ */
+.pv-fx,
+.pv-draw,
+.pv-bar,
+.pv-dim,
+.pv-wipe {
+  transition-delay: calc(max(0, var(--a, 0)) * var(--pv-beat));
 }
 
 .pv-fx {
-  opacity: calc(var(--t) * (1 - var(--u)));
-  transform: translate3d(
-      calc(var(--pv-dx, 0px) * (1 - var(--t))),
-      calc(var(--pv-dy, 28px) * (1 - var(--t)) - var(--pv-uy, 0px) * var(--u)),
-      0
-    )
-    rotate(calc(var(--pv-dr, 0deg) * (1 - var(--t))))
-    scale(calc(1 - var(--pv-ds, 0) * (1 - var(--t))));
+  opacity: 1;
+  transform: none;
+  transition-property: opacity, transform;
+  transition-duration: var(--pv-dur, 640ms);
+  transition-timing-function: var(--ease-out);
+}
+
+[data-arm]:not([data-play]) .pv-fx {
+  transition: none;
+  opacity: 0;
+  transform: translate3d(var(--pv-dx, 0px), var(--pv-dy, 28px), 0)
+    rotate(var(--pv-dr, 0deg)) scale(calc(1 - var(--pv-ds, 0)));
 }
 
 /* An SVG line drawing itself. `pathLength="1"` on the path makes the dash
    arithmetic unitless, so one rule fits every length of line. */
 .pv-draw {
   stroke-dasharray: 1;
-  stroke-dashoffset: calc(1 - var(--t));
+  stroke-dashoffset: 0;
+  transition-property: stroke-dashoffset;
+  transition-duration: 900ms;
+  transition-timing-function: var(--ease-in-out);
+}
+
+[data-arm]:not([data-play]) .pv-draw {
+  transition: none;
+  stroke-dashoffset: 1;
 }
 
 /* One bar of the pitch scene's waveform. `--h` is the bar's authored height
    share; the floor keeps a silent meter from vanishing entirely. */
 .pv-bar {
   transform-origin: center;
-  transform: scaleY(calc(0.12 + var(--h, 0.6) * var(--t)));
+  transform: scaleY(calc(0.12 + var(--h, 0.6)));
+  transition-property: transform;
+  transition-duration: 480ms;
+  transition-timing-function: var(--ease-out);
 }
 
-/* Lit at rest, put out by its window — the runway gauge losing months. */
+[data-arm]:not([data-play]) .pv-bar {
+  transition: none;
+  transform: scaleY(0.12);
+}
+
+/* Lit until its moment — the runway gauge losing months. */
 .pv-dim {
-  opacity: calc(1 - var(--t) * 0.82);
+  opacity: 0.18;
+  transition-property: opacity;
+  transition-duration: 420ms;
+  transition-timing-function: var(--ease-out);
+}
+
+[data-arm]:not([data-play]) .pv-dim {
+  transition: none;
+  opacity: 1;
 }
 
 /* A line drawing itself across — the rubric strike, the transcript underline.
    scaleX rather than width, because width is layout and never animates. */
 .pv-wipe {
-  transform: scaleX(var(--t));
+  transform: scaleX(1);
   transform-origin: left;
+  transition-property: transform;
+  transition-duration: 520ms;
+  transition-timing-function: var(--ease-in-out);
+}
+
+[data-arm]:not([data-play]) .pv-wipe {
+  transition: none;
+  transform: scaleX(0);
+}
+
+/*
+ * The slide feel: a flick settles on the next scene. Proximity, never
+ * mandatory — a scene taller than the viewport (a phone, a short window)
+ * must stay freely scrollable, and mandatory snap would fight it. The page
+ * opts in with `data-pv-snap`; reduced motion opts back out.
+ */
+html:has([data-pv-snap]) {
+  scroll-snap-type: y proximity;
+}
+
+[data-pv-snap] [data-pv-scene] {
+  scroll-snap-align: start;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:has([data-pv-snap]) {
+    scroll-snap-type: none;
+  }
 }
 
 /*

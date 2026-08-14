@@ -8,7 +8,7 @@ import { CHAPTER_LICENCES, formatPrice } from "@/lib/monetization";
 
 /**
  * /product/institutions — the other door: classrooms, clubs, summer programs
- * and competitions. Same engine as YouStory, different argument:
+ * and competitions. Same slide player as YouStory, different argument:
  *
  *   1 · THE CLAIM       practiced, not watched.
  *   2 · ONE SEAT        the whole loop a student runs — run, decide, defend.
@@ -63,10 +63,10 @@ export function InstitutionsStory() {
   const [seats35, seats100] = CHAPTER_LICENCES;
 
   return (
-    <main className="min-h-dvh">
+    <main data-pv-snap className="min-h-dvh">
       <Rail />
       {/* ── 1 · The claim ───────────────────────────────────────────────── */}
-      <Pin length={2.2} initial={0} ariaLabel="The claim" className="pv-dark nv-stage rounded-b-[2.5rem]">
+      <Pin beat={2000} playOnMount ariaLabel="The claim" className="pv-dark nv-stage rounded-b-[2.5rem]">
         <div className="mx-auto flex h-full w-full max-w-6xl flex-1 flex-col px-6 lg:px-10">
           <Wordbar other={{ label: "FOR YOU →", href: "/product/you" }} />
           <div className="flex flex-1 flex-col items-center justify-center text-center">
@@ -112,7 +112,7 @@ export function InstitutionsStory() {
       </Pin>
 
       {/* ── 2 · One seat is a whole company ─────────────────────────────── */}
-      <Pin length={3.6} ariaLabel="What one seat contains">
+      <Pin beat={2800} ariaLabel="What one seat contains">
         <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col justify-center px-6 lg:px-10">
           <div className="text-center">
             <p
@@ -235,7 +235,7 @@ export function InstitutionsStory() {
       </Pin>
 
       {/* ── 3 · Your syllabus, not ours ─────────────────────────────────── */}
-      <Pin length={4} ariaLabel="Personalised curriculum and rubric">
+      <Pin beat={3200} ariaLabel="Personalised curriculum and rubric">
         <div className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 content-center items-center gap-8 px-6 lg:grid-cols-12 lg:gap-10 lg:px-10">
           <div className="lg:col-span-5">
             <p
@@ -326,7 +326,7 @@ export function InstitutionsStory() {
       </Pin>
 
       {/* ── 4 · The panel ───────────────────────────────────────────────── */}
-      <Pin length={4} ariaLabel="The trained panel">
+      <Pin beat={3200} ariaLabel="The trained panel">
         <div className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 content-center items-center gap-8 px-6 lg:grid-cols-12 lg:gap-10 lg:px-10">
           <div className="lg:col-span-5">
             <p
@@ -428,7 +428,7 @@ export function InstitutionsStory() {
       </Pin>
 
       {/* ── 5 · The season ──────────────────────────────────────────────── */}
-      <Pin length={4.5} ariaLabel="The seat console and the chapter board">
+      <Pin beat={3400} ariaLabel="The seat console and the chapter board">
         <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col justify-center px-6 lg:px-10">
           <div className="text-center">
             <p
@@ -547,7 +547,7 @@ export function InstitutionsStory() {
       </Pin>
 
       {/* ── 6 · The care ────────────────────────────────────────────────── */}
-      <Pin length={2.8} ariaLabel="Privacy and compliance posture">
+      <Pin beat={2400} ariaLabel="Privacy and compliance posture">
         <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center px-6 lg:px-10">
           <div className="text-center">
             <p
