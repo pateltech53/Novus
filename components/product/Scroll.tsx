@@ -212,6 +212,8 @@ export function fx(
     dy?: number;
     /** Scale deficit at rest: 0.06 arrives from 94%. */
     ds?: number;
+    /** Degrees the element un-rotates on arrival: 6 arrives from +6°. */
+    dr?: number;
     until?: number;
     overOut?: number;
     /** How far the element rises while leaving. */
@@ -225,12 +227,52 @@ export function fx(
   if (opts.dx !== undefined) style["--pv-dx"] = `${opts.dx}px`;
   if (opts.dy !== undefined) style["--pv-dy"] = `${opts.dy}px`;
   if (opts.ds !== undefined) style["--pv-ds"] = String(opts.ds);
+  if (opts.dr !== undefined) style["--pv-dr"] = `${opts.dr}deg`;
   if (opts.until !== undefined) {
     style["--oa"] = String(opts.until);
     style["--ow"] = String(opts.overOut ?? 0.12);
     style["--pv-uy"] = `${opts.uy ?? 18}px`;
   }
   return style as React.CSSProperties;
+}
+
+/**
+ * The reading rail: how much of the story has been read, as a 2px hairline.
+ *
+ * Page-level rather than per-scene, so it lives beside <Pin> instead of
+ * inside one. Same discipline as the scene engine — one scaleX write per
+ * frame through one rAF latch — and it simply does not render for reduced
+ * motion: a progress bar that cannot move is a stray line.
+ */
+export function Rail() {
+  const still = useStill();
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || still) return;
+    let queued = 0;
+    const write = () => {
+      queued = 0;
+      const span = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      const p = Math.min(1, Math.max(0, window.scrollY / span));
+      el.style.setProperty("--pv-read", p.toFixed(4));
+    };
+    const onScroll = () => {
+      if (!queued) queued = requestAnimationFrame(write);
+    };
+    write();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      if (queued) cancelAnimationFrame(queued);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, [still]);
+
+  if (still) return null;
+  return <div ref={ref} aria-hidden="true" className="pv-rail" />;
 }
 
 /**

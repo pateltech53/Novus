@@ -86,7 +86,7 @@ export function Gate() {
 
         <div className="pb-4 text-center">
           <h1
-            className="nv-rise mx-auto max-w-[14em] text-[2rem] font-extrabold leading-[1.05] tracking-[-0.03em] sm:text-[2.5rem] lg:text-[2.75rem]"
+            className="font-display nv-rise mx-auto max-w-[14em] text-[2.375rem] font-normal leading-[1.04] tracking-[-0.015em] sm:text-[3rem] lg:text-[3.375rem]"
             style={{ "--nv-rise-delay": "80ms" } as React.CSSProperties}
           >
             One game. Two ways in.
@@ -109,7 +109,7 @@ export function Gate() {
                 e.preventDefault();
                 choose(door.href);
               }}
-              className={`${door.enter} nv-press-row group flex flex-col rounded-[var(--radius-card)] bg-[var(--surface)] p-5 text-left shadow-[var(--e2)] ring-1 ring-[var(--hairline)] transition-transform duration-200 hover:-translate-y-1`}
+              className={`${door.enter} pv-door group flex flex-col rounded-[var(--radius-card)] bg-[var(--surface)] p-5 text-left shadow-[var(--e2)] ring-1 ring-[var(--hairline)]`}
               style={{ "--pv-door-delay": `${240 + i * 90}ms` } as React.CSSProperties}
             >
               <p className="text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]">

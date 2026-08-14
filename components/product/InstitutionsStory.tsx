@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { StoryFooter, Wordbar } from "@/components/product/Bits";
-import { CountUp, Pin, fx } from "@/components/product/Scroll";
+import { CountUp, Pin, Rail, fx } from "@/components/product/Scroll";
 import { CHAPTER_LICENCES, formatPrice } from "@/lib/monetization";
 
 /**
@@ -64,8 +64,9 @@ export function InstitutionsStory() {
 
   return (
     <main className="min-h-dvh">
+      <Rail />
       {/* ── 1 · The claim ───────────────────────────────────────────────── */}
-      <Pin length={2.4} initial={0} ariaLabel="The claim" className="pv-dark nv-stage">
+      <Pin length={2.2} initial={0} ariaLabel="The claim" className="pv-dark nv-stage rounded-b-[2.5rem]">
         <div className="mx-auto flex h-full w-full max-w-6xl flex-1 flex-col px-6 lg:px-10">
           <Wordbar other={{ label: "FOR YOU →", href: "/product/you" }} />
           <div className="flex flex-1 flex-col items-center justify-center text-center">
@@ -74,7 +75,7 @@ export function InstitutionsStory() {
             >
               NOVUS FOR INSTITUTIONS
             </p>
-            <h1 className="mt-4 text-[2.5rem] font-extrabold leading-[1.03] tracking-[-0.03em] sm:text-[3.25rem] lg:text-[4rem]">
+            <h1 className="mt-4 font-display text-[2.75rem] font-normal leading-[1.04] tracking-[-0.015em] sm:text-[3.5rem] lg:text-[4.25rem]">
               <span
                 className="nv-rise pv-t pv-fx block"
                 style={fx(-1, 0.01, { until: 0.86, overOut: 0.1, uy: 26 })}
@@ -110,8 +111,14 @@ export function InstitutionsStory() {
       <Pin length={3.6} ariaLabel="What one seat contains">
         <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col justify-center px-6 lg:px-10">
           <div className="text-center">
+            <p
+              className="tnum pv-t pv-fx text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]"
+              style={fx(0.02, 0.1)}
+            >
+              01 · THE GAME
+            </p>
             <h2
-              className="pv-t pv-fx text-[1.625rem] font-extrabold leading-tight tracking-[-0.02em] sm:text-[2rem] lg:text-[2.25rem]"
+              className="font-display pv-t pv-fx mt-2 text-[1.875rem] font-normal leading-[1.1] tracking-[-0.01em] sm:text-[2.25rem] lg:text-[2.625rem]"
               style={fx(0.03, 0.14, { dy: 24 })}
             >
               One seat is a whole company.
@@ -228,13 +235,13 @@ export function InstitutionsStory() {
         <div className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 content-center items-center gap-8 px-6 lg:grid-cols-12 lg:gap-10 lg:px-10">
           <div className="lg:col-span-5">
             <p
-              className="pv-t pv-fx text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]"
+              className="tnum pv-t pv-fx text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]"
               style={fx(0.03, 0.1)}
             >
-              PERSONALISED, PROPERLY
+              02 · PERSONALISED, PROPERLY
             </p>
             <h2
-              className="pv-t pv-fx mt-2 text-[1.625rem] font-extrabold leading-tight tracking-[-0.02em] sm:text-[2rem] lg:text-[2.25rem]"
+              className="font-display pv-t pv-fx mt-2 text-[1.875rem] font-normal leading-[1.1] tracking-[-0.01em] sm:text-[2.25rem] lg:text-[2.625rem]"
               style={fx(0.05, 0.14, { dy: 26 })}
             >
               Your syllabus,
@@ -277,7 +284,7 @@ export function InstitutionsStory() {
           <div className="lg:col-span-7">
             <div
               className="pv-t pv-fx mx-auto w-full max-w-[30rem] rounded-[var(--radius-card)] bg-[var(--n-3)] p-5 shadow-[var(--e3)] ring-1 ring-[var(--hairline)]"
-              style={fx(0.12, 0.16, { dy: 60, ds: 0.04 })}
+              style={fx(0.12, 0.16, { dy: 60, ds: 0.04, dr: -3 })}
             >
               <div className="flex items-baseline justify-between gap-3">
                 <p className="text-2xs font-extrabold tracking-[0.16em]">PITCH RUBRIC</p>
@@ -319,13 +326,13 @@ export function InstitutionsStory() {
         <div className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 content-center items-center gap-8 px-6 lg:grid-cols-12 lg:gap-10 lg:px-10">
           <div className="lg:col-span-5">
             <p
-              className="pv-t pv-fx text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]"
+              className="tnum pv-t pv-fx text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]"
               style={fx(0.03, 0.1)}
             >
-              THE PANEL
+              03 · THE PANEL
             </p>
             <h2
-              className="pv-t pv-fx mt-2 text-[1.625rem] font-extrabold leading-tight tracking-[-0.02em] sm:text-[2rem] lg:text-[2.25rem]"
+              className="font-display pv-t pv-fx mt-2 text-[1.875rem] font-normal leading-[1.1] tracking-[-0.01em] sm:text-[2.25rem] lg:text-[2.625rem]"
               style={fx(0.05, 0.14, { dy: 26 })}
             >
               An examiner that has
@@ -378,7 +385,7 @@ export function InstitutionsStory() {
           <div className="lg:col-span-7">
             <div
               className="pv-t pv-fx mx-auto w-full max-w-[30rem] rounded-[var(--radius-card)] bg-[var(--n-3)] p-5 shadow-[var(--e3)] ring-1 ring-[var(--hairline)]"
-              style={fx(0.12, 0.16, { dy: 60, ds: 0.04 })}
+              style={fx(0.12, 0.16, { dy: 60, ds: 0.04, dr: 3 })}
             >
               <div className="flex items-baseline justify-between gap-3">
                 <p className="text-2xs font-extrabold tracking-[0.16em]">LIVE TRANSCRIPT</p>
@@ -420,8 +427,14 @@ export function InstitutionsStory() {
       <Pin length={4.5} ariaLabel="The seat console and the chapter board">
         <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col justify-center px-6 lg:px-10">
           <div className="text-center">
+            <p
+              className="tnum pv-t pv-fx text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]"
+              style={fx(0.02, 0.1)}
+            >
+              04 · THE SEASON
+            </p>
             <h2
-              className="pv-t pv-fx text-[1.625rem] font-extrabold leading-tight tracking-[-0.02em] sm:text-[2rem] lg:text-[2.25rem]"
+              className="font-display pv-t pv-fx mt-2 text-[1.875rem] font-normal leading-[1.1] tracking-[-0.01em] sm:text-[2.25rem] lg:text-[2.625rem]"
               style={fx(0.03, 0.14, { dy: 24 })}
             >
               Seated in minutes. Scored all season.
@@ -533,8 +546,14 @@ export function InstitutionsStory() {
       <Pin length={2.8} ariaLabel="Privacy and compliance posture">
         <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center px-6 lg:px-10">
           <div className="text-center">
+            <p
+              className="tnum pv-t pv-fx text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]"
+              style={fx(0.03, 0.1)}
+            >
+              05 · THE CARE
+            </p>
             <h2
-              className="pv-t pv-fx text-[1.625rem] font-extrabold leading-tight tracking-[-0.02em] sm:text-[2rem] lg:text-[2.25rem]"
+              className="font-display pv-t pv-fx mt-2 text-[1.875rem] font-normal leading-[1.1] tracking-[-0.01em] sm:text-[2.25rem] lg:text-[2.625rem]"
               style={fx(0.05, 0.14, { dy: 24 })}
             >
               Built for minors, on purpose.
@@ -581,9 +600,9 @@ export function InstitutionsStory() {
       </Pin>
 
       {/* ── 7 · The door ────────────────────────────────────────────────── */}
-      <section aria-label="Talk to the team" className="pv-dark">
+      <section aria-label="Talk to the team" className="pv-dark rounded-t-[2.5rem]">
         <div className="mx-auto w-full max-w-6xl px-6 pb-[max(3rem,var(--nv-safe-bottom))] pt-20 lg:px-10 lg:pt-28">
-          <h2 className="max-w-[16em] text-[2rem] font-extrabold leading-[1.05] tracking-[-0.03em] lg:text-[2.75rem]">
+          <h2 className="font-display max-w-[16em] text-[2.25rem] font-normal leading-[1.08] tracking-[-0.015em] lg:text-[3rem]">
             Bring Novus to your institution.
           </h2>
           <p className="mt-3 max-w-[32rem] text-sm leading-relaxed text-[var(--text-secondary)] lg:text-[0.9375rem]">

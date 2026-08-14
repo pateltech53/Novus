@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { AccountGate } from "@/components/landing/AccountGate";
 import { StoryFooter, Wordbar } from "@/components/product/Bits";
-import { CountUp, Pin, fx } from "@/components/product/Scroll";
+import { CountUp, Pin, Rail, fx } from "@/components/product/Scroll";
 
 /**
  * /product/you — the player's story, told by the scrollbar.
@@ -57,45 +57,46 @@ const EVENTS = [
     line: "A batch went out wrong, and the inbox knows it.",
     choices: ["Refund every order", "Hold the line"],
     rest: "left-[3%] top-[2%] -rotate-6 sm:left-[2%] sm:top-[16%]",
-    from: { dx: 150, dy: 30 },
+    from: { dx: 150, dy: 30, dr: 10 },
   },
   {
     title: "The Convertible Note",
     line: "Money now, dilution later. The note is on the table.",
     choices: ["Sign it", "Walk"],
     rest: "left-[52%] top-[4%] -rotate-2 sm:left-[27%] sm:top-[2%]",
-    from: { dx: 60, dy: 70 },
+    from: { dx: 60, dy: 70, dr: -8 },
   },
   {
     title: "The Embezzler",
     line: "The numbers don't add up — and it's someone you hired.",
     choices: ["Audit quietly", "Confront them"],
     rest: "left-[3%] top-[56%] rotate-3 sm:left-[52%] sm:top-[10%]",
-    from: { dx: -60, dy: 50 },
+    from: { dx: -60, dy: 50, dr: 9 },
   },
   {
     title: "Down Round or Die",
     line: "The valuation fell. So did your runway.",
     choices: ["Take the round", "Die proud"],
     rest: "left-[52%] top-[58%] rotate-[8deg] sm:left-[74%] sm:top-[22%]",
-    from: { dx: -160, dy: 20 },
+    from: { dx: -160, dy: 20, dr: -12 },
   },
 ] as const;
 
 export function YouStory() {
   return (
     <main className="min-h-dvh">
+      <Rail />
       {/* ── 1 · The promise ─────────────────────────────────────────────── */}
       <Pin
-        length={2.4}
+        length={2.2}
         initial={0}
         ariaLabel="The promise"
-        className="pv-dark nv-stage"
+        className="pv-dark nv-stage rounded-b-[2.5rem]"
       >
         <div className="mx-auto flex h-full w-full max-w-6xl flex-1 flex-col px-6 lg:px-10">
           <Wordbar other={{ label: "FOR INSTITUTIONS →", href: "/product/institutions" }} />
           <div className="flex flex-1 flex-col items-center justify-center text-center">
-            <h1 className="text-[2.5rem] font-extrabold leading-[1.03] tracking-[-0.03em] sm:text-[3.25rem] lg:text-[4rem]">
+            <h1 className="font-display text-[2.75rem] font-normal leading-[1.04] tracking-[-0.015em] sm:text-[3.5rem] lg:text-[4.25rem]">
               <span
                 className="nv-rise pv-t pv-fx block"
                 style={fx(-1, 0.01, { until: 0.86, overOut: 0.1, uy: 26 })}
@@ -132,13 +133,13 @@ export function YouStory() {
         <div className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 content-center items-center gap-6 px-6 lg:grid-cols-12 lg:gap-10 lg:px-10">
           <div className="pt-[max(1rem,var(--nv-safe-top))] lg:col-span-5 lg:pt-0">
             <p
-              className="pv-t pv-fx text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]"
+              className="tnum pv-t pv-fx text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]"
               style={fx(0.03, 0.1)}
             >
-              THE SIMULATION
+              01 · THE SIMULATION
             </p>
             <h2
-              className="pv-t pv-fx mt-2 text-[1.625rem] font-extrabold leading-tight tracking-[-0.02em] sm:text-[2rem] lg:text-[2.25rem]"
+              className="font-display pv-t pv-fx mt-2 text-[1.875rem] font-normal leading-[1.1] tracking-[-0.01em] sm:text-[2.25rem] lg:text-[2.625rem]"
               style={fx(0.05, 0.14, { dy: 26 })}
             >
               Time only moves
@@ -188,7 +189,7 @@ export function YouStory() {
           <div className="flex items-center justify-center lg:col-span-7">
             <div
               className="pv-t pv-fx w-full max-w-[22rem] rounded-[2.25rem] bg-[var(--n-3)] p-4 shadow-[var(--e3)] ring-8 ring-[var(--color-navy)]/90 sm:max-w-[24rem]"
-              style={fx(0.06, 0.2, { dy: 120, ds: 0.04 })}
+              style={fx(0.06, 0.2, { dy: 120, ds: 0.04, dr: -5 })}
             >
               <div className="flex items-baseline justify-between gap-3">
                 <p className="truncate text-sm font-extrabold tracking-[0.02em]">
@@ -305,8 +306,14 @@ export function YouStory() {
       <Pin length={3.6} ariaLabel="The event library">
         <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center px-6 lg:px-10">
           <div className="text-center">
+            <p
+              className="tnum pv-t pv-fx text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]"
+              style={fx(0.02, 0.1)}
+            >
+              02 · THE WORLD
+            </p>
             <h2
-              className="pv-t pv-fx text-[1.625rem] font-extrabold leading-tight tracking-[-0.02em] sm:text-[2rem] lg:text-[2.25rem]"
+              className="font-display pv-t pv-fx mt-2 text-[1.875rem] font-normal leading-[1.1] tracking-[-0.01em] sm:text-[2.25rem] lg:text-[2.625rem]"
               style={fx(0.03, 0.14, { dy: 24 })}
             >
               The world pushes back.
@@ -330,7 +337,7 @@ export function YouStory() {
               >
                 <div
                   className="pv-t pv-fx rounded-[var(--radius-card)] bg-[var(--n-3)] p-3.5 shadow-[var(--e2)] ring-1 ring-[var(--hairline)]"
-                  style={fx(0.14 + i * 0.09, 0.16, { dx: card.from.dx, dy: card.from.dy, ds: 0.06 })}
+                  style={fx(0.14 + i * 0.09, 0.16, { dx: card.from.dx, dy: card.from.dy, dr: card.from.dr, ds: 0.06 })}
                 >
                   <p className="text-2xs font-bold tracking-[0.16em] text-[var(--text-tertiary)]">
                     EVENT
@@ -391,10 +398,16 @@ export function YouStory() {
       </Pin>
 
       {/* ── 4 · The pitch ───────────────────────────────────────────────── */}
-      <Pin length={5} ariaLabel="The camera pitch and the shark panel" className="pv-dark nv-stage">
+      <Pin length={5} ariaLabel="The camera pitch and the shark panel" className="pv-dark nv-stage rounded-t-[2.5rem]">
         <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-6 lg:px-10">
           <p
-            className="pv-t pv-fx text-center text-[2rem] font-extrabold leading-tight tracking-[-0.03em] sm:text-[2.75rem]"
+            className="tnum pv-t pv-fx text-center text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]"
+            style={fx(0.015, 0.08, { until: 0.13, overOut: 0.06, uy: 18 })}
+          >
+            03 · THE PITCH
+          </p>
+          <p
+            className="font-display pv-t pv-fx mt-2 text-center text-[2.25rem] font-normal leading-[1.08] tracking-[-0.015em] sm:text-[3rem]"
             style={fx(0.02, 0.09, { dy: 24, until: 0.13, overOut: 0.06, uy: 24 })}
           >
             Then the year ends.
@@ -527,9 +540,19 @@ export function YouStory() {
             <p className="text-2xs text-[var(--text-tertiary)]">sized to your books</p>
           </div>
 
+          <div
+            className="pv-t pv-fx mt-2.5 flex w-full max-w-[26rem] items-baseline justify-between rounded-[var(--radius-card)] bg-[var(--surface)] p-3.5 shadow-[var(--e2)] ring-1 ring-[var(--hairline)]"
+            style={fx(0.9, 0.08, { dy: 26 })}
+          >
+            <p className="text-2xs font-bold tracking-[0.16em] text-[var(--text-tertiary)]">SCORED</p>
+            <p className="tnum text-sm font-extrabold">7 / 10</p>
+            {/* The gate's real arithmetic: M = 0.4 + 0.12 × score. */}
+            <p className="tnum text-2xs font-bold text-[var(--text-secondary)]">NEXT YEAR ×1.24</p>
+          </div>
+
           <p
             className="pv-t pv-fx mt-6 text-center text-sm font-extrabold tracking-[0.02em] text-[var(--text-secondary)]"
-            style={fx(0.93, 0.06, { dy: 14 })}
+            style={fx(0.955, 0.045, { dy: 14 })}
           >
             Score it. Survive it. Go again.
           </p>
@@ -539,7 +562,7 @@ export function YouStory() {
       {/* ── 5 · The door ────────────────────────────────────────────────── */}
       <section aria-label="Start playing" className="pv-dark">
         <div className="mx-auto w-full max-w-6xl px-6 pb-[max(3rem,var(--nv-safe-bottom))] pt-20 lg:px-10 lg:pt-28">
-          <h2 className="text-[2rem] font-extrabold leading-none tracking-[-0.03em] lg:text-[2.75rem]">
+          <h2 className="font-display text-[2.25rem] font-normal leading-[1.05] tracking-[-0.015em] lg:text-[3rem]">
             Your first year is waiting.
           </h2>
           <p className="mt-3 max-w-[30rem] text-sm leading-relaxed text-[var(--text-secondary)] lg:text-[0.9375rem]">
