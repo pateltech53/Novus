@@ -37,6 +37,26 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 0.8,
     },
+    // The product story: the fork, and its two doors. Each door carries its
+    // own canonical and is a page worth landing on from a search.
+    {
+      url: absoluteUrl("/product"),
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: absoluteUrl("/product/you"),
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: absoluteUrl("/product/institutions"),
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
     // The two documents App Store Connect asks for by URL, and that a
     // reviewer follows from the listing. Low priority, but they have to be
     // crawlable — an unindexed policy is one more thing to explain in a

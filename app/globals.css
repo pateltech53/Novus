@@ -1748,6 +1748,209 @@ textarea {
   }
 }
 
+/* ══ The product pages · /product ═══════════════════════════════════════════
+ *
+ * A scroll-told story: pinned scenes whose animation is driven by ONE custom
+ * property, `--p`, written by components/product/Scroll.tsx as the visitor
+ * scrolls through the pinned section. Everything visual derives from it in
+ * CSS — so the JS cost per frame is one setProperty per scene, and every
+ * element still animates only transform and opacity (design.md §5).
+ *
+ * ── The contract ────────────────────────────────────────────────────────────
+ *
+ *   .pv-scene   the pinned section. Declares `--p: 1`, which is the FINAL
+ *               state — so the server render, a no-JS visitor and a crawler
+ *               all see the finished composition, never a page of opacity-0.
+ *               The client writes the true progress before the scene is
+ *               reached (every scene after the first starts below the fold).
+ *
+ *   .pv-t       computes `--t`: this element's own 0→1 within the scene.
+ *               `--a` is where its window opens (in scene progress), `--w` how
+ *               long the window is. `--oa`/`--ow` open a LEAVING window; both
+ *               default far past 1 so nothing leaves unless asked to.
+ *
+ *   .pv-fx      spends `--t` on the two properties allowed to animate:
+ *               opacity, and a translate/scale composed from the knobs
+ *               `--pv-dx` / `--pv-dy` / `--pv-ds`.
+ *
+ *   .pv-draw    an SVG path with pathLength="1" drawing itself in.
+ *   .pv-bar     a waveform bar growing to its authored height `--h`.
+ *   .pv-dim     lit at rest, extinguished by its window — the runway gauge.
+ *
+ * Reduced motion is a cut, not a shortening: Scroll.tsx renders the scene
+ * unpinned at natural height and never writes `--p`, so the default — the
+ * finished state — is simply the page.
+ */
+
+.pv-scene {
+  --p: 1;
+}
+
+.pv-t {
+  --t: clamp(0, calc((var(--p) - var(--a, 0)) / var(--w, 0.18)), 1);
+  /* The leaving window. Defaults to "never". */
+  --u: clamp(0, calc((var(--p) - var(--oa, 9)) / var(--ow, 0.12)), 1);
+}
+
+.pv-fx {
+  opacity: calc(var(--t) * (1 - var(--u)));
+  transform: translate3d(
+      calc(var(--pv-dx, 0px) * (1 - var(--t))),
+      calc(var(--pv-dy, 28px) * (1 - var(--t)) - var(--pv-uy, 0px) * var(--u)),
+      0
+    )
+    scale(calc(1 - var(--pv-ds, 0) * (1 - var(--t))));
+}
+
+/* An SVG line drawing itself. `pathLength="1"` on the path makes the dash
+   arithmetic unitless, so one rule fits every length of line. */
+.pv-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: calc(1 - var(--t));
+}
+
+/* One bar of the pitch scene's waveform. `--h` is the bar's authored height
+   share; the floor keeps a silent meter from vanishing entirely. */
+.pv-bar {
+  transform-origin: center;
+  transform: scaleY(calc(0.12 + var(--h, 0.6) * var(--t)));
+}
+
+/* Lit at rest, put out by its window — the runway gauge losing months. */
+.pv-dim {
+  opacity: calc(1 - var(--t) * 0.82);
+}
+
+/* A line drawing itself across — the rubric strike, the transcript underline.
+   scaleX rather than width, because width is layout and never animates. */
+.pv-wipe {
+  transform: scaleX(var(--t));
+  transform-origin: left;
+}
+
+/*
+ * ── The navy world ──────────────────────────────────────────────────────────
+ *
+ * The product story opens and closes on the brand's own ground — the navy the
+ * onboarding, the camera and the panel already live on. This is a SCOPED
+ * re-pointing of the same semantic tokens every component reads, derived from
+ * `--color-navy` rather than written as new values, so the brand hue cannot
+ * fork. Both site themes land here identically: the stage is the stage.
+ */
+.pv-dark {
+  color-scheme: dark;
+
+  --bg: var(--color-navy);
+  --surface: color-mix(in oklch, var(--color-navy) 86%, white);
+  --surface-elevated: color-mix(in oklch, var(--color-navy) 78%, white);
+  --surface-overlay: color-mix(in oklch, var(--color-navy) 72%, white);
+  --hairline: color-mix(in oklch, var(--color-navy) 70%, white);
+
+  --text-primary: oklch(0.975 0.004 250);
+  --text-secondary: color-mix(in oklch, oklch(0.975 0.004 250) 70%, var(--color-navy));
+  --text-tertiary: color-mix(in oklch, oklch(0.975 0.004 250) 48%, var(--color-navy));
+
+  /* Full-strength brand accent — navy is dark ground, so the deepened light-
+     theme orange would be the wrong correction here. */
+  --action: var(--color-action);
+  --action-hover: oklch(0.72 0.19 45);
+  --action-press: oklch(0.6 0.17 45);
+  --on-action: oklch(0.99 0 0);
+
+  --solvency: oklch(0.76 0.17 162);
+  --alert: oklch(0.68 0.21 25);
+
+  /* Dark-strength elevation: the light theme's lit-room shadows disappear on
+     navy, and a shadow that cannot be seen is elevation that does not exist. */
+  --e1: 0 1px 2px oklch(0 0 0 / 0.24), 0 1px 3px oklch(0 0 0 / 0.12);
+  --e2: 0 2px 4px oklch(0 0 0 / 0.22), 0 4px 12px oklch(0 0 0 / 0.16);
+  --e3: 0 4px 8px oklch(0 0 0 / 0.24), 0 12px 32px oklch(0 0 0 / 0.2);
+  --e4: 0 8px 16px oklch(0 0 0 / 0.26), 0 24px 56px oklch(0 0 0 / 0.26);
+
+  /* The mascot stage sweep (`.nv-stage`, gradient #3 of 3) re-pointed to the
+     navy: a soft key behind the subject, a floor a step deeper than the wall. */
+  --stage-key: color-mix(in oklch, var(--color-navy) 76%, white);
+  --stage-wall: color-mix(in oklch, var(--color-navy) 97%, white);
+  --stage-floor: color-mix(in oklch, var(--color-navy) 86%, black);
+
+  --glass-specular: oklch(1 0 0 / 0.16);
+  --glass-underside: oklch(0 0 0 / 0.22);
+  --glass-ring: oklch(1 0 0 / 0.08);
+  --glass-tint: color-mix(in oklch, var(--color-navy) 62%, transparent);
+  --glass-drop: 0 -1px 24px oklch(0 0 0 / 0.28);
+
+  background: var(--bg);
+  color: var(--text-primary);
+}
+
+/*
+ * ── The gate ────────────────────────────────────────────────────────────────
+ *
+ * /product opens on a choice, and the two doors arrive from the sides they
+ * sit on. CSS rather than scroll-driven — the gate is above the fold, and an
+ * entrance must not wait for JavaScript (same reasoning as `.nv-rise`).
+ */
+@keyframes pvDoorL {
+  from {
+    opacity: 0;
+    transform: translateX(-36px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pvDoorR {
+  from {
+    opacity: 0;
+    transform: translateX(36px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.pv-door-l {
+  animation: pvDoorL 0.55s var(--ease-out) backwards;
+  animation-delay: var(--pv-door-delay, 0ms);
+}
+
+.pv-door-r {
+  animation: pvDoorR 0.55s var(--ease-out) backwards;
+  animation-delay: var(--pv-door-delay, 0ms);
+}
+
+/* Choosing a door: the stage eases toward the camera as the route changes.
+   The exit curve, because leaving is a decision already made. */
+.pv-gate {
+  transition:
+    opacity 240ms var(--ease-in),
+    transform 240ms var(--ease-in);
+}
+
+.pv-gate[data-leaving="true"] {
+  opacity: 0;
+  transform: scale(1.035);
+}
+
+/* The recording dot. Ambient by design and clamped to a single frame by the
+   blanket reduced-motion rule, which is the correct outcome — it carries no
+   information the REC label beside it does not. */
+@keyframes pvRec {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.25;
+  }
+}
+
+.pv-rec {
+  animation: pvRec 1.05s var(--ease-in-out) infinite alternate;
+}
+
 /* ── Data-viz palette (the admin console's charts) ──────────────────────────
    Two series colors, a five-step blue recency ramp, and chart chrome —
    validated per mode with the dataviz six-checks (CVD ΔE, normal-vision
