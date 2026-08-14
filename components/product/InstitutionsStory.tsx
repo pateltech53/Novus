@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { StoryFooter, Wordbar } from "@/components/product/Bits";
@@ -614,19 +615,8 @@ export function InstitutionsStory() {
             teach, what you score, how many seats. We set the chapter up and
             tune the season with you.
           </p>
-          <div className="mt-7 flex max-w-[30rem] flex-col gap-3 sm:flex-row sm:items-center">
-            <a
-              href="mailto:team@novuspitch.com?subject=Novus%20for%20our%20institution"
-              className="nv-gc nv-t-action rounded-[var(--radius-card)] px-6 py-3.5 text-center text-sm font-extrabold tracking-[0.04em]"
-            >
-              TALK TO THE TEAM
-            </a>
-            <a
-              href="/#pro"
-              className="px-2 py-2 text-center text-sm font-bold underline decoration-[var(--hairline)] underline-offset-4 transition-colors hover:decoration-[var(--text-primary)] sm:text-left"
-            >
-              Or start a licence now
-            </a>
+          <div className="mt-7">
+            <TalkToTeam />
           </div>
           <p className="tnum mt-4 max-w-[32rem] text-xs leading-relaxed text-[var(--text-tertiary)]">
             Licences run {formatPrice(seats35.priceCents)} a year for{" "}
@@ -646,6 +636,101 @@ export function InstitutionsStory() {
         </div>
       </section>
     </main>
+  );
+}
+
+const TEAM_ADDRESS = "team@novuspitch.com";
+
+/**
+ * The door itself. This was a bare `mailto:` — which, on any machine without
+ * a configured mail client (most desks), is a button that does nothing. The
+ * press now opens a card that states the address, copies it on a tap, and
+ * keeps the mail-app link for whoever has one. The address is the deliverable;
+ * the protocols are conveniences.
+ */
+function TalkToTeam() {
+  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const addressRef = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(TEAM_ADDRESS);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      /*
+       * Clipboard refused — permissions, or a non-secure context. Select the
+       * address instead, so the manual copy the visitor falls back to lands
+       * on exactly the right characters.
+       */
+      const node = addressRef.current;
+      if (node) {
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        const sel = window.getSelection();
+        sel?.removeAllRanges();
+        sel?.addRange(range);
+      }
+    }
+  };
+
+  return (
+    <div className="max-w-[30rem]">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          className="nv-gc nv-t-action rounded-[var(--radius-card)] px-6 py-3.5 text-center text-sm font-extrabold tracking-[0.04em]"
+        >
+          TALK TO THE TEAM
+        </button>
+        <a
+          href="/#pro"
+          className="px-2 py-2 text-center text-sm font-bold underline decoration-[var(--hairline)] underline-offset-4 transition-colors hover:decoration-[var(--text-primary)] sm:text-left"
+        >
+          Or start a licence now
+        </a>
+      </div>
+
+      {open ? (
+        <div className="nv-rise mt-3 rounded-[var(--radius-card)] bg-[var(--surface)] p-4 shadow-[var(--e2)] ring-1 ring-[var(--hairline)]">
+          <p className="text-2xs font-bold tracking-[0.16em] text-[var(--text-tertiary)]">
+            EMAIL THE TEAM
+          </p>
+          <div className="mt-2 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+            {/* `select-all`: one tap selects the whole address, so even the
+                no-clipboard path is a single gesture. */}
+            <p ref={addressRef} className="tnum select-all text-sm font-extrabold">
+              {TEAM_ADDRESS}
+            </p>
+            <button
+              type="button"
+              onClick={() => void copy()}
+              className="nv-gc shrink-0 rounded-[var(--radius-row)] px-4 py-2 text-2xs font-extrabold tracking-[0.08em]"
+            >
+              {copied ? "COPIED ✓" : "COPY ADDRESS"}
+            </button>
+          </div>
+          <a
+            href={`mailto:${TEAM_ADDRESS}?subject=Novus%20for%20our%20institution`}
+            className="mt-2.5 inline-block text-2xs font-bold tracking-[0.06em] text-[var(--text-tertiary)] underline decoration-[var(--hairline)] underline-offset-4 transition-colors hover:text-[var(--text-secondary)]"
+          >
+            OR OPEN YOUR MAIL APP →
+          </a>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
