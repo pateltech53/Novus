@@ -2,7 +2,6 @@
 
 import {
   createContext,
-  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -12,67 +11,54 @@ import {
 import { useStill } from "@/components/ui/Motion";
 
 /**
- * A viewport too short to pin in.
+ * The product story's scene player.
  *
- * A pinned scene is a composition for one viewport, and under ~640px of
- * height there is no viewport to compose in — an SE-class phone, a phone on
- * its side, a split window. Pinning there means cropping: `overflow-hidden`
- * eats whatever the frame cannot hold, and a visitor cannot scroll to what a
- * sticky frame has cropped. So a short viewport gets the same treatment
- * reduced motion does — the scene unpins, flows at its natural height, and
- * rests in its finished state, which the engine guarantees is the whole
- * composition.
- */
-function useShortViewport(): boolean {
-  const [short, setShort] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(max-height: 640px)");
-    setShort(mq.matches);
-    const onChange = () => setShort(mq.matches);
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, []);
-  return short;
-}
-
-/**
- * The product story's scroll engine.
+ * ── Scrubbed, then triggered — and why it changed ──────────────────────────
  *
- * One idea, applied strictly: a pinned scene is driven by ONE number — how far
- * the visitor has scrolled through it — and that number leaves JavaScript
- * exactly once per frame, as the `--p` custom property on the scene root.
- * Everything visual derives from it in CSS (see the `.pv-*` rules in
- * globals.css), so a scene with forty animating elements still costs one
- * setProperty per frame, and every one of those elements animates only
- * transform and opacity.
+ * The first build tied every scene to scroll position: a pinned frame five
+ * viewports tall, with the choreography played by the visitor's own thumb.
+ * Technically elegant, and wrong for the audience — the feedback, verbatim,
+ * was "得一点一点滑": you had to feed the page scroll to watch it move.
  *
- * The mapping is ScrollPhone's, kept for the same reasons it was earned there:
+ * So the driver changed and the choreography did not. A scene is now ONE
+ * viewport-height slide in normal flow. When it enters the viewport's middle
+ * band, it plays: every element runs its own eased entrance after its own
+ * delay, the counters roll, the lines draw — on a clock, not on the thumb.
+ * One flick per scene, the way the Apple product pages this imitates
+ * actually behave. Proximity scroll-snap (globals.css, on pages that opt in
+ * with `data-pv-snap`) settles each flick onto the next slide.
  *
- *   · geometry is measured once and re-measured only on an actual resize —
- *     `window.innerHeight` moves continuously while a phone collapses its
- *     toolbar, and a divisor that moves mid-gesture steps the animation;
- *   · progress is written from a scroll listener through ONE
- *     requestAnimationFrame latch, never once per scroll event;
- *   · heights are `svh`, the one viewport unit that holds still.
+ * The vocabulary survived the change of driver: `fx(at, …)` still authors an
+ * element's moment as a 0–1 fraction — it now maps to a transition delay of
+ * `at × --pv-beat` (the scene's total playing time) instead of a scroll
+ * window, so every storyboard written for the scrubbed engine plays back
+ * unchanged. Entrances are real CSS transitions on `--ease-out`, which is
+ * what the scrubbed version's linear tweens could never be.
  *
- * ── Server render, no-JS, and reduced motion ───────────────────────────────
+ * ── The three states, and who sees which ───────────────────────────────────
  *
- * `.pv-scene` declares `--p: 1` — the FINISHED composition — so the prerender,
- * a crawler and a no-JS visitor see the story's final frames rather than a
- * column of opacity-0. The client writes true progress on mount; every scene
- * after the first sits below the fold, so the correction is never watched.
+ *   rest      the FINISHED composition. What the server renders, what a
+ *             crawler reads, what no-JS and reduced motion get. Never a page
+ *             of opacity-0.
+ *   armed     hidden at its start positions, transitions off. Applied by the
+ *             client after hydration, before the scene is reached — every
+ *             scene after the first sits below the fold, so the reset is
+ *             never watched.
+ *   playing   armed + `data-play`: every transition runs, each after its
+ *             authored delay.
  *
- * Reduced motion is a cut, not a shortening: the scene renders unpinned at
- * natural height, `--p` is never written, and the default IS the page.
+ * Reduced motion never arms, so the finished state simply is the page — a
+ * cut, not a shortening (design.md §5).
  */
 
 type ProgressFn = (p: number) => void;
 
 interface PinHandle {
-  /** Subscribe to this scene's progress. Replays the latest value on
-   *  subscribe, so a component mounting mid-scene starts correct. */
+  /** Subscribe to the scene's clock, 0→1 over the beat. Replays the current
+   *  value on subscribe, so a component mounting late starts correct. */
   subscribe: (fn: ProgressFn) => () => void;
-  /** Reduced motion, resolved once for the scene. */
+  /** True when the scene will never play: reduced motion. Consumers render
+   *  their finished values directly. */
   still: boolean;
 }
 
@@ -85,123 +71,91 @@ export function usePin(): PinHandle {
 }
 
 export function Pin({
-  length = 3,
+  beat = 2600,
   ariaLabel,
   className = "",
-  stickyClassName = "",
-  initial,
+  playOnMount = false,
   children,
 }: {
-  /** How many viewports of scroll drive this scene. */
-  length?: number;
+  /** The scene's total playing time in ms — what an element's `fx(at)`
+   *  fraction is a delay into. */
+  beat?: number;
   ariaLabel: string;
   className?: string;
-  /** Extra classes for the pinned frame (the 100svh sticky child). */
-  stickyClassName?: string;
-  /**
-   * Server-rendered `--p`, for the ONE scene that sits at the fold: the
-   * default of 1 exists so below-the-fold scenes prerender finished, but a
-   * hero at scroll position zero prerendering finished would flash — its
-   * later beats would paint and then vanish when the client writes the truth.
-   * Ignored under reduced motion, where the finished state IS the page.
-   */
-  initial?: number;
+  /** The scene at the fold plays as the page arrives instead of waiting to
+   *  be scrolled to. */
+  playOnMount?: boolean;
   children: React.ReactNode;
 }) {
   const still = useStill();
-  const short = useShortViewport();
-  /** Unpinned: reduced motion, or a viewport with no room to pin in. */
-  const flat = still || short;
   const sectionRef = useRef<HTMLElement>(null);
   const subscribers = useRef(new Set<ProgressFn>());
-  /*
-   * -1, not 0, and the difference was a visible bug: the first write's
-   * dedupe check compared the computed 0 against an initial 0 and skipped
-   * the write — so a scene the visitor had not reached yet kept the CSS
-   * default `--p: 1` and showed its FINISHED frame until the first pixel of
-   * real progress snapped it back to zero. A sentinel below the valid range
-   * makes the first write unconditional.
-   */
-  const lastP = useRef(-1);
+  const clock = useRef(0);
+  const [armed, setArmed] = useState(false);
+  const [playing, setPlaying] = useState(false);
 
-  const geometry = useRef({ top: 0, span: 1 });
-
-  const measure = useCallback(() => {
-    const el = sectionRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    geometry.current = {
-      top: rect.top + window.scrollY,
-      span: Math.max(1, rect.height - window.innerHeight),
-    };
-  }, []);
-
+  // Arm after hydration: the server ships the finished state, the client
+  // resets the scene to its start positions before it scrolls into view.
   useEffect(() => {
-    const el = sectionRef.current;
-    if (!el) return;
-    if (flat) {
-      // Entering flat mode leaves a stale progress behind; the default
-      // `--p: 1` — the finished state — is the correct layout there. The
-      // sentinel resets with it, so returning to pinned rewrites at once.
-      el.style.removeProperty("--p");
-      lastP.current = -1;
+    if (!still) setArmed(true);
+  }, [still]);
+
+  // Play when the scene crosses the viewport's middle band — a 40% strip,
+  // rather than an intersection ratio, so a scene taller than the viewport
+  // (phones) still fires. Once is enough; a story re-read is not re-told.
+  useEffect(() => {
+    if (still || playing) return;
+    if (playOnMount) {
+      setPlaying(true);
       return;
     }
+    const el = sectionRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setPlaying(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setPlaying(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: "-30% 0px -30% 0px", threshold: 0 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [still, playing, playOnMount]);
 
-    let queued = 0;
-    const write = () => {
-      queued = 0;
-      const { top, span } = geometry.current;
-      const raw = (window.scrollY - top) / span;
-      const p = raw < 0 ? 0 : raw > 1 ? 1 : raw;
-      if (p === lastP.current) return;
-      lastP.current = p;
-      el.style.setProperty("--p", p.toFixed(4));
+  // The clock the JS consumers (counters, the REC timer) run on: linear
+  // 0→1 over the beat, so an `fx` fraction means the same moment to a
+  // CountUp as it does to a transition delay.
+  useEffect(() => {
+    if (!playing) return;
+    let raf = 0;
+    const started = performance.now();
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - started) / beat);
+      clock.current = p;
       for (const fn of subscribers.current) fn(p);
+      if (p < 1) raf = requestAnimationFrame(tick);
     };
-
-    const onScroll = () => {
-      if (!queued) queued = requestAnimationFrame(write);
-    };
-
-    const remeasure = () => {
-      measure();
-      onScroll();
-    };
-
-    remeasure();
-    // The first write must not wait for a scroll event — the server said
-    // `--p: 1`, and the truth (usually 0, this scene being below the fold)
-    // has to land before the scene ever enters the viewport.
-    write();
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", remeasure);
-    const ro = new ResizeObserver(remeasure);
-    ro.observe(el);
-
-    return () => {
-      if (queued) cancelAnimationFrame(queued);
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", remeasure);
-      ro.disconnect();
-    };
-  }, [measure, flat]);
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [playing, beat]);
 
   const handle = useMemo<PinHandle>(
     () => ({
       subscribe: (fn) => {
         subscribers.current.add(fn);
-        // The sentinel never leaves this module: before the first write a
-        // subscriber is told 0, which is where an unreached scene stands.
-        fn(flat ? 1 : Math.max(0, lastP.current));
+        fn(still ? 1 : clock.current);
         return () => {
           subscribers.current.delete(fn);
         };
       },
-      still: flat,
+      still,
     }),
-    [flat],
+    [still],
   );
 
   return (
@@ -209,25 +163,13 @@ export function Pin({
       <section
         ref={sectionRef}
         aria-label={ariaLabel}
-        className={`pv-scene relative ${className}`}
-        style={
-          flat
-            ? undefined
-            : ({
-                height: `${length * 100}svh`,
-                ...(initial !== undefined ? { "--p": String(initial) } : {}),
-              } as React.CSSProperties)
-        }
+        data-pv-scene
+        data-arm={armed || undefined}
+        data-play={playing || undefined}
+        className={`pv-scene relative flex min-h-[100svh] flex-col ${className}`}
+        style={{ "--pv-beat": `${beat}ms` } as React.CSSProperties}
       >
-        <div
-          className={
-            flat
-              ? `relative py-14 ${stickyClassName}`
-              : `sticky top-0 flex h-[100svh] flex-col overflow-hidden ${stickyClassName}`
-          }
-        >
-          {children}
-        </div>
+        {children}
       </section>
     </PinContext.Provider>
   );
@@ -236,9 +178,10 @@ export function Pin({
 /**
  * The window an element animates inside, as inline custom properties.
  *
- * `at` is where the window opens in scene progress, `over` how long it runs;
- * `until`/`overOut` open a leaving window. The distances are the `.pv-fx`
- * knobs. Numbers in, tokens out — so a scene reads as a storyboard.
+ * `at` is the element's moment as a fraction of the scene's beat; the
+ * distances are where it arrives FROM. `over`, `until`, `overOut` and `uy`
+ * are accepted for compatibility with storyboards written for the scrubbed
+ * engine and are inert here — an element that has entered, stays.
  */
 export function fx(
   at: number,
@@ -246,13 +189,12 @@ export function fx(
   opts: {
     dx?: number;
     dy?: number;
-    /** Scale deficit at rest: 0.06 arrives from 94%. */
+    /** Scale deficit on arrival: 0.06 arrives from 94%. */
     ds?: number;
     /** Degrees the element un-rotates on arrival: 6 arrives from +6°. */
     dr?: number;
     until?: number;
     overOut?: number;
-    /** How far the element rises while leaving. */
     uy?: number;
   } = {},
 ): React.CSSProperties {
@@ -264,21 +206,13 @@ export function fx(
   if (opts.dy !== undefined) style["--pv-dy"] = `${opts.dy}px`;
   if (opts.ds !== undefined) style["--pv-ds"] = String(opts.ds);
   if (opts.dr !== undefined) style["--pv-dr"] = `${opts.dr}deg`;
-  if (opts.until !== undefined) {
-    style["--oa"] = String(opts.until);
-    style["--ow"] = String(opts.overOut ?? 0.12);
-    style["--pv-uy"] = `${opts.uy ?? 18}px`;
-  }
   return style as React.CSSProperties;
 }
 
 /**
  * The reading rail: how much of the story has been read, as a 2px hairline.
- *
- * Page-level rather than per-scene, so it lives beside <Pin> instead of
- * inside one. Same discipline as the scene engine — one scaleX write per
- * frame through one rAF latch — and it simply does not render for reduced
- * motion: a progress bar that cannot move is a stray line.
+ * One scaleX write per frame through one rAF latch; absent under reduced
+ * motion, where a progress bar that cannot move is a stray line.
  */
 export function Rail() {
   const still = useStill();
@@ -312,12 +246,11 @@ export function Rail() {
 }
 
 /**
- * A figure that rolls to its value as the scene reaches it.
+ * A figure that rolls to its value as the scene's clock reaches it.
  *
- * JS rather than CSS because a number is CONTENT: it is read, selected and
- * crawled, so the real value has to be in the markup — the server renders the
- * destination, and the scroll merely replays the journey. `.tnum` at every
- * call site keeps the rolling digits from shifting a pixel.
+ * JS rather than CSS because a number is CONTENT: the real value is in the
+ * markup — the server renders the destination, and the clock merely replays
+ * the journey. `.tnum` at every call site keeps the digits from shifting.
  */
 export function CountUp({
   to,
@@ -329,7 +262,7 @@ export function CountUp({
 }: {
   to: number;
   from?: number;
-  /** Window in scene progress, same vocabulary as fx(). */
+  /** Window on the scene's clock, same vocabulary as fx(). */
   at: number;
   over?: number;
   format?: (n: number) => string;
