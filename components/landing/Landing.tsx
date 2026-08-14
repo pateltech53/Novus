@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 /*
@@ -989,6 +989,13 @@ function PricingSection() {
                   </div>
                 );
               })()}
+
+              {/* The recommended door for everything a seat count cannot
+                  say: content tuned to a curriculum, a rubric scored the
+                  school's way, invoicing, timelines. Stated with a copyable
+                  address rather than a bare mailto: that bets on a mail
+                  client being configured. */}
+              <TalkFirstRow />
             </div>
 
             <p className="mt-4 text-2xs leading-relaxed text-[var(--text-tertiary)]">
@@ -1055,6 +1062,66 @@ function YourPlan({ label = "YOUR PLAN" }: { label?: string }) {
     <span className="shrink-0 rounded-[var(--radius-pill)] bg-[var(--surface)] px-2.5 py-1 text-2xs font-bold tracking-[0.12em] text-[var(--color-prestige)] ring-1 ring-[var(--hairline)]">
       {label}
     </span>
+  );
+}
+
+/**
+ * The chapters column's closing row: buying seats is self-serve above, and
+ * everything beyond a seat count — events aligned to a curriculum, a rubric
+ * scored the school's way, invoicing, any other ask — is a conversation,
+ * and the recommended first step. The address is selectable and copied on a
+ * tap; no bare mailto: betting on a configured mail client.
+ */
+function TalkFirstRow() {
+  const [copied, setCopied] = useState(false);
+  const addressRef = useRef<HTMLSpanElement>(null);
+  const address = "team@novuspitch.com";
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(address);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      // Clipboard refused: select the address so a manual copy lands right.
+      const node = addressRef.current;
+      if (node) {
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        const sel = window.getSelection();
+        sel?.removeAllRanges();
+        sel?.addRange(range);
+      }
+    }
+  };
+
+  return (
+    <div className="rounded-[var(--radius-row)] bg-[var(--surface)] p-3 ring-1 ring-[var(--hairline)]">
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="text-sm font-bold">Customising the season?</p>
+        <p className="text-2xs font-bold tracking-[0.1em] text-[var(--color-prestige)]">
+          RECOMMENDED
+        </p>
+      </div>
+      <p className="mt-1 text-xs leading-relaxed text-[var(--text-secondary)]">
+        Events aligned to your curriculum, a rubric scored your way, invoicing
+        — or anything else. Write to{" "}
+        <span
+          ref={addressRef}
+          className="tnum select-all font-bold text-[var(--text-primary)]"
+        >
+          {address}
+        </span>{" "}
+        and a person sets it up with you.
+      </p>
+      <button
+        type="button"
+        onClick={() => void copy()}
+        className="nv-gc mt-2.5 w-full rounded-[var(--radius-row)] px-4 py-2 text-xs font-extrabold tracking-[0.06em]"
+      >
+        {copied ? "COPIED ✓" : "COPY THE ADDRESS"}
+      </button>
+    </div>
   );
 }
 
