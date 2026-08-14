@@ -5,7 +5,7 @@ or 100, or any size the buyer types. Every seat is Pro for the licence year.
 This document is the operator's view: what to run, what to configure, and how
 the flow behaves end to end.
 
-The licences: **$299 / year for 35 seats** and **$599 / year for 100 seats**
+The licences: **$799 / year for 35 seats** and **$1,599 / year for 100 seats**
 (`chapter_35`, `chapter_100` in `lib/monetization.ts`). The live Stripe
 product ids ship as in-code defaults — see `docs/STRIPE-SETUP.md` §2.
 

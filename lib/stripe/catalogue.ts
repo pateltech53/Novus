@@ -146,7 +146,11 @@ export const CATALOGUE: Readonly<Record<SkuId, Sku>> = {
     id: "chapter_100",
     kind: "subscription",
     envVar: "STRIPE_PRICE_CHAPTER_100",
-    defaultId: "prod_V0RRsSw8Z2z0hD",
+    // The $1,599 product, minted for the licence repricing. The original
+    // (prod_V0RRsSw8Z2z0hD) still carries $599 in the live account, and
+    // resolvePrice() would refuse it forever against the new expectedCents —
+    // which is the guard doing its job, so the id moved instead.
+    defaultId: "prod_V4J52t9fUOcrVm",
     expectedCents: licence("chapter_100").priceCents,
     label: "Novus Chapter — 100 seats",
   },

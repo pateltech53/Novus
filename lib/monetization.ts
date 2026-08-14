@@ -34,13 +34,12 @@ export type Cents = number;
 export type Cadence = "month" | "year" | "once";
 
 /**
- * "$6.99" — and "$299" rather than "$299.00", because that is how it is sold.
+ * "$6.99" — and "$799" rather than "$799.00", because that is how it is sold.
  *
- * Grouped above a thousand. Nothing here reached four figures while a custom
- * chapter stopped at 500 seats; now that it does not, the same function prints
- * the largest number on the site, and "$59900" is a figure a buyer has to stop
- * and count digits on. Only values over $999 change — every published price is
- * three digits or fewer and formats exactly as before.
+ * Grouped above a thousand. That used to matter only for oversized custom
+ * chapters; since the licence repricing it is on the page for everyone —
+ * chapter_100 is "$1,599", and "$159900" is a figure a buyer has to stop and
+ * count digits on.
  */
 export function formatPrice(cents: Cents): string {
   const whole = cents % 100 === 0;
@@ -126,8 +125,8 @@ export interface ChapterLicence {
 }
 
 export const CHAPTER_LICENCES: readonly ChapterLicence[] = [
-  { id: "chapter_35", seats: 35, priceCents: 29900, cadence: "year" },
-  { id: "chapter_100", seats: 100, priceCents: 59900, cadence: "year" },
+  { id: "chapter_35", seats: 35, priceCents: 79900, cadence: "year" },
+  { id: "chapter_100", seats: 100, priceCents: 159900, cadence: "year" },
 ];
 
 /**
@@ -181,7 +180,7 @@ export const isCustomSeatCount = (v: unknown): v is number =>
 /**
  * What N seats cost for a year, derived from the two fixed licences so the
  * three prices can never disagree: below 35 seats the 35-seat per-seat rate,
- * from 35 to 100 a straight line through the two tiers ($299 → $599), above
+ * from 35 to 100 a straight line through the two tiers ($799 → $1,599), above
  * 100 the 100-seat rate carried on. At exactly 35 or 100 it lands on the
  * tier price to the cent, so the custom row can never undercut — or shame —
  * the fixed one beside it. Rounded to whole dollars, because that is how a

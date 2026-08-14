@@ -208,6 +208,67 @@ export function Landing() {
         </div>
       </section>
 
+      {/* ── 2b · The product, at length ────────────────────────────────────
+          The door to /product: the same navy slab the story pages are built
+          from, floating on the light page — the one dark object on the front
+          door, which is what makes it impossible to scroll past unseen. The
+          two doors go straight to their stories; the fork is one line below
+          for whoever wants the choice framed first. No accent spent: the
+          page's orange belongs to the account gate. */}
+      <section aria-label="The product, at length">
+        <div className="mx-auto w-full max-w-6xl px-6 pt-16 lg:px-10 lg:pt-24">
+          <div className="pv-dark overflow-hidden rounded-[2rem] p-7 shadow-[var(--e3)] sm:p-10 lg:p-14">
+            <p className="pv-kicker text-2xs font-bold tracking-[0.24em] text-[var(--text-tertiary)]">
+              THE PRODUCT, AT LENGTH
+            </p>
+            <h2 className="mt-3 max-w-[17em] text-[1.75rem] font-extrabold leading-[1.12] tracking-[-0.02em] sm:text-[2.25rem] lg:text-[2.75rem]">
+              One game. Two ways in.
+            </h2>
+            <p className="mt-3 max-w-[30rem] text-sm leading-relaxed text-[var(--text-secondary)] lg:text-[0.9375rem]">
+              The whole story, told by the scrollbar — the run, the books, the
+              camera, the panel. Pick your door.
+            </p>
+            <div className="mt-7 grid max-w-2xl gap-3 sm:grid-cols-2">
+              {[
+                { href: "/product/you", kicker: "FOR YOU", title: "Play it" },
+                {
+                  href: "/product/institutions",
+                  kicker: "FOR INSTITUTIONS",
+                  title: "Run it with a group",
+                },
+              ].map((door) => (
+                <a
+                  key={door.href}
+                  href={door.href}
+                  className="pv-door group flex items-center justify-between gap-4 rounded-[var(--radius-card)] bg-[var(--surface)] px-5 py-4 shadow-[var(--e1)] ring-1 ring-[var(--hairline)]"
+                >
+                  <span className="min-w-0">
+                    <span className="block text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]">
+                      {door.kicker}
+                    </span>
+                    <span className="mt-0.5 block truncate text-base font-extrabold">
+                      {door.title}
+                    </span>
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    className="text-lg leading-none text-[var(--text-secondary)] transition-transform duration-200 group-hover:translate-x-1"
+                  >
+                    →
+                  </span>
+                </a>
+              ))}
+            </div>
+            <a
+              href="/product"
+              className="mt-5 inline-block text-2xs font-bold tracking-[0.08em] text-[var(--text-tertiary)] underline decoration-[var(--hairline)] underline-offset-4 transition-colors hover:text-[var(--text-secondary)]"
+            >
+              OR START AT THE FORK →
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* ── 3 · The game, in hand ──────────────────────────────────────────
           One real screen on a phone the visitor turns with their own scroll. */}
       <section aria-label="The game itself">
