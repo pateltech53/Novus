@@ -337,7 +337,7 @@ export function YouStory() {
 
           {/* The deck, fanning out of one pile. Rest position is the fan;
               each card arrives from the centre of it. */}
-          <div className="relative mx-auto mt-6 h-[26rem] w-full max-w-3xl sm:h-[17rem]">
+          <div className="relative mx-auto mt-6 h-[34rem] w-full max-w-3xl min-[360px]:h-[29rem] sm:h-[17rem]">
             {EVENTS.map((card, i) => (
               <div
                 key={card.title}
@@ -426,7 +426,7 @@ export function YouStory() {
             className="pv-t pv-fx relative w-full max-w-[34rem]"
             style={fx(0.16, 0.12, { dy: 30 })}
           >
-            <div className="relative aspect-[16/10] w-full">
+            <div className="relative aspect-[4/3] w-full sm:aspect-[16/10]">
               {/* Corner brackets. */}
               {[
                 "left-0 top-0 border-l-2 border-t-2 rounded-tl-md",
@@ -495,7 +495,7 @@ export function YouStory() {
               </p>
 
               <p
-                className="pv-t pv-fx absolute bottom-2 right-4 text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]"
+                className="pv-t pv-fx absolute bottom-2 right-4 hidden text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)] sm:block"
                 style={fx(0.42, 0.1)}
               >
                 20–120 SECONDS · SCORED ON WHAT YOU SAY

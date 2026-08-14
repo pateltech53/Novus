@@ -7,8 +7,33 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
 } from "react";
 import { useStill } from "@/components/ui/Motion";
+
+/**
+ * A viewport too short to pin in.
+ *
+ * A pinned scene is a composition for one viewport, and under ~640px of
+ * height there is no viewport to compose in — an SE-class phone, a phone on
+ * its side, a split window. Pinning there means cropping: `overflow-hidden`
+ * eats whatever the frame cannot hold, and a visitor cannot scroll to what a
+ * sticky frame has cropped. So a short viewport gets the same treatment
+ * reduced motion does — the scene unpins, flows at its natural height, and
+ * rests in its finished state, which the engine guarantees is the whole
+ * composition.
+ */
+function useShortViewport(): boolean {
+  const [short, setShort] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-height: 640px)");
+    setShort(mq.matches);
+    const onChange = () => setShort(mq.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  return short;
+}
 
 /**
  * The product story's scroll engine.
@@ -84,6 +109,9 @@ export function Pin({
   children: React.ReactNode;
 }) {
   const still = useStill();
+  const short = useShortViewport();
+  /** Unpinned: reduced motion, or a viewport with no room to pin in. */
+  const flat = still || short;
   const sectionRef = useRef<HTMLElement>(null);
   const subscribers = useRef(new Set<ProgressFn>());
   /*
@@ -110,7 +138,15 @@ export function Pin({
 
   useEffect(() => {
     const el = sectionRef.current;
-    if (!el || still) return;
+    if (!el) return;
+    if (flat) {
+      // Entering flat mode leaves a stale progress behind; the default
+      // `--p: 1` — the finished state — is the correct layout there. The
+      // sentinel resets with it, so returning to pinned rewrites at once.
+      el.style.removeProperty("--p");
+      lastP.current = -1;
+      return;
+    }
 
     let queued = 0;
     const write = () => {
@@ -150,7 +186,7 @@ export function Pin({
       window.removeEventListener("resize", remeasure);
       ro.disconnect();
     };
-  }, [measure, still]);
+  }, [measure, flat]);
 
   const handle = useMemo<PinHandle>(
     () => ({
@@ -158,14 +194,14 @@ export function Pin({
         subscribers.current.add(fn);
         // The sentinel never leaves this module: before the first write a
         // subscriber is told 0, which is where an unreached scene stands.
-        fn(still ? 1 : Math.max(0, lastP.current));
+        fn(flat ? 1 : Math.max(0, lastP.current));
         return () => {
           subscribers.current.delete(fn);
         };
       },
-      still,
+      still: flat,
     }),
-    [still],
+    [flat],
   );
 
   return (
@@ -175,7 +211,7 @@ export function Pin({
         aria-label={ariaLabel}
         className={`pv-scene relative ${className}`}
         style={
-          still
+          flat
             ? undefined
             : ({
                 height: `${length * 100}svh`,
@@ -185,8 +221,8 @@ export function Pin({
       >
         <div
           className={
-            still
-              ? `relative ${stickyClassName}`
+            flat
+              ? `relative py-14 ${stickyClassName}`
               : `sticky top-0 flex h-[100svh] flex-col overflow-hidden ${stickyClassName}`
           }
         >

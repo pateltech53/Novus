@@ -157,7 +157,7 @@ export function InstitutionsStory() {
                   </span>
                 </div>
               </div>
-              <p className="mt-3 text-xs leading-relaxed text-[var(--text-secondary)]">
+              <p className="mt-3 hidden text-xs leading-relaxed text-[var(--text-secondary)] sm:block">
                 The Books — cash, burn, runway, valuation — live on every
                 screen, in real vocabulary.
               </p>
@@ -183,7 +183,7 @@ export function InstitutionsStory() {
                   </div>
                 ))}
               </div>
-              <p className="mt-3 text-xs leading-relaxed text-[var(--text-secondary)]">
+              <p className="mt-3 hidden text-xs leading-relaxed text-[var(--text-secondary)] sm:block">
                 289 authored events push back — drawn toward whatever a student
                 is weakest at.
               </p>
@@ -217,7 +217,7 @@ export function InstitutionsStory() {
                   </span>
                 ))}
               </div>
-              <p className="mt-3 text-xs leading-relaxed text-[var(--text-secondary)]">
+              <p className="mt-3 hidden text-xs leading-relaxed text-[var(--text-secondary)] sm:block">
                 The fiscal year will not close without a scored, on-camera
                 pitch to the five-shark panel.
               </p>
@@ -262,7 +262,7 @@ export function InstitutionsStory() {
               Teaching finance? Weight the events that stress the books.
             </p>
             <div
-              className="pv-t pv-fx mt-5 flex max-w-[26rem] flex-wrap gap-1.5"
+              className="pv-t pv-fx mt-5 hidden max-w-[26rem] flex-wrap gap-1.5 sm:flex"
               style={fx(0.3, 0.14, { dy: 14 })}
             >
               {SUBJECTS.map((s, i) => (
@@ -287,7 +287,7 @@ export function InstitutionsStory() {
           {/* The rubric card: the stock line struck through, yours written in. */}
           <div className="lg:col-span-7">
             <div
-              className="pv-t pv-fx mx-auto w-full max-w-[30rem] rounded-[var(--radius-card)] bg-[var(--n-3)] p-5 shadow-[var(--e3)] ring-1 ring-[var(--hairline)]"
+              className="pv-t pv-fx mx-auto w-full max-w-[30rem] rounded-[var(--radius-card)] bg-[var(--n-3)] p-4 shadow-[var(--e3)] ring-1 ring-[var(--hairline)] sm:p-5"
               style={fx(0.12, 0.16, { dy: 60, ds: 0.04, dr: -3 })}
             >
               <div className="flex items-baseline justify-between gap-3">
@@ -352,7 +352,7 @@ export function InstitutionsStory() {
               would — from the student&rsquo;s own numbers, in front of the
               class&rsquo;s own standards.
             </p>
-            <ul className="mt-6 max-w-[26rem] space-y-3.5">
+            <ul className="mt-6 hidden max-w-[26rem] space-y-3.5 lg:block">
               {[
                 {
                   at: 0.44,
@@ -388,7 +388,7 @@ export function InstitutionsStory() {
           {/* The transcript, read the way the panel reads it. */}
           <div className="lg:col-span-7">
             <div
-              className="pv-t pv-fx mx-auto w-full max-w-[30rem] rounded-[var(--radius-card)] bg-[var(--n-3)] p-5 shadow-[var(--e3)] ring-1 ring-[var(--hairline)]"
+              className="pv-t pv-fx mx-auto w-full max-w-[30rem] rounded-[var(--radius-card)] bg-[var(--n-3)] p-4 shadow-[var(--e3)] ring-1 ring-[var(--hairline)] sm:p-5"
               style={fx(0.12, 0.16, { dy: 60, ds: 0.04, dr: 3 })}
             >
               <div className="flex items-baseline justify-between gap-3">
