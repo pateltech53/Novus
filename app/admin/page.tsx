@@ -18,16 +18,21 @@ import {
 } from "@/components/admin/charts";
 import { restorePurchases } from "@/lib/cloud/billing";
 import { INDUSTRIES } from "@/lib/engine/constants";
+import { fmtMoney } from "@/lib/engine/format";
 import {
   CHAPTER_CUSTOM_MAX_SEATS,
   CHAPTER_CUSTOM_MIN_SEATS,
   CHAPTER_LICENCES,
+  formatPrice,
   FREE_LIMITS,
   ISLAND_CAP,
   isCustomSeatCount,
   PRO_LIMITS,
+  PRO_MONTHLY,
+  PRO_YEARLY,
 } from "@/lib/monetization";
 import { play } from "@/lib/sound";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 /**
  * /admin — the operator's console.
@@ -50,21 +55,73 @@ interface UserRow {
   id: string;
   email: string | null;
   displayName: string | null;
+  boardHandle: string | null;
   role: string;
   anonymous: boolean;
   createdAt: string;
   lastSignInAt: string | null;
+  lastSeen: string | null;
+  /** The entitlement flag alone — what the webhook wrote. */
   pro: boolean;
+  /** That OR a subscription Stripe currently calls live (0016). This is the
+   *  one the badge reads: an account being charged is a paying account
+   *  whether or not the flag beside it agrees. */
+  paid: boolean;
+  effectivePro: boolean;
+  /** Why this account has Pro: admin / paid / gift / chapter, or null. */
+  accessSource: string | null;
+  /** 'stripe-not-granted' | 'granted-not-billed' | null. */
+  billingMismatch: string | null;
   compPro: boolean;
   compUntil: string | null;
   compNote: string | null;
   chapter: string | null;
   extraIslands: number;
+  extraYearCloses: number;
   industryPacks: string[];
   subscriptionStatus: string | null;
   plan: string | null;
+  currentPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
   ownsChapter: { id: string; status: string | null; source: string | null; licence: string | null } | null;
   seatChapterId: string | null;
+  // ── What the account has actually done (0016) ────────────────────────────
+  runsCompleted: number;
+  bestYear: number;
+  companies: number;
+  companiesAlive: number;
+  topCompany: string | null;
+  topValuation: number;
+  liveValuation: number;
+  boardEntries: number;
+}
+
+/** One row of admin_billing_mismatches — the two billing records disagreeing. */
+interface Mismatch {
+  id: string;
+  email: string | null;
+  display_name: string | null;
+  kind: "stripe-not-granted" | "granted-not-billed";
+  entitlement_pro: boolean;
+  subscription_status: string | null;
+  plan: string | null;
+  current_period_end: string | null;
+  has_customer: boolean;
+}
+
+/** One row of admin_top_companies. */
+interface TopCompany {
+  profile_id: string;
+  email: string | null;
+  board_handle: string | null;
+  company_name: string;
+  industry: string;
+  year: number;
+  stage: number;
+  alive: boolean;
+  valuation: number;
+  peak_valuation: number;
+  updated_at: string;
 }
 
 interface Detail {
@@ -106,14 +163,21 @@ interface Detail {
     current_period_end: string | null;
   }>;
   seat: { chapter_id: string; email: string; claimed_at: string | null } | null;
+  /** admin_user_companies (0016) — the listing columns plus the figures. */
   saves: Array<{
     slot: number;
     company_name: string;
     industry: string;
     year: number;
+    month: number;
     stage: number;
     alive: boolean;
     ended_by: string | null;
+    valuation: number;
+    peak_valuation: number;
+    cash: number;
+    revenue_annual: number;
+    employees: number | null;
     updated_at: string;
   }>;
   legacy: { best_year: number; runs_completed: number; shark_respect: number; badges: string[] } | null;
@@ -152,12 +216,37 @@ interface Stats {
   activeMonth?: number;
   /** The last-seen histogram: within 1d / 1–7d / 7–30d / 30–90d / older. */
   activity?: { d1: number; d7: number; d30: number; d90: number; older: number };
+  // ── Paid, and the evidence on both sides of it (0016) ────────────────────
+  /** Entitlement flag OR a live Stripe subscription. The honest total. */
   proPaid?: number;
+  /** Stripe alone. */
+  proStripe?: number;
+  /** The entitlement flag alone — what the old, wrong tile counted. */
+  proGranted?: number;
   proComp?: number;
+  proChapter?: number;
+  proEffective?: number;
+  proMonthly?: number;
+  proYearly?: number;
+  proUnknownPlan?: number;
+  billingMismatch?: number;
+  notGranted?: number;
+  notBilled?: number;
+  cancelling?: number;
+  pastDue?: number;
   chapterSeats?: number;
   chaptersActive?: number;
   chaptersComp?: number;
+  // ── What has been played ─────────────────────────────────────────────────
+  runsCompleted?: number;
+  runsToday?: number;
+  companies?: number;
   savesAlive?: number;
+  playersPlaying?: number;
+  islandsSold?: number;
+  valuationLive?: number;
+  valuationBest?: number;
+  boardEntries?: number;
   boardListed?: number;
   boardQueue?: number;
 }
@@ -190,6 +279,64 @@ interface AuditRow {
 
 type View = "free" | "pro" | "all";
 type Phase = "loading" | "denied" | "ready";
+
+/** The directory's lens. Every one of these answers a question an operator
+ *  actually asks out loud — "who is paying", "who is stuck", "who plays". */
+type Filter =
+  | "all"
+  | "paid"
+  | "gifted"
+  | "chapter"
+  | "playing"
+  | "mismatch"
+  | "admins"
+  | "anonymous";
+
+type Sort = "joined" | "seen" | "runs" | "value";
+
+const FILTERS: { id: Filter; label: string }[] = [
+  { id: "all", label: "EVERYONE" },
+  { id: "paid", label: "PAYING" },
+  { id: "gifted", label: "GIFTED" },
+  { id: "chapter", label: "CHAPTER" },
+  { id: "playing", label: "PLAYING" },
+  { id: "mismatch", label: "BILLING ⚠" },
+  { id: "admins", label: "ADMINS" },
+  { id: "anonymous", label: "ANONYMOUS" },
+];
+
+const SORTS: { id: Sort; label: string }[] = [
+  { id: "joined", label: "NEWEST" },
+  { id: "seen", label: "LAST SEEN" },
+  { id: "runs", label: "MOST RUNS" },
+  { id: "value", label: "BIGGEST CO." },
+];
+
+const matchesFilter = (u: UserRow, filter: Filter): boolean => {
+  switch (filter) {
+    case "paid":      return u.paid;
+    case "gifted":    return u.compPro;
+    case "chapter":   return !!u.chapter || u.ownsChapter?.status === "active";
+    case "playing":   return u.companiesAlive > 0;
+    case "mismatch":  return !!u.billingMismatch;
+    case "admins":    return u.role === "admin";
+    case "anonymous": return u.anonymous;
+    default:          return true;
+  }
+};
+
+const compare = (a: UserRow, b: UserRow, sort: Sort): number => {
+  switch (sort) {
+    case "seen":
+      return Date.parse(b.lastSeen ?? b.createdAt) - Date.parse(a.lastSeen ?? a.createdAt);
+    case "runs":
+      return b.runsCompleted - a.runsCompleted || b.companies - a.companies;
+    case "value":
+      return b.topValuation - a.topValuation;
+    default:
+      return Date.parse(b.createdAt) - Date.parse(a.createdAt);
+  }
+};
 
 // ── Plumbing ────────────────────────────────────────────────────────────────
 
@@ -227,6 +374,20 @@ const day = (iso: string | null | undefined): string =>
 /** ISO for "now plus n days", for the gift chips. */
 const inDays = (n: number): string => new Date(Date.now() + n * 86400000).toISOString();
 
+/** A company's worth, in the game's own shorthand — "$1.4M", "$860K". The
+ *  console reads the same figures the year-end statement does, so it should
+ *  read them the same way. */
+const money = (n: number | null | undefined): string =>
+  typeof n === "number" && Number.isFinite(n) ? fmtMoney(n) : "—";
+
+/** Recurring revenue, monthly, from the subscription counts. The prices come
+ *  from lib/monetization.ts rather than a constant here, so a price rise is
+ *  one edit in the place prices already live. A yearly plan is divided by
+ *  twelve — this is what the month is worth, not what was charged this month. */
+const monthlyRevenueCents = (stats: Stats): number =>
+  (stats.proMonthly ?? 0) * PRO_MONTHLY.priceCents +
+  Math.round(((stats.proYearly ?? 0) * PRO_YEARLY.priceCents) / 12);
+
 const INDUSTRY_CODES = INDUSTRIES.map((i) => i.code);
 
 // ── The page ────────────────────────────────────────────────────────────────
@@ -242,11 +403,18 @@ export default function AdminPage() {
   const [stats, setStats] = useState<Stats>({});
   const [series, setSeries] = useState<SeriesRow[]>([]);
   const [cohorts, setCohorts] = useState<CohortRow[]>([]);
+  const [mismatches, setMismatches] = useState<Mismatch[]>([]);
+  const [topCompanies, setTopCompanies] = useState<TopCompany[]>([]);
   const [auditTail, setAuditTail] = useState<AuditRow[]>([]);
 
   const [q, setQ] = useState("");
   const [users, setUsers] = useState<UserRow[]>([]);
   const [total, setTotal] = useState(0);
+  /* The directory's own lens. Filtering and sorting happen on the page rather
+     than in the query: the list is at most 200 rows, and a round trip to
+     re-sort a list already in memory is a spinner nobody needed to see. */
+  const [filter, setFilter] = useState<Filter>("all");
+  const [sort, setSort] = useState<Sort>("joined");
   const [openId, setOpenId] = useState<string | null>(null);
   const [detail, setDetail] = useState<Detail | null>(null);
 
@@ -261,19 +429,32 @@ export default function AdminPage() {
       stats: Stats;
       series: SeriesRow[];
       cohorts: CohortRow[];
+      mismatches: Mismatch[];
+      topCompanies: TopCompany[];
       audit: AuditRow[];
     }>("/api/admin/stats");
     if (body) {
       setStats(body.stats);
       setSeries(body.series ?? []);
       setCohorts(body.cohorts ?? []);
+      setMismatches(body.mismatches ?? []);
+      setTopCompanies(body.topCompanies ?? []);
       setAuditTail(body.audit);
     }
   }, []);
 
   const loadUsers = useCallback(async (needle: string) => {
+    /*
+     * 200, the function's own ceiling, rather than 50.
+     *
+     * The filter chips below cut the list down on this page, and a chip that
+     * says PAID while the server only sent the fifty newest accounts is a
+     * filter that lies by omission — it would show "3 paid" out of a database
+     * with thirty. The count under the heading still says how many the search
+     * actually matched, so a search wider than one page announces itself.
+     */
     const body = await call<{ users: UserRow[]; total: number }>(
-      `/api/admin/users?q=${encodeURIComponent(needle)}&limit=50`,
+      `/api/admin/users?q=${encodeURIComponent(needle)}&limit=200`,
     );
     if (body) {
       setUsers(body.users);
@@ -335,6 +516,25 @@ export default function AdminPage() {
       setBusy(null);
     },
     [busy],
+  );
+
+  /*
+   * Take the operator to an account they found somewhere other than the
+   * directory — a billing mismatch, a company on the leaderboard of the
+   * biggest. The search box is set to the account so the row is definitely in
+   * the list when it opens: expanding a row the list does not contain would
+   * draw a detail panel attached to nothing.
+   */
+  const openAccount = useCallback(
+    (id: string, needle: string | null) => {
+      const search = needle ?? id;
+      setQ(search);
+      setOpenId(id);
+      setDetail(null);
+      void loadUsers(search);
+      void loadDetail(id);
+    },
+    [loadUsers, loadDetail],
   );
 
   const refreshOpen = useCallback(async () => {
@@ -465,6 +665,57 @@ export default function AdminPage() {
       ],
     );
 
+  /*
+   * Ask Stripe what is true and write it down.
+   *
+   * Not a grant: /api/admin/reconcile reads the subscription back FROM Stripe
+   * and hands it to the same syncSubscription both webhook paths call, so this
+   * button cannot give Pro to anyone Stripe is not already charging — and will
+   * take it away if Stripe says the subscription ended. That is what makes it
+   * safe to press on any account without thinking about it.
+   */
+  const reconcile = (id: string) =>
+    act(
+      `reconcile:${id}`,
+      async () => {
+        const out = await call<{ ok: boolean; message?: string }>("/api/admin/reconcile", {
+          method: "POST",
+          body: JSON.stringify({ profileId: id }),
+        });
+        if (out?.message) setNote(out.message);
+      },
+      [refreshOpen, loadStats],
+    );
+
+  /*
+   * The directory, as a file.
+   *
+   * A fetch rather than a plain link, because the export is behind the same
+   * session the console is and an `<a download>` to an API route would be a
+   * navigation that the native shell handles differently on every platform.
+   * The blob is built here and clicked here, which works the same everywhere.
+   */
+  const exportCsv = () =>
+    act(
+      "export",
+      async () => {
+        const res = await fetch(
+          apiUrl(`/api/admin/users?q=${encodeURIComponent(q)}&format=csv&limit=200`),
+          { credentials: API_CREDENTIALS },
+        );
+        if (!res.ok) throw new Error(`Export failed (HTTP ${res.status}).`);
+        const url = URL.createObjectURL(await res.blob());
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "novus-accounts.csv";
+        a.click();
+        // Revoked on the next frame, not immediately: Safari has not finished
+        // reading the blob when click() returns.
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      },
+      [],
+    );
+
   const decide = (entryId: string, listed: boolean) =>
     act(
       `mod:${entryId}`,
@@ -576,6 +827,14 @@ export default function AdminPage() {
     return { retentionBars: retention, bounceBars: bounce };
   }, [cohorts]);
 
+  /** The list as it is actually shown: the lens applied, in memory. */
+  const shown = useMemo(
+    () => users.filter((u) => matchesFilter(u, filter)).sort((a, b) => compare(a, b, sort)),
+    [users, filter, sort],
+  );
+
+  const mrr = useMemo(() => monthlyRevenueCents(stats), [stats]);
+
   const recencyBuckets = useMemo(() => {
     const a = stats.activity;
     if (!a) return [];
@@ -639,14 +898,21 @@ export default function AdminPage() {
         {/* On iOS the way back is the toolbar's leading chevron and refresh
             its trailing circle — the DOM chip is not rendered at all rather
             than hidden, so no invisible control can take a tap. */}
-        {native ? null : (
-          <a
-            href={homeHref()}
-            className="nv-gc rounded-full px-4 py-2 text-2xs font-bold tracking-[0.1em] text-[var(--text-secondary)]"
-          >
-            BACK TO NOVUS
-          </a>
-        )}
+        <div className="flex items-center gap-3">
+          {/* The console is a working surface, read for long stretches and
+              often beside a Supabase tab. Which theme it is read in belongs to
+              the operator, here, rather than three taps away inside the game's
+              own Settings. */}
+          <ThemeToggle />
+          {native ? null : (
+            <a
+              href={homeHref()}
+              className="nv-gc rounded-full px-4 py-2 text-2xs font-bold tracking-[0.1em] text-[var(--text-secondary)]"
+            >
+              BACK TO NOVUS
+            </a>
+          )}
+        </div>
       </div>
 
       {/* ── The view switch ─────────────────────────────────────────────── */}
@@ -695,13 +961,79 @@ export default function AdminPage() {
           <Stat label="ACTIVE TODAY" value={stats.activeToday} />
           <Stat label="ACTIVE · 7 DAYS" value={stats.activeWeek} />
           <Stat label="ACTIVE · 30 DAYS" value={stats.activeMonth} />
-          <Stat label="PRO · PAID" value={stats.proPaid} />
+          {/*
+            PRO · PAID is the union of both billing records (0016), not the
+            entitlement flag alone — which is why it used to read zero for
+            subscribers whose webhook never landed. The sub-line names the
+            two halves so the number can be checked rather than trusted.
+          */}
+          <Stat
+            label="PRO · PAID"
+            value={stats.proPaid}
+            sub={
+              stats.proPaid !== undefined
+                ? `${stats.proStripe ?? 0} live in Stripe · ${stats.proGranted ?? 0} granted`
+                : undefined
+            }
+          />
           <Stat label="PRO · GIFTED" value={stats.proComp} />
+          <Stat
+            label="PRO · IN TOTAL"
+            value={stats.proEffective}
+            sub="paid, gifted, seats and admins"
+          />
+          <Stat
+            label="REVENUE / MONTH"
+            value={stats.proPaid === undefined ? undefined : mrr}
+            display={stats.proPaid === undefined ? undefined : formatPrice(mrr)}
+            sub={`${stats.proMonthly ?? 0} monthly · ${stats.proYearly ?? 0} yearly${
+              stats.proUnknownPlan ? ` · ${stats.proUnknownPlan} unknown plan` : ""
+            }`}
+          />
           <Stat label="CHAPTERS" value={stats.chaptersActive} sub={stats.chaptersComp ? `${stats.chaptersComp} comped` : undefined} />
           <Stat label="SEATS FILLED" value={stats.chapterSeats} />
-          <Stat label="LIVE COMPANIES" value={stats.savesAlive} />
-          <Stat label="BOARD · QUEUE" value={stats.boardQueue} />
           <Stat label="ADMINS" value={stats.admins} />
+        </div>
+
+        {/* ── What has been played ─────────────────────────────────────── */}
+        <h3 className="mt-6 text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]">
+          WHAT HAS BEEN PLAYED
+        </h3>
+        <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Stat
+            label="RUNS COMPLETED"
+            value={stats.runsCompleted}
+            sub="companies carried to an ending"
+          />
+          <Stat label="RUNS STARTED TODAY" value={stats.runsToday} />
+          <Stat
+            label="COMPANIES"
+            value={stats.companies}
+            sub={stats.savesAlive !== undefined ? `${stats.savesAlive} still alive` : undefined}
+          />
+          <Stat
+            label="PLAYERS PLAYING"
+            value={stats.playersPlaying}
+            sub="accounts with a live company"
+          />
+          <Stat
+            label="LIVE VALUE"
+            value={stats.valuationLive}
+            display={money(stats.valuationLive)}
+            sub="every live company, added up"
+          />
+          <Stat
+            label="BIGGEST EVER"
+            value={stats.valuationBest}
+            display={money(stats.valuationBest)}
+            sub="the highest any books have read"
+          />
+          <Stat
+            label="BOARD ENTRIES"
+            value={stats.boardEntries}
+            sub={stats.boardListed !== undefined ? `${stats.boardListed} listed` : undefined}
+          />
+          <Stat label="BOARD · QUEUE" value={stats.boardQueue} />
         </div>
         {auditTail.length > 0 && (
           <details className="mt-3">
@@ -805,12 +1137,147 @@ export default function AdminPage() {
         </div>
       </section>
 
+      {/* ── Billing, and where its two records disagree ─────────────────── */}
+      <section className="mt-8">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="text-sm font-extrabold tracking-[0.08em]">BILLING</h2>
+          <p className="tnum text-2xs font-bold text-[var(--text-tertiary)]">
+            {mismatches.length === 0 ? "NOTHING TO FIX" : `${mismatches.length} TO CHECK`}
+          </p>
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Stat
+            label="PAYING & NOT PRO"
+            value={stats.notGranted}
+            tone="alert"
+            sub="Stripe is charging; access is off"
+          />
+          <Stat
+            label="PRO & NOT PAYING"
+            value={stats.notBilled}
+            sub="access is on; Stripe has nothing live"
+          />
+          <Stat label="CANCELLING" value={stats.cancelling} sub="Pro until the period ends" />
+          <Stat label="PAST DUE" value={stats.pastDue} tone="alert" sub="a card Stripe is retrying" />
+        </div>
+
+        {mismatches.length === 0 ? (
+          <p className="mt-3 rounded-[var(--radius-card)] bg-[var(--n-2)] px-4 py-6 text-sm leading-relaxed text-[var(--text-secondary)]">
+            Every account&rsquo;s entitlement agrees with its Stripe subscription.
+            Nothing to reconcile.
+          </p>
+        ) : (
+          <>
+            <p className="mt-3 text-2xs leading-relaxed text-[var(--text-tertiary)]">
+              <b>PAYING &amp; NOT PRO</b> is the one that costs a player money for
+              nothing: Stripe is charging the card and the entitlement never
+              landed, which is what a missed webhook looks like from this side.
+              RECONCILE asks Stripe what is true and writes it down — it grants
+              nothing Stripe is not already charging for, and it will take Pro
+              back if the subscription has ended.
+            </p>
+            <ul className="mt-2">
+              {mismatches.map((m) => (
+                <li
+                  key={m.id}
+                  className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[var(--hairline)] py-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="tnum truncate text-sm font-extrabold">
+                      {m.email ?? "(no email)"}
+                    </p>
+                    <p className="tnum text-2xs text-[var(--text-tertiary)]">
+                      {m.kind === "stripe-not-granted"
+                        ? `Stripe says ${m.subscription_status ?? "?"} · entitlement says no Pro`
+                        : `Entitlement says Pro · Stripe says ${m.subscription_status ?? "nothing live"}`}
+                      {m.plan ? ` · ${m.plan}` : ""}
+                      {m.current_period_end ? ` · until ${day(m.current_period_end)}` : ""}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {m.kind === "stripe-not-granted" && <Badge tone="alert">PAYING, NO PRO</Badge>}
+                    <button
+                      type="button"
+                      onClick={() => openAccount(m.id, m.email)}
+                      className="rounded-full border border-[var(--hairline)] px-3 py-1.5 text-2xs font-bold tracking-[0.08em] text-[var(--text-secondary)]"
+                    >
+                      OPEN
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void reconcile(m.id)}
+                      disabled={busy !== null}
+                      className="nv-gc rounded-full px-3 py-1.5 text-2xs font-bold tracking-[0.08em] text-[var(--text-secondary)] disabled:opacity-35"
+                    >
+                      {busy === `reconcile:${m.id}` ? "…" : "RECONCILE"}
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </section>
+
+      {/* ── The companies ───────────────────────────────────────────────── */}
+      {topCompanies.length > 0 && (
+        <section className="mt-8">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="text-sm font-extrabold tracking-[0.08em]">THE BIGGEST COMPANIES</h2>
+            <p className="tnum text-2xs font-bold text-[var(--text-tertiary)]">
+              BY PEAK VALUATION
+            </p>
+          </div>
+          <ul className="mt-3">
+            {topCompanies.map((c, i) => (
+              <li
+                key={`${c.profile_id}-${c.company_name}-${i}`}
+                className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-[var(--hairline)] py-2.5"
+              >
+                <p className="tnum w-6 shrink-0 text-2xs font-bold text-[var(--text-tertiary)]">
+                  {i + 1}
+                </p>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-extrabold">
+                    {c.company_name}{" "}
+                    <span className="font-normal text-[var(--text-secondary)]">
+                      {c.board_handle ?? c.email ?? "—"}
+                    </span>
+                  </p>
+                  <p className="tnum text-2xs text-[var(--text-tertiary)]">
+                    {c.industry} · year {c.year} · stage {c.stage} ·{" "}
+                    {c.alive ? "alive" : "ended"} · saved {day(c.updated_at)}
+                  </p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="tnum text-sm font-extrabold">{money(c.peak_valuation)}</p>
+                  <p className="tnum text-2xs text-[var(--text-tertiary)]">
+                    {c.alive ? `${money(c.valuation)} now` : "peak"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => openAccount(c.profile_id, c.email)}
+                  className="shrink-0 rounded-full border border-[var(--hairline)] px-3 py-1.5 text-2xs font-bold tracking-[0.08em] text-[var(--text-secondary)]"
+                >
+                  OWNER
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {/* ── Accounts ────────────────────────────────────────────────────── */}
       <section className="mt-8">
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="text-sm font-extrabold tracking-[0.08em]">ACCOUNTS</h2>
           <p className="tnum text-2xs font-bold text-[var(--text-tertiary)]">
-            {users.length < total ? `SHOWING ${users.length} OF ${total}` : `${total} FOUND`}
+            {shown.length < users.length
+              ? `${shown.length} OF ${users.length} SHOWN`
+              : users.length < total
+                ? `SHOWING ${users.length} OF ${total}`
+                : `${total} FOUND`}
           </p>
         </div>
         <form
@@ -836,8 +1303,67 @@ export default function AdminPage() {
           </button>
         </form>
 
+        {/* ── The lens ───────────────────────────────────────────────────
+            Applied here rather than in the query: the search already brought
+            back everything it matched, and a round trip to re-sort a list
+            that is already in memory is a spinner nobody needed to see. */}
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          {FILTERS.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setFilter(f.id)}
+              className={`rounded-full px-3 py-1.5 text-2xs font-bold tracking-[0.08em] ${
+                filter === f.id
+                  ? "bg-[var(--text-primary)] text-[var(--n-1)]"
+                  : "nv-gc text-[var(--text-secondary)]"
+              }`}
+            >
+              {f.label}
+              {f.id !== "all" && (
+                <span className="tnum ml-1.5 opacity-60">
+                  {users.filter((u) => matchesFilter(u, f.id)).length}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          <p className="text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]">SORT</p>
+          {SORTS.map((o) => (
+            <button
+              key={o.id}
+              type="button"
+              onClick={() => setSort(o.id)}
+              className={`rounded-full px-3 py-1.5 text-2xs font-bold tracking-[0.08em] ${
+                sort === o.id
+                  ? "bg-[var(--text-primary)] text-[var(--n-1)]"
+                  : "nv-gc text-[var(--text-secondary)]"
+              }`}
+            >
+              {o.label}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => void exportCsv()}
+            disabled={busy !== null}
+            className="ml-auto rounded-full border border-[var(--hairline)] px-3 py-1.5 text-2xs font-bold tracking-[0.08em] text-[var(--text-secondary)] disabled:opacity-35"
+          >
+            {busy === "export" ? "…" : "EXPORT CSV"}
+          </button>
+        </div>
+
+        {shown.length === 0 && (
+          <p className="mt-3 rounded-[var(--radius-card)] bg-[var(--n-2)] px-4 py-6 text-sm leading-relaxed text-[var(--text-secondary)]">
+            {users.length === 0
+              ? "No account matches that search."
+              : "No account in this search matches that filter."}
+          </p>
+        )}
+
         <ul className="mt-3">
-          {users.map((u) => (
+          {shown.map((u) => (
             <li key={u.id} className="border-t border-[var(--hairline)]">
               <button
                 type="button"
@@ -859,12 +1385,33 @@ export default function AdminPage() {
                   </p>
                   <p className="text-2xs text-[var(--text-tertiary)]">
                     {u.displayName ? `${u.displayName} · ` : ""}
-                    joined {day(u.createdAt)} · seen {day(u.lastSignInAt)}
+                    {u.boardHandle ? `${u.boardHandle} · ` : ""}
+                    joined {day(u.createdAt)} · seen {day(u.lastSeen ?? u.lastSignInAt)}
+                  </p>
+                  {/*
+                    What the account has DONE, on the row rather than three
+                    taps into a panel. The directory used to say only who
+                    somebody had paid to be.
+                  */}
+                  <p className="tnum text-2xs text-[var(--text-secondary)]">
+                    {u.runsCompleted} {u.runsCompleted === 1 ? "run" : "runs"} ·{" "}
+                    {u.companies} {u.companies === 1 ? "company" : "companies"}
+                    {u.companiesAlive > 0 ? ` (${u.companiesAlive} alive)` : ""}
+                    {u.topCompany ? ` · ${u.topCompany} ${money(u.topValuation)}` : ""}
+                    {u.boardEntries > 0 ? ` · ${u.boardEntries} on the board` : ""}
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-wrap gap-1.5">
                   {u.role === "admin" && <Badge tone="prestige">ADMIN</Badge>}
-                  {u.pro && <Badge tone="good">PRO</Badge>}
+                  {/* PAID, not `pro`: the badge follows the same union the
+                      tile does, so an account Stripe is charging reads as
+                      paying even while its entitlement flag lags. */}
+                  {u.paid && <Badge tone="good">PAID</Badge>}
+                  {u.billingMismatch === "stripe-not-granted" && (
+                    <Badge tone="alert">PAYING, NO PRO</Badge>
+                  )}
+                  {u.billingMismatch === "granted-not-billed" && <Badge tone="alert">UNBILLED</Badge>}
+                  {u.cancelAtPeriodEnd && <Badge>CANCELLING</Badge>}
                   {u.compPro && <Badge tone="good">GIFTED</Badge>}
                   {u.chapter && <Badge>SEAT</Badge>}
                   {u.ownsChapter?.status === "active" && (
@@ -893,6 +1440,7 @@ export default function AdminPage() {
                       onSetYearCloses={(n) => void setYearCloses(u.id, n)}
                       onGrantChapter={(licence, seats) => void grantChapter(u.id, licence, seats)}
                       onRevokeChapter={(cid) => void revokeChapter(cid)}
+                      onReconcile={() => void reconcile(u.id)}
                       onDelete={() => void deleteAccount(u.id)}
                     />
                   )}
@@ -965,23 +1513,52 @@ export default function AdminPage() {
 
 // ── Pieces ──────────────────────────────────────────────────────────────────
 
-function Stat({ label, value, sub }: { label: string; value: number | undefined; sub?: string }) {
+function Stat({
+  label,
+  value,
+  sub,
+  display,
+  tone,
+}: {
+  label: string;
+  value: number | undefined;
+  sub?: string;
+  /** What to print instead of the raw number — a money figure, usually. The
+   *  VALUE still decides whether the tile has an answer at all, so a stat
+   *  that has not loaded shows a dash rather than a confident "$0". */
+  display?: string;
+  tone?: "alert";
+}) {
   return (
     <div className="rounded-[var(--radius-card)] bg-[var(--n-3)] px-4 py-3 shadow-[var(--e1)] ring-1 ring-[var(--hairline)]">
       <p className="text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]">{label}</p>
-      <p className="tnum mt-1 text-xl font-extrabold">{value ?? "—"}</p>
+      <p
+        className={`tnum mt-1 text-xl font-extrabold ${
+          tone === "alert" && value ? "text-[var(--alert)]" : ""
+        }`}
+      >
+        {value === undefined ? "—" : (display ?? value)}
+      </p>
       {sub && <p className="text-2xs text-[var(--text-tertiary)]">{sub}</p>}
     </div>
   );
 }
 
-function Badge({ children, tone }: { children: React.ReactNode; tone?: "good" | "prestige" }) {
+function Badge({
+  children,
+  tone,
+}: {
+  children: React.ReactNode;
+  tone?: "good" | "prestige" | "alert";
+}) {
   const colour =
     tone === "good"
       ? "text-[var(--solvency)]"
       : tone === "prestige"
         ? "text-[var(--color-prestige)]"
-        : "text-[var(--text-tertiary)]";
+        : tone === "alert"
+          ? "text-[var(--alert)]"
+          : "text-[var(--text-tertiary)]";
   return (
     <span className={`rounded-full border border-[var(--hairline)] px-2 py-0.5 text-2xs font-bold tracking-[0.08em] ${colour}`}>
       {children}
@@ -1001,6 +1578,7 @@ function DetailPanel({
   onSetYearCloses,
   onGrantChapter,
   onRevokeChapter,
+  onReconcile,
   onDelete,
 }: {
   detail: Detail;
@@ -1014,6 +1592,7 @@ function DetailPanel({
   onSetYearCloses: (n: number) => void;
   onGrantChapter: (licence: string, seats?: number) => void;
   onRevokeChapter: (chapterId: string) => void;
+  onReconcile: () => void;
   onDelete: () => void;
 }) {
   const [islandsText, setIslandsText] = useState(String(detail.entitlements?.extra_islands ?? 0));
@@ -1027,6 +1606,26 @@ function DetailPanel({
 
   const e = detail.entitlements;
   const compActive = !!e?.comp_pro && (!e.comp_until || new Date(e.comp_until) > new Date());
+  /*
+   * The same union 0016's admin_access() computes, recomputed here from what
+   * this panel already holds. The two records are shown SEPARATELY on the Pro
+   * line above rather than folded into one word, because when they disagree
+   * the disagreement is the thing worth reading.
+   */
+  const stripeLive = ["active", "trialing", "past_due"].includes(
+    detail.billing?.subscription_status ?? "",
+  );
+  const mismatch: "stripe-not-granted" | "granted-not-billed" | null = stripeLive
+    ? e?.pro
+      ? null
+      : "stripe-not-granted"
+    : e?.pro
+      ? "granted-not-billed"
+      : null;
+  const companiesLiveValue = detail.saves.reduce(
+    (sum, s) => sum + (s.alive ? s.valuation : 0),
+    0,
+  );
   // What the account's TIER allows before the grant, so the row can state the
   // total rather than leaving the operator to add four and a gift in their head.
   const paceBase =
@@ -1050,6 +1649,16 @@ function DetailPanel({
           {detail.billing
             ? `${detail.billing.plan ?? "—"} (${detail.billing.subscription_status ?? "—"}${detail.billing.cancel_at_period_end ? ", cancelling" : ""})`
             : "never bought"}
+          {detail.billing?.current_period_end
+            ? ` · until ${day(detail.billing.current_period_end)}`
+            : ""}
+        </p>
+        <p>
+          <b>Pro</b> ·{" "}
+          {e?.pro ? "entitlement granted" : "entitlement off"}
+          {stripeLive ? ", Stripe live" : ", Stripe not live"}
+          {compActive ? ", gifted" : ""}
+          {e?.chapter ? ", chapter seat" : ""}
         </p>
         {detail.legacy && (
           <p>
@@ -1062,14 +1671,43 @@ function DetailPanel({
         )}
       </div>
 
+      {/* ── Billing, when the two records disagree ──────────────────────── */}
+      {mismatch && (
+        <div className="rounded-[var(--radius-card)] bg-[var(--alert)]/10 px-3 py-3">
+          <p className="text-2xs font-bold tracking-[0.1em] text-[var(--alert)]">
+            {mismatch === "stripe-not-granted"
+              ? "PAYING WITHOUT PRO"
+              : "PRO WITHOUT A LIVE SUBSCRIPTION"}
+          </p>
+          <p className="mt-1 text-2xs leading-relaxed text-[var(--text-secondary)]">
+            {mismatch === "stripe-not-granted"
+              ? "Stripe is charging this card and the entitlement never landed — a webhook that did not arrive. RECONCILE reads the subscription back from Stripe and writes it down."
+              : "This account holds Pro and Stripe has nothing live behind it. Usually a subscription that ended while the flag was never cleared. RECONCILE writes down whatever Stripe actually says, which may take Pro back."}
+          </p>
+          <button
+            type="button"
+            onClick={onReconcile}
+            disabled={busy !== null}
+            className="nv-gc mt-2 rounded-full px-3 py-1.5 text-2xs font-bold tracking-[0.08em] text-[var(--text-secondary)] disabled:opacity-35"
+          >
+            RECONCILE WITH STRIPE
+          </button>
+        </div>
+      )}
+
       {detail.saves.length > 0 && (
         <div>
-          <p className="text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]">COMPANIES</p>
+          <p className="text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]">
+            COMPANIES · {money(companiesLiveValue)} live
+          </p>
           <ul className="mt-1 text-2xs leading-relaxed text-[var(--text-secondary)]">
             {detail.saves.map((s) => (
               <li key={s.slot} className="tnum">
-                {s.company_name} · {s.industry} · year {s.year}, stage {s.stage} ·{" "}
-                {s.alive ? "alive" : (s.ended_by ?? "ended")} · saved {day(s.updated_at)}
+                <b>{s.company_name}</b> · {s.industry} · year {s.year}, stage {s.stage} ·{" "}
+                {s.alive ? "alive" : (s.ended_by ?? "ended")} ·{" "}
+                {s.alive ? `worth ${money(s.valuation)}` : `peaked at ${money(s.peak_valuation)}`}
+                {s.alive ? ` (peak ${money(s.peak_valuation)})` : ""} · cash {money(s.cash)}
+                {s.employees ? ` · ${s.employees} staff` : ""} · saved {day(s.updated_at)}
               </li>
             ))}
           </ul>

@@ -47,7 +47,16 @@ export async function GET(
       db.from("billing_customers").select("subscription_status, plan, current_period_end, cancel_at_period_end, created_at").eq("profile_id", id).maybeSingle(),
       db.from("chapters").select("id, licence, seats, status, source, current_period_end, created_at").eq("owner_profile_id", id).order("created_at", { ascending: false }),
       db.from("chapter_seats").select("chapter_id, email, origin, claimed_at, created_at").eq("profile_id", id).maybeSingle(),
-      db.from("saves").select("slot, company_name, industry, year, month, stage, alive, ended_by, updated_at").eq("profile_id", id).order("slot"),
+      /*
+       * admin_user_companies (0016) rather than a select on `saves`.
+       *
+       * The panel wanted the one thing the listing columns never carried up
+       * to here — what the company is WORTH — and the only complete source
+       * for a row written before 0013 is `state`, which is up to a megabyte
+       * of RunState per company. The function reads it in the database and
+       * returns three numbers.
+       */
+      db.rpc("admin_user_companies", { p_profile: id }),
       db.from("legacy").select("best_year, runs_completed, shark_respect, badges").eq("profile_id", id).maybeSingle(),
       db.from("leaderboard_entries").select("id, board, season, company_name, industry, peak_valuation, years_survived, listed, created_at").eq("profile_id", id).order("created_at", { ascending: false }).limit(20),
       db.from("admin_audit").select("action, actor_email, detail, created_at").eq("target", id).order("created_at", { ascending: false }).limit(20),

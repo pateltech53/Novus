@@ -20,6 +20,7 @@ import {
   type BoardScope,
   type SubmitResult,
 } from "@/lib/leaderboard/client";
+import { autoSubmitRun, lastAutoSubmit } from "@/lib/leaderboard/auto";
 import { tapeStatus } from "@/lib/leaderboard/recorder";
 import { isBoard, type Board } from "@/lib/leaderboard/boards";
 import { useNativeOverlay, useNativeOverlayOwned } from "@/components/native/useNativeOverlay";
@@ -100,6 +101,13 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
   const [result, setResult] = useState<SubmitResult | null>(null);
   const [handles, setHandles] = useState<string[] | null>(null);
   const [handleBusy, setHandleBusy] = useState(false);
+  /* Bumped on every SHUFFLE; it joins the server's seed, so a new value deals
+     a new hand and a reload deals the same one back. */
+  const [shuffle, setShuffle] = useState(0);
+  /* True while the picker is open because the PLAYER asked for it rather than
+     because a submission needed a name — the copy is different, and so is
+     what closing it should do. */
+  const [renaming, setRenaming] = useState(false);
   const [reported, setReported] = useState<Set<string>>(new Set());
   /* Sticky across reloads: the toggle appearing and disappearing while pages
      swap reads as the screen changing its mind. Once the server has said this
@@ -136,6 +144,65 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
 
   const tape = tapeStatus(run);
   const canSubmit = !!run && tape.present && tape.matchesRun;
+
+  /*
+   * The run submits itself.
+   *
+   * Opening this screen is the third and last of the three moments a run is
+   * sent (the other two are a year closing and the company ending — see
+   * lib/leaderboard/auto.ts). It is the catch-up: a submission that failed
+   * offline, or a run whose year closed while the account was signed out,
+   * arrives on the board the next time the player looks at one.
+   *
+   * `tapeStatus().stale` inside autoSubmitRun makes this free when there is
+   * nothing new to say, so this effect runs on every mount without asking
+   * whether it should. The one refusal that needs a person is a missing board
+   * name, and that opens the picker rather than being reported as an error.
+   */
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      // `stale` is read here as well as inside autoSubmitRun, so a mount with
+      // nothing to send never flashes "Sending…" at a player who is only
+      // reading the board.
+      if (!run || !tapeStatus(run).stale) return;
+      setSubmitting(true);
+      const out = await autoSubmitRun(run);
+      if (!alive) return;
+      setSubmitting(false);
+      if (out.kind === "needs-handle") {
+        const offer = await fetchHandles();
+        if (alive && offer.ok) {
+          setRenaming(false);
+          setHandles(offer.options);
+        }
+        return;
+      }
+      if (out.kind === "done") {
+        setResult(out.result);
+        if (out.result.status === "verified" || out.result.status === "flagged") {
+          void load(board, scope);
+        }
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+    // Deliberately not keyed on `board`/`scope`: this is about the RUN, and
+    // re-sending it because somebody tapped the other tab would be a request
+    // per tap for a verdict that cannot have changed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [run?.id]);
+
+  /* The verdict from a submission that happened somewhere else — a year that
+     closed on the year-end screen, a company that died in the autopsy — so
+     this screen can report it without asking the server again. */
+  useEffect(() => {
+    if (!result) {
+      const earlier = lastAutoSubmit(run);
+      if (earlier) setResult(earlier);
+    }
+  }, [run, result]);
 
   const onSubmit = useCallback(async () => {
     if (!run || submitting) return;
@@ -182,7 +249,10 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
     // The one refusal the player can act on: they have no board handle yet.
     if (out.reason === "needs-handle") {
       const offer = await fetchHandles();
-      if (offer.ok) setHandles(offer.options);
+      if (offer.ok) {
+        setRenaming(false);
+        setHandles(offer.options);
+      }
     }
   }, [run, submitting, board, scope, load, native]);
 
@@ -193,17 +263,52 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
       setHandleBusy(false);
       if (!out.ok) {
         // Taken is a race over ~14 million combinations, not a failure worth an
-        // apology. Reshuffle and let them pick again.
-        const offer = await fetchHandles();
+        // apology. Deal another hand and let them pick again.
+        const next = shuffle + 1;
+        setShuffle(next);
+        const offer = await fetchHandles(next);
         setHandles(offer.options);
         return;
       }
       setHandles(null);
+      setRenaming(false);
       setResult(null);
+      /*
+       * Submit either way.
+       *
+       * On a first choice this is the submission that was refused for want of
+       * a name. On a RENAME it is not strictly required — 0016's trigger
+       * carries the new name across every row this player already holds — but
+       * the board is reloaded below regardless, and re-sending an unchanged
+       * run costs one upsert and keeps this screen's own "your rank" line
+       * looking at a row it definitely knows the name of.
+       */
       void onSubmit();
+      void load(board, scope);
     },
-    [onSubmit],
+    [onSubmit, shuffle, load, board, scope],
   );
+
+  /** SHUFFLE — another eight names, dealt now rather than tomorrow. */
+  const onReshuffle = useCallback(async () => {
+    setHandleBusy(true);
+    const next = shuffle + 1;
+    setShuffle(next);
+    const offer = await fetchHandles(next);
+    setHandleBusy(false);
+    if (offer.ok) setHandles(offer.options);
+  }, [shuffle]);
+
+  /** CHANGE — the picker, opened because the player asked for it. */
+  const onOpenRename = useCallback(async () => {
+    setHandleBusy(true);
+    const offer = await fetchHandles(shuffle);
+    setHandleBusy(false);
+    if (offer.ok) {
+      setRenaming(true);
+      setHandles(offer.options);
+    }
+  }, [shuffle]);
 
   const onReport = useCallback(
     async (entry: BoardRow) => {
@@ -235,6 +340,10 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
    */
   const resolvedTheme = useResolvedTheme();
   const submitted = tape.submitted;
+  /** The only state that still needs a person: the board could not be reached
+   *  or refused the run, and pressing again is a move worth offering. */
+  const retryable =
+    !submitting && (result?.status === "error" || result?.status === "rejected");
   useNativeOverlay(
     useMemo(
       () => ({
@@ -262,28 +371,32 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
         ],
         segments: BOARDS.map((b) => ({ id: b.id, title: b.label })),
         activeSegment: board,
-        // The dock carries the screen's one ask, and only while it is
-        // genuinely askable. While the handle picker is up the ask has moved
-        // into the content — a dock that re-submits under it would answer a
-        // question the player is no longer being asked.
+        /*
+         * The dock used to carry SUBMIT THIS RUN. It does not any more,
+         * because the run submits itself — every year it closes, when it
+         * ends, and again when this screen opens (lib/leaderboard/auto.ts).
+         * A prominent button for something that has already happened is a
+         * button that teaches the player they were meant to press it.
+         *
+         * What is left is the one thing on this screen that IS a decision:
+         * the name beside their company. It appears only when a submission
+         * actually failed and can be retried, or never — the rename lives in
+         * the content, beside the name it changes.
+         */
         actions:
-          canSubmit && !handles
+          canSubmit && !handles && retryable
             ? [
                 {
                   id: "submit",
-                  title: submitting
-                    ? "VERIFYING…"
-                    : submitted
-                      ? "SUBMIT AGAIN"
-                      : "SUBMIT THIS RUN",
-                  label: "Submit this run to the board",
+                  title: submitting ? "VERIFYING…" : "TRY AGAIN",
+                  label: "Send this run to the board again",
                   style: "prominent" as const,
                   enabled: !submitting,
                 },
               ]
             : [],
       }),
-      [resolvedTheme, hasChapter, scope, board, canSubmit, handles, submitting, submitted],
+      [resolvedTheme, hasChapter, scope, board, canSubmit, handles, submitting, retryable],
     ),
     {
       onAction: (id) => {
@@ -495,27 +608,44 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
           {!loading && page?.configured && !page.myRank && page.myHandle && (
             <p className="px-2 pt-3 text-2xs leading-relaxed text-[var(--text-tertiary)]">
               {scope === "chapter"
-                ? "You are not on this board yet — submit a run below and it appears here once a person has read the name."
-                : "You are not on this board yet. Submit a run below."}
+                ? "You are not on this board yet. Your runs are sent automatically — this fills in once a person has read the name."
+                : "You are not on this board yet. Your runs are sent automatically; keep a company alive through a fiscal year and it appears here."}
             </p>
           )}
 
-          {/* ── Submitting ─────────────────────────────────────────────── */}
-          <div className="mt-4">
+          {/* ── The name, and what the board has been told ─────────────── */}
+          <div className="mt-4 space-y-3">
             {handles ? (
-              <HandlePicker busy={handleBusy} options={handles} onPick={onPickHandle} />
-            ) : (
-              <SubmitPanel
-                canSubmit={canSubmit}
-                submitted={tape.submitted}
-                submitting={submitting}
-                result={result}
-                onSubmit={onSubmit}
-                // When UIKit's dock carries SUBMIT THIS RUN, the panel keeps
-                // its explanation and its verdict and drops its button — one
-                // call to action, in the material that owns it.
-                dockOwned={native && canSubmit}
+              <HandlePicker
+                busy={handleBusy}
+                options={handles}
+                current={page?.myHandle ?? null}
+                renaming={renaming}
+                onPick={onPickHandle}
+                onReshuffle={onReshuffle}
+                onCancel={renaming ? () => setHandles(null) : undefined}
               />
+            ) : (
+              <>
+                {page?.configured && (
+                  <BoardNamePanel
+                    handle={page.myHandle}
+                    busy={handleBusy}
+                    onChange={onOpenRename}
+                  />
+                )}
+                <BoardStatusPanel
+                  canSubmit={canSubmit}
+                  submitting={submitting}
+                  submitted={submitted}
+                  result={result}
+                  onRetry={onSubmit}
+                  // When UIKit's dock carries TRY AGAIN, the panel keeps its
+                  // explanation and its verdict and drops its button — one
+                  // call to action, in the material that owns it.
+                  dockOwned={native && canSubmit && retryable}
+                />
+              </>
             )}
           </div>
 
@@ -523,7 +653,8 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
             Every number on this board was computed by replaying the run on the
             server. Nothing you can buy moves a place on it — not Pro, not a run
             slot, not the closet. Your founder name never appears here; the name
-            beside your company comes from a word list.
+            beside your company comes from a word list, and it is yours to
+            change.
           </p>
         </div>
       </motion.section>
@@ -653,41 +784,95 @@ function Row({
   );
 }
 
-function SubmitPanel({
+/**
+ * The name that goes on the board, and the way to change it.
+ *
+ * It used to be possible to see this name only by finding your own row, and to
+ * choose it only once — the picker appeared exactly when a submission was
+ * refused for want of a name, took the first thing tapped, and was never
+ * offered again. That is an assignment wearing a choice's clothes. The name is
+ * shown here, always, with the way to change it beside it.
+ */
+function BoardNamePanel({
+  handle,
+  busy,
+  onChange,
+}: {
+  handle: string | null;
+  busy: boolean;
+  onChange: () => void;
+}) {
+  return (
+    <div className="nv-card flex flex-wrap items-center justify-between gap-3 px-4 py-3.5">
+      <div className="min-w-0">
+        <p className="text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]">
+          YOUR NAME ON THE BOARD
+        </p>
+        <p className="tnum mt-0.5 truncate text-[0.9375rem] font-extrabold">
+          {handle ?? "Not chosen yet"}
+        </p>
+      </div>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={onChange}
+        className="nv-gc shrink-0 rounded-full px-4 py-2 text-2xs font-bold tracking-[0.1em] text-[var(--text-secondary)] disabled:opacity-40"
+      >
+        {handle ? "CHANGE" : "CHOOSE"}
+      </button>
+    </div>
+  );
+}
+
+/**
+ * What the board has been told, and whether it worked.
+ *
+ * This was SubmitPanel, whose whole job was to ask. Nothing asks any more —
+ * the run is sent when a year closes, when the company ends, and when this
+ * screen opens (lib/leaderboard/auto.ts) — so the panel reports instead. The
+ * one button left appears only when a submission genuinely failed, because
+ * "try again" is a real move and "submit" no longer is.
+ */
+function BoardStatusPanel({
   canSubmit,
-  submitted,
   submitting,
+  submitted,
   result,
-  onSubmit,
+  onRetry,
   dockOwned = false,
 }: {
   canSubmit: boolean;
-  submitted: boolean;
   submitting: boolean;
+  submitted: boolean;
   result: SubmitResult | null;
-  onSubmit: () => void;
-  /** True when the native dock carries the submit button, so this panel
-   *  must not render a second one. Removed, not hidden — a hidden button
-   *  still takes a tap on iOS. */
+  onRetry: () => void;
+  /** True when the native dock carries TRY AGAIN, so this panel must not
+   *  render a second one. Removed, not hidden — a hidden button still takes
+   *  a tap on iOS. */
   dockOwned?: boolean;
 }) {
+  const failed = result?.status === "error" || result?.status === "rejected";
+
   return (
     <div className="nv-card px-4 py-4">
       <p className="text-[0.9375rem] font-extrabold leading-snug">
-        Put this company on the board
+        {submitting
+          ? "Sending this company to the board…"
+          : failed
+            ? "This run has not reached the board"
+            : "This company goes on the board by itself"}
       </p>
       <p className="mt-1 text-xs leading-snug text-[var(--text-secondary)]">
-        Your taps are sent, not your score. The server replays the run and works
-        out what it was worth — so the number beside your name is one nobody,
-        including you, could type.
+        Every year you close, and again when the company ends, your taps are
+        sent — not your score. The server replays the run and works out what it
+        was worth, so the number beside your name is one nobody, including you,
+        could type.
       </p>
 
       {result && (
         <div
           className={`mt-3 rounded-[var(--radius-card)] px-3 py-2.5 ${
-            result.status === "rejected" || result.status === "error"
-              ? "bg-[var(--alert)]/10"
-              : "bg-[var(--chip)]"
+            failed ? "bg-[var(--alert)]/10" : "bg-[var(--chip)]"
           }`}
         >
           {result.peakValuation !== null && (
@@ -710,14 +895,22 @@ function SubmitPanel({
         </div>
       )}
 
-      {!dockOwned && (
+      {/* Nothing to report and nothing wrong: say so, rather than leaving the
+          panel looking like it is waiting for a tap that is not coming. */}
+      {!result && !submitting && canSubmit && submitted && (
+        <p className="mt-2 text-2xs leading-snug text-[var(--text-tertiary)]">
+          Already sent. It appears above once a person has read the name.
+        </p>
+      )}
+
+      {failed && !dockOwned && (
         <button
           type="button"
-          disabled={!canSubmit || submitting}
-          onClick={onSubmit}
+          disabled={submitting}
+          onClick={onRetry}
           className="nv-gc mt-3 flex h-14 w-full items-center justify-center rounded-[var(--radius-card)] nv-t-action px-4 text-center text-sm font-extrabold leading-tight disabled:opacity-40"
         >
-          {submitting ? "Verifying…" : submitted ? "Submit again" : "Submit this run"}
+          {submitting ? "Verifying…" : "Try again"}
         </button>
       )}
 
@@ -734,20 +927,32 @@ function SubmitPanel({
 function HandlePicker({
   options,
   busy,
+  current,
+  renaming,
   onPick,
+  onReshuffle,
+  onCancel,
 }: {
   options: string[];
   busy: boolean;
+  /** The name held right now, so a rename can show what it is replacing. */
+  current: string | null;
+  /** True when the player opened this themselves rather than being asked. */
+  renaming: boolean;
   onPick: (handle: string) => void;
+  onReshuffle: () => void;
+  /** Absent on a first choice: there is nothing to go back to. */
+  onCancel?: () => void;
 }) {
   return (
     <div className="nv-card px-4 py-4">
       <p className="text-[0.9375rem] font-extrabold leading-snug">
-        Pick the name that goes on the board
+        {renaming ? "Pick a new name for the board" : "Pick the name that goes on the board"}
       </p>
       <p className="mt-1 text-xs leading-snug text-[var(--text-secondary)]">
         Not your founder name — that one stays on this device, in your own
         company, where it belongs. This is what the rest of the world sees.
+        {renaming && current ? ` Right now it is ${current}.` : ""}
       </p>
       <ul className="mt-3 grid gap-2 sm:grid-cols-2">
         {options.map((handle) => (
@@ -763,6 +968,28 @@ function HandlePicker({
           </li>
         ))}
       </ul>
+      {/* Another eight, now. The old picker dealt one hand a day, which meant
+          a player who liked none of them had no move at all. */}
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          disabled={busy}
+          onClick={onReshuffle}
+          className="nv-gc rounded-full px-4 py-2 text-2xs font-bold tracking-[0.1em] text-[var(--text-secondary)] disabled:opacity-40"
+        >
+          {busy ? "…" : "SHUFFLE"}
+        </button>
+        {onCancel && (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onCancel}
+            className="rounded-full border border-[var(--hairline)] px-4 py-2 text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)] disabled:opacity-40"
+          >
+            KEEP THE ONE I HAVE
+          </button>
+        )}
+      </div>
     </div>
   );
 }

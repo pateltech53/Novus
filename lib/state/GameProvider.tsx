@@ -84,6 +84,7 @@ import {
   startTape,
   todayISO as tapeToday,
 } from "@/lib/leaderboard/recorder";
+import { autoSubmitRun } from "@/lib/leaderboard/auto";
 import {
   DEFAULT_AVATAR,
   normalizeAvatar,
@@ -660,7 +661,20 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setQueue(turn.cards);
     setMarketId(turn.marketEventId);
     if (working.month >= 12) setAtGate(true);
-    if (turn.died) setAutopsy(buildAutopsy(working));
+    if (turn.died) {
+      setAutopsy(buildAutopsy(working));
+      /*
+       * The board finds out here, not when somebody remembers to tell it.
+       *
+       * A company that goes under at 11pm used to reach Still Standing only if
+       * the player opened the screen and pressed a button, which most never
+       * did — so the boards were missing most of the game. `autoSubmitRun` is
+       * fire-and-forget and reads the tape before its first await, so the
+       * verdict arrives while the autopsy is being read. It sends nothing the
+       * board has already been told (lib/leaderboard/auto.ts).
+       */
+      void autoSubmitRun(working);
+    }
   }, [busy, queue.length, commit]);
 
   const choose = useCallback(
@@ -839,6 +853,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         commit(working);
         setYearEnd(summary);
         setAtGate(false);
+        // Another year survived is a different result for the same run, and
+        // `record_board_entry` (0006) upserts on the run — so this replaces
+        // the row rather than adding one, and Still Standing is right about
+        // this company from the moment the year closes.
+        void autoSubmitRun(working);
       }
       setPerform(null);
     },
