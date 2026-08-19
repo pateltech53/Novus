@@ -1,0 +1,222 @@
+<template>
+  <div
+    data-composition-id="sc02-reveal"
+    data-width="1920"
+    data-height="1080"
+    data-duration="6"
+    style="position: absolute; inset: 0; overflow: hidden; font-family: 'Urbanist', system-ui, sans-serif;"
+  >
+    <style>
+      @font-face {
+        font-family: "Urbanist";
+        font-style: normal;
+        font-weight: 100 900;
+        src: url("assets/fonts/urbanist-latin.woff2") format("woff2");
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+      @font-face {
+        font-family: "Urbanist";
+        font-style: normal;
+        font-weight: 100 900;
+        src: url("assets/fonts/urbanist-latin-ext.woff2") format("woff2");
+        unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+      }
+      .n02-bg {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(1200px 700px at 46% 44%, #152a47 0%, #0b1e36 62%);
+      }
+      .n02-cam {
+        position: absolute;
+        inset: 0;
+      }
+      #n02-lockup {
+        position: absolute;
+        left: 300px;
+        top: 356px;
+        display: flex;
+        align-items: center;
+        gap: 34px;
+      }
+      #n02-fin {
+        width: 132px;
+        height: 116px;
+        opacity: 0;
+      }
+      #n02-fin img {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      #n02-word {
+        display: flex;
+        gap: 0.06em;
+        font-size: 168px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        color: #f8fafc;
+        line-height: 1;
+      }
+      #n02-word span {
+        display: inline-block;
+        opacity: 0;
+      }
+      #n02-rule {
+        position: absolute;
+        left: 302px;
+        top: 560px;
+        width: 470px;
+        height: 6px;
+        border-radius: 3px;
+        background: #ff6b00;
+        opacity: 0;
+      }
+      #n02-copy {
+        position: absolute;
+        left: 302px;
+        top: 622px;
+        height: 120px;
+      }
+      .n02-line {
+        position: absolute;
+        left: 0;
+        top: 0;
+        font-size: 66px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #f8fafc;
+        white-space: nowrap;
+      }
+      .n02-line em {
+        font-style: normal;
+        color: #ff6b00;
+      }
+      .n02-line .n02-w {
+        display: inline-block;
+        opacity: 0;
+      }
+      #n02-shark {
+        position: absolute;
+        right: 170px;
+        bottom: 118px;
+        width: 470px;
+        opacity: 0;
+      }
+      #n02-kicker {
+        position: absolute;
+        left: 306px;
+        top: 300px;
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: 0.24em;
+        color: rgba(248, 250, 252, 0.55);
+        opacity: 0;
+      }
+    </style>
+
+    <div class="n02-bg"></div>
+    <div class="n02-cam">
+      <div id="n02-kicker">FOUND IT.</div>
+      <div id="n02-lockup">
+        <div id="n02-fin"><img src="assets/novus-fin.svg" alt="" /></div>
+        <div id="n02-word">
+          <span>N</span><span>O</span><span>V</span><span>U</span><span>S</span>
+        </div>
+      </div>
+      <div id="n02-rule"></div>
+      <div id="n02-copy">
+        <h2 class="n02-line" id="n02-l1">
+          <span class="n02-w">Meet</span>
+          <span class="n02-w">Novus.</span>
+        </h2>
+        <h2 class="n02-line" id="n02-l2">
+          <span class="n02-w">The</span>
+          <span class="n02-w">business</span>
+          <span class="n02-w"><em>life&nbsp;simulator.</em></span>
+        </h2>
+      </div>
+      <img id="n02-shark" src="assets/shark.png" alt="" />
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      (function () {
+        const tl = gsap.timeline({ paused: true });
+
+        // Camera with intent: one slow push toward the lockup across the scene.
+        tl.fromTo(
+          ".n02-cam",
+          { scale: 1.0, transformOrigin: "38% 46%" },
+          { scale: 1.05, duration: 5.6, ease: "power1.inOut" },
+          0.3
+        );
+
+        // Fin pops (push-sign safe: growing).
+        tl.fromTo(
+          "#n02-fin",
+          { scale: 0, autoAlpha: 0, rotation: -12, transformOrigin: "50% 80%" },
+          { scale: 1, autoAlpha: 1, rotation: 0, duration: 0.55, ease: "back.out(1.7)" },
+          0.7
+        );
+
+        // Wordmark waterfall entry — letters whip up, binary opacity, shrinking gaps.
+        const letters = document.querySelectorAll("#n02-word span");
+        let at = 0.92;
+        let gap = 0.085;
+        letters.forEach(function (el) {
+          tl.fromTo(
+            el,
+            { y: 64, autoAlpha: 0 },
+            { y: 0, autoAlpha: 1, duration: 0.17, ease: "power4.out" },
+            at
+          );
+          at += gap;
+          gap *= 0.84;
+        });
+
+        // Kicker + orange rule (the action color underlines the name).
+        tl.fromTo("#n02-kicker", { y: 18, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.35, ease: "power4.out" }, 1.35);
+        tl.fromTo(
+          "#n02-rule",
+          { scaleX: 0, autoAlpha: 1, transformOrigin: "left center" },
+          { scaleX: 1, autoAlpha: 1, duration: 0.5, ease: "expo.out" },
+          1.5
+        );
+
+        // "Meet Novus." — waterfall words.
+        tl.fromTo(
+          "#n02-l1 .n02-w",
+          { y: 46, autoAlpha: 0 },
+          { y: 0, autoAlpha: 1, duration: 0.16, ease: "power4.out", stagger: 0.08 },
+          1.75
+        );
+
+        // The shark enters the room — slides in from the right edge, then reacts.
+        tl.fromTo(
+          "#n02-shark",
+          { x: 720, autoAlpha: 0 },
+          { x: 0, autoAlpha: 1, duration: 0.85, ease: "expo.out" },
+          2.15
+        );
+        tl.to("#n02-shark", { rotation: -4, scale: 1.05, duration: 0.24, ease: "power1.inOut", transformOrigin: "bottom center" }, 4.35);
+        tl.to("#n02-shark", { rotation: 0, scale: 1.0, duration: 0.28, ease: "power1.inOut" }, 4.62);
+
+        // Zoom-through text swap: "Meet Novus." → "The business life simulator."
+        tl.to("#n02-l1", { scale: 1.2, filter: "blur(10px)", duration: 0.2, ease: "power3.in", transformOrigin: "left center" }, 3.35);
+        tl.to("#n02-l1", { autoAlpha: 0, duration: 0.2, ease: "none" }, 3.35);
+        tl.fromTo(
+          "#n02-l2",
+          { scale: 0.75, autoAlpha: 0.15, filter: "blur(10px)", transformOrigin: "left center" },
+          { scale: 1, autoAlpha: 1, filter: "blur(0px)", duration: 0.5, ease: "expo.out" },
+          3.55
+        );
+        tl.set("#n02-l2 .n02-w", { autoAlpha: 1 }, 3.55);
+
+        // Sequenced life through the tail: the rule charges to the shark's side.
+        tl.to("#n02-rule", { scaleX: 1.62, duration: 0.9, ease: "power2.inOut", transformOrigin: "left center" }, 4.5);
+
+        window.__timelines["sc02-reveal"] = tl;
+      })();
+    </script>
+  </div>
+</template>

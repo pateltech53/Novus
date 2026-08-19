@@ -1,0 +1,79 @@
+{
+  "fps": 30,
+  "seams": [
+    {
+      "id": "search→reveal",
+      "cut": 8,
+      "technique": "zoom-through (push, through the clicked result)",
+      "blur": 18,
+      "exit": { "selector": "#el-sc01", "axis": "z", "dir": 1 },
+      "entry": { "selector": "#el-sc02", "axis": "z", "dir": 1, "scanRoot": "#el-sc02" }
+    },
+    {
+      "id": "reveal→devices",
+      "cut": 14,
+      "technique": "cut-the-curve LEFT",
+      "exit": { "selector": "#el-sc02", "axis": "x", "dir": -1 },
+      "entry": { "selector": "#el-sc03", "axis": "x", "dir": -1 }
+    },
+    {
+      "id": "devices→loop",
+      "cut": 22,
+      "technique": "zoom-through (push, into the laptop screen)",
+      "blur": 18,
+      "exit": { "selector": "#el-sc03", "axis": "z", "dir": 1 },
+      "entry": { "selector": "#el-sc04", "axis": "z", "dir": 1, "scanRoot": "#el-sc04" }
+    },
+    {
+      "id": "loop→lifesim",
+      "cut": 32,
+      "technique": "cut-the-curve LEFT",
+      "exit": { "selector": "#el-sc04", "axis": "x", "dir": -1 },
+      "entry": { "selector": "#el-sc05", "axis": "x", "dir": -1 }
+    },
+    {
+      "id": "lifesim→hook",
+      "cut": 40,
+      "technique": "inverse zoom-through (pull — the question lands)",
+      "blur": 18,
+      "exit": { "selector": "#el-sc05", "axis": "z", "dir": -1 },
+      "entry": { "selector": "#el-sc06", "axis": "z", "dir": -1, "scanRoot": "#el-sc06" }
+    },
+    {
+      "id": "hook→tank",
+      "cut": 44,
+      "technique": "cut-the-curve LEFT",
+      "exit": { "selector": "#el-sc06", "axis": "x", "dir": -1 },
+      "entry": { "selector": "#el-sc07", "axis": "x", "dir": -1 }
+    },
+    {
+      "id": "tank→levelup",
+      "cut": 56,
+      "technique": "cut-the-curve UP (elevation out of the tank)",
+      "exit": { "selector": "#el-sc07", "axis": "y", "dir": -1 },
+      "entry": { "selector": "#el-sc08", "axis": "y", "dir": -1 }
+    },
+    {
+      "id": "levelup→montage",
+      "cut": 64,
+      "technique": "cut-the-curve LEFT",
+      "exit": { "selector": "#el-sc08", "axis": "x", "dir": -1 },
+      "entry": { "selector": "#el-sc09", "axis": "x", "dir": -1 }
+    },
+    {
+      "id": "montage→build",
+      "cut": 70,
+      "technique": "cut-the-curve LEFT",
+      "exit": { "selector": "#el-sc09", "axis": "x", "dir": -1 },
+      "entry": { "selector": "#el-sc10", "axis": "x", "dir": -1 }
+    },
+    {
+      "id": "build→cta",
+      "cut": 76,
+      "technique": "inverse zoom-through (pull — the CTA arrives)",
+      "blur": 18,
+      "exit": { "selector": "#el-sc10", "axis": "z", "dir": -1 },
+      "entry": { "selector": "#el-sc11", "axis": "z", "dir": -1, "scanRoot": "#el-sc11" }
+    }
+  ]
+}
