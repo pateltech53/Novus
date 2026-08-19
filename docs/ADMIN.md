@@ -7,7 +7,10 @@ every one after that by an admin, from the console** — and unlocks three
 things:
 
 - **The console at `/admin`** — user records, gifting, comped enterprise
-  chapters, the board moderation queue, and the site's numbers.
+  chapters, the board moderation queue, the site's numbers, the billing records
+  that disagree with each other, and a theme switch of its own (the console is
+  read for long stretches beside a Supabase tab; which light it is read in
+  belongs to the operator, not to a setting three taps inside the game).
 - **Everything, without paying** — the admin's own account plays fully
   unlocked (all 12 industries, The Room, 99 runs a day), with a view switch
   to play as `free` or `pro` instead, so paywalls can be tested for real.
@@ -31,20 +34,26 @@ things:
 无需清理任何数据。自己的那一行没有按钮：管理员不能改自己的 `role`（自降会
 把自己关在门外），要么让另一个管理员操作，要么回 Supabase 后台改那一格。
 
-前提：`supabase/APPLY-ALL.sql`（0001 → 0012）已在 Novus 项目跑过，部署配置了
+前提：`supabase/APPLY-ALL.sql`（0001 → 0016）已在 Novus 项目跑过，部署配置了
 `SUPABASE_SERVICE_ROLE_KEY`（计费同款，见 `docs/ACCOUNTS-SETUP.md`）。
 
 ---
 
 ## 1. What to run
 
-**`supabase/APPLY-ALL.sql`** — the whole schema, 0001 → 0012, idempotent.
+**`supabase/APPLY-ALL.sql`** — the whole schema, 0001 → 0016, idempotent.
 Admin specifically is `supabase/migrations/0009_admin.sql`,
-`0010_admin_analytics.sql` and `0012_year_closes.sql`, and
+`0010_admin_analytics.sql`, `0012_year_closes.sql` and
+`0016_admin_insight.sql` (§7.1, §7.2), and
 `supabase/tests/admin_test.sql` proves their claims under `npm run test:db`
-(76 checks: self-promotion refused, promotion by the service role allowed,
+(95 checks: self-promotion refused, promotion by the service role allowed,
 gifts expire, a granted pace clamps to its column's bound, the directory
-answers to the service role alone, demotion is total, cohort math holds).
+answers to the service role alone, demotion is total, cohort math holds —
+and, from 0016, that an account Stripe is charging counts as paid with the
+entitlement flag off, that the disagreement is named and listed, that an
+account with two companies is still one row in the directory, that a save
+written before 0013 still reports a figure, and that renaming a board handle
+carries across the rows already holding it).
 
 No new environment variables. The routes run on `SUPABASE_SERVICE_ROLE_KEY`,
 which billing already requires.
@@ -195,6 +204,71 @@ type the email to arm the button; `auth.users` cascades through profiles to
 every table. Admins cannot be deleted from the console (demote them in the
 ROLE band first), and the caller cannot delete themselves (Settings has the
 self-serve path).
+
+## 7.1 What the directory now says about play (0016)
+
+The list used to say only who somebody had **paid** to be. It says what they
+have **done** as well: runs completed (the `legacy` ledger's own count),
+companies founded and how many are still alive, the biggest company's name and
+what it was worth, and how many board entries the account holds. Every one of
+those numbers already existed in this schema and none of them were being read.
+
+The figures come from `saves.valuation` / `peak_valuation` / `cash` — 0013's
+listing cache, mirrored out of `state` by the sync route — falling back to the
+`state` blob itself for rows written before those columns existed, so a company
+founded before 0013 shows a real figure rather than a dash.
+
+Three bands read the same source: **THE BIGGEST COMPANIES** on the overview
+(top twelve by peak valuation, with the account behind each), the play figures
+in THE NUMBERS (runs completed, runs started today, companies, players
+playing, the live value of every company added up, the biggest books anyone has
+ever had), and the per-company lines on an account's own panel.
+
+The directory also gained a lens — filter chips (PAYING, GIFTED, CHAPTER,
+PLAYING, BILLING ⚠, ADMINS, ANONYMOUS) with live counts, four sorts, and
+**EXPORT CSV**, which is the same query behind the same gate returned as a
+download, so a question the console does not answer in a band can be answered
+in a spreadsheet without anyone opening the Supabase dashboard. Filtering
+happens on the page over the rows the search returned (up to the function's
+200), which is why the heading says how many of how many are shown.
+
+## 7.2 PRO · PAID, and why it used to read zero (0016)
+
+`entitlements.pro` is written by exactly one thing — the Stripe webhook — and
+the tile counted that column alone. So it read **zero for every subscriber
+whose webhook never landed**: an endpoint added to Stripe after the first sale,
+a wrong `STRIPE_WEBHOOK_SECRET`, a `customer.subscription.*` event nobody
+ticked in the dashboard. `billing_customers` had the truth the whole time (the
+checkout route writes it before Stripe ever sees the customer), which is
+exactly why opening the account showed a live subscription while the tile above
+it said nobody was paying.
+
+**Paid is now the union of both records** — `admin_access()` in 0016, one
+function every reader calls — and the disagreement between them is counted and
+listed rather than hidden:
+
+| tile | what it counts |
+|---|---|
+| `PRO · PAID` | `entitlements.pro` **OR** a Stripe status of active/trialing/past_due |
+| `PRO · GIFTED` | an unexpired `comp_pro` |
+| `PRO · IN TOTAL` | paid, gifted, chapter seats and admins — everyone with Pro access |
+| `REVENUE / MONTH` | subscriptions by plan × the prices in `lib/monetization.ts`, yearly ÷ 12 |
+| `PAYING & NOT PRO` | Stripe is charging and the entitlement is off — **a player paying for nothing** |
+| `PRO & NOT PAYING` | the entitlement is on and Stripe has nothing live |
+
+The BILLING band lists both kinds with a **RECONCILE** button. It is not a
+grant: `/api/admin/reconcile` reads the subscription back **from Stripe** and
+hands it to the same `syncSubscription` both webhook paths call, so an account
+repaired here lands in exactly the state the webhook would have left it in —
+including the state where the answer is "this lapsed, take Pro away". It cannot
+give Pro to anyone Stripe is not already charging, which is what makes it safe
+to press on any account without thinking about it. Every press writes a
+`billing_reconcile` audit row naming the subscription, its status, and whether
+the flag moved.
+
+`admin_daily.pro_paid` follows the same correction from the day 0016 lands.
+Rows recorded before it keep the number they were recorded with — inventing
+yesterday's figure is the one thing that table's own header refuses to do.
 
 ## 8. The charts (0010)
 

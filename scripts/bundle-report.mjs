@@ -40,7 +40,13 @@ const NEXT = join(root, ".next");
 
 /** kB gzipped, First Load JS. `null` = report only, no budget. */
 const BUDGETS = {
-  "/page": 150,
+  // 151, not 150. The front page gained the theme switch — the three-way
+  // AUTO/LIGHT/DARK control in the masthead, writing the same
+  // `novus:theme:v1` key Settings' own picker writes. Both themes have always
+  // been shipped surfaces; until this landed, the only way to choose between
+  // them was to make an account, start a company and open Settings, which is
+  // three steps too late for a visitor reading a landing page at night.
+  "/page": 151,
   // 346, not 342. Two things landed in this chunk, +1.6 kB gzipped between
   // them, measured against the same build of main on the same machine:
   //
@@ -57,12 +63,18 @@ const BUDGETS = {
   // The 342 this replaces was itself "342, not 340: the activity sheets became
   // dismissible by their grabber, and the pointer handling that does it lands
   // in this chunk because all five screens share `ScreenSheet`."
-  "/play/page": 346,
+  // 347, not 346: automatic leaderboard submission (lib/leaderboard/auto.ts)
+  // is imported by GameProvider, which every screen in this chunk shares. It
+  // is ~0.1 kB and it is what stopped the boards missing most of the game —
+  // a run used to reach them only if the player opened Still Standing and
+  // pressed a button, so every company that died at 11pm went unmentioned.
+  "/play/page": 347,
   "/found/page": 325,
   // The picker is the front door for anyone with a company, so it is on the
   // critical path for every returning player. 320 is a little above where it
   // stands (312) on the same rule as the rest of this table.
-  "/islands/page": 320,
+  // 321 for the same ~0.1 kB as /play: the picker mounts GameProvider too.
+  "/islands/page": 321,
   "/welcome/page": 195,
   "/chapter/page": 130,
   "/join/page": 120,

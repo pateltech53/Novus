@@ -46,6 +46,18 @@ protected, and none of the work below opened it.
    the historical record and marked. What was missing was the assertions that stop them coming
    back, and those now run in CI.
 
+5. **Submission is automatic, and the handle is a choice that can be remade.** This document assumes
+   a player who submits, and a name claimed once. Both were wrong in the same direction — they made
+   the board a thing the player had to know to operate. A run is now sent when a fiscal year closes,
+   when the company ends, and when the board screen opens (`lib/leaderboard/auto.ts`), guarded by
+   `tapeStatus().stale` so nothing unchanged is re-sent; `record_board_entry` upserts on the run, so
+   a company that survives another year replaces its own row rather than adding one. The handle is
+   shown on the board screen with a CHANGE beside it and a SHUFFLE that deals another eight now
+   rather than tomorrow (`?shuffle=` on `/api/leaderboard/handle`), and a rename carries across the
+   rows the player already holds — `leaderboard_entries.founder_display_name` is a copy, so 0016
+   adds the trigger that keeps the copy true. Nothing about what the board TRUSTS moved: the tape is
+   still the player's own taps, the server still replays them, and §8's line holds unchanged.
+
 ---
 
 ## 1 · The decision: Supabase
@@ -792,6 +804,16 @@ The board column is `founder_display_name`, and it comes from a curated pool —
 and four digits, generated client-side and validated server-side against the same word list by the
 regex in §4. The player picks from a shuffle; they never type it. The tape carries
 `founderName: ""` so the real name cannot be submitted by accident.
+
+**Picking from a word list is the constraint; picking once was not.** The shuffle was seeded on the
+profile and the day, so a player who liked none of the six had no move until tomorrow, and the
+picker only ever appeared when a submission was refused for want of a name — which made the first
+six read as an assignment. The board screen now shows the handle it holds with CHANGE beside it, the
+hand is eight rather than six, and SHUFFLE deals another eight immediately (the nonce joins the
+server's seed, so a reload mid-choice still returns the hand they were looking at). None of that
+widens what may be published: POST still validates membership in both word lists, the column
+constraints still hold the shape, and a rename propagates to the rows already carrying the old name
+(0016) so a player's own entries do not end up under a name they no longer answer to.
 
 Show the real founder name locally, in the player's own run, on their own device, wherever the app
 already shows it. That is theirs. The global board is not the place for it.

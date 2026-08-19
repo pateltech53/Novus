@@ -36,6 +36,7 @@ import {
 import { goToCheckout, openBillingPortal } from "@/lib/cloud/billing";
 import { planName, usePlan } from "@/lib/plan";
 import { PickMark } from "@/components/ui/PickMark";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { OneTimeShelf } from "@/components/upgrade/OneTimeShelf";
 import { rememberPendingPro } from "@/lib/cloud/pending-pro";
 import { whenRestored } from "@/lib/cloud/sync";
@@ -122,11 +123,18 @@ export function Landing() {
       {/* ── 1 · The stage ─────────────────────────────────────────────────── */}
       <header data-live-3d className="nv-stage relative overflow-hidden">
         <div className="mx-auto w-full max-w-6xl px-6 lg:px-10">
-          <div className="flex items-baseline justify-between pt-[max(1.5rem,var(--nv-safe-top))]">
+          <div className="flex items-center justify-between gap-4 pt-[max(1.5rem,var(--nv-safe-top))]">
             <p className="text-sm font-extrabold tracking-[0.24em]">NOVUS</p>
-            <p className="tnum hidden text-2xs font-bold tracking-[0.14em] text-[var(--text-tertiary)] sm:block">
-              FREE TO PLAY · PRO OPTIONAL
-            </p>
+            <div className="flex items-center gap-4">
+              <p className="tnum hidden text-2xs font-bold tracking-[0.14em] text-[var(--text-tertiary)] sm:block">
+                FREE TO PLAY · PRO OPTIONAL
+              </p>
+              {/* The light in the room, decided by the visitor. Both themes
+                  are shipped surfaces, and this page is the first one anybody
+                  sees — asking them to make an account and open Settings to
+                  turn the lights down is asking too late. */}
+              <ThemeToggle />
+            </div>
           </div>
 
           <div className="lg:grid lg:grid-cols-12 lg:items-end lg:gap-6">

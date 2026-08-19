@@ -95,9 +95,18 @@ export interface HandleOffer {
   reason?: string;
 }
 
-export async function fetchHandles(): Promise<HandleOffer> {
+/**
+ * Eight names to choose from, and the one held now.
+ *
+ * `shuffle` is any string the caller likes — it joins the server's seed, so a
+ * new value deals a new hand and the same value deals the same one back. The
+ * screen passes a counter, which is what makes SHUFFLE a button rather than a
+ * wait until tomorrow.
+ */
+export async function fetchHandles(shuffle?: string | number): Promise<HandleOffer> {
   try {
-    const res = await fetch(apiUrl("/api/leaderboard/handle"), {
+    const query = shuffle === undefined ? "" : `?shuffle=${encodeURIComponent(String(shuffle))}`;
+    const res = await fetch(apiUrl(`/api/leaderboard/handle${query}`), {
       credentials: API_CREDENTIALS,
     });
     const body = (await res.json()) as HandleOffer;

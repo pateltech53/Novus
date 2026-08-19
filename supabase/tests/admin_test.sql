@@ -468,4 +468,156 @@ select test.eq((select c.retained_30 from public.admin_cohorts(12) c
                 where c.week = date_trunc('week', now() - interval '21 days')::date), 0::bigint,
                'nobody has answered the thirty-day question yet');
 
+
+\echo ''
+\echo '=== 12. paid means both records, and the disagreement is named (0016) ==='
+-- The bug this section exists for: PRO · PAID counted `entitlements.pro`
+-- alone, which is written by the Stripe webhook and by nothing else. A
+-- subscriber whose webhook never landed was invisible in the number and
+-- plainly visible on their own panel, which is exactly how it was reported.
+set role postgres;
+insert into auth.users (id, email) values
+  ('90000000-0000-0000-0000-00000000000d', 'paying@example.com'),
+  ('90000000-0000-0000-0000-00000000000e', 'stranded@example.com');
+insert into public.profiles (id, display_name) values
+  ('90000000-0000-0000-0000-00000000000d', 'Paying'),
+  ('90000000-0000-0000-0000-00000000000e', 'Stranded');
+
+-- One account the webhook served correctly: Stripe active, entitlement true.
+insert into public.billing_customers (profile_id, stripe_customer_id, subscription_id, subscription_status, plan)
+values ('90000000-0000-0000-0000-00000000000d', 'cus_ok', 'sub_ok', 'active', 'pro_monthly');
+insert into public.entitlements (profile_id, pro)
+values ('90000000-0000-0000-0000-00000000000d', true)
+on conflict (profile_id) do update set pro = true;
+
+-- One the webhook never reached: Stripe is charging, the entitlement is off.
+insert into public.billing_customers (profile_id, stripe_customer_id, subscription_id, subscription_status, plan)
+values ('90000000-0000-0000-0000-00000000000e', 'cus_lost', 'sub_lost', 'active', 'pro_yearly');
+
+set role service_role;
+set request.jwt.claim.sub = '';
+
+select test.ok((select a.paid from public.admin_access() a
+                where a.id = '90000000-0000-0000-0000-00000000000e'),
+               'an account Stripe is charging counts as paid even with the entitlement off');
+select test.eq((select a.mismatch from public.admin_access() a
+                where a.id = '90000000-0000-0000-0000-00000000000e'), 'stripe-not-granted',
+               'and the disagreement is named rather than swallowed');
+select test.ok((select a.mismatch is null from public.admin_access() a
+                where a.id = '90000000-0000-0000-0000-00000000000d'),
+               'an account whose two records agree has no mismatch');
+select test.eq((select a.source from public.admin_access() a
+                where a.id = '90000000-0000-0000-0000-00000000000d'), 'paid',
+               'and its access is attributed to money');
+
+-- The number the operator reads. Both accounts, not just the served one.
+select test.eq((select (public.admin_stats()->>'proPaid')::bigint), 2::bigint,
+               'PRO · PAID counts both records, not just the entitlement flag');
+select test.eq((select (public.admin_stats()->>'notGranted')::bigint), 1::bigint,
+               'the one paying without Pro is counted on its own');
+select test.eq((select count(*) from public.admin_billing_mismatches(50)), 1::bigint,
+               'and it is listed for repair');
+select test.eq((select m.kind from public.admin_billing_mismatches(50) m limit 1),
+               'stripe-not-granted',
+               'worst first: paying-without-Pro leads the list');
+
+-- Same door as every other console read: the function is the whole account
+-- directory's paid column, and a player must not be able to open it.
+set role authenticated;
+set request.jwt.claim.sub = '90000000-0000-0000-0000-000000000002';
+select test.throws('42501', $$
+  select * from public.admin_access()
+$$, 'a player cannot read who is paying');
+select test.throws('42501', $$
+  select * from public.admin_billing_mismatches(50)
+$$, 'a player cannot read whose billing is broken');
+select test.throws('42501', $$
+  select * from public.admin_user_companies('90000000-0000-0000-0000-000000000002')
+$$, 'a player cannot read the console''s company figures');
+set role service_role;
+set request.jwt.claim.sub = '';
+
+
+\echo ''
+\echo '=== 13. the directory says what an account has done (0016) ==='
+set role postgres;
+insert into public.legacy (profile_id, best_year, runs_completed)
+values ('90000000-0000-0000-0000-000000000002', 6, 3)
+on conflict (profile_id) do update set best_year = 6, runs_completed = 3;
+
+-- Two companies on one account: the figures must fold to ONE row in the
+-- directory, or `count(*) over ()` — the total the console pages on — is
+-- multiplied by however many companies each player happens to have.
+insert into public.saves
+  (profile_id, slot, run_id, seed, state, company_name, industry, year, month, stage, alive,
+   valuation, peak_valuation, cash)
+values
+  ('90000000-0000-0000-0000-000000000002', 0, 'run-a', 1,
+   '{"stats":{"valuation":900,"cash":100}}'::jsonb, 'Alpha', 'TECH', 3, 4, 2, true, 900, 1200, 100),
+  ('90000000-0000-0000-0000-000000000002', 1, 'run-b', 2,
+   '{"stats":{"valuation":50,"cash":10}}'::jsonb,  'Beta',  'FOOD', 1, 2, 1, true, 50, 60, 10);
+
+set role service_role;
+set request.jwt.claim.sub = '';
+select test.eq((select count(*) from public.admin_list_users('pat')), 1::bigint,
+               'an account with two companies is still one row in the directory');
+select test.eq((select u.companies from public.admin_list_users('pat') u)::bigint, 2::bigint,
+               'the directory counts the companies');
+select test.eq((select u.runs_completed from public.admin_list_users('pat') u)::bigint, 3::bigint,
+               'and reads the runs completed off the legacy ledger');
+select test.eq((select u.top_valuation from public.admin_list_users('pat') u), 1200::bigint,
+               'and names the best figure the books ever showed');
+select test.eq((select u.top_company from public.admin_list_users('pat') u), 'Alpha',
+               'and the company that showed it');
+select test.eq((select count(*) from public.admin_user_companies('90000000-0000-0000-0000-000000000002')),
+               2::bigint,
+               'the account panel lists both companies with their figures');
+
+-- The fallback: a row written before 0013 has null columns and its figures
+-- live in `state`. A dash there would be this migration repeating the
+-- omission it exists to fix.
+set role postgres;
+update public.saves set valuation = null, peak_valuation = null, cash = null
+ where profile_id = '90000000-0000-0000-0000-000000000002' and slot = 0;
+set role service_role;
+select test.eq((select c.peak_valuation from public.admin_user_companies('90000000-0000-0000-0000-000000000002') c
+                where c.slot = 0), 900::bigint,
+               'a pre-0013 save still reports a figure, read out of the state blob');
+
+
+\echo ''
+\echo '=== 14. a board handle can be changed without stranding its rows (0016) ==='
+-- `leaderboard_entries.founder_display_name` is a COPY of the handle, taken at
+-- submission. The moment the name can be changed, a rename that did not carry
+-- across would leave the player's own rows under a name they no longer answer
+-- to — and the board screen finds "your" row by comparing the two strings.
+set role postgres;
+update public.profiles set board_handle = 'Brave Otter 4417'
+ where id = '90000000-0000-0000-0000-000000000002';
+insert into public.runs
+  (id, profile_id, seed, tape, tape_hash, engine_version, events_hash,
+   company_name, industry, claimed_peak_valuation, claimed_years_survived)
+values
+  ('90000000-0000-0000-0000-0000000000f1', '90000000-0000-0000-0000-000000000002',
+   1, '{}'::jsonb, 'hash-f1', 'test', 'events-test', 'Alpha', 'TECH', 1200, 3);
+
+insert into public.leaderboard_entries
+  (board, season, run_id, profile_id, founder_display_name, company_name, industry,
+   peak_valuation, years_survived, achieved_on, listed)
+values
+  ('survival', 'test', '90000000-0000-0000-0000-0000000000f1',
+   '90000000-0000-0000-0000-000000000002', 'Brave Otter 4417',
+   'Alpha', 'TECH', 1200, 3, current_date, true);
+
+update public.profiles set board_handle = 'Quiet Lynx 8213'
+ where id = '90000000-0000-0000-0000-000000000002';
+
+set role service_role;
+set request.jwt.claim.sub = '';
+select test.eq((select e.founder_display_name from public.leaderboard_entries e
+                where e.profile_id = '90000000-0000-0000-0000-000000000002'),
+               'Quiet Lynx 8213',
+               'renaming carries across the rows the player already holds');
+
+
 \echo '=== admin_test: all checks passed ==='

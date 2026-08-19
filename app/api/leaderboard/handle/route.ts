@@ -9,9 +9,9 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * The board handle — offered, then claimed.
+ * The board handle — offered, then chosen, and changeable afterwards.
  *
- * GET  → six options from the curated pool.
+ * GET  → eight options from the curated pool, plus whichever one is held now.
  * POST → claims one, if it is in the pool and nobody else holds it.
  *
  * The player never types this. `RunState.founderName` is what they typed when
@@ -20,6 +20,22 @@ export const dynamic = "force-dynamic";
  * identify a school is the exact pattern COPPA exists to prevent (§9.2). So the
  * only name that reaches a public board is assembled from a word list, and this
  * route is the only way one is set.
+ *
+ * ── Choosing, rather than being assigned ────────────────────────────────────
+ *
+ * Picking from a word list is the constraint; picking ONE OF SIX AND ONLY ONCE
+ * was not. The shuffle was seeded on the profile and the day, so a player who
+ * disliked all six had no move but to wait until tomorrow, and the screen only
+ * ever offered the picker when a submission was refused for want of a name —
+ * which made the first six feel assigned rather than chosen.
+ *
+ * `?shuffle=n` is the fix and the whole of it: the nonce joins the seed, so
+ * each press of SHUFFLE deals a fresh hand out of ~14 million while staying
+ * seeded (a reload mid-choice still returns the hand they were looking at, and
+ * luck that cannot be retold is luck that cannot be debugged). The pool itself
+ * is unchanged, POST still validates against the word LISTS, and a rename
+ * carries across the rows the player already holds — 0016's trigger, because
+ * `leaderboard_entries.founder_display_name` is a copy.
  */
 
 export async function GET(req: NextRequest) {
@@ -38,16 +54,24 @@ export async function GET(req: NextRequest) {
     .maybeSingle();
 
   /*
-   * Seeded on the profile and the day.
+   * Seeded on the profile, the day, and the shuffle nonce.
    *
-   * A player who reloads mid-choice gets the same six back rather than losing
-   * the one they were about to take, and a player who comes back tomorrow gets
-   * a fresh shuffle rather than the same six forever. Seeded rather than random
-   * for the reason every draw in this codebase is: luck that cannot be retold
-   * is luck that cannot be debugged.
+   * A player who reloads mid-choice gets the same hand back rather than losing
+   * the name they were about to take; a player who comes back tomorrow gets a
+   * fresh one without asking; and a player who dislikes all eight presses
+   * SHUFFLE and gets another eight now. Seeded rather than random for the
+   * reason every draw in this codebase is: luck that cannot be retold is luck
+   * that cannot be debugged.
    */
   const day = new Date().toISOString().slice(0, 10);
-  const options = handleShuffle(hashString(`${session.userId}:${day}`), 6);
+  /*
+   * The shuffle nonce. Any string the client cares to send, clamped to
+   * something that cannot become a denial-of-service by being a megabyte long;
+   * it only ever joins a hash. Absent means the day's own hand, which is what
+   * a first visit gets.
+   */
+  const nonce = (req.nextUrl.searchParams.get("shuffle") ?? "").slice(0, 32);
+  const options = handleShuffle(hashString(`${session.userId}:${day}:${nonce}`), 8);
 
   return withSession(
     NextResponse.json({ ok: true, current: profile?.board_handle ?? null, options }),

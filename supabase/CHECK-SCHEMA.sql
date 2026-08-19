@@ -102,5 +102,17 @@ from (
       and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                    where n.nspname = 'public' and p.proname = 'island_allowance')
       and exists (select 1 from pg_trigger g
-                   where g.tgname = 'saves_island_cap' and not g.tgisinternal))
+                   where g.tgname = 'saves_island_cap' and not g.tgisinternal)),
+    ('0016 admin insight', '0016_admin_insight.sql',
+      exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+               where n.nspname = 'public' and p.proname = 'admin_access')
+      and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                   where n.nspname = 'public' and p.proname = 'admin_user_companies')
+      and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                   where n.nspname = 'public' and p.proname = 'admin_billing_mismatches')
+      and exists (select 1 from information_schema.columns
+                   where table_schema = 'public' and table_name = 'admin_daily'
+                     and column_name = 'pro_effective')
+      and exists (select 1 from pg_trigger g
+                   where g.tgname = 'profiles_board_handle_rename' and not g.tgisinternal))
 ) as t(migration, file, present);

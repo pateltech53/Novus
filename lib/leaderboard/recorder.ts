@@ -94,8 +94,23 @@ interface StoredTape {
   /** Captured at founding — the run clears its own flag after year 1. */
   tutorial: boolean;
   entries: TapeEntry[];
-  /** Set once the run has been submitted, so it cannot be submitted twice. */
+  /** Set once the run has been submitted. */
   submittedAt?: string;
+  /*
+   * The fiscal year the last submission carried, and whether the company was
+   * still alive at the time.
+   *
+   * Submission used to be a button pressed once, so "has this been submitted"
+   * was the only question worth asking. It is automatic now, and a company
+   * that survives another year — or dies — is a DIFFERENT result for the same
+   * run: `record_board_entry` (0006) upserts on the run, so re-submitting
+   * replaces the row rather than adding one. These two fields are what stops
+   * the automatic path from re-sending an unchanged run on every screen it
+   * passes, and what makes it send again the moment there is something new to
+   * say.
+   */
+  submittedYear?: number;
+  submittedAlive?: boolean;
 }
 
 const canStore = () => typeof window !== "undefined" && !!window.localStorage;
@@ -114,6 +129,8 @@ function read(): StoredTape | null {
       tutorial: parsed.tutorial === true,
       entries: parsed.entries as TapeEntry[],
       submittedAt: parsed.submittedAt,
+      submittedYear: typeof parsed.submittedYear === "number" ? parsed.submittedYear : undefined,
+      submittedAlive: parsed.submittedAlive,
     };
   } catch {
     return null;
@@ -185,18 +202,46 @@ export interface TapeStatus {
   present: boolean;
   entries: number;
   submitted: boolean;
+  /** When the last submission went out, or null. */
+  submittedAt: string | null;
   /** False when the tape belongs to a different company than the one open. */
   matchesRun: boolean;
+  /**
+   * True when this run has something the board has not been told yet — never
+   * submitted, or submitted at an earlier year, or submitted while it was
+   * still alive and it has since ended. This is the whole condition the
+   * automatic submitter runs on (lib/leaderboard/auto.ts).
+   */
+  stale: boolean;
 }
 
 export function tapeStatus(run: RunState | null): TapeStatus {
   const tape = read();
-  if (!tape || !run) return { present: false, entries: 0, submitted: false, matchesRun: false };
+  if (!tape || !run) {
+    return {
+      present: false,
+      entries: 0,
+      submitted: false,
+      submittedAt: null,
+      matchesRun: false,
+      stale: false,
+    };
+  }
+  const matchesRun = tape.runId === run.id;
+  const present = tape.entries.length > 0;
+  const submitted = !!tape.submittedAt;
   return {
-    present: tape.entries.length > 0,
+    present,
     entries: tape.entries.length,
-    submitted: !!tape.submittedAt,
-    matchesRun: tape.runId === run.id,
+    submitted,
+    submittedAt: tape.submittedAt ?? null,
+    matchesRun,
+    stale:
+      matchesRun &&
+      present &&
+      (!submitted ||
+        run.year > (tape.submittedYear ?? 0) ||
+        (tape.submittedAlive === true && !run.alive)),
   };
 }
 
@@ -224,10 +269,19 @@ export function buildTape(run: RunState): RunTape | null {
   };
 }
 
-/** Marks the tape spent. The unique index on (profile, hash) is the backstop. */
+/**
+ * Records what was sent, and when.
+ *
+ * The year and the alive flag travel with the stamp because the board is told
+ * about a run more than once now — every year it survives, and again when it
+ * ends. Without them `stale` above could only ever mean "never sent", and the
+ * automatic submitter would fall silent after a company's first fiscal year.
+ */
 export function markSubmitted(run: RunState) {
   const tape = read();
   if (!tape || tape.runId !== run.id) return;
   tape.submittedAt = new Date().toISOString();
+  tape.submittedYear = run.year;
+  tape.submittedAlive = run.alive;
   write(tape);
 }
