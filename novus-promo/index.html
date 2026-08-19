@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Novus Promo — HyperFrames</title>
+    <script src="assets/vendor/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      @font-face {
+        font-family: "Urbanist";
+        font-style: normal;
+        font-weight: 100 900;
+        src: url("assets/fonts/urbanist-latin.woff2") format("woff2");
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+          U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+          U+FEFF, U+FFFD;
+      }
+      @font-face {
+        font-family: "Urbanist";
+        font-style: normal;
+        font-weight: 100 900;
+        src: url("assets/fonts/urbanist-latin-ext.woff2") format("woff2");
+        unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+          U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0,
+          U+2113, U+2C60-2C7F, U+A720-A7FF;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #0a0f1e;
+      }
+      body {
+        font-family: "Urbanist", system-ui, sans-serif;
+      }
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+      }
+      #root > div[data-composition-src] {
+        position: absolute;
+        inset: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="55"
+      data-width="1920"
+      data-height="1080"
+      data-fps="30"
+    >
+      <!-- Scene boundaries on beats: 0, 4, 9, 13, 22, 32, 40, 47. Hard cuts; soft fade only into s8. -->
+      <div
+        id="el-s1"
+        data-composition-id="s1-cold-open"
+        data-composition-src="compositions/s1-cold-open.html"
+        data-start="0"
+        data-duration="4"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+
+      <div
+        id="el-s2"
+        data-composition-id="s2-taunt"
+        data-composition-src="compositions/s2-taunt.html"
+        data-start="4"
+        data-duration="5"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+
+      <div
+        id="el-s3"
+        data-composition-id="s3-reveal"
+        data-composition-src="compositions/s3-reveal.html"
+        data-start="9"
+        data-duration="4"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+
+      <div
+        id="el-s4"
+        data-composition-id="s4-company"
+        data-composition-src="compositions/s4-company.html"
+        data-start="13"
+        data-duration="9"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+
+      <div
+        id="el-s5"
+        data-composition-id="s5-pitch"
+        data-composition-src="compositions/s5-pitch.html"
+        data-start="22"
+        data-duration="10"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+
+      <div
+        id="el-s6"
+        data-composition-id="s6-books"
+        data-composition-src="compositions/s6-books.html"
+        data-start="32"
+        data-duration="8"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+
+      <div
+        id="el-s7"
+        data-composition-id="s7-stakes"
+        data-composition-src="compositions/s7-stakes.html"
+        data-start="40"
+        data-duration="7"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+
+      <div
+        id="el-s8"
+        data-composition-id="s8-cta"
+        data-composition-src="compositions/s8-cta.html"
+        data-start="47"
+        data-duration="8"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+
+      <!-- assets/music.mp3 slot is empty (no licensed track in repo) — rendering silent per brief. -->
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      // Root timeline stays thin — all motion lives inside the scene sub-compositions.
+      window.__timelines["main"] = gsap.timeline({ paused: true });
+    </script>
+  </body>
+</html>

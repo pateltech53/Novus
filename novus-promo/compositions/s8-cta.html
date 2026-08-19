@@ -1,0 +1,161 @@
+<template>
+  <div
+    data-composition-id="s8-cta"
+    data-width="1920"
+    data-height="1080"
+    data-duration="8"
+    style="position: absolute; inset: 0; overflow: hidden; font-family: 'Urbanist', system-ui, sans-serif;"
+  >
+    <style>
+      @font-face {
+        font-family: "Urbanist";
+        font-style: normal;
+        font-weight: 100 900;
+        src: url("assets/fonts/urbanist-latin.woff2") format("woff2");
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+      @font-face {
+        font-family: "Urbanist";
+        font-style: normal;
+        font-weight: 100 900;
+        src: url("assets/fonts/urbanist-latin-ext.woff2") format("woff2");
+        unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+      }
+      .s8-bg {
+        position: absolute;
+        inset: 0;
+        background: #0a0f1e;
+      }
+      .s8-cam {
+        position: absolute;
+        inset: 0;
+      }
+      #s8-stack {
+        position: absolute;
+        inset: 0 160px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 34px;
+        text-align: center;
+      }
+      #s8-line1 {
+        font-size: 118px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #f5f7fa;
+      }
+      #s8-line1 .s8-w {
+        display: inline-block;
+        opacity: 0;
+      }
+      #s8-line2 {
+        font-size: 58px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        color: #ff6b00;
+        opacity: 0;
+      }
+      #s8-shark {
+        position: absolute;
+        right: 110px;
+        bottom: 70px;
+        width: 300px;
+        height: auto;
+        opacity: 0;
+      }
+      #s8-qr {
+        position: absolute;
+        left: 110px;
+        bottom: 90px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+        opacity: 0;
+      }
+      #s8-qr img {
+        width: 180px;
+        height: 180px;
+        display: block;
+      }
+      #s8-qr small {
+        font-size: 17px;
+        font-weight: 500;
+        letter-spacing: 0.14em;
+        color: rgba(245, 247, 250, 0.6);
+      }
+      #s8-fade {
+        position: absolute;
+        inset: 0;
+        background: #000000;
+        opacity: 0;
+        pointer-events: none;
+      }
+    </style>
+
+    <div class="s8-bg"></div>
+    <div class="s8-cam">
+      <div id="s8-stack">
+        <h1 id="s8-line1">
+          <span class="s8-w">Will</span>
+          <span class="s8-w">you</span>
+          <span class="s8-w">be</span>
+          <span class="s8-w">ready?</span>
+        </h1>
+        <div id="s8-line2">novuspitch.com</div>
+      </div>
+      <img id="s8-shark" src="assets/shark.png" alt="" />
+      <div id="s8-qr">
+        <img src="assets/qr-novuspitch.svg" alt="" />
+        <small>SCAN TO PLAY</small>
+      </div>
+    </div>
+    <div id="s8-fade"></div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      (function () {
+        const tl = gsap.timeline({ paused: true });
+
+        tl.fromTo(".s8-cam", { scale: 1.0 }, { scale: 1.04, duration: 8, ease: "power1.inOut" }, 0);
+
+        // Mascot pops into the bottom-right corner (small, spring).
+        tl.fromTo(
+          "#s8-shark",
+          { scale: 0, autoAlpha: 0, rotation: -6, transformOrigin: "bottom center" },
+          { scale: 1, autoAlpha: 1, rotation: 0, duration: 0.7, ease: "back.out(2.2)" },
+          0.7
+        );
+        // A couple of tiny finite idle pulses so he never freezes.
+        tl.to("#s8-shark", { scale: 1.03, duration: 0.5, ease: "power1.inOut" }, 3.0);
+        tl.to("#s8-shark", { scale: 1.0, duration: 0.5, ease: "power1.inOut" }, 3.5);
+        tl.to("#s8-shark", { scale: 1.03, duration: 0.5, ease: "power1.inOut" }, 5.2);
+        tl.to("#s8-shark", { scale: 1.0, duration: 0.5, ease: "power1.inOut" }, 5.7);
+
+        // Center stack.
+        tl.fromTo(
+          "#s8-line1 .s8-w",
+          { y: 40, autoAlpha: 0, filter: "blur(6px)" },
+          { y: 0, autoAlpha: 1, filter: "blur(0px)", duration: 0.9, ease: "expo.out", stagger: 0.11 },
+          1.0
+        );
+        tl.fromTo(
+          "#s8-line2",
+          { y: 26, autoAlpha: 0, filter: "blur(4px)" },
+          { y: 0, autoAlpha: 1, filter: "blur(0px)", duration: 0.8, ease: "expo.out" },
+          1.8
+        );
+
+        // QR fades in bottom-left (white on navy, 180px).
+        tl.fromTo("#s8-qr", { y: 20, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.7, ease: "expo.out" }, 2.4);
+
+        // Hold, then fade to black over the final 0.5s.
+        tl.fromTo("#s8-fade", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.5, ease: "power1.in" }, 7.5);
+
+        window.__timelines["s8-cta"] = tl;
+      })();
+    </script>
+  </div>
+</template>

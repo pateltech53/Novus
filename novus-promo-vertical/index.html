@@ -1,0 +1,1312 @@
+<!doctype html>
+<html lang="en" data-resolution="portrait">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>Novus Promo — 9:16 Vertical</title>
+    <script src="assets/vendor/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      @font-face {
+        font-family: "Urbanist";
+        font-style: normal;
+        font-weight: 100 900;
+        src: url("assets/fonts/urbanist-latin.woff2") format("woff2");
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+          U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+          U+FEFF, U+FFFD;
+      }
+      @font-face {
+        font-family: "Urbanist";
+        font-style: normal;
+        font-weight: 100 900;
+        src: url("assets/fonts/urbanist-latin-ext.woff2") format("woff2");
+        unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+          U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0,
+          U+2113, U+2C60-2C7F, U+A720-A7FF;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: #0a0f1e;
+      }
+      body {
+        font-family: "Urbanist", system-ui, sans-serif;
+      }
+      #root {
+        position: relative;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+      }
+      #v-bg {
+        position: absolute;
+        inset: 0;
+        background: #0a0f1e;
+      }
+      .clip {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+      .vcam {
+        position: absolute;
+        inset: 0;
+      }
+      .vw {
+        display: inline-block;
+        opacity: 0;
+      }
+      /* Shared device frame chrome */
+      .vframe {
+        position: absolute;
+        border-radius: 24px;
+        background: #0d1526;
+        border: 1px solid rgba(245, 247, 250, 0.08);
+        box-shadow:
+          0 30px 90px rgba(0, 0, 0, 0.55),
+          0 18px 70px rgba(255, 107, 0, 0.14);
+        overflow: hidden;
+        opacity: 0;
+      }
+      .vchrome {
+        height: 52px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 20px;
+        background: rgba(245, 247, 250, 0.04);
+        border-bottom: 1px solid rgba(245, 247, 250, 0.06);
+      }
+      .vchrome i {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: rgba(245, 247, 250, 0.16);
+      }
+      .vurl {
+        margin-left: 14px;
+        font-size: 17px;
+        font-weight: 500;
+        color: rgba(245, 247, 250, 0.62);
+        background: rgba(245, 247, 250, 0.05);
+        border-radius: 8px;
+        padding: 6px 16px;
+      }
+
+      /* Scene 1 */
+      #v1-line-wrap {
+        position: absolute;
+        inset: 0 80px;
+        display: grid;
+        place-items: center;
+        text-align: center;
+      }
+      #v1-line {
+        font-size: 84px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+        color: #f5f7fa;
+        max-width: 900px;
+      }
+      #v1-dot {
+        position: absolute;
+        left: 526px;
+        top: 946px;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: #ff6b00;
+        opacity: 0;
+      }
+      #v1-zero {
+        color: #ff6b00;
+      }
+      #v1-period {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        margin-left: 5px;
+        border-radius: 50%;
+        background: #ff6b00;
+        opacity: 0;
+      }
+
+      /* Scene 2 */
+      .v2-beat {
+        position: absolute;
+        inset: 0 80px;
+        display: grid;
+        place-items: center;
+        text-align: center;
+      }
+      #v2-beat1 h1 {
+        font-size: 68px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.14;
+        color: #f5f7fa;
+        max-width: 860px;
+      }
+      #v2-beat2 h1 {
+        font-size: 92px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.08;
+        color: #f5f7fa;
+        max-width: 900px;
+      }
+      #v2-zero {
+        color: #ff6b00;
+      }
+      #v2-support {
+        position: absolute;
+        left: 80px;
+        right: 80px;
+        bottom: 300px;
+        text-align: center;
+        font-size: 30px;
+        font-weight: 500;
+        color: rgba(245, 247, 250, 0.6);
+        opacity: 0;
+      }
+
+      /* Scene 3 */
+      #v3-lockup {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 420px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+      #v3-wordmark {
+        font-size: 132px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        color: #f5f7fa;
+        line-height: 1;
+        opacity: 0;
+      }
+      #v3-rule {
+        width: 220px;
+        height: 6px;
+        margin-top: 26px;
+        border-radius: 3px;
+        background: #ff6b00;
+        opacity: 0;
+      }
+      #v3-tagline {
+        margin-top: 28px;
+        font-size: 34px;
+        font-weight: 500;
+        color: rgba(245, 247, 250, 0.6);
+        opacity: 0;
+      }
+      #v3-shark {
+        position: absolute;
+        left: 330px;
+        top: 950px;
+        width: 420px;
+        height: auto;
+        opacity: 0;
+      }
+
+      /* Scene 4 */
+      .v4-line {
+        position: absolute;
+        left: 90px;
+        top: 220px;
+        font-size: 64px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+        color: #f5f7fa;
+        max-width: 900px;
+      }
+      #v4-chips {
+        position: absolute;
+        left: 90px;
+        top: 480px;
+        display: flex;
+        gap: 12px;
+      }
+      .v4-chip {
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        color: #ff6b00;
+        border: 2px solid rgba(255, 107, 0, 0.45);
+        border-radius: 999px;
+        padding: 9px 20px;
+        opacity: 0;
+      }
+      #v4-frame {
+        left: 90px;
+        top: 640px;
+        width: 900px;
+        height: 1120px;
+      }
+      .v4-phase {
+        position: absolute;
+        inset: 52px 0 0 0;
+        padding: 40px;
+        opacity: 0;
+      }
+      #v4-founder-card {
+        width: 100%;
+        height: 100%;
+        border-radius: 16px;
+        background: rgba(245, 247, 250, 0.03);
+        border: 1px solid rgba(245, 247, 250, 0.07);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+      }
+      #v4-avatar {
+        width: 140px;
+        height: 140px;
+        border-radius: 50%;
+        background: rgba(245, 247, 250, 0.08);
+        border: 2px solid rgba(245, 247, 250, 0.14);
+        display: grid;
+        place-items: center;
+        font-size: 52px;
+        font-weight: 800;
+        color: rgba(245, 247, 250, 0.7);
+      }
+      #v4-founder-card h3 {
+        font-size: 46px;
+        font-weight: 800;
+        color: #f5f7fa;
+        letter-spacing: -0.01em;
+      }
+      #v4-founder-card p {
+        font-size: 21px;
+        font-weight: 500;
+        letter-spacing: 0.14em;
+        color: rgba(245, 247, 250, 0.62);
+      }
+      #v4-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap: 20px;
+        width: 100%;
+        height: 100%;
+      }
+      .v4-tile {
+        border-radius: 16px;
+        background: rgba(245, 247, 250, 0.04);
+        border: 2px solid rgba(245, 247, 250, 0.08);
+        display: grid;
+        place-items: center;
+        font-size: 38px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        color: rgba(245, 247, 250, 0.82);
+      }
+      #v4-ring {
+        position: absolute;
+        border-radius: 16px;
+        border: 3px solid rgba(245, 247, 250, 0.75);
+        width: 400px;
+        height: 484px;
+        left: 40px;
+        top: 92px;
+        opacity: 0;
+      }
+      #v4-years {
+        width: 100%;
+        height: 100%;
+        border-radius: 16px;
+        background: rgba(245, 247, 250, 0.03);
+        border: 1px solid rgba(245, 247, 250, 0.07);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 34px;
+        overflow: hidden;
+      }
+      #v4-year-window {
+        height: 120px;
+        overflow: hidden;
+      }
+      #v4-year-roll {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      #v4-year-roll span {
+        font-size: 96px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        color: #f5f7fa;
+        line-height: 120px;
+        display: block;
+      }
+      #v4-track {
+        width: 560px;
+        height: 8px;
+        border-radius: 4px;
+        background: rgba(245, 247, 250, 0.09);
+        overflow: hidden;
+      }
+      #v4-fill {
+        display: block;
+        width: 100%;
+        height: 100%;
+        background: rgba(245, 247, 250, 0.55);
+      }
+      #v4-years p {
+        font-size: 21px;
+        font-weight: 500;
+        letter-spacing: 0.16em;
+        color: rgba(245, 247, 250, 0.62);
+      }
+
+      /* Scene 5 */
+      #v5-frame {
+        left: 60px;
+        top: 120px;
+        width: 960px;
+        height: 1290px;
+      }
+      .v5-app {
+        position: absolute;
+        inset: 52px 0 0 0;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        padding: 28px 32px;
+      }
+      #v5-cam-panel {
+        height: 600px;
+        border-radius: 16px;
+        background: linear-gradient(160deg, rgba(245, 247, 250, 0.055), rgba(245, 247, 250, 0.02));
+        border: 1px solid rgba(245, 247, 250, 0.08);
+        position: relative;
+        overflow: hidden;
+      }
+      #v5-live {
+        position: absolute;
+        left: 22px;
+        top: 18px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 17px;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        color: rgba(245, 247, 250, 0.65);
+      }
+      #v5-live i {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: rgba(245, 247, 250, 0.65);
+      }
+      #v5-timer {
+        position: absolute;
+        right: 22px;
+        top: 16px;
+        font-size: 18px;
+        font-weight: 700;
+        color: rgba(245, 247, 250, 0.65);
+        font-variant-numeric: tabular-nums;
+      }
+      #v5-silhouette {
+        position: absolute;
+        left: 50%;
+        bottom: -40px;
+        margin-left: -160px;
+        width: 320px;
+        height: 360px;
+        border-radius: 160px 160px 0 0;
+        background: rgba(245, 247, 250, 0.09);
+      }
+      #v5-silhouette::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: -110px;
+        margin-left: -80px;
+        width: 160px;
+        height: 160px;
+        border-radius: 50%;
+        background: rgba(245, 247, 250, 0.09);
+      }
+      #v5-caption {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 18px;
+        text-align: center;
+        font-size: 16px;
+        font-weight: 500;
+        letter-spacing: 0.2em;
+        color: rgba(245, 247, 250, 0.62);
+      }
+      #v5-panel-label {
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: 0.22em;
+        color: rgba(245, 247, 250, 0.62);
+      }
+      #v5-sharks {
+        display: flex;
+        justify-content: space-between;
+        padding: 0 40px;
+      }
+      .v5-shark {
+        width: 88px;
+        height: 88px;
+        border-radius: 50%;
+        border: 2px solid rgba(245, 247, 250, 0.14);
+        background: rgba(245, 247, 250, 0.05);
+        overflow: hidden;
+        opacity: 0;
+      }
+      .v5-shark img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .v5-meter {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .v5-meter label {
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        color: rgba(245, 247, 250, 0.72);
+        display: flex;
+        justify-content: space-between;
+      }
+      .v5-meter label em {
+        font-style: normal;
+        color: rgba(245, 247, 250, 0.62);
+        font-variant-numeric: tabular-nums;
+      }
+      .v5-track {
+        width: 100%;
+        height: 10px;
+        border-radius: 5px;
+        background: rgba(245, 247, 250, 0.08);
+        overflow: hidden;
+      }
+      .v5-fill {
+        display: block;
+        width: 100%;
+        height: 100%;
+        border-radius: 5px;
+        background: rgba(245, 247, 250, 0.35);
+      }
+      #v5-copy {
+        position: absolute;
+        left: 80px;
+        top: 1490px;
+        height: 200px;
+      }
+      .v5-line {
+        position: absolute;
+        left: 0;
+        top: 0;
+        font-size: 47px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.16;
+        color: #f5f7fa;
+        white-space: nowrap;
+      }
+      #v5-l1b {
+        top: 62px;
+      }
+
+      /* Scene 6 */
+      #v6-frame {
+        left: 70px;
+        top: 150px;
+        width: 940px;
+        height: 1150px;
+      }
+      #v6-grid {
+        position: absolute;
+        inset: 52px 0 0 0;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap: 24px;
+        padding: 40px 44px;
+      }
+      .v6-card {
+        border-radius: 16px;
+        background: rgba(245, 247, 250, 0.035);
+        border: 1px solid rgba(245, 247, 250, 0.07);
+        padding: 30px 32px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        opacity: 0;
+      }
+      .v6-card h4 {
+        font-size: 21px;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        color: rgba(245, 247, 250, 0.68);
+      }
+      .v6-card small {
+        font-size: 17px;
+        font-weight: 500;
+        color: rgba(245, 247, 250, 0.6);
+      }
+      .v6-val {
+        display: flex;
+        align-items: baseline;
+        font-size: 50px;
+        font-weight: 800;
+        color: #f5f7fa;
+        font-variant-numeric: tabular-nums;
+        height: 58px;
+        overflow: hidden;
+      }
+      .v6-col {
+        display: inline-block;
+        height: 58px;
+        overflow: hidden;
+      }
+      .v6-stack {
+        display: block;
+      }
+      .v6-digit,
+      .v6-static {
+        display: block;
+        line-height: 58px;
+        height: 58px;
+      }
+      .v6-static {
+        display: inline-block;
+      }
+      #v6-event {
+        visibility: hidden;
+        position: absolute;
+        left: 60px;
+        right: 60px;
+        top: 210px;
+        bottom: 250px;
+        border-radius: 20px;
+        background: #101a30;
+        border: 1px solid rgba(245, 247, 250, 0.12);
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+        padding: 44px 48px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        opacity: 0;
+      }
+      #v6-event-tag {
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: 0.24em;
+        color: rgba(245, 247, 250, 0.62);
+      }
+      #v6-event h3 {
+        font-size: 44px;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        line-height: 1.18;
+        color: #f5f7fa;
+        max-width: 640px;
+      }
+      #v6-event-actions {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      .v6-btn {
+        font-size: 23px;
+        font-weight: 800;
+        border-radius: 14px;
+        padding: 17px 30px;
+        letter-spacing: 0.02em;
+      }
+      #v6-btn-primary {
+        background: #ff6b00;
+        color: #0a0f1e;
+      }
+      #v6-btn-secondary {
+        background: transparent;
+        border: 2px solid rgba(245, 247, 250, 0.18);
+        color: rgba(245, 247, 250, 0.7);
+      }
+      #v6-copy {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 1450px;
+        text-align: center;
+      }
+      .v6-line {
+        font-size: 47px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.24;
+        color: #f5f7fa;
+        white-space: nowrap;
+      }
+
+      /* Scene 7 */
+      #v7-top,
+      #v7-bottom {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 50%;
+        display: grid;
+        place-items: center;
+      }
+      #v7-top {
+        top: 0;
+      }
+      #v7-bottom {
+        bottom: 0;
+      }
+      #v7-top h1 {
+        font-size: 124px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #f5f7fa;
+      }
+      #v7-bottom h1 {
+        font-size: 124px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: rgba(245, 247, 250, 0.4);
+      }
+      #v7-divider {
+        position: absolute;
+        left: 220px;
+        top: 958px;
+        width: 640px;
+        height: 4px;
+        border-radius: 2px;
+        background: #ff6b00;
+        opacity: 0;
+      }
+      #v7-final {
+        position: absolute;
+        inset: 0 90px;
+        display: grid;
+        place-items: center;
+        text-align: center;
+      }
+      #v7-final h1 {
+        font-size: 78px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.12;
+        color: #f5f7fa;
+        max-width: 860px;
+      }
+
+      /* Scene 8 */
+      #v8-stack {
+        position: absolute;
+        inset: 0 80px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 34px;
+        text-align: center;
+      }
+      #v8-line1 {
+        font-size: 96px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.06;
+        color: #f5f7fa;
+        max-width: 880px;
+      }
+      #v8-line2 {
+        font-size: 52px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        color: #ff6b00;
+        opacity: 0;
+      }
+      #v8-shark {
+        position: absolute;
+        right: 70px;
+        bottom: 90px;
+        width: 260px;
+        height: auto;
+        opacity: 0;
+      }
+      #v8-qr {
+        position: absolute;
+        left: 80px;
+        bottom: 110px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+        opacity: 0;
+      }
+      #v8-qr img {
+        width: 180px;
+        height: 180px;
+        display: block;
+      }
+      #v8-qr small {
+        font-size: 17px;
+        font-weight: 500;
+        letter-spacing: 0.14em;
+        color: rgba(245, 247, 250, 0.6);
+      }
+      #v8-fade {
+        position: absolute;
+        inset: 0;
+        background: #000000;
+        opacity: 0;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main-vertical"
+      data-start="0"
+      data-duration="55"
+      data-width="1080"
+      data-height="1920"
+      data-fps="30"
+    >
+      <div id="v-bg"></div>
+
+      <!-- Scene 1 — cold open (0–4) -->
+      <section id="v-s1" class="clip" data-start="0" data-duration="4" data-track-index="1">
+        <div class="vcam" id="v1-cam">
+          <div id="v1-dot"></div>
+          <div id="v1-line-wrap">
+            <h1 id="v1-line">
+              <span class="vw v1-w">Every</span>
+              <span class="vw v1-w">founder</span>
+              <span class="vw v1-w">starts</span>
+              <span class="vw v1-w">at</span>
+              <span class="vw v1-w" id="v1-zero">zero</span><span id="v1-period"></span>
+            </h1>
+          </div>
+        </div>
+      </section>
+
+      <!-- Scene 2 — the taunt (4–9) -->
+      <section id="v-s2" class="clip" data-start="4" data-duration="5" data-track-index="1">
+        <div class="vcam" id="v2-cam">
+          <div class="v2-beat" id="v2-beat1">
+            <h1>
+              <span class="vw v2-w1">You've</span>
+              <span class="vw v2-w1">watched</span>
+              <span class="vw v2-w1">a</span>
+              <span class="vw v2-w1">hundred</span>
+              <span class="vw v2-w1">startup</span>
+              <span class="vw v2-w1">videos.</span>
+            </h1>
+          </div>
+          <div class="v2-beat" id="v2-beat2">
+            <h1>
+              <span class="vw v2-w2">You've</span>
+              <span class="vw v2-w2">built</span>
+              <span class="vw v2-w2" id="v2-zero">zero</span>
+              <span class="vw v2-w2">companies.</span>
+            </h1>
+          </div>
+          <p id="v2-support">You can't learn to ride a bike from YouTube.</p>
+        </div>
+      </section>
+
+      <!-- Scene 3 — reveal (9–13) -->
+      <section id="v-s3" class="clip" data-start="9" data-duration="4" data-track-index="1">
+        <div class="vcam" id="v3-cam">
+          <div id="v3-lockup">
+            <div id="v3-wordmark">NOVUS</div>
+            <div id="v3-rule"></div>
+            <p id="v3-tagline">The entrepreneurship life simulator.</p>
+          </div>
+          <img id="v3-shark" src="assets/shark.png" alt="" />
+        </div>
+      </section>
+
+      <!-- Scene 4 — start a company (13–22) -->
+      <section id="v-s4" class="clip" data-start="13" data-duration="9" data-track-index="1">
+        <div class="vcam" id="v4-cam">
+          <h2 class="v4-line" id="v4-l1">
+            <span class="vw v4-wl1">Found</span>
+            <span class="vw v4-wl1">a</span>
+            <span class="vw v4-wl1">company.</span>
+          </h2>
+          <h2 class="v4-line" id="v4-l2">
+            <span class="vw v4-wl2">Pick</span>
+            <span class="vw v4-wl2">your</span>
+            <span class="vw v4-wl2">industry.</span>
+          </h2>
+          <h2 class="v4-line" id="v4-l3">
+            <span class="vw v4-wl3">Live</span>
+            <span class="vw v4-wl3">it,</span>
+            <span class="vw v4-wl3">year</span>
+            <span class="vw v4-wl3">by</span>
+            <span class="vw v4-wl3">year.</span>
+          </h2>
+
+          <div id="v4-chips">
+            <div class="v4-chip" id="v4-chip-food">FOOD</div>
+            <div class="v4-chip" id="v4-chip-tech">TECH</div>
+            <div class="v4-chip" id="v4-chip-fashion">FASHION</div>
+            <div class="v4-chip" id="v4-chip-gaming">GAMING</div>
+          </div>
+
+          <div class="vframe" id="v4-frame">
+            <div class="vchrome">
+              <i></i><i></i><i></i>
+              <div class="vurl">novuspitch.com/found</div>
+            </div>
+            <div class="v4-phase" id="v4-phase-a">
+              <div id="v4-founder-card">
+                <div id="v4-avatar">M</div>
+                <h3>Marrow &amp; Co</h3>
+                <p>FOUNDER &middot; FY 1 &middot; GARAGE</p>
+              </div>
+            </div>
+            <div class="v4-phase" id="v4-phase-b">
+              <div id="v4-grid">
+                <div class="v4-tile">FOOD</div>
+                <div class="v4-tile">TECH</div>
+                <div class="v4-tile">FASHION</div>
+                <div class="v4-tile">GAMING</div>
+              </div>
+            </div>
+            <div id="v4-ring"></div>
+            <div class="v4-phase" id="v4-phase-c">
+              <div id="v4-years">
+                <div id="v4-year-window" data-layout-ignore>
+                  <div id="v4-year-roll">
+                    <span>YEAR 1</span>
+                    <span>YEAR 2</span>
+                  </div>
+                </div>
+                <div id="v4-track"><span id="v4-fill"></span></div>
+                <p>12 MONTHS &middot; ONE SHOT EACH</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Scene 5 — pitch the sharks (22–32) -->
+      <section id="v-s5" class="clip" data-start="22" data-duration="10" data-track-index="1">
+        <div class="vcam" id="v5-cam">
+          <div class="vframe" id="v5-frame">
+            <div class="vchrome">
+              <i></i><i></i><i></i>
+              <div class="vurl">novuspitch.com/the-tank</div>
+            </div>
+            <div class="v5-app">
+              <div id="v5-cam-panel">
+                <div id="v5-live"><i></i>LIVE</div>
+                <div id="v5-timer">0:47</div>
+                <div id="v5-silhouette"></div>
+                <div id="v5-caption">YOUR PITCH &middot; CAMERA ON</div>
+              </div>
+              <div id="v5-panel-label">THE TANK &middot; 5 SHARKS WATCHING</div>
+              <div id="v5-sharks">
+                <div class="v5-shark"><img src="assets/sharks/viktor.webp" alt="" /></div>
+                <div class="v5-shark"><img src="assets/sharks/serena.webp" alt="" /></div>
+                <div class="v5-shark"><img src="assets/sharks/marcus.webp" alt="" /></div>
+                <div class="v5-shark"><img src="assets/sharks/lily.webp" alt="" /></div>
+                <div class="v5-shark"><img src="assets/sharks/dev.webp" alt="" /></div>
+              </div>
+              <div class="v5-meter">
+                <label>EYE CONTACT <em>61</em></label>
+                <div class="v5-track"><span class="v5-fill" id="v5-eye-fill"></span></div>
+              </div>
+              <div class="v5-meter">
+                <label>TONE <em>54</em></label>
+                <div class="v5-track"><span class="v5-fill" id="v5-tone-fill"></span></div>
+              </div>
+              <div class="v5-meter">
+                <label>FILLER WORDS <em>12</em></label>
+                <div class="v5-track"><span class="v5-fill" id="v5-filler-fill"></span></div>
+              </div>
+            </div>
+          </div>
+
+          <div id="v5-copy">
+            <h2 class="v5-line" id="v5-l1">
+              <span class="vw v5-wl1">Pitch</span>
+              <span class="vw v5-wl1">real</span>
+              <span class="vw v5-wl1">investors.</span>
+            </h2>
+            <h2 class="v5-line" id="v5-l1b">
+              <span class="vw v5-wl1b">Well</span>
+              <span class="vw v5-wl1b">&mdash;</span>
+              <span class="vw v5-wl1b">five</span>
+              <span class="vw v5-wl1b">AI</span>
+              <span class="vw v5-wl1b">sharks.</span>
+            </h2>
+            <h2 class="v5-line" id="v5-l2">
+              <span class="vw v5-wl2">They</span>
+              <span class="vw v5-wl2">read</span>
+              <span class="vw v5-wl2">your</span>
+              <span class="vw v5-wl2">eye</span>
+              <span class="vw v5-wl2">contact.</span>
+            </h2>
+            <h2 class="v5-line" id="v5-l3">
+              <span class="vw v5-wl3">Your</span>
+              <span class="vw v5-wl3">tone.</span>
+            </h2>
+            <h2 class="v5-line" id="v5-l4">
+              <span class="vw v5-wl4">Every</span>
+              <span class="vw v5-wl4">filler</span>
+              <span class="vw v5-wl4">word.</span>
+            </h2>
+          </div>
+        </div>
+      </section>
+
+      <!-- Scene 6 — run the numbers (32–40) -->
+      <section id="v-s6" class="clip" data-start="32" data-duration="8" data-track-index="1">
+        <div class="vcam" id="v6-cam">
+          <div class="vframe" id="v6-frame">
+            <div class="vchrome">
+              <i></i><i></i><i></i>
+              <div class="vurl">novuspitch.com/books</div>
+            </div>
+            <div id="v6-grid">
+              <div class="v6-card" id="v6-card-cash">
+                <h4>CASH</h4>
+                <div class="v6-val" id="v6-cash-val" data-layout-ignore data-final="$184,200"></div>
+                <small>money in the bank right now.</small>
+              </div>
+              <div class="v6-card" id="v6-card-burn">
+                <h4>BURN</h4>
+                <div class="v6-val" id="v6-burn-val" data-layout-ignore data-final="$12,400"></div>
+                <small>how fast the bank account shrinks.</small>
+              </div>
+              <div class="v6-card" id="v6-card-runway">
+                <h4>RUNWAY</h4>
+                <div class="v6-val" id="v6-runway-val" data-layout-ignore data-final="14 mo"></div>
+                <small>months left before $0.</small>
+              </div>
+              <div class="v6-card" id="v6-card-valuation">
+                <h4>VALUATION</h4>
+                <div class="v6-val" id="v6-valuation-val" data-layout-ignore data-final="$2.4M"></div>
+                <small>the price tag on the whole company.</small>
+              </div>
+            </div>
+            <div id="v6-event" data-layout-allow-occlusion data-layout-allow-overflow>
+              <div id="v6-event-tag">MARKET EVENT &middot; FY 2, MONTH 7</div>
+              <h3>Competitor copies your bestseller.</h3>
+              <div id="v6-event-actions">
+                <div class="v6-btn" id="v6-btn-primary">Ship v2 tonight</div>
+                <div class="v6-btn" id="v6-btn-secondary">Slash prices</div>
+              </div>
+            </div>
+          </div>
+
+          <div id="v6-copy">
+            <h2 class="v6-line" id="v6-la">
+              <span class="vw v6-wa">The</span>
+              <span class="vw v6-wa">market</span>
+              <span class="vw v6-wa">doesn't</span>
+              <span class="vw v6-wa">wait</span>
+            </h2>
+            <h2 class="v6-line" id="v6-lb">
+              <span class="vw v6-wb">for</span>
+              <span class="vw v6-wb">you</span>
+              <span class="vw v6-wb">to</span>
+              <span class="vw v6-wb">feel</span>
+              <span class="vw v6-wb">ready.</span>
+            </h2>
+          </div>
+        </div>
+      </section>
+
+      <!-- Scene 7 — stakes (40–47) -->
+      <section id="v-s7" class="clip" data-start="40" data-duration="7" data-track-index="1">
+        <div class="vcam" id="v7-cam">
+          <div id="v7-top">
+            <h1><span class="vw v7-wt">IPO.</span></h1>
+          </div>
+          <div id="v7-bottom">
+            <h1><span class="vw v7-wb">Chapter</span> <span class="vw v7-wb">7.</span></h1>
+          </div>
+          <div id="v7-divider"></div>
+          <div id="v7-final">
+            <h1>
+              <span class="vw v7-wf">Years</span>
+              <span class="vw v7-wf">only</span>
+              <span class="vw v7-wf">pass</span>
+              <span class="vw v7-wf">when</span>
+              <span class="vw v7-wf">you</span>
+              <span class="vw v7-wf">perform.</span>
+            </h1>
+          </div>
+        </div>
+      </section>
+
+      <!-- Scene 8 — CTA (47–55) -->
+      <section id="v-s8" class="clip" data-start="47" data-duration="8" data-track-index="1">
+        <div class="vcam" id="v8-cam">
+          <div id="v8-stack">
+            <h1 id="v8-line1">
+              <span class="vw v8-w">Will</span>
+              <span class="vw v8-w">you</span>
+              <span class="vw v8-w">be</span>
+              <span class="vw v8-w">ready?</span>
+            </h1>
+            <div id="v8-line2">novuspitch.com</div>
+          </div>
+          <img id="v8-shark" src="assets/shark.png" alt="" />
+          <div id="v8-qr">
+            <img src="assets/qr-novuspitch.svg" alt="" />
+            <small>SCAN TO PLAY</small>
+          </div>
+        </div>
+        <div id="v8-fade"></div>
+      </section>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      (function () {
+        // Odometer digit columns, built synchronously at load (deterministic).
+        var DIGIT_H = 58;
+        ["v6-cash-val", "v6-burn-val", "v6-runway-val", "v6-valuation-val"].forEach(function (id) {
+          var el = document.getElementById(id);
+          if (!el || el.childNodes.length) return;
+          el.getAttribute("data-final").split("").forEach(function (ch) {
+            if (/[0-9]/.test(ch)) {
+              var col = document.createElement("span");
+              col.className = "v6-col";
+              col.setAttribute("data-target", ch);
+              var stack = document.createElement("span");
+              stack.className = "v6-stack";
+              for (var d = 0; d <= 9; d++) {
+                var s = document.createElement("span");
+                s.className = "v6-digit";
+                s.textContent = String(d);
+                stack.appendChild(s);
+              }
+              col.appendChild(stack);
+              el.appendChild(col);
+            } else {
+              var st = document.createElement("span");
+              st.className = "v6-static";
+              st.textContent = ch;
+              el.appendChild(st);
+            }
+          });
+        });
+
+        var tl = gsap.timeline({ paused: true });
+        var WORD_IN = { y: 40, autoAlpha: 0, filter: "blur(6px)" };
+        function wordsTo(stagger) {
+          return { y: 0, autoAlpha: 1, filter: "blur(0px)", duration: 0.9, ease: "expo.out", stagger: stagger };
+        }
+
+        /* ---------- Scene 1 (0–4) ---------- */
+        tl.fromTo("#v1-cam", { scale: 1.0 }, { scale: 1.04, duration: 4, ease: "power1.inOut" }, 0);
+        tl.fromTo("#v1-dot", { scale: 0, autoAlpha: 1 }, { scale: 1, autoAlpha: 1, duration: 0.55, ease: "back.out(2.5)" }, 0.35);
+        tl.to("#v1-dot", { scale: 1.22, duration: 0.18, ease: "power1.inOut" }, 1.0);
+        tl.to("#v1-dot", { scale: 1.0, duration: 0.18, ease: "power1.inOut" }, 1.18);
+        tl.to("#v1-dot", { scale: 0, autoAlpha: 0, duration: 0.25, ease: "power2.in" }, 1.55);
+        tl.fromTo(".v1-w", WORD_IN, wordsTo(0.12), 1.55);
+        tl.fromTo("#v1-period", { scale: 0, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: 0.45, ease: "back.out(3)" }, 2.55);
+
+        /* ---------- Scene 2 (4–9) ---------- */
+        tl.fromTo("#v2-cam", { scale: 1.0 }, { scale: 1.04, duration: 5, ease: "power1.inOut" }, 4);
+        tl.fromTo(".v2-w1", WORD_IN, wordsTo(0.09), 4.15);
+        tl.to("#v2-beat1", { y: -28, autoAlpha: 0, duration: 0.3, ease: "power2.in" }, 6.15);
+        tl.fromTo(".v2-w2", { y: 44, autoAlpha: 0, filter: "blur(6px)" }, wordsTo(0.1), 6.55);
+        tl.to("#v2-beat2", { x: -2, duration: 0.028, ease: "power1.inOut" }, 7.3);
+        tl.to("#v2-beat2", { x: 2, duration: 0.028, ease: "power1.inOut" }, 7.33);
+        tl.to("#v2-beat2", { x: -2, duration: 0.028, ease: "power1.inOut" }, 7.36);
+        tl.to("#v2-beat2", { x: 0, duration: 0.028, ease: "power1.inOut" }, 7.39);
+        tl.fromTo("#v2-support", { y: 20, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.7, ease: "expo.out" }, 7.4);
+
+        /* ---------- Scene 3 (9–13) ---------- */
+        tl.fromTo("#v3-cam", { scale: 1.0 }, { scale: 1.04, duration: 4, ease: "power1.inOut" }, 9);
+        tl.fromTo(
+          "#v3-wordmark",
+          { scale: 1.15, autoAlpha: 0, filter: "blur(10px)", transformOrigin: "center center" },
+          { scale: 1.0, autoAlpha: 1, filter: "blur(0px)", duration: 1.0, ease: "expo.out" },
+          9.55
+        );
+        tl.fromTo(
+          "#v3-rule",
+          { scaleX: 0, autoAlpha: 1, transformOrigin: "center center" },
+          { scaleX: 1, autoAlpha: 1, duration: 0.5, ease: "expo.out" },
+          10.25
+        );
+        tl.fromTo("#v3-shark", { x: 560, autoAlpha: 0 }, { x: 0, autoAlpha: 1, duration: 0.9, ease: "expo.out" }, 10.0);
+        tl.to("#v3-shark", { rotation: -4, scale: 1.05, duration: 0.25, ease: "power1.inOut", transformOrigin: "bottom center" }, 11.25);
+        tl.to("#v3-shark", { rotation: 0, scale: 1.0, duration: 0.3, ease: "power1.inOut" }, 11.55);
+        tl.fromTo("#v3-tagline", { y: 20, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.7, ease: "expo.out" }, 10.8);
+
+        /* ---------- Scene 4 (13–22) ---------- */
+        tl.fromTo("#v4-cam", { scale: 1.0 }, { scale: 1.04, duration: 9, ease: "power1.inOut" }, 13);
+        tl.fromTo(
+          "#v4-frame",
+          { y: 90, autoAlpha: 0, rotationY: -4, scale: 0.97, transformPerspective: 1200 },
+          { y: 0, autoAlpha: 1, rotationY: 0, scale: 1, duration: 1.1, ease: "expo.out" },
+          13.3
+        );
+        tl.fromTo(".v4-wl1", WORD_IN, wordsTo(0.1), 13.5);
+        tl.to("#v4-l1", { y: -28, autoAlpha: 0, duration: 0.3, ease: "power2.in" }, 16.0);
+        tl.fromTo("#v4-phase-a", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.7, ease: "expo.out" }, 13.9);
+        tl.to("#v4-phase-a", { autoAlpha: 0, duration: 0.3, ease: "power2.in" }, 16.3);
+        tl.fromTo(".v4-wl2", WORD_IN, wordsTo(0.1), 16.4);
+        tl.to("#v4-l2", { y: -28, autoAlpha: 0, duration: 0.3, ease: "power2.in" }, 18.9);
+        tl.fromTo("#v4-phase-b", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.7, ease: "expo.out" }, 16.6);
+        tl.fromTo(
+          "#v4-chips > div",
+          { y: 20, autoAlpha: 0 },
+          { y: 0, autoAlpha: 0.55, duration: 0.5, ease: "expo.out", stagger: 0.09 },
+          16.65
+        );
+        tl.fromTo("#v4-ring", { autoAlpha: 0, scale: 0.9 }, { autoAlpha: 1, scale: 1, duration: 0.35, ease: "back.out(2)" }, 17.2);
+        tl.to("#v4-chip-food", { autoAlpha: 1, scale: 1.08, duration: 0.2, ease: "power1.out" }, 17.2);
+        tl.to("#v4-chip-food", { autoAlpha: 0.55, scale: 1, duration: 0.25, ease: "power1.inOut" }, 17.6);
+        tl.to("#v4-ring", { x: 420, duration: 0.35, ease: "expo.out" }, 17.7);
+        tl.to("#v4-chip-tech", { autoAlpha: 1, scale: 1.08, duration: 0.2, ease: "power1.out" }, 17.7);
+        tl.to("#v4-chip-tech", { autoAlpha: 0.55, scale: 1, duration: 0.25, ease: "power1.inOut" }, 18.1);
+        tl.to("#v4-ring", { x: 0, y: 504, duration: 0.35, ease: "expo.out" }, 18.2);
+        tl.to("#v4-chip-fashion", { autoAlpha: 1, scale: 1.08, duration: 0.2, ease: "power1.out" }, 18.2);
+        tl.to("#v4-chip-fashion", { autoAlpha: 0.55, scale: 1, duration: 0.25, ease: "power1.inOut" }, 18.6);
+        tl.to("#v4-ring", { x: 420, duration: 0.35, ease: "expo.out" }, 18.7);
+        tl.to("#v4-chip-gaming", { autoAlpha: 1, scale: 1.08, duration: 0.2, ease: "power1.out" }, 18.7);
+        tl.to("#v4-ring", { autoAlpha: 0, duration: 0.25, ease: "power2.in" }, 19.05);
+        tl.to("#v4-phase-b", { autoAlpha: 0, duration: 0.3, ease: "power2.in" }, 19.1);
+        tl.to("#v4-chips > div", { autoAlpha: 0, duration: 0.3, ease: "power2.in", stagger: 0.03 }, 19.4);
+        tl.fromTo(".v4-wl3", WORD_IN, wordsTo(0.1), 19.3);
+        tl.fromTo("#v4-phase-c", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.7, ease: "expo.out" }, 19.4);
+        tl.fromTo("#v4-fill", { scaleX: 0, transformOrigin: "left center" }, { scaleX: 1, duration: 1.5, ease: "power1.inOut" }, 19.8);
+        tl.to("#v4-year-roll", { y: -120, duration: 0.7, ease: "expo.out" }, 21.1);
+
+        /* ---------- Scene 5 (22–32) ---------- */
+        tl.fromTo("#v5-cam", { scale: 1.0 }, { scale: 1.04, duration: 10, ease: "power1.inOut" }, 22);
+        tl.fromTo(
+          "#v5-frame",
+          { y: 100, autoAlpha: 0, rotationY: 3.5, scale: 0.97, transformPerspective: 1400 },
+          { y: 0, autoAlpha: 1, rotationY: 0, scale: 1, duration: 1.2, ease: "expo.out" },
+          22.25
+        );
+        tl.fromTo(
+          ".v5-shark",
+          { scale: 0, autoAlpha: 0 },
+          { scale: 1, autoAlpha: 1, duration: 0.55, ease: "back.out(2.2)", stagger: 0.09 },
+          23.1
+        );
+        tl.fromTo("#v5-eye-fill", { scaleX: 0.2, transformOrigin: "left center" }, { scaleX: 0.55, duration: 1.4, ease: "power1.inOut" }, 23.2);
+        tl.fromTo("#v5-tone-fill", { scaleX: 0.15, transformOrigin: "left center" }, { scaleX: 0.48, duration: 1.6, ease: "power1.inOut" }, 23.4);
+        tl.fromTo("#v5-filler-fill", { scaleX: 0.1, transformOrigin: "left center" }, { scaleX: 0.3, duration: 1.5, ease: "power1.inOut" }, 23.6);
+        tl.fromTo(".v5-wl1", WORD_IN, wordsTo(0.09), 22.6);
+        tl.fromTo(".v5-wl1b", WORD_IN, wordsTo(0.09), 23.6);
+        tl.to("#v5-l1", { y: -24, autoAlpha: 0, duration: 0.3, ease: "power2.in" }, 25.3);
+        tl.to("#v5-l1b", { y: -24, autoAlpha: 0, duration: 0.3, ease: "power2.in" }, 25.3);
+        tl.fromTo(".v5-wl2", WORD_IN, wordsTo(0.09), 25.6);
+        tl.to("#v5-eye-fill", { scaleX: 0.72, duration: 0.6, ease: "power2.out" }, 26.0);
+        tl.to("#v5-l2", { y: -24, autoAlpha: 0, duration: 0.3, ease: "power2.in" }, 27.5);
+        tl.fromTo(".v5-wl3", WORD_IN, wordsTo(0.09), 27.8);
+        tl.to("#v5-tone-fill", { scaleX: 0.66, duration: 0.6, ease: "power2.out" }, 28.1);
+        tl.to("#v5-l3", { y: -24, autoAlpha: 0, duration: 0.3, ease: "power2.in" }, 29.2);
+        tl.fromTo(".v5-wl4", WORD_IN, wordsTo(0.09), 29.5);
+        tl.to("#v5-filler-fill", { backgroundColor: "#ff6b00", duration: 0.2, ease: "power1.in" }, 29.7);
+        tl.to("#v5-filler-fill", { scaleX: 0.48, duration: 0.14, ease: "power1.out" }, 29.8);
+        tl.to("#v5-filler-fill", { scaleX: 0.64, duration: 0.14, ease: "power1.out" }, 30.1);
+        tl.to("#v5-filler-fill", { scaleX: 0.84, duration: 0.16, ease: "power1.out" }, 30.4);
+
+        /* ---------- Scene 6 (32–40) ---------- */
+        tl.fromTo("#v6-cam", { scale: 1.0 }, { scale: 1.04, duration: 8, ease: "power1.inOut" }, 32);
+        tl.fromTo(
+          "#v6-frame",
+          { y: 90, autoAlpha: 0, rotationY: -3.5, scale: 0.97, transformPerspective: 1400 },
+          { y: 0, autoAlpha: 1, rotationY: 0, scale: 1, duration: 1.1, ease: "expo.out" },
+          32.2
+        );
+        tl.fromTo("#v6-card-cash", { y: 26, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.7, ease: "expo.out" }, 32.6);
+        tl.fromTo("#v6-card-burn", { y: 26, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.7, ease: "expo.out" }, 33.2);
+        tl.fromTo("#v6-card-runway", { y: 26, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.7, ease: "expo.out" }, 33.8);
+        tl.fromTo("#v6-card-valuation", { y: 26, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.7, ease: "expo.out" }, 34.4);
+        [
+          ["v6-cash-val", 33.0],
+          ["v6-burn-val", 33.6],
+          ["v6-runway-val", 34.2],
+          ["v6-valuation-val", 34.8],
+        ].forEach(function (pair) {
+          var cols = document.querySelectorAll("#" + pair[0] + " .v6-col .v6-stack");
+          cols.forEach(function (stack, i) {
+            var target = Number(stack.parentNode.getAttribute("data-target"));
+            tl.fromTo(stack, { y: 0 }, { y: -DIGIT_H * target, duration: 0.9 + i * 0.08, ease: "expo.out" }, pair[1] + i * 0.06);
+          });
+        });
+        tl.to("#v6-grid", { autoAlpha: 0, duration: 0.25, ease: "power1.in" }, 37.25);
+        tl.fromTo("#v6-event", { y: 1150, autoAlpha: 1 }, { y: 0, autoAlpha: 1, duration: 0.85, ease: "expo.out" }, 37.0);
+        tl.fromTo(".v6-wa", WORD_IN, wordsTo(0.09), 37.3);
+        tl.fromTo(".v6-wb", WORD_IN, wordsTo(0.09), 37.9);
+
+        /* ---------- Scene 7 (40–47) ---------- */
+        tl.fromTo("#v7-cam", { scale: 1.0 }, { scale: 1.04, duration: 7, ease: "power1.inOut" }, 40);
+        tl.fromTo(
+          "#v7-divider",
+          { scaleX: 0, autoAlpha: 1, transformOrigin: "left center" },
+          { scaleX: 1, autoAlpha: 1, duration: 0.8, ease: "expo.out" },
+          40.4
+        );
+        tl.fromTo(".v7-wt", WORD_IN, wordsTo(0), 40.7);
+        tl.fromTo(".v7-wb", WORD_IN, wordsTo(0.1), 41.0);
+        tl.to("#v7-top", { scale: 0.94, autoAlpha: 0, duration: 0.35, ease: "power2.in" }, 44.0);
+        tl.to("#v7-bottom", { scale: 0.94, autoAlpha: 0, duration: 0.35, ease: "power2.in" }, 44.0);
+        tl.to("#v7-divider", { scaleX: 0, transformOrigin: "center center", duration: 0.35, ease: "power2.in" }, 44.0);
+        tl.fromTo(".v7-wf", WORD_IN, wordsTo(0.1), 44.5);
+        tl.to("#v7-final", { autoAlpha: 0, duration: 0.45, ease: "power2.in" }, 46.55);
+        tl.set("#v7-final", { autoAlpha: 0 }, 47.0);
+
+        /* ---------- Scene 8 (47–55) ---------- */
+        tl.fromTo("#v8-cam", { scale: 1.0 }, { scale: 1.04, duration: 8, ease: "power1.inOut" }, 47);
+        tl.fromTo(
+          "#v8-shark",
+          { scale: 0, autoAlpha: 0, rotation: -6, transformOrigin: "bottom center" },
+          { scale: 1, autoAlpha: 1, rotation: 0, duration: 0.7, ease: "back.out(2.2)" },
+          47.7
+        );
+        tl.to("#v8-shark", { scale: 1.03, duration: 0.5, ease: "power1.inOut" }, 50.0);
+        tl.to("#v8-shark", { scale: 1.0, duration: 0.5, ease: "power1.inOut" }, 50.5);
+        tl.to("#v8-shark", { scale: 1.03, duration: 0.5, ease: "power1.inOut" }, 52.2);
+        tl.to("#v8-shark", { scale: 1.0, duration: 0.5, ease: "power1.inOut" }, 52.7);
+        tl.fromTo(".v8-w", WORD_IN, wordsTo(0.11), 48.0);
+        tl.fromTo("#v8-line2", { y: 26, autoAlpha: 0, filter: "blur(4px)" }, { y: 0, autoAlpha: 1, filter: "blur(0px)", duration: 0.8, ease: "expo.out" }, 48.8);
+        tl.fromTo("#v8-qr", { y: 20, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.7, ease: "expo.out" }, 49.4);
+        tl.fromTo("#v8-fade", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.5, ease: "power1.in" }, 54.5);
+
+        window.__timelines["main-vertical"] = tl;
+      })();
+    </script>
+  </body>
+</html>

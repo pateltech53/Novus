@@ -1,0 +1,361 @@
+<template>
+  <div
+    data-composition-id="s6-books"
+    data-width="1920"
+    data-height="1080"
+    data-duration="8"
+    style="position: absolute; inset: 0; overflow: hidden; font-family: 'Urbanist', system-ui, sans-serif;"
+  >
+    <style>
+      @font-face {
+        font-family: "Urbanist";
+        font-style: normal;
+        font-weight: 100 900;
+        src: url("assets/fonts/urbanist-latin.woff2") format("woff2");
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+      @font-face {
+        font-family: "Urbanist";
+        font-style: normal;
+        font-weight: 100 900;
+        src: url("assets/fonts/urbanist-latin-ext.woff2") format("woff2");
+        unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+      }
+      .s6-bg {
+        position: absolute;
+        inset: 0;
+        background: #0a0f1e;
+      }
+      .s6-cam {
+        position: absolute;
+        inset: 0;
+      }
+      #s6-frame {
+        position: absolute;
+        left: 380px;
+        top: 190px;
+        width: 1160px;
+        height: 700px;
+        border-radius: 24px;
+        background: #0d1526;
+        border: 1px solid rgba(245, 247, 250, 0.08);
+        box-shadow:
+          0 30px 90px rgba(0, 0, 0, 0.55),
+          0 18px 70px rgba(255, 107, 0, 0.14);
+        overflow: hidden;
+        opacity: 0;
+      }
+      .s6-chrome {
+        height: 52px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 20px;
+        background: rgba(245, 247, 250, 0.04);
+        border-bottom: 1px solid rgba(245, 247, 250, 0.06);
+      }
+      .s6-chrome i {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: rgba(245, 247, 250, 0.16);
+      }
+      .s6-url {
+        margin-left: 14px;
+        font-size: 17px;
+        font-weight: 500;
+        color: rgba(245, 247, 250, 0.62);
+        background: rgba(245, 247, 250, 0.05);
+        border-radius: 8px;
+        padding: 6px 16px;
+      }
+      #s6-grid {
+        position: absolute;
+        inset: 52px 0 0 0;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap: 24px;
+        padding: 40px 44px;
+      }
+      .s6-card {
+        border-radius: 16px;
+        background: rgba(245, 247, 250, 0.035);
+        border: 1px solid rgba(245, 247, 250, 0.07);
+        padding: 30px 34px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        opacity: 0;
+      }
+      .s6-card h4 {
+        font-size: 21px;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        color: rgba(245, 247, 250, 0.68);
+      }
+      .s6-card small {
+        font-size: 17px;
+        font-weight: 500;
+        color: rgba(245, 247, 250, 0.6);
+      }
+      .s6-val {
+        display: flex;
+        align-items: baseline;
+        font-size: 54px;
+        font-weight: 800;
+        letter-spacing: 0;
+        color: #f5f7fa;
+        font-variant-numeric: tabular-nums;
+        height: 62px;
+        overflow: hidden;
+      }
+      .s6-col {
+        display: inline-block;
+        height: 62px;
+        overflow: hidden;
+      }
+      .s6-stack {
+        display: block;
+      }
+      .s6-digit,
+      .s6-static {
+        display: block;
+        line-height: 62px;
+        height: 62px;
+      }
+      .s6-static {
+        display: inline-block;
+      }
+      /* Market event card that slides over the books */
+      #s6-event {
+        visibility: hidden;
+        position: absolute;
+        left: 150px;
+        right: 150px;
+        top: 150px;
+        bottom: 110px;
+        border-radius: 20px;
+        background: #101a30;
+        border: 1px solid rgba(245, 247, 250, 0.12);
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+        padding: 44px 52px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        opacity: 0;
+      }
+      #s6-event-tag {
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: 0.24em;
+        color: rgba(245, 247, 250, 0.62);
+      }
+      #s6-event h3 {
+        font-size: 46px;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        line-height: 1.15;
+        color: #f5f7fa;
+        max-width: 640px;
+      }
+      #s6-event-actions {
+        display: flex;
+        gap: 18px;
+      }
+      .s6-btn {
+        font-size: 24px;
+        font-weight: 800;
+        border-radius: 14px;
+        padding: 18px 34px;
+        letter-spacing: 0.02em;
+      }
+      #s6-btn-primary {
+        background: #ff6b00;
+        color: #0a0f1e;
+      }
+      #s6-btn-secondary {
+        background: transparent;
+        border: 2px solid rgba(245, 247, 250, 0.18);
+        color: rgba(245, 247, 250, 0.7);
+      }
+      /* Single statement, bottom-left band */
+      #s6-copy {
+        position: absolute;
+        left: 140px;
+        top: 912px;
+      }
+      .s6-line {
+        font-size: 52px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.16;
+        color: #f5f7fa;
+        white-space: nowrap;
+        display: inline-block;
+      }
+      #s6-lb {
+        margin-left: 18px;
+      }
+      .s6-w {
+        display: inline-block;
+        opacity: 0;
+      }
+    </style>
+
+    <div class="s6-bg"></div>
+    <div class="s6-cam">
+      <div id="s6-frame">
+        <div class="s6-chrome">
+          <i></i><i></i><i></i>
+          <div class="s6-url">novuspitch.com/books</div>
+        </div>
+        <div id="s6-grid">
+          <div class="s6-card" id="s6-card-cash">
+            <h4>CASH</h4>
+            <div class="s6-val" id="s6-cash-val" data-layout-ignore data-final="$184,200"></div>
+            <small>money in the bank right now.</small>
+          </div>
+          <div class="s6-card" id="s6-card-burn">
+            <h4>BURN</h4>
+            <div class="s6-val" id="s6-burn-val" data-layout-ignore data-final="$12,400"></div>
+            <small>how fast the bank account shrinks.</small>
+          </div>
+          <div class="s6-card" id="s6-card-runway">
+            <h4>RUNWAY</h4>
+            <div class="s6-val" id="s6-runway-val" data-layout-ignore data-final="14 mo"></div>
+            <small>months left before $0.</small>
+          </div>
+          <div class="s6-card" id="s6-card-valuation">
+            <h4>VALUATION</h4>
+            <div class="s6-val" id="s6-valuation-val" data-layout-ignore data-final="$2.4M"></div>
+            <small>the price tag on the whole company.</small>
+          </div>
+        </div>
+
+        <div id="s6-event" data-layout-allow-occlusion data-layout-allow-overflow>
+          <div id="s6-event-tag">MARKET EVENT &middot; FY 2, MONTH 7</div>
+          <h3>Competitor copies your bestseller.</h3>
+          <div id="s6-event-actions">
+            <div class="s6-btn" id="s6-btn-primary">Ship v2 tonight</div>
+            <div class="s6-btn" id="s6-btn-secondary">Slash prices</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="s6-copy">
+        <h2 class="s6-line" id="s6-la">
+          <span class="s6-w">The</span>
+          <span class="s6-w">market</span>
+          <span class="s6-w">doesn't</span>
+          <span class="s6-w">wait</span>
+        </h2>
+        <h2 class="s6-line" id="s6-lb">
+          <span class="s6-w">for</span>
+          <span class="s6-w">you</span>
+          <span class="s6-w">to</span>
+          <span class="s6-w">feel</span>
+          <span class="s6-w">ready.</span>
+        </h2>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      (function () {
+        // Build odometer digit columns synchronously at load (deterministic).
+        const DIGIT_H = 62;
+        ["s6-cash-val", "s6-burn-val", "s6-runway-val", "s6-valuation-val"].forEach(function (id) {
+          const el = document.getElementById(id);
+          if (!el || el.childNodes.length) return;
+          el.getAttribute("data-final").split("").forEach(function (ch) {
+            if (/[0-9]/.test(ch)) {
+              const col = document.createElement("span");
+              col.className = "s6-col";
+              col.setAttribute("data-target", ch);
+              const stack = document.createElement("span");
+              stack.className = "s6-stack";
+              for (let d = 0; d <= 9; d++) {
+                const s = document.createElement("span");
+                s.className = "s6-digit";
+                s.textContent = String(d);
+                stack.appendChild(s);
+              }
+              col.appendChild(stack);
+              el.appendChild(col);
+            } else {
+              const s = document.createElement("span");
+              s.className = "s6-static";
+              s.textContent = ch;
+              el.appendChild(s);
+            }
+          });
+        });
+
+        const tl = gsap.timeline({ paused: true });
+
+        tl.fromTo(".s6-cam", { scale: 1.0 }, { scale: 1.04, duration: 8, ease: "power1.inOut" }, 0);
+
+        // Frame floats in centered, tilt to flat.
+        tl.fromTo(
+          "#s6-frame",
+          { y: 80, autoAlpha: 0, rotationY: -3.5, scale: 0.97, transformPerspective: 1400 },
+          { y: 0, autoAlpha: 1, rotationY: 0, scale: 1, duration: 1.1, ease: "expo.out" },
+          0.2
+        );
+
+        // Stat cards type on one by one.
+        tl.fromTo("#s6-card-cash", { y: 26, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.7, ease: "expo.out" }, 0.6);
+        tl.fromTo("#s6-card-burn", { y: 26, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.7, ease: "expo.out" }, 1.2);
+        tl.fromTo("#s6-card-runway", { y: 26, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.7, ease: "expo.out" }, 1.8);
+        tl.fromTo("#s6-card-valuation", { y: 26, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.7, ease: "expo.out" }, 2.4);
+
+        // Numbers odometer-roll to their targets.
+        [
+          ["s6-cash-val", 1.0],
+          ["s6-burn-val", 1.6],
+          ["s6-runway-val", 2.2],
+          ["s6-valuation-val", 2.8],
+        ].forEach(function (pair) {
+          const cols = document.querySelectorAll("#" + pair[0] + " .s6-col .s6-stack");
+          cols.forEach(function (stack, i) {
+            const target = Number(stack.parentNode.getAttribute("data-target"));
+            tl.fromTo(
+              stack,
+              { y: 0 },
+              { y: -DIGIT_H * target, duration: 0.9 + i * 0.08, ease: "expo.out" },
+              pair[1] + i * 0.06
+            );
+          });
+        });
+
+        // Event card slides over the books for the final 3s.
+        tl.fromTo(
+          "#s6-event",
+          { y: 640, autoAlpha: 1 },
+          { y: 0, autoAlpha: 1, duration: 0.85, ease: "expo.out" },
+          5.0
+        );
+
+        // Books grid is fully covered by the event card — hide it so occluded
+        // text stops registering (and stops being probed) behind the overlay.
+        tl.to("#s6-grid", { autoAlpha: 0, duration: 0.25, ease: "power1.in" }, 5.25);
+
+        tl.fromTo(
+          "#s6-la .s6-w",
+          { y: 40, autoAlpha: 0, filter: "blur(6px)" },
+          { y: 0, autoAlpha: 1, filter: "blur(0px)", duration: 0.9, ease: "expo.out", stagger: 0.09 },
+          5.3
+        );
+        tl.fromTo(
+          "#s6-lb .s6-w",
+          { y: 40, autoAlpha: 0, filter: "blur(6px)" },
+          { y: 0, autoAlpha: 1, filter: "blur(0px)", duration: 0.9, ease: "expo.out", stagger: 0.09 },
+          5.9
+        );
+
+        window.__timelines["s6-books"] = tl;
+      })();
+    </script>
+  </div>
+</template>

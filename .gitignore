@@ -39,6 +39,7 @@ next-env.d.ts
 # skill bodies are not, same reasoning as package-lock.json vs node_modules.
 # Restore with:  npx skills experimental_install
 .claude/skills/
+.agents/
 
 # Tier unlock clips — ~38 MB of source video, kept out of git history.
 # Regenerate/reinstall from the raw renders; see scripts/make-characters.mjs.
