@@ -1,0 +1,11 @@
+{
+  "duration": 10,
+  "assertions": [
+    { "kind": "appearsBy", "selector": "#title-kicker", "bySec": 1.0 },
+    { "kind": "appearsBy", "selector": "#title-tagline", "bySec": 2.2 },
+    { "kind": "before", "a": "#title-kicker", "b": "#stats-heading" },
+    { "kind": "before", "a": "#stats-heading", "b": "#cta-lockup" },
+    { "kind": "staysInFrame", "selector": "#cta-lockup" },
+    { "kind": "keepsMoving" }
+  ]
+}

@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <!-- Vendored locally: render-time network fetches for required assets are banned
+         by the determinism contract (hyperframes-core/references/determinism-rules.md) -->
+    <script src="assets/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #000;
+      }
+      body {
+        font-family: Inter, sans-serif;
+        color: #fff;
+      }
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+      }
+
+      /* ---- background layer (track 1) ---- */
+      #bg {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(160deg, #0b1e36 0%, #081527 55%, #060f1d 100%);
+      }
+      #bg-glow {
+        position: absolute;
+        left: 260px;
+        top: -140px;
+        width: 1400px;
+        height: 1400px;
+        background: radial-gradient(circle, rgba(232, 95, 0, 0.16) 0%, rgba(232, 95, 0, 0) 60%);
+      }
+      #bg-grid {
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(rgba(159, 176, 198, 0.14) 1.5px, transparent 1.5px);
+        background-size: 64px 64px;
+      }
+
+      /* ---- shared scene shell ---- */
+      .scene {
+        position: absolute;
+        inset: 0;
+      }
+      .scene-wrap {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* ---- scene 1: title ---- */
+      #title-kicker {
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: 0.32em;
+        color: #ffc24b;
+        border: 2px solid rgba(255, 194, 75, 0.45);
+        border-radius: 999px;
+        padding: 14px 34px 14px 40px;
+      }
+      #novus-mask {
+        overflow: hidden;
+        padding: 0 20px;
+        margin-top: 44px;
+      }
+      #novus-wordmark {
+        font-size: 220px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        line-height: 1.05;
+      }
+      .novus-letter {
+        display: inline-block;
+      }
+      #title-bar {
+        display: block;
+        width: 520px;
+        height: 10px;
+        border-radius: 5px;
+        margin-top: 30px;
+        background: #ff6b00;
+        transform-origin: 50% 50%;
+      }
+      #title-tagline {
+        margin-top: 40px;
+        font-size: 40px;
+        font-weight: 500;
+        color: #9fb0c6;
+        max-width: 1400px;
+        text-align: center;
+      }
+
+      /* ---- scene 2: stats ---- */
+      #stats-heading {
+        font-size: 64px;
+        font-weight: 700;
+        margin-bottom: 88px;
+      }
+      #stats-row {
+        display: flex;
+        gap: 88px;
+      }
+      .stat-card {
+        width: 340px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background: #10294a;
+        border: 1px solid rgba(159, 176, 198, 0.18);
+        border-radius: 28px;
+        padding: 44px 0 40px;
+      }
+      .stat-ring {
+        position: relative;
+        width: 180px;
+        height: 180px;
+      }
+      .stat-ring svg {
+        display: block;
+        width: 180px;
+        height: 180px;
+      }
+      .ring-track {
+        fill: none;
+        stroke: #1c3a63;
+        stroke-width: 10;
+      }
+      .ring-value {
+        fill: none;
+        stroke-width: 10;
+        stroke-linecap: round;
+      }
+      .stat-num {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        font-size: 56px;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+      }
+      .stat-label {
+        margin-top: 26px;
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: 0.22em;
+        color: #9fb0c6;
+      }
+
+      /* ---- scene 3: closing ---- */
+      #cta-line {
+        font-size: 48px;
+        font-weight: 500;
+        color: #9fb0c6;
+      }
+      #cta-lockup {
+        margin-top: 34px;
+        font-size: 150px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+      }
+      #cta-bar {
+        display: block;
+        width: 360px;
+        height: 8px;
+        border-radius: 4px;
+        margin-top: 26px;
+        background: #ff6b00;
+        transform-origin: 50% 50%;
+      }
+      #cta-tag {
+        margin-top: 36px;
+        font-size: 44px;
+        font-weight: 700;
+        color: #ff6b00;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="10"
+      data-width="1920"
+      data-height="1080"
+    >
+      <!-- Track 1: persistent background for the whole piece -->
+      <div id="bg" class="clip" data-start="0" data-duration="10" data-track-index="1">
+        <div id="bg-glow" data-layout-ignore></div>
+        <div id="bg-grid" data-layout-ignore></div>
+      </div>
+
+      <!-- Track 2: title card, 0s → 4.2s -->
+      <section id="scene-title" class="clip scene" data-start="0" data-duration="4.2" data-track-index="2">
+        <div id="title-wrap" class="scene-wrap">
+          <div id="title-kicker">A COMPANY LIFE SIM</div>
+          <div id="novus-mask" data-layout-allow-overflow>
+            <div id="novus-wordmark">
+              <span class="novus-letter">N</span><span class="novus-letter">O</span><span
+                class="novus-letter"
+                >V</span
+              ><span class="novus-letter">U</span><span class="novus-letter">S</span>
+            </div>
+          </div>
+          <span id="title-bar"></span>
+          <div id="title-tagline">Run the company. Survive the pitch.</div>
+        </div>
+      </section>
+
+      <!-- Track 3: stat dials, 4.2s → 7.4s -->
+      <section id="scene-stats" class="clip scene" data-start="4.2" data-duration="3.2" data-track-index="3">
+        <div id="stats-wrap" class="scene-wrap">
+          <div id="stats-heading">Five dials decide the year.</div>
+          <div id="stats-row">
+            <div class="stat-card" id="card-brand">
+              <div class="stat-ring">
+                <svg viewBox="0 0 120 120" aria-hidden="true">
+                  <circle class="ring-track" cx="60" cy="60" r="52"></circle>
+                  <circle
+                    id="ring-brand"
+                    class="ring-value"
+                    cx="60"
+                    cy="60"
+                    r="52"
+                    stroke="#ff6b00"
+                    stroke-dasharray="326.726"
+                    stroke-dashoffset="326.726"
+                    transform="rotate(-90 60 60)"
+                  ></circle>
+                </svg>
+                <div class="stat-num" id="num-brand">0</div>
+              </div>
+              <div class="stat-label">BRAND</div>
+            </div>
+            <div class="stat-card" id="card-quality">
+              <div class="stat-ring">
+                <svg viewBox="0 0 120 120" aria-hidden="true">
+                  <circle class="ring-track" cx="60" cy="60" r="52"></circle>
+                  <circle
+                    id="ring-quality"
+                    class="ring-value"
+                    cx="60"
+                    cy="60"
+                    r="52"
+                    stroke="#ffc24b"
+                    stroke-dasharray="326.726"
+                    stroke-dashoffset="326.726"
+                    transform="rotate(-90 60 60)"
+                  ></circle>
+                </svg>
+                <div class="stat-num" id="num-quality">0</div>
+              </div>
+              <div class="stat-label">QUALITY</div>
+            </div>
+            <div class="stat-card" id="card-morale">
+              <div class="stat-ring">
+                <svg viewBox="0 0 120 120" aria-hidden="true">
+                  <circle class="ring-track" cx="60" cy="60" r="52"></circle>
+                  <circle
+                    id="ring-morale"
+                    class="ring-value"
+                    cx="60"
+                    cy="60"
+                    r="52"
+                    stroke="#3ddc97"
+                    stroke-dasharray="326.726"
+                    stroke-dashoffset="326.726"
+                    transform="rotate(-90 60 60)"
+                  ></circle>
+                </svg>
+                <div class="stat-num" id="num-morale">0</div>
+              </div>
+              <div class="stat-label">MORALE</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Track 4: closing lockup, 7.4s → 10s, holds its end state -->
+      <section id="scene-cta" class="clip scene" data-start="7.4" data-duration="2.6" data-track-index="4">
+        <div id="cta-wrap" class="scene-wrap">
+          <div id="cta-line">Time only moves when you tap.</div>
+          <div id="cta-lockup">NOVUS</div>
+          <span id="cta-bar"></span>
+          <div id="cta-tag">Survive the pitch.</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true, defaults: { ease: "power3.out" } });
+
+      const RING_C = 326.726; // 2π × r(52), matches the static stroke-dasharray
+
+      // Background glow breathes for the full 10s: finite repeats,
+      // floor(duration / cycle) - 1 per the determinism contract.
+      tl.fromTo(
+        "#bg-glow",
+        { scale: 0.9 },
+        { scale: 1.08, duration: 2.5, yoyo: true, repeat: Math.max(0, Math.floor(10 / 2.5) - 1), ease: "sine.inOut" },
+        0
+      );
+
+      // --- Scene 1: title (clip window 0 → 4.2) ---
+      tl.addLabel("title", 0);
+      tl.fromTo("#title-kicker", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.5 }, "title+=0.2");
+      tl.fromTo(
+        ".novus-letter",
+        { yPercent: 110, opacity: 0 },
+        { yPercent: 0, opacity: 1, duration: 0.7, stagger: 0.07, ease: "power4.out" },
+        "title+=0.45"
+      );
+      tl.fromTo("#title-bar", { scaleX: 0 }, { scaleX: 1, duration: 0.6, ease: "power2.inOut" }, "title+=1.0");
+      tl.fromTo("#title-tagline", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.55 }, "title+=1.2");
+      tl.to("#title-wrap", { autoAlpha: 0, y: -26, duration: 0.4, ease: "power2.in" }, 3.8);
+      tl.set("#title-wrap", { autoAlpha: 0 }, 4.2);
+
+      // --- Scene 2: stat dials (clip window 4.2 → 7.4) ---
+      tl.addLabel("stats", 4.2);
+      tl.fromTo(
+        "#stats-heading",
+        { opacity: 0, y: 22 },
+        { opacity: 1, y: 0, duration: 0.5, immediateRender: false },
+        "stats+=0.1"
+      );
+      tl.fromTo(
+        ".stat-card",
+        { opacity: 0, y: 36 },
+        { opacity: 1, y: 0, duration: 0.6, stagger: 0.14, immediateRender: false },
+        "stats+=0.25"
+      );
+      const dials = [
+        { ring: "#ring-brand", num: "#num-brand", value: 72 },
+        { ring: "#ring-quality", num: "#num-quality", value: 64 },
+        { ring: "#ring-morale", num: "#num-morale", value: 81 },
+      ];
+      dials.forEach((dial, i) => {
+        const at = `stats+=${(0.5 + i * 0.14).toFixed(2)}`;
+        tl.fromTo(
+          dial.ring,
+          { strokeDashoffset: RING_C },
+          { strokeDashoffset: RING_C * (1 - dial.value / 100), duration: 1.1, ease: "power2.inOut", immediateRender: false },
+          at
+        );
+        tl.to(dial.num, { innerText: dial.value, snap: { innerText: 1 }, duration: 1.1, ease: "power2.inOut" }, at);
+      });
+      tl.to("#stats-wrap", { autoAlpha: 0, y: -20, duration: 0.35, ease: "power2.in" }, 7.05);
+      tl.set("#stats-wrap", { autoAlpha: 0 }, 7.4);
+
+      // --- Scene 3: closing lockup (clip window 7.4 → 10, holds — no reset, no black) ---
+      tl.addLabel("cta", 7.4);
+      tl.fromTo(
+        "#cta-line",
+        { opacity: 0, y: 26 },
+        { opacity: 1, y: 0, duration: 0.55, immediateRender: false },
+        "cta+=0.15"
+      );
+      tl.fromTo(
+        "#cta-lockup",
+        { opacity: 0, scale: 0.94 },
+        { opacity: 1, scale: 1, duration: 0.7, immediateRender: false },
+        "cta+=0.45"
+      );
+      tl.fromTo(
+        "#cta-bar",
+        { scaleX: 0 },
+        { scaleX: 1, duration: 0.55, ease: "power2.inOut", immediateRender: false },
+        "cta+=0.7"
+      );
+      tl.fromTo("#cta-tag", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.5, immediateRender: false }, "cta+=0.9");
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
