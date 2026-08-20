@@ -1,0 +1,15 @@
+{
+  "summary": {
+    "webAnimations": 0,
+    "cssDeclarations": 26,
+    "scrollTargets": 0,
+    "cdpAnimations": 4,
+    "canvases": 0
+  },
+  "namedAnimations": [
+    "nvRiseStage",
+    "nvRise"
+  ],
+  "scrollTriggeredElements": 0,
+  "representativeAnimations": []
+}
