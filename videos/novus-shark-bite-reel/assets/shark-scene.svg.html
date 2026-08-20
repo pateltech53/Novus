@@ -1,0 +1,116 @@
+<!--
+  Shared shark-scene snippet — inline this VERBATIM into your frame, replacing every
+  "NSX_" id prefix with your group namespace (e.g. "g1_"). Both frames use the SAME
+  geometry so the hard cut at track 5.46s is seamless.
+
+  Structure:
+    #NSX_scene   — full-bleed wrapper div (place inside #stage)
+    #NSX_rays    — light shafts (flat fill, subtle)
+    #NSX_shark   — whole shark (shake target)
+    #NSX_gM      — mouth interior (behind jaws)
+    #NSX_founder — founder head+shoulders silhouette between the jaws
+    #NSX_gU      — upper jaw+head  (transform-origin 950px 880px; rotation NEGATIVE opens)
+    #NSX_gL      — lower jaw       (transform-origin 950px 900px; rotation POSITIVE opens)
+    #NSX_bubbles — ambient bubbles
+
+  Jaw states (GSAP rotation, deg — VERIFIED by headless screenshot):
+    resting-open   gU:+8   gL:-13   (founder head fits in the gap)
+    creep-wider    gU:+14  gL:-19   (end of the buildup, mouth at its widest)
+    BITE (closed)  gU:-2   gL:+2    (teeth interlock; MUST hide #NSX_founder at the
+                                     snap — its shoulders otherwise peek below the jaw)
+-->
+<div id="NSX_scene" style="position:absolute;inset:0;background:#0B0E15;overflow:hidden;">
+  <!-- the one permitted radial stage vignette -->
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse 120% 90% at 50% 42%, rgba(25,29,39,.0) 0%, rgba(4,6,10,.55) 100%);"></div>
+  <svg viewBox="0 0 1080 1920" preserveAspectRatio="xMidYMid slice" style="position:absolute;inset:0;width:100%;height:100%;">
+    <!-- light shafts -->
+    <g id="NSX_rays" opacity="0.5">
+      <polygon points="250,0 340,0 170,760 90,760" fill="#191D27" opacity="0.55"/>
+      <polygon points="520,0 590,0 470,660 400,660" fill="#191D27" opacity="0.4"/>
+      <polygon points="830,0 940,0 880,540 790,540" fill="#161B26" opacity="0.45"/>
+    </g>
+    <!-- faint water lines -->
+    <path d="M0,1180 q90,-26 180,0 t180,0 t180,0 t180,0 t180,0 t180,0" stroke="#191D27" stroke-width="5" fill="none" opacity="0.6"/>
+    <path d="M0,1320 q110,-30 220,0 t220,0 t220,0 t220,0 t220,0" stroke="#161B26" stroke-width="5" fill="none" opacity="0.5"/>
+
+    <g id="NSX_shark">
+      <!-- mouth interior (visible in the jaw gap) -->
+      <g id="NSX_gM">
+        <ellipse cx="600" cy="890" rx="430" ry="270" fill="#140A0E"/>
+      </g>
+
+      <!-- founder head + shoulders, between the jaws -->
+      <g id="NSX_founder">
+        <rect x="360" y="948" width="220" height="170" rx="62" fill="#10141C" stroke="#3A404D" stroke-width="4"/>
+        <circle cx="470" cy="866" r="80" fill="#10141C" stroke="#3A404D" stroke-width="4"/>
+        <!-- collar + tie: the founder is mid-pitch -->
+        <path d="M440,952 L470,984 L500,952" fill="none" stroke="#3A404D" stroke-width="5" stroke-linecap="round"/>
+        <path d="M466,986 l8,0 l6,44 l-10,14 l-10,-14 z" fill="#3A404D"/>
+        <!-- sweat drop (animatable) -->
+        <path id="NSX_sweat" d="M544,796 q10,16 0,24 q-12,-8 0,-24" fill="#9AA1AD" opacity="0"/>
+      </g>
+
+      <!-- UPPER jaw + head (origin 950,880) -->
+      <g id="NSX_gU">
+        <!-- head mass, bleeding off the right edge -->
+        <path d="M240,842 C300,690 470,545 665,483 C810,437 960,424 1080,436 L1080,880 L950,880 C760,868 430,852 240,842 Z" fill="#5E7285"/>
+        <!-- top-of-head shading edge -->
+        <path d="M240,842 C300,690 470,545 665,483 C810,437 960,424 1080,436 L1080,470 C950,458 815,470 678,514 C495,573 335,706 268,846 Z" fill="#46586A"/>
+        <!-- snout tip highlight + nostril -->
+        <circle cx="332" cy="792" r="7" fill="#2E3947"/>
+        <!-- angry eye -->
+        <circle cx="762" cy="604" r="36" fill="#F5F6F8"/>
+        <circle cx="752" cy="614" r="15" fill="#0B0E15"/>
+        <path d="M688,552 L846,584" stroke="#2E3947" stroke-width="20" stroke-linecap="round"/>
+        <!-- gill slits -->
+        <path d="M934,612 q-26,76 0,152" stroke="#46586A" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <path d="M986,606 q-26,80 0,160" stroke="#46586A" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <path d="M1038,602 q-26,84 0,168" stroke="#46586A" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <!-- upper teeth, hanging from the mouth roof -->
+        <g fill="#F5F6F8">
+          <polygon points="296,845 330,907 364,849"/>
+          <polygon points="378,850 412,914 446,854"/>
+          <polygon points="460,855 494,919 528,858"/>
+          <polygon points="542,859 576,923 610,863"/>
+          <polygon points="624,864 658,927 692,867"/>
+          <polygon points="706,868 740,931 774,871"/>
+          <polygon points="788,872 822,934 856,875"/>
+          <polygon points="870,876 900,930 928,878"/>
+        </g>
+      </g>
+
+      <!-- LOWER jaw (origin 950,900) -->
+      <g id="NSX_gL">
+        <path d="M258,902 C430,908 770,896 950,900 L1080,904 L1080,1064 C910,1096 620,1102 420,1044 C322,1014 262,956 258,902 Z" fill="#C9D4DE"/>
+        <!-- under-jaw shading -->
+        <path d="M300,986 C420,1044 640,1072 900,1052 L1080,1030 L1080,1064 C910,1096 620,1102 420,1044 C372,1030 332,1010 300,986 Z" fill="#9FB0BE"/>
+        <!-- lower teeth, pointing up -->
+        <g fill="#F5F6F8">
+          <polygon points="320,906 350,850 380,905"/>
+          <polygon points="400,905 430,847 460,904"/>
+          <polygon points="480,904 510,845 540,903"/>
+          <polygon points="560,903 590,844 620,902"/>
+          <polygon points="640,902 670,843 700,901"/>
+          <polygon points="720,901 750,844 780,900"/>
+          <polygon points="800,900 830,846 860,900"/>
+        </g>
+      </g>
+    </g>
+
+    <!-- bubbles -->
+    <g id="NSX_bubbles" stroke="#3A404D" fill="none" stroke-width="4" opacity="0.55">
+      <circle cx="150" cy="1560" r="11"/>
+      <circle cx="212" cy="1680" r="7"/>
+      <circle cx="905" cy="1500" r="13"/>
+      <circle cx="960" cy="1610" r="8"/>
+      <circle cx="120" cy="1300" r="6"/>
+    </g>
+  </svg>
+</div>
+<!--
+  Required CSS (namespace the ids):
+    #NSX_gU{transform-origin:950px 880px} #NSX_gL{transform-origin:950px 900px}
+    #NSX_shark{transform-origin:600px 900px} #NSX_scene svg{overflow:visible}
+  Set initial jaw state with gsap.set / tl.set BEFORE first paint (resting-open for the
+  buildup frame; closed for the bite frame's t=0).
+-->
