@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- head is source-file metadata only; the runtime clones <template> contents -->
+    <title>01-buildup</title>
+  </head>
+  <body>
+    <template>
+      <style>
+        @font-face{font-family:'Urbanist';font-style:normal;font-weight:100 900;src:url('assets/fonts/Urbanist-var.woff2') format('woff2');}
+        @font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:500;src:url('assets/fonts/IBMPlexMono-500.woff2') format('woff2');}
+
+        /* shark-scene required CSS (namespaced g1_) — origins are viewBox coords */
+        #g1_gU { transform-origin: 950px 880px; }
+        #g1_gL { transform-origin: 950px 900px; }
+        #g1_shark { transform-origin: 600px 900px; }
+        #g1_scene svg { overflow: visible; }
+
+        /* camera wrapper — the dolly-zoom target */
+        #g1_cam {
+          position: absolute;
+          inset: 0;
+          transform-origin: 50% 46%;
+          will-change: transform;
+        }
+
+        /* chrome label */
+        #g1_chrome {
+          position: absolute;
+          top: 96px;
+          left: 90px;
+          right: 90px;
+          text-align: center;
+          font-family: 'IBM Plex Mono', ui-monospace, monospace;
+          font-weight: 500;
+          font-size: 22px;
+          letter-spacing: 0.38em;
+          text-transform: uppercase;
+          color: #9AA1AD;
+          opacity: 0.85;
+        }
+
+        /* caption poster block — fixed layer above the dollying scene */
+        #g1_captions {
+          position: absolute;
+          left: 90px;
+          right: 90px;
+          bottom: 104px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 16px;
+          font-family: Urbanist, system-ui, sans-serif;
+          text-transform: uppercase;
+          text-align: center;
+          will-change: transform;
+        }
+        .cap-row {
+          display: flex;
+          justify-content: center;
+          gap: 0.34em;
+          line-height: 1.02;
+        }
+        .cap-w {
+          display: inline-block;
+          margin: 0 0.17em; /* explicit inter-word gap — flex `gap` is stripped by the render-time scoper */
+          font-weight: 800;
+          font-size: 74px;
+          letter-spacing: 0.012em;
+          color: #E2E4E9;
+          will-change: transform, opacity;
+          visibility: hidden;
+          opacity: 0;
+        }
+        /* SHARK — the scene's single orange element */
+        #g1_w4 {
+          font-weight: 900;
+          font-size: 118px;
+          letter-spacing: 0.005em;
+          color: #FF6B00;
+        }
+        /* MOUTH — final landing word, pure-emphasis ink */
+        #g1_w9 {
+          font-weight: 900;
+          color: #F5F6F8;
+        }
+      </style>
+
+      <div
+        id="stage"
+        data-composition-id="01-buildup"
+        data-width="1080"
+        data-height="1920"
+        data-duration="5.46"
+        style="position:absolute;inset:0;width:1080px;height:1920px;background:#0B0E15;overflow:hidden;"
+      >
+        <div id="g1_cam">
+          <!-- ==== shared shark scene (verbatim from assets/shark-scene.svg.html, NSX_ -> g1_) ==== -->
+          <div id="g1_scene" style="position:absolute;inset:0;background:#0B0E15;overflow:hidden;">
+            <!-- the one permitted radial stage vignette -->
+            <div style="position:absolute;inset:0;background:radial-gradient(ellipse 120% 90% at 50% 42%, rgba(25,29,39,.0) 0%, rgba(4,6,10,.55) 100%);"></div>
+            <svg viewBox="0 0 1080 1920" preserveAspectRatio="xMidYMid slice" style="position:absolute;inset:0;width:100%;height:100%;">
+              <!-- light shafts -->
+              <g id="g1_rays" opacity="0.5">
+                <polygon points="250,0 340,0 170,760 90,760" fill="#191D27" opacity="0.55"/>
+                <polygon points="520,0 590,0 470,660 400,660" fill="#191D27" opacity="0.4"/>
+                <polygon points="830,0 940,0 880,540 790,540" fill="#161B26" opacity="0.45"/>
+              </g>
+              <!-- faint water lines -->
+              <path d="M0,1180 q90,-26 180,0 t180,0 t180,0 t180,0 t180,0 t180,0" stroke="#191D27" stroke-width="5" fill="none" opacity="0.6"/>
+              <path d="M0,1320 q110,-30 220,0 t220,0 t220,0 t220,0 t220,0" stroke="#161B26" stroke-width="5" fill="none" opacity="0.5"/>
+
+              <g id="g1_shark">
+                <!-- mouth interior (visible in the jaw gap) -->
+                <g id="g1_gM">
+                  <ellipse cx="600" cy="890" rx="430" ry="270" fill="#140A0E"/>
+                </g>
+
+                <!-- founder head + shoulders, between the jaws -->
+                <g id="g1_founder">
+                  <rect x="360" y="948" width="220" height="170" rx="62" fill="#10141C" stroke="#3A404D" stroke-width="4"/>
+                  <circle cx="470" cy="866" r="80" fill="#10141C" stroke="#3A404D" stroke-width="4"/>
+                  <!-- collar + tie: the founder is mid-pitch -->
+                  <path d="M440,952 L470,984 L500,952" fill="none" stroke="#3A404D" stroke-width="5" stroke-linecap="round"/>
+                  <path d="M466,986 l8,0 l6,44 l-10,14 l-10,-14 z" fill="#3A404D"/>
+                  <!-- sweat drop (animatable) -->
+                  <path id="g1_sweat" d="M544,796 q10,16 0,24 q-12,-8 0,-24" fill="#9AA1AD" opacity="0"/>
+                </g>
+
+                <!-- UPPER jaw + head (origin 950,880) -->
+                <g id="g1_gU">
+                  <!-- head mass, bleeding off the right edge -->
+                  <path d="M240,842 C300,690 470,545 665,483 C810,437 960,424 1080,436 L1080,880 L950,880 C760,868 430,852 240,842 Z" fill="#5E7285"/>
+                  <!-- top-of-head shading edge -->
+                  <path d="M240,842 C300,690 470,545 665,483 C810,437 960,424 1080,436 L1080,470 C950,458 815,470 678,514 C495,573 335,706 268,846 Z" fill="#46586A"/>
+                  <!-- snout tip highlight + nostril -->
+                  <circle cx="332" cy="792" r="7" fill="#2E3947"/>
+                  <!-- angry eye -->
+                  <circle cx="762" cy="604" r="36" fill="#F5F6F8"/>
+                  <circle cx="752" cy="614" r="15" fill="#0B0E15"/>
+                  <path d="M688,552 L846,584" stroke="#2E3947" stroke-width="20" stroke-linecap="round"/>
+                  <!-- gill slits -->
+                  <path d="M934,612 q-26,76 0,152" stroke="#46586A" stroke-width="10" fill="none" stroke-linecap="round"/>
+                  <path d="M986,606 q-26,80 0,160" stroke="#46586A" stroke-width="10" fill="none" stroke-linecap="round"/>
+                  <path d="M1038,602 q-26,84 0,168" stroke="#46586A" stroke-width="10" fill="none" stroke-linecap="round"/>
+                  <!-- upper teeth, hanging from the mouth roof -->
+                  <g fill="#F5F6F8">
+                    <polygon points="296,845 330,907 364,849"/>
+                    <polygon points="378,850 412,914 446,854"/>
+                    <polygon points="460,855 494,919 528,858"/>
+                    <polygon points="542,859 576,923 610,863"/>
+                    <polygon points="624,864 658,927 692,867"/>
+                    <polygon points="706,868 740,931 774,871"/>
+                    <polygon points="788,872 822,934 856,875"/>
+                    <polygon points="870,876 900,930 928,878"/>
+                  </g>
+                </g>
+
+                <!-- LOWER jaw (origin 950,900) -->
+                <g id="g1_gL">
+                  <path d="M258,902 C430,908 770,896 950,900 L1080,904 L1080,1064 C910,1096 620,1102 420,1044 C322,1014 262,956 258,902 Z" fill="#C9D4DE"/>
+                  <!-- under-jaw shading -->
+                  <path d="M300,986 C420,1044 640,1072 900,1052 L1080,1030 L1080,1064 C910,1096 620,1102 420,1044 C372,1030 332,1010 300,986 Z" fill="#9FB0BE"/>
+                  <!-- lower teeth, pointing up -->
+                  <g fill="#F5F6F8">
+                    <polygon points="320,906 350,850 380,905"/>
+                    <polygon points="400,905 430,847 460,904"/>
+                    <polygon points="480,904 510,845 540,903"/>
+                    <polygon points="560,903 590,844 620,902"/>
+                    <polygon points="640,902 670,843 700,901"/>
+                    <polygon points="720,901 750,844 780,900"/>
+                    <polygon points="800,900 830,846 860,900"/>
+                  </g>
+                </g>
+              </g>
+
+              <!-- bubbles -->
+              <g id="g1_bubbles" stroke="#3A404D" fill="none" stroke-width="4" opacity="0.55">
+                <circle cx="150" cy="1560" r="11"/>
+                <circle cx="212" cy="1680" r="7"/>
+                <circle cx="905" cy="1500" r="13"/>
+                <circle cx="960" cy="1610" r="8"/>
+                <circle cx="120" cy="1300" r="6"/>
+              </g>
+            </svg>
+          </div>
+          <!-- ==== /shared shark scene ==== -->
+        </div>
+
+        <div id="g1_chrome">Novus — The Tank</div>
+
+        <!-- caption poster block: 5 rows, accumulating on the snare anchors -->
+        <div id="g1_captions">
+          <div class="cap-row">
+            <span class="cap-w" id="g1_w0">You</span>
+            <span class="cap-w" id="g1_w1">Cannot</span>
+          </div>
+          <div class="cap-row">
+            <span class="cap-w" id="g1_w2">Reason</span>
+            <span class="cap-w" id="g1_w3">With&nbsp;A</span>
+          </div>
+          <div class="cap-row">
+            <span class="cap-w" id="g1_w4">Shark</span>
+          </div>
+          <div class="cap-row">
+            <span class="cap-w" id="g1_w5">When</span>
+            <span class="cap-w" id="g1_w6">Your&nbsp;Head</span>
+          </div>
+          <div class="cap-row">
+            <span class="cap-w" id="g1_w7">Is&nbsp;In</span>
+            <span class="cap-w" id="g1_w8">Its</span>
+            <span class="cap-w" id="g1_w9">Mouth</span>
+          </div>
+        </div>
+      </div>
+
+      <script>
+        (function () {
+          window.__timelines = window.__timelines || {};
+
+          // --- initial states, before first paint (t=0 must render the full scene) ---
+          // svgOrigin = viewBox coordinates, matching the verified CSS transform-origins.
+          gsap.set("#g1_gU", { rotation: 8, svgOrigin: "950 880" });   // resting-open
+          gsap.set("#g1_gL", { rotation: -13, svgOrigin: "950 900" });
+          gsap.set("#g1_shark", { rotation: 0, x: 0, svgOrigin: "600 900" });
+          gsap.set("#g1_cam", { scale: 1 });
+
+          var tl = gsap.timeline({ paused: true });
+
+          // ---------------------------------------------------------------
+          // CAMERA — dolly-zoom recipe: one slow continuous push, whole span.
+          // Must END at exactly scale 1.12 (frame 2 opens from this state).
+          // ---------------------------------------------------------------
+          tl.fromTo("#g1_cam", { scale: 1 }, { scale: 1.12, duration: 5.46, ease: "none" }, 0);
+
+          // ---------------------------------------------------------------
+          // JAWS — continuous creep resting-open -> widest by 5.2, then HOLD
+          // dead-still to 5.46. Never close in this frame.
+          // ---------------------------------------------------------------
+          tl.fromTo("#g1_gU", { rotation: 8 },
+            { rotation: 14, svgOrigin: "950 880", duration: 5.2, ease: "sine.inOut" }, 0);
+          tl.fromTo("#g1_gL", { rotation: -13 },
+            { rotation: -19, svgOrigin: "950 900", duration: 5.2, ease: "sine.inOut" }, 0);
+
+          // ---------------------------------------------------------------
+          // CAPTIONS — kinetic-letter-in recipe per word: fast pop (~150ms),
+          // scale/y snap, starting 20ms after each snare anchor.
+          // anchors: 0.19 0.65 1.18 1.49 1.93 2.53 3.25 3.79 4.43 4.99
+          // ---------------------------------------------------------------
+          var words = [
+            ["#g1_w0", 0.19], ["#g1_w1", 0.65], ["#g1_w2", 1.18], ["#g1_w3", 1.49],
+            ["#g1_w4", 1.93], ["#g1_w5", 2.53], ["#g1_w6", 3.25], ["#g1_w7", 3.79],
+            ["#g1_w8", 4.43], ["#g1_w9", 4.99]
+          ];
+          for (var i = 0; i < words.length; i++) {
+            var sel = words[i][0], at = words[i][1] + 0.02;
+            if (sel === "#g1_w4") {
+              // SHARK — hero word, harder hit with a snap-back overshoot
+              tl.fromTo(sel, { autoAlpha: 0, scale: 2.1, y: 30 },
+                { autoAlpha: 1, scale: 1, y: 0, duration: 0.2, ease: "back.out(2.5)" }, at);
+            } else if (sel === "#g1_w9") {
+              // MOUTH — the landing word, slightly weightier
+              tl.fromTo(sel, { autoAlpha: 0, scale: 1.8, y: 26 },
+                { autoAlpha: 1, scale: 1, y: 0, duration: 0.18, ease: "power4.out" }, at);
+            } else {
+              tl.fromTo(sel, { autoAlpha: 0, scale: 1.55, y: 24 },
+                { autoAlpha: 1, scale: 1, y: 0, duration: 0.15, ease: "power3.out" }, at);
+            }
+          }
+
+          // ---------------------------------------------------------------
+          // FOUNDER — alive: slow +/-4px sine bob, keyframed finite yoyo.
+          // 12 half-cycles x 0.41s = 4.92s, ends at y=0 before the quiet.
+          // ---------------------------------------------------------------
+          tl.fromTo("#g1_founder", { y: 0 },
+            { y: 4, duration: 0.41, ease: "sine.inOut", yoyo: true, repeat: 11 }, 0);
+
+          // Sweat drop — fades in around 2.5, then slides down slightly
+          tl.fromTo("#g1_sweat", { opacity: 0 }, { opacity: 0.9, duration: 0.5, ease: "power1.out" }, 2.5);
+          tl.fromTo("#g1_sweat", { y: 0 }, { y: 24, duration: 1.7, ease: "sine.in" }, 3.2);
+          tl.fromTo("#g1_sweat", { opacity: 0.9 },
+            { opacity: 0.45, duration: 0.5, ease: "power1.in", immediateRender: false }, 4.4);
+
+          // ---------------------------------------------------------------
+          // BUBBLES — one slow linear upward drift, whole span (barely moving
+          // by nature, so the post-4.99 stillness holds).
+          // ---------------------------------------------------------------
+          tl.fromTo("#g1_bubbles", { y: 0 }, { y: -140, duration: 5.46, ease: "none" }, 0);
+
+          // ---------------------------------------------------------------
+          // ACCEL-ROLL 3.79–4.43 — jaw tremor: +/-0.6deg keyframed micro-
+          // rotations + tiny x jitter on the whole shark (screen-shake recipe,
+          // micro amplitude). Deterministic amp table, index-derived. Ends at
+          // rest exactly at 4.43 — everything after 4.99 is still.
+          // ---------------------------------------------------------------
+          var tremorAmps = [0.6, -0.5, 0.55, -0.6, 0.45, -0.55, 0.6, -0.4, 0.5, -0.6, 0.45, -0.5, 0.55, -0.35];
+          var tStart = 3.79, tStep = 0.043; // 14 steps -> ends 4.392
+          for (var k = 0; k < tremorAmps.length; k++) {
+            tl.to("#g1_shark",
+              { rotation: tremorAmps[k], x: tremorAmps[k] * 2.5, duration: tStep, ease: "steps(1)" },
+              tStart + k * tStep);
+          }
+          tl.to("#g1_shark", { rotation: 0, x: 0, duration: 0.035, ease: "power2.out" },
+            tStart + tremorAmps.length * tStep);
+
+          // ---------------------------------------------------------------
+          // CHROMATIC-PRESSURE — brief RGB-split text-shadow flicker on the
+          // caption block at 3.79 and 4.43 (zero-duration deterministic sets).
+          // ---------------------------------------------------------------
+          var split = "4px 0 0 rgba(255,51,51,0.55), -4px 0 0 rgba(61,220,151,0.5)";
+          var flickers = [3.80, 3.86, 3.90, 3.96, 4.44, 4.50, 4.53, 4.59];
+          for (var f = 0; f < flickers.length; f++) {
+            tl.set("#g1_captions", { textShadow: (f % 2 === 0) ? split : "none" }, flickers[f]);
+          }
+
+          window.__timelines["01-buildup"] = tl;
+          tl.seek(0);
+        })();
+      </script>
+    </template>
+  </body>
+</html>

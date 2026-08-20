@@ -1,7 +1,7 @@
 ---
 compositionId: bgm
 duration_s: 10.24 # == audiomap.audio.duration_sec
-canvas: { w: 1080, h: 1920, fps: 30 }
+canvas: { "w": 1080, "h": 1920, "fps": 30 }
 mode: autonomous
 style: # brand spine — bespoke Novus frame.md (repo design.md is the locked brand authority)
   font: "Urbanist / IBM Plex Mono"
