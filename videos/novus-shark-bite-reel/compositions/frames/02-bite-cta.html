@@ -1,310 +1,174 @@
-<!doctype html>
-<html>
-  <head>
-    <meta charset="UTF-8" />
-    <!-- 02-bite-cta — the bite (frame-local 0 == track 5.46) → white CTA world → lockup freeze.
-         Sub-composition: everything the runtime needs lives inside <template>. -->
-  </head>
-  <body>
-    <template>
-      <style>
-        /* Fonts — paths resolve from the project root at runtime */
-        @font-face{font-family:'Urbanist';font-style:normal;font-weight:100 900;src:url('assets/fonts/Urbanist-var.woff2') format('woff2');}
-        @font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:500;src:url('assets/fonts/IBMPlexMono-500.woff2') format('woff2');}
+<template>
+  <div id="stage" data-composition-id="02-bite-cta" data-duration="5.24" data-width="1080" data-height="1920"
+       style="position:absolute;inset:0;width:1080px;height:1920px;overflow:hidden;background:#050505;font-kerning:none;">
+    <style>
+      @font-face{font-family:'Anton';font-style:normal;font-weight:400;src:url('assets/fonts/Anton.woff2') format('woff2');}
+      @font-face{font-family:'Archivo Black';font-style:normal;font-weight:400;src:url('assets/fonts/ArchivoBlack.woff2') format('woff2');}
+      @font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:500;src:url('assets/fonts/IBMPlexMono-500.woff2') format('woff2');}
 
-        /* NOTE: the root (#stage) is styled inline — the render-time CSS scoper only
-           special-cases #root, so root rules here would drop. Descendant selectors below
-           scope safely. */
+      /* ---------- the collage, continuing frame 1's end state ---------- */
+      #g1_scene { position: absolute; inset: 0; background: #050505; }
+      #g1_cam {
+        position: absolute; inset: 0;
+        transform-origin: 551px 1290px;
+        will-change: transform;
+      }
+      #g1_photo {
+        position: absolute; left: -139px; top: 0;
+        width: 1358px; height: 1920px;
+        filter: brightness(0.82) contrast(1.14) saturate(0.88);
+      }
+      #g1_head {
+        position: absolute; left: 331px; top: 1035px; width: 440px;
+        filter: drop-shadow(0 10px 30px rgba(0,0,0,0.75));
+      }
+      #g1_vig {
+        position: absolute; inset: 0;
+        background: radial-gradient(ellipse 130% 100% at 50% 55%, rgba(0,0,0,0) 42%, rgba(0,0,0,0.72) 100%);
+      }
+      #g1_lastword {
+        position: absolute; left: 40px; right: 40px; top: 240px; height: 420px;
+        display: flex; align-items: center; justify-content: center;
+        text-align: center; text-transform: uppercase;
+        font-family: 'Archivo Black', system-ui, sans-serif;
+        font-size: 108px; line-height: 0.92; color: #FF4646;
+        text-shadow: 0 6px 34px rgba(0,0,0,0.95), 0 2px 8px rgba(0,0,0,0.9);
+        -webkit-text-stroke: 2.5px #000; paint-order: stroke fill;
+      }
 
-        /* ---- shark scene (shared snippet) required CSS, namespaced g1_ ---- */
-        #g1_gU{transform-origin:950px 880px}
-        #g1_gL{transform-origin:950px 900px}
-        #g1_shark{transform-origin:600px 900px}
-        #g1_scene svg{overflow:visible}
+      /* ---------- flash + white CTA world ---------- */
+      #g1_flash { position: absolute; inset: 0; background: #FFFFFF; visibility: hidden; opacity: 0; pointer-events: none; }
+      #g1_cta { position: absolute; inset: 0; background: #FFFFFF; visibility: hidden; opacity: 0; }
+      #g1_chrome {
+        position: absolute; top: 150px; left: 0; right: 0;
+        text-align: center;
+        font-family: 'IBM Plex Mono', ui-monospace, monospace; font-weight: 500;
+        font-size: 30px; letter-spacing: 0.42em; text-indent: 0.42em; text-transform: uppercase;
+        color: #6B7280;
+        visibility: hidden; opacity: 0; will-change: transform, opacity;
+      }
+      #g1_lines {
+        position: absolute; left: 90px; right: 90px; top: 470px;
+        display: flex; flex-direction: column;
+      }
+      .g1-line {
+        font-family: Anton, system-ui, sans-serif;
+        font-size: 128px; line-height: 1.04; text-transform: uppercase;
+        color: #E02020;
+        margin-bottom: 46px;
+        visibility: hidden; opacity: 0; will-change: transform, opacity;
+      }
+      .g1-line .ink { color: #0A0A0A; }
+      #g1_lockup {
+        position: absolute; inset: 0;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        visibility: hidden; opacity: 0; will-change: transform, opacity;
+      }
+      #g1_tile {
+        width: 300px; height: 300px; border-radius: 70px; background: #131C2E;
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 30px 70px rgba(10, 14, 21, 0.28);
+        margin-bottom: 66px;
+      }
+      #g1_domain {
+        font-family: Anton, system-ui, sans-serif;
+        font-size: 118px; line-height: 1; color: #0A0A0A; text-transform: uppercase;
+        letter-spacing: 0.005em;
+      }
+      #g1_tag {
+        margin-top: 40px;
+        font-family: 'IBM Plex Mono', ui-monospace, monospace; font-weight: 500;
+        font-size: 36px; letter-spacing: 0.08em;
+        color: #E02020;
+      }
+    </style>
 
-        #g1_sceneWrap{
-          position:absolute;inset:0;
-          will-change:transform;
-          transform-origin:50% 50%;
-          z-index:1;
-        }
-        /* the flash never fades out — the white becomes the CTA world's ground */
-        #g1_flash{
-          position:absolute;inset:0;
-          background:#FFFFFF;
-          opacity:0;visibility:hidden;
-          z-index:5;pointer-events:none;
-        }
-
-        /* ---- white CTA world ---- */
-        #g1_cta{
-          position:absolute;inset:0;
-          background:#FFFFFF;
-          color:#0A0A0A;
-          opacity:0;visibility:hidden;
-          z-index:10;
-          overflow:hidden;
-        }
-        #g1_chrome{
-          position:absolute;
-          top:180px;left:90px;right:90px;
-          text-align:center;
-          font-family:'IBM Plex Mono', ui-monospace, monospace;
-          font-weight:500;
-          font-size:28px;
-          letter-spacing:0.34em;
-          text-transform:uppercase;
-          color:#6B7280;
-          will-change:transform,opacity;
-        }
-        #g1_lines{
-          position:absolute;
-          top:570px;left:90px;right:90px;
-          display:flex;flex-direction:column;
-          gap:34px;
-        }
-        .g1-line{
-          font-family:Urbanist, system-ui, -apple-system, sans-serif;
-          font-weight:900;
-          font-size:94px;
-          line-height:1.05;
-          letter-spacing:-0.03em;
-          color:#0A0A0A;
-          will-change:transform,opacity;
-        }
-        #g1_lockup{
-          position:absolute;inset:0;
-          display:flex;flex-direction:column;
-          align-items:center;justify-content:center;
-          gap:0;
-          will-change:transform,opacity;
-          transform-origin:50% 50%;
-        }
-        #g1_logoTile{
-          width:216px;height:216px;
-          background:#131C2E;
-          border-radius:23%;
-          display:flex;align-items:center;justify-content:center;
-          box-shadow:0 24px 60px rgba(10,10,10,0.16);
-        }
-        #g1_logoTile svg{width:164px;height:164px;display:block;}
-        #g1_domain{
-          margin-top:64px;
-          font-family:Urbanist, system-ui, -apple-system, sans-serif;
-          font-weight:900;
-          font-size:88px;
-          letter-spacing:-0.02em;
-          line-height:1;
-          color:#0A0A0A;
-          white-space:nowrap;
-        }
-        #g1_tag{
-          margin-top:34px;
-          max-width:820px;
-          text-align:center;
-          font-family:'IBM Plex Mono', ui-monospace, monospace;
-          font-weight:500;
-          font-size:26px;
-          line-height:1.5;
-          color:#6B7280;
-        }
-      </style>
-
-      <div id="stage" data-composition-id="02-bite-cta" data-width="1080" data-height="1920" data-duration="4.78"
-           style="position:absolute;inset:0;width:1080px;height:1920px;overflow:hidden;background:#0B0E15;">
-
-        <!-- ===== dark world: shared shark scene (verbatim snippet, NSX_ -> g1_) ===== -->
-        <div id="g1_sceneWrap">
-          <div id="g1_scene" style="position:absolute;inset:0;background:#0B0E15;overflow:hidden;">
-            <!-- the one permitted radial stage vignette -->
-            <div style="position:absolute;inset:0;background:radial-gradient(ellipse 120% 90% at 50% 42%, rgba(25,29,39,.0) 0%, rgba(4,6,10,.55) 100%);"></div>
-            <svg viewBox="0 0 1080 1920" preserveAspectRatio="xMidYMid slice" style="position:absolute;inset:0;width:100%;height:100%;">
-              <!-- light shafts -->
-              <g id="g1_rays" opacity="0.5">
-                <polygon points="250,0 340,0 170,760 90,760" fill="#191D27" opacity="0.55"/>
-                <polygon points="520,0 590,0 470,660 400,660" fill="#191D27" opacity="0.4"/>
-                <polygon points="830,0 940,0 880,540 790,540" fill="#161B26" opacity="0.45"/>
-              </g>
-              <!-- faint water lines -->
-              <path d="M0,1180 q90,-26 180,0 t180,0 t180,0 t180,0 t180,0 t180,0" stroke="#191D27" stroke-width="5" fill="none" opacity="0.6"/>
-              <path d="M0,1320 q110,-30 220,0 t220,0 t220,0 t220,0 t220,0" stroke="#161B26" stroke-width="5" fill="none" opacity="0.5"/>
-
-              <g id="g1_shark">
-                <!-- mouth interior (visible in the jaw gap) -->
-                <g id="g1_gM">
-                  <ellipse cx="600" cy="890" rx="430" ry="270" fill="#140A0E"/>
-                </g>
-
-                <!-- founder head + shoulders, between the jaws -->
-                <g id="g1_founder">
-                  <rect x="360" y="948" width="220" height="170" rx="62" fill="#10141C" stroke="#3A404D" stroke-width="4"/>
-                  <circle cx="470" cy="866" r="80" fill="#10141C" stroke="#3A404D" stroke-width="4"/>
-                  <!-- collar + tie: the founder is mid-pitch -->
-                  <path d="M440,952 L470,984 L500,952" fill="none" stroke="#3A404D" stroke-width="5" stroke-linecap="round"/>
-                  <path d="M466,986 l8,0 l6,44 l-10,14 l-10,-14 z" fill="#3A404D"/>
-                  <!-- sweat drop (animatable) -->
-                  <path id="g1_sweat" d="M544,796 q10,16 0,24 q-12,-8 0,-24" fill="#9AA1AD" opacity="0"/>
-                </g>
-
-                <!-- UPPER jaw + head (origin 950,880) -->
-                <g id="g1_gU">
-                  <!-- head mass, bleeding off the right edge -->
-                  <path d="M240,842 C300,690 470,545 665,483 C810,437 960,424 1080,436 L1080,880 L950,880 C760,868 430,852 240,842 Z" fill="#5E7285"/>
-                  <!-- top-of-head shading edge -->
-                  <path d="M240,842 C300,690 470,545 665,483 C810,437 960,424 1080,436 L1080,470 C950,458 815,470 678,514 C495,573 335,706 268,846 Z" fill="#46586A"/>
-                  <!-- snout tip highlight + nostril -->
-                  <circle cx="332" cy="792" r="7" fill="#2E3947"/>
-                  <!-- angry eye -->
-                  <circle cx="762" cy="604" r="36" fill="#F5F6F8"/>
-                  <circle cx="752" cy="614" r="15" fill="#0B0E15"/>
-                  <path d="M688,552 L846,584" stroke="#2E3947" stroke-width="20" stroke-linecap="round"/>
-                  <!-- gill slits -->
-                  <path d="M934,612 q-26,76 0,152" stroke="#46586A" stroke-width="10" fill="none" stroke-linecap="round"/>
-                  <path d="M986,606 q-26,80 0,160" stroke="#46586A" stroke-width="10" fill="none" stroke-linecap="round"/>
-                  <path d="M1038,602 q-26,84 0,168" stroke="#46586A" stroke-width="10" fill="none" stroke-linecap="round"/>
-                  <!-- upper teeth, hanging from the mouth roof -->
-                  <g fill="#F5F6F8">
-                    <polygon points="296,845 330,907 364,849"/>
-                    <polygon points="378,850 412,914 446,854"/>
-                    <polygon points="460,855 494,919 528,858"/>
-                    <polygon points="542,859 576,923 610,863"/>
-                    <polygon points="624,864 658,927 692,867"/>
-                    <polygon points="706,868 740,931 774,871"/>
-                    <polygon points="788,872 822,934 856,875"/>
-                    <polygon points="870,876 900,930 928,878"/>
-                  </g>
-                </g>
-
-                <!-- LOWER jaw (origin 950,900) -->
-                <g id="g1_gL">
-                  <path d="M258,902 C430,908 770,896 950,900 L1080,904 L1080,1064 C910,1096 620,1102 420,1044 C322,1014 262,956 258,902 Z" fill="#C9D4DE"/>
-                  <!-- under-jaw shading -->
-                  <path d="M300,986 C420,1044 640,1072 900,1052 L1080,1030 L1080,1064 C910,1096 620,1102 420,1044 C372,1030 332,1010 300,986 Z" fill="#9FB0BE"/>
-                  <!-- lower teeth, pointing up -->
-                  <g fill="#F5F6F8">
-                    <polygon points="320,906 350,850 380,905"/>
-                    <polygon points="400,905 430,847 460,904"/>
-                    <polygon points="480,904 510,845 540,903"/>
-                    <polygon points="560,903 590,844 620,902"/>
-                    <polygon points="640,902 670,843 700,901"/>
-                    <polygon points="720,901 750,844 780,900"/>
-                    <polygon points="800,900 830,846 860,900"/>
-                  </g>
-                </g>
-              </g>
-
-              <!-- bubbles -->
-              <g id="g1_bubbles" stroke="#3A404D" fill="none" stroke-width="4" opacity="0.55">
-                <circle cx="150" cy="1560" r="11"/>
-                <circle cx="212" cy="1680" r="7"/>
-                <circle cx="905" cy="1500" r="13"/>
-                <circle cx="960" cy="1610" r="8"/>
-                <circle cx="120" cy="1300" r="6"/>
-              </g>
-            </svg>
-          </div>
-        </div>
-
-        <!-- ===== flash-cut overlay: snaps on at 0.10, never fades — the white ground ===== -->
-        <div id="g1_flash"></div>
-
-        <!-- ===== white CTA world ===== -->
-        <div id="g1_cta">
-          <div id="g1_chrome">Novus — Pitch Simulator</div>
-
-          <div id="g1_lines">
-            <div class="g1-line" id="g1_line1">SIMULATE YOUR PITCH.</div>
-            <div class="g1-line" id="g1_line2">PRACTICE UNTIL IT&rsquo;S PERFECT.</div>
-            <div class="g1-line" id="g1_line3">BEFORE YOU DO IT FOR REAL.</div>
-          </div>
-
-          <div id="g1_lockup">
-            <div id="g1_logoTile">
-              <!-- Novus fin — public favicon geometry; the scene's ONLY orange -->
-              <svg viewBox="0 0 64 64" aria-hidden="true">
-                <path d="M40 9 C46 16 48 26 48 38 L16 38 C20 22 30 12 40 9 Z" fill="#FF6B00"/>
-                <path d="M10 47 q6 -5 12 0 t12 0 t12 0 t12 0" stroke="#FFFFFF" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </div>
-            <div id="g1_domain">NOVUSPITCH.COM</div>
-            <div id="g1_tag">Visit today &mdash; perfect your pitch before it&rsquo;s for real.</div>
-          </div>
-        </div>
+    <!-- dark collage (frame 1 continuity) -->
+    <div id="g1_scene">
+      <div id="g1_cam">
+        <img id="g1_photo" src="assets/img/shark-photo.jpg" alt="" />
+        <img id="g1_head" src="assets/img/scream-head.png" alt="" />
       </div>
+      <div id="g1_vig"></div>
+      <div id="g1_lastword">IN&nbsp;ITS&nbsp;MOUTH</div>
+    </div>
 
-      <script>
-        // 02-bite-cta — frame-local time: local_t = track_t − 5.46. Host global gsap.
-        window.__timelines = window.__timelines || {};
-        const tl = gsap.timeline({ paused: true });
+    <!-- white CTA world -->
+    <div id="g1_cta">
+      <div id="g1_chrome">NOVUS — PITCH SIMULATOR</div>
+      <div id="g1_lines">
+        <div class="g1-line" id="g1_line1">DON'T GET<br/>EATEN ALIVE.</div>
+        <div class="g1-line" id="g1_line2"><span class="ink">SIMULATE</span> THE SHARKS.</div>
+        <div class="g1-line" id="g1_line3">PERFECT YOUR<br/>PITCH <span class="ink">FIRST.</span></div>
+      </div>
+      <div id="g1_lockup">
+        <div id="g1_tile">
+          <svg viewBox="0 0 64 64" width="212" height="212" aria-hidden="true">
+            <path d="M40 9 C46 16 48 26 48 38 L16 38 C20 22 30 12 40 9 Z" fill="#FF6B00"/>
+            <path d="M10 47 q6 -5 12 0 t12 0 t12 0 t12 0" stroke="#FFFFFF" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div id="g1_domain">NOVUSPITCH.COM</div>
+        <div id="g1_tag">Practice before they bite.</div>
+      </div>
+    </div>
 
-        /* ---------- t=0 initial state (continuity with 01-buildup's final frame) ---------- */
-        // scene wrapper holds the buildup's dolly-push end scale
-        gsap.set("#g1_sceneWrap", { scale: 1.12, x: 0, y: 0, autoAlpha: 1 });
-        gsap.set("#g1_founder", { autoAlpha: 1 });
+    <!-- flash sits above both worlds: it is the swap -->
+    <div id="g1_flash"></div>
+
+    <script>
+      (function () {
+        var tl = gsap.timeline({ paused: true });
+
+        /* ---------- initial states (immediate) — exact frame 1 end state ---------- */
+        gsap.set("#g1_cam", { scale: 1.22, x: 0, y: 0 });
+        gsap.set("#g1_scene", { autoAlpha: 1 });
         gsap.set("#g1_flash", { autoAlpha: 0 });
         gsap.set("#g1_cta", { autoAlpha: 0 });
         gsap.set("#g1_chrome", { autoAlpha: 0, y: 14 });
-        gsap.set("#g1_line1", { autoAlpha: 0, y: 70, scale: 0.96 });
-        gsap.set("#g1_line2", { autoAlpha: 0, y: 70, scale: 0.96 });
-        gsap.set("#g1_line3", { autoAlpha: 0, y: 70, scale: 0.96 });
+        gsap.set(["#g1_line1", "#g1_line2", "#g1_line3"], { autoAlpha: 0, y: 60, scale: 0.97 });
         gsap.set("#g1_lockup", { autoAlpha: 0, scale: 1 });
 
-        /* ---------- THE BITE (beat drop at local 0 == track 5.46) ---------- */
-        // jaws SNAP shut — widest (+14/−19, prev frame's end pose) → interlocked (−2/+2).
-        // fromTo pins the t=0 pose exactly; power4.in makes it a violent hit, not an ease.
-        tl.fromTo("#g1_gU", { svgOrigin: "950 880", rotation: 14 },
-          { svgOrigin: "950 880", rotation: -2, duration: 0.07, ease: "power4.in" }, 0);
-        tl.fromTo("#g1_gL", { svgOrigin: "950 900", rotation: -19 },
-          { svgOrigin: "950 900", rotation: 2, duration: 0.07, ease: "power4.in" }, 0);
-        // hide the founder at the closing moment — shoulders would peek below the shut jaw
-        tl.set("#g1_founder", { autoAlpha: 0 }, 0.05);
+        /* ---------- THE BITE: crash-zoom into the maw, t = 0 (track 5.00) ---------- */
+        tl.fromTo("#g1_cam", { scale: 1.22 },
+          { scale: 3.4, duration: 0.14, ease: "power4.in", immediateRender: false }, 0);
+        /* violent deterministic shake while the zoom rips in */
+        var sh = [26, -22, 17, -12, 8, -4, 2, 0];
+        for (var s = 0; s < sh.length; s++) {
+          tl.set("#g1_cam", { x: sh[s], y: s % 2 === 0 ? sh[s] * 0.7 : -sh[s] * 0.7 }, 0.02 + s * 0.03);
+        }
+        /* the flash IS the swap — it snaps on and the white world is under it */
+        tl.set("#g1_flash", { autoAlpha: 1 }, 0.14);
+        tl.set("#g1_cta", { autoAlpha: 1 }, 0.18);
+        tl.set("#g1_scene", { autoAlpha: 0 }, 0.18);
+        tl.to("#g1_flash", { autoAlpha: 0, duration: 0.22, ease: "power2.out" }, 0.3);
 
-        // impact @0.07 — braam-punch: scale slam 1.12 → 1.19, settle to 1.14 by 0.3
-        tl.to("#g1_sceneWrap", { scale: 1.19, duration: 0.05, ease: "power4.out" }, 0.07);
-        tl.to("#g1_sceneWrap", { scale: 1.14, duration: 0.18, ease: "power2.out" }, 0.12);
-
-        // screen-shake @0.07 — deterministic keyframed offsets, ±22px decaying over ~0.28s
-        const shakeAmps = [22, -19, 16, -13, 10, -7, 4, -2];
-        shakeAmps.forEach((amp, i) => {
-          tl.to("#g1_sceneWrap",
-            { x: amp, y: amp * 0.6 * (i % 2 ? -1 : 1), duration: 0.03, ease: "steps(1)" },
-            0.07 + i * 0.03);
-        });
-        tl.to("#g1_sceneWrap", { x: 0, y: 0, duration: 0.04, ease: "power2.out" }, 0.31);
-
-        /* ---------- flash-cut @0.10 — the flash IS the transition; it never fades out ---------- */
-        tl.set("#g1_flash", { autoAlpha: 1 }, 0.10);
-        // under the white, swap worlds: dark scene off, opaque white CTA world on
-        tl.set("#g1_cta", { autoAlpha: 1 }, 0.16);
-        tl.set("#g1_sceneWrap", { autoAlpha: 0 }, 0.16);
-
-        /* ---------- THE CTA WORLD — calm, confident, generous whitespace ---------- */
-        // chrome label @~0.5 (track 5.92)
+        /* ---------- white world chrome ---------- */
         tl.fromTo("#g1_chrome", { autoAlpha: 0, y: 14 },
-          { autoAlpha: 1, y: 0, duration: 0.28, ease: "power2.out", immediateRender: false }, 0.5);
+          { autoAlpha: 1, y: 0, duration: 0.28, ease: "power2.out", immediateRender: false }, 0.6);
 
-        // CTA lines punch in on the kicks / snare and accumulate
-        const lineIn = (sel, t) =>
-          tl.fromTo(sel, { autoAlpha: 0, y: 70, scale: 0.96 },
-            { autoAlpha: 1, y: 0, scale: 1, duration: 0.2, ease: "power4.out", immediateRender: false }, t);
-        lineIn("#g1_line1", 0.92); // kick, track 6.38
-        lineIn("#g1_line2", 1.85); // kick, track 7.31
-        lineIn("#g1_line3", 2.27); // snare, track 7.73
+        /* ---------- red hook lines on the kicks (local = track − 5.00) ---------- */
+        var lines = [["#g1_line1", 1.38], ["#g1_line2", 2.31], ["#g1_line3", 2.73]];
+        for (var i = 0; i < lines.length; i++) {
+          tl.fromTo(lines[i][0], { autoAlpha: 0, y: 60, scale: 0.97 },
+            { autoAlpha: 1, y: 0, scale: 1, duration: 0.18, ease: "power4.out", immediateRender: false }, lines[i][1]);
+        }
 
-        /* ---------- final lockup @3.25 (kick, track 8.71) — 0ms clear, lockup lands same instant ---------- */
-        tl.set("#g1_lines", { autoAlpha: 0 }, 3.25);
-        tl.set("#g1_chrome", { autoAlpha: 0 }, 3.25);
+        /* ---------- 3.71 (kick, track 8.71): 0ms clear → lockup lands ---------- */
+        tl.set("#g1_lines", { autoAlpha: 0 }, 3.71);
+        tl.set("#g1_chrome", { autoAlpha: 0 }, 3.71);
         tl.fromTo("#g1_lockup", { autoAlpha: 1, scale: 0.94 },
-          { autoAlpha: 1, scale: 1, duration: 0.18, ease: "power4.out", immediateRender: false }, 3.25);
+          { autoAlpha: 1, scale: 1, duration: 0.18, ease: "power4.out", immediateRender: false }, 3.71);
 
-        /* ---------- hard stop @4.11 (track 9.57) — one sharp pulse, then FREEZE to 4.78 ---------- */
-        tl.to("#g1_lockup", { scale: 1.06, duration: 0.07, ease: "power3.out" }, 4.11);
-        tl.to("#g1_lockup", { scale: 1.0, duration: 0.11, ease: "power2.inOut" }, 4.18);
-        // nothing after 4.29 — the finished lockup holds perfectly still through the tail silence
+        /* ---------- 4.57 (hard stop, track 9.57): one sharp pulse, then FREEZE ---------- */
+        tl.to("#g1_lockup", { scale: 1.06, duration: 0.07, ease: "power3.out" }, 4.57);
+        tl.to("#g1_lockup", { scale: 1.0, duration: 0.11, ease: "power2.inOut" }, 4.65);
+        /* nothing after 4.76 — the lockup holds dead still through the tail silence */
 
-        window.__timelines["02-bite-cta"] = tl;
         tl.seek(0);
-      </script>
-    </template>
-  </body>
-</html>
+        window.__timelines = window.__timelines || {};
+        window.__timelines["02-bite-cta"] = tl;
+      })();
+    </script>
+  </div>
+</template>
