@@ -5,7 +5,13 @@
       @font-face{font-family:'Anton';font-style:normal;font-weight:400;src:url('assets/fonts/Anton.woff2') format('woff2');}
       @font-face{font-family:'Archivo Black';font-style:normal;font-weight:400;src:url('assets/fonts/ArchivoBlack.woff2') format('woff2');}
       @font-face{font-family:'Bebas Neue';font-style:normal;font-weight:400;src:url('assets/fonts/BebasNeue.woff2') format('woff2');}
-      @font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:500;src:url('assets/fonts/IBMPlexMono-500.woff2') format('woff2');}
+      @font-face{font-family:'Oswald';font-style:normal;font-weight:700;src:url('assets/fonts/Oswald.woff2') format('woff2');}
+      @font-face{font-family:'Playfair Display';font-style:normal;font-weight:800;src:url('assets/fonts/PlayfairDisplay.woff2') format('woff2');}
+      @font-face{font-family:'Alfa Slab One';font-style:normal;font-weight:400;src:url('assets/fonts/AlfaSlabOne.woff2') format('woff2');}
+      @font-face{font-family:'Russo One';font-style:normal;font-weight:400;src:url('assets/fonts/RussoOne.woff2') format('woff2');}
+      @font-face{font-family:'Passion One';font-style:normal;font-weight:700;src:url('assets/fonts/PassionOne.woff2') format('woff2');}
+      @font-face{font-family:'Bangers';font-style:normal;font-weight:400;src:url('assets/fonts/Bangers.woff2') format('woff2');}
+      @font-face{font-family:'Black Ops One';font-style:normal;font-weight:400;src:url('assets/fonts/BlackOpsOne.woff2') format('woff2');}
 
       /* zooming collage camera — origin at the shark's maw */
       #g1_cam {
@@ -47,11 +53,17 @@
         -webkit-text-stroke: 2.5px #000;
         paint-order: stroke fill;
       }
-      .g1w-anton   { font-family: Anton, system-ui, sans-serif; font-size: 220px; letter-spacing: 0.01em; }
-      .g1w-archivo { font-family: 'Archivo Black', system-ui, sans-serif; font-size: 176px; letter-spacing: -0.01em; }
-      .g1w-bebas   { font-family: 'Bebas Neue', system-ui, sans-serif; font-size: 250px; letter-spacing: 0.03em; }
-      #g1_w5 { font-size: 198px; } /* SHARK — the biggest hit */
-      #g1_w8 { font-size: 108px; }
+      /* a different font for every word (voice-synced swaps) */
+      #g1_w1  { font-family: Anton, system-ui, sans-serif; font-size: 220px; letter-spacing: 0.01em; }
+      #g1_w2  { font-family: 'Archivo Black', system-ui, sans-serif; font-size: 172px; letter-spacing: -0.01em; }
+      #g1_w3  { font-family: 'Bebas Neue', system-ui, sans-serif; font-size: 250px; letter-spacing: 0.03em; }
+      #g1_w4  { font-family: Oswald, system-ui, sans-serif; font-weight: 700; font-size: 200px; }
+      #g1_w5  { font-family: 'Playfair Display', Georgia, serif; font-weight: 800; font-size: 226px; letter-spacing: 0.01em; } /* SHARK — all caps Playfair */
+      #g1_w6  { font-family: 'Alfa Slab One', system-ui, serif; font-size: 190px; }
+      #g1_w7  { font-family: 'Russo One', system-ui, sans-serif; font-size: 200px; }
+      #g1_w8  { font-family: 'Passion One', system-ui, sans-serif; font-weight: 700; font-size: 248px; }
+      #g1_w9  { font-family: Bangers, system-ui, sans-serif; font-size: 280px; letter-spacing: 0.04em; }
+      #g1_w10 { font-family: 'Black Ops One', system-ui, sans-serif; font-size: 96px; }
       /* white flash frame for the head entrance */
       #g1_flashin {
         position: absolute; inset: 0; background: #FFFFFF;
@@ -66,14 +78,16 @@
     <div id="g1_vig"></div>
 
     <div id="g1_words">
-      <div class="g1w g1w-anton"   id="g1_w1">YOU</div>
-      <div class="g1w g1w-archivo" id="g1_w2">CANNOT</div>
-      <div class="g1w g1w-bebas"   id="g1_w3">REASON</div>
-      <div class="g1w g1w-anton"   id="g1_w4">WITH&nbsp;A</div>
-      <div class="g1w g1w-archivo" id="g1_w5">SHARK</div>
-      <div class="g1w g1w-bebas"   id="g1_w6">WHEN&nbsp;YOUR</div>
-      <div class="g1w g1w-anton"   id="g1_w7">HEAD&nbsp;IS</div>
-      <div class="g1w g1w-archivo" id="g1_w8">IN&nbsp;ITS&nbsp;MOUTH</div>
+      <div class="g1w" id="g1_w1">YOU</div>
+      <div class="g1w" id="g1_w2">CANNOT</div>
+      <div class="g1w" id="g1_w3">REASON</div>
+      <div class="g1w" id="g1_w4">WITH&nbsp;A</div>
+      <div class="g1w" id="g1_w5">SHARK</div>
+      <div class="g1w" id="g1_w6">WHEN</div>
+      <div class="g1w" id="g1_w7">YOUR</div>
+      <div class="g1w" id="g1_w8">HEAD</div>
+      <div class="g1w" id="g1_w9">IS</div>
+      <div class="g1w" id="g1_w10">IN&nbsp;ITS&nbsp;MOUTH</div>
     </div>
 
     <div id="g1_flashin"></div>
@@ -86,23 +100,25 @@
         gsap.set("#g1_cam", { scale: 1.0, x: 0, y: 0 });
         gsap.set("#g1_head", { autoAlpha: 0, scale: 0.7, transformOrigin: "50% 60%" });
         gsap.set("#g1_flashin", { autoAlpha: 0 });
-        gsap.set(["#g1_w1","#g1_w2","#g1_w3","#g1_w4","#g1_w5","#g1_w6","#g1_w7","#g1_w8"], { autoAlpha: 0 });
+        gsap.set(["#g1_w1","#g1_w2","#g1_w3","#g1_w4","#g1_w5","#g1_w6","#g1_w7","#g1_w8","#g1_w9","#g1_w10"], { autoAlpha: 0 });
 
         /* ---------- the slow creep: one continuous zoom toward the maw, 0 → 5.0 ---------- */
         tl.fromTo("#g1_cam", { scale: 1.0 }, { scale: 1.22, duration: 5.0, ease: "none" }, 0);
 
-        /* ---------- red words, replacing 1–2 at a time on the snare anchors ---------- */
+        /* ---------- red words, replacing on the VOICE (whisper word-level transcript) ---------- */
         /* swapAt(t, showSel, hideSel): 0ms cut + tiny punch on the incoming word */
         var swaps = [
-          [0.19, "#g1_w1", null],
-          [0.65, "#g1_w2", "#g1_w1"],
-          [1.18, "#g1_w3", "#g1_w2"],
-          [1.93, "#g1_w4", "#g1_w3"],
-          [2.53, "#g1_w5", "#g1_w4"],
-          /* 3.25 — SHARK clears for the head flash (below) */
-          [3.79, "#g1_w6", null],
-          [4.16, "#g1_w7", "#g1_w6"],
-          [4.43, "#g1_w8", "#g1_w7"]
+          [0.19, "#g1_w1", null],          /* You    0.19 */
+          [0.34, "#g1_w2", "#g1_w1"],      /* cannot 0.34 */
+          [1.10, "#g1_w3", "#g1_w2"],      /* reason 1.10 */
+          [1.72, "#g1_w4", "#g1_w3"],      /* with a 1.72 */
+          [2.29, "#g1_w5", "#g1_w4"],      /* SHARK  2.29 (voice: "tiger") */
+          /* 2.90 — SHARK clears for the head flash (below), in the pause before "when" */
+          [3.13, "#g1_w6", null],          /* when   3.13 */
+          [3.43, "#g1_w7", "#g1_w6"],      /* your   3.43 */
+          [3.88, "#g1_w8", "#g1_w7"],      /* head   3.88 */
+          [4.38, "#g1_w9", "#g1_w8"],      /* is     4.38 */
+          [4.62, "#g1_w10", "#g1_w9"]      /* in (its mouth rides the bite) 4.62 */
         ];
         for (var i = 0; i < swaps.length; i++) {
           var t = swaps[i][0], show = swaps[i][1], hide = swaps[i][2];
@@ -111,21 +127,21 @@
           tl.fromTo(show, { scale: 1.1 }, { scale: 1, duration: 0.12, ease: "power3.out", immediateRender: false }, t);
         }
 
-        /* ---------- 3.25 — the head FLASHES into the mouth + shake ---------- */
-        tl.set("#g1_w5", { autoAlpha: 0 }, 3.25);
-        tl.set("#g1_flashin", { autoAlpha: 1 }, 3.25);
-        tl.set("#g1_flashin", { autoAlpha: 0 }, 3.32);
-        tl.set("#g1_head", { autoAlpha: 1 }, 3.25);
+        /* ---------- 2.90 — the head FLASHES into the mouth + shake (the pause after "shark") ---------- */
+        tl.set("#g1_w5", { autoAlpha: 0 }, 2.90);
+        tl.set("#g1_flashin", { autoAlpha: 1 }, 2.90);
+        tl.set("#g1_flashin", { autoAlpha: 0 }, 2.97);
+        tl.set("#g1_head", { autoAlpha: 1 }, 2.90);
         tl.fromTo("#g1_head", { scale: 0.7 },
-          { autoAlpha: 1, scale: 1, duration: 0.14, ease: "power4.out", immediateRender: false }, 3.25);
+          { autoAlpha: 1, scale: 1, duration: 0.14, ease: "power4.out", immediateRender: false }, 2.90);
         /* deterministic decaying shake on the whole collage (keyframed, seek-safe) */
         var sh = [18, -15, 11, -8, 5, -3, 1, 0];
         for (var s = 0; s < sh.length; s++) {
-          tl.set("#g1_cam", { x: sh[s], y: s % 2 === 0 ? -sh[s] * 0.6 : sh[s] * 0.6 }, 3.27 + s * 0.035);
+          tl.set("#g1_cam", { x: sh[s], y: s % 2 === 0 ? -sh[s] * 0.6 : sh[s] * 0.6 }, 2.92 + s * 0.028);
         }
-        tl.set("#g1_cam", { x: 0, y: 0 }, 3.27 + sh.length * 0.035);
+        tl.set("#g1_cam", { x: 0, y: 0 }, 2.92 + sh.length * 0.028);
 
-        /* ---------- 4.43 → 5.0: stillness before the bite (only the zoom creeps) ---------- */
+        /* ---------- 4.62 → 5.0: "IN ITS MOUTH" holds while the voice finishes it — then the bite eats it ---------- */
 
         tl.seek(0);
         window.__timelines = window.__timelines || {};
