@@ -1,59 +1,42 @@
 <!doctype html>
-<html lang="en" data-resolution="portrait">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=1080, height=1920" />
-    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
-    <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-      html,
-      body {
-        margin: 0;
-        width: 1080px;
-        height: 1920px;
-        overflow: hidden;
-        background: #000;
-      }
-      body {
-        font-family: "Inter", sans-serif;
-      }
-      code,
-      pre,
-      .monospace {
-        font-family: "JetBrains Mono", monospace;
-      }
-    </style>
-  </head>
-  <body>
-    <div
-      id="root"
-      data-composition-id="main"
-      data-start="0"
-      data-duration="10"
-      data-width="1080"
-      data-height="1920"
-    >
-      
-      
-
-      <!--
-        Add your clips here. Example:
-        <div id="title" class="clip" data-start="0" data-duration="5" data-track-index="1"
-             style="font-size: 64px; color: #fff; padding: 40px">
-          Hello World
-        </div>
-      -->
-    </div>
-
-    <script>
-      window.__timelines = window.__timelines || {};
-      const tl = gsap.timeline({ paused: true });
-      // Example: tl.from("#title", { opacity: 0, y: -50, duration: 1 }, 0);
-      window.__timelines["main"] = tl;
-    </script>
-  </body>
-</html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=1080, height=1920">
+<script src="assets/gsap.min.js"></script>
+<style>
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-400.woff2') format('woff2');font-weight:400;font-style:normal;font-display:block}
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-500.woff2') format('woff2');font-weight:500;font-style:normal;font-display:block}
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-600.woff2') format('woff2');font-weight:600;font-style:normal;font-display:block}
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-700.woff2') format('woff2');font-weight:700;font-style:normal;font-display:block}
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-800.woff2') format('woff2');font-weight:800;font-style:normal;font-display:block}
+      @font-face{font-family:'IBM Plex Mono';src:url('assets/fonts/ibmplexmono-400.woff2') format('woff2');font-weight:400;font-style:normal;font-display:block}
+      @font-face{font-family:'IBM Plex Mono';src:url('assets/fonts/ibmplexmono-500.woff2') format('woff2');font-weight:500;font-style:normal;font-display:block}
+      @font-face{font-family:'IBM Plex Mono';src:url('assets/fonts/ibmplexmono-700.woff2') format('woff2');font-weight:700;font-style:normal;font-display:block}
+      @font-face{font-family:'Noto Sans SC';src:local('Noto Sans CJK SC'),local('Noto Sans SC');font-weight:100 900;font-style:normal}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1920px;overflow:hidden;background:#000}
+body{font-family:Urbanist,"Noto Sans SC",sans-serif;color:#F5F3F0}
+#root{position:relative;width:1080px;height:1920px;overflow:hidden}
+.clip{position:absolute;inset:0}
+#bg{background:#232019}
+.mono{font-family:"IBM Plex Mono","Noto Sans SC",monospace}
+</style></head>
+<body>
+<div id="root" data-composition-id="main" data-start="0" data-duration="3" data-width="1080" data-height="1920">
+  <div id="bg" class="clip" data-start="0" data-duration="3" data-track-index="1"></div>
+  <div id="probe" class="clip" data-start="0" data-duration="3" data-track-index="2" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:40px;padding:80px">
+    <div id="a" style="font-size:150px;font-weight:800">第 5 年</div>
+    <div id="b" style="font-size:64px;font-weight:700">把公司开下去，把路演活下来</div>
+    <div id="c" class="mono" style="font-size:40px">237 个真实事件 · 跑道 11 个月</div>
+    <div id="d" style="font-size:56px;font-weight:800;color:#E35F00">现金 烧钱率 估值 免费就是完整游戏</div>
+  </div>
+</div>
+<script>
+window.__timelines = window.__timelines || {};
+const tl = gsap.timeline({paused:true});
+tl.fromTo("#a",{opacity:0,y:40},{opacity:1,y:0,duration:.6,ease:"power3.out"},0);
+tl.fromTo("#b",{opacity:0},{opacity:1,duration:.6},0.6);
+tl.fromTo("#c",{opacity:0},{opacity:1,duration:.6},1.2);
+tl.fromTo("#d",{opacity:0},{opacity:1,duration:.6},1.8);
+window.__timelines["main"] = tl;
+</script>
+</body></html>

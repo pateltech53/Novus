@@ -18,6 +18,11 @@ colors:
   cream-muted: "#C9C2BB"
   cream-hint: "#8F8880"
   brand-navy: "#0B1E36"
+  # Product brand law (README「Brand laws enforced in code」): prestige gold marks the
+  # year gate / stage-ups only. Scarcer than the preset's single accent — used in ONE
+  # frame of this video (the year gate) and nowhere else.
+  prestige-gold: "#FFC24B"
+  alert-red: "#D43A2A"
   border-dark: "#282726"
   ink-on-orange-muted: "rgba(17,17,17,0.75)"
   ink-on-orange-hint: "rgba(17,17,17,0.55)"
