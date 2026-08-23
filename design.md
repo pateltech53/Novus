@@ -51,26 +51,41 @@ DOM surface reads as "solid surface" on every platform.
 | **Chrome** | tab bar, the advance capsule and the month badge beside it, screen toolbars and docks, sheet grabber, toasts, year-gate banner, phone status bar + dock, modal scrims | Liquid glass. |
 | **The decision sheet** | its own surface, its choice rows, its explainer boxes and its one action button | Liquid glass, on iOS only. **The named exception**, below. |
 | **Stage** | mascot, panel room | Real 3D, real lighting. Depth from geometry and light. |
-| **The archipelago** | the ocean on /islands and the islands on it | Modelled, but flat. **The second named exception**, below. |
+| **The archipelago** | the ocean on /islands and the islands on it | Rendered artwork. **The second named exception**, below. |
 
-**The archipelago is modelled without being lit.** `/islands` is a place rather
-than a screen — water edge to edge, a horizon, and a company drawn as an island
+**The archipelago is a picture, and it is the only screen that is.** `/islands`
+is a place rather than a screen — water edge to edge, a horizon, and a company
 you can find again — and a place drawn in Content's vocabulary is a diagram of
-one. The island used to be exactly that: two rings of flat blue for water, a
-green ellipse for land, a stroked palm, a row of grey rectangles.
+one. It has been a diagram twice: first two rings of flat blue for water with a
+green ellipse for land, then the same idea rebuilt in stepped flat fills, which
+read as an island but still read as *drawn*.
 
-So `components/IslandGlyph.tsx` and `components/Sea.tsx` model their forms — a
-sand mound, a segmented palm, a briefcase, a sky over a horizon — while staying
-inside Content's material rule. Every one of them is built from **stepped flat
-fills**: two or three solid tones per shape, light above shadow, one light
-direction (upper left) across the whole scene. `lib/color.ts` derives those
-tones from one colour so a form is recoloured in one place.
+It is now the authored artwork. `components/Sea.tsx` is the ocean as a photo —
+sky, clouds, a horizon and still water — and `components/IslandGlyph.tsx` is one
+keyed island, shipped as eight webps that differ only in the colour of the
+briefcase. `scripts/build-art.mjs` cuts them from the two sources in
+`assets-src/`.
 
-What that buys is that the exception costs nothing elsewhere. No gradient — the
-ledger below still stands at three. No blur, no filter, no transparency except
-the island's own contact shadow. The Stage layer keeps its monopoly on real
-light, which is the thing that rule exists to protect: the mascot is lit and
-nothing else is, so being lit still means "this is the mascot".
+**What the exception costs, in full.** The gradient ledger below is untouched —
+a photograph is not a gradient by that ledger's accounting, and nothing on this
+screen emits one. What is genuinely given up is named here so nobody has to
+rediscover it:
+
+- **Stage is no longer visible on the water.** The drawn glyph grew a building
+  per stage, and that was the one progress cue readable across the whole
+  archipelago at a glance. There is no honest way to draw a skyline into a
+  photograph at eight sizes. Stage is now text: the caption carries the year,
+  the gallery carries the stage by name.
+- **The sea does not move.** Three bands of animated swell went with the
+  drawing. `.nv-bob` on the islands is the motion that remains, and it is the
+  half a player is actually looking at.
+- **One image serves both themes.** A night ocean would be a second asset to
+  keep in step with the first, and a place does not repaint itself when you
+  change your reading preference. Everything drawn on top of it still themes.
+
+The Stage layer keeps its monopoly on real *lighting* — the mascot is lit by a
+rig and nothing else is, so being lit still means "this is the mascot". This
+exception is about a photograph, not about a light.
 
 **Money is read at full strength.** This rule used to say *on solid ground* —
 that any element carrying a financial figure was content and never glass. It

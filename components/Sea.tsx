@@ -1,9 +1,7 @@
-import type { CSSProperties } from "react";
-
 import { ISLAND_CAP } from "@/lib/monetization";
 
 /**
- * The ocean the islands sit on.
+ * The ocean the islands sit on — the picture, edge to edge.
  *
  * ── What it is trying to be ────────────────────────────────────────────────
  *
@@ -11,263 +9,72 @@ import { ISLAND_CAP } from "@/lib/monetization";
  * cards with a wave graphic behind it, and a grid with waves behind it is a
  * grid — the islands read as list items that happened to be drawn as islands.
  * The second was the sea in a rounded panel, which is a picture of the sea
- * hanging on a wall. This is the third and the right one: the water is the
- * screen, edge to edge, and everything else floats on it — the islands, and
- * the one piece of small print, which is in a boat.
+ * hanging on a wall. The water is the screen now, and everything else floats on
+ * it: the islands, and the one piece of small print, which is in a boat.
  *
  * No corners, therefore. A radius here would put the wall back.
  *
- * ── The horizon, which it did not have ─────────────────────────────────────
+ * ── Why this is four lines instead of a hundred ────────────────────────────
  *
- * It was a single `<rect fill="--sea">` with swells on it, and a rectangle of
- * water with no edge to it is not an ocean — it is a blue floor. Every island
- * on it was a shape on a colour. So there is sky now, and a horizon where the
- * two meet, and clouds in the sky: three cues that cost nothing and turn the
- * same flat colour into distance.
+ * It used to draw the sea: a rect of `--sea`, three hand-placed bands of
+ * animated swell strokes, then a sky, a horizon haze and four clouds, split
+ * across two SVGs because one of them had to keep its aspect ratio and the
+ * other had to stretch. All of it was an attempt to arrive at a picture of an
+ * ocean. There is a picture of an ocean now, so the drawing is gone.
  *
- * The sky is a NARROW band — the top twelfth, not the top third a photograph
- * would give it — and that is a constraint rather than a taste. The picker
- * places islands from 10% of the field downward (`bandY` in the islands page),
- * so anything above roughly a tenth is the only space that can be sky without
- * an island floating in it. A thin strip is also what you get looking at the
- * sea from close to it, which is where the player is standing.
+ * What went with it is worth naming, because it was deliberate and is now
+ * simply absent: the swells MOVED, on three durations and three amplitudes, so
+ * that the water read as water rather than as a diagram of it. The artwork's
+ * waves are still. The motion that remains is `.nv-bob` on the islands
+ * themselves — which is the half that mattered, because it is the islands a
+ * player is looking at, and it is still stopped by `prefers-reduced-motion`
+ * along with everything else. `@keyframes nvSwell` and `.nv-swell` stay in
+ * globals.css; nothing uses them today.
  *
- * The haze band under the horizon is what sells it. Water meeting sky at a
- * hard line reads as two rectangles stacked; a pale strip between them reads
- * as air over distance.
+ * ── One image, both themes ─────────────────────────────────────────────────
  *
- * ── Flat, but not still ────────────────────────────────────────────────────
- *
- * No gradient and no blur: design.md gives real lighting to the stage layer
- * and nothing else, so depth here comes from what depth came from before
- * photography — things further away are smaller, higher, paler and flatter.
- *
- * It does move, and the movement is the whole reason it reads as water rather
- * than as a diagram of water. Three bands, three durations, three amplitudes,
- * because the one thing that would ruin it is agreement: waves that swell in
- * unison are a comb. The near band travels furthest and fastest, which is the
- * same parallax rule as the sizes.
- *
- * The amplitudes are single digits over ten-odd seconds on purpose. A player
- * is on this screen for a few seconds several times a day, and ambient motion
- * that draws the eye a SECOND time is a fidget. `prefers-reduced-motion` stops
- * all of it — see the blanket rule in globals.css — and nothing is lost when
- * it does, because the sea carries no information.
- *
- * The strokes are hand-placed rather than generated. Eight lines that read as
- * water at 320px are worth more than an algorithm producing forty that read as
- * corduroy.
+ * Deliberately not two. A night version of the same sea would be a second
+ * asset to keep in step with the first, and the islands screen is the one
+ * surface in the app that is a PLACE rather than a document — a place does not
+ * repaint itself when you change your reading preference. Everything drawn on
+ * top of it still themes, and the caption colours were already chosen against
+ * water rather than against a page.
  */
 export function Sea({ className = "" }: { className?: string }) {
   return (
-    <div className={className} aria-hidden>
-      {/*
-        ── Two layers, because they cannot share a viewBox ────────────────────
-
-        The water is drawn with `preserveAspectRatio="none"`, which is right for
-        it: a swell is a horizontal line and stretching one vertically on a tall
-        phone just makes a slightly taller swell. It is catastrophic for
-        anything ROUND. The first version of this put the clouds in the same
-        SVG, and at 393×852 the vertical scale is nearly three times the
-        horizontal one — so every cloud came out as a tall grey lozenge that
-        read as a rock formation hanging over the sea.
-
-        A nested `<svg>` does not fix it: its viewport is still transformed by
-        the outer non-uniform matrix. The only thing that does is a second
-        element with its own CSS box, which is what the sky band below is.
-
-        `SKY_PCT` is shared between them so the horizon in one lands exactly on
-        the bottom edge of the other. Change it in one place or the sea grows a
-        seam.
-      */}
-      <svg
-        className="absolute inset-0 h-full w-full"
-        viewBox="0 0 400 300"
-        preserveAspectRatio="none"
-        fill="none"
-      >
-        {/* The water itself.
-          `--sea` and `--sea-crest` are a pair, per theme, in globals.css. This
-          used to be `--color-navy` mixed 14% into `--surface`, with the swells
-          drawn in `--hairline` — which in light mode is a grey at L 0.85 with
-          crests three points of lightness away from it. The sea was the whole
-          screen and the whole screen was unlit. Water is a colour; a crest is
-          the light on it; the crest is always the brighter of the two. */}
-      <rect x="0" y={SKY} width="400" height={300 - SKY} fill="var(--sea)" />
-
-      {/* The haze at the horizon — the pale strip that turns a seam into
-          distance. Flat, not a gradient: design.md §1.4 keeps a ledger of
-          exactly three gradients in the app and this is not one of them. Two
-          bands of falling opacity do the same job at this size.
-
-          Kept faint on purpose. At full strength it stopped reading as air and
-          started reading as a toolbar behind the screen's title, which is the
-          one thing a horizon must not look like. */}
-      {[
-        [0, 3, 0.3],
-        [3, 4, 0.16],
-        [7, 6, 0.08],
-        [13, 8, 0.04],
-        [21, 11, 0.02],
-      ].map(([dy, h, o]) => (
-        <rect
-          key={dy}
-          x="0"
-          y={SKY + dy}
-          width="400"
-          height={h}
-          fill="var(--sky-haze)"
-          opacity={o}
-        />
-      ))}
-
-      {/* Far water: fine, level, close together. Distance flattens waves, and
-          packing them tighter toward the top is most of what makes this read
-          as a surface receding rather than as a rectangle with squiggles.
-
-          The whole band moved DOWN when the horizon arrived: its first strokes
-          used to sit at y=16, which is now sky. */}
-      <g
-        stroke="var(--sea-crest)"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        opacity="0.5"
-        vectorEffect="non-scaling-stroke"
-        className="nv-swell"
-        style={{ "--nv-swell-dur": "14s", "--nv-swell-x": "3px" } as CSSProperties}
-      >
-        <path d="M18 44 q12 -4 24 0 t24 0" />
-        <path d="M126 42 q12 -4 24 0 t24 0" />
-        <path d="M262 45 q12 -4 24 0 t24 0" />
-        <path d="M340 50 q12 -4 24 0 t24 0" />
-        <path d="M56 54 q13 -4 26 0 t26 0" />
-        <path d="M196 57 q13 -4 26 0 t26 0" />
-        <path d="M300 63 q13 -4 26 0 t26 0" />
-        <path d="M14 68 q14 -5 28 0 t28 0" />
-        <path d="M150 74 q14 -5 28 0 t28 0" />
-      </g>
-
-      {/* Middle water: longer swells, further apart. */}
-      <g
-        stroke="var(--sea-crest)"
-        strokeWidth="2.1"
-        strokeLinecap="round"
-        opacity="0.7"
-        vectorEffect="non-scaling-stroke"
-        className="nv-swell"
-        style={
-          { "--nv-swell-dur": "10.5s", "--nv-swell-x": "6px", "--nv-swell-y": "1.5px" } as CSSProperties
-        }
-      >
-        <path d="M244 92 q18 -7 36 0 t36 0" />
-        <path d="M46 104 q19 -7 38 0 t38 0" />
-        <path d="M320 122 q19 -7 38 0 t38 0" />
-        <path d="M132 134 q20 -7 40 0 t40 0" />
-        <path d="M0 148 q20 -7 40 0 t40 0" />
-        <path d="M250 160 q21 -8 42 0 t42 0" />
-      </g>
-
-      {/* Near water: the biggest swells, the ones with weight. */}
-      <g
-        stroke="var(--sea-crest)"
-        strokeWidth="2.8"
-        strokeLinecap="round"
-        vectorEffect="non-scaling-stroke"
-        className="nv-swell"
-        style={
-          { "--nv-swell-dur": "7.5s", "--nv-swell-x": "10px", "--nv-swell-y": "2.5px" } as CSSProperties
-        }
-      >
-        <path d="M28 186 q26 -10 52 0 t52 0" />
-        <path d="M244 200 q27 -10 54 0 t54 0" />
-        <path d="M0 224 q28 -10 56 0 t56 0" />
-        <path d="M190 244 q29 -11 58 0 t58 0" />
-        <path d="M52 268 q31 -11 62 0 t62 0" />
-        <path d="M286 284 q30 -11 60 0 t60 0" />
-      </g>
-      </svg>
-
-      {/*
-        ── The sky ────────────────────────────────────────────────────────────
-
-        Its own box, its own aspect ratio, so a cloud stays a cloud. `slice`
-        rather than `meet`: the band is far wider than it is tall on a phone, so
-        the drawing is scaled to cover and the ends of it are cropped, which is
-        what you want from a sky — cropping loses some cloud, letterboxing would
-        leave a stripe of nothing above it.
-
-        A NARROW band, and that is a constraint rather than a taste. The picker
-        places islands from 10% of the field downward (`bandY` in the islands
-        page), so anything much past a tenth is space an island can end up
-        floating in. It is also what you actually see looking at the sea from
-        close to it, which is where the player is standing.
-      */}
-      <svg
-        className="absolute inset-x-0 top-0 w-full"
-        style={{ height: `${SKY_PCT}%` }}
-        /* The viewBox is roughly the aspect the band gets on a PHONE (393 ×
-           ~77), not a convenient round number: `slice` scales to cover, so a
-           10:1 viewBox in a 5:1 box is scaled 2× and two of the three clouds
-           are cropped off the sides — which is exactly what the first attempt
-           at this did.
-
-           On anything wider the crop turns vertical instead. This page is a
-           normal web route, and on a 1440×900 desktop the band is 17:1 against
-           a 5:1 drawing, so only the middle quarter of the viewBox survives.
-           That is why every cloud below sits inside y=26..50: the band that is
-           on screen at BOTH extremes. Nothing decorative may live outside it,
-           and nothing informative lives here at all. */
-        viewBox="0 0 400 76"
-        preserveAspectRatio="xMidYMid slice"
-        fill="none"
-      >
-        <rect x="0" y="0" width="400" height="76" fill="var(--sky)" />
-
-        {/* Clouds, flat and few.
-            A bar with three circles sitting on it is the entire shape, and it
-            is all that survives at the size this band gets on a phone. Placed
-            off-centre, at three sizes and three heights: two clouds the same
-            size at the same height is wallpaper, not weather. */}
-        <g fill="var(--cloud)">
-          <g opacity="0.9">
-            <rect x="22" y="38" width="42" height="9" rx="4.5" />
-            <circle cx="34" cy="37" r="7.5" />
-            <circle cx="47" cy="34" r="9" />
-            <circle cx="59" cy="37.5" r="6" />
-          </g>
-          <g opacity="0.6">
-            <rect x="176" y="44" width="28" height="6" rx="3" />
-            <circle cx="185" cy="43" r="5.5" />
-            <circle cx="196" cy="42" r="6.5" />
-          </g>
-          <g opacity="0.8">
-            <rect x="298" y="35" width="50" height="10" rx="5" />
-            <circle cx="311" cy="34" r="8.5" />
-            <circle cx="327" cy="30.5" r="10" />
-            <circle cx="341" cy="34.5" r="6.5" />
-          </g>
-          <g opacity="0.45">
-            <rect x="112" y="45" width="24" height="5.5" rx="2.75" />
-            <circle cx="120" cy="44" r="4.5" />
-            <circle cx="129" cy="43.5" r="5.5" />
-          </g>
-        </g>
-      </svg>
-    </div>
+    <div
+      className={className}
+      aria-hidden
+      style={{
+        backgroundImage: "url(/islands/ocean.webp)",
+        backgroundSize: "cover",
+        backgroundPosition: "center top",
+        backgroundRepeat: "no-repeat",
+        /* Under the image and never seen, except for the moment before it
+           decodes and on the one axis `cover` cannot fill. `--sea` is still the
+           water's token everywhere else on this screen, so the fallback is the
+           same colour rather than a second opinion about it. */
+        backgroundColor: "var(--sea)",
+      }}
+    />
   );
 }
 
 /**
- * How much of the screen is sky, as a percentage — the ONE number the two
- * layers above have to agree on.
+ * Where the water starts, as a fraction of the picture's height.
  *
- * The water SVG puts its horizon at `SKY` in its own 300-unit viewBox and the
- * sky band is `SKY_PCT` of the container's height. They are the same line
- * expressed twice, so they are derived from each other rather than typed
- * twice: get this wrong and the sea grows a visible seam at the join.
+ * `scripts/build-art.mjs` finds the horizon in the source, crops the sky back
+ * until it sits here, and prints the number it achieved. It is duplicated in
+ * this one constant because the ISLANDS have to stay under it — `bandY` in the
+ * islands page reads it — and a layout that guessed would put half an
+ * archipelago in the sky.
+ *
+ * It holds on screen as long as `cover` is scaling by HEIGHT, which is true for
+ * every viewport narrower than the picture's 1.77 aspect: every phone, and any
+ * window that is not a letterbox. Wider than that and the horizon rises, which
+ * costs nothing — the islands only ever move further below it.
  */
-const SKY = 27;
-const SKY_PCT = (SKY / 300) * 100;
+export const HORIZON_PCT = 0.24;
 
 /**
  * Where each island sits on the water, as percentages of the sea.

@@ -91,8 +91,13 @@ export const CALLERS: Caller[] = [
   {
     id: "delgado",
     name: "Rosa Delgado",
-    title: "Angel investor",
-    company: "Former operator, two exits",
+    /* The fact that used to be the `company` line — she ran companies before
+       she funded them — moved here when the roster became a trade INDEX, which
+       is looked up by business name. "Former operator, two exits" is a
+       description of a person, and a directory printed it as though it were
+       the name over the door. */
+    title: "Angel investor, two exits",
+    company: "Delgado Capital",
     focus: "all",
     temperament: "operator",
     voice: "room_even",
@@ -278,7 +283,7 @@ export const CALLERS: Caller[] = [
     id: "adeyemi",
     name: "Folake Adeyemi",
     title: "Impact fund lead",
-    company: "第 / Meridian Impact",
+    company: "Meridian Impact",
     focus: ["SUSTAIN", "EDTECH", "FOOD", "PET"],
     temperament: "sceptic",
     voice: "room_bright",
@@ -395,6 +400,91 @@ export function availableCallers(state: RunState): Caller[] {
       !closed.includes(c.id) &&
       (c.focus === "all" || c.focus.includes(state.industry)),
   );
+}
+
+// ── The number ──────────────────────────────────────────────────────────────
+
+/**
+ * Every listing's direct line.
+ *
+ * ── Why there are numbers at all now ───────────────────────────────────────
+ *
+ * The Room used to open on a list of people with a handset button beside each
+ * one. That is a contacts app, and choosing from a menu of warm names is the
+ * opposite of a cold call — the hard part of the real thing, and the part worth
+ * teaching, is that nobody hands you the list. So the roster moved out into a
+ * trade index the player has to go and read, each listing carries a number, and
+ * The Room became a dialler. Finding who to call is now a step.
+ *
+ * ── Why these numbers specifically ─────────────────────────────────────────
+ *
+ * 555-0100 through 555-0199 is the block reserved for fiction precisely so that
+ * a number printed in a story cannot ring a real person. This app is handed to
+ * minors and asks them to type a phone number into a phone; the one outcome
+ * that must be impossible is a real line at the other end. So the last two
+ * digits are all that vary, they are derived from the caller's id, and the
+ * generator refuses to build if two callers ever collide.
+ *
+ * The area code varies with the caller too — it is the part that makes twenty
+ * numbers look like twenty businesses rather than one switchboard — and every
+ * value in it is likewise unassignable: N11 codes are service codes and are
+ * never issued to subscribers.
+ */
+const FICTION_AREA_CODES = ["211", "311", "411", "511", "611", "711", "811", "911"];
+
+/**
+ * The digits, with nothing between them. What a comparison sees.
+ *
+ * A player types what they see, and what they see has brackets and a dash in
+ * it. Everything they might reasonably produce — pasted with the formatting,
+ * typed without it, spaces instead of dashes, a leading 1 for the country —
+ * has to reach the same caller, so both sides of every comparison come through
+ * here first.
+ */
+export const digitsOf = (input: string): string => {
+  const digits = input.replace(/\D+/g, "");
+  return digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
+};
+
+/** The number as it is printed in the index: `(411) 555-0132`. */
+export function phoneOf(caller: Caller): string {
+  const h = hashString(`room-line:${caller.id}`);
+  const area = FICTION_AREA_CODES[h % FICTION_AREA_CODES.length];
+  const line = 100 + ((h >>> 8) % 100);
+  return `(${area}) 555-0${line}`;
+}
+
+/**
+ * Who answers this number, or null.
+ *
+ * Null is a real answer and the screen says so out loud: a number that is not
+ * in the book is the cost of not having read the book, and it must not spend
+ * one of the day's three calls. Matched on digits alone, so the brackets and
+ * the dash are decoration.
+ */
+export function callerByNumber(input: string): Caller | null {
+  const want = digitsOf(input);
+  if (want.length < 10) return null;
+  return CALLERS.find((c) => digitsOf(phoneOf(c)) === want) ?? null;
+}
+
+/**
+ * The trade index: businesses in this company's niche, with their numbers.
+ *
+ * The same set `availableCallers` returns — one function decides who is
+ * reachable, and the index is a VIEW of that rather than a second opinion, or
+ * the book would print numbers that refuse to connect.
+ *
+ * Ordered by how hard they are to win rather than by name. A directory sorted
+ * alphabetically is a phone book; sorted by difficulty it is a ladder, and the
+ * first name on it is the one a founder at this stage should actually be
+ * ringing.
+ */
+export function tradeIndex(state: RunState): { caller: Caller; phone: string }[] {
+  return availableCallers(state)
+    .slice()
+    .sort((a, b) => a.difficulty - b.difficulty || a.minStage - b.minStage)
+    .map((caller) => ({ caller, phone: phoneOf(caller) }));
 }
 
 // ── Resolving a pitch ───────────────────────────────────────────────────────

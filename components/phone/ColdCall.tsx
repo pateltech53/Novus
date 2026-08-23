@@ -6,8 +6,9 @@ import { useGame } from "@/lib/state/GameProvider";
 import {
   CALL_SECONDS,
   MAX_CALLS_PER_DAY,
-  availableCallers,
+  callerByNumber,
   callsRemaining,
+  digitsOf,
   judgePitch,
   type Caller,
   type CallOutcome,
@@ -17,6 +18,7 @@ import { S_UNIT } from "@/lib/engine/constants";
 import { LiveTranscriber, resolveTranscript } from "@/lib/ai/transcribe";
 import { startRecording, type Recording } from "@/lib/media/recorder";
 import { useUpgrade } from "@/components/upgrade/UpgradeProvider";
+import { play } from "@/lib/sound";
 import { speak, stopSpeaking } from "@/lib/ai/speech";
 import { SkipVoice } from "@/components/ui/SkipVoice";
 
@@ -63,7 +65,7 @@ type Stage =
   | { kind: "judging"; caller: Caller }
   | { kind: "result"; caller: Caller; outcome: CallOutcome };
 
-export function ColdCall() {
+export function ColdCall({ onIndex }: { onIndex: () => void }) {
   const { run, applyColdCall } = useGame();
   const [stage, setStage] = useState<Stage>({ kind: "directory" });
 
@@ -81,7 +83,6 @@ export function ColdCall() {
   if (!run) return null;
 
   const remaining = callsRemaining(run);
-  const roster = availableCallers(run);
 
   if (!run.pro) return <ProGate />;
 
@@ -89,11 +90,11 @@ export function ColdCall() {
     <div className="px-4 pt-3 pb-6">
       <AnimatePresence mode="wait">
         {stage.kind === "directory" && (
-          <Directory
-            key="dir"
-            roster={roster}
+          <Dialler
+            key="dial"
             remaining={remaining}
             onDial={(caller) => setStage({ kind: "connecting", caller })}
+            onIndex={onIndex}
           />
         )}
         {stage.kind === "connecting" && (
@@ -173,17 +174,55 @@ function ProGate() {
   );
 }
 
-// ── Directory ───────────────────────────────────────────────────────────────
+// ── The dialler ─────────────────────────────────────────────────────────────
 
-function Directory({
-  roster,
+/**
+ * The Room, which is now a phone rather than a phone BOOK.
+ *
+ * ── What was here before ───────────────────────────────────────────────────
+ *
+ * A list of everyone who would take your call, each with a handset button.
+ * Tap, talk, done. It was a contacts app, and it taught the opposite of the
+ * thing it is named after: the hard part of a cold call, and the only part
+ * worth a mechanic, is that nobody hands you the list.
+ *
+ * So the list moved to The Index — a trade book of businesses in your own
+ * industry — and what is left here is a keypad. You go and read who buys what
+ * you sell, you take their number, and you dial it. Three steps where there was
+ * one, and the two new ones are the whole point.
+ *
+ * ── The wrong number ───────────────────────────────────────────────────────
+ *
+ * A number that is not in the book does not connect and does not spend one of
+ * the day's three calls. That is deliberate on both counts: charging for a
+ * typo would make the keypad a trap rather than a step, and connecting anyway
+ * would make the book decorative.
+ */
+function Dialler({
   remaining,
   onDial,
+  onIndex,
 }: {
-  roster: Caller[];
   remaining: number;
   onDial: (c: Caller) => void;
+  onIndex: () => void;
 }) {
+  const [typed, setTyped] = useState("");
+  const [miss, setMiss] = useState(false);
+
+  const match = callerByNumber(typed);
+  const enough = digitsOf(typed).length >= 10;
+
+  const call = () => {
+    if (remaining === 0) return;
+    if (!match) {
+      setMiss(true);
+      play("error");
+      return;
+    }
+    onDial(match);
+  };
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
       <div className="flex items-baseline justify-between">
@@ -203,47 +242,75 @@ function Directory({
         </p>
       )}
 
-      {roster.length === 0 ? (
-        <p className="mt-4 text-xs leading-snug text-[var(--text-secondary)]">
-          Nobody in this book takes calls at your stage yet. Build something
-          first.
-        </p>
-      ) : (
-        <ul className="mt-3 space-y-2">
-          {roster.map((c) => (
-            <li key={c.id}>
-              <button
-                type="button"
-                disabled={remaining === 0}
-                onClick={() => onDial(c)}
-                className="nv-gc flex w-full items-start gap-3 rounded-[var(--radius-row)] px-3 py-3 text-left disabled:opacity-45"
-              >
-                <span
-                  aria-hidden="true"
-                  className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--n-4)] text-xs font-extrabold text-[var(--n-9)]"
-                >
-                  {c.name
-                    .split(" ")
-                    .map((p) => p[0])
-                    .join("")
-                    .slice(0, 2)}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-bold">{c.name}</span>
-                  <span className="block truncate text-2xs text-[var(--text-tertiary)]">
-                    {c.title} · {c.company}
-                  </span>
-                  {/* Their business card, not a hint sheet: what they came for. */}
-                  <span className="mt-1 block text-2xs leading-snug text-[var(--text-secondary)]">
-                    Listening for: {c.wants}
-                  </span>
-                </span>
-                <HandsetGlyph small />
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+      {/*
+        `inputMode="tel"` and not `type="tel"`: the tel keyboard is what a
+        player typing a number wants, and `type="tel"` would also bring the
+        browser's own autofill, which offers their REAL contacts inside a game
+        about a fictional phone.
+      */}
+      <label className="mt-4 block">
+        <span className="text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
+          NUMBER
+        </span>
+        <input
+          value={typed}
+          onChange={(e) => {
+            setTyped(e.target.value);
+            setMiss(false);
+          }}
+          inputMode="tel"
+          autoComplete="off"
+          spellCheck={false}
+          placeholder="(411) 555-0100"
+          aria-label="The number to call"
+          disabled={remaining === 0}
+          className="tnum mt-1.5 w-full rounded-[var(--radius-row)] bg-[var(--n-3)] px-3 py-3 text-lg font-extrabold tracking-[0.04em] outline-none ring-1 ring-transparent transition-shadow focus:ring-[var(--n-6)] placeholder:font-bold placeholder:text-[var(--n-6)] disabled:opacity-45"
+        />
+      </label>
+
+      {/* Who is on the other end, before it rings.
+          Not a hint and not a shortcut — the number is already typed, and a
+          founder who has dialled correctly should not have to hope. What it
+          prevents is the one genuinely unfair outcome: spending one of three
+          daily calls on a digit that was fat-fingered. */}
+      <p className="mt-2 min-h-[2.5rem] text-xs leading-snug">
+        {match ? (
+          <span className="text-[var(--text-secondary)]">
+            <span className="font-bold text-[var(--text-primary)]">{match.company}</span>
+            {" — "}
+            {match.name}, {match.title.toLowerCase()}.
+          </span>
+        ) : miss ? (
+          <span className="text-[var(--color-alert)]">
+            No such number. Nothing was used — check the listing in The Index.
+          </span>
+        ) : enough ? (
+          <span className="text-[var(--text-tertiary)]">
+            That is not a number in your industry&rsquo;s book.
+          </span>
+        ) : (
+          <span className="text-[var(--text-tertiary)]">
+            Numbers come from The Index. Copy one and paste it here.
+          </span>
+        )}
+      </p>
+
+      <button
+        type="button"
+        onClick={call}
+        disabled={remaining === 0 || !enough}
+        className="nv-gc mt-1 w-full rounded-[var(--radius-card)] nv-t-action px-4 py-3.5 text-sm font-extrabold tracking-[0.06em] disabled:opacity-45"
+      >
+        CALL
+      </button>
+
+      <button
+        type="button"
+        onClick={onIndex}
+        className="mx-auto mt-3 block text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)] underline underline-offset-4"
+      >
+        OPEN THE INDEX
+      </button>
     </motion.div>
   );
 }
@@ -746,11 +813,13 @@ function Result({
   );
 }
 
-function HandsetGlyph({ small }: { small?: boolean }) {
+/* The `small` variant went with the directory rows it sat in — the trade index
+   is a separate screen now and prints numbers rather than handsets. */
+function HandsetGlyph() {
   return (
     <svg
       viewBox="0 0 24 24"
-      className={small ? "h-4 w-4 shrink-0 text-[var(--text-tertiary)]" : "h-6 w-6"}
+      className="h-6 w-6"
       fill="none"
       aria-hidden="true"
     >

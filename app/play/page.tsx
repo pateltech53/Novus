@@ -369,13 +369,19 @@ function PlayScreen() {
   /*
    * The `cold-call` activity cannot open the phone itself — activities are pure
    * engine functions and know nothing about React. It sets a flag; this watches
-   * for the flag, opens the phone on The Room, and clears it.
+   * for the flag, opens the phone, and clears it.
+   *
+   * On The INDEX rather than The Room. A call now starts by finding out who to
+   * call: the dialler opens on an empty field, and landing there first would be
+   * handing somebody a keypad and no number. The Index has a door through to
+   * the keypad on it, which is the order the mechanic is meant to be learned
+   * in.
    */
   useEffect(() => {
     if (!game.run?.flags.open_the_room) return;
     game.clearFlag("open_the_room");
     setActivity(null);
-    setPhoneApp("coldcall");
+    setPhoneApp("index");
   }, [game]);
 
   const [checked, setChecked] = useState(false);

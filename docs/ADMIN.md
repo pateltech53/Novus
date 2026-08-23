@@ -14,6 +14,10 @@ things:
 - **Everything, without paying** — the admin's own account plays fully
   unlocked (all 12 industries, The Room, 99 runs a day), with a view switch
   to play as `free` or `pro` instead, so paywalls can be tested for real.
+  One thing an unlock cannot open: The Room and The Index do not exist for a
+  company in FOOD, ECOM or FITNESS, on any tier including this one. That is
+  not a paywall — a fast-food owner has no business to cold call — so there is
+  nothing for an entitlement to grant. Found in TECH to test it.
 - **The service surface** — `app/api/admin/*`, which answers 404 to every
   other account on earth.
 

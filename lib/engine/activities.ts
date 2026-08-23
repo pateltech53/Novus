@@ -2,7 +2,7 @@ import type { RunState } from "./types";
 import { applyOutcome } from "./effects";
 import { refreshBooks } from "./sim";
 import { makeLine } from "./log";
-import { S_UNIT } from "./constants";
+import { S_UNIT, sellsToBusinesses } from "./constants";
 import { hashString, runRng } from "./rng";
 import { assetById, buyAsset } from "./holdings";
 // Value import, and industries/*.ts imports `spend` and the `Activity` TYPE back
@@ -268,13 +268,24 @@ export const ACTIVITIES: Activity[] = [
      */
     id: "cold-call",
     tab: "company",
-    label: "Cold call an investor",
+    label: "Work the phones",
     signal: "Three a day, two minutes each. They have not heard of you.",
     detail:
-      "A directory of investors, buyers and operators who do not know your name. You pitch out loud and they decide on the spot.",
+      "The trade index for your industry — who buys what you sell, and their direct line. Find a number, dial it, and pitch out loud. They decide on the spot.",
     pro: true,
     gate: "the_room",
-    available: (s) => callsRemaining(s) > 0,
+    /*
+     * Two gates, and the ORDER of them is the point.
+     *
+     * `available` is the industry question and it is asked first, because it is
+     * a fact about the BUSINESS: a fast-food owner has nobody to ring, so the
+     * row is absent rather than locked. `pro` above is a fact about the
+     * ACCOUNT, and it shows the row and refuses the press. Getting these the
+     * wrong way round would put a subscription pitch in front of somebody for a
+     * phone they should never want to pick up, which is the worst version of
+     * both.
+     */
+    available: (s) => sellsToBusinesses(s.industry) && callsRemaining(s) > 0,
     apply: (s) =>
       spend(
         s,
