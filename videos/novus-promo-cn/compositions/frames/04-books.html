@@ -1,0 +1,535 @@
+<template>
+  <div id="root"
+       data-composition-id="04-books"
+       data-start="0"
+       data-duration="6.4"
+       data-width="1080"
+       data-height="1920">
+
+    <style>
+      .clip{position:absolute;inset:0}
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-400.woff2') format('woff2');font-weight:400;font-style:normal;font-display:block}
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-500.woff2') format('woff2');font-weight:500;font-style:normal;font-display:block}
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-600.woff2') format('woff2');font-weight:600;font-style:normal;font-display:block}
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-700.woff2') format('woff2');font-weight:700;font-style:normal;font-display:block}
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-800.woff2') format('woff2');font-weight:800;font-style:normal;font-display:block}
+      @font-face{font-family:'IBM Plex Mono';src:url('assets/fonts/ibmplexmono-400.woff2') format('woff2');font-weight:400;font-style:normal;font-display:block}
+      @font-face{font-family:'IBM Plex Mono';src:url('assets/fonts/ibmplexmono-500.woff2') format('woff2');font-weight:500;font-style:normal;font-display:block}
+      @font-face{font-family:'IBM Plex Mono';src:url('assets/fonts/ibmplexmono-700.woff2') format('woff2');font-weight:700;font-style:normal;font-display:block}
+      @font-face{font-family:'Noto Sans SC';src:local('Noto Sans CJK SC'),local('Noto Sans SC');font-weight:100 900;font-style:normal}
+
+      #root{
+        position:relative;
+        width:1080px;
+        height:1920px;
+        overflow:hidden;
+        container-type:size;
+        font-family:'Urbanist','Noto Sans SC',sans-serif;
+        color:#F5F3F0;
+      }
+      #root *{margin:0;padding:0;box-sizing:border-box}
+
+      /* ---------- depth plane 1 : full-bleed ink ground ---------- */
+      #f04-ground{background:#232019}
+
+      /* ---------- depth plane 2 : 底噪网点 ---------- */
+      #f04-noise{
+        background-image:radial-gradient(#2E2A22 1.5px, rgba(0,0,0,0) 1.6px);
+        background-size:42px 42px;
+        background-position:0 0;
+        opacity:.5;
+      }
+
+      /* ---------- depth plane 3 : instruments + type ---------- */
+
+      /* --- slide chrome (stat-grid treatment) --- */
+      #f04-chrome{
+        position:absolute;left:60px;top:152px;width:960px;
+        display:flex;justify-content:space-between;align-items:baseline;
+        font-family:'IBM Plex Mono','Noto Sans SC',monospace;
+        font-weight:500;font-size:26px;line-height:1;
+        letter-spacing:.14em;
+        color:#8F8880;
+        z-index:1;
+      }
+      #f04-hair{
+        position:absolute;left:60px;top:200px;width:960px;height:1px;
+        background:#282726;
+        transform-origin:left center;
+        z-index:1;
+      }
+
+      /* --- scene 1 hero : 237 counter --- */
+      #f04-big{
+        position:absolute;left:0;right:0;top:560px;
+        text-align:center;
+        transform-origin:50% 50%;
+        will-change:transform;
+        z-index:5;
+      }
+      #f04-bignum{
+        display:inline-block;
+        width:760px;
+        text-align:center;
+        font-family:'Urbanist','Noto Sans SC',sans-serif;
+        font-weight:800;font-size:360px;line-height:1;
+        letter-spacing:-.04em;
+        font-variant-numeric:tabular-nums;
+        color:#E35F00;
+        transform-origin:50% 50%;
+        will-change:transform;
+      }
+      #f04-biglabel{
+        position:absolute;left:0;right:0;top:408px;
+        text-align:center;
+        font-family:'IBM Plex Mono','Noto Sans SC',monospace;
+        font-weight:500;font-size:56px;line-height:1;
+        letter-spacing:.14em;
+        color:#C9C2BB;
+      }
+
+      /* --- scene 2 : badge + display line --- */
+      #f04-badge{
+        position:absolute;left:0;right:0;top:288px;
+        text-align:center;
+        font-family:'IBM Plex Mono','Noto Sans SC',monospace;
+        font-weight:400;font-size:38px;line-height:1;
+        letter-spacing:.14em;
+        color:#8F8880;
+        transform-origin:50% 50%;
+        will-change:transform;
+        z-index:6;
+      }
+      #f04-badge b{font-weight:700;color:#E35F00}
+
+      #f04-head{
+        position:absolute;left:60px;right:60px;top:372px;
+        text-align:center;
+        font-family:'Urbanist','Noto Sans SC',sans-serif;
+        font-weight:800;font-size:104px;line-height:1;
+        letter-spacing:-.02em;
+        color:#F5F3F0;
+        white-space:nowrap;
+        z-index:4;
+      }
+      .f04-tok{display:inline-block;will-change:transform}
+      .f04-tok.f04-hot{color:#E35F00}
+
+      /* --- rule stub : the system's only ornament --- */
+      #f04-rule{
+        position:absolute;left:0;right:0;top:536px;
+        width:80px;height:3px;margin:0 auto;
+        background:#E35F00;
+        transform-origin:left center;
+        z-index:4;
+      }
+
+      /* --- scene 3 : the books, 2x2 stat-card grid --- */
+      #f04-grid{
+        position:absolute;left:60px;top:612px;width:960px;
+        display:grid;
+        grid-template-columns:452px 452px;
+        column-gap:56px;
+        row-gap:48px;
+        z-index:3;
+      }
+      .f04-card{
+        min-height:214px;
+        border-top:1px solid #282726;
+        padding-top:24px;
+        transform-origin:50% 50%;
+        will-change:transform;
+      }
+      .f04-clabel{
+        display:flex;align-items:center;
+        height:30px;
+        font-family:'IBM Plex Mono','Noto Sans SC',monospace;
+        font-weight:500;font-size:28px;line-height:1;
+        letter-spacing:.14em;
+        color:#C9C2BB;
+      }
+      .f04-caret{
+        display:inline-block;
+        width:0;height:0;
+        border-left:9px solid rgba(0,0,0,0);
+        border-right:9px solid rgba(0,0,0,0);
+        border-top:13px solid #D43A2A;
+        margin-right:14px;
+        will-change:opacity;
+      }
+      .f04-cval{
+        display:flex;align-items:baseline;
+        margin-top:16px;height:96px;
+        font-family:'Urbanist','Noto Sans SC',sans-serif;
+        font-weight:800;font-size:96px;line-height:1;
+        letter-spacing:-.04em;
+        font-variant-numeric:tabular-nums;
+        color:#E35F00;
+      }
+      .f04-num{
+        display:inline-block;
+        text-align:left;
+        font-variant-numeric:tabular-nums;
+      }
+      #f04-cash,#f04-runway,#f04-val{min-width:124px}
+      #f04-burn{min-width:272px}
+      .f04-unit{
+        font-family:'IBM Plex Mono','Noto Sans SC',monospace;
+        font-weight:500;font-size:40px;
+        letter-spacing:.04em;
+        margin-left:8px;
+      }
+      .f04-cnote{
+        margin-top:14px;height:34px;
+        font-family:'IBM Plex Mono','Noto Sans SC',monospace;
+        font-weight:500;font-size:30px;line-height:1.1;
+        letter-spacing:.1em;
+        color:#8F8880;
+      }
+      .f04-cnote.f04-neg{color:#D43A2A;font-weight:700}
+
+      /* --- scene 4 : the 12-segment runway gauge --- */
+      #f04-gaugelab{
+        position:absolute;left:60px;top:1188px;width:960px;
+        display:flex;justify-content:space-between;align-items:baseline;
+        font-family:'IBM Plex Mono','Noto Sans SC',monospace;
+        font-weight:500;font-size:28px;line-height:1;
+        letter-spacing:.14em;
+        color:#8F8880;
+        z-index:3;
+      }
+      #f04-read{font-weight:700;color:#E35F00;font-variant-numeric:tabular-nums}
+
+      #f04-gauge{
+        position:absolute;left:60px;top:1252px;width:960px;height:96px;
+        z-index:3;
+      }
+      .f04-row{
+        display:flex;gap:12px;
+        width:960px;height:96px;
+      }
+      .f04-slot{
+        flex:1 1 0;
+        height:96px;
+        border:1px solid #282726;
+        background:rgba(245,243,240,.03);
+      }
+      #f04-fill{
+        position:absolute;left:0;top:0;
+        clip-path:inset(0 100% 0 0);
+        will-change:clip-path;
+      }
+      .f04-seg{flex:1 1 0;height:96px;background:#E35F00}
+      .f04-seg.f04-spent{background:#282726}
+
+      #f04-axis{
+        position:absolute;left:60px;top:1370px;width:960px;
+        display:flex;justify-content:space-between;
+        font-family:'IBM Plex Mono','Noto Sans SC',monospace;
+        font-weight:400;font-size:24px;line-height:1;
+        letter-spacing:.14em;
+        color:#8F8880;
+        z-index:3;
+      }
+    </style>
+
+    <!-- full-bleed ground (never on #root) -->
+    <div id="f04-ground" class="clip" data-start="0" data-duration="6.4" data-track-index="1"></div>
+    <div id="f04-noise" class="clip" data-start="0" data-duration="6.4" data-track-index="2"></div>
+
+    <div id="f04-stage" class="clip" data-start="0" data-duration="6.4" data-track-index="3">
+
+      <!-- chrome -->
+      <div id="f04-chrome"><span>THE BOOKS</span><span>NO. 04</span></div>
+      <div id="f04-hair"></div>
+
+      <!-- scene 1 hero -->
+      <div id="f04-big">
+        <span id="f04-bignum">0</span>
+        <div id="f04-biglabel">个真实事件</div>
+      </div>
+
+      <!-- scene 2 -->
+      <div id="f04-badge"><b>237</b> 个事件</div>
+
+      <div id="f04-head"><span class="f04-tok">专</span><span class="f04-tok">挑</span><span class="f04-tok">你</span><span class="f04-tok f04-hot">最</span><span class="f04-tok f04-hot">弱</span><span class="f04-tok">的</span><span class="f04-tok">数</span><span class="f04-tok">值</span></div>
+
+      <div id="f04-rule"></div>
+
+      <!-- scene 3 : the books -->
+      <div id="f04-grid">
+        <div class="f04-card" id="f04-card1">
+          <div class="f04-clabel"><span class="f04-caret"></span>现金</div>
+          <div class="f04-cval">$<span class="f04-num" id="f04-cash">0</span>K</div>
+          <div class="f04-cnote f04-neg" id="f04-note1">-$2,000</div>
+        </div>
+        <div class="f04-card" id="f04-card2">
+          <div class="f04-clabel"><span class="f04-caret"></span>烧钱率</div>
+          <div class="f04-cval">$<span class="f04-num" id="f04-burn">0</span></div>
+          <div class="f04-cnote" id="f04-note2">/ 月</div>
+        </div>
+        <div class="f04-card" id="f04-card3">
+          <div class="f04-clabel"><span class="f04-caret"></span>跑道</div>
+          <div class="f04-cval"><span class="f04-num" id="f04-runway">0</span><span class="f04-unit">个月</span></div>
+          <div class="f04-cnote" id="f04-note3">剩余</div>
+        </div>
+        <div class="f04-card" id="f04-card4">
+          <div class="f04-clabel"><span class="f04-caret"></span>估值</div>
+          <div class="f04-cval">$<span class="f04-num" id="f04-val">0</span>K</div>
+          <div class="f04-cnote" id="f04-note4">&nbsp;</div>
+        </div>
+      </div>
+
+      <!-- scene 4 : runway gauge -->
+      <div id="f04-gaugelab"><span>跑道量表</span><span><span id="f04-read">11</span> 个月</span></div>
+
+      <div id="f04-gauge">
+        <div class="f04-row">
+          <div class="f04-slot"></div><div class="f04-slot"></div><div class="f04-slot"></div>
+          <div class="f04-slot"></div><div class="f04-slot"></div><div class="f04-slot"></div>
+          <div class="f04-slot"></div><div class="f04-slot"></div><div class="f04-slot"></div>
+          <div class="f04-slot"></div><div class="f04-slot"></div><div class="f04-slot"></div>
+        </div>
+        <div class="f04-row" id="f04-fill">
+          <div class="f04-seg"></div><div class="f04-seg"></div><div class="f04-seg"></div>
+          <div class="f04-seg"></div><div class="f04-seg"></div><div class="f04-seg"></div>
+          <div class="f04-seg"></div><div class="f04-seg"></div><div class="f04-seg"></div>
+          <div class="f04-seg"></div><div class="f04-seg"></div><div class="f04-seg f04-spent"></div>
+        </div>
+      </div>
+
+      <div id="f04-axis"><span>01</span><span>12</span></div>
+    </div>
+  </div>
+
+  <script src="assets/gsap.min.js"></script>
+  <script>
+    (function () {
+      var R = document.querySelector('[data-composition-id="04-books"]') || document;
+      var q = function (s) { return R.querySelector(s); };
+      var qa = function (s) { return Array.prototype.slice.call(R.querySelectorAll(s)); };
+
+      var big      = q("#f04-big");
+      var bignum   = q("#f04-bignum");
+      var biglabel = q("#f04-biglabel");
+      var badge    = q("#f04-badge");
+      var chrome   = q("#f04-chrome");
+      var hair     = q("#f04-hair");
+      var toks     = qa(".f04-tok");
+      var ruleStub = q("#f04-rule");
+      var cards    = [q("#f04-card1"), q("#f04-card2"), q("#f04-card3"), q("#f04-card4")];
+      var notes    = [q("#f04-note1"), q("#f04-note2"), q("#f04-note3"), q("#f04-note4")];
+      var carets   = qa(".f04-caret");
+      var cash     = q("#f04-cash");
+      var burn     = q("#f04-burn");
+      var runway   = q("#f04-runway");
+      var valNum   = q("#f04-val");
+      var gaugeLab = q("#f04-gaugelab");
+      var gauge    = q("#f04-gauge");
+      var fill     = q("#f04-fill");
+      var segs     = qa(".f04-seg");
+      var axis     = q("#f04-axis");
+      var read     = q("#f04-read");
+
+      /* deterministic thousands separator — never toLocaleString (locale-dependent) */
+      function group(n) {
+        var s = String(n), out = "", c = 0, i;
+        for (i = s.length - 1; i >= 0; i--) {
+          out = s.charAt(i) + out;
+          c++;
+          if (c % 3 === 0 && i > 0) out = "," + out;
+        }
+        return out;
+      }
+
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+
+      /* ===============================================================
+         SCENE 1 (0.0–1.2s) — ink-black field, one instrument only.
+         counting-dynamic-scale: 0 -> 237, the transform scale growing
+         to final size on the SAME start / duration / ease. Nothing else
+         is on screen.
+      =============================================================== */
+      var COUNT_AT = 0.08, COUNT_DUR = 1.10, COUNT_EASE = "power3.out";
+      var START_SCALE = 165 / 360; /* START_SIZE / END_SIZE */
+
+      tl.fromTo(big, { opacity: 0 }, { opacity: 1, duration: 0.30, ease: "power2.out" }, 0.06);
+
+      var ev = { v: 0 };
+      tl.fromTo(ev, { v: 0 }, {
+        v: 237,
+        duration: COUNT_DUR,
+        ease: COUNT_EASE,
+        onUpdate: function () { bignum.textContent = String(Math.round(ev.v)); }
+      }, COUNT_AT);
+
+      tl.fromTo(bignum,
+        { scale: START_SCALE },
+        { scale: 1, duration: COUNT_DUR, ease: COUNT_EASE },
+        COUNT_AT);
+
+      /* label arrives before the count peaks */
+      tl.fromTo(biglabel,
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.50, ease: "power3.out" },
+        0.50);
+
+      /* ===============================================================
+         SCENE 2 (1.2–2.4s) — scale-swap-transition.
+         The 237 block shrinks + rushes away (power2.in) while the mono
+         corner badge arrives on top of it at the frame's head; the main
+         line then lands per-character beneath.
+      =============================================================== */
+      var TRIGGER = 1.24, EXIT_DUR = 0.34, OVERLAP = 0.16;
+
+      tl.to(big, { scale: 0.58, opacity: 0, duration: EXIT_DUR, ease: "power2.in" }, TRIGGER);
+
+      tl.fromTo(badge,
+        { scale: 0.58, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 0.52, ease: "power3.out" },
+        TRIGGER + EXIT_DUR - OVERLAP);
+
+      /* chrome sets the stage quietly behind the swap */
+      tl.fromTo(chrome, { opacity: 0 }, { opacity: 1, duration: 0.45, ease: "power2.out" }, 1.48);
+      tl.fromTo(hair, { scaleX: 0 }, { scaleX: 1, duration: 0.55, ease: "power3.out" }, 1.54);
+
+      /* per-character staggered reveal of the main line */
+      var HEAD_AT = 1.70, HEAD_STAGGER = 0.048;
+      toks.forEach(function (el, i) {
+        tl.fromTo(el,
+          { opacity: 0, y: 26 },
+          { opacity: 1, y: 0, duration: 0.50, ease: "power3.out" },
+          HEAD_AT + i * HEAD_STAGGER);
+      });
+
+      /* ===============================================================
+         SCENE 3 (2.4–4.4s) — THE BOOKS.
+         spring-pop-entrance, one card per spoken word (现金 / 烧钱 /
+         跑道 / 估值), each card's numeral counting up as it lands
+         (counting-dynamic-scale, number + card as one beat).
+      =============================================================== */
+      tl.fromTo(ruleStub, { scaleX: 0 }, { scaleX: 1, duration: 0.42, ease: "power3.out" }, 2.36);
+
+      var CARD_AT = [2.50, 2.80, 3.10, 3.40];
+      var POP_DUR = 0.56;
+
+      cards.forEach(function (el, i) {
+        tl.fromTo(el,
+          { scale: 0, opacity: 0, y: 28 },
+          { scale: 1, opacity: 1, y: 0, duration: POP_DUR, ease: "power3.out" },
+          CARD_AT[i]);
+      });
+
+      var VAL_DUR = 0.62, VAL_EASE = "power3.out";
+
+      var sCash = { v: 0 };
+      tl.fromTo(sCash, { v: 0 }, {
+        v: 23, duration: VAL_DUR, ease: VAL_EASE,
+        onUpdate: function () { cash.textContent = String(Math.round(sCash.v)); }
+      }, CARD_AT[0] + 0.10);
+
+      var sBurn = { v: 0 };
+      tl.fromTo(sBurn, { v: 0 }, {
+        v: 2000, duration: VAL_DUR, ease: VAL_EASE,
+        onUpdate: function () { burn.textContent = group(Math.round(sBurn.v)); }
+      }, CARD_AT[1] + 0.10);
+
+      var sRun = { v: 0 };
+      tl.fromTo(sRun, { v: 0 }, {
+        v: 11, duration: VAL_DUR, ease: VAL_EASE,
+        onUpdate: function () { runway.textContent = String(Math.round(sRun.v)); }
+      }, CARD_AT[2] + 0.10);
+
+      var sVal = { v: 0 };
+      tl.fromTo(sVal, { v: 0 }, {
+        v: 23, duration: VAL_DUR, ease: VAL_EASE,
+        onUpdate: function () { valNum.textContent = String(Math.round(sVal.v)); }
+      }, CARD_AT[3] + 0.10);
+
+      /* each note gets its own beat, AFTER its number lands */
+      notes.forEach(function (el, i) {
+        tl.fromTo(el,
+          { opacity: 0, y: 12 },
+          { opacity: 1, y: 0, duration: 0.40, ease: "power3.out" },
+          CARD_AT[i] + 0.10 + VAL_DUR + 0.02);
+      });
+
+      /* ===============================================================
+         SCENE 4 (4.4–6.0s) — THE MECHANISM SHOT.
+         The 12-segment runway gauge draws in under the books, then
+         EXTINGUISHES RIGHT-TO-LEFT, one segment per beat, fire-orange
+         -> border-dark, via threshold state-switching
+         (discrete-text-sequence): instant jumps, no smear. The runway
+         numeral and the mono readout decrement on the same thresholds.
+         It stops at THREE lit segments and holds perfectly still.
+      =============================================================== */
+      tl.fromTo(gaugeLab, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.34, ease: "power3.out" }, 4.18);
+      tl.fromTo(gauge, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.38, ease: "power3.out" }, 4.20);
+
+      /* stat-bars-and-fills : clip wipe, never a width tween */
+      tl.fromTo(fill,
+        { clipPath: "inset(0 100% 0 0)" },
+        { clipPath: "inset(0 0% 0 0)", duration: 0.52, ease: "power2.out" },
+        4.32);
+
+      tl.fromTo(axis, { opacity: 0 }, { opacity: 1, duration: 0.35, ease: "power2.out" }, 4.58);
+
+      /* the falling stat turns alert-red as the burn starts eating it */
+      tl.to(runway, { color: "#D43A2A", duration: 0.45, ease: "power2.out" }, 4.84);
+      tl.to(read,   { color: "#D43A2A", duration: 0.45, ease: "power2.out" }, 4.84);
+
+      /* every line on the books is dropping */
+      carets.forEach(function (el, i) {
+        tl.fromTo(el,
+          { opacity: 0 },
+          { opacity: 1, duration: 0.30, ease: "power2.out" },
+          4.86 + i * 0.07);
+      });
+
+      /* --- threshold state machine: 11 lit -> 3 lit, right to left --- */
+      var ORANGE = "#E35F00", DEAD = "#282726";
+      var EX_AT = 3.82, EX_SPAN = 1.93;
+      var STEPS = [
+        { t: 0.00, lit: 11 },
+        { t: 1.10, lit: 10 },
+        { t: 1.20, lit: 9 },
+        { t: 1.30, lit: 8 },
+        { t: 1.40, lit: 7 },
+        { t: 1.50, lit: 6 },
+        { t: 1.60, lit: 5 },
+        { t: 1.70, lit: 4 },
+        { t: 1.80, lit: 3 }
+      ];
+
+      function litAt(t) {
+        for (var i = STEPS.length - 1; i >= 0; i--) {
+          if (t >= STEPS[i].t) return STEPS[i].lit;
+        }
+        return 11;
+      }
+
+      var lastLit = -1;
+      var driver = { t: 0 };
+      tl.fromTo(driver, { t: 0 }, {
+        t: EX_SPAN,
+        duration: EX_SPAN,
+        ease: "none",
+        onUpdate: function () {
+          var lit = litAt(driver.t);
+          if (lit === lastLit) return;
+          lastLit = lit;
+          for (var i = 0; i < segs.length; i++) {
+            segs[i].style.background = (i < lit) ? ORANGE : DEAD;
+          }
+          runway.textContent = String(lit);
+          read.textContent = String(lit);
+        }
+      }, EX_AT);
+
+      /* 5.62 -> 6.00 : three segments left, and the frame holds still. */
+
+      window.__timelines["04-books"] = tl;
+    })();
+  </script>
+</template>

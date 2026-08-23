@@ -1,0 +1,357 @@
+<template>
+  <style>
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-400.woff2') format('woff2');font-weight:400;font-style:normal;font-display:block}
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-500.woff2') format('woff2');font-weight:500;font-style:normal;font-display:block}
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-600.woff2') format('woff2');font-weight:600;font-style:normal;font-display:block}
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-700.woff2') format('woff2');font-weight:700;font-style:normal;font-display:block}
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-800.woff2') format('woff2');font-weight:800;font-style:normal;font-display:block}
+      @font-face{font-family:'IBM Plex Mono';src:url('assets/fonts/ibmplexmono-400.woff2') format('woff2');font-weight:400;font-style:normal;font-display:block}
+      @font-face{font-family:'IBM Plex Mono';src:url('assets/fonts/ibmplexmono-500.woff2') format('woff2');font-weight:500;font-style:normal;font-display:block}
+      @font-face{font-family:'IBM Plex Mono';src:url('assets/fonts/ibmplexmono-700.woff2') format('woff2');font-weight:700;font-style:normal;font-display:block}
+      @font-face{font-family:'Noto Sans SC';src:local('Noto Sans CJK SC'),local('Noto Sans SC');font-weight:100 900;font-style:normal}
+
+    #root{position:absolute;inset:0;width:1080px;height:1920px;overflow:hidden;
+      font-family:'Urbanist','Noto Sans SC',sans-serif;color:#F5F3F0}
+    .clip{position:absolute;inset:0}
+
+    /* ---- track 0 : the ink ground (full-bleed, full-duration) ---- */
+    #f05-bg{background:#232019}
+
+    /* ---- track 1 : the stage ---- */
+    #f05-stage{overflow:hidden}
+
+    /* the camera wraps EVERYTHING in the stage; ground stays on the bg clip */
+    #f05-camera{position:absolute;inset:0;transform-origin:50% 50%;will-change:transform}
+
+    /* ============ Scene 1 — the still charge-up ============ */
+    /* two lines of cream display type, centred, hard-cut in. */
+    #f05-headwrap{position:absolute;left:0;right:0;top:724px;text-align:center;
+      transform-origin:50% 0%;will-change:transform}
+    .f05-hl{display:block;font-size:132px;font-weight:800;line-height:1.18;
+      letter-spacing:-0.02em;color:#F5F3F0;opacity:0}
+
+    /* the prestige-gold hairline — drawn left to right, then it becomes the rule stub */
+    #f05-rulesvg{position:absolute;left:0;top:1078px;width:1080px;height:8px;
+      transform-origin:50% 50%;overflow:visible;will-change:transform}
+    #f05-rulepath{fill:none;stroke:#FFC24B;stroke-width:3;stroke-linecap:butt}
+
+    /* ============ Scene 2 — the gate ============ */
+    /* two prestige-gold vertical light bands, pushed open from dead centre */
+    .f05-door{position:absolute;left:50%;top:344px;width:4px;height:1106px;
+      background:linear-gradient(180deg,rgba(255,194,75,0) 0%,#FFC24B 9%,
+        #FFC24B 91%,rgba(255,194,75,0) 100%);
+      opacity:0;will-change:transform}
+
+    /* the device — real captured screen states, nothing rebuilt */
+    #f05-phone{position:absolute;left:290px;top:366px;width:500px;height:1061px;
+      box-sizing:border-box;background:#1A1918;border:1px solid #282726;
+      border-radius:54px;padding:9px;opacity:0;will-change:transform,filter}
+    #f05-screen{position:relative;width:100%;height:100%;border-radius:46px;
+      overflow:hidden;background:#EDEBE6}
+    .f05-shot{position:absolute;inset:0;display:block;width:100%;height:100%;
+      object-fit:cover;object-position:50% 50%;will-change:transform,filter}
+    #f05-shot-b,#f05-shot-c{opacity:0}
+    #f05-island{position:absolute;top:11px;left:50%;margin-left:-42px;width:84px;height:11px;
+      border-radius:6px;background:rgba(26,25,24,0.62);z-index:4}
+    .f05-btn{position:absolute;left:-3px;width:3px;border-radius:2px;
+      background:rgba(245,243,240,0.12)}
+    #f05-btn-a{top:232px;height:56px}
+    #f05-btn-b{top:320px;height:92px}
+
+    /* ============ Scene 3 — the bench ============ */
+    /* five gold pips on an arc: a DESIGNED panel mark, never faked UI */
+    .f05-pip{position:absolute;width:28px;height:28px;border-radius:50%;
+      background:#FFC24B;opacity:0;will-change:transform}
+    #f05-pip0{left:266px;top:238px}
+    #f05-pip1{left:396px;top:216px}
+    #f05-pip2{left:526px;top:208px}
+    #f05-pip3{left:656px;top:216px}
+    #f05-pip4{left:786px;top:238px}
+
+    #f05-note{position:absolute;left:0;right:0;top:292px;text-align:center;
+      font-family:'IBM Plex Mono','Noto Sans SC',monospace;
+      font-size:28px;font-weight:500;line-height:1.35;letter-spacing:0.14em;
+      color:#8F8880;opacity:0;will-change:transform,filter}
+
+    /* ============ Scene 4 — the verdict line ============ */
+    #f05-line{position:absolute;left:0;right:0;top:1470px;text-align:center;
+      white-space:nowrap;font-size:44px;font-weight:600;line-height:1.45;
+      letter-spacing:0.02em;color:#C9C2BB;opacity:0;will-change:transform,filter}
+    .f05-w{display:inline-block;transform-origin:50% 50%;
+      text-shadow:0 0 0 rgba(255,194,75,0)}
+  </style>
+
+  <div id="root" data-composition-id="05-year-gate" data-start="0" data-duration="8.4" data-width="1080" data-height="1920">
+
+    <div id="f05-bg" class="clip" data-start="0" data-duration="8.4" data-track-index="0"></div>
+
+    <div id="f05-stage" class="clip" data-start="0" data-duration="8.4" data-track-index="1">
+      <div id="f05-camera">
+
+        <!-- Scene 2 : the gold year-gate, opened from centre -->
+        <div class="f05-door" id="f05-door-l"></div>
+        <div class="f05-door" id="f05-door-r"></div>
+
+        <!-- Scene 1 : the statement + the drawn gold hairline -->
+        <div id="f05-headwrap">
+          <span class="f05-hl" id="f05-hl1">12 月，</span>
+          <span class="f05-hl" id="f05-hl2">不会自己过去。</span>
+        </div>
+
+        <svg id="f05-rulesvg" viewBox="0 0 1080 8" xmlns="http://www.w3.org/2000/svg">
+          <path id="f05-rulepath" d="M 120 4 L 960 4" />
+        </svg>
+
+        <!-- Scene 3 : the five-seat gold bench -->
+        <div class="f05-pip" id="f05-pip0"></div>
+        <div class="f05-pip" id="f05-pip1"></div>
+        <div class="f05-pip" id="f05-pip2"></div>
+        <div class="f05-pip" id="f05-pip3"></div>
+        <div class="f05-pip" id="f05-pip4"></div>
+
+        <div id="f05-note">五位 AI 投资人 · 读过你的账本</div>
+
+        <!-- the device : three real screen states, stacked and revealed in order -->
+        <div id="f05-phone">
+          <div id="f05-screen">
+            <img class="f05-shot" id="f05-shot-a" src="assets/game-pitchme.png" alt="">
+            <img class="f05-shot" id="f05-shot-b" src="assets/game-camera-stage-clean.png" alt="">
+            <img class="f05-shot" id="f05-shot-c" src="assets/game-recording-clean.png" alt="">
+            <div id="f05-island"></div>
+          </div>
+          <div class="f05-btn" id="f05-btn-a"></div>
+          <div class="f05-btn" id="f05-btn-b"></div>
+        </div>
+
+        <!-- Scene 4 : the verdict -->
+        <div id="f05-line" data-layout-allow-overlap><span class="f05-w" data-word="w1">评的是</span><span class="f05-w">你</span><span class="f05-w" data-word="w2">说了什么</span><span class="f05-w">，不是你</span><span class="f05-w">怎么说</span></div>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/gsap.min.js"></script>
+  <script>
+    (function () {
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+
+      var TOTAL = 8;
+
+      /* Scope every direct DOM read to this frame's own root — sibling
+         frames share one document once the index is assembled. */
+      var R = document.querySelector('[data-composition-id="05-year-gate"]') || document;
+
+      /* ---------------------------------------------------------------
+         ONE tempo grid (kinetic-beat-slam). Every onset in this frame —
+         type, gate, pips, screen states — reads its time off this array,
+         so the shot locks to a single pulse instead of drifting offsets.
+      --------------------------------------------------------------- */
+      var PULSE = 0.44;
+
+      var B_HL1   = PULSE *  0.30;  // 0.132  line 1 hard-cut
+      var B_HL2   = PULSE *  0.80;  // 0.352  line 2 hard-cut
+      var B_DRAW  = PULSE *  1.60;  // 0.704  gold hairline draws L->R
+      var B_GATE  = PULSE *  3.60;  // 1.584  the doors push open
+      var B_LIFT  = PULSE *  4.20;  // 1.848  screen state rises from below
+      var B_PUSH  = PULSE *  5.20;  // 2.288  the one short push-in
+      var B_PIP   = PULSE *  7.80;  // 3.432  first pip / screen swaps to camera stage
+      var B_NOTE  = PULSE *  9.10;  // 4.004  the mono side-note
+      var B_REC   = PULSE * 12.70;  // 5.588  screen swaps to recording
+      var B_LINE  = PULSE * 13.20;  // 5.808  the verdict line
+
+      /* =========== SCENE 1 (0.0-1.6s) — dead still ==========================
+         Two lines of cream display type land on the beat with ZERO travel:
+         opacity only, ease "none". Nothing drifts, nothing breathes.        */
+
+      tl.fromTo("#f05-hl1", { opacity: 0 },
+        { opacity: 1, duration: 0.04, ease: "none" }, B_HL1);
+
+      tl.fromTo("#f05-hl2", { opacity: 0 },
+        { opacity: 1, duration: 0.04, ease: "none" }, B_HL2);
+
+      /* svg-path-draw — measured geometry, dash pattern set from the real
+         path length, drawn left to right under the statement.               */
+      var rulePath = R.querySelector("#f05-rulepath");
+      var ruleLen = (rulePath && rulePath.getTotalLength) ? rulePath.getTotalLength() : 840;
+      if (rulePath) {
+        rulePath.style.strokeDasharray = String(ruleLen);
+        rulePath.style.strokeDashoffset = String(ruleLen);
+        tl.fromTo(rulePath,
+          { strokeDashoffset: ruleLen },
+          { strokeDashoffset: 0, duration: 0.70, ease: "power2.out" },
+          B_DRAW);
+      }
+
+      /* =========== SCENE 2 (1.6-3.4s) — the gate opens =====================
+         center-outward-expansion: both leaves start as ONE sliver on the
+         canvas centre line and radiate to their target offsets. Stagger 0 —
+         a door is a chord, not an arpeggio. They land as the two gold rails
+         that frame the device for the rest of the frame.                    */
+
+      var DOORS = [
+        { id: "#f05-door-l", targetX: -330 },
+        { id: "#f05-door-r", targetX:  330 }
+      ];
+      DOORS.forEach(function (d) {
+        tl.fromTo(d.id,
+          { xPercent: -50, x: 0, scaleY: 0.18, opacity: 0, transformOrigin: "50% 50%" },
+          { x: d.targetX, scaleY: 1, opacity: 1, duration: 0.92, ease: "power3.out" },
+          B_GATE);
+      });
+
+      /* The statement yields the field: it shrinks toward the top of the
+         frame and stays there as the frame's top line — it never exits.     */
+      tl.fromTo("#f05-headwrap",
+        { y: 0, scale: 1, transformOrigin: "50% 0%" },
+        { y: -668, scale: 0.30, duration: 1.05, ease: "power3.out" },
+        B_LIFT);
+
+      /* The drawn hairline travels with it and lands as the rule stub
+         directly under the reduced statement — the stroke keeps a job.      */
+      tl.fromTo("#f05-rulesvg",
+        { y: 0, scaleX: 1, transformOrigin: "50% 50%" },
+        { y: -906, scaleX: 0.36, duration: 1.05, ease: "power3.out" },
+        B_LIFT);
+
+      /* The real "Pitch me" state rises from below, behind the opening gate. */
+      tl.fromTo("#f05-phone",
+        { y: 520, opacity: 0, filter: "blur(16px)" },
+        { y: 0, opacity: 1, filter: "blur(0px)", duration: 1.10, ease: "power3.out" },
+        B_LIFT);
+
+      /* multi-phase-camera, reduced to a single phase and NO drift: this
+         frame is the stillness before the climax, so the camera holds dead
+         still and spends its one move punctuating the state jump. The proxy
+         is stepped by the phase tween; the full-duration driver below is the
+         ONE writer of camera.style.transform (and keeps it seek-safe).      */
+      var camera = R.querySelector("#f05-camera");
+      var phase = { scale: 1 };
+      var PUSH_SCALE = 1.035;
+
+      tl.to(phase, { scale: PUSH_SCALE, duration: 0.72, ease: "power2.out" }, B_PUSH);
+
+      var camDrv = { p: 0 };
+      tl.to(camDrv, {
+        p: 1, duration: TOTAL, ease: "none",
+        onUpdate: function () {
+          if (!camera) return;
+          camera.style.transform = "scale(" + phase.scale.toFixed(5) + ")";
+        }
+      }, 0);
+
+      /* =========== SCENE 3 (3.4-5.6s) — five who read the books ============
+         kinetic-beat-slam: one pip per pulse, each with its own entrance
+         axis and ease, arriving along the arc from the outside in. The
+         camera is already locked; only the bench moves.                     */
+
+      var PIPS = [
+        { id: "#f05-pip0", from: { x: -78, y:  16, scale: 0.35 }, ease: "expo.out",  dur: 0.42 },
+        { id: "#f05-pip1", from: { x: -44, y: -34, scale: 0.35 }, ease: "power4.out", dur: 0.40 },
+        { id: "#f05-pip2", from: { x:   0, y: -52, scale: 0.28 }, ease: "power4.out", dur: 0.46 },
+        { id: "#f05-pip3", from: { x:  44, y: -34, scale: 0.35 }, ease: "circ.out",  dur: 0.40 },
+        { id: "#f05-pip4", from: { x:  78, y:  16, scale: 0.35 }, ease: "expo.out",  dur: 0.42 }
+      ];
+
+      PIPS.forEach(function (p, i) {
+        tl.fromTo(p.id,
+          { x: p.from.x, y: p.from.y, scale: p.from.scale, opacity: 0,
+            transformOrigin: "50% 50%" },
+          { x: 0, y: 0, scale: 1, opacity: 1, duration: p.dur, ease: p.ease },
+          B_PIP + i * PULSE);
+      });
+
+      /* Same beat as the first pip: the screen changes state to the camera
+         stage. Within-frame state swap = a short push-through cut (scale +
+         blur + opacity), stacked so nothing is ever faded away.             */
+      tl.fromTo("#f05-shot-b",
+        { opacity: 0, scale: 1.06, filter: "blur(12px)", transformOrigin: "50% 50%" },
+        { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.44, ease: "power3.out" },
+        B_PIP);
+
+      /* The side-note annotates the bench once it is half seated. */
+      tl.fromTo("#f05-note",
+        { opacity: 0, y: 18, filter: "blur(7px)" },
+        { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.46, ease: "power3.out" },
+        B_NOTE);
+
+      /* =========== SCENE 4 (5.6-8.0s) — recording, then stillness ========= */
+
+      tl.fromTo("#f05-shot-c",
+        { opacity: 0, scale: 1.05, filter: "blur(10px)", transformOrigin: "50% 50%" },
+        { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.40, ease: "power3.out" },
+        B_REC);
+
+      tl.fromTo("#f05-line",
+        { opacity: 0, y: 30, filter: "blur(8px)" },
+        { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.52, ease: "power3.out" },
+        B_LINE);
+
+      /* asr-keyword-glow, karaoke style — ONE linear driver spanning the
+         whole seek window loops every timed word. The prestige-gold bloom
+         presses on 「说了什么」 alone; the rest of the line stays cream.
+         The wrapper owns y/opacity so the driver alone writes span
+         transforms — the two never fight.                                   */
+      var ATTACK = 0.14, RELEASE = 0.30, REST_LEVEL = 0.10;
+      var MAX_BLUR = 36, MAX_SCALE_BOOST = 0.16;
+      var REST_RGB   = { r: 201, g: 194, b: 187 };
+      var ACTIVE_RGB = { r: 245, g: 243, b: 240 };
+      var BRAND_RGB  = { r: 255, g: 194, b:  75 };
+
+      /* monotonic, non-overlapping; the brand word's window is ~4x a normal
+         one because it IS the headline of the sentence.                     */
+      var TIMINGS = {
+        w1: { start: 6.00, end: 6.18, brand: false },
+        w2: { start: 6.35, end: 7.05, brand: true }
+      };
+
+      function envelope(time, start, end) {
+        if (time < start) return 0;
+        if (time < end) return Math.min((time - start) / ATTACK, 1);
+        var releaseEnd = end + RELEASE;
+        if (time < releaseEnd) return 1 - ((time - end) / RELEASE) * (1 - REST_LEVEL);
+        return REST_LEVEL;
+      }
+
+      function lerpChannel(a, b, t) { return Math.round(a + (b - a) * t); }
+
+      function colorAt(env, brand) {
+        var target = brand ? BRAND_RGB : ACTIVE_RGB;
+        return "rgb(" + lerpChannel(REST_RGB.r, target.r, env) + ","
+                      + lerpChannel(REST_RGB.g, target.g, env) + ","
+                      + lerpChannel(REST_RGB.b, target.b, env) + ")";
+      }
+
+      var glowWords = Array.prototype.slice.call(
+        R.querySelectorAll("#f05-line .f05-w"));
+
+      var glowDrv = { t: 0 };
+      tl.to(glowDrv, {
+        t: TOTAL, duration: TOTAL, ease: "none",
+        onUpdate: function () {
+          for (var i = 0; i < glowWords.length; i++) {
+            var el = glowWords[i];
+            var key = el.getAttribute("data-word");
+            if (!key) continue;
+            var tm = TIMINGS[key];
+            if (!tm) continue;
+            var env = envelope(glowDrv.t, tm.start, tm.end);
+            var boost = tm.brand ? MAX_SCALE_BOOST : MAX_SCALE_BOOST * 0.30;
+            var blur = (tm.brand ? MAX_BLUR : MAX_BLUR * 0.32) * env;
+            var rgb = tm.brand ? "255,194,75" : "245,243,240";
+            var alpha = (tm.brand ? 0.85 : 0.30) * env;
+            el.style.color = colorAt(env, tm.brand);
+            el.style.textShadow = "0 0 " + blur.toFixed(2) + "px rgba("
+              + rgb + "," + alpha.toFixed(3) + ")";
+            el.style.transform = "scale(" + (1 + boost * env).toFixed(4) + ")";
+          }
+        }
+      }, 0);
+
+      /* Last emphasis decays by ~7.35s; the remaining ~0.65s is a fully
+         still frame — no breath, no drift, no exit. */
+
+      window.__timelines["05-year-gate"] = tl;
+    })();
+  </script>
+</template>

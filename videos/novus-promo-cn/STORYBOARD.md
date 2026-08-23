@@ -44,7 +44,7 @@ F3/F4 是能量最高的两帧（点击 + 数字下坠），F2 是中速。
 - voiceover: "模拟了五十次，每次十年——大多数公司，死在第五年。"
 - duration: 5s
 - transition_in: cut
-- status: outline
+- status: animated
 - src: compositions/frames/01-cold-open.html
 - type: hook
 - persuasion: Statistical proof
@@ -84,7 +84,7 @@ keyMessage: 这个游戏会让你的公司死——而且通常死在第五年�
 - voiceover: "这是 Novus——一款把公司当人生来过的模拟游戏。"
 - duration: 5s
 - transition_in: zoom-through
-- status: outline
+- status: animated
 - src: compositions/frames/02-intro.html
 - type: product_intro
 - persuasion: Category announcement
@@ -120,7 +120,7 @@ keyMessage: Novus = 公司人生模拟。
 - voiceover: "时间只在你点击时前进。点一下，过一个月——招谁、卖多少钱、接不接那单，全是你的决定。"
 - duration: 6.5s
 - transition_in: push-slide LEFT
-- status: outline
+- status: animated
 - src: compositions/frames/03-advance.html
 - type: feature_showcase
 - persuasion: Show-don't-tell proof
@@ -159,7 +159,7 @@ keyMessage: 点按推进时间，每个决定都是你的。
 - voiceover: "237 个真实事件，专挑你最弱的地方下手。现金、烧钱、跑道、估值——每一格都在掉。"
 - duration: 6s
 - transition_in: push-slide LEFT
-- status: outline
+- status: animated
 - src: compositions/frames/04-books.html
 - type: feature_showcase
 - persuasion: Pain agitation
@@ -199,7 +199,7 @@ keyMessage: 每个决定都会变成账本上的数字，而账本在变差。
 - voiceover: "到了年底，游戏会停下来。打开摄像头，向五位读过你账本的 AI 鲨鱼投资人路演——评的是你说了什么，不是你怎么说。"
 - duration: 8s
 - transition_in: zoom-through
-- status: outline
+- status: animated
 - src: compositions/frames/05-year-gate.html
 - type: feature_showcase
 - persuasion: Future pacing
@@ -241,7 +241,7 @@ keyMessage: 年关 = 真人对镜头路演，AI 鲨鱼评审只看内容。
 - voiceover: "免费就是完整游戏。把公司开下去，把路演活下来——搜索 novuspitch。"
 - duration: 6s
 - transition_in: squeeze
-- status: outline
+- status: animated
 - src: compositions/frames/06-cta.html
 - type: cta
 - persuasion: Risk reversal

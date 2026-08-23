@@ -1,0 +1,192 @@
+<template>
+  <style>
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-400.woff2') format('woff2');font-weight:400;font-style:normal;font-display:block}
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-500.woff2') format('woff2');font-weight:500;font-style:normal;font-display:block}
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-600.woff2') format('woff2');font-weight:600;font-style:normal;font-display:block}
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-700.woff2') format('woff2');font-weight:700;font-style:normal;font-display:block}
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-800.woff2') format('woff2');font-weight:800;font-style:normal;font-display:block}
+      @font-face{font-family:'IBM Plex Mono';src:url('assets/fonts/ibmplexmono-400.woff2') format('woff2');font-weight:400;font-style:normal;font-display:block}
+      @font-face{font-family:'IBM Plex Mono';src:url('assets/fonts/ibmplexmono-500.woff2') format('woff2');font-weight:500;font-style:normal;font-display:block}
+      @font-face{font-family:'IBM Plex Mono';src:url('assets/fonts/ibmplexmono-700.woff2') format('woff2');font-weight:700;font-style:normal;font-display:block}
+      @font-face{font-family:'Noto Sans SC';src:local('Noto Sans CJK SC'),local('Noto Sans SC');font-weight:100 900;font-style:normal}
+
+    #root{position:absolute;inset:0;width:1080px;height:1920px;overflow:hidden;
+      font-family:'Urbanist','Noto Sans SC',sans-serif;color:#F5F3F0}
+    .clip{position:absolute;inset:0}
+
+    /* ---- layer 0 : the ink ground ---- */
+    #f02-bg{background:#232019}
+
+    /* ---- layer 1 : type + device stage ---- */
+    #f02-stage{overflow:hidden}
+
+    /* rule stub — the system's only ornament */
+    #f02-rule{position:absolute;left:100px;top:296px;width:48px;height:3px;
+      background:#E35F00;opacity:0}
+
+    /* name lockup : 「这是」 + NOVUS */
+    #f02-namegroup{position:absolute;left:100px;right:0;top:265px;text-align:left;
+      transform-origin:0% 50%;will-change:transform}
+    #f02-kicker{display:block;font-size:68px;font-weight:500;line-height:1.35;
+      letter-spacing:0.30em;color:#C9C2BB;margin-bottom:22px;opacity:0}
+    #f02-wordmark{display:inline-block;font-size:228px;font-weight:800;line-height:0.86;
+      letter-spacing:-0.03em;color:#F5F3F0;transform-origin:50% 50%;will-change:transform,filter;opacity:0}
+
+    /* mono sub-line, three stacked measures */
+    #f02-sub{position:absolute;left:100px;right:0;top:570px;
+      font-family:'IBM Plex Mono','Noto Sans SC',monospace;
+      font-size:52px;font-weight:500;line-height:1.6;letter-spacing:0.06em;color:#C9C2BB}
+    #f02-sub .f02-line{display:block;white-space:nowrap}
+    #f02-sub .f02-seg{display:inline-block;opacity:0;will-change:transform,filter}
+    #f02-sub .f02-accent{color:#E35F00}
+
+    /* device stage — static tilt framing, held all scene */
+    #f02-phonestage{position:absolute;left:598px;top:380px;width:536px;height:1160px;
+      perspective:1700px}
+    #f02-phone{position:absolute;inset:0;box-sizing:border-box;background:#1A1918;
+      border:1px solid #282726;border-radius:54px;padding:9px;
+      transform-style:preserve-3d;will-change:transform,filter;opacity:0}
+    #f02-screen{position:relative;width:100%;height:100%;border-radius:46px;
+      overflow:hidden;background:#EDEBE6}
+    #f02-screen img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 0%}
+    #f02-island{position:absolute;top:11px;left:50%;margin-left:-42px;width:84px;height:11px;
+      border-radius:6px;background:rgba(26,25,24,0.62);z-index:2}
+    .f02-btn{position:absolute;left:-3px;width:3px;border-radius:2px;
+      background:rgba(245,243,240,0.12)}
+    #f02-btn-a{top:240px;height:58px}
+    #f02-btn-b{top:330px;height:96px}
+  </style>
+
+  <div id="root" data-composition-id="02-intro" data-start="0" data-duration="5.5" data-width="1080" data-height="1920">
+
+    <div id="f02-bg" class="clip" data-start="0" data-duration="5.5" data-track-index="0"></div>
+
+    <div id="f02-stage" class="clip" data-start="0" data-duration="5.5" data-track-index="1">
+
+      <div id="f02-rule"></div>
+
+      <div id="f02-namegroup">
+        <span id="f02-kicker">这是</span>
+        <span id="f02-wordmark">NOVUS</span>
+      </div>
+
+      <div id="f02-sub">
+        <span class="f02-line"><span class="f02-seg" id="f02-s0">一款</span><span class="f02-seg" id="f02-s1">把公司</span></span>
+        <span class="f02-line"><span class="f02-seg" id="f02-s2">当人生</span><span class="f02-seg" id="f02-s3">来过的</span></span>
+        <span class="f02-line"><span class="f02-seg f02-accent" id="f02-s4">模拟游戏</span></span>
+      </div>
+
+      <div id="f02-phonestage">
+        <div id="f02-phone">
+          <div id="f02-screen">
+            <img src="assets/game-found.png" alt="">
+            <div id="f02-island"></div>
+          </div>
+          <div class="f02-btn" id="f02-btn-a"></div>
+          <div class="f02-btn" id="f02-btn-b"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="assets/gsap.min.js"></script>
+  <script>
+    (function () {
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+
+      /* ---------------------------------------------------------------
+         ONE tempo grid drives every onset (kinetic-beat-slam).
+      --------------------------------------------------------------- */
+      var PULSE     = 0.40;
+      var B_KICKER  = PULSE * 0.35;   // 0.14  「这是」 hard-cut flash
+      var B_SLAM    = PULSE * 1.00;   // 0.40  NOVUS beat slam
+      var B_SHIFT   = PULSE * 4.00;   // 1.60  wordmark yields the field
+      var B_PHONE   = PULSE * 4.50;   // 1.80  device establish
+      var B_RULE    = PULSE * 6.50;   // 2.60  rule stub draws
+      var B_SUB     = PULSE * 8.00;   // 3.20  sub-line sequencing
+      var B_DRIFT   = PULSE * 8.25;   // 3.30  device micro-settle
+
+      /* Scene-1 offset of the name lockup: dead-centre of the 1920 canvas.
+         Group box top 265 + half height 155 = 420 -> +540 puts it at 960. */
+      var SCENE1_Y = 540;
+
+      /* =========== SCENE 1 (0.0-1.6s) — the name, nothing else =========== */
+
+      // 「这是」 — hard cut in (flash, no travel)
+      tl.fromTo("#f02-kicker",
+        { opacity: 0 },
+        { opacity: 1, duration: 0.04, ease: "none" },
+        B_KICKER);
+
+      // NOVUS — beat slam: scale + blur collapse onto the pulse
+      tl.fromTo("#f02-wordmark",
+        { scale: 1.6, filter: "blur(18px)", opacity: 0, transformOrigin: "50% 50%" },
+        { scale: 1, filter: "blur(0px)", opacity: 1, duration: 0.50, ease: "power4.out" },
+        B_SLAM);
+
+      /* =========== SCENE 2 (1.6-3.2s) — wordmark yields, device arrives ==== */
+
+      // Long-tail settle: the lockup shrinks and rises into the upper third.
+      tl.fromTo("#f02-namegroup",
+        { y: SCENE1_Y, scale: 1, transformOrigin: "0% 50%" },
+        { y: 0, scale: 0.48, duration: 1.00, ease: "power3.out" },
+        B_SHIFT);
+
+      // Device establish — floats up from lower-right, tilted, and lands on
+      // the held 3d framing (rotationY -9 / rotationX 2 stays for the scene).
+      tl.fromTo("#f02-phone",
+        { x: 210, y: 340, scale: 0.74, rotationY: -26, rotationX: 8, rotationZ: 7,
+          filter: "blur(14px)", opacity: 0, transformOrigin: "50% 50%" },
+        { x: 0, y: 0, scale: 1, rotationY: -9, rotationX: 2, rotationZ: 0,
+          filter: "blur(0px)", opacity: 1, duration: 1.15, ease: "power3.out" },
+        B_PHONE);
+
+      // Rule stub draws out once the lockup has landed.
+      tl.fromTo("#f02-rule",
+        { scaleX: 0, opacity: 0, transformOrigin: "0% 50%" },
+        { scaleX: 1, opacity: 1, duration: 0.40, ease: "power3.out" },
+        B_RULE);
+
+      /* =========== SCENE 3 (3.2-5.0s) — sub-line, word by word =========== */
+
+      // dynamic-content-sequencing: per-segment windows are computed once from
+      // content length + config, then reduced into absolute onsets. No hand-tuned
+      // per-item offsets anywhere.
+      var BASE_DURATION = 0.10;
+      var SEC_PER_CHAR  = 0.055;
+      var SEGMENTS = [
+        { id: "#f02-s0", text: "一款" },
+        { id: "#f02-s1", text: "把公司" },
+        { id: "#f02-s2", text: "当人生" },
+        { id: "#f02-s3", text: "来过的" },
+        { id: "#f02-s4", text: "模拟游戏" }
+      ];
+
+      var cumulative = 0;
+      var SEQUENCE = SEGMENTS.map(function (seg) {
+        var dur = BASE_DURATION + seg.text.length * SEC_PER_CHAR;
+        var start = cumulative;
+        cumulative += dur;
+        return { id: seg.id, start: start, end: cumulative };
+      });
+
+      SEQUENCE.forEach(function (item) {
+        tl.fromTo(item.id,
+          { opacity: 0, y: 26, filter: "blur(6px)" },
+          { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.42, ease: "power3.out" },
+          B_SUB + item.start);
+      });
+
+      // Held frame: everything is still except a single, finite micro-settle on
+      // the device. One pass, no loop — the frame stops moving on the last word.
+      tl.fromTo("#f02-phone",
+        { y: 0, rotationZ: 0 },
+        { y: -7, rotationZ: -0.5, duration: 1.60, ease: "sine.inOut", immediateRender: false },
+        B_DRIFT);
+
+      window.__timelines["02-intro"] = tl;
+    })();
+  </script>
+</template>

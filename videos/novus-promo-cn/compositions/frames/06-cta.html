@@ -1,0 +1,286 @@
+<template>
+  <div id="root" data-composition-id="06-cta" data-start="0" data-duration="6" data-width="1080" data-height="1920">
+    <style>
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-400.woff2') format('woff2');font-weight:400;font-style:normal;font-display:block}
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-500.woff2') format('woff2');font-weight:500;font-style:normal;font-display:block}
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-600.woff2') format('woff2');font-weight:600;font-style:normal;font-display:block}
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-700.woff2') format('woff2');font-weight:700;font-style:normal;font-display:block}
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-800.woff2') format('woff2');font-weight:800;font-style:normal;font-display:block}
+      @font-face{font-family:'IBM Plex Mono';src:url('assets/fonts/ibmplexmono-400.woff2') format('woff2');font-weight:400;font-style:normal;font-display:block}
+      @font-face{font-family:'IBM Plex Mono';src:url('assets/fonts/ibmplexmono-500.woff2') format('woff2');font-weight:500;font-style:normal;font-display:block}
+      @font-face{font-family:'IBM Plex Mono';src:url('assets/fonts/ibmplexmono-700.woff2') format('woff2');font-weight:700;font-style:normal;font-display:block}
+      @font-face{font-family:'Noto Sans SC';src:local('Noto Sans CJK SC'),local('Noto Sans SC');font-weight:100 900;font-style:normal}
+
+      #root{
+        position:relative;
+        width:1080px;
+        height:1920px;
+        overflow:hidden;
+        container-type:size;
+      }
+
+      /* ---- full-bleed ground: fire-orange register (the flip) ---- */
+      .f06-ground{
+        position:absolute;
+        inset:0;
+        background:#E35F00;
+      }
+
+      /* ---- content plane (macro push rides on this) ---- */
+      .f06-stage{
+        position:absolute;
+        inset:0;
+      }
+
+      /* ---- Scene 1 chrome: rule stub + mono kicker ---- */
+      .f06-rule{
+        position:absolute;
+        top:300px;
+        left:500px;
+        width:80px;
+        height:3px;
+        background:#232019;
+      }
+      .f06-kicker{
+        position:absolute;
+        top:344px;
+        left:0;
+        right:0;
+        text-align:center;
+        font-family:'IBM Plex Mono','Noto Sans SC',monospace;
+        font-weight:500;
+        font-size:32px;
+        line-height:1.4;
+        letter-spacing:0.14em;
+        text-indent:0.14em;
+        color:rgba(35,32,25,.86);
+      }
+
+      /* ---- Scene 2: the two-line slogan, one display moment ---- */
+      .f06-slogan{
+        position:absolute;
+        top:596px;
+        left:0;
+        right:0;
+        text-align:center;
+      }
+      .f06-line{
+        font-family:'Urbanist','Noto Sans SC',sans-serif;
+        font-weight:800;
+        font-size:122px;
+        line-height:1.26;
+        letter-spacing:-0.02em;
+        color:#232019;
+        will-change:transform;
+      }
+
+      /* ---- Scene 3: the ink search pill (the payoff) ---- */
+      .f06-pill{
+        position:absolute;
+        top:1235px;
+        left:210px;
+        width:660px;
+        height:140px;
+        border-radius:70px;
+        background:#232019;
+        display:flex;
+        align-items:center;
+        padding:0 48px;
+        box-sizing:border-box;
+      }
+      .f06-glass{
+        flex:0 0 auto;
+        width:52px;
+        height:52px;
+        margin-right:28px;
+      }
+      .f06-typewrap{
+        display:inline-block;
+        min-width:360px;
+        white-space:pre;
+        line-height:68px;
+        font-family:'IBM Plex Mono','Noto Sans SC',monospace;
+        font-weight:500;
+        font-size:54px;
+        letter-spacing:0;
+      }
+      .f06-type{
+        white-space:pre;
+        color:#F5F3F0;
+      }
+      .f06-caret{
+        display:inline-block;
+        width:16px;
+        height:50px;
+        vertical-align:-9px;
+        background:#8F8880;
+      }
+    </style>
+
+    <div id="f06-ground" class="clip f06-ground" data-start="0" data-duration="6" data-track-index="0"></div>
+
+    <div id="f06-stage" class="clip f06-stage" data-start="0" data-duration="6" data-track-index="1">
+      <div id="f06-stage-inner" style="position:absolute;inset:0">
+
+        <div id="f06-rule" class="f06-rule"></div>
+        <div id="f06-kicker" class="f06-kicker">免费就是完整游戏</div>
+
+        <div class="f06-slogan">
+          <div id="f06-line1" class="f06-line">把公司开下去，</div>
+          <div id="f06-line2" class="f06-line">把路演活下来。</div>
+        </div>
+
+        <div id="f06-pill" class="f06-pill">
+          <svg id="f06-glass" class="f06-glass" viewBox="0 0 24 24" fill="none"
+               stroke="#8F8880" stroke-width="2.2" stroke-linecap="round">
+            <circle cx="10.5" cy="10.5" r="6.6"></circle>
+            <line x1="15.4" y1="15.4" x2="20.6" y2="20.6"></line>
+          </svg>
+          <span class="f06-typewrap"><span id="f06-type" class="f06-type"></span><span id="f06-caret" class="f06-caret"></span></span>
+        </div>
+
+      </div>
+    </div>
+
+    <script src="assets/gsap.min.js"></script>
+    <script>
+      (function () {
+        var DUR = 6;
+
+        window.__timelines = window.__timelines || {};
+        var tl = gsap.timeline({ paused: true });
+        window.__timelines["06-cta"] = tl;
+
+        var stage  = document.getElementById("f06-stage-inner");
+        var rule   = document.getElementById("f06-rule");
+        var kicker = document.getElementById("f06-kicker");
+        var line1  = document.getElementById("f06-line1");
+        var line2  = document.getElementById("f06-line2");
+        var pill   = document.getElementById("f06-pill");
+        var glass  = document.getElementById("f06-glass");
+        var textEl = document.getElementById("f06-type");
+        var caret  = document.getElementById("f06-caret");
+
+        /* ---------------------------------------------------------------
+           Macro camera: a single slow push that decelerates into stillness
+           and is fully settled before the dead-still Scene 4.
+        --------------------------------------------------------------- */
+        gsap.set(stage, { transformOrigin: "50% 45%" });
+        tl.fromTo(stage,
+          { scale: 1 },
+          { scale: 1.016, duration: 4.6, ease: "power2.out" }, 0);
+
+        /* ---------------------------------------------------------------
+           Scene 1 (0.0-1.0s) — register flip already carried by the orange
+           ground; the ink chrome lands on the first VO clause.
+        --------------------------------------------------------------- */
+        gsap.set(rule, { transformOrigin: "50% 50%" });
+        tl.fromTo(rule,
+          { scaleX: 0, opacity: 0 },
+          { scaleX: 1, opacity: 1, duration: 0.38, ease: "power3.out" }, 0.10);
+
+        tl.fromTo(kicker,
+          { opacity: 0, y: 26 },
+          { opacity: 1, y: 0, duration: 0.52, ease: "power3.out" }, 0.20);
+
+        /* ---------------------------------------------------------------
+           Scene 2 (1.0-2.8s) — kinetic beat-slam: one line per beat,
+           each dropping into place on its own hard decelerating landing.
+        --------------------------------------------------------------- */
+        gsap.set([line1, line2], { transformOrigin: "50% 100%" });
+
+        tl.fromTo(line1,
+          { opacity: 0, yPercent: 38, scale: 1.06 },
+          { opacity: 1, yPercent: 0, scale: 1, duration: 0.52, ease: "power4.out" }, 1.02);
+
+        tl.fromTo(line2,
+          { opacity: 0, yPercent: 38, scale: 1.06 },
+          { opacity: 1, yPercent: 0, scale: 1, duration: 0.52, ease: "power4.out" }, 1.80);
+
+        /* ---------------------------------------------------------------
+           Scene 3 (2.8-4.6s) — the ink pill scale-settles under the slogan,
+           the magnifier fades up, then "novuspitch" types in.
+        --------------------------------------------------------------- */
+        gsap.set(pill, { transformOrigin: "50% 50%" });
+        tl.fromTo(pill,
+          { opacity: 0, scale: 0.86 },
+          { opacity: 1, scale: 1, duration: 0.55, ease: "power3.out" }, 2.80);
+
+        tl.fromTo(glass,
+          { opacity: 0 },
+          { opacity: 1, duration: 0.30, ease: "power2.out" }, 3.06);
+
+        /* --- discrete-text-sequence + context-sensitive-cursor --------- */
+        var IDLE  = "#8F8880";  /* cream-hint  — nothing typed yet        */
+        var BRAND = "#F5F3F0";  /* cream       — the brand is being typed */
+
+        /* Non-uniform keystroke clusters with a micro-pause at the
+           novus | pitch word seam. */
+        var SEQUENCE = [
+          { t: 0.00, text: "",            segment: "idle",  color: IDLE  },
+          { t: 3.42, text: "n",           segment: "brand", color: BRAND },
+          { t: 3.53, text: "no",          segment: "brand", color: BRAND },
+          { t: 3.62, text: "nov",         segment: "brand", color: BRAND },
+          { t: 3.74, text: "novu",        segment: "brand", color: BRAND },
+          { t: 3.83, text: "novus",       segment: "brand", color: BRAND },
+          { t: 4.10, text: "novusp",      segment: "brand", color: BRAND },
+          { t: 4.20, text: "novuspi",     segment: "brand", color: BRAND },
+          { t: 4.29, text: "novuspit",    segment: "brand", color: BRAND },
+          { t: 4.41, text: "novuspitc",   segment: "brand", color: BRAND },
+          { t: 4.52, text: "novuspitch",  segment: "brand", color: BRAND }
+        ];
+
+        /* Baked once — no runtime state, identical under any seek. */
+        var CHANGE_TIMES = SEQUENCE
+          .filter(function (e, i) { return i > 0 && e.text !== SEQUENCE[i - 1].text; })
+          .map(function (e) { return e.t; });
+        var TYPING_GRACE = 0.18;
+
+        function entryAt(time) {
+          for (var i = SEQUENCE.length - 1; i >= 0; i--) {
+            if (time >= SEQUENCE[i].t) return SEQUENCE[i];
+          }
+          return SEQUENCE[0];
+        }
+
+        /* Square-wave blink: whole number of cycles across the scene, and
+           phase-offset by PI/2 so the held final frame lands cursor-ON. */
+        var BLINK_CYCLES = 8;             /* period = 0.75s */
+        var PHASE0 = Math.PI / 2;
+
+        var driver = { t: 0, p: PHASE0 };
+
+        tl.to(driver, {
+          t: DUR,
+          p: PHASE0 + Math.PI * 2 * BLINK_CYCLES,
+          duration: DUR,
+          ease: "none",
+          onUpdate: function () {
+            var entry = entryAt(driver.t);
+            textEl.textContent = entry.text;
+            caret.style.background = entry.color;
+
+            var isTyping = false;
+            for (var i = 0; i < CHANGE_TIMES.length; i++) {
+              var d = driver.t - CHANGE_TIMES[i];
+              if (d >= 0 && d < TYPING_GRACE) { isTyping = true; break; }
+            }
+            caret.style.opacity =
+              isTyping ? "1" : (Math.sin(driver.p) > 0 ? "1" : "0");
+          }
+        }, 0);
+
+        /* ---------------------------------------------------------------
+           Scene 4 (4.6-6.0s) — the lock. A single press-and-release settle
+           on the filled pill, then the frame goes dead still: only the
+           caret keeps its square-wave blink. No fade, no cut to black.
+        --------------------------------------------------------------- */
+        tl.fromTo(pill,
+          { scale: 1 },
+          { scale: 0.985, duration: 0.10, ease: "power2.out", immediateRender: false }, 4.52);
+        tl.to(pill,
+          { scale: 1, duration: 0.28, ease: "power3.out" }, 4.62);
+      })();
+    </script>
+  </div>
+</template>

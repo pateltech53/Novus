@@ -1,0 +1,555 @@
+<template>
+  <div id="root"
+       data-composition-id="03-advance"
+       data-start="0"
+       data-duration="7"
+       data-width="1080"
+       data-height="1920">
+
+    <style>
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-400.woff2') format('woff2');font-weight:400;font-style:normal;font-display:block}
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-500.woff2') format('woff2');font-weight:500;font-style:normal;font-display:block}
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-600.woff2') format('woff2');font-weight:600;font-style:normal;font-display:block}
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-700.woff2') format('woff2');font-weight:700;font-style:normal;font-display:block}
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-800.woff2') format('woff2');font-weight:800;font-style:normal;font-display:block}
+      @font-face{font-family:'IBM Plex Mono';src:url('assets/fonts/ibmplexmono-400.woff2') format('woff2');font-weight:400;font-style:normal;font-display:block}
+      @font-face{font-family:'IBM Plex Mono';src:url('assets/fonts/ibmplexmono-500.woff2') format('woff2');font-weight:500;font-style:normal;font-display:block}
+      @font-face{font-family:'IBM Plex Mono';src:url('assets/fonts/ibmplexmono-700.woff2') format('woff2');font-weight:700;font-style:normal;font-display:block}
+      @font-face{font-family:'Noto Sans SC';src:local('Noto Sans CJK SC'),local('Noto Sans SC');font-weight:100 900;font-style:normal}
+
+      #root{
+        position:relative;
+        width:1080px;
+        height:1920px;
+        overflow:hidden;
+        container-type:size;
+        font-family:'Urbanist','Noto Sans SC',sans-serif;
+        color:#F5F3F0;
+      }
+      /* NOTE: padding is deliberately NOT reset here — `#root *` outranks any
+         class selector, which would silently zero the decision chips' padding. */
+      #root *{margin:0;box-sizing:border-box}
+
+      /* ================= layer 1 — full-bleed ink ground ================= */
+      #f03-ground{position:absolute;inset:0;background:#232019}
+
+      /* ================= layer 2 —底噪网点 (matches 01) ================= */
+      #f03-grain{
+        position:absolute;inset:0;
+        background-image:radial-gradient(#2E2A22 1.5px, rgba(0,0,0,0) 1.6px);
+        background-size:42px 42px;
+        background-position:0 0;
+        opacity:.45;
+      }
+
+      /* ================= layer 3 — stage ================= */
+      #f03-stage{position:absolute;inset:0}
+
+      /* ---- chrome : rule stub + mono kicker + catalogue numeral ---- */
+      #f03-rule{
+        position:absolute;left:64px;top:118px;
+        width:68px;height:3px;background:#E35F00;
+        transform-origin:left center;
+      }
+      #f03-kicker{
+        position:absolute;left:64px;top:148px;
+        font-family:'IBM Plex Mono','Noto Sans SC',monospace;
+        font-weight:500;font-size:28px;line-height:1;
+        letter-spacing:.14em;
+        color:#E35F00;
+      }
+      #f03-num{
+        position:absolute;right:64px;top:120px;
+        font-family:'IBM Plex Mono','Noto Sans SC',monospace;
+        font-weight:400;font-size:26px;line-height:1;
+        letter-spacing:.14em;
+        color:#8F8880;
+      }
+
+      /* ---- the one display moment ---- */
+      #f03-head{position:absolute;left:64px;top:200px;width:952px;height:108px;z-index:2}
+      .f03-hline{
+        position:absolute;left:0;top:0;
+        display:flex;align-items:baseline;white-space:nowrap;
+        font-family:'Urbanist','Noto Sans SC',sans-serif;
+        font-weight:800;font-size:84px;line-height:1.08;
+        letter-spacing:-.03em;
+        color:#F5F3F0;
+      }
+      .f03-htok{display:inline-block}
+      .f03-h2tok{display:inline-block}
+      .f03-word{display:inline-block;transform-origin:50% 55%;text-shadow:0 0 0 rgba(245,243,240,0)}
+      .f03-kw .f03-word{color:#E35F00}
+
+      /* ================= the held phone surface ================= */
+      /* own stacking context so device / screen / rings / cursor order among
+         themselves and never fight the type layers */
+      #f03-phone{position:absolute;inset:0;z-index:1}
+
+      #f03-device{
+        position:absolute;left:272px;top:320px;width:536px;height:1132px;
+        background:#1A1918;
+        border:1px solid #282726;
+        z-index:1;
+      }
+      #f03-screen{
+        position:absolute;left:284px;top:332px;width:512px;height:1108px;
+        overflow:hidden;
+        background:#A4A29E;
+        z-index:2;
+      }
+
+      /* --- screen state A : tutorial (JAN -> FEB, ADVANCE MONTH lit) --- */
+      #f03-shotA{
+        position:absolute;left:0;top:0;width:512px;height:1108px;
+        background-image:url('assets/game-dashboard-tutorial.png');
+        background-size:512px 1108px;
+        background-repeat:no-repeat;
+        z-index:1;
+      }
+      /* --- screen state B : dashboard after the month advanced (red deltas).
+             clipped at y=1472/2532 — a row where A and B are pixel-identical,
+             so the hard cut shows ONLY the changed numbers, no seam. --- */
+      #f03-shotB{
+        position:absolute;left:0;top:0;width:512px;height:1108px;
+        background-image:url('assets/game-event-logo-night.png');
+        background-size:512px 1108px;
+        background-repeat:no-repeat;
+        clip-path:inset(0 0 41.864% 0);
+        opacity:0;
+        z-index:2;
+      }
+
+      /* --- the ONE rebuilt component : the action bar's two controls --- */
+      #f03-bar{position:absolute;left:0;top:0;width:512px;height:1108px;z-index:3}
+      #f03-burst{
+        position:absolute;left:-26.9px;top:887.6px;width:420px;height:170px;
+        border-radius:50%;
+        background:radial-gradient(ellipse closest-side,
+          rgba(227,95,0,.55) 0%, rgba(227,95,0,.30) 52%, rgba(227,95,0,0) 100%);
+        filter:blur(30px);
+        opacity:0;
+        transform-origin:50% 50%;
+        z-index:1;
+      }
+      #f03-btn{
+        position:absolute;left:20.4px;top:935.5px;width:325.4px;height:74.2px;
+        border-radius:37.1px;
+        background:#E35F00;
+        display:flex;align-items:center;justify-content:center;gap:10px;
+        transform-origin:50% 50%;
+        z-index:2;
+      }
+      #f03-btn span{
+        font-family:'IBM Plex Mono','Noto Sans SC',monospace;
+        font-weight:700;font-size:22px;line-height:1;
+        letter-spacing:.06em;
+        color:#FFFFFF;
+      }
+      #f03-chip{
+        position:absolute;left:355.6px;top:935.5px;width:135px;height:74.2px;
+        border-radius:37.1px;
+        background:#FCFCFA;
+        display:flex;align-items:center;justify-content:center;gap:5px;
+        transform-origin:50% 50%;
+        z-index:2;
+      }
+      #f03-chip span{
+        font-family:'IBM Plex Mono','Noto Sans SC',monospace;
+        font-weight:700;font-size:19px;line-height:1;
+        letter-spacing:.02em;
+        color:#232019;
+      }
+
+      /* --- screen state C : the world after the choice --- */
+      #f03-shotC{
+        position:absolute;left:0;top:0;width:512px;height:1108px;
+        background-image:url('assets/game-dashboard.png');
+        background-size:512px 1108px;
+        background-repeat:no-repeat;
+        opacity:0;
+        z-index:4;
+      }
+
+      /* --- the event sheet : outer clips, inner may overflow --- */
+      #f03-sheet{
+        position:absolute;left:0;top:653.8px;width:512px;height:454.2px;
+        overflow:hidden;
+        border-radius:14px 14px 0 0;
+        z-index:5;
+      }
+      #f03-sheet-img{
+        position:absolute;left:0;top:0;width:512px;height:454.2px;
+        background-image:url('assets/game-event-logo-night.png');
+        background-size:512px 1108px;
+        background-position:0px -653.8px;
+        background-repeat:no-repeat;
+      }
+      .f03-mask{
+        position:absolute;left:0;width:512px;
+        background:#F5F3F0;
+        clip-path:inset(0px 0px 0px 0%);
+      }
+      #f03-mask1{top:185.6px;height:71.7px}
+      #f03-mask2{top:257.3px;height:74.8px}
+      #f03-mask3{top:332.1px;height:122.1px}
+
+      /* --- click feedback : rings ride ABOVE the device, outside its clip --- */
+      .f03-ripple{
+        position:absolute;left:407.1px;top:1244.6px;width:120px;height:120px;
+        border:2px solid #E35F00;
+        border-radius:50%;
+        opacity:0;
+        transform-origin:50% 50%;
+        pointer-events:none;
+        z-index:6;
+      }
+
+      /* --- the oversized designed cursor (not a real pointer) --- */
+      #f03-cursor{
+        position:absolute;left:462.95px;top:1300.45px;width:108px;height:162px;
+        transform-origin:4px 4px;
+        pointer-events:none;
+        z-index:9;
+      }
+      #f03-cursor svg{display:block;width:108px;height:162px}
+
+      /* ================= the three decisions ================= */
+      #f03-chips{
+        position:absolute;left:0;right:0;top:1484px;height:76px;
+        display:flex;align-items:center;justify-content:center;gap:26px;
+        z-index:2;
+      }
+      .f03-chip3{
+        height:76px;
+        display:flex;align-items:center;gap:14px;
+        padding:0 26px;
+        border:1px solid #282726;
+        background:rgba(245,243,240,.04);
+        font-family:'IBM Plex Mono','Noto Sans SC',monospace;
+        font-weight:500;font-size:34px;line-height:1;
+        letter-spacing:.06em;
+        color:#F5F3F0;
+      }
+      .f03-sl{color:#E35F00;font-weight:500;font-style:normal}
+    </style>
+
+    <!-- ---------- full-bleed ground (never on #root) ---------- -->
+    <div id="f03-ground" class="clip" data-start="0" data-duration="7" data-track-index="1"></div>
+    <div id="f03-grain"  class="clip" data-start="0" data-duration="7" data-track-index="2"></div>
+
+    <div id="f03-stage" class="clip" data-start="0" data-duration="7" data-track-index="3">
+
+      <div id="f03-rule"></div>
+      <div id="f03-kicker">ADVANCE MONTH</div>
+      <div id="f03-num">NO. 03</div>
+
+      <div id="f03-head">
+        <div id="f03-h1" class="f03-hline"><span class="f03-htok">时间</span><span class="f03-htok">只在</span><span class="f03-htok">你点击时</span><span class="f03-htok">前进</span></div>
+        <div id="f03-h2" class="f03-hline"><span class="f03-h2tok"><span class="f03-word" data-word="w1">全是</span></span><span class="f03-h2tok f03-kw"><span class="f03-word" data-word="w2">你的</span></span><span class="f03-h2tok"><span class="f03-word" data-word="w3">决定</span></span></div>
+      </div>
+
+      <div id="f03-phone">
+
+        <div id="f03-device"></div>
+
+        <div id="f03-screen">
+          <div id="f03-shotA"></div>
+          <div id="f03-shotB"></div>
+
+          <div id="f03-bar">
+            <div id="f03-burst"></div>
+            <div id="f03-btn">
+              <span>ADVANCE MONTH</span>
+              <svg viewBox="0 0 10 12" width="11" height="13" aria-hidden="true"><path d="M0 0 L10 6 L0 12 Z" fill="#FFFFFF"></path></svg>
+            </div>
+            <div id="f03-chip">
+              <span id="f03-chip-a">JAN</span>
+              <svg viewBox="0 0 22 12" width="16" height="9" aria-hidden="true"><path d="M0 5 L15 5 L15 1 L22 6 L15 11 L15 7 L0 7 Z" fill="#232019"></path></svg>
+              <span id="f03-chip-b">FEB</span>
+            </div>
+          </div>
+
+          <div id="f03-shotC"></div>
+
+          <div id="f03-sheet">
+            <div id="f03-sheet-img" data-layout-allow-overflow></div>
+            <div id="f03-mask1" class="f03-mask"></div>
+            <div id="f03-mask2" class="f03-mask"></div>
+            <div id="f03-mask3" class="f03-mask"></div>
+          </div>
+        </div>
+
+        <div id="f03-ripple1" class="f03-ripple"></div>
+        <div id="f03-ripple2" class="f03-ripple"></div>
+        <div id="f03-ripple3" class="f03-ripple"></div>
+
+        <div id="f03-cursor">
+          <svg viewBox="0 0 26 39" aria-hidden="true">
+            <path d="M1 1 L1 31.5 L8.6 24.6 L13.2 36 L17.9 34 L13.3 22.6 L22.6 22.2 Z"
+                  fill="#F5F3F0" stroke="#232019" stroke-width="1.6" stroke-linejoin="round"></path>
+          </svg>
+        </div>
+      </div>
+
+      <div id="f03-chips">
+        <div id="f03-c1" class="f03-chip3"><span class="f03-sl">/</span>招谁</div>
+        <div id="f03-c2" class="f03-chip3"><span class="f03-sl">/</span>卖多少钱</div>
+        <div id="f03-c3" class="f03-chip3"><span class="f03-sl">/</span>接不接那单</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/gsap.min.js"></script>
+  <script>
+    (function () {
+      var R = document.querySelector('[data-composition-id="03-advance"]') || document;
+      var q  = function (s) { return R.querySelector(s); };
+      var qa = function (s) { return Array.prototype.slice.call(R.querySelectorAll(s)); };
+
+      var DUR = 6.5;
+
+      var phone   = q("#f03-phone");
+      var ruleSt  = q("#f03-rule");
+      var kicker  = q("#f03-kicker");
+      var num     = q("#f03-num");
+      var h1toks  = qa("#f03-h1 .f03-htok");
+      var h2toks  = qa("#f03-h2 .f03-h2tok");
+      var words   = qa("#f03-h2 .f03-word");
+      var shotB   = q("#f03-shotB");
+      var shotC   = q("#f03-shotC");
+      var btn     = q("#f03-btn");
+      var burst   = q("#f03-burst");
+      var chip    = q("#f03-chip");
+      var chipA   = q("#f03-chip-a");
+      var chipB   = q("#f03-chip-b");
+      var sheet   = q("#f03-sheet");
+      var masks   = qa(".f03-mask");
+      var rings   = qa(".f03-ripple");
+      var cursor  = q("#f03-cursor");
+      var c1 = q("#f03-c1"), c2 = q("#f03-c2"), c3 = q("#f03-c3");
+
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+
+      /* ==============================================================
+         SCENE 1 (0.0–1.4s)
+         The phone is ALREADY landed (push-slide LEFT brought it in) —
+         only the residual leftward vector bleeds off. Camera locked.
+         Headline reveals token by token on the first VO clause.
+         ============================================================== */
+      tl.fromTo(phone, { x: 14 }, { x: 0, duration: 0.62, ease: "power3.out" }, 0.06);
+
+      tl.fromTo(ruleSt, { scaleX: 0 }, { scaleX: 1, duration: 0.42, ease: "power3.out" }, 0.06);
+      tl.fromTo(kicker, { opacity: 0, x: -18 }, { opacity: 1, x: 0, duration: 0.5, ease: "power3.out" }, 0.18);
+      tl.fromTo(num,    { opacity: 0 },         { opacity: 1, duration: 0.5, ease: "power2.out" }, 0.30);
+
+      var HEAD_AT = 0.34, HEAD_STAGGER = 0.115;
+      h1toks.forEach(function (el, i) {
+        tl.fromTo(el,
+          { opacity: 0, y: 30 },
+          { opacity: 1, y: 0, duration: 0.58, ease: "power3.out" },
+          HEAD_AT + i * HEAD_STAGGER);
+      });
+
+      /* ==============================================================
+         SCENE 2 (1.4–3.0s) — THE IGNITION.
+         nudge-curve: slow ramp-in (10% dist / 19% time, power3.in)
+         → linear burst (65% / 17%) → power4.out tail (25% / 64%),
+         tail 3.4x the ramp-in in TIME. Straight path, so the cursor
+         only crosses the frame edge well above the keep-out line.
+         ============================================================== */
+      var MOVE_AT = 1.46, DX = 822.6, DY = 154.9;
+
+      tl.fromTo(cursor,
+        { x: DX, y: DY },
+        { x: DX * 0.90, y: DY * 0.90, duration: 0.16, ease: "power3.in" },
+        MOVE_AT);
+      tl.to(cursor,
+        { x: DX * 0.25, y: DY * 0.25, duration: 0.15, ease: "none" },
+        MOVE_AT + 0.16);
+      tl.to(cursor,
+        { x: 0, y: 0, duration: 0.55, ease: "power4.out" },
+        MOVE_AT + 0.31);                                  /* tip settles 2.32s */
+
+      /* press-release-spring — linear compression, then a two-step
+         overshoot recovery built from power eases only, adjacency-chained so
+         each phase starts exactly where the previous one ended. */
+      var CLICK_AT = 2.40, PRESS_DUR = 0.12;
+      tl.to(btn,    { scale: 0.95, duration: PRESS_DUR, ease: "power1.in" }, CLICK_AT);
+      tl.to(btn,    { scale: 1.015, duration: 0.16, ease: "power2.out" },    CLICK_AT + PRESS_DUR);
+      tl.to(btn,    { scale: 1,     duration: 0.26, ease: "power3.out" },    CLICK_AT + PRESS_DUR + 0.16);
+
+      /* the cursor is the actor — it compresses MORE than the target */
+      tl.to(cursor, { scale: 0.86, duration: PRESS_DUR, ease: "power1.in" }, CLICK_AT);
+      tl.to(cursor, { scale: 1,    duration: 0.24, ease: "power2.out" },     CLICK_AT + PRESS_DUR);
+
+      /* burst glow sits BEHIND the button, inside the screen clip */
+      tl.fromTo(burst,
+        { scale: 1, opacity: 0 },
+        { scale: 2.4, opacity: 0.85, duration: 0.34, ease: "power2.out" },
+        CLICK_AT + PRESS_DUR);
+      tl.to(burst, { opacity: 0, duration: 0.5, ease: "power2.in" }, 2.90);
+
+      /* cursor-click-ripple — rings live in DOM from t=0 at the button's
+         visual centroid, held invisible by CSS until the click fires */
+      tl.fromTo(rings,
+        { scale: 0, opacity: 0.95 },
+        { scale: 4, opacity: 0, duration: 0.78, ease: "power2.out",
+          stagger: 0.09, immediateRender: false },
+        CLICK_AT + 0.04);
+
+      /* discrete-text-sequence — the month chip does NOT tween, it jumps
+         state at a threshold; one driver, reverse-searched every frame */
+      var SEQUENCE = [
+        { t: 0.00, a: "JAN", b: "FEB" },
+        { t: 2.46, a: "FEB", b: "MAR" }
+      ];
+      function stateAt(time) {
+        for (var i = SEQUENCE.length - 1; i >= 0; i--) {
+          if (time >= SEQUENCE[i].t) return SEQUENCE[i];
+        }
+        return SEQUENCE[0];
+      }
+      var monthDriver = { t: 0 };
+      tl.fromTo(monthDriver, { t: 0 }, {
+        t: DUR,
+        duration: DUR,
+        ease: "none",
+        onUpdate: function () {
+          var s = stateAt(monthDriver.t);
+          if (chipA.textContent !== s.a) chipA.textContent = s.a;
+          if (chipB.textContent !== s.b) chipB.textContent = s.b;
+        }
+      }, 0);
+
+      tl.to(chip, { scale: 1.09, duration: 0.10, ease: "power2.out" }, 2.46);
+      tl.to(chip, { scale: 1,    duration: 0.22, ease: "power3.out" }, 2.56);
+
+      /* the screen advances: the dashboard hard-cuts to its post-month
+         state (red deltas). Clipped at the seam row, so only figures move. */
+      tl.fromTo(shotB, { opacity: 0 }, { opacity: 1, duration: 0.06, ease: "none" }, 2.46);
+
+      /* the cursor leaves the frame, mostly horizontally */
+      tl.to(cursor, { x: 860, y: 110, duration: 0.52, ease: "power2.in" }, 2.86);
+
+      /* ==============================================================
+         SCENE 3 (3.0–4.6s) — the event card takes the screen.
+         3d-page-scroll's translateY form: the outer card clips, the
+         inner plate is allowed to overflow. Then the three decision
+         rows land one at a time, left to right.
+         ============================================================== */
+      var SHEET_OFF = 470;
+      tl.fromTo(sheet,
+        { y: SHEET_OFF },
+        { y: 0, duration: 0.50, ease: "power4.out" },
+        2.98);
+
+      var ROW_AT = 3.42, ROW_STAGGER = 0.18;
+      masks.forEach(function (el, i) {
+        tl.to(el,
+          { clipPath: "inset(0px 0px 0px 100%)", duration: 0.30, ease: "power3.out" },
+          ROW_AT + i * ROW_STAGGER);
+      });
+
+      /* the choice is made — the card drops away and the world under it
+         has changed (third screen state, red deltas + the next gate) */
+      tl.to(sheet, { y: SHEET_OFF, duration: 0.44, ease: "power3.in" }, 4.22);
+      tl.fromTo(shotC, { opacity: 0 }, { opacity: 1, duration: 0.14, ease: "none" }, 4.30);
+
+      /* ==============================================================
+         SCENE 4 (4.6–6.5s) — kinetic-beat-slam.
+         ONE tempo grid drives all three decisions; each gets a DIFFERENT
+         entrance axis (scale+blur slam / side snap / rise+rotate).
+         ============================================================== */
+      var BASE = 4.30, PULSE = 0.16;
+      var BEATS = [BASE + PULSE * 2, BASE + PULSE * 4, BASE + PULSE * 6];
+
+      tl.fromTo(c1,
+        { scale: 1.45, filter: "blur(14px)", opacity: 0 },
+        { scale: 1, filter: "blur(0px)", opacity: 1, duration: 0.38, ease: "power4.out" },
+        BEATS[0]);
+      tl.fromTo(c2,
+        { x: -190, opacity: 0 },
+        { x: 0, opacity: 1, duration: 0.36, ease: "expo.out" },
+        BEATS[1]);
+      tl.fromTo(c3,
+        { y: 66, rotation: 5, opacity: 0 },
+        { y: 0, rotation: 0, opacity: 1, duration: 0.40, ease: "circ.out" },
+        BEATS[2]);
+
+      /* headline swap — the statement steps aside for the payoff line.
+         Old line accelerates out left + blurs; new line arrives from the
+         right on the mirrored ease, so the two share one velocity. */
+      var OUT_AT = 5.44, IN_AT = 5.58;
+      h1toks.forEach(function (el, i) {
+        tl.fromTo(el,
+          { x: 0, opacity: 1, filter: "blur(0px)" },
+          { x: -70, opacity: 0, filter: "blur(9px)",
+            duration: 0.28, ease: "power3.in", immediateRender: false },
+          OUT_AT + i * 0.035);
+      });
+      h2toks.forEach(function (el, i) {
+        tl.fromTo(el,
+          { x: 76, opacity: 0, filter: "blur(10px)" },
+          { x: 0, opacity: 1, filter: "blur(0px)", duration: 0.42, ease: "power3.out" },
+          IN_AT + i * 0.045);
+      });
+
+      /* asr-keyword-glow — karaoke amplitudes, ONE linear driver looping
+         every word. 「你的」 holds the fire-orange clause (frame.md: one
+         inked clause per statement), so its color never lerps — only its
+         glow + scale ride the envelope. */
+      var GLOW_AT = 5.58, GLOW_DUR = DUR - GLOW_AT;   /* 0.92s */
+      var ATTACK = 0.12, RELEASE = 0.22;
+      var MAX_BLUR = 34, MAX_SCALE_BOOST = 0.18;
+      var REST_RGB   = { r: 110, g: 104, b: 98 };
+      var ACTIVE_RGB = { r: 245, g: 243, b: 240 };
+
+      var TIMINGS = {
+        w1: { start: 0.08, end: 0.20, rest: 0.14 },
+        w2: { start: 0.28, end: 0.62, rest: 0.62 },   /* keyword — ~2.8x window */
+        w3: { start: 0.68, end: 0.84, rest: 0.14 }
+      };
+
+      function envelope(time, tm) {
+        if (time < tm.start) return 0;
+        if (time < tm.end) return Math.min((time - tm.start) / ATTACK, 1);
+        var releaseEnd = tm.end + RELEASE;
+        if (time < releaseEnd) return 1 - ((time - tm.end) / RELEASE) * (1 - tm.rest);
+        return tm.rest;
+      }
+      function lerpChannel(a, b, t) { return Math.round(a + (b - a) * t); }
+
+      var glowDriver = { t: 0 };
+      tl.fromTo(glowDriver, { t: 0 }, {
+        t: GLOW_DUR,
+        duration: GLOW_DUR,
+        ease: "none",
+        onUpdate: function () {
+          for (var i = 0; i < words.length; i++) {
+            var el = words[i];
+            var tm = TIMINGS[el.getAttribute("data-word")];
+            if (!tm) continue;
+            var env = envelope(glowDriver.t, tm);
+            var isKey = el.parentNode.className.indexOf("f03-kw") !== -1;
+            if (isKey) {
+              el.style.textShadow = "0 0 " + (MAX_BLUR * env).toFixed(2) +
+                "px rgba(227,95,0," + (0.85 * env).toFixed(3) + ")";
+            } else {
+              el.style.color = "rgb(" +
+                lerpChannel(REST_RGB.r, ACTIVE_RGB.r, env) + "," +
+                lerpChannel(REST_RGB.g, ACTIVE_RGB.g, env) + "," +
+                lerpChannel(REST_RGB.b, ACTIVE_RGB.b, env) + ")";
+              el.style.textShadow = "0 0 " + (MAX_BLUR * env).toFixed(2) +
+                "px rgba(245,243,240," + (0.55 * env).toFixed(3) + ")";
+            }
+            el.style.transform = "scale(" + (1 + MAX_SCALE_BOOST * env).toFixed(4) + ")";
+          }
+        }
+      }, GLOW_AT);
+
+      window.__timelines["03-advance"] = tl;
+    })();
+  </script>
+</template>

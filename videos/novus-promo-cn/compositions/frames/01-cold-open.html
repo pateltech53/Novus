@@ -1,0 +1,313 @@
+<template>
+  <div id="root"
+       data-composition-id="01-cold-open"
+       data-start="0"
+       data-duration="5.4"
+       data-width="1080"
+       data-height="1920">
+
+    <style>
+      .clip{position:absolute;inset:0}
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-400.woff2') format('woff2');font-weight:400;font-style:normal;font-display:block}
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-500.woff2') format('woff2');font-weight:500;font-style:normal;font-display:block}
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-600.woff2') format('woff2');font-weight:600;font-style:normal;font-display:block}
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-700.woff2') format('woff2');font-weight:700;font-style:normal;font-display:block}
+      @font-face{font-family:'Urbanist';src:url('assets/fonts/urbanist-800.woff2') format('woff2');font-weight:800;font-style:normal;font-display:block}
+      @font-face{font-family:'IBM Plex Mono';src:url('assets/fonts/ibmplexmono-400.woff2') format('woff2');font-weight:400;font-style:normal;font-display:block}
+      @font-face{font-family:'IBM Plex Mono';src:url('assets/fonts/ibmplexmono-500.woff2') format('woff2');font-weight:500;font-style:normal;font-display:block}
+      @font-face{font-family:'IBM Plex Mono';src:url('assets/fonts/ibmplexmono-700.woff2') format('woff2');font-weight:700;font-style:normal;font-display:block}
+      @font-face{font-family:'Noto Sans SC';src:local('Noto Sans CJK SC'),local('Noto Sans SC');font-weight:100 900;font-style:normal}
+
+      #root{
+        position:relative;
+        width:1080px;
+        height:1920px;
+        overflow:hidden;
+        container-type:size;
+        font-family:'Urbanist','Noto Sans SC',sans-serif;
+        color:#F5F3F0;
+      }
+      #root *{margin:0;padding:0;box-sizing:border-box}
+
+      /* ---------- layer 1 : full-bleed ink ground ---------- */
+      #f01-ground{background:#232019}
+
+      /* ---------- layer 2 : 底噪网点 (depth plane 1) ---------- */
+      #f01-noise{
+        background-image:radial-gradient(#2E2A22 1.5px, rgba(0,0,0,0) 1.6px);
+        background-size:42px 42px;
+        background-position:0 0;
+        opacity:.55;
+      }
+
+      /* ---------- layer 3 : type + instruments ---------- */
+      #f01-kicker{
+        position:absolute;left:0;right:0;top:380px;
+        display:flex;justify-content:center;align-items:baseline;gap:15px;
+        font-family:'IBM Plex Mono','Noto Sans SC',monospace;
+        font-weight:500;font-size:32px;line-height:1;
+        letter-spacing:.14em;
+        color:#E35F00;
+      }
+      .f01-tok{display:inline-block}
+
+      /* hero — 第 5 年 (depth plane 3) */
+      #f01-hero{
+        position:absolute;left:0;right:0;top:640px;
+        display:flex;justify-content:center;align-items:baseline;gap:24px;
+        z-index:3;
+      }
+      .f01-cn{
+        font-family:'Urbanist','Noto Sans SC',sans-serif;
+        font-weight:800;font-size:155px;line-height:1;
+        letter-spacing:-.03em;
+        color:#F5F3F0;
+      }
+      #f01-digit{
+        display:inline-block;
+        width:310px;
+        text-align:center;
+        font-family:'Urbanist','Noto Sans SC',sans-serif;
+        font-weight:800;font-size:500px;line-height:.85;
+        letter-spacing:-.04em;
+        font-variant-numeric:tabular-nums;
+        color:#E35F00;
+        transform-origin:50% 83%;
+        will-change:transform;
+      }
+
+      /* alert-red outlined stamp */
+      #f01-stamp{
+        position:absolute;left:606px;top:1024px;
+        z-index:4;
+        border:3px solid #D43A2A;
+        color:#D43A2A;
+        background:rgba(0,0,0,0);
+        font-family:'IBM Plex Mono','Noto Sans SC',monospace;
+        font-weight:700;font-size:44px;line-height:1;
+        letter-spacing:.14em;
+        padding:12px 16px 12px 22px;
+        transform-origin:50% 50%;
+        will-change:transform;
+      }
+
+      /* 10-segment year gauge (depth plane 2) */
+      #f01-gauge{position:absolute;left:0;right:0;top:1200px;z-index:2}
+      .f01-track{display:flex;justify-content:center;gap:14px;width:876px;margin:0 auto}
+      .f01-group{
+        display:flex;gap:14px;position:relative;
+        --dof:0px;
+        filter:blur(var(--dof));
+        will-change:filter;
+      }
+      .f01-slot{
+        width:75px;height:30px;
+        border:1px solid #282726;
+        background:rgba(245,243,240,.035);
+      }
+      #f01-fill{
+        position:absolute;inset:0;
+        display:flex;gap:14px;
+        clip-path:inset(0 100% 0 0);
+      }
+      .f01-seg{width:75px;height:30px;background:#E35F00}
+
+      #f01-axis{
+        position:absolute;left:0;right:0;top:1252px;
+        width:876px;margin:0 auto;
+        display:flex;justify-content:space-between;
+        font-family:'IBM Plex Mono','Noto Sans SC',monospace;
+        font-weight:400;font-size:22px;line-height:1;
+        letter-spacing:.14em;
+        color:#8F8880;
+      }
+
+      /* rule stub — the system's only ornament */
+      #f01-rule{
+        position:absolute;left:0;right:0;top:1392px;
+        width:72px;height:3px;margin:0 auto;
+        background:#E35F00;
+        transform-origin:left center;
+      }
+
+      #f01-note{
+        position:absolute;left:0;right:0;top:1432px;
+        text-align:center;
+        font-family:'IBM Plex Mono','Noto Sans SC',monospace;
+        font-weight:400;font-size:34px;line-height:1.3;
+        letter-spacing:.08em;
+        color:#8F8880;
+      }
+      #f01-note b{font-weight:500;color:#F5F3F0}
+    </style>
+
+    <!-- full-bleed ground -->
+    <div id="f01-ground" class="clip" data-start="0" data-duration="5.4" data-track-index="1"></div>
+    <div id="f01-noise" class="clip" data-start="0" data-duration="5.4" data-track-index="2"></div>
+
+    <div id="f01-stage" class="clip" data-start="0" data-duration="5.4" data-track-index="3">
+
+      <div id="f01-kicker">
+        <span class="f01-tok">50</span>
+        <span class="f01-tok">次模拟</span>
+        <span class="f01-tok">×</span>
+        <span class="f01-tok">10</span>
+        <span class="f01-tok">年</span>
+      </div>
+
+      <div id="f01-hero">
+        <span class="f01-cn">第</span><span id="f01-digit">1</span><span class="f01-cn">年</span>
+      </div>
+
+      <div id="f01-stamp" data-layout-allow-overlap>CHAPTER 7</div>
+
+      <div id="f01-gauge">
+        <div class="f01-track">
+          <div class="f01-group" id="f01-head">
+            <div class="f01-slot"></div>
+            <div class="f01-slot"></div>
+            <div class="f01-slot"></div>
+            <div class="f01-slot"></div>
+            <div class="f01-slot"></div>
+            <div id="f01-fill">
+              <div class="f01-seg"></div>
+              <div class="f01-seg"></div>
+              <div class="f01-seg"></div>
+              <div class="f01-seg"></div>
+              <div class="f01-seg"></div>
+            </div>
+          </div>
+          <div class="f01-group" id="f01-tail">
+            <div class="f01-slot"></div>
+            <div class="f01-slot"></div>
+            <div class="f01-slot"></div>
+            <div class="f01-slot"></div>
+            <div class="f01-slot"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="f01-axis"><span>01</span><span>10</span></div>
+
+      <div id="f01-rule"></div>
+
+      <div id="f01-note">只有 <b>38%</b> 活到第 10 年</div>
+    </div>
+  </div>
+
+  <script src="assets/gsap.min.js"></script>
+  <script>
+    (function () {
+      var R = document.querySelector('[data-composition-id="01-cold-open"]') || document;
+      var q = function (s) { return R.querySelector(s); };
+      var qa = function (s) { return Array.prototype.slice.call(R.querySelectorAll(s)); };
+
+      var kickerToks = qa(".f01-tok");
+      var hero   = q("#f01-hero");
+      var digit  = q("#f01-digit");
+      var gauge  = q("#f01-gauge");
+      var fill   = q("#f01-fill");
+      var tail   = q("#f01-tail");
+      var axis   = q("#f01-axis");
+      var stamp  = q("#f01-stamp");
+      var ruleSt = q("#f01-rule");
+      var note   = q("#f01-note");
+
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+
+      /* ---------------------------------------------------------------
+         SCENE 1 (0.0–1.3s) — ink-black field, mono kicker only.
+         per-word staggered reveal, long-tail settle.
+      --------------------------------------------------------------- */
+      var KICK_AT = 0.06, KICK_STAGGER = 0.09;
+      kickerToks.forEach(function (el, i) {
+        tl.fromTo(el,
+          { opacity: 0, y: 22 },
+          { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" },
+          KICK_AT + i * KICK_STAGGER);
+      });
+
+      /* ---------------------------------------------------------------
+         SCENE 2 (1.3–2.8s) — SIGNATURE MOVE.
+         value-scaled counter 1 -> 5 and the 10-segment year gauge
+         lighting 5 slots share ONE start, ONE duration, ONE ease,
+         so number and instrument land on the same beat.
+      --------------------------------------------------------------- */
+      var COUNT_AT = 1.30, COUNT_DUR = 1.45, COUNT_EASE = "power3.out";
+      var START_SCALE = 210 / 500; /* START_SIZE / END_SIZE */
+
+      tl.fromTo(hero, { opacity: 0 }, { opacity: 1, duration: 0.35, ease: "power2.out" }, 1.22);
+      tl.fromTo(gauge,
+        { opacity: 0, y: 26 },
+        { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 1.22);
+
+      var state = { v: 1 };
+      tl.fromTo(state, { v: 1 }, {
+        v: 5,
+        duration: COUNT_DUR,
+        ease: COUNT_EASE,
+        onUpdate: function () { digit.textContent = String(Math.round(state.v)); }
+      }, COUNT_AT);
+
+      tl.fromTo(digit,
+        { scale: START_SCALE },
+        { scale: 1, duration: COUNT_DUR, ease: COUNT_EASE },
+        COUNT_AT);
+
+      tl.fromTo(fill,
+        { clipPath: "inset(0 100% 0 0)" },
+        { clipPath: "inset(0 0% 0 0)", duration: COUNT_DUR, ease: COUNT_EASE },
+        COUNT_AT);
+
+      tl.fromTo(axis,
+        { opacity: 0 },
+        { opacity: 1, duration: 0.5, ease: "power2.out" }, 1.62);
+
+      /* ---------------------------------------------------------------
+         SCENE 3 (2.8–4.2s) — the alert-red CHAPTER 7 stamp lands at the
+         number's lower-right; the unreached back half of the gauge
+         falls out of focus (depth-of-field).
+      --------------------------------------------------------------- */
+      tl.fromTo(stamp,
+        { scale: 0.25, opacity: 0, rotation: -20 },
+        { scale: 1, opacity: 1, rotation: -7, duration: 0.55, ease: "power3.out" },
+        2.80);
+
+      tl.fromTo(tail,
+        { "--dof": "0px", opacity: 1 },
+        { "--dof": "6px", opacity: 0.5, duration: 0.6, ease: "power2.inOut" },
+        2.86);
+
+      tl.fromTo(ruleSt,
+        { scaleX: 0 },
+        { scaleX: 1, duration: 0.45, ease: "power3.out" },
+        3.55);
+
+      /* ---------------------------------------------------------------
+         SCENE 4 (4.2–5.0s) — the source line fades up; the frame holds.
+         Only the number keeps a bounded low-amplitude jitter, with the
+         amplitude enveloped to zero so the frame is still at handoff.
+      --------------------------------------------------------------- */
+      tl.fromTo(note,
+        { opacity: 0, y: 16 },
+        { opacity: 1, y: 0, duration: 0.55, ease: "power3.out" },
+        4.05);
+
+      var CYCLES = 0.45, IDLE_DUR = 0.75, Y_AMP = 3, FADE = 0.25;
+      var phase = { p: 0 };
+      tl.fromTo(phase, { p: 0 }, {
+        p: Math.PI * 2 * CYCLES,
+        duration: IDLE_DUR,
+        ease: "none",
+        onUpdate: function () {
+          var t = phase.p / (Math.PI * 2 * CYCLES);
+          var env = t < 1 - FADE ? 1 : Math.max(0, (1 - t) / FADE);
+          hero.style.transform = "translateY(" + (Math.sin(phase.p) * Y_AMP * env).toFixed(3) + "px)";
+        }
+      }, 4.25);
+
+      window.__timelines["01-cold-open"] = tl;
+    })();
+  </script>
+</template>
