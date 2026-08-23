@@ -220,7 +220,7 @@ remove. **`prefers-reduced-motion` must reach Framer**, not just CSS.
 - [ ] glass only on sanctioned chrome, **0 overlapping the canvas**, ≤ 2 visible at once
 - [ ] `npm run capture` **exits 0**
 - [ ] `grep -rn "#[0-9a-fA-F]\{6\}" app/ components/` → token block only
-- [ ] `shark.glb` **< 3 MB**, mp4s deleted, `public/` under ~4 MB
+- [ ] `shark-v2.glb` **< 1 MB and < 80k triangles** (bytes alone were the wrong target — see docs/BASELINE.md §5), mp4s deleted, `public/` under ~4 MB
 - [ ] canvas count **0** on `/welcome` and `/found` until needed
 - [ ] Lighthouse mobile performance **≥ 90** on `/play`
 - [ ] `npm run check` passes, balance **unchanged at seed 1**

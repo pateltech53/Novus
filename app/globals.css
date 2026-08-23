@@ -151,6 +151,44 @@
   --sea: oklch(0.200 0.040 248);
   --sea-crest: oklch(0.520 0.048 248);
 
+  /* ── The sky above it, and the island in it ────────────────────────────
+     The water used to be the whole screen — a rectangle of `--sea` with
+     swells on it, edge to edge — and an ocean with no horizon in it is a
+     blue floor. These are the rest of the picture: a band of sky, the
+     clouds in it, and the sand the companies stand on.
+
+     Same rule the pair above sets. Each is a colour and its light: `--sky`
+     is the air and `--sky-haze` is the pale strip where it meets the water;
+     `--sand` is the beach and `--sand-lit` is the sun on the top of the
+     mound. Dark keeps a night-blue sky that is LIGHTER than the water below
+     it, because at night the sea is the darker of the two and the horizon
+     only reads if that stays true. */
+  --sky: oklch(0.300 0.048 254);
+  --sky-haze: oklch(0.400 0.036 250);
+  /* Close to the sky it sits in. At the contrast a daylight cloud has, a
+     NIGHT cloud reads as a rock formation hanging over the water — which is
+     exactly what the first pass at this looked like. */
+  --cloud: oklch(0.365 0.030 252);
+  --sand: oklch(0.640 0.062 82);
+  --sand-lit: oklch(0.740 0.070 84);
+  --sand-shade: oklch(0.470 0.048 74);
+  /* The palm. Two greens and a bark, flat — see IslandGlyph. */
+  --palm: oklch(0.600 0.130 148);
+  --palm-lit: oklch(0.700 0.140 146);
+  --bark: oklch(0.480 0.060 58);
+  /* What is built on the island — the skyline that grows with the company's
+     stage. Its own token rather than `--surface-elevated`, which is what it
+     used to borrow: a surface colour is defined against the PAGE, and these
+     stand on sand. In light mode `--surface-elevated` is a near-white, so the
+     skyline came out as blank paper slabs propped up on a beach. Concrete is
+     darker than sand in daylight and lighter than it at night, and this is the
+     pair that keeps that true. */
+  --built: oklch(0.400 0.014 255);
+  /* The briefcase, and the one colour on the whole island that varies per
+     company. `--case` is only the DEFAULT; lib/color.ts derives the lit and
+     shadowed faces from whatever colour a given island is handed. */
+  --case: oklch(0.360 0.012 260);
+
   /* ── Glass · consumed only by components/ui/Glass.tsx ─────────────────── */
   --glass-tint: oklch(0.215 0.005 260 / 0.62);
   --glass-ring: oklch(1 0 0 / 0.08);
@@ -269,6 +307,25 @@
      that says this is water rather than a coloured rectangle. */
   --sea: oklch(0.905 0.052 232);
   --sea-crest: oklch(0.995 0.014 232);
+
+  /* ── The sky above it, and the island in it ────────────────────────────
+     See the dark block. Light is the daylight version and the one the
+     artwork was drawn from: a paler sky than the water so the horizon reads
+     as distance rather than as a seam, white clouds, and warm sand. The
+     sky/water relationship inverts between the themes on purpose — by day
+     the sky is the lighter half, at night the water is the darker one, and
+     the horizon has to survive both. */
+  --sky: oklch(0.940 0.040 232);
+  --sky-haze: oklch(0.975 0.018 232);
+  --cloud: oklch(0.995 0.006 232);
+  --sand: oklch(0.885 0.062 84);
+  --sand-lit: oklch(0.945 0.048 88);
+  --sand-shade: oklch(0.780 0.070 72);
+  --palm: oklch(0.660 0.150 148);
+  --palm-lit: oklch(0.760 0.150 146);
+  --bark: oklch(0.560 0.078 56);
+  --built: oklch(0.730 0.010 250);
+  --case: oklch(0.420 0.012 260);
 
   --scrim: oklch(0.28 0.01 85 / 0.42);
   --glass-tint: oklch(0.98 0.003 85 / 0.62);

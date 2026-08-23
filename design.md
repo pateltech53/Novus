@@ -51,6 +51,26 @@ DOM surface reads as "solid surface" on every platform.
 | **Chrome** | tab bar, the advance capsule and the month badge beside it, screen toolbars and docks, sheet grabber, toasts, year-gate banner, phone status bar + dock, modal scrims | Liquid glass. |
 | **The decision sheet** | its own surface, its choice rows, its explainer boxes and its one action button | Liquid glass, on iOS only. **The named exception**, below. |
 | **Stage** | mascot, panel room | Real 3D, real lighting. Depth from geometry and light. |
+| **The archipelago** | the ocean on /islands and the islands on it | Modelled, but flat. **The second named exception**, below. |
+
+**The archipelago is modelled without being lit.** `/islands` is a place rather
+than a screen — water edge to edge, a horizon, and a company drawn as an island
+you can find again — and a place drawn in Content's vocabulary is a diagram of
+one. The island used to be exactly that: two rings of flat blue for water, a
+green ellipse for land, a stroked palm, a row of grey rectangles.
+
+So `components/IslandGlyph.tsx` and `components/Sea.tsx` model their forms — a
+sand mound, a segmented palm, a briefcase, a sky over a horizon — while staying
+inside Content's material rule. Every one of them is built from **stepped flat
+fills**: two or three solid tones per shape, light above shadow, one light
+direction (upper left) across the whole scene. `lib/color.ts` derives those
+tones from one colour so a form is recoloured in one place.
+
+What that buys is that the exception costs nothing elsewhere. No gradient — the
+ledger below still stands at three. No blur, no filter, no transparency except
+the island's own contact shadow. The Stage layer keeps its monopoly on real
+light, which is the thing that rule exists to protect: the mascot is lit and
+nothing else is, so being lit still means "this is the mascot".
 
 **Money is read at full strength.** This rule used to say *on solid ground* —
 that any element carrying a financial figure was content and never glass. It

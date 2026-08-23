@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
  * mean, and typing 0 is how the grant is taken back. The 0–20 clamp matches
  * the column's own check constraint.
  *
- * The grant stacks on top of the tier's allowance — four a day on free, Pro's
+ * The grant stacks on top of the tier's allowance — one a day on free, Pro's
  * ninety-nine — and is read at the year gate through the same entitlement sync
  * as everything else, so it lands on the giftee's next sync without a reload.
  * Pace is what Pro sells; a score, a survival and a place on Still Standing

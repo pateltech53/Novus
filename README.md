@@ -184,7 +184,7 @@ DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres npm run test:d
 
 ## The shark
 
-Rendered live from `public/shark/shark.glb` with React Three Fiber on a
+Rendered live from `public/shark/shark-v2.glb` with React Three Fiber on a
 transparent canvas — **never chroma-keyed at runtime**. The supplied mesh has no
 rig and no animation clips, so the four states (idle, listening, thinking,
 celebrate) are procedural in `SharkStage.tsx`; the listening lean tracks your

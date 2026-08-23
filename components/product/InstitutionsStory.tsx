@@ -621,8 +621,8 @@ export function InstitutionsStory() {
           <p className="tnum mt-4 max-w-[32rem] text-xs leading-relaxed text-[var(--text-tertiary)]">
             Licences run {formatPrice(seats35.priceCents)} a year for{" "}
             {seats35.seats} seats and {formatPrice(seats100.priceCents)} for{" "}
-            {seats100.seats} — or any size you type. Every seat is Pro, and no
-            student ever pays.
+            {seats100.seats}. Any other size is arranged over email, above.
+            Every seat is Pro, and no student ever pays.
           </p>
           <div className="mt-10">
             <Link

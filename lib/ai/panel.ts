@@ -52,6 +52,17 @@ export interface PanelSessionState {
   log: PanelLogLine[];
   /** Every question asked by anybody, so nobody asks it twice. */
   askedQuestions: string[];
+  /**
+   * What this company was asked in EARLIER fiscal years, from the run.
+   *
+   * Kept apart from `askedQuestions` because the two are enforced differently:
+   * within a session a repeat is a bug, across years it is a fair thing for a
+   * panel to do to a founder who never fixed it. The offline shark treats this
+   * as an ordering preference and never as an exclusion — see `askedBefore` in
+   * panel-local.ts for why a hard filter would run a year-five room out of
+   * questions entirely.
+   */
+  askedBefore?: string[];
   /** Attack-point ids already used, for the offline shark's pool. */
   usedAttackIds: string[];
   answers: { question: string; answer: string; declined: boolean }[];
@@ -80,6 +91,7 @@ export async function sharkQuestionTurn(opts: {
       ctx: opts.session.ctx,
       usedIds: opts.session.usedAttackIds,
       askedQuestions: opts.session.askedQuestions,
+      askedBefore: opts.session.askedBefore,
       lastAnswer: opts.lastAnswer,
       log: opts.session.log,
       round: opts.round,

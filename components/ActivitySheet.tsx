@@ -4,10 +4,9 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { ENTER, EXIT, SCRIM } from "@/components/ui/Motion";
 import { useGame } from "@/lib/state/GameProvider";
-import { activitiesFor, canAfford } from "@/lib/engine/activities";
+import { activitiesFor } from "@/lib/engine/activities";
+import { ActivityRow } from "@/components/screens/ActivityRow";
 import { ProductSheet } from "@/components/ProductSheet";
-import { fmtMoney } from "@/lib/engine/format";
-import { S_UNIT } from "@/lib/engine/constants";
 import type { ActivityTab } from "@/components/ActivityBar";
 import { useNativeGlassClose } from "@/components/native/useNativeOverlay";
 
@@ -103,51 +102,18 @@ export function ActivitySheet({
             )}
 
             <ul className={`space-y-2 px-3 ${tab === "product" ? "mt-5" : "mt-4"}`}>
-              {list.map((activity) => {
-                const affordable = canAfford(activity, run);
-                const used = done.includes(activity.id);
-                return (
-                  <li key={activity.id}>
-                    <button
-                      type="button"
-                      disabled={!affordable || used}
-                      onClick={() => {
-                        runActivity(activity.id);
-                        setDone((d) => [...d, activity.id]);
-                      }}
-                      className="nv-card flex w-full items-start justify-between gap-3 px-4 py-3.5 text-left transition-transform duration-150 enabled:nv-press-row disabled:opacity-45"
-                    >
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-[0.9375rem] font-semibold leading-snug">
-                          {activity.label}
-                        </span>
-                        {/*
-                          The signal, given room to be a sentence.
-                          It used to live in the narrow chip on the right, which
-                          was correct when it read "Cash −1S · Brand +4" and wrong
-                          the moment Addendum A §7.1 made it qualitative prose —
-                          "Cheap reach. Rents by the week." in a 60px chip wraps to
-                          five lines. The chip now carries only the cash cost,
-                          which is the one number the player is allowed to see
-                          before committing.
-                        */}
-                        <span className="mt-0.5 block text-xs leading-snug text-[var(--text-secondary)]">
-                          {used
-                            ? "Done. The month has to move before you do that again."
-                            : !affordable
-                              ? "You can't afford this right now."
-                              : activity.signal}
-                        </span>
-                      </span>
-                      {activity.costS ? (
-                        <span className="tnum shrink-0 text-2xs font-semibold text-[var(--text-primary)]">
-                          {fmtMoney(activity.costS * S_UNIT[run.stage])}
-                        </span>
-                      ) : null}
-                    </button>
-                  </li>
-                );
-              })}
+              {list.map((activity) => (
+                <ActivityRow
+                  key={activity.id}
+                  activity={activity}
+                  run={run}
+                  used={done.includes(activity.id)}
+                  onRun={() => {
+                    runActivity(activity.id);
+                    setDone((d) => [...d, activity.id]);
+                  }}
+                />
+              ))}
             </ul>
 
             <p className="px-5 pt-4 text-2xs tracking-[0.1em] text-[var(--text-tertiary)]">

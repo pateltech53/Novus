@@ -1,5 +1,5 @@
 import eventsData from "@/data/events.json";
-import { activityById, isAvailable } from "@/lib/engine/activities";
+import { activityById, isAvailable, isLocked } from "@/lib/engine/activities";
 import { applyOutcome } from "@/lib/engine/effects";
 import { assetById, buyAsset, sellAsset } from "@/lib/engine/holdings";
 import { specFor, specForRun } from "@/lib/engine/industries/index";
@@ -698,6 +698,16 @@ export function applyTapeEntry(
       const activity = activityById(entry.id, state);
       if (!activity) return skip("no such activity");
       if (!isAvailable(activity, state)) return skip("that activity was not available");
+      /*
+       * The Pro lock, re-checked on the tape.
+       *
+       * Cold calling used to be gated inside `available`, so this one line
+       * covered both questions. It does not any more: the row is offered to
+       * free players and refused at the press, which means `isAvailable` is
+       * now true for an account that may not run it. Without this the change
+       * would silently widen what a free player's tape may contain.
+       */
+      if (isLocked(activity, state)) return skip("that activity is Pro");
       withFrozenClock(cursor.clockISO, () => activity.apply(state));
       refreshBooks(state);
       break;

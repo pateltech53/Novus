@@ -3,12 +3,12 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useGame } from "@/lib/state/GameProvider";
-import { activitiesFor, canAfford } from "@/lib/engine/activities";
+import { activitiesFor } from "@/lib/engine/activities";
+import { ActivityRow } from "@/components/screens/ActivityRow";
 import {
   GLOSSARY,
   industryByCode,
   STAGE_NAME,
-  S_UNIT,
 } from "@/lib/engine/constants";
 import { fmtMoney, fmtMonths, fmtPct, MONTH_NAMES } from "@/lib/engine/format";
 import { deriveRunwayMonths } from "@/lib/engine/sim";
@@ -184,56 +184,25 @@ export function CompanyScreen({ onClose }: { onClose: () => void }) {
       {/* ── 5 · Actions ───────────────────────────────────────────── */}
       <SectionLabel>WHAT YOU CAN DO TODAY</SectionLabel>
       <ul className="space-y-2 px-3">
-        {actions.map((activity) => {
-          const affordable = canAfford(activity, run);
-          const used = spent.includes(activity.id);
-          const price =
-            activity.costS !== undefined
-              ? fmtMoney(activity.costS * S_UNIT[run.stage])
-              : null;
-          return (
-            <li key={activity.id}>
-              <button
-                type="button"
-                disabled={!affordable || used}
-                onClick={() => {
-                  runActivity(activity.id);
-                  setSpent((s) => [...s, activity.id]);
-                }}
-                className="nv-card flex w-full items-start justify-between gap-3 px-4 py-3.5 text-left transition-transform duration-150 enabled:nv-press-row disabled:opacity-45"
-              >
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[0.9375rem] font-semibold leading-snug">
-                    {activity.label}
-                  </span>
-                  <span className="mt-0.5 block text-xs leading-snug text-[var(--text-secondary)]">
-                    {used
-                      ? "Done. The month has to move before you do that again."
-                      : !affordable
-                        ? `You don't have the ${price ?? "cash"}. That's the whole reason.`
-                        : activity.signal}
-                  </span>
-                </span>
-                {/*
-                  Only the cash cost lives in the chip now.
-                  It used to hold `activity.known` — "Cash −2S · Quality +5" —
-                  which fit a 45%-wide box fine. Addendum A §7.1 replaced that
-                  field with a qualitative `signal` ("Costs real money. Nobody
-                  claps."), and a sentence in a chip that narrow wraps to four
-                  or five lines and shoves the row apart. The signal moved up to
-                  the description line where it has the width to be a sentence,
-                  and the chip kept the one number a player is allowed to see
-                  before committing: the money leaving the account.
-                */}
-                {price && (
-                  <span className="tnum shrink-0 text-2xs font-semibold text-[var(--text-primary)]">
-                    {price}
-                  </span>
-                )}
-              </button>
-            </li>
-          );
-        })}
+        {/*
+          The row itself lives in `ActivityRow` — three screens drew this same
+          button longhand until cold calling needed a fifth state and only one
+          of the three would have got it. It also owns the chip rule that used
+          to be documented here: only the cash cost may appear before
+          committing (Addendum A §7.1), never an effect preview.
+        */}
+        {actions.map((activity) => (
+          <ActivityRow
+            key={activity.id}
+            activity={activity}
+            run={run}
+            used={spent.includes(activity.id)}
+            onRun={() => {
+              runActivity(activity.id);
+              setSpent((s) => [...s, activity.id]);
+            }}
+          />
+        ))}
       </ul>
 
       <p className="px-5 pt-4 text-xs text-[var(--text-tertiary)]">

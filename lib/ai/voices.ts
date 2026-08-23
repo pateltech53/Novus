@@ -75,7 +75,43 @@ export interface VoiceProfile {
   direction: string;
 }
 
-export type VoiceKey = SharkId | "chair" | "narrator";
+/**
+ * The Room's cast — the people on the other end of a cold call.
+ *
+ * ── Why they are not the sharks ────────────────────────────────────────────
+ *
+ * The obvious shortcut was to point the twenty callers at the seven voices
+ * above, and it is the wrong answer for one reason: the Tank is five specific
+ * people the player learns to recognise, and a stranger who picks up an
+ * unknown number sounding exactly like Marcus is not a stranger. Half the
+ * lesson in a cold call is that this person owes you nothing and you have
+ * never met them. A familiar voice takes that away before the first sentence.
+ *
+ * ── Why eight, and why these eight ids ─────────────────────────────────────
+ *
+ * These are the premade voices every ElevenLabs account is created with — the
+ * same list `app/api/tts/route.ts` already falls back to — so they need no
+ * setup, no cloning and no per-deploy configuration, and each is overridable
+ * with `ELEVENLABS_VOICE_ROOM_*` like every other voice here. Eight rather
+ * than twenty because twenty near-identical premades would be twenty voices a
+ * player cannot tell apart, and because the directory is authored: each caller
+ * is cast by hand in lib/ai/callers.ts rather than hashed onto a voice, for
+ * the same reason the sea's swells are hand-placed.
+ *
+ * Named for the register they carry, never for the character — a caller can be
+ * recast without renaming the voice.
+ */
+export type RoomVoiceKey =
+  | "room_even"
+  | "room_plain"
+  | "room_deep"
+  | "room_crisp"
+  | "room_calm"
+  | "room_bright"
+  | "room_warm"
+  | "room_soft";
+
+export type VoiceKey = SharkId | "chair" | "narrator" | RoomVoiceKey;
 
 export const VOICES: Record<VoiceKey, VoiceProfile> = {
   marcus: {
@@ -139,6 +175,75 @@ export const VOICES: Record<VoiceKey, VoiceProfile> = {
     pitch: 0.9,
     prefer: ["Daniel", "Google UK English Male", "Microsoft Guy"],
     direction: "Dry, close-mic'd. Sets the scene and gets out of the way.",
+  },
+
+  // ── The Room ─────────────────────────────────────────────────────────────
+  // Slower than the Tank on purpose. The sharks talk over each other in a
+  // studio; these are people who answered a phone, and the pace is the
+  // difference between a panel and a call. Nothing here goes above 1.05.
+  room_even: {
+    elevenVoiceId: "ErXwobaYiN019PkySvjV",
+    speed: 1.02,
+    rate: 1.05,
+    pitch: 0.98,
+    prefer: ["Daniel", "Google UK English Male", "Microsoft Ryan"],
+    direction: "Level and unbothered. Has taken this call before and will take the next one.",
+  },
+  room_plain: {
+    elevenVoiceId: "pNInz6obpgDQGcFmaJgB",
+    speed: 1.0,
+    rate: 1.0,
+    pitch: 0.9,
+    prefer: ["Alex", "Google UK English Male", "Microsoft Guy"],
+    direction: "Plain, unhurried, no performance in it. Says the thing and waits.",
+  },
+  room_deep: {
+    elevenVoiceId: "TxGEqnHWrfWFTfGW9XjX",
+    speed: 0.98,
+    rate: 0.98,
+    pitch: 0.8,
+    prefer: ["Daniel", "Google UK English Male", "Microsoft Davis"],
+    direction: "Deep and slow. The silence after the question is doing the work.",
+  },
+  room_crisp: {
+    elevenVoiceId: "VR6AewLTigWG4xSOukaG",
+    speed: 1.05,
+    rate: 1.12,
+    pitch: 0.88,
+    prefer: ["Alex", "Google US English", "Microsoft Guy"],
+    direction: "Clipped. Every sentence is a question with the pleasantries removed.",
+  },
+  room_calm: {
+    elevenVoiceId: "21m00Tcm4TlvDq8ikWAM",
+    speed: 1.0,
+    rate: 1.02,
+    pitch: 1.02,
+    prefer: ["Samantha", "Google US English", "Microsoft Aria"],
+    direction: "Calm and exact. Reads the number back to you before deciding.",
+  },
+  room_bright: {
+    elevenVoiceId: "AZnzlk1XvdvUeBnXmlld",
+    speed: 1.05,
+    rate: 1.15,
+    pitch: 1.12,
+    prefer: ["Samantha", "Google US English", "Microsoft Michelle"],
+    direction: "Quick and interested. Already picturing the version of this that works.",
+  },
+  room_warm: {
+    elevenVoiceId: "EXAVITQu4vr4xnSDxMaL",
+    speed: 1.02,
+    rate: 1.05,
+    pitch: 1.08,
+    prefer: ["Karen", "Google US English", "Microsoft Michelle"],
+    direction: "Warm and unhurried. Friendly is not the same as sold.",
+  },
+  room_soft: {
+    elevenVoiceId: "MF3mGyEYCl7XYWbV9V6O",
+    speed: 1.0,
+    rate: 1.0,
+    pitch: 1.05,
+    prefer: ["Karen", "Google US English", "Microsoft Aria"],
+    direction: "Soft, careful, slightly wary. Wants to be convinced and expects not to be.",
   },
 };
 

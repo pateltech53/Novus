@@ -148,7 +148,7 @@ are reachable — `saves.slot` stops at nine).
 
 **Extra year closes a day (给用户加 year)** — `entitlements.extra_year_closes`
 (0012), set outright 0–20 through `/api/admin/years`, on top of whatever the
-account's tier allows: free closes four fiscal years a real day, Pro as many
+account's tier allows: free closes one fiscal year a real day, Pro as many
 as it can pitch. The console row states the total it adds up to, so an
 operator granting 6 to a free player can see the account now closes ten a
 day; typing `0` takes the grant back.

@@ -220,6 +220,20 @@ export function localQuestionTurn(opts: {
    */
   askedQuestions?: string[];
   /**
+   * Questions this COMPANY has been asked in earlier fiscal years.
+   *
+   * A soft preference, never a filter — the difference matters. `asked` above
+   * is the session's hard exclusion and has to be: the same shark asking the
+   * same thing twice in one round is the room forgetting itself. Across YEARS
+   * the same weakness genuinely can come back, and excluding it would empty
+   * the pool for a year-five company and drop the whole room onto
+   * `genericClose`, which has two lines per shark. So a question heard before
+   * goes to the BACK of the queue and gets asked again only when there is
+   * nothing fresher — which is also what a real panel does with a founder who
+   * never fixed the thing they were asked about last year.
+   */
+  askedBefore?: string[];
+  /**
    * The previous answer, for the reaction line — with the question it was an
    * answer to, because "did they say anything" and "did they answer THAT" are
    * different questions and only the second one is worth reacting to.
@@ -232,11 +246,36 @@ export function localQuestionTurn(opts: {
   const { shark, ctx } = opts;
   const rng = rngFor(ctx, `${shark}:q:${opts.round}:${opts.usedIds.length}`);
   const asked = opts.askedQuestions ?? [];
+  const before = opts.askedBefore ?? [];
   const unused = ctx.attackPoints.filter(
     (a) => !opts.usedIds.includes(a.id) && !asked.some((q) => sameQuestion(q, a.question)),
   );
-  const mine = unused.filter((a) => a.owner === shark);
-  const point: AttackPoint | undefined = mine[0] ?? unused[0];
+  /*
+   * Anything this company has already been asked in an earlier year sinks,
+   * keeping its relative order. Stable rather than filtered — see `askedBefore`
+   * above for why a filter would empty the room by year five.
+   */
+  const fresh = unused.filter((a) => !before.some((q) => sameQuestion(q, a.question)));
+  const stale = unused.filter((a) => before.some((q) => sameQuestion(q, a.question)));
+  const queue = [...fresh, ...stale];
+  const mine = queue.filter((a) => a.owner === shark);
+  /*
+   * ── Why this is a pick and not `[0]` ──────────────────────────────────────
+   *
+   * It was `mine[0] ?? unused[0]`, and combined with the un-tie-broken
+   * severity sort in panel-context.ts that made the question a pure function
+   * of the books: play year 2 with the same weaknesses as year 1 and the same
+   * shark opened with the same sentence, word for word. Reported as "year 2
+   * was the exact same flow and questions", and it was.
+   *
+   * `rng` is already seeded on the company and the fiscal year (`rngFor`), so
+   * this costs no new state and stays reproducible for the verifier. The slice
+   * is what keeps it honest: the choice is among the three worst things about
+   * the company, never the whole list, so the room still leads with what is
+   * actually wrong rather than picking a weakness at random.
+   */
+  const pool = mine.length > 0 ? mine : queue;
+  const point: AttackPoint | undefined = pickFrom(pool.slice(0, 3), rng) ?? pool[0];
 
   const reaction = reactionLine(shark, opts.lastAnswer, rng);
   const opener = pickFrom(OPENERS[shark], rng);

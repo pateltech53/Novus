@@ -17,6 +17,8 @@ import { S_UNIT } from "@/lib/engine/constants";
 import { LiveTranscriber, resolveTranscript } from "@/lib/ai/transcribe";
 import { startRecording, type Recording } from "@/lib/media/recorder";
 import { useUpgrade } from "@/components/upgrade/UpgradeProvider";
+import { speak, stopSpeaking } from "@/lib/ai/speech";
+import { SkipVoice } from "@/components/ui/SkipVoice";
 
 /**
  * THE ROOM — cold calling, Pro only.
@@ -64,6 +66,17 @@ type Stage =
 export function ColdCall() {
   const { run, applyColdCall } = useGame();
   const [stage, setStage] = useState<Stage>({ kind: "directory" });
+
+  /*
+   * Putting the phone down ends the call, including the part you can hear.
+   *
+   * The two `speak` sites below each clean up their own line, which covers
+   * moving between stages. This covers the whole screen going away — closing
+   * the phone, switching apps, the run ending — where neither of those
+   * unmounts fires in an order that can be relied on. Declared before the
+   * `if (!run)` return so it is not a conditional hook.
+   */
+  useEffect(() => () => stopSpeaking(), []);
 
   if (!run) return null;
 
@@ -277,6 +290,27 @@ function LiveCall({
   const [left, setLeft] = useState(CALL_SECONDS);
   const [typed, setTyped] = useState("");
   const [mode, setMode] = useState<"choose" | "speaking" | "typing">("choose");
+
+  /*
+   * They say hello out loud.
+   *
+   * The greeting has always been on screen in quotes, which reads as a
+   * transcript of a call rather than as a call. It is the first thing a
+   * stranger who picked up an unknown number actually says, and the whole
+   * point of The Room is that you are talking to a person — a person whose
+   * patience you can hear running out. `caller.voice` is one of the eight
+   * `room_*` profiles, cast per person in lib/ai/callers.ts, deliberately none
+   * of the Tank's five: a stranger who sounds like Marcus is not a stranger.
+   *
+   * Fire-and-forget, exactly as SharkPanel's `emit` does it, and the text
+   * stays on screen regardless — `speak` returns immediately and silently
+   * under `prefers-reduced-motion`, and the line must still be readable then.
+   * The cleanup is what stops a greeting following the player out of the call.
+   */
+  useEffect(() => {
+    void speak(caller.greeting, caller.voice);
+    return () => stopSpeaking();
+  }, [caller.greeting, caller.voice]);
   const [heard, setHeard] = useState("");
   const [interim, setInterim] = useState("");
   const [sttOk, setSttOk] = useState(true);
@@ -346,6 +380,17 @@ function LiveCall({
    */
   useEffect(() => {
     if (mode !== "speaking") return;
+    /*
+     * Silence first, THEN the microphone.
+     *
+     * Not politeness — correctness twice over. The mic opens with echo
+     * cancellation on, and a line still playing through the speaker while it
+     * opens is the crackle AnswerTurn.tsx already documents. Worse, the
+     * greeting would land in the transcript that gets graded, so the caller's
+     * own words would be scored as the player's pitch — on one of three calls
+     * a day, with no way to take it back.
+     */
+    stopSpeaking();
     let cancelled = false;
     navigator.mediaDevices
       ?.getUserMedia({ video: { facingMode: "user" }, audio: true })
@@ -447,9 +492,16 @@ function LiveCall({
       <p className="mt-3 rounded-[var(--radius-row)] bg-[var(--n-3)] px-3 py-2.5 text-sm leading-snug">
         &ldquo;{caller.greeting}&rdquo;
       </p>
-      <p className="mt-2 text-2xs leading-snug text-[var(--text-tertiary)]">
-        Listening for: {caller.wants}
-      </p>
+      <div className="mt-2 flex items-start justify-between gap-3">
+        <p className="text-2xs leading-snug text-[var(--text-tertiary)]">
+          Listening for: {caller.wants}
+        </p>
+        {/* Renders nothing unless something is speaking, so it reserves no
+            space on a muted device or under reduced motion. The clock is
+            already running — a player who has read the line should not have
+            to wait for it to finish being said. */}
+        <SkipVoice />
+      </div>
 
       {mode === "choose" && (
         <div className="mt-4 space-y-2">
@@ -590,6 +642,21 @@ function Result({
   onBack: () => void;
 }) {
   const dollars = outcome.cashS * S_UNIT[stage5 as 1 | 2 | 3 | 4 | 5];
+
+  /*
+   * And they answer out loud.
+   *
+   * The same voice that said hello, which is the half that makes this a call:
+   * a yes and a no from the same person, in the same register, is the thing a
+   * player is actually learning to read. Said before the cheque appears
+   * because that is the order it happens in — you hear the answer, then you
+   * find out what it was worth.
+   */
+  useEffect(() => {
+    void speak(outcome.reply, caller.voice);
+    return () => stopSpeaking();
+  }, [outcome.reply, caller.voice]);
+
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
       <p className="text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]">
@@ -599,6 +666,9 @@ function Result({
       <p className="mt-3 rounded-[var(--radius-row)] bg-[var(--n-3)] px-3 py-2.5 text-sm leading-snug">
         &ldquo;{outcome.reply}&rdquo;
       </p>
+      <div className="mt-2 flex justify-end">
+        <SkipVoice />
+      </div>
 
       {outcome.accepted && (
         <dl className="mt-4 grid grid-cols-2 gap-2">

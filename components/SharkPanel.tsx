@@ -158,7 +158,7 @@ export function SharkPanel({
     outcome: TankOutcome,
   ) => void;
 }) {
-  const { run } = useGame();
+  const { run, rememberPanelQuestions } = useGame();
 
   const [beats, setBeats] = useState<Beat[]>([]);
   const [cursor, setCursor] = useState(0);
@@ -248,6 +248,10 @@ export function SharkPanel({
       score,
       log: [],
       askedQuestions: [],
+      /* Seeded from the run, so the room walks in knowing what it asked this
+         company last year. `askedQuestions` stays empty — that one is the
+         session's own no-repeat rule and has to start clean. */
+      askedBefore: run.askedPanelQuestions ?? [],
       usedAttackIds: [],
       answers: [],
       offersOnTable: [],
@@ -809,12 +813,21 @@ export function SharkPanel({
       // loud rather than presenting an offline session as a live one.
       offline: liveTurnsRef.current === 0,
     };
+    /*
+     * What was asked, onto the run, before the year closes.
+     *
+     * Here rather than per question: one commit for the session instead of one
+     * per turn, and the room is over by this point either way. Before `onDone`
+     * because that is what closes the fiscal year — a write after it would land
+     * on year N+1 and be sunk out of exactly the room it came from.
+     */
+    rememberPanelQuestions(session.askedQuestions);
     onDone(
       accepted ? accepted.offer.amount_usd / S : 0,
       accepted ? accepted.offer.equity_pct : undefined,
       outcome,
     );
-  }, [accepted, beats, onDone, run, session]);
+  }, [accepted, beats, onDone, rememberPanelQuestions, run, session]);
 
   if (!run || !session) return null;
 

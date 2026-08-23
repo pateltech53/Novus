@@ -107,7 +107,7 @@ export const GATES: Record<GateId, Gate> = {
   },
   year_pace: {
     id: "year_pace",
-    title: "Four fiscal years a day on free",
+    title: "One fiscal year a day on free",
     body: "The books reopen tomorrow. Pro closes as many years as you can pitch — it never moves a score.",
     feature: null,
   },

@@ -1,7 +1,6 @@
 import { apiUrl } from "@/lib/native/origin";
 import { reportFallback, reportLive } from "./report";
-import { voiceOf } from "./voices";
-import type { SharkId } from "./types";
+import { voiceOf, type VoiceKey } from "./voices";
 
 /**
  * Voice output, per character.
@@ -22,7 +21,15 @@ import type { SharkId } from "./types";
  * muted, and every spoken line is also on screen.
  */
 
-export type Speaker = SharkId | "chair" | "narrator";
+/**
+ * Anyone this app can put a voice to.
+ *
+ * Was `SharkId | "chair" | "narrator"`, written out — which made it the third
+ * independent list of who may speak, beside the VOICES table and the TTS
+ * route's own literal. It is `VoiceKey` now, so casting a new character means
+ * adding a profile to lib/ai/voices.ts and nothing else.
+ */
+export type Speaker = VoiceKey;
 
 /**
  * Route handler, never a client-side key.

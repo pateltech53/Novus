@@ -203,14 +203,38 @@ function SharkModel({
   /**
    * useDraco: false — deliberate.
    *
-   * The mesh is meshopt-compressed (23.7 MB → 2.96 MB), and drei's meshopt
-   * decoder is bundled from three-stdlib. Draco would have compressed further
-   * (1.5 MB) but drei fetches its decoder from a Google CDN by default, which
-   * breaks both the offline-after-load requirement and the no-third-party
-   * stance. Leaving useDraco at its default `true` would attach that loader
-   * even though this file never triggers it — so it is switched off outright.
+   * The mesh is meshopt-compressed and drei's meshopt decoder is bundled from
+   * three-stdlib. Draco would have compressed further but drei fetches its
+   * decoder from a Google CDN by default, which breaks both the
+   * offline-after-load requirement and the no-third-party stance. Leaving
+   * useDraco at its default `true` would attach that loader even though this
+   * file never triggers it — so it is switched off outright.
+   *
+   * ── Why `-v2`, and why the filename had to change ────────────────────────
+   *
+   * Every previous pass at this mesh optimised BYTES and stopped when the
+   * download looked reasonable: 23.7 MB → 2.96 MB, target met, done. Nobody
+   * measured what the browser does after the download, and that is where the
+   * mobile wait actually was. 2.96 MB of meshopt expanded to 9.06 MB on the
+   * MAIN THREAD — 457,282 triangles whose UINT32 index buffer alone was 58%
+   * of the decoded payload — and then uploaded four 1024² textures, all of it
+   * while the camera, MediaPipe, MediaRecorder and speech recognition are
+   * competing for the same phone.
+   *
+   * So this one is decimated rather than merely squeezed: 457,282 → 64,930
+   * triangles, textures at 512² for a mascot that renders into a 128–224 px
+   * box, and — the part that matters most — few enough vertices that indices
+   * fit in UINT16. 2.96 MB → 558 KB on the wire, 16.83 MB → 1.04 MB on the
+   * GPU. Rebuilt from the tracked original with `npm run models`.
+   *
+   * The FILENAME changes because next.config.ts serves /shark/* `immutable`
+   * for seven days; its own note says the way to replace such an asset is to
+   * rename it, not to shorten the TTL. The export keeps the original's unit
+   * scale to five decimal places, which is load-bearing here — unlike
+   * LandingSharkCanvas this file has no Box3 normalization, so MODEL_SCALE
+   * below is only correct while the bounding box is.
    */
-  const { scene } = useGLTF("/shark/shark.glb", false);
+  const { scene } = useGLTF("/shark/shark-v2.glb", false);
   const model = useMemo(() => scene.clone(true), [scene]);
 
   // NOTE: this is still the broken Phase 4 behaviour — `tint ?? suitTint` means
