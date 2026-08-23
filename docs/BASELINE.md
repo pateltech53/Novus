@@ -341,6 +341,27 @@ Affected files (20): `ActivityBar`, `ActivitySheet`, `AdvanceButton`, `Coachmark
 > genuinely-still-true finding beside it — the 6.7 MB of dead mp4 — kept being read as
 > already-handled. It was not. **Those four files were deleted 2026-08-04.**
 >
+> **And the compression finding was itself the wrong axis.** Re-measured again on a
+> mobile complaint: both meshes were compressed but never DECIMATED. `shark.glb` was
+> 457,282 triangles expanding to 9.06 MB on the main thread — its UINT32 index buffer
+> alone 58% of that — and `shark-champion.glb` carried four 2048² textures, about 85 MB
+> of VRAM, for a hero rendering ~300 px tall. The download was fine; the decode and the
+> GPU upload were the wait. Rebuilt 2026-08-23 by `npm run models`
+> (`scripts/build-models.mjs`, which now records the settings the earlier passes lost):
+>
+> | | before | after |
+> |---|---|---|
+> | pitch shark, wire | 2,960,712 B | **557,556 B** |
+> | pitch shark, triangles | 457,282 | **64,930** |
+> | pitch shark, mesh VRAM | 16.83 MB | **1.04 MB** |
+> | champion, wire | 2,161,556 B | **486,248 B** |
+> | champion, triangles | 246,938 | **47,814** |
+> | champion, texture VRAM | ~85.3 MB | **~9.8 MB** |
+>
+> Both ship under `-v2` filenames because `/models` and `/shark` are served `immutable`
+> for seven days; the two sources moved to `assets-src/`, so `public/` no longer carries
+> a mesh nothing loads.
+>
 > **Route table, re-measured** (gzipped First Load JS, `npm run bundle`):
 >
 > | Route | Then | Now |

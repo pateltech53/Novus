@@ -1,4 +1,5 @@
 import type { Industry, RunState } from "@/lib/engine/types";
+import type { RoomVoiceKey } from "./voices";
 import { hashString, mulberry32 } from "@/lib/engine/rng";
 import { apiUrl } from "@/lib/native/origin";
 import { reportFallback, reportLive } from "./report";
@@ -68,8 +69,21 @@ export interface Caller {
   greeting: string;
   /** The thing they are listening for. Shown before you dial: this is fair. */
   wants: string;
-  /** Voice id for the TTS layer, mirroring lib/ai/voices.ts. */
-  elevenVoiceId?: string;
+  /**
+   * Who this person sounds like — a key into the VOICES table in
+   * lib/ai/voices.ts, always one of the eight `room_*` profiles.
+   *
+   * Replaces a dead `elevenVoiceId?: string` that had sat here since the
+   * directory was written: declared, documented as the TTS hook, and set by
+   * none of the twenty entries below, so every caller was silent. A KEY rather
+   * than a raw id, because an id here would be a second place the cast is
+   * written down and a second place it can go stale — and because the TTS
+   * route only honours ids it can already account for, so a hand-typed one
+   * would be quietly ignored rather than loudly rejected.
+   *
+   * Required, not optional. Optional is what let the whole roster ship mute.
+   */
+  voice: RoomVoiceKey;
 }
 
 export const CALLERS: Caller[] = [
@@ -77,10 +91,16 @@ export const CALLERS: Caller[] = [
   {
     id: "delgado",
     name: "Rosa Delgado",
-    title: "Angel investor",
-    company: "Former operator, two exits",
+    /* The fact that used to be the `company` line — she ran companies before
+       she funded them — moved here when the roster became a trade INDEX, which
+       is looked up by business name. "Former operator, two exits" is a
+       description of a person, and a directory printed it as though it were
+       the name over the door. */
+    title: "Angel investor, two exits",
+    company: "Delgado Capital",
     focus: "all",
     temperament: "operator",
+    voice: "room_even",
     difficulty: 1,
     minStage: 1,
     greeting: "You've got me walking to my car, so make it quick.",
@@ -93,6 +113,7 @@ export const CALLERS: Caller[] = [
     company: "Merrow & Sons",
     focus: ["FOOD", "PET", "SUSTAIN", "BEAUTY"],
     temperament: "numbers",
+    voice: "room_deep",
     difficulty: 2,
     minStage: 1,
     greeting: "I have four hundred SKUs on my desk. Why yours?",
@@ -105,6 +126,7 @@ export const CALLERS: Caller[] = [
     company: "Northgate",
     focus: ["ECOM", "FASHION", "TOYS", "PET"],
     temperament: "numbers",
+    voice: "room_calm",
     difficulty: 2,
     minStage: 1,
     greeting: "Go on then. What's the return rate?",
@@ -117,6 +139,7 @@ export const CALLERS: Caller[] = [
     company: "Halfmoon Capital",
     focus: ["TECH", "EDTECH", "GAMING", "CONTENT"],
     temperament: "vision",
+    voice: "room_bright",
     difficulty: 2,
     minStage: 1,
     greeting: "I back people early. Tell me what you're building.",
@@ -129,6 +152,7 @@ export const CALLERS: Caller[] = [
     company: "Atlas Group",
     focus: "all",
     temperament: "brand",
+    voice: "room_warm",
     difficulty: 2,
     minStage: 1,
     greeting: "I've got two minutes between calls. Who are you to your customers?",
@@ -143,6 +167,7 @@ export const CALLERS: Caller[] = [
     company: "Shorewall Ventures",
     focus: "all",
     temperament: "numbers",
+    voice: "room_deep",
     difficulty: 3,
     minStage: 2,
     greeting: "I'll be honest, I almost didn't pick up. Numbers first.",
@@ -155,6 +180,7 @@ export const CALLERS: Caller[] = [
     company: "Kindred Stores",
     focus: ["FOOD", "FASHION", "BEAUTY", "TOYS", "SUSTAIN"],
     temperament: "operator",
+    voice: "room_soft",
     difficulty: 3,
     minStage: 2,
     greeting: "I built shops for twenty years. What breaks when you triple?",
@@ -167,6 +193,7 @@ export const CALLERS: Caller[] = [
     company: "Pelican Partners",
     focus: ["TECH", "EDTECH", "GAMING"],
     temperament: "numbers",
+    voice: "room_calm",
     difficulty: 3,
     minStage: 2,
     greeting: "Retention or nothing. Off you go.",
@@ -179,6 +206,7 @@ export const CALLERS: Caller[] = [
     company: "Continental Freight",
     focus: ["ECOM", "FOOD", "TOYS", "PET", "FITNESS"],
     temperament: "operator",
+    voice: "room_even",
     difficulty: 3,
     minStage: 2,
     greeting: "You want shelf space or you want trucks?",
@@ -191,6 +219,7 @@ export const CALLERS: Caller[] = [
     company: "Loop Fund",
     focus: ["CONTENT", "GAMING", "EDTECH", "FASHION"],
     temperament: "brand",
+    voice: "room_warm",
     difficulty: 3,
     minStage: 2,
     greeting: "Everyone has an audience now. Why does yours stay?",
@@ -203,6 +232,7 @@ export const CALLERS: Caller[] = [
     company: "Westbrook USD",
     focus: ["EDTECH"],
     temperament: "sceptic",
+    voice: "room_plain",
     difficulty: 3,
     minStage: 2,
     greeting: "I've been sold a lot of software. Show me outcomes.",
@@ -217,6 +247,7 @@ export const CALLERS: Caller[] = [
     company: "Ravenscourt",
     focus: "all",
     temperament: "sceptic",
+    voice: "room_calm",
     difficulty: 4,
     minStage: 3,
     greeting: "I decline almost everything. Nothing personal.",
@@ -229,6 +260,7 @@ export const CALLERS: Caller[] = [
     company: "Ashford Holdings",
     focus: "all",
     temperament: "numbers",
+    voice: "room_crisp",
     difficulty: 4,
     minStage: 3,
     greeting: "We acquire. We don't invest. Still want the two minutes?",
@@ -241,6 +273,7 @@ export const CALLERS: Caller[] = [
     company: "Junction",
     focus: ["TECH", "GAMING", "CONTENT", "ECOM"],
     temperament: "operator",
+    voice: "room_plain",
     difficulty: 4,
     minStage: 3,
     greeting: "Integrations are forever. You understand that?",
@@ -250,9 +283,10 @@ export const CALLERS: Caller[] = [
     id: "adeyemi",
     name: "Folake Adeyemi",
     title: "Impact fund lead",
-    company: "第 / Meridian Impact",
+    company: "Meridian Impact",
     focus: ["SUSTAIN", "EDTECH", "FOOD", "PET"],
     temperament: "sceptic",
+    voice: "room_bright",
     difficulty: 4,
     minStage: 3,
     greeting: "Half the decks I read are greenwash. Convince me you're the half that isn't.",
@@ -265,6 +299,7 @@ export const CALLERS: Caller[] = [
     company: "Ninefold",
     focus: ["BEAUTY", "FASHION", "FITNESS", "FOOD"],
     temperament: "brand",
+    voice: "room_warm",
     difficulty: 4,
     minStage: 3,
     greeting: "I only do things I'd put in my own bathroom. Go.",
@@ -279,6 +314,7 @@ export const CALLERS: Caller[] = [
     company: "Castellan Bruce",
     focus: "all",
     temperament: "sceptic",
+    voice: "room_crisp",
     difficulty: 5,
     minStage: 4,
     greeting: "You cold called me. That's either confidence or desperation.",
@@ -291,6 +327,7 @@ export const CALLERS: Caller[] = [
     company: "Solano Growth",
     focus: "all",
     temperament: "numbers",
+    voice: "room_soft",
     difficulty: 5,
     minStage: 4,
     greeting: "At our cheque size I need a business, not a story.",
@@ -303,6 +340,7 @@ export const CALLERS: Caller[] = [
     company: "Norsholm Industries",
     focus: "all",
     temperament: "operator",
+    voice: "room_even",
     difficulty: 5,
     minStage: 4,
     greeting: "I've closed more companies than I've opened. Talk.",
@@ -315,6 +353,7 @@ export const CALLERS: Caller[] = [
     company: "Meridian Reserve",
     focus: "all",
     temperament: "vision",
+    voice: "room_soft",
     difficulty: 5,
     minStage: 5,
     greeting: "We hold for twenty years. Where is this in twenty?",
@@ -322,31 +361,35 @@ export const CALLERS: Caller[] = [
   },
 ];
 
-export const MAX_CALLS_PER_DAY = 3;
-/** Seconds. Two minutes, and the clock is on screen the whole time. */
-export const CALL_SECONDS = 120;
+/**
+ * The daily ration lives in the engine now — see lib/engine/activities.ts.
+ *
+ * It was defined here, and the cold-call ACTIVITY in the engine could not
+ * import it without the engine depending on lib/ai. So the engine kept its own
+ * copy of the number, written as a bare `< 3` with no day comparison, and the
+ * two drifted exactly where you would expect: after three calls the activity
+ * row stayed hidden the next morning while `callsRemaining` below was already
+ * handing out three fresh calls. One definition, re-exported here so every
+ * existing caller of this module is unaffected.
+ */
+export {
+  CALL_SECONDS,
+  MAX_CALLS_PER_DAY,
+  callsRemaining,
+  consumeCall,
+} from "@/lib/engine/activities";
+
+/**
+ * The longest a caller's line may be, matching MAX_CHARS in app/api/tts/route.ts.
+ *
+ * Not imported from there: that file is a route handler with a Node runtime and
+ * an ElevenLabs client in it, and pulling it into the client bundle to read one
+ * integer would be the wrong trade. The number is small, stable and named in
+ * both places.
+ */
+const SPOKEN_MAX_CHARS = 800;
 
 export const callerById = (id: string) => CALLERS.find((c) => c.id === id);
-
-const todayISO = (d = new Date()) => d.toISOString().slice(0, 10);
-
-/** Calls left today, rolling over on the real UTC date. */
-export function callsRemaining(state: RunState, now = new Date()): number {
-  const iso = todayISO(now);
-  if (state.coldCallDayISO !== iso) return MAX_CALLS_PER_DAY;
-  return Math.max(0, MAX_CALLS_PER_DAY - (state.coldCallsUsed ?? 0));
-}
-
-/** Consumes one call. Call this when the line connects, not when it resolves —
- *  hanging up early still used the person's time. */
-export function consumeCall(state: RunState, now = new Date()) {
-  const iso = todayISO(now);
-  if (state.coldCallDayISO !== iso) {
-    state.coldCallDayISO = iso;
-    state.coldCallsUsed = 0;
-  }
-  state.coldCallsUsed = (state.coldCallsUsed ?? 0) + 1;
-}
 
 /** Who will take a call right now — stage-gated, focus-gated, no repeats. */
 export function availableCallers(state: RunState): Caller[] {
@@ -357,6 +400,91 @@ export function availableCallers(state: RunState): Caller[] {
       !closed.includes(c.id) &&
       (c.focus === "all" || c.focus.includes(state.industry)),
   );
+}
+
+// ── The number ──────────────────────────────────────────────────────────────
+
+/**
+ * Every listing's direct line.
+ *
+ * ── Why there are numbers at all now ───────────────────────────────────────
+ *
+ * The Room used to open on a list of people with a handset button beside each
+ * one. That is a contacts app, and choosing from a menu of warm names is the
+ * opposite of a cold call — the hard part of the real thing, and the part worth
+ * teaching, is that nobody hands you the list. So the roster moved out into a
+ * trade index the player has to go and read, each listing carries a number, and
+ * The Room became a dialler. Finding who to call is now a step.
+ *
+ * ── Why these numbers specifically ─────────────────────────────────────────
+ *
+ * 555-0100 through 555-0199 is the block reserved for fiction precisely so that
+ * a number printed in a story cannot ring a real person. This app is handed to
+ * minors and asks them to type a phone number into a phone; the one outcome
+ * that must be impossible is a real line at the other end. So the last two
+ * digits are all that vary, they are derived from the caller's id, and the
+ * generator refuses to build if two callers ever collide.
+ *
+ * The area code varies with the caller too — it is the part that makes twenty
+ * numbers look like twenty businesses rather than one switchboard — and every
+ * value in it is likewise unassignable: N11 codes are service codes and are
+ * never issued to subscribers.
+ */
+const FICTION_AREA_CODES = ["211", "311", "411", "511", "611", "711", "811", "911"];
+
+/**
+ * The digits, with nothing between them. What a comparison sees.
+ *
+ * A player types what they see, and what they see has brackets and a dash in
+ * it. Everything they might reasonably produce — pasted with the formatting,
+ * typed without it, spaces instead of dashes, a leading 1 for the country —
+ * has to reach the same caller, so both sides of every comparison come through
+ * here first.
+ */
+export const digitsOf = (input: string): string => {
+  const digits = input.replace(/\D+/g, "");
+  return digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
+};
+
+/** The number as it is printed in the index: `(411) 555-0132`. */
+export function phoneOf(caller: Caller): string {
+  const h = hashString(`room-line:${caller.id}`);
+  const area = FICTION_AREA_CODES[h % FICTION_AREA_CODES.length];
+  const line = 100 + ((h >>> 8) % 100);
+  return `(${area}) 555-0${line}`;
+}
+
+/**
+ * Who answers this number, or null.
+ *
+ * Null is a real answer and the screen says so out loud: a number that is not
+ * in the book is the cost of not having read the book, and it must not spend
+ * one of the day's three calls. Matched on digits alone, so the brackets and
+ * the dash are decoration.
+ */
+export function callerByNumber(input: string): Caller | null {
+  const want = digitsOf(input);
+  if (want.length < 10) return null;
+  return CALLERS.find((c) => digitsOf(phoneOf(c)) === want) ?? null;
+}
+
+/**
+ * The trade index: businesses in this company's niche, with their numbers.
+ *
+ * The same set `availableCallers` returns — one function decides who is
+ * reachable, and the index is a VIEW of that rather than a second opinion, or
+ * the book would print numbers that refuse to connect.
+ *
+ * Ordered by how hard they are to win rather than by name. A directory sorted
+ * alphabetically is a phone book; sorted by difficulty it is a ladder, and the
+ * first name on it is the one a founder at this stage should actually be
+ * ringing.
+ */
+export function tradeIndex(state: RunState): { caller: Caller; phone: string }[] {
+  return availableCallers(state)
+    .slice()
+    .sort((a, b) => a.difficulty - b.difficulty || a.minStage - b.minStage)
+    .map((caller) => ({ caller, phone: phoneOf(caller) }));
 }
 
 // ── Resolving a pitch ───────────────────────────────────────────────────────
@@ -458,7 +586,20 @@ export async function judgePitch(
         const raw = (await res.json()) as Partial<CallOutcome>;
         return {
           accepted: !!raw.accepted,
-          reply: String(raw.reply ?? caller.greeting),
+          /*
+           * Clamped, because this is SPOKEN now.
+           *
+           * The prompt asks for one to three sentences and `max_tokens` allows
+           * about 1,600 characters, and a prompt is a request rather than a
+           * bound. /api/tts refuses anything over MAX_CHARS (800) with a 413,
+           * and speech.ts reads a non-latching failure as a provider blip and
+           * puts the hosted voice on a cooldown — so one chatty model reply
+           * would silence the caller's verdict AND the next few lines
+           * anywhere in the app. Cut at the source rather than caught at the
+           * route: the screen renders this string too, and a reply that is
+           * too long to say is too long to read on a phone.
+           */
+          reply: String(raw.reply ?? caller.greeting).slice(0, SPOKEN_MAX_CHARS),
           cashS: Number(raw.cashS ?? 0),
           dilutionPct: Number(raw.dilutionPct ?? 0),
           respect: Number(raw.respect ?? 0),

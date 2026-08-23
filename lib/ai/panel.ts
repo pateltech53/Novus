@@ -52,6 +52,17 @@ export interface PanelSessionState {
   log: PanelLogLine[];
   /** Every question asked by anybody, so nobody asks it twice. */
   askedQuestions: string[];
+  /**
+   * What this company was asked in EARLIER fiscal years, from the run.
+   *
+   * Kept apart from `askedQuestions` because the two are enforced differently:
+   * within a session a repeat is a bug, across years it is a fair thing for a
+   * panel to do to a founder who never fixed it. The offline shark treats this
+   * as an ordering preference and never as an exclusion — see `askedBefore` in
+   * panel-local.ts for why a hard filter would run a year-five room out of
+   * questions entirely.
+   */
+  askedBefore?: string[];
   /** Attack-point ids already used, for the offline shark's pool. */
   usedAttackIds: string[];
   answers: { question: string; answer: string; declined: boolean }[];
@@ -80,6 +91,7 @@ export async function sharkQuestionTurn(opts: {
       ctx: opts.session.ctx,
       usedIds: opts.session.usedAttackIds,
       askedQuestions: opts.session.askedQuestions,
+      askedBefore: opts.session.askedBefore,
       lastAnswer: opts.lastAnswer,
       log: opts.session.log,
       round: opts.round,
@@ -237,7 +249,15 @@ async function ask<T>(opts: {
         pitchTranscript: opts.session.pitchTranscript,
         context: opts.session.ctx,
         log: opts.session.log,
-        askedQuestions: opts.session.askedQuestions,
+        /* The session's own no-repeat list AND what this company was asked in
+           earlier years. Merged rather than sent as a second field because the
+           route already renders exactly one list into
+           `questions_already_asked_by_anyone` — and a live shark repeating
+           last year's question word for word is the bug this whole change
+           exists to fix, so the model has to be told about it too. Prior years
+           first: the route slices to the last MAX_LOG, and THIS session's
+           questions are the ones it must not repeat outright. */
+        askedQuestions: [...(opts.session.askedBefore ?? []), ...opts.session.askedQuestions],
         answers: opts.session.answers,
         offersOnTable: opts.session.offersOnTable.map((o) => ({
           shark: o.shark,
@@ -274,7 +294,17 @@ async function ask<T>(opts: {
  * monthly churn?" and "Tell me your churn rate per month" collide, while two
  * genuinely different questions about churn do not. A false positive costs one
  * offline question; a false negative costs the thing players complain about.
+ *
+ * Exported as `similarQuestion` because the room has a THIRD place that puts a
+ * question in a shark's mouth — the positioning question SharkPanel swaps into
+ * the first turn — and it used to do so with no idea what had been asked
+ * before, so it opened every year with the same sentence. Three call sites, one
+ * definition.
  */
+export function similarQuestion(a: string, b: string): boolean {
+  return similar(a, b);
+}
+
 function similar(a: string, b: string): boolean {
   const key = (s: string) =>
     new Set(

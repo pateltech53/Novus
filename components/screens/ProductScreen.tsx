@@ -3,10 +3,9 @@
 import { useState } from "react";
 import { useGame } from "@/lib/state/GameProvider";
 import { ScreenSheet } from "@/components/screens/ScreenSheet";
-import { activitiesFor, canAfford } from "@/lib/engine/activities";
+import { activitiesFor } from "@/lib/engine/activities";
+import { ActivityRow } from "@/components/screens/ActivityRow";
 import { specForRun } from "@/lib/engine/industries/index";
-import { S_UNIT } from "@/lib/engine/constants";
-import { fmtMoney } from "@/lib/engine/format";
 import { ProductSheet } from "@/components/ProductSheet";
 
 /**
@@ -54,47 +53,18 @@ export function ProductScreen({ onClose }: { onClose: () => void }) {
             WHAT YOU CAN DO TODAY
           </h3>
           <ul className="space-y-2 px-3">
-            {actions.map((activity) => {
-              const affordable = canAfford(activity, run);
-              const used = spent.includes(activity.id);
-              const price =
-                activity.costS !== undefined
-                  ? fmtMoney(activity.costS * S_UNIT[run.stage])
-                  : null;
-              return (
-                <li key={activity.id}>
-                  <button
-                    type="button"
-                    disabled={!affordable || used}
-                    onClick={() => {
-                      runActivity(activity.id);
-                      setSpent((s) => [...s, activity.id]);
-                    }}
-                    className="nv-card flex w-full items-start justify-between gap-3 px-4 py-3.5 text-left transition-transform duration-150 enabled:nv-press-row disabled:opacity-45"
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[0.9375rem] font-semibold leading-snug">
-                        {activity.label}
-                      </span>
-                      {/* The qualitative signal. No effect preview — the cash
-                          cost is the only number allowed before committing. */}
-                      <span className="mt-0.5 block text-xs leading-snug text-[var(--text-secondary)]">
-                        {used
-                          ? "Done. The month has to move before you do that again."
-                          : !affordable
-                            ? `You don't have the ${price ?? "cash"}. That's the whole reason.`
-                            : activity.signal}
-                      </span>
-                    </span>
-                    {price && (
-                      <span className="tnum shrink-0 text-2xs font-semibold text-[var(--text-primary)]">
-                        {price}
-                      </span>
-                    )}
-                  </button>
-                </li>
-              );
-            })}
+            {actions.map((activity) => (
+              <ActivityRow
+                key={activity.id}
+                activity={activity}
+                run={run}
+                used={spent.includes(activity.id)}
+                onRun={() => {
+                  runActivity(activity.id);
+                  setSpent((s) => [...s, activity.id]);
+                }}
+              />
+            ))}
           </ul>
         </>
       )}

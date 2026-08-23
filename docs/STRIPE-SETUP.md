@@ -65,11 +65,12 @@ catalogue.ts` carries their product ids as defaults, so their env vars only
 need setting to point somewhere else (a test-mode copy, a new account). In
 test mode, create the two products and set the vars, exactly like the rest.
 
-The **custom-size chapter** (`chapter_custom`, 10–500 seats) needs nothing
-here: it has no pre-made product or price. Checkout computes the amount from
-the typed seat count (`customChapterPriceCents` in `lib/monetization.ts`) and
-sends it as `price_data`, minting a one-off yearly price — named "Novus
-Chapter — N seats" — per purchase. It does need migration 0011 applied
+The **custom-size chapter** (`chapter_custom`) needs nothing here, because it
+is no longer sold from the app: `/api/billing/checkout` refuses that SKU and
+points the buyer at `team@novuspitch.com`. Raise those by hand in Stripe with
+`novus_sku: chapter_custom` and a `seats` metadata value — quote from
+`customChapterPriceCents` in `lib/monetization.ts` — or grant the chapter
+outright from the operator console. Either way it needs migration 0011 applied
 (`docs/CHAPTERS.md` §1) or the webhook cannot record the licence.
 
 All four in **USD** — every price in `lib/monetization.ts` is USD, and checkout

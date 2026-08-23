@@ -13,7 +13,7 @@ import { AnimatePresence, motion } from "framer-motion";
 
 import { Boat } from "@/components/Boat";
 import { GlassButton } from "@/components/ui/Glass";
-import { IslandGlyph } from "@/components/IslandGlyph";
+import { ISLAND_ASPECT, IslandGlyph } from "@/components/IslandGlyph";
 import {
   useNativeOverlay,
   useNativeOverlayOwned,
@@ -834,7 +834,24 @@ function Label({
  * not constants to taste.
  */
 const baseSizeFor = (places: number): number =>
-  Math.round(Math.min(185, Math.max(113, 185 - (places - 2) * 9)));
+  Math.round(ART_SCALE * Math.min(185, Math.max(113, 185 - (places - 2) * 9)));
+
+/**
+ * The measured bounds above are in DRAWN-GLYPH widths, and the artwork is not
+ * drawn to the same proportions.
+ *
+ * The old glyph's box was mostly margin: its sand ellipse was 64 units of a
+ * 120-unit viewBox, so 53% of the width it claimed. The keyed artwork fills
+ * 80% of its own frame. Handed the same number, every island would come out
+ * half again as wide, and the ten hand-placed positions — spaced by what a
+ * 13-character caption needs, not by what an island needs — would start
+ * colliding at the counts the layout probe covers.
+ *
+ * 0.53 ÷ 0.80. The number is a ratio between two drawings rather than a taste,
+ * which is why it is written as one: re-crop the art and this is the thing to
+ * re-measure, not the bounds above it.
+ */
+const ART_SCALE = 0.53 / 0.8;
 
 /**
  * `SEA_POSITIONS`' y, mapped onto the water that is actually left.
@@ -849,8 +866,33 @@ const baseSizeFor = (places: number): number =>
  */
 const BAND_TOP = 13;
 const BAND_BOTTOM = 72;
+
+/**
+ * Where the archipelago starts, as a percentage of the field.
+ *
+ * It was 10%, which was right while the sea was a rectangle of one colour: any
+ * height was water. The ocean picture has a HORIZON in it, and an island above
+ * the horizon is an island in the sky.
+ *
+ * `Sea.HORIZON_PCT` is the fraction of the VIEWPORT the sky takes; this band is
+ * a fraction of the FIELD, which starts below the header and ends above the
+ * boat. So the conversion is not a constant, and rather than thread the
+ * measured lanes through here the margin is simply generous: the sky is 24% of
+ * the viewport, the field starts around 11% of it, and 30% of the remaining
+ * ~79% puts the topmost island's centre near 35% — comfortably below the water
+ * line, with room for the half of the glyph that sits above its own centre.
+ *
+ * The bottom moved with it. 88% rather than 85%, so losing 20 points at the top
+ * costs the scene 17 rather than 20 — the archipelago is tighter than it was
+ * and it is on the water, which is the trade.
+ */
+const BAND_START = 30;
+const BAND_SPAN = 58;
+
 const bandY = (y: number): number =>
-  Math.round((10 + ((y - BAND_TOP) / (BAND_BOTTOM - BAND_TOP)) * 75) * 10) / 10;
+  Math.round(
+    (BAND_START + ((y - BAND_TOP) / (BAND_BOTTOM - BAND_TOP)) * BAND_SPAN) * 10,
+  ) / 10;
 
 function SeaIsland({
   island,
@@ -896,7 +938,6 @@ function SeaIsland({
         }
       >
         <IslandGlyph
-          stage={clampStage(island.stage)}
           alive={island.alive}
           seed={island.seed}
           size={Math.round(base * depth)}
@@ -947,8 +988,8 @@ function SeaEmpty({
           shuffle the scene — the shape changes, the composition does not. */}
       <span
         aria-hidden
-        className="flex items-end justify-center pb-[14%]"
-        style={{ width: size, height: size * 0.72 }}
+        className="flex items-end justify-center pb-[10%]"
+        style={{ width: size, height: size * ISLAND_ASPECT }}
       >
         <span
           className="flex items-center justify-center rounded-[var(--radius-pill)] border border-dashed border-[var(--n-6)] leading-none text-[var(--text-tertiary)]"
@@ -984,8 +1025,8 @@ function SeaLocked({
     >
       <span
         aria-hidden
-        className="flex items-end justify-center pb-[14%]"
-        style={{ width: size, height: size * 0.72 }}
+        className="flex items-end justify-center pb-[10%]"
+        style={{ width: size, height: size * ISLAND_ASPECT }}
       >
         <span
           className="flex items-center justify-center rounded-[var(--radius-pill)] border border-[var(--n-6)] text-[var(--text-tertiary)]"
@@ -1113,8 +1154,7 @@ function Gallery({
                   }
                 >
                   <IslandGlyph
-                    stage={clampStage(island.stage)}
-                    alive={island.alive}
+                              alive={island.alive}
                     seed={island.seed}
                     size={236}
                   />

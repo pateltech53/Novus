@@ -2,7 +2,7 @@ import type { RunState } from "./types";
 import { applyOutcome } from "./effects";
 import { refreshBooks } from "./sim";
 import { makeLine } from "./log";
-import { S_UNIT } from "./constants";
+import { S_UNIT, sellsToBusinesses } from "./constants";
 import { hashString, runRng } from "./rng";
 import { assetById, buyAsset } from "./holdings";
 // Value import, and industries/*.ts imports `spend` and the `Activity` TYPE back
@@ -12,6 +12,9 @@ import { assetById, buyAsset } from "./holdings";
 // used by the balance harnesses does not, and the engine has to run under both.
 import { activitiesForIndustry } from "./industries/index";
 import type { ActivityTab } from "@/components/ActivityBar";
+// Type-only, like the ActivityTab import above it: the engine names which
+// paywall a locked row leads with, and never imports the paywall itself.
+import type { GateId } from "@/lib/upgrade";
 
 /**
  * Player-initiated activities. None of these advance time — that is the whole
@@ -37,6 +40,26 @@ export interface Activity {
    * told why.
    */
   available?(state: RunState): boolean;
+  /**
+   * Pro gates ACCESS to this, and nothing else about it (Brand Law 4).
+   *
+   * The deliberate opposite of `available`. An unavailable activity is absent
+   * because there is nothing useful to say about a mechanic the player cannot
+   * reach — no stage, no second IPO. A LOCKED one is the reverse case: the
+   * player could do it today and the only thing between them and it is the
+   * subscription, which is precisely the thing a screen can explain. So it is
+   * listed, it is pressable, and the press opens the paywall.
+   *
+   * That is also the honest version of what free had before. Cold calling was
+   * hidden outright, so a free player never learned The Room existed — the
+   * pricing page sold "the phone" to somebody who had never seen a phone.
+   *
+   * Refused in `runActivity` and again in the replay verifier, never only in
+   * the UI: a row is a route to `apply`, not the definition of who may run it.
+   */
+  pro?: boolean;
+  /** Which paywall the locked press opens. Defaults to the generic sheet. */
+  gate?: GateId;
   apply(state: RunState): void;
 }
 
@@ -56,7 +79,75 @@ export function spend(
   const rng = runRng(state.seed, state.year, state.month, hashString(id));
   const res = applyOutcome(state, effects, id, rng);
   refreshBooks(state);
+  recordActivityUse(state, id);
   state.log.push(makeLine(state, "decision", narration, res.deltas));
+}
+
+/**
+ * Note that this activity has been run, and in which fiscal year.
+ *
+ * Exported because `spend` is not quite universal: `real-estate` goes through
+ * `buyAsset` and never calls it, and a ledger that lived only inside `spend`
+ * would silently miss any activity that does its own bookkeeping — which is
+ * exactly the class of bug the note above `spend` already warns about.
+ *
+ * Cheap enough to record for every activity rather than only the `yearly`
+ * ones: the map is a dozen small integers, and recording only some of them
+ * would mean a flag added later found no history behind it.
+ */
+export function recordActivityUse(state: RunState, id: string): void {
+  (state.activityUses ??= {})[id] = state.year;
+}
+
+/**
+ * THE ROOM'S DAILY RATION — three calls a real day, two minutes each.
+ *
+ * Defined here rather than beside the caller directory in lib/ai/callers.ts,
+ * which is where it used to live. The cold-call ACTIVITY needs the number, and
+ * an engine that imported lib/ai to get it would be an engine that no longer
+ * runs headlessly. So the engine kept a second copy — `coldCallsUsed < 3`,
+ * with no day comparison — and the two drifted: the activity row stayed hidden
+ * the morning after three calls while the phone was already offering three
+ * fresh ones. callers.ts re-exports these four, so nothing that reads them
+ * from there had to change.
+ *
+ * Both limits are the mechanic and not friction. A cold call is the one place
+ * in Novus where you choose your listener, and the lesson is that access is
+ * scarce and attention is short.
+ */
+export const MAX_CALLS_PER_DAY = 3;
+
+/** Seconds. Two minutes, and the clock is on screen the whole time. */
+export const CALL_SECONDS = 120;
+
+/**
+ * UTC, and not the player's local date — the one ration in the app that is.
+ *
+ * Every other daily allowance rolls over at the player's own midnight, which
+ * is the right answer for something only their device counts. This one is
+ * different because it is also counted somewhere else: a cold call goes on the
+ * leaderboard tape, and `lib/leaderboard/bounds.ts` buckets those entries by
+ * UTC date to reject a tape claiming more than three in a day. A ledger the
+ * verifier has to agree with has to be on the verifier's clock.
+ */
+const callDayISO = (d = new Date()) => d.toISOString().slice(0, 10);
+
+/** Calls left today, rolling over on the real UTC date. */
+export function callsRemaining(state: RunState, now = new Date()): number {
+  const iso = callDayISO(now);
+  if (state.coldCallDayISO !== iso) return MAX_CALLS_PER_DAY;
+  return Math.max(0, MAX_CALLS_PER_DAY - (state.coldCallsUsed ?? 0));
+}
+
+/** Consumes one call. Call this when the line connects, not when it resolves —
+ *  hanging up early still used the person's time. */
+export function consumeCall(state: RunState, now = new Date()) {
+  const iso = callDayISO(now);
+  if (state.coldCallDayISO !== iso) {
+    state.coldCallDayISO = iso;
+    state.coldCallsUsed = 0;
+  }
+  state.coldCallsUsed = (state.coldCallsUsed ?? 0) + 1;
 }
 
 export const ACTIVITIES: Activity[] = [
@@ -158,14 +249,43 @@ export const ACTIVITIES: Activity[] = [
      *
      * Pro-gated for ACCESS only. The bar, the cheque and the odds are identical
      * for a Pro and a free player who both reach the same person (Brand Law 4).
+     *
+     * ── Shown to everyone, opened by Pro ──────────────────────────────────
+     *
+     * `available` used to carry `!!s.pro`, which put the Pro test in the field
+     * that decides whether an activity EXISTS — so a free player's company tab
+     * simply had no cold call on it. Two things were wrong with that. The
+     * player could not find out The Room was there, which made the pricing
+     * page's promise about "the phone" a promise about something they had
+     * never seen; and a player who pressed it was telling us something, and a
+     * row that is not rendered cannot be pressed. The lock moved to `pro`,
+     * which lists the row and sends the press to the paywall instead.
+     *
+     * The day comparison replaces a bare `coldCallsUsed < 3`, which never
+     * looked at `coldCallDayISO` and so kept the row hidden the morning after
+     * three calls — while `callsRemaining()` in lib/ai/callers.ts, which does
+     * roll over, was already handing the player three fresh ones.
      */
     id: "cold-call",
     tab: "company",
-    label: "Cold call an investor",
+    label: "Work the phones",
     signal: "Three a day, two minutes each. They have not heard of you.",
     detail:
-      "A directory of investors, buyers and operators who do not know your name. You pitch out loud and they decide on the spot.",
-    available: (s) => !!s.pro && (s.coldCallsUsed ?? 0) < 3,
+      "The trade index for your industry — who buys what you sell, and their direct line. Find a number, dial it, and pitch out loud. They decide on the spot.",
+    pro: true,
+    gate: "the_room",
+    /*
+     * Two gates, and the ORDER of them is the point.
+     *
+     * `available` is the industry question and it is asked first, because it is
+     * a fact about the BUSINESS: a fast-food owner has nobody to ring, so the
+     * row is absent rather than locked. `pro` above is a fact about the
+     * ACCOUNT, and it shows the row and refuses the press. Getting these the
+     * wrong way round would put a subscription pitch in front of somebody for a
+     * phone they should never want to pick up, which is the worst version of
+     * both.
+     */
+    available: (s) => sellsToBusinesses(s.industry) && callsRemaining(s) > 0,
     apply: (s) =>
       spend(
         s,
@@ -327,8 +447,11 @@ export const ACTIVITIES: Activity[] = [
       const def = assetById("rental-unit");
       if (!def || !buyAsset(s, def)) return;
       // buyAsset already moved the cash, the upkeep and the holding. Only the
-      // books refresh and the log line are left.
+      // books refresh, the ledger and the log line are left. The ledger is
+      // written by hand here precisely because this activity does not go
+      // through `spend` — see `recordActivityUse`.
       refreshBooks(s);
+      recordActivityUse(s, "real-estate");
       s.log.push(
         makeLine(
           s,
@@ -455,7 +578,7 @@ export const ACTIVITIES: Activity[] = [
  */
 export function activitiesFor(tab: ActivityTab, state: RunState): Activity[] {
   return [...activitiesForIndustry(state), ...ACTIVITIES].filter(
-    (a) => a.tab === tab && isAvailable(a, state),
+    (a) => a.tab === tab && isOfferable(a, state),
   );
 }
 
@@ -475,6 +598,65 @@ export function isAvailable(activity: Activity, state: RunState): boolean {
   if (activity.minStage && state.stage < activity.minStage) return false;
   if (activity.available && !activity.available(state)) return false;
   return true;
+}
+
+/**
+ * Offered, but not to this account — the state a row is in when the only thing
+ * missing is the subscription.
+ *
+ * Separate from `isAvailable` on purpose, and the two answer different
+ * questions: `isAvailable` decides whether to draw the row at all, `isLocked`
+ * decides whether pressing it runs the activity or opens the paywall. A locked
+ * row is still drawn, still pressable, and never greyed out.
+ *
+ * Reads `state.pro` — the run's own tier — rather than the entitlement store,
+ * to stay in step with the two gates downstream of it: ColdCall's `ProGate`
+ * and the leaderboard verifier, which replays historical tapes and has no
+ * localStorage to read.
+ */
+export function isLocked(activity: Activity, state: RunState): boolean {
+  return !!activity.pro && !state.pro;
+}
+
+/**
+ * Already done this fiscal year, for the activities that are once a year.
+ *
+ * ── The flag that did nothing ──────────────────────────────────────────────
+ *
+ * `Activity.yearly` has been declared and documented as "Once per fiscal year"
+ * since the interface was written, is set on seven activities across the
+ * industry lenses, and was read by NOTHING — not `isAvailable`, not the
+ * dispatcher, not the verifier. So a player could fire the same once-a-year
+ * lever every month of the year, and — the reported symptom — the company tab
+ * offered an identical list in year 2 to the one it offered in year 1, because
+ * nothing about the list had ever depended on the year at all.
+ *
+ * ── Why this is not folded into `isAvailable` ──────────────────────────────
+ *
+ * `isAvailable` is the leaderboard verifier's admissibility test
+ * (lib/leaderboard/replay.ts). Tightening it would retroactively invalidate
+ * every tape already submitted in which a yearly activity fired twice — runs
+ * that were legal when they were played, refused now for following the rules
+ * as they were then enforced. A verifier that accepts a little more than the
+ * client will produce is the safe direction of that asymmetry; the reverse
+ * deletes people's boards.
+ *
+ * So the gate lives here, and `activitiesFor` and `runActivity` — everything a
+ * player can actually reach — ask this one instead.
+ */
+export function isSpentThisYear(activity: Activity, state: RunState): boolean {
+  return !!activity.yearly && state.activityUses?.[activity.id] === state.year;
+}
+
+/**
+ * Offerable to THIS player, right now: available, and not already spent this
+ * fiscal year. What every screen and the dispatcher ask.
+ *
+ * `isLocked` is deliberately not part of it — a Pro-locked activity is still
+ * offered, it just refuses the press (see the `pro` field).
+ */
+export function isOfferable(activity: Activity, state: RunState): boolean {
+  return isAvailable(activity, state) && !isSpentThisYear(activity, state);
 }
 
 export function canAfford(activity: Activity, state: RunState): boolean {

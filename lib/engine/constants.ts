@@ -41,20 +41,78 @@ export const INDUSTRIES: {
   free: boolean;
   multiple: number; // valuation industry_multiple [DECISION KNOB per GDD §6]
   season: [number, number, number, number]; // quarterly demand seasonality
+  /**
+   * Does this company's growth run through another company's phone?
+   *
+   * ── What it decides ────────────────────────────────────────────────────
+   *
+   * Whether The Room and the trade index exist at all for this industry. It
+   * is not a difficulty setting and it is not a second paywall: it is the
+   * answer to "would this founder ever cold call anybody?"
+   *
+   * A cold call is how you reach a BUSINESS you want to sell to, supply,
+   * license to or raise from. It is not how you reach a walk-in customer. A
+   * fast-food owner grows by being on the right corner and getting the queue
+   * moving; there is nobody to ring. Handing them a phone full of buyers
+   * would teach the wrong lesson about their own business — and, worse, put a
+   * Pro upsell on a mechanic they should never want.
+   *
+   * ── How each answer was arrived at ─────────────────────────────────────
+   *
+   * Read off what the industry's own lens in lib/engine/industries/ already
+   * models, not off taste. Where the lens has a business on the other side of
+   * a transaction, the phone is real:
+   *
+   *   TECH      `enterprise` product tag and an `enterprise_ready` flag
+   *   CONTENT   sponsors, and a `sponsor_heavy` flag — creators pitch brands
+   *   TOYS      licensing royalties, wholesale and closeout buyers
+   *   EDTECH    `district_contract` — the buyer is a school district
+   *   SUSTAIN   retailers and buyers
+   *   FASHION   wholesale buyers
+   *   BEAUTY    retailers and buyers
+   *   PET       clinics and retail buyers
+   *   GAMING    publishers, studios, platform distribution
+   *
+   * And where the lens's only businesses are INBOUND — people it buys from —
+   * or where it sells to individuals, it is not:
+   *
+   *   FOOD      twelve mentions of `supplier`, every one of them a purchase
+   *             (`lock_supplier`, `food-change-supplier`). Sells to the queue.
+   *   ECOM      supplier inbound; D2C goods sold to shoppers
+   *   FITNESS   members, referrals, satisfaction — sells memberships
+   *
+   * Two of the four FREE industries keep it, so a free player can still find
+   * out the mechanic exists. That is deliberate: an industry gate that also
+   * hid the feature from every free player would be a paywall wearing a
+   * different hat.
+   */
+  sellsToBusinesses: boolean;
 }[] = [
-  { code: "FOOD", name: "Food & Beverage", free: true, multiple: 2, season: [0.95, 1.0, 1.0, 1.05] },
-  { code: "ECOM", name: "E-commerce / Retail", free: true, multiple: 3, season: [0.9, 0.95, 1.0, 1.15] },
-  { code: "TECH", name: "Tech App", free: true, multiple: 8, season: [1.0, 1.0, 1.0, 1.0] },
-  { code: "CONTENT", name: "Content / Creator", free: true, multiple: 5, season: [1.0, 0.95, 1.0, 1.05] },
-  { code: "FASHION", name: "Fashion / Streetwear", free: false, multiple: 3, season: [0.9, 1.0, 1.05, 1.05] },
-  { code: "GAMING", name: "Gaming", free: false, multiple: 7, season: [0.95, 0.9, 1.0, 1.15] },
-  { code: "FITNESS", name: "Fitness", free: false, multiple: 4, season: [1.2, 1.0, 0.9, 0.9] },
-  { code: "BEAUTY", name: "Beauty", free: false, multiple: 4, season: [1.0, 1.0, 1.0, 1.0] },
-  { code: "EDTECH", name: "EdTech", free: false, multiple: 6, season: [1.05, 0.85, 1.15, 0.95] },
-  { code: "SUSTAIN", name: "Sustainability", free: false, multiple: 5, season: [1.0, 1.05, 1.0, 0.95] },
-  { code: "TOYS", name: "Toys & Collectibles", free: false, multiple: 3, season: [0.85, 0.9, 1.0, 1.25] },
-  { code: "PET", name: "Pet", free: false, multiple: 4, season: [1.0, 1.0, 1.0, 1.0] },
+  // prettier-ignore-start
+  { code: "FOOD",    name: "Food & Beverage",      free: true,  multiple: 2, season: [0.95, 1.0, 1.0, 1.05],  sellsToBusinesses: false },
+  { code: "ECOM",    name: "E-commerce / Retail",  free: true,  multiple: 3, season: [0.9, 0.95, 1.0, 1.15],  sellsToBusinesses: false },
+  { code: "TECH",    name: "Tech App",             free: true,  multiple: 8, season: [1.0, 1.0, 1.0, 1.0],    sellsToBusinesses: true },
+  { code: "CONTENT", name: "Content / Creator",    free: true,  multiple: 5, season: [1.0, 0.95, 1.0, 1.05],  sellsToBusinesses: true },
+  { code: "FASHION", name: "Fashion / Streetwear", free: false, multiple: 3, season: [0.9, 1.0, 1.05, 1.05],  sellsToBusinesses: true },
+  { code: "GAMING",  name: "Gaming",               free: false, multiple: 7, season: [0.95, 0.9, 1.0, 1.15],  sellsToBusinesses: true },
+  { code: "FITNESS", name: "Fitness",              free: false, multiple: 4, season: [1.2, 1.0, 0.9, 0.9],    sellsToBusinesses: false },
+  { code: "BEAUTY",  name: "Beauty",               free: false, multiple: 4, season: [1.0, 1.0, 1.0, 1.0],    sellsToBusinesses: true },
+  { code: "EDTECH",  name: "EdTech",               free: false, multiple: 6, season: [1.05, 0.85, 1.15, 0.95], sellsToBusinesses: true },
+  { code: "SUSTAIN", name: "Sustainability",       free: false, multiple: 5, season: [1.0, 1.05, 1.0, 0.95],  sellsToBusinesses: true },
+  { code: "TOYS",    name: "Toys & Collectibles",  free: false, multiple: 3, season: [0.85, 0.9, 1.0, 1.25],  sellsToBusinesses: true },
+  { code: "PET",     name: "Pet",                  free: false, multiple: 4, season: [1.0, 1.0, 1.0, 1.0],    sellsToBusinesses: true },
+  // prettier-ignore-end
 ];
+
+/**
+ * Whether this company would ever pick up a phone to another business.
+ *
+ * The one place the question is asked. Everything that offers The Room — the
+ * activity row, the phone's app grid, the trade index, the dialler — goes
+ * through here, so a change to the table above reaches all four at once.
+ */
+export const sellsToBusinesses = (code: Industry): boolean =>
+  industryByCode(code).sellsToBusinesses;
 
 export const industryByCode = (code: Industry) =>
   INDUSTRIES.find((i) => i.code === code)!;

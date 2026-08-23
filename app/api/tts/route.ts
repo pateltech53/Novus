@@ -8,7 +8,7 @@ import {
   timeoutSignal,
 } from "@/lib/ai/server/providers";
 import { claimAiCall } from "@/lib/ai/server/limit";
-import { VOICES } from "@/lib/ai/voices";
+import { VOICES, type VoiceKey } from "@/lib/ai/voices";
 import { crossSite } from "@/lib/supabase/route";
 
 /*
@@ -54,9 +54,21 @@ export const dynamic = "force-dynamic";
  */
 const MAX_CHARS = 800;
 
-/** The order voices are handed out in when the account has not been mapped. */
-const SPEAKERS = ["marcus", "serena", "dev", "lily", "viktor", "chair", "narrator"] as const;
-type Speaker = (typeof SPEAKERS)[number];
+/**
+ * The order voices are handed out in when the account has not been mapped.
+ *
+ * Derived from the cast in lib/ai/voices.ts rather than written out. It WAS
+ * written out — seven literals — and that list silently became the definition
+ * of who may speak: `speaker` is clamped to it below, so The Room's callers
+ * would each have arrived as "chair" and twenty strangers would have shared
+ * the Tank host's voice. One list, in the file that does the casting.
+ *
+ * Object key order is insertion order for string keys, which is what makes the
+ * seat index below stable: a character's fallback voice must not move because
+ * somebody added a caller after them. Append to VOICES; never reorder it.
+ */
+const SPEAKERS = Object.keys(VOICES) as VoiceKey[];
+type Speaker = VoiceKey;
 
 /**
  * Every voice id a legitimate request could carry: the seven cast in
@@ -66,7 +78,7 @@ type Speaker = (typeof SPEAKERS)[number];
 const ALLOWED_VOICE_IDS = new Set<string>(
   [
     ...Object.values(VOICES).map((v) => v.elevenVoiceId),
-    ...SPEAKERS.map((s) => process.env[`ELEVENLABS_VOICE_${s.toUpperCase()}`]),
+    ...SPEAKERS.map((s) => process.env[voiceEnvVar(s)]),
   ]
     .map((id) => (typeof id === "string" ? id.trim() : ""))
     .filter((id) => id.length > 0),
@@ -96,7 +108,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Line too long." }, { status: 413 });
   }
 
-  const speaker = SPEAKERS.includes(body.speaker as Speaker)
+  const speaker: Speaker = SPEAKERS.includes(body.speaker as Speaker)
     ? (body.speaker as Speaker)
     : "chair";
 
@@ -128,7 +140,7 @@ export async function POST(req: NextRequest) {
    * always does, leaving it that way would have silently disabled every
    * ELEVENLABS_VOICE_* variable the moment this shipped.
    */
-  const configured = process.env[VOICE_ENV[speaker]]?.trim();
+  const configured = process.env[voiceEnvVar(speaker)]?.trim();
   /*
    * The client's voice id is honoured ONLY if it is one this deploy would ever
    * legitimately use. Without this, `body.voiceId` was passed straight to
@@ -297,15 +309,21 @@ const PREMADE_VOICES = [
   "yoZ06aMxZJJ28mfd3POQ", // Sam
 ] as const;
 
-const VOICE_ENV: Record<Speaker, string> = {
-  marcus: "ELEVENLABS_VOICE_MARCUS",
-  serena: "ELEVENLABS_VOICE_SERENA",
-  dev: "ELEVENLABS_VOICE_DEV",
-  lily: "ELEVENLABS_VOICE_LILY",
-  viktor: "ELEVENLABS_VOICE_VIKTOR",
-  chair: "ELEVENLABS_VOICE_CHAIR",
-  narrator: "ELEVENLABS_VOICE_NARRATOR",
-};
+/**
+ * The env var that pins this speaker's voice for a deploy —
+ * `ELEVENLABS_VOICE_MARCUS`, `ELEVENLABS_VOICE_ROOM_WARM`, and so on.
+ *
+ * Computed rather than tabulated. The table was a `Record<Speaker, string>`
+ * with seven hand-written rows, which meant every new voice needed a second
+ * edit in a second file to become configurable — and a missed one would not
+ * fail to compile once the speaker union stopped being a closed literal. The
+ * names it produces are exactly the ones the old table held.
+ */
+/* A `function` and not a `const` arrow: `ALLOWED_VOICE_IDS` is built at module
+   scope, above this, and an arrow there is still in its temporal dead zone. */
+function voiceEnvVar(speaker: Speaker): string {
+  return `ELEVENLABS_VOICE_${speaker.toUpperCase()}`;
+}
 
 let voicePool: string[] | null = null;
 let voicePoolAt = 0;
@@ -339,7 +357,7 @@ interface Cast {
 }
 
 async function resolveVoice(speaker: Speaker): Promise<Cast> {
-  const configured = process.env[VOICE_ENV[speaker]]?.trim();
+  const configured = process.env[voiceEnvVar(speaker)]?.trim();
   if (configured) return { voiceId: configured, alternates: [], status: 200 };
 
   const seat = SPEAKERS.indexOf(speaker);
@@ -404,7 +422,7 @@ export async function GET() {
   }
 
   const pool = await voices();
-  const mapped = SPEAKERS.filter((s) => process.env[VOICE_ENV[s]]?.trim()).length;
+  const mapped = SPEAKERS.filter((s) => process.env[voiceEnvVar(s)]?.trim()).length;
 
   return NextResponse.json(
     {
@@ -414,14 +432,24 @@ export async function GET() {
       voices: pool.ids.length,
       /** Voices pinned by ELEVENLABS_VOICE_*, which bypass the list entirely. */
       mapped,
+      /** How many there are to pin. Reported because it MOVES: it was seven
+       *  speakers, and The Room's eight callers' voices took it to fifteen. A
+       *  count with no denominator beside it was read as a fraction of seven
+       *  long after it had stopped being one. */
+      speakers: SPEAKERS.length,
       /** What the player will actually hear. */
       willSpeak: pool.ids.length > 0 || mapped > 0 || pool.status !== 200,
+      /* `env-partial` is the state a deploy that pinned the seven documented
+         voices is actually in, and it used to report as `account` or
+         `premade-fallback` — i.e. as though the pins were not there at all. */
       source:
         mapped === SPEAKERS.length
           ? "env"
-          : pool.ids.length > 0
-            ? "account"
-            : "premade-fallback",
+          : mapped > 0
+            ? "env-partial"
+            : pool.ids.length > 0
+              ? "account"
+              : "premade-fallback",
       listStatus: pool.status,
       ...(lastVoiceError ? { lastError: lastVoiceError } : {}),
     },

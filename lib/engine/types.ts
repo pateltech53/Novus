@@ -423,6 +423,31 @@ export interface RunState {
   coldCallsUsed?: number;
   /** Investors already pitched, so the roster does not offer them twice. */
   coldCallsClosed?: string[];
+  /**
+   * What the Tank has already asked this company, across every year it has
+   * survived. Optional, like everything added after a save format ships.
+   *
+   * The room used to remember only within a session, so a company that was
+   * weak in the same four ways two years running got the same four questions
+   * in the same order, word for word — the single most-reported thing about
+   * playing past year one. Read by the offline shark as a preference and never
+   * as a filter (lib/ai/panel-local.ts), and by the live prompt as the list it
+   * is already told not to repeat.
+   *
+   * Bounded when written (lib/state/GameProvider.tsx): a run that survives ten
+   * years must not carry ten years of sentences in a localStorage save.
+   */
+  askedPanelQuestions?: string[];
+  /**
+   * Activity id → the fiscal year it was last used, for the `yearly` ones.
+   *
+   * `Activity.yearly` had been declared and documented as "once per fiscal
+   * year" since the field was written, was set on seven activities, and was
+   * read by nothing at all — so a player could fire the same once-a-year lever
+   * every month, and every year offered the identical list. This is the ledger
+   * that makes the flag mean what it says.
+   */
+  activityUses?: Record<string, number>;
   /** RobinGhood positions. Prices come from the real clock, not from here. */
   positions: StockPosition[];
   /** Money moved out of the company into the market/personal side. */

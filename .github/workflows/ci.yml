@@ -64,6 +64,29 @@ jobs:
       - name: Leaderboard replay + Brand Law 4
         run: npm run test:board
 
+      # The two daily rations — one company and one fiscal year a day on free —
+      # were enforced on one of their two paths each and asserted by nothing at
+      # all. The only daily-cap tests in the repo were SQL, against a function
+      # the client never calls.
+      - name: Daily rations
+        run: npm run test:limits
+
+      # A player reported that year 2 replayed year 1's exact activities and
+      # questions, and they were right: neither the activity list nor the Tank's
+      # questions had the fiscal year as an input. The balance harness cannot
+      # see it — it never fires an activity and never opens the room.
+      - name: Year-over-year variety
+        run: npm run test:variety
+
+      # The Room is gated on a twelve-row table of "would this business ever
+      # cold call anybody", its numbers are generated from caller ids, and the
+      # trade index and the dialler have to agree on who answers. Every one of
+      # those fails silently: a wrong row hides a mechanic, a collision makes a
+      # listing unreachable, and a lookup that stops being lenient just looks
+      # like a typo to the player.
+      - name: The Room — gate, numbers, lookup
+        run: npm run test:room
+
       - name: Web build
         run: npx next build
 

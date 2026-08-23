@@ -386,12 +386,12 @@ export default function ChapterPage() {
           <>
             <Blurb title="No chapter on this account.">
               A chapter is seats for a classroom or club — 35 for{" "}
-              {formatPrice(CHAPTER_LICENCES[0].priceCents)} a year, 100 for{" "}
-              {formatPrice(CHAPTER_LICENCES[1].priceCents)}, or any size you
-              type, priced between{" "}
-              {formatPrice(perSeatCents(CHAPTER_LICENCES[1]))} and{" "}
+              {formatPrice(CHAPTER_LICENCES[0].priceCents)} a year, or 100 for{" "}
+              {formatPrice(CHAPTER_LICENCES[1].priceCents)}, which works out
+              between {formatPrice(perSeatCents(CHAPTER_LICENCES[1]))} and{" "}
               {formatPrice(perSeatCents(CHAPTER_LICENCES[0]))} a seat. Buy one
-              from the pricing section and this page becomes its console.
+              from the pricing section and this page becomes its console. Any
+              other size is arranged by email — team@novuspitch.com.
             </Blurb>
             <a
               href="/#pro"

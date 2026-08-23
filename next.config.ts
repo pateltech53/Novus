@@ -130,7 +130,7 @@ const CONTENT_SECURITY_POLICY = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
-  // The 23MB GLB and mp4 clips are served from public/ as static assets.
+  // The GLBs and mp4 clips are served from public/ as static assets.
   // Three.js examples chunk pulled in by drei is transpiled fine by default.
 
   // A stray lockfile in the home directory makes Next infer the wrong root.
@@ -211,7 +211,7 @@ const nextConfig: NextConfig = {
                 { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
                 /*
                  * Nobody else's site may embed our responses as a subresource —
-                 * hotlinking the 23MB shark mesh from another page is bandwidth
+                 * hotlinking the shark mesh from another page is bandwidth
                  * theft with a side of misattribution.
                  *
                  * `same-site` rather than `same-origin` on purpose: the shipped

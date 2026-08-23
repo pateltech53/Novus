@@ -4,6 +4,7 @@ import { companyMetrics, briefIsUsable, beatsCovered, PITCH_FRAMEWORK } from "@/
 import { STAGE_NAME, industryByCode } from "@/lib/engine/constants";
 import { fmtMoney } from "@/lib/engine/format";
 import { deriveRunwayMonths } from "@/lib/engine/sim";
+import { hashString, runRng } from "@/lib/engine/rng";
 import { CAST } from "./panel-cast";
 
 /**
@@ -350,7 +351,31 @@ export function attackPointsFor(
     }
   }
 
-  return out.sort((a, b) => b.severity - a.severity);
+  /*
+   * ── Worst first, but not in the same order every year ─────────────────────
+   *
+   * This was a bare `sort((a, b) => b.severity - a.severity)`, and that one
+   * line is most of why year 2 was year 1 again. Severity is an integer off a
+   * handful of thresholds, so a company that is weak in the same four ways two
+   * years running produces four points with the SAME severities in the SAME
+   * authored order — and `localQuestionTurn` then took index 0. Same books,
+   * same question, verbatim, twelve months later.
+   *
+   * The fix is a seeded tie-break, not a shuffle. Severity still decides which
+   * weakness gets hit first, because that is the room being fair: the worst
+   * thing about the company is the thing they should be asked about. What
+   * rotates is the order WITHIN a severity, which is exactly the freedom the
+   * old sort was throwing away.
+   *
+   * Seeded on the run and the fiscal year through `runRng`, never
+   * `Math.random()`: the leaderboard verifier replays this on another machine
+   * and has to draw the same room.
+   */
+  const rng = runRng(run.seed, run.year, 0, hashString("attack-order"));
+  const spin = new Map(out.map((a) => [a.id, rng()] as const));
+  return out.sort(
+    (a, b) => b.severity - a.severity || (spin.get(a.id) ?? 0) - (spin.get(b.id) ?? 0),
+  );
 }
 
 function missingBeatQuestion(n: number): string {

@@ -14,6 +14,10 @@ things:
 - **Everything, without paying** — the admin's own account plays fully
   unlocked (all 12 industries, The Room, 99 runs a day), with a view switch
   to play as `free` or `pro` instead, so paywalls can be tested for real.
+  One thing an unlock cannot open: The Room and The Index do not exist for a
+  company in FOOD, ECOM or FITNESS, on any tier including this one. That is
+  not a paywall — a fast-food owner has no business to cold call — so there is
+  nothing for an entitlement to grant. Found in TECH to test it.
 - **The service surface** — `app/api/admin/*`, which answers 404 to every
   other account on earth.
 
@@ -148,7 +152,7 @@ are reachable — `saves.slot` stops at nine).
 
 **Extra year closes a day (给用户加 year)** — `entitlements.extra_year_closes`
 (0012), set outright 0–20 through `/api/admin/years`, on top of whatever the
-account's tier allows: free closes four fiscal years a real day, Pro as many
+account's tier allows: free closes one fiscal year a real day, Pro as many
 as it can pitch. The console row states the total it adds up to, so an
 operator granting 6 to a free player can see the account now closes ten a
 day; typing `0` takes the grant back.

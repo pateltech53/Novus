@@ -5,13 +5,16 @@ import { motion } from "framer-motion";
 import { ENTER, EXIT, SCRIM } from "@/components/ui/Motion";
 import { useGame } from "@/lib/state/GameProvider";
 import { MONTH_NAMES } from "@/lib/engine/format";
+import { sellsToBusinesses } from "@/lib/engine/constants";
+import type { RunState } from "@/lib/engine/types";
 import { Glass, GlassScrim } from "@/components/ui/Glass";
 import { BeeMail, inboxFor } from "@/components/phone/BeeMail";
 import { LockScreen } from "@/components/phone/LockScreen";
 import { ColdCall } from "@/components/phone/ColdCall";
+import { TradeIndex } from "@/components/phone/TradeIndex";
 import { useNativeGlassClose } from "@/components/native/useNativeOverlay";
 
-export type PhoneApp = "robinghood" | "beemail" | "linkedout" | "coldcall";
+export type PhoneApp = "robinghood" | "beemail" | "linkedout" | "coldcall" | "index";
 /**
  * `lock` is where every session starts. See the note on `screen` below — the
  * phone used to open on whichever app had a notification, which turned it into a
@@ -96,6 +99,24 @@ const APPS: {
     ),
   },
   {
+    id: "index",
+    name: "The Index",
+    tint: "var(--color-prestige)",
+    glyph: (
+      <svg viewBox="0 0 24 24" className="h-7 w-7" aria-hidden="true" fill="none">
+        {/* A book with a tab in it — a trade directory, not a browser. The
+            player is looking somebody up, not surfing. */}
+        <path
+          d="M4 5.2A1.7 1.7 0 0 1 5.7 3.5H19a1.5 1.5 0 0 1 1.5 1.5v13A1.5 1.5 0 0 1 19 19.5H5.7A1.7 1.7 0 0 0 4 21.2V5.2Z"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinejoin="round"
+        />
+        <path d="M8 8.4h7M8 12h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
     id: "linkedout",
     name: "LinkedOut",
     tint: "var(--app-linkedout)",
@@ -146,6 +167,8 @@ export function Phone({
    * a device.
    */
   const [screen, setScreen] = useState<Screen>("lock");
+  /** Whether this company would ever ring another business — see HomeScreen. */
+  const calling = run ? sellsToBusinesses(run.industry) : false;
   const pendingApp = useRef<PhoneApp | null>(null);
   /** null until mounted — the clock is real, so it cannot be server-rendered. */
   const [now, setNow] = useState<Date | null>(null);
@@ -154,9 +177,14 @@ export function Phone({
   // Every open re-locks. Never resumes wherever it was last left.
   useEffect(() => {
     if (!open) return;
-    pendingApp.current = initialApp ?? null;
+    /* A deep link to an app this company does not have is dropped here rather
+       than followed and then rendered as nothing — the unlock would land on a
+       blank screen with a home pill under it. */
+    const wanted = initialApp ?? null;
+    pendingApp.current =
+      wanted && !calling && (wanted === "coldcall" || wanted === "index") ? null : wanted;
     setScreen("lock");
-  }, [open, initialApp]);
+  }, [open, initialApp, calling]);
 
   // A real clock, sampled twice a minute — enough for a status bar, cheap
   // enough to leave running while the phone is up.
@@ -273,6 +301,7 @@ export function Phone({
             )}
             {screen === "home" && (
               <HomeScreen
+                run={run}
                 unread={unread}
                 stamp={run ? `${run.companyName} · FY${run.year} · ${MONTH_NAMES[run.month - 1]}` : null}
                 onOpen={setScreen}
@@ -281,7 +310,21 @@ export function Phone({
             {screen === "beemail" && <BeeMail onRead={markMailRead} />}
             {screen === "robinghood" && robinghood}
             {screen === "linkedout" && linkedout}
-            {screen === "coldcall" && <ColdCall />}
+            {/*
+              `calling &&`, not just the home screen's filter.
+              Hiding an icon hides the door, not the room: `initialApp` is a
+              deep link (the activity's flag, a notification), and a run saved
+              before this gate existed can still carry `open_the_room`. Either
+              would route a FOOD founder into a trade index for an industry
+              that has no trade to index. The screen is only ever rendered for a
+              company that would make the call.
+            */}
+            {calling && screen === "coldcall" && (
+              <ColdCall onIndex={() => setScreen("index")} />
+            )}
+            {calling && screen === "index" && (
+              <TradeIndex onCall={() => setScreen("coldcall")} />
+            )}
           </div>
 
           {/* ── Home affordance ────────────────────────────────────────── */}
@@ -328,16 +371,38 @@ export function Phone({
  * in-fiction — and it keeps the player oriented after a lock-screen detour.
  */
 function HomeScreen({
+  run,
   unread,
   stamp,
   onOpen,
 }: {
+  run: RunState | null;
   unread: number;
   stamp: string | null;
   onOpen: (app: PhoneApp) => void;
 }) {
-  const dock = APPS.filter((a) => a.id === "beemail" || a.id === "coldcall");
-  const grid = APPS.filter((a) => !dock.includes(a));
+  /*
+   * ── Two apps this company may simply not have ─────────────────────────────
+   *
+   * The Room and The Index only exist for a business whose growth runs through
+   * another business's phone. A fast-food owner has nobody to ring: they grow
+   * by being on the right corner and getting the queue moving, and a phone full
+   * of wholesale buyers on their home screen would be the game telling them
+   * something untrue about their own company.
+   *
+   * ABSENT rather than locked, and that is the difference between this gate and
+   * the Pro one. Pro is a fact about the account and shows a locked row that
+   * says what a subscription opens. This is a fact about the BUSINESS, and
+   * there is nothing to sell — putting a padlock here would advertise a
+   * mechanic a FOOD founder should never want, and price it.
+   *
+   * `lib/engine/constants.ts` holds the answer per industry, with the reasoning
+   * for all twelve written down beside it.
+   */
+  const calling = run ? sellsToBusinesses(run.industry) : false;
+  const shown = APPS.filter((a) => calling || (a.id !== "coldcall" && a.id !== "index"));
+  const dock = shown.filter((a) => a.id === "beemail" || a.id === "coldcall");
+  const grid = shown.filter((a) => !dock.includes(a));
 
   return (
     <motion.div

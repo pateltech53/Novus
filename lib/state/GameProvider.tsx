@@ -27,11 +27,12 @@ import {
 } from "@/lib/engine/run";
 import { buildAutopsy, type AutopsyReport } from "@/lib/engine/autopsy";
 import type { CompanyBrief } from "@/lib/engine/company-brief";
-import { activityById, isAvailable } from "@/lib/engine/activities";
+import { activityById, isLocked, isOfferable } from "@/lib/engine/activities";
 import { callerById, consumeCall, type CallOutcome } from "@/lib/ai/callers";
 import { syncPositioning } from "@/lib/engine/positioning";
 import { TANK_REQUIRED_THROUGH_YEAR } from "@/lib/engine/constants";
 import {
+  industryUnlocked,
   islandCapFor,
   isPro,
   loadEntitlements,
@@ -188,6 +189,16 @@ export interface PerformRequest {
   choiceIndex?: number;
 }
 
+/**
+ * How many of the Tank's questions a run remembers between years.
+ *
+ * Two years' worth at three questions a year, with room to spare. Enough that
+ * the room does not open on last year's sentence; small enough that a
+ * ten-year run does not carry a page of dialogue into a localStorage save
+ * shared with nine other islands.
+ */
+const PANEL_MEMORY = 12;
+
 interface GameContextValue {
   run: RunState | null;
   /**
@@ -319,6 +330,11 @@ interface GameContextValue {
    * answer was — you used the person's time either way.
    */
   applyColdCall(callerId: string, outcome: CallOutcome, transcript?: string): void;
+  /**
+   * Remember what the Tank asked this year, so next year's room does not open
+   * with the same sentence. Never scores anything — it only orders questions.
+   */
+  rememberPanelQuestions(questions: string[]): void;
   /** Consume a one-shot UI flag set by an activity (e.g. open_the_room). */
   clearFlag(flag: string): void;
 
@@ -541,6 +557,20 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
        */
       if (runsRemainingToday() <= 0) return;
       /*
+       * The industry gate, for exactly the reason stated above it.
+       *
+       * The founding screen's grid used to be the only thing keeping a free
+       * account out of the eight Pro industries — it dimmed the card and
+       * refused the tap. That grid is now deliberately open (a player picking
+       * a paid industry is telling us something worth hearing, and the answer
+       * belongs at FOUND IT), which would leave the whole gate in one
+       * `onClick` if this line were not here.
+       *
+       * `industryUnlocked` rather than `isPro`, because there are three ways
+       * to own an industry and a one-time pack is one of them.
+       */
+      if (!industryUnlocked(opts.industry, loadEntitlements())) return;
+      /*
        * Which island this company goes on, decided BEFORE anything is written.
        *
        * ── A named slot is a request, not an instruction ──────────────────────
@@ -747,7 +777,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     // The daily ration gates skipped closes exactly like pitched ones — a
     // skip is still a year of progress, and it must not be the way around
     // the free tier's pace limit.
-    if (!state.pro && yearClosesRemainingToday() <= 0) return;
+    //
+    // `isPro(loadEntitlements())` rather than `state.pro`: the run carries a
+    // COPY of the tier taken when it was founded (see `startRun`), and it is
+    // also what `setPro` writes without touching the entitlement store — so a
+    // run flagged pro in memory would spend nothing. The store is the receipt;
+    // it is also the only one of the two that knows about a chapter seat.
+    if (!isPro(loadEntitlements()) && yearClosesRemainingToday() <= 0) return;
     const working: RunState = structuredClone(state);
     recordTap(working, {
       t: "perform",
@@ -780,6 +816,43 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const state = runRef.current;
       const request = perform;
       if (!state || !request) return;
+
+      /*
+       * ── The daily ration, checked before ANYTHING is written ──────────────
+       *
+       * The same ration `skipYearGate` spends, on the path that actually
+       * closes most years. It was missing entirely: the only thing between a
+       * free player and unlimited closes was a render branch in PerformScreen
+       * that hides OPEN THE CAMERA once the ration is spent — and a screen is
+       * not a gate. `startRun` states the rule for this file ("checked here
+       * rather than in the UI so no screen can start a run the pricing page
+       * says you do not have"); this is that rule, applied to the other
+       * ration.
+       *
+       * FIRST, and the position is the whole point. `recordTap` below is
+       * `record()` from lib/leaderboard/recorder.ts, which does NOT write into
+       * `working` — it reads the tape out of storage, appends and writes it
+       * straight back. So a refusal placed after it abandons the clone and
+       * leaves the entry behind: a `perform / yearEnd` on the tape for a year
+       * the player never closed, which the verifier would then replay as a
+       * close. The tape is the record of what HAPPENED, so nothing may reach
+       * it until the close is known to be allowed. `skipYearGate` has always
+       * had this order; this is the same one.
+       *
+       * `perform` is deliberately NOT cleared. Clearing it unmounts
+       * PerformScreen (`if (!perform || !run) return null`) — the very screen
+       * whose `yearRationSpent` branch explains the limit and offers the other
+       * islands. Left mounted, that branch is what the player lands on, which
+       * is the refusal this is supposed to hand them.
+       */
+      if (
+        request.kind === "yearEnd" &&
+        !isPro(loadEntitlements()) &&
+        yearClosesRemainingToday() <= 0
+      ) {
+        return;
+      }
+
       const working: RunState = structuredClone(state);
 
       /*
@@ -815,6 +888,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         commit(working);
         setQueue((q) => q.slice(1));
       } else if (request.kind === "yearEnd") {
+        // The ration was spent at the top of this function, before the tape.
         const result: PerformResult = {
           type: "pitch",
           score,
@@ -1365,6 +1439,46 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     [commit],
   );
 
+  /**
+   * The Tank's questions, kept on the run.
+   *
+   * ── Why this exists ────────────────────────────────────────────────────────
+   *
+   * The room's no-repeat rule lived entirely in one session's React state, so
+   * it was reborn empty at every year gate. A company weak in the same ways two
+   * years running therefore got the same questions in the same order, word for
+   * word — reported as "year 2 was the exact same flow and questions", and
+   * accurately.
+   *
+   * ── Why the list is capped ────────────────────────────────────────────────
+   *
+   * A run can survive ten years and every one of these is a whole sentence.
+   * Uncapped, a save that has to fit in localStorage beside nine other islands
+   * would grow by a paragraph a year for no benefit: the offline shark reads
+   * this to sink questions it has used recently, and "recently" past a couple
+   * of years is not a distinction anybody can hear. Newest kept.
+   *
+   * ── Why it is not part of the tape ────────────────────────────────────────
+   *
+   * It changes which question is asked and nothing about what anything is
+   * worth — no score, no cash, no survival. `recordTap` is for things the
+   * verifier has to replay; this is not one of them, and adding it would make
+   * every tape carry the room's dialogue for no verification value.
+   */
+  const rememberPanelQuestions = useCallback(
+    (questions: string[]) => {
+      const state = runRef.current;
+      if (!state || !state.alive) return;
+      const fresh = questions.map((q) => q.trim()).filter((q) => q.length > 0);
+      if (fresh.length === 0) return;
+      const working: RunState = structuredClone(state);
+      const merged = [...(working.askedPanelQuestions ?? []), ...fresh];
+      working.askedPanelQuestions = merged.slice(-PANEL_MEMORY);
+      commit(working);
+    },
+    [commit],
+  );
+
   const applyColdCall = useCallback(
     (callerId: string, outcome: CallOutcome, transcript = "") => {
       const state = runRef.current;
@@ -1515,7 +1629,17 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       // The sheet already hides what is unavailable. Check again here anyway:
       // going public is irreversible and once-only, and a stale sheet held open
       // across a commit must not be able to fire it twice.
-      if (!isAvailable(activity, state)) return;
+      if (!isOfferable(activity, state)) return;
+      /*
+       * A Pro-locked activity is LISTED for a free player — that is the whole
+       * point of `pro` as against `available` — so the refusal has to live
+       * here as well as on the row. The screen sends a locked press to the
+       * paywall and never gets this far; this line is what makes that a
+       * choice the screen makes rather than the only thing standing in the
+       * way. Without it a locked tap would set `open_the_room` and write an
+       * `{ t: "activity" }` entry onto a tape the verifier would then reject.
+       */
+      if (isLocked(activity, state)) return;
       const working: RunState = structuredClone(state);
       activity.apply(working);
       // Activities spend resources and never advance time, but they absolutely
@@ -1577,6 +1701,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       dismissTierUnlock,
       markMailRead,
       applyColdCall,
+      rememberPanelQuestions,
       clearFlag,
       launchLineItem,
       retireLineItem,

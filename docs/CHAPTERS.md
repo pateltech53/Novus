@@ -1,26 +1,39 @@
 # Chapters — seats for classrooms and clubs
 
 A chapter is seats bought by one adult as a yearly subscription — a fixed 35
-or 100, or any size the buyer types. Every seat is Pro for the licence year.
-This document is the operator's view: what to run, what to configure, and how
-the flow behaves end to end.
+or 100. Every seat is Pro for the licence year. This document is the
+operator's view: what to run, what to configure, and how the flow behaves end
+to end.
 
 The licences: **$799 / year for 35 seats** and **$1,599 / year for 100 seats**
 (`chapter_35`, `chapter_100` in `lib/monetization.ts`). The live Stripe
 product ids ship as in-code defaults — see `docs/STRIPE-SETUP.md` §2.
 
-**Custom sizes** (`chapter_custom`, 10–500 seats): the buyer types a seat
-count on the pricing page and reads the exact yearly price it computes to —
-below 35 seats the 35-seat per-seat rate, 35→100 a straight line between the
-two tier prices, above 100 the 100-seat rate carried on, rounded to whole
-dollars (`customChapterPriceCents`). At exactly 35 or 100 it equals the tier
-price to the cent. No Stripe product or env var to set up: checkout sends the
-server-computed amount as `price_data`, and the webhook reads the size back
-off the subscription's metadata. The one thing the client ever chooses is the
-seat COUNT — the price is computed server-side from it, by the same function
-the screen displayed. Custom sizes are changed by support (cancel and rebuy,
-or edit the subscription in Stripe), not by the portal's plan switcher, which
-only knows the two fixed prices.
+**Custom sizes** (`chapter_custom`, 10–10,000 seats) **are not self-serve.**
+The pricing page used to carry a seat-count field that quoted any size on the
+spot and opened checkout on it. That generator is gone, and
+`/api/billing/checkout` now refuses `chapter_custom` outright with the team
+address: a buyer big enough to need their own number needs a purchase order,
+an invoice, a data-protection answer and a start date, and a form that takes
+their card before any of that has been said answers none of it.
+
+What remains of `chapter_custom` is the operator's half, and it still works:
+
+* **Granting one** — the console (`/admin`, or `POST /api/admin/chapters`
+  with `licence: "chapter_custom"` and a `seats` count) creates the chapter
+  directly. `isCustomSeatCount` still bounds the number at 10–10,000.
+* **Billing one** — raise the invoice or subscription in Stripe with
+  `novus_sku: chapter_custom` and a `seats` metadata value.
+  `customChapterPriceCents` is still the house formula to quote from: below 35
+  seats the 35-seat per-seat rate, 35→100 a straight line between the two tier
+  prices, above 100 the 100-seat rate carried on, rounded to whole dollars. At
+  exactly 35 or 100 it equals the tier price to the cent.
+* **Reading one back** — `lib/stripe/chapter.ts` still resolves the seat count
+  off a subscription's metadata, so licences already sold this way keep
+  renewing and keep their seats.
+
+Custom sizes are changed by support (edit the subscription in Stripe), not by
+the portal's plan switcher, which only knows the two fixed prices.
 
 ---
 

@@ -1,9 +1,7 @@
-import type { CSSProperties } from "react";
-
 import { ISLAND_CAP } from "@/lib/monetization";
 
 /**
- * The ocean the islands sit on.
+ * The ocean the islands sit on — the picture, edge to edge.
  *
  * ── What it is trying to be ────────────────────────────────────────────────
  *
@@ -11,117 +9,72 @@ import { ISLAND_CAP } from "@/lib/monetization";
  * cards with a wave graphic behind it, and a grid with waves behind it is a
  * grid — the islands read as list items that happened to be drawn as islands.
  * The second was the sea in a rounded panel, which is a picture of the sea
- * hanging on a wall. This is the third and the right one: the water is the
- * screen, edge to edge, and everything else floats on it — the islands, and
- * the one piece of small print, which is in a boat.
+ * hanging on a wall. The water is the screen now, and everything else floats on
+ * it: the islands, and the one piece of small print, which is in a boat.
  *
  * No corners, therefore. A radius here would put the wall back.
  *
- * ── Flat, but not still ────────────────────────────────────────────────────
+ * ── Why this is four lines instead of a hundred ────────────────────────────
  *
- * No gradient and no blur: design.md gives real lighting to the stage layer
- * and nothing else, so depth here comes from what depth came from before
- * photography — things further away are smaller, higher, paler and flatter.
+ * It used to draw the sea: a rect of `--sea`, three hand-placed bands of
+ * animated swell strokes, then a sky, a horizon haze and four clouds, split
+ * across two SVGs because one of them had to keep its aspect ratio and the
+ * other had to stretch. All of it was an attempt to arrive at a picture of an
+ * ocean. There is a picture of an ocean now, so the drawing is gone.
  *
- * It does move, and the movement is the whole reason it reads as water rather
- * than as a diagram of water. Three bands, three durations, three amplitudes,
- * because the one thing that would ruin it is agreement: waves that swell in
- * unison are a comb. The near band travels furthest and fastest, which is the
- * same parallax rule as the sizes.
+ * What went with it is worth naming, because it was deliberate and is now
+ * simply absent: the swells MOVED, on three durations and three amplitudes, so
+ * that the water read as water rather than as a diagram of it. The artwork's
+ * waves are still. The motion that remains is `.nv-bob` on the islands
+ * themselves — which is the half that mattered, because it is the islands a
+ * player is looking at, and it is still stopped by `prefers-reduced-motion`
+ * along with everything else. `@keyframes nvSwell` and `.nv-swell` stay in
+ * globals.css; nothing uses them today.
  *
- * The amplitudes are single digits over ten-odd seconds on purpose. A player
- * is on this screen for a few seconds several times a day, and ambient motion
- * that draws the eye a SECOND time is a fidget. `prefers-reduced-motion` stops
- * all of it — see the blanket rule in globals.css — and nothing is lost when
- * it does, because the sea carries no information.
+ * ── One image, both themes ─────────────────────────────────────────────────
  *
- * The strokes are hand-placed rather than generated. Eight lines that read as
- * water at 320px are worth more than an algorithm producing forty that read as
- * corduroy.
+ * Deliberately not two. A night version of the same sea would be a second
+ * asset to keep in step with the first, and the islands screen is the one
+ * surface in the app that is a PLACE rather than a document — a place does not
+ * repaint itself when you change your reading preference. Everything drawn on
+ * top of it still themes, and the caption colours were already chosen against
+ * water rather than against a page.
  */
 export function Sea({ className = "" }: { className?: string }) {
   return (
-    <svg
+    <div
       className={className}
-      viewBox="0 0 400 300"
-      preserveAspectRatio="none"
-      fill="none"
       aria-hidden
-    >
-      {/* The water itself.
-          `--sea` and `--sea-crest` are a pair, per theme, in globals.css. This
-          used to be `--color-navy` mixed 14% into `--surface`, with the swells
-          drawn in `--hairline` — which in light mode is a grey at L 0.85 with
-          crests three points of lightness away from it. The sea was the whole
-          screen and the whole screen was unlit. Water is a colour; a crest is
-          the light on it; the crest is always the brighter of the two. */}
-      <rect x="0" y="0" width="400" height="300" fill="var(--sea)" />
-
-      {/* Far water: fine, level, close together. Distance flattens waves, and
-          packing them tighter toward the top is most of what makes this read
-          as a surface receding rather than as a rectangle with squiggles. */}
-      <g
-        stroke="var(--sea-crest)"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        opacity="0.5"
-        vectorEffect="non-scaling-stroke"
-        className="nv-swell"
-        style={{ "--nv-swell-dur": "14s", "--nv-swell-x": "3px" } as CSSProperties}
-      >
-        <path d="M18 20 q12 -4 24 0 t24 0" />
-        <path d="M126 16 q12 -4 24 0 t24 0" />
-        <path d="M262 22 q12 -4 24 0 t24 0" />
-        <path d="M340 34 q12 -4 24 0 t24 0" />
-        <path d="M56 40 q13 -4 26 0 t26 0" />
-        <path d="M196 44 q13 -4 26 0 t26 0" />
-        <path d="M300 56 q13 -4 26 0 t26 0" />
-        <path d="M14 62 q14 -5 28 0 t28 0" />
-        <path d="M150 68 q14 -5 28 0 t28 0" />
-      </g>
-
-      {/* Middle water: longer swells, further apart. */}
-      <g
-        stroke="var(--sea-crest)"
-        strokeWidth="2.1"
-        strokeLinecap="round"
-        opacity="0.7"
-        vectorEffect="non-scaling-stroke"
-        className="nv-swell"
-        style={
-          { "--nv-swell-dur": "10.5s", "--nv-swell-x": "6px", "--nv-swell-y": "1.5px" } as CSSProperties
-        }
-      >
-        <path d="M244 92 q18 -7 36 0 t36 0" />
-        <path d="M46 104 q19 -7 38 0 t38 0" />
-        <path d="M320 122 q19 -7 38 0 t38 0" />
-        <path d="M132 134 q20 -7 40 0 t40 0" />
-        <path d="M0 148 q20 -7 40 0 t40 0" />
-        <path d="M250 160 q21 -8 42 0 t42 0" />
-      </g>
-
-      {/* Near water: the biggest swells, the ones with weight. */}
-      <g
-        stroke="var(--sea-crest)"
-        strokeWidth="2.8"
-        strokeLinecap="round"
-        vectorEffect="non-scaling-stroke"
-        className="nv-swell"
-        style={
-          { "--nv-swell-dur": "7.5s", "--nv-swell-x": "10px", "--nv-swell-y": "2.5px" } as CSSProperties
-        }
-      >
-        <path d="M28 186 q26 -10 52 0 t52 0" />
-        <path d="M244 200 q27 -10 54 0 t54 0" />
-        <path d="M0 224 q28 -10 56 0 t56 0" />
-        <path d="M190 244 q29 -11 58 0 t58 0" />
-        <path d="M52 268 q31 -11 62 0 t62 0" />
-        <path d="M286 284 q30 -11 60 0 t60 0" />
-      </g>
-
-    </svg>
+      style={{
+        backgroundImage: "url(/islands/ocean.webp)",
+        backgroundSize: "cover",
+        backgroundPosition: "center top",
+        backgroundRepeat: "no-repeat",
+        /* Under the image and never seen, except for the moment before it
+           decodes and on the one axis `cover` cannot fill. `--sea` is still the
+           water's token everywhere else on this screen, so the fallback is the
+           same colour rather than a second opinion about it. */
+        backgroundColor: "var(--sea)",
+      }}
+    />
   );
 }
+
+/**
+ * Where the water starts, as a fraction of the picture's height.
+ *
+ * `scripts/build-art.mjs` finds the horizon in the source, crops the sky back
+ * until it sits here, and prints the number it achieved. It is duplicated in
+ * this one constant because the ISLANDS have to stay under it — `bandY` in the
+ * islands page reads it — and a layout that guessed would put half an
+ * archipelago in the sky.
+ *
+ * It holds on screen as long as `cover` is scaling by HEIGHT, which is true for
+ * every viewport narrower than the picture's 1.77 aspect: every phone, and any
+ * window that is not a letterbox. Wider than that and the horizon rises, which
+ * costs nothing — the islands only ever move further below it.
+ */
+export const HORIZON_PCT = 0.24;
 
 /**
  * Where each island sits on the water, as percentages of the sea.

@@ -31,7 +31,24 @@ import { Box3, Vector3, type Group } from "three";
  * the suit's underside keeps its form.
  */
 
-const MODEL_URL = "/models/shark-champion.glb";
+/*
+ * The champion, decimated for the phone.
+ *
+ * The hero renders into a box roughly 200–300 CSS px tall, and the mesh it
+ * was handed carried 246,938 triangles and FOUR 2048×2048 textures — about
+ * 85 MB of VRAM and 16.8 million pixels of WebP to decode on the main thread,
+ * for something the size of a playing card. The download (2.16 MB) was never
+ * the slow part; the decode and the upload were.
+ *
+ * Rebuilt at 47,814 triangles, base colour at 1024² and the normal, metallic
+ * and emissive maps at 512²: 486 KB on the wire and about 10.6 MB of VRAM.
+ * `npm run models` regenerates it.
+ *
+ * `-v2` rather than overwriting: next.config.ts serves /models/* `immutable`
+ * for seven days, so a replaced asset has to be a replaced URL or returning
+ * players keep the old one for a week.
+ */
+const MODEL_URL = "/models/shark-champion-v2.glb";
 
 /** Largest model dimension, in world units. */
 const FIT = 1.9;

@@ -326,8 +326,16 @@ export interface Limits {
   /**
    * Fiscal years a player may CLOSE per real day, across all companies.
    * The gate is at the year close, not the month: twelve months still play
-   * out, and it is closing the books that spends one. Rolls over on the UTC
-   * date, same clock the cold-call ration uses.
+   * out, and it is closing the books that spends one. Rolls over on the
+   * player's own LOCAL calendar date — `todayISO()`, the same clock the run
+   * ledger below uses, and for the same reason: a personal daily allowance
+   * resets at the person's midnight, not Greenwich's.
+   *
+   * The cold-call ration is the odd one out and deliberately so: it rolls over
+   * on UTC (`callsRemaining` in lib/engine/activities.ts) because it is
+   * recorded on the tape and `lib/leaderboard/bounds.ts` buckets those entries
+   * by UTC date to catch a forged one. A ledger the verifier has to agree with
+   * has to be on the verifier's clock.
    */
   yearClosesPerDay: number;
 }
@@ -338,7 +346,24 @@ export const FREE_LIMITS: Limits = {
   redoFailedRun: false,
   industries: 4,
   coldCallsPerDay: 0,
-  yearClosesPerDay: 4,
+  /*
+   * One fiscal year a day, and it is the whole shape of the free tier.
+   *
+   * It was four. Four is a session, not a pace: a free player closed years
+   * one through four in an afternoon, met the wall in the middle of the run
+   * that was going well, and the limit read as the app breaking rather than
+   * as a rhythm. One year a day is a thing a player can plan around — come
+   * back tomorrow, close the next one — and it is the same shape as
+   * `runsPerDay: 1` beside it, which is the point: a free account gets one
+   * company a day and one year a day, said once and the same way twice.
+   *
+   * Note the pairing with `redoFailedRun: false` and with
+   * TANK_REQUIRED_THROUGH_YEAR: the tank is compulsory through year 3, so the
+   * SKIP THE TANK exit only appears on a free player's fourth day of play.
+   * That is deliberate — the pitch IS the product, and a free player who has
+   * never done one has not seen it.
+   */
+  yearClosesPerDay: 1,
 };
 
 export const PRO_LIMITS: Limits = {
@@ -611,11 +636,11 @@ export function saveEntitlements(next: Entitlements): void {
 
 /**
  * How many fiscal years this DEVICE has closed today, for the free tier's
- * pace limit. Device-level rather than per-run on purpose: the limit is "four
- * years of progress a day", and counting per company would make founding a
- * second company the workaround. The player's LOCAL calendar day, same clock
- * as the run ledger above and for the same reason: a personal daily allowance
- * resets at the person's own midnight, not Greenwich's.
+ * pace limit. Device-level rather than per-run on purpose: the limit is a
+ * number of years of progress a day, and counting per company would make
+ * founding a second company the workaround. The player's LOCAL calendar day,
+ * same clock as the run ledger above and for the same reason: a personal
+ * daily allowance resets at the person's own midnight, not Greenwich's.
  */
 const YEAR_CLOSE_KEY = "novus:yearcloses:v1";
 

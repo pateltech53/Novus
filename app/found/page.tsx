@@ -2,7 +2,6 @@
 
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { motion } from "framer-motion";
 import { GameProvider, useGame } from "@/lib/state/GameProvider";
 import { FounderPortrait } from "@/components/FounderAvatar";
 import { PickMark } from "@/components/ui/PickMark";
@@ -12,8 +11,8 @@ import type { Industry } from "@/lib/engine/types";
 import { liveIslandCount, loadProfile } from "@/lib/engine/save";
 import {
   ISLAND_CAP,
+  industryUnlocked,
   islandCapFor,
-  isPro,
   loadEntitlements,
   onEntitlementsChange,
   runsRemainingToday,
@@ -38,7 +37,13 @@ export default function FoundPageWrapper() {
 }
 
 /**
- * O8 · Found the company. Locked industries are aspiration, not annoyance.
+ * O8 · Found the company. Every industry picks; Pro is asked for at FOUND IT.
+ *
+ * The grid used to refuse a paid industry on the tap — dimmed card, padlock,
+ * instant upsell. It now selects like any other, and the refusal waits for the
+ * press that commits. A player who has chosen the business, named the company
+ * and written the brief is being answered about something they want; a player
+ * whose finger has just landed on a card is being told off for looking.
  *
  * ── Why this screen knows about the company you already have ─────────────────
  *
@@ -108,16 +113,8 @@ function FoundPage() {
   /** AI first-drafts left for THIS founding. Three on every tier. */
   const [drafts, setDrafts] = useState(3);
   const [briefOpen, setBriefOpen] = useState(false);
-  const [lockedNote, setLockedNote] = useState<string | null>(null);
   /** null until mounted — the ledger lives in localStorage. */
   const [slotsLeft, setSlotsLeft] = useState<number | null>(null);
-  /**
-   * Device Pro opens the eight paid industries. This gate used to read only the
-   * static `free` flag, so a player who had just chosen Pro still saw every
-   * industry locked — the purchase appeared to do nothing, which is worse than
-   * either honest state.
-   */
-  const [hasPro, setHasPro] = useState(false);
   /**
    * Read after mount, like the two above it, and for a sharper reason.
    *
@@ -146,7 +143,6 @@ function FoundPage() {
     const sync = () => {
       const e = loadEntitlements();
       setSlotsLeft(runsRemainingToday(e));
-      setHasPro(isPro(e));
       setCap(islandCapFor(e));
       setLiving(liveIslandCount());
     };
@@ -203,6 +199,34 @@ function FoundPage() {
      * midnight in either direction, and the cap can change while it is open —
      * buying an island happens without leaving the page.
      */
+    /*
+     * ── The industry gate, moved here from the grid ────────────────────────
+     *
+     * First, before the run slot and the island: a player refused for BOTH
+     * should hear the answer that has a door behind it, and this is the one
+     * with a door. `open` rather than `notify` — the same choice the island
+     * and run-slot refusals on this page already make — because a press on
+     * FOUND IT is a decision, not a glance, and it deserves the screen that
+     * can actually sell the pack rather than a banner that appears once a
+     * session and then never again.
+     *
+     * Re-read at the tap for the same reason the two limits below are: the
+     * paywall this opens can be bought from without leaving the page, so the
+     * second press has to see the purchase the first one caused.
+     */
+    /*
+     * `industryUnlocked` rather than `isPro`, and read fresh rather than held
+     * in state. There are three ways to own an industry — it is free, the
+     * account is Pro or on a chapter seat, or the pack was bought on its own —
+     * and this function is the only thing that knows all three. It was
+     * exported and called from nowhere until now, which is why a player who
+     * had bought FASHION as a one-time pack was still refused it at founding.
+     */
+    if (!industryUnlocked(industry, loadEntitlements())) {
+      upgrade.open("industries");
+      return;
+    }
+
     const left = runsRemainingToday();
     setSlotsLeft(left);
     if (left <= 0) return;
@@ -367,19 +391,31 @@ function FoundPage() {
             <li key={ind.code}>
               <button
                 type="button"
-                onClick={() => {
-                  if (ind.free || hasPro) {
-                    setIndustry(ind.code);
-                    setLockedNote(null);
-                    return;
-                  }
-                  // Both, and they do different jobs. The notification explains
-                  // the limit once per session and offers the screen; the note
-                  // below names THIS industry and stays put, so the second tap
-                  // on a second locked card is still answered by something.
-                  setLockedNote(ind.name);
-                  upgrade.notify("industries");
-                }}
+                /*
+                 * ── Every industry picks. The gate is at FOUND IT ──────────
+                 *
+                 * This used to refuse the tap outright for the eight paid
+                 * industries: a dimmed card, a padlock where the pick mark
+                 * goes, and an upsell that fired the moment a finger landed.
+                 * Three separate ways of saying "not for you" before the
+                 * player had done anything but look.
+                 *
+                 * It got the timing exactly backwards. A player who taps
+                 * FASHION has just told us something worth knowing — that is
+                 * the most engaged they will ever be with an industry they do
+                 * not own — and the old grid answered by making the card look
+                 * broken. So the pick is unconditional now: the card selects,
+                 * the mark lands, the name appears in the sentence below like
+                 * any other. `start()` is where the answer comes, and by then
+                 * the player has chosen a name, a business and a brief, and
+                 * the paywall is answering a question they actually asked.
+                 *
+                 * Nothing is given away by this. `start()` re-reads
+                 * entitlements at the tap and `game.startRun` refuses again
+                 * underneath it — see both. This grid was never a gate worth
+                 * having; it was a gate a devtools console could open.
+                 */
+                onClick={() => setIndustry(ind.code)}
                 aria-pressed={selected}
                 /* The border stays on every state, transparent under the
                    picked rim: `.nv-pick` draws its 2px inside the box, so a
@@ -389,43 +425,18 @@ function FoundPage() {
                 className={`nv-gc flex w-full items-center justify-between gap-2 rounded-[var(--radius-card)] border px-3 py-3 text-left ${
                   selected
                     ? "nv-pick border-transparent font-bold"
-                    : ind.free || hasPro
-                      ? "border-[var(--hairline)] hover:bg-[var(--card)]"
-                      : "border-[var(--hairline)] opacity-55"
+                    : "border-[var(--hairline)] hover:bg-[var(--card)]"
                 }`}
               >
                 <span className="text-sm font-semibold leading-tight">{ind.name}</span>
-                {/* One slot, three answers: chosen, locked, or nothing at all.
-                    An empty ring on every unchosen row would put twelve of them
-                    down a screen that already carries a lock column. */}
-                {selected ? (
-                  <PickMark on size={18} />
-                ) : !ind.free && !hasPro ? (
-                  <LockGlyph />
-                ) : null}
+                {/* Chosen, or nothing. The lock that used to share this slot is
+                    gone with the rest of the select-time refusal. */}
+                {selected ? <PickMark on size={18} /> : null}
               </button>
             </li>
           );
         })}
       </ul>
-
-      {lockedNote && (
-        <motion.button
-          type="button"
-          onClick={() => upgrade.open("industries")}
-          className="mt-3 block text-left text-xs leading-relaxed text-[var(--text-secondary)]"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-        >
-          {lockedNote} is one of the eight Pro industries.{" "}
-          {/* `nowrap`: §7 forbids clickable text breaking across two lines, and
-              the sentence in front of it is long enough to push this over the
-              edge at 320px. The sentence still wraps; the label cannot. */}
-          <span className="whitespace-nowrap font-bold text-[var(--color-prestige)] underline underline-offset-4">
-            See what Pro adds
-          </span>
-        </motion.button>
-      )}
 
       {/*
         WHAT THE COMPANY IS.
@@ -670,15 +681,6 @@ function BriefField({
         className="mt-1.5 w-full resize-none rounded-[var(--radius-row)] bg-[var(--surface)] px-3 py-2 text-sm leading-snug text-[var(--text-primary)] outline-none ring-1 ring-[var(--hairline)] transition-shadow focus:ring-[var(--text-secondary)] placeholder:text-[var(--text-tertiary)]"
       />
     </label>
-  );
-}
-
-function LockGlyph() {
-  return (
-    <svg width="11" height="13" viewBox="0 0 13 15" fill="none" aria-hidden="true" className="shrink-0">
-      <path d="M3 6V4a3.5 3.5 0 1 1 7 0v2" stroke="var(--text-tertiary)" strokeWidth="1.7" strokeLinecap="round" />
-      <rect x="1.5" y="6" width="10" height="7.5" rx="1.6" fill="var(--text-tertiary)" />
-    </svg>
   );
 }
 

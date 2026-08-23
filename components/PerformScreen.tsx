@@ -20,6 +20,7 @@ import type { PitchTranscript } from "@/lib/ai/types";
 import { KNOBS, TANK_REQUIRED_THROUGH_YEAR } from "@/lib/engine/constants";
 import {
   FREE_LIMITS,
+  isPro,
   loadEntitlements,
   runsRemainingToday,
   yearClosesFor,
@@ -462,19 +463,27 @@ export function PerformScreen() {
   if (!perform || !run) return null;
 
   /*
-   * The free tier's pace limit, applied where the year would close. Four
-   * fiscal years a real day; the fifth gate refuses here — before a camera
+   * The free tier's pace limit, applied where the year would close. One
+   * fiscal year a real day; the next gate refuses here — before a camera
    * opens, before anything records — and the refusal states the fact and the
-   * reopening time rather than nagging. `run.pro` is kept honest by the
-   * entitlement sync, so a revoked Pro is capped on its next gate too.
+   * reopening time rather than nagging.
+   *
+   * `isPro(loadEntitlements())` rather than `run.pro`, which is the run's own
+   * copy of the tier taken when it was founded and is also what `setPro`
+   * writes without touching the entitlement store. The store is the receipt,
+   * and it is the only one of the two that knows about a chapter seat. This
+   * is the same read `GameProvider.submitPerform` does — the gate that
+   * actually stops the close; this one only decides what the screen offers.
    */
   const yearRationSpent =
-    perform.kind === "yearEnd" && !run.pro && yearClosesRemainingToday() <= 0;
+    perform.kind === "yearEnd" &&
+    !isPro(loadEntitlements()) &&
+    yearClosesRemainingToday() <= 0;
 
   /*
-   * The number the refusal states. Four on free, more if an operator granted
+   * The number the refusal states. One on free, more if an operator granted
    * this account extra closes (0012) — read rather than written into the copy,
-   * because a screen that says "four" to a player who was given eight is a
+   * because a screen that says "one" to a player who was given five is a
    * screen that lies about a limit it is enforcing.
    */
   const yearPaceToday = yearRationSpent ? yearClosesFor(loadEntitlements()) : 0;
@@ -595,8 +604,9 @@ export function PerformScreen() {
               {yearRationSpent ? (
                 <>
                   <p className="mb-3 text-sm leading-snug text-[var(--n-8)]">
-                    You&apos;ve closed {yearPaceToday} fiscal years today —
-                    that&apos;s{" "}
+                    You&apos;ve closed {yearPaceToday}{" "}
+                    {yearPaceToday === 1 ? "fiscal year" : "fiscal years"} today
+                    — that&apos;s{" "}
                     {yearPaceToday > FREE_LIMITS.yearClosesPerDay
                       ? "the pace you were given"
                       : "the free pace"}
@@ -969,13 +979,39 @@ export function PerformScreen() {
                 transcript={transcript}
                 isYearGate={perform.kind === "yearEnd"}
                 tutorialFloor={!!run.tutorial && run.year === 1}
-                onContinue={(dealCashS, dealEquityPct) =>
+                onContinue={(dealCashS, dealEquityPct) => {
+                  /*
+                   * The ration, re-read at the moment of the close.
+                   *
+                   * `yearRationSpent` above is computed at render and this
+                   * screen is open for the length of a pitch — long enough for
+                   * the last close of the day to be spent on another island,
+                   * another tab or another device, since the ledger is
+                   * device-wide and the cloud heartbeat adopts changes while
+                   * the tab is up. `GameProvider.submitPerform` refuses that
+                   * close and is right to, but it cannot put this screen back
+                   * on the sentence that explains why.
+                   *
+                   * So the screen answers first. Back to `brief`, which is the
+                   * phase the refusal renders in — the player lands on "the
+                   * books reopen tomorrow" and the list of what they can still
+                   * do today, rather than on a year that silently did not
+                   * close.
+                   */
+                  if (
+                    perform.kind === "yearEnd" &&
+                    !isPro(loadEntitlements()) &&
+                    yearClosesRemainingToday() <= 0
+                  ) {
+                    setPhase("brief");
+                    return;
+                  }
                   // The words, not the number. `score` above is this client's
                   // reading of them; the leaderboard rescores the transcript
                   // server-side with the same `scorePitchContent` that produced
                   // it, so nothing a devtools console can type reaches a rank.
-                  game.submitPerform(score, dealCashS, dealEquityPct, transcript.text)
-                }
+                  game.submitPerform(score, dealCashS, dealEquityPct, transcript.text);
+                }}
               />
             </div>
           </>

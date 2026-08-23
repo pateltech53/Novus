@@ -18,16 +18,12 @@ import { AccountGate } from "@/components/landing/AccountGate";
 import { Faq } from "@/components/landing/Faq";
 import { ScrollPhone } from "@/components/landing/ScrollPhone";
 import {
-  CHAPTER_CUSTOM_MAX_SEATS,
-  CHAPTER_CUSTOM_MIN_SEATS,
   CHAPTER_LICENCES,
   PRO_MONTHLY,
   PRO_YEARLY,
   YEARLY_SAVING_CENTS,
-  customChapterPriceCents,
   formatPrice,
   grantProLocally,
-  isCustomSeatCount,
   perSeatCents,
   type ChapterLicence,
   type ProPlanId,
@@ -481,7 +477,7 @@ function PricingSection() {
   const subscribed = standing?.via === "subscription";
 
   /** The plan whose checkout is opening, so only that button reads BUSY. */
-  const [busy, setBusy] = useState<ProPlanId | ChapterLicence["id"] | "chapter_custom" | null>(
+  const [busy, setBusy] = useState<ProPlanId | ChapterLicence["id"] | null>(
     null,
   );
   const [error, setError] = useState<string | null>(null);
@@ -494,9 +490,6 @@ function PricingSection() {
   /** The chapter column's own error line — a teacher refused at 35 SEATS
    *  should not read the message inside the Pro card two columns away. */
   const [chapterError, setChapterError] = useState<string | null>(null);
-  /** What the CUSTOM row's input holds — kept as text so a half-typed number
-   *  ("2", on the way to "25") is not fought by the field. */
-  const [customSeatsText, setCustomSeatsText] = useState("");
 
   const enter = async () => {
     // Settled state first, exactly as AccountGate's CONTINUE does and for the
@@ -649,23 +642,21 @@ function PricingSection() {
   };
 
   /**
-   * A licence checkout, from the chapters column — a fixed size, or the
-   * CUSTOM row's typed one (`seats` set exactly when the sku is custom).
+   * A licence checkout, from the chapters column. One of the two authored
+   * sizes — a chapter that is neither is a conversation, not a form; see
+   * `TalkFirstRow`.
    *
    * Same shape as choosePro with two differences that matter: there is no
    * device-local fallback (a classroom licence on one browser's localStorage
    * would be a licence for nobody), and success lands on /chapter — the
    * console the purchase just opened — rather than back in the game.
    */
-  const chooseChapter = async (
-    sku: ChapterLicence["id"] | "chapter_custom",
-    seats?: number,
-  ) => {
+  const chooseChapter = async (sku: ChapterLicence["id"]) => {
     if (busy) return;
     setBusy(sku);
     setChapterError(null);
 
-    const result = await goToCheckout(sku, undefined, seats);
+    const result = await goToCheckout(sku);
     if (result.ok) return; // leaving for Stripe
 
     // The operator's fork: a skipped licence is a live chapter, and success
@@ -938,69 +929,13 @@ function PricingSection() {
                 </div>
               ))}
 
-              {/* The buyer-sized licence: type a seat count, read the exact
-                  yearly price it computes to, start checkout on it. The same
-                  formula prices it on the server, so this number IS the
-                  charge. */}
-              {(() => {
-                const parsed = /^\d+$/.test(customSeatsText.trim())
-                  ? Number(customSeatsText.trim())
-                  : NaN;
-                const seats = isCustomSeatCount(parsed) ? parsed : null;
-                const price = seats !== null ? customChapterPriceCents(seats) : null;
-                return (
-                  <div className="border-t border-[var(--hairline)] pt-3">
-                    <div className="flex items-baseline justify-between gap-3">
-                      <p className="text-sm font-bold">Custom size</p>
-                      <p className="tnum text-right text-sm">
-                        {seats !== null && price !== null ? (
-                          <>
-                            <span className="font-extrabold">{formatPrice(price)}</span>
-                            <span className="text-2xs text-[var(--text-tertiary)]">
-                              {" "}
-                              / yr · {formatPrice(Math.round(price / seats))} a seat
-                            </span>
-                          </>
-                        ) : (
-                          <span className="text-2xs text-[var(--text-tertiary)]">
-                            {CHAPTER_CUSTOM_MIN_SEATS}–{CHAPTER_CUSTOM_MAX_SEATS} seats
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                    <div className="mt-2.5 grid grid-cols-[6rem_1fr] gap-2">
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        min={CHAPTER_CUSTOM_MIN_SEATS}
-                        max={CHAPTER_CUSTOM_MAX_SEATS}
-                        step={1}
-                        value={customSeatsText}
-                        onChange={(e) => setCustomSeatsText(e.target.value)}
-                        placeholder="Seats"
-                        aria-label={`Custom seat count, ${CHAPTER_CUSTOM_MIN_SEATS} to ${CHAPTER_CUSTOM_MAX_SEATS}`}
-                        className="tnum w-full rounded-[var(--radius-card)] border border-[var(--hairline)] bg-transparent px-4 py-2.5 text-sm font-bold placeholder:text-[var(--n-6)] focus:border-[var(--n-11)] focus-visible:outline-none!"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => seats !== null && void chooseChapter("chapter_custom", seats)}
-                        disabled={busy !== null || seats === null}
-                        className="nv-gc w-full rounded-[var(--radius-card)] nv-t-action px-4 py-2.5 text-sm font-extrabold tracking-[0.04em] disabled:opacity-60"
-                      >
-                        {busy === "chapter_custom"
-                          ? "OPENING…"
-                          : seats !== null
-                            ? `START ${seats} SEATS`
-                            : "START CUSTOM"}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* The recommended door for everything a seat count cannot
-                  say: content tuned to a curriculum, a rubric scored the
-                  school's way, invoicing, timelines. Stated with a copyable
+              {/* The door for every chapter that is not 35 or 100 seats.
+                  There used to be a seat-count field here that priced any
+                  size on the spot and opened checkout on it. It was removed:
+                  a buyer big enough to need their own number needs a purchase
+                  order, an invoice, a data-protection answer and a start
+                  date, and a form that takes their card before any of that
+                  has been said answers none of it. Stated with a copyable
                   address rather than a bare mailto: that bets on a mail
                   client being configured. */}
               <TalkFirstRow />
@@ -1106,14 +1041,15 @@ function TalkFirstRow() {
   return (
     <div className="rounded-[var(--radius-row)] bg-[var(--surface)] p-3 ring-1 ring-[var(--hairline)]">
       <div className="flex items-baseline justify-between gap-3">
-        <p className="text-sm font-bold">Customising the season?</p>
+        <p className="text-sm font-bold">Another size, or something custom?</p>
         <p className="text-2xs font-bold tracking-[0.1em] text-[var(--color-prestige)]">
           RECOMMENDED
         </p>
       </div>
       <p className="mt-1 text-xs leading-relaxed text-[var(--text-secondary)]">
-        Events aligned to your curriculum, a rubric scored your way, invoicing
-        — or anything else. Write to{" "}
+        A whole year group, a district, a summer programme — or events aligned
+        to your curriculum, a rubric scored your way, a purchase order instead
+        of a card. Write to{" "}
         <span
           ref={addressRef}
           className="tnum select-all font-bold text-[var(--text-primary)]"

@@ -58,7 +58,7 @@ export const GATES: Record<GateId, Gate> = {
   the_room: {
     id: "the_room",
     title: "The Room is Pro",
-    body: "Cold call angels, operators and buyers — three a day. Pro opens the door. It never makes anyone say yes.",
+    body: "The trade index for your industry, and their direct lines — three calls a day. Pro opens the door. It never makes anyone say yes.",
     feature: "the_room",
   },
   industries: {
@@ -107,7 +107,7 @@ export const GATES: Record<GateId, Gate> = {
   },
   year_pace: {
     id: "year_pace",
-    title: "Four fiscal years a day on free",
+    title: "One fiscal year a day on free",
     body: "The books reopen tomorrow. Pro closes as many years as you can pitch — it never moves a score.",
     feature: null,
   },

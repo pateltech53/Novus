@@ -220,6 +220,20 @@ export function localQuestionTurn(opts: {
    */
   askedQuestions?: string[];
   /**
+   * Questions this COMPANY has been asked in earlier fiscal years.
+   *
+   * A soft preference, never a filter — the difference matters. `asked` above
+   * is the session's hard exclusion and has to be: the same shark asking the
+   * same thing twice in one round is the room forgetting itself. Across YEARS
+   * the same weakness genuinely can come back, and excluding it would empty
+   * the pool for a year-five company and drop the whole room onto
+   * `genericClose`, which has two lines per shark. So a question heard before
+   * goes to the BACK of the queue and gets asked again only when there is
+   * nothing fresher — which is also what a real panel does with a founder who
+   * never fixed the thing they were asked about last year.
+   */
+  askedBefore?: string[];
+  /**
    * The previous answer, for the reaction line — with the question it was an
    * answer to, because "did they say anything" and "did they answer THAT" are
    * different questions and only the second one is worth reacting to.
@@ -232,11 +246,59 @@ export function localQuestionTurn(opts: {
   const { shark, ctx } = opts;
   const rng = rngFor(ctx, `${shark}:q:${opts.round}:${opts.usedIds.length}`);
   const asked = opts.askedQuestions ?? [];
+  const before = opts.askedBefore ?? [];
   const unused = ctx.attackPoints.filter(
     (a) => !opts.usedIds.includes(a.id) && !asked.some((q) => sameQuestion(q, a.question)),
   );
+  /*
+   * Anything this company has already been asked in an earlier year sinks,
+   * keeping its relative order. Stable rather than filtered — see `askedBefore`
+   * above for why a filter would empty the room by year five.
+   */
+  const heardBefore = (a: AttackPoint) => before.some((q) => sameQuestion(q, a.question));
   const mine = unused.filter((a) => a.owner === shark);
-  const point: AttackPoint | undefined = mine[0] ?? unused[0];
+  const pool = mine.length > 0 ? mine : unused;
+
+  /*
+   * ── Fresh first, but only among equals ────────────────────────────────────
+   *
+   * The first pass at this partitioned the whole list — every unasked point
+   * ahead of every asked one — and that is a worse bug than the one it fixed.
+   * `ctx.attackPoints` arrives sorted worst-first, and a company with three
+   * months of runway has ONE thing the room should ask about. Push it behind a
+   * fresh question about the logo because it came up last year and the panel
+   * has politely stopped mentioning that the company is dying.
+   *
+   * So staleness is a tiebreak and severity is not negotiable: a repeat sinks
+   * below points of EQUAL severity and never below a lesser one. The sort is
+   * on a copy, and `pool` is already in severity order with the year-seeded
+   * spin from `attackPointsFor` applied — this only reorders within a tier, so
+   * that ordering survives.
+   */
+  const ranked = [...pool].sort(
+    (a, b) => b.severity - a.severity || Number(heardBefore(a)) - Number(heardBefore(b)),
+  );
+
+  /*
+   * ── Why this is a pick and not `[0]` ──────────────────────────────────────
+   *
+   * It was `mine[0] ?? unused[0]`, and combined with the un-tie-broken
+   * severity sort in panel-context.ts that made the question a pure function
+   * of the books: play year 2 with the same weaknesses as year 1 and the same
+   * shark opened with the same sentence, word for word. Reported as "year 2
+   * was the exact same flow and questions", and it was.
+   *
+   * `rng` is already seeded on the company and the fiscal year (`rngFor`), so
+   * this costs no new state and stays reproducible for the verifier. The slice
+   * keeps it honest — the choice is among the three worst things about the
+   * company, never the whole list — and the window is drawn from the FRESH
+   * ones inside it where there are any, so a random draw cannot re-ask last
+   * year's question while an equally serious new one is sitting beside it.
+   */
+  const window = ranked.slice(0, 3);
+  const unheard = window.filter((a) => !heardBefore(a));
+  const choices = unheard.length > 0 ? unheard : window;
+  const point: AttackPoint | undefined = pickFrom(choices, rng) ?? ranked[0];
 
   const reaction = reactionLine(shark, opts.lastAnswer, rng);
   const opener = pickFrom(OPENERS[shark], rng);

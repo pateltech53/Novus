@@ -32,6 +32,7 @@ import {
   sharkNegotiateTurn,
   sharkOfferTurn,
   sharkQuestionTurn,
+  similarQuestion,
   type PanelSessionState,
 } from "@/lib/ai/panel";
 import { firstUnseenTerm } from "@/lib/ai/terms";
@@ -158,7 +159,7 @@ export function SharkPanel({
     outcome: TankOutcome,
   ) => void;
 }) {
-  const { run } = useGame();
+  const { run, rememberPanelQuestions } = useGame();
 
   const [beats, setBeats] = useState<Beat[]>([]);
   const [cursor, setCursor] = useState(0);
@@ -248,6 +249,10 @@ export function SharkPanel({
       score,
       log: [],
       askedQuestions: [],
+      /* Seeded from the run, so the room walks in knowing what it asked this
+         company last year. `askedQuestions` stays empty — that one is the
+         session's own no-repeat rule and has to start clean. */
+      askedBefore: run.askedPanelQuestions ?? [],
       usedAttackIds: [],
       answers: [],
       offersOnTable: [],
@@ -500,8 +505,31 @@ export function SharkPanel({
           let question = turn.questions[0] ?? "";
           if (!askedStanceRef.current) {
             askedStanceRef.current = true;
+            /*
+             * The positioning question, which used to open EVERY session.
+             *
+             * `stanceQuestionFor` returns a fixed sentence for a stable
+             * stance — "Describe this company in one sentence. I'll wait." for
+             * low clarity, one line per stance otherwise — and this
+             * substitution replaced the first question of the round with it,
+             * unconditionally. So a company that had not changed its
+             * positioning heard the same opening line every year for as long
+             * as it survived, no matter what the rest of the room did. That is
+             * a large share of "the exact same flow and questions", and it sat
+             * downstream of every fix in panel-local.ts, quietly undoing the
+             * first turn of each of them.
+             *
+             * It still opens the round the first time it has something to say.
+             * When the company has already been asked it in an earlier year,
+             * the shark's own question stands instead — which is what the rest
+             * of the room does with a repeat, and the positioning is being
+             * probed by those questions anyway.
+             */
             const stanceQ = stanceQuestionFor(run);
-            if (stanceQ) question = stanceQ;
+            const alreadyPut = stanceQ
+              ? (session.askedBefore ?? []).some((q) => similarQuestion(q, stanceQ))
+              : false;
+            if (stanceQ && !alreadyPut) question = stanceQ;
           }
 
           if (turn.source === "api") liveTurnsRef.current += 1;
@@ -809,12 +837,21 @@ export function SharkPanel({
       // loud rather than presenting an offline session as a live one.
       offline: liveTurnsRef.current === 0,
     };
+    /*
+     * What was asked, onto the run, before the year closes.
+     *
+     * Here rather than per question: one commit for the session instead of one
+     * per turn, and the room is over by this point either way. Before `onDone`
+     * because that is what closes the fiscal year — a write after it would land
+     * on year N+1 and be sunk out of exactly the room it came from.
+     */
+    rememberPanelQuestions(session.askedQuestions);
     onDone(
       accepted ? accepted.offer.amount_usd / S : 0,
       accepted ? accepted.offer.equity_pct : undefined,
       outcome,
     );
-  }, [accepted, beats, onDone, run, session]);
+  }, [accepted, beats, onDone, rememberPanelQuestions, run, session]);
 
   if (!run || !session) return null;
 
