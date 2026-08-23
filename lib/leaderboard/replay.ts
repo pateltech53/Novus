@@ -697,15 +697,38 @@ export function applyTapeEntry(
     case "activity": {
       const activity = activityById(entry.id, state);
       if (!activity) return skip("no such activity");
-      if (!isAvailable(activity, state)) return skip("that activity was not available");
+      /*
+       * ── Admissibility is judged on the TAPE'S day, not on today ───────────
+       *
+       * `isAvailable` used to be clock-free, so it ran outside the freeze
+       * without consequence. It is not any more: cold calling's `available`
+       * asks `callsRemaining(state)`, which compares the run's stored
+       * `coldCallDayISO` against the real date. Verified against the wall
+       * clock, a tape recorded on Tuesday is re-judged on Thursday — the
+       * stored day no longer matches, `callsRemaining` hands back a full
+       * three, and the answer is right for the wrong reason today and wrong
+       * outright the moment any activity's availability turns on the date
+       * NARROWING rather than widening.
+       *
+       * A verifier that gives a different verdict depending on when it is run
+       * is not a verifier. `cursor.clockISO` is the day the entry was actually
+       * recorded and the freeze is exactly the tool for this; `apply` has
+       * always been wrapped in it and the check belongs inside the same
+       * window.
+       */
+      if (!withFrozenClock(cursor.clockISO, () => isAvailable(activity, state))) {
+        return skip("that activity was not available");
+      }
       /*
        * The Pro lock, re-checked on the tape.
        *
-       * Cold calling used to be gated inside `available`, so this one line
-       * covered both questions. It does not any more: the row is offered to
-       * free players and refused at the press, which means `isAvailable` is
-       * now true for an account that may not run it. Without this the change
-       * would silently widen what a free player's tape may contain.
+       * Cold calling used to be gated inside `available`, so one line covered
+       * both questions. It does not any more: the row is offered to free
+       * players and refused at the press, which means `isAvailable` is now
+       * true for an account that may not run it. Without this the change would
+       * silently widen what a free player's tape may contain.
+       *
+       * Outside the freeze on purpose — it reads `state.pro` and no clock.
        */
       if (isLocked(activity, state)) return skip("that activity is Pro");
       withFrozenClock(cursor.clockISO, () => activity.apply(state));

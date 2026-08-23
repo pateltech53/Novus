@@ -11,13 +11,11 @@ import type { Industry } from "@/lib/engine/types";
 import { liveIslandCount, loadProfile } from "@/lib/engine/save";
 import {
   ISLAND_CAP,
-  NO_ENTITLEMENTS,
   industryUnlocked,
   islandCapFor,
   loadEntitlements,
   onEntitlementsChange,
   runsRemainingToday,
-  type Entitlements,
 } from "@/lib/monetization";
 import { useUpgrade } from "@/components/upgrade/UpgradeProvider";
 import { usePrefetch } from "@/lib/prefetch";
@@ -118,19 +116,6 @@ function FoundPage() {
   /** null until mounted — the ledger lives in localStorage. */
   const [slotsLeft, setSlotsLeft] = useState<number | null>(null);
   /**
-   * This account's entitlements, whole rather than boiled down to one boolean.
-   *
-   * It was `hasPro`, computed as `isPro(e)`, and the grid asked it directly.
-   * Two things were wrong with that beyond the timing. `isPro` alone cannot
-   * see `industryPacks` — the one-time buys the Closet sells — so a player who
-   * had bought FASHION on its own was still refused it, which is the worst
-   * possible answer to give somebody holding a receipt. And a boolean is not
-   * what the gate needs: `industryUnlocked()` in lib/monetization.ts already
-   * answers this exact question, correctly, for all three ways an industry can
-   * be owned, and had never been called from anywhere in the app.
-   */
-  const [entitlements, setEntitlements] = useState<Entitlements>(NO_ENTITLEMENTS);
-  /**
    * Read after mount, like the two above it, and for a sharper reason.
    *
    * `loadProfile()` used to be called during render. localStorage does not
@@ -158,7 +143,6 @@ function FoundPage() {
     const sync = () => {
       const e = loadEntitlements();
       setSlotsLeft(runsRemainingToday(e));
-      setEntitlements(e);
       setCap(islandCapFor(e));
       setLiving(liveIslandCount());
     };
@@ -230,9 +214,15 @@ function FoundPage() {
      * paywall this opens can be bought from without leaving the page, so the
      * second press has to see the purchase the first one caused.
      */
-    const owned = loadEntitlements();
-    setEntitlements(owned);
-    if (!industryUnlocked(industry, owned)) {
+    /*
+     * `industryUnlocked` rather than `isPro`, and read fresh rather than held
+     * in state. There are three ways to own an industry — it is free, the
+     * account is Pro or on a chapter seat, or the pack was bought on its own —
+     * and this function is the only thing that knows all three. It was
+     * exported and called from nowhere until now, which is why a player who
+     * had bought FASHION as a one-time pack was still refused it at founding.
+     */
+    if (!industryUnlocked(industry, loadEntitlements())) {
       upgrade.open("industries");
       return;
     }

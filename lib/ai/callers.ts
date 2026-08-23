@@ -374,6 +374,16 @@ export {
   consumeCall,
 } from "@/lib/engine/activities";
 
+/**
+ * The longest a caller's line may be, matching MAX_CHARS in app/api/tts/route.ts.
+ *
+ * Not imported from there: that file is a route handler with a Node runtime and
+ * an ElevenLabs client in it, and pulling it into the client bundle to read one
+ * integer would be the wrong trade. The number is small, stable and named in
+ * both places.
+ */
+const SPOKEN_MAX_CHARS = 800;
+
 export const callerById = (id: string) => CALLERS.find((c) => c.id === id);
 
 /** Who will take a call right now — stage-gated, focus-gated, no repeats. */
@@ -486,7 +496,20 @@ export async function judgePitch(
         const raw = (await res.json()) as Partial<CallOutcome>;
         return {
           accepted: !!raw.accepted,
-          reply: String(raw.reply ?? caller.greeting),
+          /*
+           * Clamped, because this is SPOKEN now.
+           *
+           * The prompt asks for one to three sentences and `max_tokens` allows
+           * about 1,600 characters, and a prompt is a request rather than a
+           * bound. /api/tts refuses anything over MAX_CHARS (800) with a 413,
+           * and speech.ts reads a non-latching failure as a provider blip and
+           * puts the hosted voice on a cooldown — so one chatty model reply
+           * would silence the caller's verdict AND the next few lines
+           * anywhere in the app. Cut at the source rather than caught at the
+           * route: the screen renders this string too, and a reply that is
+           * too long to say is too long to read on a phone.
+           */
+          reply: String(raw.reply ?? caller.greeting).slice(0, SPOKEN_MAX_CHARS),
           cashS: Number(raw.cashS ?? 0),
           dilutionPct: Number(raw.dilutionPct ?? 0),
           respect: Number(raw.respect ?? 0),

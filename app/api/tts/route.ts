@@ -432,14 +432,24 @@ export async function GET() {
       voices: pool.ids.length,
       /** Voices pinned by ELEVENLABS_VOICE_*, which bypass the list entirely. */
       mapped,
+      /** How many there are to pin. Reported because it MOVES: it was seven
+       *  speakers, and The Room's eight callers' voices took it to fifteen. A
+       *  count with no denominator beside it was read as a fraction of seven
+       *  long after it had stopped being one. */
+      speakers: SPEAKERS.length,
       /** What the player will actually hear. */
       willSpeak: pool.ids.length > 0 || mapped > 0 || pool.status !== 200,
+      /* `env-partial` is the state a deploy that pinned the seven documented
+         voices is actually in, and it used to report as `account` or
+         `premade-fallback` — i.e. as though the pins were not there at all. */
       source:
         mapped === SPEAKERS.length
           ? "env"
-          : pool.ids.length > 0
-            ? "account"
-            : "premade-fallback",
+          : mapped > 0
+            ? "env-partial"
+            : pool.ids.length > 0
+              ? "account"
+              : "premade-fallback",
       listStatus: pool.status,
       ...(lastVoiceError ? { lastError: lastVoiceError } : {}),
     },

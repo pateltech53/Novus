@@ -139,10 +139,37 @@ function reducedMotion(): boolean {
 }
 
 /**
+ * Which line is current, so an interrupted one cannot come back and play.
+ *
+ * ── The race this exists to close ──────────────────────────────────────────
+ *
+ * `stopSpeaking()` pauses `current`, and `current` is only set AFTER the fetch
+ * and the blob have both resolved. So it silences a line that is PLAYING and
+ * does nothing at all to one that is still in the air — and a hosted line is
+ * two network round-trips of air.
+ *
+ * That gap is precisely where the two things stopSpeaking exists to prevent
+ * both happen. The Tank's answer turn calls it as the microphone opens; The
+ * Room calls it as the camera and microphone open. Either way the request that
+ * was already in flight lands a second later, sets `current`, and plays the
+ * shark's question — or the caller's greeting — straight into an
+ * echo-cancelled microphone that is now recording the player. In The Room that
+ * audio is transcribed and GRADED, so the caller's own words are scored as the
+ * player's pitch, on one of three calls a real day, with no way to take it
+ * back.
+ *
+ * A counter rather than an AbortController because the fetch is the cheap half
+ * and is worth finishing — what must not happen is the PLAYBACK. Every await
+ * boundary in `speakCloud` and `speakLocal` re-checks it, so a line that was
+ * cancelled at any point on the way is dropped rather than played late.
+ */
+let generation = 0;
+
+/**
  * The hosted voice. Returns false if it is not configured, not reachable, or
  * out of quota — every one of which is a normal state, not a failure to report.
  */
-async function speakCloud(text: string, speaker: Speaker): Promise<boolean> {
+async function speakCloud(text: string, speaker: Speaker, gen: number): Promise<boolean> {
   const profile = voiceOf(speaker);
   if (!TTS_ENDPOINT || cloudDown) return false;
   // A transient failure cools off rather than ending the session's voice.
@@ -176,7 +203,13 @@ async function speakCloud(text: string, speaker: Speaker): Promise<boolean> {
     }
     reportLive("voice");
     cloudRetryAt = 0;
+    /* Cancelled while the request was in the air. Returning TRUE, not false:
+       false means "the cloud voice could not do this", which sends the caller
+       to the local synthesiser — and speaking the line in a second voice is
+       exactly what was just cancelled. */
+    if (gen !== generation) return true;
     const blob = await res.blob();
+    if (gen !== generation) return true;
     // The unlocked element when there is one — see above; the shared fallback
     // element where no gesture ever reached us, which is the desktop case. One
     // element either way, so a new line always displaces the old one instead
@@ -217,9 +250,12 @@ async function speakCloud(text: string, speaker: Speaker): Promise<boolean> {
 }
 
 /** The local voice, shaped per character. */
-function speakLocal(text: string, speaker: Speaker): Promise<void> {
+function speakLocal(text: string, speaker: Speaker, gen: number): Promise<void> {
   return new Promise((resolve) => {
     if (typeof window === "undefined" || !window.speechSynthesis || !text) return resolve();
+    // Reached only after `speakCloud` has awaited a network round-trip, so the
+    // line can have been cancelled since. See `generation`.
+    if (gen !== generation) return resolve();
     const profile = voiceOf(speaker);
     const utterance = new SpeechSynthesisUtterance(text);
     const list = voices();
@@ -271,12 +307,17 @@ export async function speak(text: string, speaker: Speaker = "chair"): Promise<v
   // Someone who asked for less motion did not ask to be talked at either.
   if (reducedMotion()) return;
   stopSpeaking();
+  // AFTER stopSpeaking, which is what bumps the counter — this line's ticket
+  // has to be the one it just moved to.
+  const gen = generation;
   setSpeaking(true);
   try {
-    if (await speakCloud(text, speaker)) return;
-    await speakLocal(text, speaker);
+    if (await speakCloud(text, speaker, gen)) return;
+    await speakLocal(text, speaker, gen);
   } finally {
-    setSpeaking(false);
+    /* Only if nothing has started since. A cancelled line resolving late must
+       not clear a flag that now belongs to the line that replaced it. */
+    if (gen === generation) setSpeaking(false);
   }
 }
 
@@ -299,6 +340,10 @@ function endpointUrl(endpoint: string): string {
  */
 export function stopSpeaking(): void {
   if (typeof window === "undefined") return;
+  /* Voids every line currently in flight, which is the half that `current`
+     below cannot do — see `generation`. First, so a request that resolves
+     during this function is already cancelled by the time it checks. */
+  generation += 1;
   window.speechSynthesis?.cancel();
   if (current) {
     current.pause();

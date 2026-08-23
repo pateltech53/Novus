@@ -205,11 +205,18 @@ export function Sea({ className = "" }: { className?: string }) {
       <svg
         className="absolute inset-x-0 top-0 w-full"
         style={{ height: `${SKY_PCT}%` }}
-        /* The viewBox is roughly the aspect the band actually gets on a phone
-           (393 × ~77), NOT a convenient round number. `slice` scales to cover,
-           so a 10:1 viewBox in a 5:1 box would be scaled 2× and two of the
-           three clouds would be cropped off the sides — which is exactly what
-           the first attempt did. */
+        /* The viewBox is roughly the aspect the band gets on a PHONE (393 ×
+           ~77), not a convenient round number: `slice` scales to cover, so a
+           10:1 viewBox in a 5:1 box is scaled 2× and two of the three clouds
+           are cropped off the sides — which is exactly what the first attempt
+           at this did.
+
+           On anything wider the crop turns vertical instead. This page is a
+           normal web route, and on a 1440×900 desktop the band is 17:1 against
+           a 5:1 drawing, so only the middle quarter of the viewBox survives.
+           That is why every cloud below sits inside y=26..50: the band that is
+           on screen at BOTH extremes. Nothing decorative may live outside it,
+           and nothing informative lives here at all. */
         viewBox="0 0 400 76"
         preserveAspectRatio="xMidYMid slice"
         fill="none"
@@ -223,26 +230,26 @@ export function Sea({ className = "" }: { className?: string }) {
             size at the same height is wallpaper, not weather. */}
         <g fill="var(--cloud)">
           <g opacity="0.9">
-            <rect x="22" y="26" width="44" height="10" rx="5" />
-            <circle cx="35" cy="25" r="8.5" />
-            <circle cx="49" cy="21.5" r="10.5" />
-            <circle cx="61" cy="25.5" r="7" />
+            <rect x="22" y="38" width="42" height="9" rx="4.5" />
+            <circle cx="34" cy="37" r="7.5" />
+            <circle cx="47" cy="34" r="9" />
+            <circle cx="59" cy="37.5" r="6" />
           </g>
           <g opacity="0.6">
-            <rect x="176" y="41" width="30" height="7" rx="3.5" />
-            <circle cx="186" cy="40" r="6" />
-            <circle cx="197" cy="38.5" r="7" />
+            <rect x="176" y="44" width="28" height="6" rx="3" />
+            <circle cx="185" cy="43" r="5.5" />
+            <circle cx="196" cy="42" r="6.5" />
           </g>
           <g opacity="0.8">
-            <rect x="298" y="20" width="52" height="11" rx="5.5" />
-            <circle cx="312" cy="19" r="9.5" />
-            <circle cx="328" cy="15.5" r="11.5" />
-            <circle cx="343" cy="19.5" r="7" />
+            <rect x="298" y="35" width="50" height="10" rx="5" />
+            <circle cx="311" cy="34" r="8.5" />
+            <circle cx="327" cy="30.5" r="10" />
+            <circle cx="341" cy="34.5" r="6.5" />
           </g>
           <g opacity="0.45">
-            <rect x="112" y="53" width="26" height="6" rx="3" />
-            <circle cx="121" cy="52" r="5" />
-            <circle cx="130" cy="51" r="6" />
+            <rect x="112" y="45" width="24" height="5.5" rx="2.75" />
+            <circle cx="120" cy="44" r="4.5" />
+            <circle cx="129" cy="43.5" r="5.5" />
           </g>
         </g>
       </svg>

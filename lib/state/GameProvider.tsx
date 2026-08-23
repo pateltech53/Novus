@@ -816,6 +816,43 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const state = runRef.current;
       const request = perform;
       if (!state || !request) return;
+
+      /*
+       * ── The daily ration, checked before ANYTHING is written ──────────────
+       *
+       * The same ration `skipYearGate` spends, on the path that actually
+       * closes most years. It was missing entirely: the only thing between a
+       * free player and unlimited closes was a render branch in PerformScreen
+       * that hides OPEN THE CAMERA once the ration is spent — and a screen is
+       * not a gate. `startRun` states the rule for this file ("checked here
+       * rather than in the UI so no screen can start a run the pricing page
+       * says you do not have"); this is that rule, applied to the other
+       * ration.
+       *
+       * FIRST, and the position is the whole point. `recordTap` below is
+       * `record()` from lib/leaderboard/recorder.ts, which does NOT write into
+       * `working` — it reads the tape out of storage, appends and writes it
+       * straight back. So a refusal placed after it abandons the clone and
+       * leaves the entry behind: a `perform / yearEnd` on the tape for a year
+       * the player never closed, which the verifier would then replay as a
+       * close. The tape is the record of what HAPPENED, so nothing may reach
+       * it until the close is known to be allowed. `skipYearGate` has always
+       * had this order; this is the same one.
+       *
+       * `perform` is deliberately NOT cleared. Clearing it unmounts
+       * PerformScreen (`if (!perform || !run) return null`) — the very screen
+       * whose `yearRationSpent` branch explains the limit and offers the other
+       * islands. Left mounted, that branch is what the player lands on, which
+       * is the refusal this is supposed to hand them.
+       */
+      if (
+        request.kind === "yearEnd" &&
+        !isPro(loadEntitlements()) &&
+        yearClosesRemainingToday() <= 0
+      ) {
+        return;
+      }
+
       const working: RunState = structuredClone(state);
 
       /*
@@ -851,29 +888,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         commit(working);
         setQueue((q) => q.slice(1));
       } else if (request.kind === "yearEnd") {
-        /*
-         * The same ration `skipYearGate` spends, checked on the path that
-         * actually closes most years.
-         *
-         * It was missing here. The only thing standing between a free player
-         * and an unlimited number of closes was a render branch in
-         * PerformScreen that hides OPEN THE CAMERA once the ration is spent —
-         * and a screen is not a gate: the button is one route to this
-         * function, not the definition of it. `startRun` states the rule for
-         * this file ("checked here rather than in the UI so no screen can
-         * start a run the pricing page says you do not have"); this is the
-         * same rule, applied to the other ration.
-         *
-         * It returns without closing rather than throwing: the caller is a
-         * submit handler on a screen the player is looking at, and the
-         * refusal it should see is PerformScreen's, which explains the limit
-         * and offers the other islands. Clearing `perform` on the way out is
-         * what puts them back on it.
-         */
-        if (!isPro(loadEntitlements()) && yearClosesRemainingToday() <= 0) {
-          setPerform(null);
-          return;
-        }
+        // The ration was spent at the top of this function, before the tape.
         const result: PerformResult = {
           type: "pitch",
           score,

@@ -34,12 +34,63 @@
  * that list. Nothing here emits a gradient and nothing here should start.
  */
 
+/**
+ * `oklch(L C H)` taken apart, or null for anything else.
+ *
+ * Deliberately narrow: it matches the exact shape this file's own palette is
+ * written in and does not attempt to be a colour parser. Anything it does not
+ * recognise — a token, a hex, a named colour — falls through to `color-mix`
+ * below, which handles all of them.
+ */
+function parseOklch(color: string): [number, number, number] | null {
+  const m = /^oklch\(\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*\)$/.exec(color.trim());
+  if (!m) return null;
+  const parts = [Number(m[1]), Number(m[2]), Number(m[3])];
+  return parts.some(Number.isNaN) ? null : (parts as [number, number, number]);
+}
+
+const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
+
+/**
+ * Shift a colour's lightness, in oklch, without going near `color-mix`.
+ *
+ * ── Why this branch exists ─────────────────────────────────────────────────
+ *
+ * `color-mix()` shipped in Safari 16.2 and `oklch()` in 15.4, and this app's
+ * iOS deployment target is 15.0. That gap is survivable for a background — an
+ * unsupported `background` leaves a surface the wrong colour. It is NOT
+ * survivable for an SVG `fill`: the glyph's root carries `fill="none"`, `fill`
+ * is an inherited presentation attribute, and an unparseable one therefore
+ * inherits `none` and the shape does not draw at all. A briefcase that is the
+ * wrong shade of navy is a blemish; a briefcase that is not there is a bug.
+ *
+ * So when the input is an oklch triple — which every colour in `CASE_COLOURS`
+ * is — the arithmetic happens here and the output is a plain `oklch()`, one
+ * whole Safari version further back. Chroma is eased toward zero as lightness
+ * approaches white or black, because a fully saturated near-white reads as a
+ * printing error rather than as a lit surface.
+ */
+function shiftL(color: string, delta: number): string | null {
+  const parsed = parseOklch(color);
+  if (!parsed) return null;
+  const [l, c, h] = parsed;
+  const next = clamp01(l + delta);
+  /* Toward the ends of the range there is less room for chroma before the
+     colour leaves the gamut and the browser clips it — which clips it to
+     something that is no longer a step from the colour it came from. */
+  const headroom = Math.min(1, (1 - Math.abs(next - 0.5) * 2) / 0.6);
+  const chroma = Math.round(c * Math.max(0.35, headroom) * 1000) / 1000;
+  return `oklch(${Math.round(next * 1000) / 1000} ${chroma} ${h})`;
+}
+
 /** Toward white. `amount` is how much light lands, 0–1. */
 export const lit = (color: string, amount = 0.22): string =>
+  shiftL(color, amount * 0.55) ??
   `color-mix(in oklch, white ${Math.round(amount * 100)}%, ${color})`;
 
 /** Toward black. The face turned away from the light. */
 export const shade = (color: string, amount = 0.26): string =>
+  shiftL(color, -amount * 0.55) ??
   `color-mix(in oklch, black ${Math.round(amount * 100)}%, ${color})`;
 
 /** Toward another colour — for a tint that borrows from its surroundings. */

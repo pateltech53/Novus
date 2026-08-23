@@ -1,5 +1,5 @@
 import type { StageNum } from "@/lib/engine/types";
-import { caseColourFor, fade, lit, shade } from "@/lib/color";
+import { CASE_COLOURS, caseColourFor, lit, shade } from "@/lib/color";
 
 /**
  * An island, drawn rather than photographed.
@@ -84,13 +84,21 @@ export function IslandGlyph({
   const drift = (Math.abs(Math.trunc(seed)) % 5) - 2; // −2..2 px
   const palmLeft = ((Math.abs(Math.trunc(seed)) >>> 3) & 1) === 1;
 
-  /* Dead islands lose their colour rather than gaining a symbol. The sand goes
-     to the neutral ramp and the palm goes with it — there is nothing growing
-     on it any more, which says more than a marker would. */
-  const sand = alive ? "var(--sand)" : "var(--n-6)";
-  const sandLit = alive ? "var(--sand-lit)" : "var(--n-7)";
-  const sandShade = alive ? "var(--sand-shade)" : "var(--n-5)";
-  const built = alive ? "var(--built)" : "var(--n-7)";
+  /*
+   * Dead islands lose their colour rather than gaining a symbol. There is
+   * nothing growing on it any more, which says more than a marker would.
+   *
+   * Their own `--sand-dead-*` trio rather than three steps of the neutral
+   * ramp, which is what this used to borrow. The ramp ASCENDS in lightness in
+   * the dark theme and DESCENDS in the light one, so `--n-7` as the sunlit cap
+   * and `--n-5` as the shadow was right in one theme and exactly inverted in
+   * the other — a dead island lit from underneath, on the default theme. The
+   * ramp is for text; a form that is lit needs colours whose ORDER is a fact
+   * about the light and not about which theme is on.
+   */
+  const sand = alive ? "var(--sand)" : "var(--sand-dead)";
+  const sandLit = alive ? "var(--sand-lit)" : "var(--sand-dead-lit)";
+  const sandShade = alive ? "var(--sand-shade)" : "var(--sand-dead-shade)";
 
   return (
     <svg
@@ -115,13 +123,10 @@ export function IslandGlyph({
         contact rather than as a ring. It is what makes the island sit IN the
         sea instead of on top of a picture of one.
       */}
-      <ellipse
-        cx={60 + drift}
-        cy="64"
-        rx="30"
-        ry="5"
-        fill={fade("var(--color-navy, black)", 0.16)}
-      />
+      {/* `opacity` rather than a faded fill: an SVG `fill` that an engine
+          cannot parse inherits the root's `fill="none"` and the shape simply
+          does not draw. A plain token plus an opacity has no such cliff. */}
+      <ellipse cx={60 + drift} cy="64" rx="30" ry="5" fill="var(--color-navy)" opacity="0.16" />
 
       {/* ── The mound ──────────────────────────────────────────────────────
           Three fills, one light direction. The underside is a tapering keel,
@@ -137,7 +142,7 @@ export function IslandGlyph({
 
       {alive ? (
         <>
-          <Structures stage={stage} x={60 + drift} built={built} />
+          <Structures stage={stage} x={60 + drift} />
           <Palm x={(palmLeft ? 40 : 80) + drift} />
           <Briefcase
             x={(palmLeft ? 76 : 44) + drift}
@@ -165,7 +170,7 @@ export function IslandGlyph({
  * chart. Each tower gets a lit left face for the same reason everything else
  * does.
  */
-function Structures({ stage, x, built }: { stage: StageNum; x: number; built: string }) {
+function Structures({ stage, x }: { stage: StageNum; x: number }) {
   const BY_STAGE: Record<StageNum, { dx: number; w: number; h: number }[]> = {
     1: [{ dx: -5, w: 10, h: 10 }],
     2: [
@@ -195,16 +200,19 @@ function Structures({ stage, x, built }: { stage: StageNum; x: number; built: st
     <g opacity="0.9">
       {BY_STAGE[stage].map((b, i) => (
         <g key={i}>
-          <rect x={x + b.dx} y={50 - b.h} width={b.w} height={b.h} rx="1.6" fill={built} />
+          <rect x={x + b.dx} y={50 - b.h} width={b.w} height={b.h} rx="1.6" fill="var(--built)" />
           {/* The lit face. A third of the width, on the left, in the same
-              light as everything else on the island. */}
+              light as everything else on the island. A token pair rather than a
+              derived tone: this one never varies, so there is nothing for a
+              derivation to buy, and a plain token is one Safari version more
+              portable — see lib/color.ts. */}
           <rect
             x={x + b.dx}
             y={50 - b.h}
             width={b.w / 3}
             height={b.h}
             rx="1.6"
-            fill={lit(built, 0.16)}
+            fill="var(--built-lit)"
           />
         </g>
       ))}
@@ -246,7 +254,7 @@ function Palm({ x }: { x: number }) {
             cy={s.y - s.h / 8}
             rx={s.w / 3.4}
             ry={s.h / 2.8}
-            fill={lit("var(--bark)", 0.18)}
+            fill="var(--bark-lit)"
           />
         </g>
       ))}
@@ -309,8 +317,11 @@ function Palm({ x }: { x: number }) {
 function Briefcase({ x, colour }: { x: number; colour: string }) {
   /* The fallback is not decoration. The glyph root is `fill="none"` and `fill`
      inherits, so a missing colour here does not draw a black case — it draws
-     nothing at all, and the gold clasp keeps rendering over bare sand. */
-  const body = colour || "var(--case)";
+     nothing at all, and the gold clasp keeps rendering over bare sand. A
+     literal rather than `var(--case)`, so `lit`/`shade` below can do their
+     arithmetic in oklch on this path too instead of falling through to
+     `color-mix` — see lib/color.ts for why that matters on iOS. */
+  const body = colour || CASE_COLOURS[0];
   const lid = lit(body, 0.2);
   const base = shade(body, 0.3);
   const gold = "var(--color-prestige)";
@@ -355,22 +366,21 @@ function Briefcase({ x, colour }: { x: number; colour: string }) {
  * into stone looks like.
  */
 function Headstone({ x }: { x: number }) {
-  const stone = "var(--n-7)";
   return (
     <g>
       <path
         d={`M${x - 9} 51 L${x - 9} 38 A9 9 0 0 1 ${x + 9} 38 L${x + 9} 51 Z`}
-        fill={stone}
+        fill="var(--stone)"
       />
       {/* The lit left face, in the same light every other form on the island
           is in — the company ended, the sun did not. */}
       <path
         d={`M${x - 9} 51 L${x - 9} 38 A9 9 0 0 1 ${x - 2} 29.4 L${x - 2} 51 Z`}
-        fill={lit(stone, 0.14)}
+        fill="var(--stone-lit)"
       />
       {/* Two cut lines where an inscription would be. Suggested, never
           written — the company's name is already on the card in full. */}
-      <g stroke={shade(stone, 0.3)} strokeWidth="1.6" strokeLinecap="round">
+      <g stroke="var(--stone-cut)" strokeWidth="1.6" strokeLinecap="round">
         <path d={`M${x - 4.5} 41 H${x + 4.5}`} />
         <path d={`M${x - 3} 45.5 H${x + 3}`} />
       </g>

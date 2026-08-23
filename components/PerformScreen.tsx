@@ -979,13 +979,39 @@ export function PerformScreen() {
                 transcript={transcript}
                 isYearGate={perform.kind === "yearEnd"}
                 tutorialFloor={!!run.tutorial && run.year === 1}
-                onContinue={(dealCashS, dealEquityPct) =>
+                onContinue={(dealCashS, dealEquityPct) => {
+                  /*
+                   * The ration, re-read at the moment of the close.
+                   *
+                   * `yearRationSpent` above is computed at render and this
+                   * screen is open for the length of a pitch — long enough for
+                   * the last close of the day to be spent on another island,
+                   * another tab or another device, since the ledger is
+                   * device-wide and the cloud heartbeat adopts changes while
+                   * the tab is up. `GameProvider.submitPerform` refuses that
+                   * close and is right to, but it cannot put this screen back
+                   * on the sentence that explains why.
+                   *
+                   * So the screen answers first. Back to `brief`, which is the
+                   * phase the refusal renders in — the player lands on "the
+                   * books reopen tomorrow" and the list of what they can still
+                   * do today, rather than on a year that silently did not
+                   * close.
+                   */
+                  if (
+                    perform.kind === "yearEnd" &&
+                    !isPro(loadEntitlements()) &&
+                    yearClosesRemainingToday() <= 0
+                  ) {
+                    setPhase("brief");
+                    return;
+                  }
                   // The words, not the number. `score` above is this client's
                   // reading of them; the leaderboard rescores the transcript
                   // server-side with the same `scorePitchContent` that produced
                   // it, so nothing a devtools console can type reaches a rank.
-                  game.submitPerform(score, dealCashS, dealEquityPct, transcript.text)
-                }
+                  game.submitPerform(score, dealCashS, dealEquityPct, transcript.text);
+                }}
               />
             </div>
           </>

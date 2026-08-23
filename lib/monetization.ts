@@ -327,9 +327,15 @@ export interface Limits {
    * Fiscal years a player may CLOSE per real day, across all companies.
    * The gate is at the year close, not the month: twelve months still play
    * out, and it is closing the books that spends one. Rolls over on the
-   * player's own LOCAL calendar date — `todayISO()`, same clock the run
-   * ledger and the cold-call ration use, and for the same reason: a personal
-   * daily allowance resets at the person's midnight, not Greenwich's.
+   * player's own LOCAL calendar date — `todayISO()`, the same clock the run
+   * ledger below uses, and for the same reason: a personal daily allowance
+   * resets at the person's midnight, not Greenwich's.
+   *
+   * The cold-call ration is the odd one out and deliberately so: it rolls over
+   * on UTC (`callsRemaining` in lib/engine/activities.ts) because it is
+   * recorded on the tape and `lib/leaderboard/bounds.ts` buckets those entries
+   * by UTC date to catch a forged one. A ledger the verifier has to agree with
+   * has to be on the verifier's clock.
    */
   yearClosesPerDay: number;
 }

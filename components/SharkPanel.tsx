@@ -32,6 +32,7 @@ import {
   sharkNegotiateTurn,
   sharkOfferTurn,
   sharkQuestionTurn,
+  similarQuestion,
   type PanelSessionState,
 } from "@/lib/ai/panel";
 import { firstUnseenTerm } from "@/lib/ai/terms";
@@ -504,8 +505,31 @@ export function SharkPanel({
           let question = turn.questions[0] ?? "";
           if (!askedStanceRef.current) {
             askedStanceRef.current = true;
+            /*
+             * The positioning question, which used to open EVERY session.
+             *
+             * `stanceQuestionFor` returns a fixed sentence for a stable
+             * stance — "Describe this company in one sentence. I'll wait." for
+             * low clarity, one line per stance otherwise — and this
+             * substitution replaced the first question of the round with it,
+             * unconditionally. So a company that had not changed its
+             * positioning heard the same opening line every year for as long
+             * as it survived, no matter what the rest of the room did. That is
+             * a large share of "the exact same flow and questions", and it sat
+             * downstream of every fix in panel-local.ts, quietly undoing the
+             * first turn of each of them.
+             *
+             * It still opens the round the first time it has something to say.
+             * When the company has already been asked it in an earlier year,
+             * the shark's own question stands instead — which is what the rest
+             * of the room does with a repeat, and the positioning is being
+             * probed by those questions anyway.
+             */
             const stanceQ = stanceQuestionFor(run);
-            if (stanceQ) question = stanceQ;
+            const alreadyPut = stanceQ
+              ? (session.askedBefore ?? []).some((q) => similarQuestion(q, stanceQ))
+              : false;
+            if (stanceQ && !alreadyPut) question = stanceQ;
           }
 
           if (turn.source === "api") liveTurnsRef.current += 1;

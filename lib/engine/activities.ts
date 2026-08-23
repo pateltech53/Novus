@@ -120,6 +120,16 @@ export const MAX_CALLS_PER_DAY = 3;
 /** Seconds. Two minutes, and the clock is on screen the whole time. */
 export const CALL_SECONDS = 120;
 
+/**
+ * UTC, and not the player's local date — the one ration in the app that is.
+ *
+ * Every other daily allowance rolls over at the player's own midnight, which
+ * is the right answer for something only their device counts. This one is
+ * different because it is also counted somewhere else: a cold call goes on the
+ * leaderboard tape, and `lib/leaderboard/bounds.ts` buckets those entries by
+ * UTC date to reject a tape claiming more than three in a day. A ledger the
+ * verifier has to agree with has to be on the verifier's clock.
+ */
 const callDayISO = (d = new Date()) => d.toISOString().slice(0, 10);
 
 /** Calls left today, rolling over on the real UTC date. */

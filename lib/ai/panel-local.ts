@@ -255,10 +255,30 @@ export function localQuestionTurn(opts: {
    * keeping its relative order. Stable rather than filtered — see `askedBefore`
    * above for why a filter would empty the room by year five.
    */
-  const fresh = unused.filter((a) => !before.some((q) => sameQuestion(q, a.question)));
-  const stale = unused.filter((a) => before.some((q) => sameQuestion(q, a.question)));
-  const queue = [...fresh, ...stale];
-  const mine = queue.filter((a) => a.owner === shark);
+  const heardBefore = (a: AttackPoint) => before.some((q) => sameQuestion(q, a.question));
+  const mine = unused.filter((a) => a.owner === shark);
+  const pool = mine.length > 0 ? mine : unused;
+
+  /*
+   * ── Fresh first, but only among equals ────────────────────────────────────
+   *
+   * The first pass at this partitioned the whole list — every unasked point
+   * ahead of every asked one — and that is a worse bug than the one it fixed.
+   * `ctx.attackPoints` arrives sorted worst-first, and a company with three
+   * months of runway has ONE thing the room should ask about. Push it behind a
+   * fresh question about the logo because it came up last year and the panel
+   * has politely stopped mentioning that the company is dying.
+   *
+   * So staleness is a tiebreak and severity is not negotiable: a repeat sinks
+   * below points of EQUAL severity and never below a lesser one. The sort is
+   * on a copy, and `pool` is already in severity order with the year-seeded
+   * spin from `attackPointsFor` applied — this only reorders within a tier, so
+   * that ordering survives.
+   */
+  const ranked = [...pool].sort(
+    (a, b) => b.severity - a.severity || Number(heardBefore(a)) - Number(heardBefore(b)),
+  );
+
   /*
    * ── Why this is a pick and not `[0]` ──────────────────────────────────────
    *
@@ -270,12 +290,15 @@ export function localQuestionTurn(opts: {
    *
    * `rng` is already seeded on the company and the fiscal year (`rngFor`), so
    * this costs no new state and stays reproducible for the verifier. The slice
-   * is what keeps it honest: the choice is among the three worst things about
-   * the company, never the whole list, so the room still leads with what is
-   * actually wrong rather than picking a weakness at random.
+   * keeps it honest — the choice is among the three worst things about the
+   * company, never the whole list — and the window is drawn from the FRESH
+   * ones inside it where there are any, so a random draw cannot re-ask last
+   * year's question while an equally serious new one is sitting beside it.
    */
-  const pool = mine.length > 0 ? mine : queue;
-  const point: AttackPoint | undefined = pickFrom(pool.slice(0, 3), rng) ?? pool[0];
+  const window = ranked.slice(0, 3);
+  const unheard = window.filter((a) => !heardBefore(a));
+  const choices = unheard.length > 0 ? unheard : window;
+  const point: AttackPoint | undefined = pickFrom(choices, rng) ?? ranked[0];
 
   const reaction = reactionLine(shark, opts.lastAnswer, rng);
   const opener = pickFrom(OPENERS[shark], rng);

@@ -176,6 +176,19 @@
   --palm: oklch(0.600 0.130 148);
   --palm-lit: oklch(0.700 0.140 146);
   --bark: oklch(0.480 0.060 58);
+  --bark-lit: oklch(0.560 0.062 60);
+  /* An island whose company ended. Its own trio rather than three steps of the
+     neutral ramp, which is what it used to borrow: the ramp ASCENDS in
+     lightness in this theme and DESCENDS in the light one, so `n-7` as the sun
+     and `n-5` as the shadow was correct here and exactly inverted there — a
+     dead island lit from underneath on the default theme. Colour drained, but
+     the light still lands where it lands on every other form. */
+  --sand-dead: oklch(0.470 0.004 260);
+  --sand-dead-lit: oklch(0.560 0.004 260);
+  --sand-dead-shade: oklch(0.370 0.004 260);
+  --stone: oklch(0.560 0.005 260);
+  --stone-lit: oklch(0.640 0.005 260);
+  --stone-cut: oklch(0.420 0.005 260);
   /* What is built on the island — the skyline that grows with the company's
      stage. Its own token rather than `--surface-elevated`, which is what it
      used to borrow: a surface colour is defined against the PAGE, and these
@@ -184,6 +197,7 @@
      darker than sand in daylight and lighter than it at night, and this is the
      pair that keeps that true. */
   --built: oklch(0.400 0.014 255);
+  --built-lit: oklch(0.470 0.014 255);
   /* The briefcase, and the one colour on the whole island that varies per
      company. `--case` is only the DEFAULT; lib/color.ts derives the lit and
      shadowed faces from whatever colour a given island is handed. */
@@ -324,7 +338,15 @@
   --palm: oklch(0.660 0.150 148);
   --palm-lit: oklch(0.760 0.150 146);
   --bark: oklch(0.560 0.078 56);
+  --bark-lit: oklch(0.650 0.080 58);
+  --sand-dead: oklch(0.780 0.004 260);
+  --sand-dead-lit: oklch(0.860 0.004 260);
+  --sand-dead-shade: oklch(0.680 0.004 260);
+  --stone: oklch(0.700 0.005 260);
+  --stone-lit: oklch(0.780 0.005 260);
+  --stone-cut: oklch(0.580 0.005 260);
   --built: oklch(0.730 0.010 250);
+  --built-lit: oklch(0.810 0.008 250);
   --case: oklch(0.420 0.012 260);
 
   --scrim: oklch(0.28 0.01 85 / 0.42);
