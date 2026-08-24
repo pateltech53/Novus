@@ -104,8 +104,14 @@ jobs:
       - name: The Playbook — breadth, branches, escalation
         run: npm run test:playbook
 
-      - name: Web build
-        run: npx next build
+      # `npm run build`, not `npx next build` — the difference is
+      # `scripts/bundle-report.mjs --check`, and the difference cost a red
+      # deploy. CI ran the bare Next build and passed; Vercel runs the package
+      # script and failed on a per-route weight budget nothing in this workflow
+      # had looked at. A budget the deploy enforces and CI does not is a budget
+      # that is always found the expensive way.
+      - name: Web build + per-route weight budget
+        run: npm run build
 
   database:
     name: Migrations + RLS suite

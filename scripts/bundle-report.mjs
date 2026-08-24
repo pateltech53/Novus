@@ -68,13 +68,38 @@ const BUDGETS = {
   // is ~0.1 kB and it is what stopped the boards missing most of the game —
   // a run used to reach them only if the player opened Still Standing and
   // pressed a button, so every company that died at 11pm went unmentioned.
-  "/play/page": 347,
+  //
+  // 357, not 347. The Playbook: the shared activity list went from 17 verbs to
+  // 48, nine of which carry branches, for 29 branches on top. That is +9.1 kB
+  // gzipped and essentially all of it is AUTHORED PROSE — every activity
+  // carries a label, a qualitative signal, the `detail` line TankDebrief
+  // renders, and a narration sentence per outcome, and none of those four
+  // compress away or lazy-load: `activitiesFor` is called during render and
+  // the engine has to answer synchronously.
+  //
+  // It is worth the nine kilobytes because the alternative was the reported
+  // defect. A player said that after the first fiscal year the game was
+  // "boring and repetitive to keep clicking options", and it was: seventeen
+  // rows, identical in December to January and in year five to year one. See
+  // docs/PROGRESSION.md. This is the one kind of growth this budget exists to
+  // permit rather than to stop — content the player reads, not a library they
+  // pay for and never see.
+  "/play/page": 357,
   "/found/page": 325,
   // The picker is the front door for anyone with a company, so it is on the
   // critical path for every returning player. 320 is a little above where it
   // stands (312) on the same rule as the rest of this table.
   // 321 for the same ~0.1 kB as /play: the picker mounts GameProvider too.
-  "/islands/page": 321,
+  //
+  // 331 for the same reason again, and it is the honest cost of that decision:
+  // the picker mounts GameProvider, GameProvider reaches the activity registry,
+  // so a screen that shows islands on water pays for the Playbook it will never
+  // draw. Splitting the registry away from the provider would recover most of
+  // the nine kilobytes and is the right change if this route is ever measured
+  // as slow — it is deliberately NOT bundled into a content commit, because a
+  // refactor of the provider that also triples the activity list is a change
+  // nobody can review either half of.
+  "/islands/page": 331,
   "/welcome/page": 195,
   "/chapter/page": 130,
   "/join/page": 120,
