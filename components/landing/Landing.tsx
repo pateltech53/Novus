@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { LandingShark } from "@/components/landing/LandingShark";
 import { AccountGate } from "@/components/landing/AccountGate";
 import { Faq } from "@/components/landing/Faq";
+import { TEAM, roleLine } from "@/lib/seo";
 import { ScrollPhone } from "@/components/landing/ScrollPhone";
 import {
   CHAPTER_LICENCES,
@@ -343,7 +344,7 @@ export function Landing() {
                 <div className="overflow-hidden rounded-[var(--radius-card)] shadow-[var(--e1)] ring-1 ring-[var(--hairline)]">
                   <Image
                     src={member.photo}
-                    alt={`${member.name} — ${member.role}`}
+                    alt={`${member.name} — ${roleLine(member)}`}
                     width={720}
                     height={900}
                     sizes="(min-width: 1024px) 14vw, (min-width: 640px) 30vw, 45vw"
@@ -351,8 +352,13 @@ export function Landing() {
                   />
                 </div>
                 <p className="mt-2.5 text-sm font-extrabold">{member.name}</p>
-                <p className="mt-0.5 text-2xs font-bold tracking-[0.06em] text-[var(--text-tertiary)]">
-                  {member.role.toUpperCase()}
+                {/* Interpuncts rather than commas, and `leading-snug` because
+                    these are four titles now rather than one phrase: at this
+                    column width the line wraps two or three times, and default
+                    leading on tracked-out caps opens a gap wide enough to read
+                    as a paragraph break between somebody's own job titles. */}
+                <p className="mt-0.5 text-2xs font-bold leading-snug tracking-[0.06em] text-[var(--text-tertiary)]">
+                  {roleLine(member).toUpperCase()}
                 </p>
               </li>
             ))}
@@ -1069,23 +1075,9 @@ function TalkFirstRow() {
   );
 }
 
-/** Photos ship from files named by each person — no guessed mappings. */
-const TEAM = [
-  {
-    name: "Yuvan Satish",
-    role: "Marketing & media",
-    photo: "/landing/team/yuvan.webp",
-  },
-  {
-    name: "Dhruv Patel",
-    role: "Coding, app building & operations",
-    photo: "/landing/team/dhruv.webp",
-  },
-  {
-    name: "Zach Han",
-    role: "Coding & app building",
-    photo: "/landing/team/zach.webp",
-  },
-  { name: "Ana Hashem", role: "Customer research", photo: "/landing/team/ana.webp" },
-  { name: "Monica Raina", role: "Outreach", photo: "/landing/team/monica.webp" },
-] as const;
+/*
+ * The team list lives in lib/seo.ts now, beside the structured data that also
+ * names these people. It was here, and `member` in that file carried the same
+ * five names a second time — so a rename reached whichever copy the author had
+ * open. See the note above `TEAM` there.
+ */
