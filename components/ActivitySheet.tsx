@@ -108,8 +108,8 @@ export function ActivitySheet({
                   activity={activity}
                   run={run}
                   used={done.includes(activity.id)}
-                  onRun={() => {
-                    runActivity(activity.id);
+                  onRun={(option) => {
+                    runActivity(activity.id, option);
                     setDone((d) => [...d, activity.id]);
                   }}
                 />

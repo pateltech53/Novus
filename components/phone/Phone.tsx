@@ -5,7 +5,14 @@ import { motion } from "framer-motion";
 import { ENTER, EXIT, SCRIM } from "@/components/ui/Motion";
 import { useGame } from "@/lib/state/GameProvider";
 import { MONTH_NAMES } from "@/lib/engine/format";
-import { sellsToBusinesses } from "@/lib/engine/constants";
+/*
+ * The access rules live in lib/phone/access.ts as pure functions, not as three
+ * `if`s in this file. They were three `if`s in this file — the grid filter, the
+ * router and the deep link — and a rule reported twice in opposite directions
+ * ("no Room for a restaurant", "but a restaurant still has a phone") deserved
+ * to be somewhere a headless test could read it. See the note in that file.
+ */
+import { canOpenApp, hasRoom, phoneAppsFor } from "@/lib/phone/access";
 import type { RunState } from "@/lib/engine/types";
 import { Glass, GlassScrim } from "@/components/ui/Glass";
 import { BeeMail, inboxFor } from "@/components/phone/BeeMail";
@@ -168,7 +175,7 @@ export function Phone({
    */
   const [screen, setScreen] = useState<Screen>("lock");
   /** Whether this company would ever ring another business — see HomeScreen. */
-  const calling = run ? sellsToBusinesses(run.industry) : false;
+  const calling = run ? hasRoom(run.industry) : false;
   const pendingApp = useRef<PhoneApp | null>(null);
   /** null until mounted — the clock is real, so it cannot be server-rendered. */
   const [now, setNow] = useState<Date | null>(null);
@@ -181,10 +188,9 @@ export function Phone({
        than followed and then rendered as nothing — the unlock would land on a
        blank screen with a home pill under it. */
     const wanted = initialApp ?? null;
-    pendingApp.current =
-      wanted && !calling && (wanted === "coldcall" || wanted === "index") ? null : wanted;
+    pendingApp.current = wanted && run && !canOpenApp(run.industry, wanted) ? null : wanted;
     setScreen("lock");
-  }, [open, initialApp, calling]);
+  }, [open, initialApp, run]);
 
   // A real clock, sampled twice a minute — enough for a status bar, cheap
   // enough to leave running while the phone is up.
@@ -399,8 +405,7 @@ function HomeScreen({
    * `lib/engine/constants.ts` holds the answer per industry, with the reasoning
    * for all twelve written down beside it.
    */
-  const calling = run ? sellsToBusinesses(run.industry) : false;
-  const shown = APPS.filter((a) => calling || (a.id !== "coldcall" && a.id !== "index"));
+  const shown = run ? phoneAppsFor(run.industry, APPS) : APPS;
   const dock = shown.filter((a) => a.id === "beemail" || a.id === "coldcall");
   const grid = shown.filter((a) => !dock.includes(a));
 

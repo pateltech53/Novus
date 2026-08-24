@@ -24,12 +24,21 @@ import { play } from "@/lib/sound";
  * of business matches yours, you take their number, and you dial it next door.
  * Three steps where there was one, and the two new ones are the lesson.
  *
- * ── What is in the book ────────────────────────────────────────────────────
+ * ── What is in the book, and why it is different today ─────────────────────
  *
  * Only businesses in this company's own niche, and only those who would take a
- * call at this stage — the same set The Room will actually connect, because
- * both read `tradeIndex`, which is a view of `availableCallers`. A book that
- * printed numbers the dialler refuses would be a worse lie than no book.
+ * call at this stage — drawn from the same set The Room will actually connect,
+ * because both read `availableCallers`. A book that printed numbers the dialler
+ * refuses would be a worse lie than no book.
+ *
+ * And it is a PAGE, not the whole book: four listings, redrawn every real day.
+ * It used to print everybody, which meant it printed the same names on Monday
+ * and on every Monday after, and working down a fixed list is exactly the
+ * contacts app this screen was rebuilt to stop being. Four against a ration of
+ * three calls, so there is always one business you could have rung and did not.
+ *
+ * What does NOT rotate is who answers. A number copied yesterday still rings,
+ * and rings the same person: the draw governs what is printed and nothing else.
  *
  * Ordered by how hard they are to win, not alphabetically. A directory sorted
  * by name is a phone book; sorted by difficulty it is a ladder, and the first
@@ -86,7 +95,7 @@ export function TradeIndex({ onCall }: { onCall: () => void }) {
         </span>
       </div>
       <p className="mt-1 text-2xs leading-snug text-[var(--text-tertiary)]">
-        Who buys what you sell. Take a number, then dial it in The Room.
+        Who buys what you sell, today. Take a number, then dial it in The Room.
       </p>
 
       {listings.length === 0 ? (
@@ -131,6 +140,16 @@ export function TradeIndex({ onCall }: { onCall: () => void }) {
             </li>
           ))}
         </ul>
+      )}
+
+      {/* Said plainly, because a page that quietly changed overnight would read
+          as a bug rather than as a market. It is also the nudge: three calls, a
+          fourth listing, and a page that will not be here tomorrow. */}
+      {listings.length > 0 && (
+        <p className="mt-3 text-2xs leading-snug text-[var(--text-tertiary)]">
+          The page turns over tomorrow. Anyone you have already written down still
+          answers.
+        </p>
       )}
 
       {/* The one door out, and it is a door rather than a dial: it opens the

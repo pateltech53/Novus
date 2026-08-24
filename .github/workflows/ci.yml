@@ -87,6 +87,23 @@ jobs:
       - name: The Room — gate, numbers, lookup
         run: npm run test:room
 
+      # The wardrobe used to cost FINISHED RUNS, which paid a founder for
+      # abandoning companies — the opposite of what the game teaches. It now
+      # costs fiscal years, and three of the four ways that can break are
+      # silent: a demand that rewards the old behaviour, a fit that un-earns
+      # when the ten-company record scrolls, and a migration that quietly takes
+      # away a fit somebody already had.
+      - name: The wardrobe — demands, ledger, migration
+        run: npm run test:wardrobe
+
+      # The Playbook tripled the shared activity list and added the first
+      # two-level rows. Two things about that are invisible until a player hits
+      # them: an option branch whose id is not on the tape replays as a
+      # different company, and a late-stage founder ending up with FEWER things
+      # to do than a garage is the exact defect the whole change exists to fix.
+      - name: The Playbook — breadth, branches, escalation
+        run: npm run test:playbook
+
       - name: Web build
         run: npx next build
 

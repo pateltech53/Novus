@@ -1680,6 +1680,123 @@ textarea {
 }
 
 /*
+ * ── Hovering an island ─────────────────────────────────────────────────────
+ *
+ * The archipelago is the front door and, on a desktop, it was the only screen
+ * in the app where a pointer got no answer at all: ten tappable islands that
+ * looked exactly the same whether the cursor was on one or not. On a phone that
+ * was fine, because a finger has no hover state. On a 1440px screen it read as
+ * a picture rather than a menu.
+ *
+ * ── Why it is a wake and not a highlight ───────────────────────────────────
+ *
+ * The scene is a photograph of water. A ring, a glow or a background wash on a
+ * photographic island is a UI chrome element stuck onto a picture, which is the
+ * same mistake the drawn skyline made. What an island in water actually does
+ * when something happens to it is: it rises on the swell, and it leaves a wake.
+ * So the hover raises it and draws an ellipse of foam under it, and both of
+ * those are things the scene already contains.
+ *
+ * ── Three constraints this has to work inside ──────────────────────────────
+ *
+ * 1. `(hover: hover) and (pointer: fine)`. A touchscreen reports hover on tap
+ *    and then LATCHES it, so an island a player tapped would stay lifted behind
+ *    the sheet that opened over it. Phones get nothing here, which is correct:
+ *    they already have `.nv-press`.
+ *
+ * 2. The transform is on the BUTTON. `.nv-bob` owns the transform on the
+ *    wrapper inside it and Framer owns the entrance on the parent — three
+ *    writers on one property is how the bob stopped bobbing the last time
+ *    something reached for it. Three elements, three transforms, no overlap.
+ *
+ * 3. `.nv-press:active` is defined ABOVE this block and both selectors are one
+ *    class deep, so source order decides. `.nv-isle:active` is therefore
+ *    restated here: without it the hover lift would win over the press and the
+ *    one confirmation a click gets would disappear on exactly the devices that
+ *    can hover.
+ */
+.nv-isle-wake {
+  opacity: 0;
+  transform: scale(0.7);
+  transition:
+    opacity 260ms var(--ease-out),
+    transform 260ms var(--ease-out);
+  /*
+   * DEEPER water, not foam.
+   *
+   * The first version of this was white, on the theory that a wake is foam.
+   * It was invisible: the sea is pale blue, every swell on it is already
+   * painted in white, and each island wears a white foam ring of its own — so
+   * more white landed on top of white and said nothing. What reads on this
+   * scene is the other direction, and it is also the more physical one: the
+   * island has risen, so the water under it is in shadow.
+   */
+  background: radial-gradient(
+    closest-side,
+    rgb(6 74 116 / 0.34),
+    rgb(6 74 116 / 0.12) 58%,
+    transparent 100%
+  );
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .nv-isle {
+    transition:
+      transform 240ms var(--ease-out),
+      filter 240ms var(--ease-out);
+  }
+
+  .nv-isle:hover,
+  .nv-isle:focus-visible {
+    /* Up AND slightly toward the viewer. The lift alone measured seven pixels
+       against a 76px island on a 1280px scene, which is a real change nobody
+       notices; the scale is what makes it read as "this one". */
+    transform: translate3d(0, -7px, 0) scale(1.06);
+    /* On the artwork rather than on a box, because the island is a keyed PNG
+       and a box-shadow would draw a rectangle around a palm tree. Tinted with
+       the sea rather than with black, so it belongs to the picture. */
+    filter: drop-shadow(0 14px 14px rgb(4 58 92 / 0.38)) saturate(1.06);
+  }
+
+  .nv-isle:hover .nv-isle-wake,
+  .nv-isle:focus-visible .nv-isle-wake {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  /*
+   * The LABEL is deliberately not touched.
+   *
+   * The first version brightened the name to `--text-primary` and the year to
+   * `--text-secondary`, and in dark theme that turned "YEAR 1" into a warm tan
+   * on pale blue water — less legible hovered than not. The tokens are right
+   * about a Novus surface and wrong about this one: the scene is a photograph
+   * with the same light-blue palette in BOTH themes, so a colour chosen by the
+   * theme is a colour chosen against the wrong background. The lift, the scale
+   * and the shadow are the whole answer, and they work in either.
+   */
+
+  .nv-isle:active {
+    transform: translate3d(0, -3px, 0) scale(1.01);
+  }
+}
+
+/* Reduced motion keeps the ANSWER and drops the travel. The wake still appears
+   — it is information, not decoration — it simply does not grow into place, and
+   the island does not move. */
+@media (prefers-reduced-motion: reduce) {
+  .nv-isle:hover,
+  .nv-isle:focus-visible,
+  .nv-isle:active {
+    transform: none;
+  }
+  .nv-isle-wake {
+    transition: opacity 1ms linear;
+    transform: scale(1);
+  }
+}
+
+/*
  * A scroller with no scrollbar drawn on it.
  *
  * Exactly one caller: the archipelago, where the water can be longer than the

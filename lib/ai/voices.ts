@@ -73,6 +73,28 @@ export interface VoiceProfile {
   prefer: string[];
   /** How they sound, in words — the brief a voice actor would get. */
   direction: string;
+  /**
+   * Which register the voice reads as, for the ROOM voices only.
+   *
+   * ── Why this is here rather than inferred ─────────────────────────────────
+   *
+   * Callers are cast by hand, and by hand is how three of them ended up
+   * mismatched: Rosa Delgado answered in Antoni, Nikhil Batra answered in Domi.
+   * Nothing could catch it, because nothing in the data said what a `room_*`
+   * key sounds like — the key names the REGISTER ("even", "bright") on purpose,
+   * so a caller can be recast without renaming a voice, and that same property
+   * is what made the mismatch invisible.
+   *
+   * So the fact is written down once, here, beside the id it describes.
+   * `scripts/room-test.mjs` reads it against each caller's own `gender` and
+   * fails the build on a mismatch. It is a casting fact and nothing else: it
+   * never reaches a prompt, it is never scored, and Brand Law 5 still forbids
+   * judging anybody by how they sound.
+   *
+   * Absent on the sharks and the narrator, whose casting is fixed and whose
+   * characters are not interchangeable.
+   */
+  reads?: "male" | "female";
 }
 
 /**
@@ -87,12 +109,12 @@ export interface VoiceProfile {
  * lesson in a cold call is that this person owes you nothing and you have
  * never met them. A familiar voice takes that away before the first sentence.
  *
- * ── Why eight, and why these eight ids ─────────────────────────────────────
+ * ── Why ten, and why these ten ids ─────────────────────────────────────────
  *
  * These are the premade voices every ElevenLabs account is created with — the
  * same list `app/api/tts/route.ts` already falls back to — so they need no
  * setup, no cloning and no per-deploy configuration, and each is overridable
- * with `ELEVENLABS_VOICE_ROOM_*` like every other voice here. Eight rather
+ * with `ELEVENLABS_VOICE_ROOM_*` like every other voice here. Ten rather
  * than twenty because twenty near-identical premades would be twenty voices a
  * player cannot tell apart, and because the directory is authored: each caller
  * is cast by hand in lib/ai/callers.ts rather than hashed onto a voice, for
@@ -109,7 +131,9 @@ export type RoomVoiceKey =
   | "room_calm"
   | "room_bright"
   | "room_warm"
-  | "room_soft";
+  | "room_soft"
+  | "room_dry"
+  | "room_steady";
 
 export type VoiceKey = SharkId | "chair" | "narrator" | RoomVoiceKey;
 
@@ -188,6 +212,7 @@ export const VOICES: Record<VoiceKey, VoiceProfile> = {
     pitch: 0.98,
     prefer: ["Daniel", "Google UK English Male", "Microsoft Ryan"],
     direction: "Level and unbothered. Has taken this call before and will take the next one.",
+    reads: "male",
   },
   room_plain: {
     elevenVoiceId: "pNInz6obpgDQGcFmaJgB",
@@ -196,6 +221,7 @@ export const VOICES: Record<VoiceKey, VoiceProfile> = {
     pitch: 0.9,
     prefer: ["Alex", "Google UK English Male", "Microsoft Guy"],
     direction: "Plain, unhurried, no performance in it. Says the thing and waits.",
+    reads: "male",
   },
   room_deep: {
     elevenVoiceId: "TxGEqnHWrfWFTfGW9XjX",
@@ -204,6 +230,7 @@ export const VOICES: Record<VoiceKey, VoiceProfile> = {
     pitch: 0.8,
     prefer: ["Daniel", "Google UK English Male", "Microsoft Davis"],
     direction: "Deep and slow. The silence after the question is doing the work.",
+    reads: "male",
   },
   room_crisp: {
     elevenVoiceId: "VR6AewLTigWG4xSOukaG",
@@ -212,6 +239,7 @@ export const VOICES: Record<VoiceKey, VoiceProfile> = {
     pitch: 0.88,
     prefer: ["Alex", "Google US English", "Microsoft Guy"],
     direction: "Clipped. Every sentence is a question with the pleasantries removed.",
+    reads: "male",
   },
   room_calm: {
     elevenVoiceId: "21m00Tcm4TlvDq8ikWAM",
@@ -220,6 +248,7 @@ export const VOICES: Record<VoiceKey, VoiceProfile> = {
     pitch: 1.02,
     prefer: ["Samantha", "Google US English", "Microsoft Aria"],
     direction: "Calm and exact. Reads the number back to you before deciding.",
+    reads: "female",
   },
   room_bright: {
     elevenVoiceId: "AZnzlk1XvdvUeBnXmlld",
@@ -228,6 +257,7 @@ export const VOICES: Record<VoiceKey, VoiceProfile> = {
     pitch: 1.12,
     prefer: ["Samantha", "Google US English", "Microsoft Michelle"],
     direction: "Quick and interested. Already picturing the version of this that works.",
+    reads: "female",
   },
   room_warm: {
     elevenVoiceId: "EXAVITQu4vr4xnSDxMaL",
@@ -236,6 +266,7 @@ export const VOICES: Record<VoiceKey, VoiceProfile> = {
     pitch: 1.08,
     prefer: ["Karen", "Google US English", "Microsoft Michelle"],
     direction: "Warm and unhurried. Friendly is not the same as sold.",
+    reads: "female",
   },
   room_soft: {
     elevenVoiceId: "MF3mGyEYCl7XYWbV9V6O",
@@ -244,6 +275,40 @@ export const VOICES: Record<VoiceKey, VoiceProfile> = {
     pitch: 1.05,
     prefer: ["Karen", "Google US English", "Microsoft Aria"],
     direction: "Soft, careful, slightly wary. Wants to be convinced and expects not to be.",
+    reads: "female",
+  },
+
+  /*
+   * ── The two that had to be added, and why appending matters ──────────────
+   *
+   * The original eight split four male and four female, but the REGISTERS did
+   * not: "clipped, every sentence a question with the pleasantries removed"
+   * existed only as a man, and "quick and interested" only as a woman. So a
+   * brisk female caller and a warm male one had nowhere to go, and the two
+   * mismatches in the roster were exactly those two people. Casting is a
+   * hand job; giving it a complete palette is what stops the hand slipping.
+   *
+   * APPENDED rather than inserted. `app/api/tts/route.ts` derives its speaker
+   * list from `Object.keys(VOICES)` and uses the index as a fallback seat, so
+   * inserting a key in the middle silently re-seats every voice after it.
+   */
+  room_dry: {
+    elevenVoiceId: "ThT5KcBeYPX3keUQqHPh",
+    speed: 1.05,
+    rate: 1.1,
+    pitch: 1.0,
+    prefer: ["Kate", "Google UK English Female", "Microsoft Sonia"],
+    direction: "Dry and brisk. Already halfway to the next thing and not hiding it.",
+    reads: "female",
+  },
+  room_steady: {
+    elevenVoiceId: "yoZ06aMxZJJ28mfd3POQ",
+    speed: 1.02,
+    rate: 1.05,
+    pitch: 0.95,
+    prefer: ["Alex", "Google US English", "Microsoft Ryan"],
+    direction: "Warm and interested. Already picturing the version of this that works.",
+    reads: "male",
   },
 };
 

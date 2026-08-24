@@ -59,8 +59,8 @@ export function ProductScreen({ onClose }: { onClose: () => void }) {
                 activity={activity}
                 run={run}
                 used={spent.includes(activity.id)}
-                onRun={() => {
-                  runActivity(activity.id);
+                onRun={(option) => {
+                  runActivity(activity.id, option);
                   setSpent((s) => [...s, activity.id]);
                 }}
               />
