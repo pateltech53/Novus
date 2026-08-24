@@ -208,6 +208,28 @@ Losing stings and most of the library is reachable. The knobs are in
 decay the late game runs away to absurd valuations) and the year-end ask, which
 is sized to buy a year of runway rather than a fraction of valuation.
 
+## The year loop
+
+`advanceMonth` is the only thing that moves time, and everything else is
+optional — which is the right shape and was, for a while, a thin one. A player
+reported that after the first fiscal year it was "boring and repetitive to keep
+clicking options", and the count agreed: seventeen shared verbs, every one a
+single tap with a single outcome, and an identical list in year five to the one
+in year one.
+
+The Playbook is the answer — 48 shared activities across the six tabs, of which
+nine ask a **second question** (talk to the press → the local paper, the trade
+weekly, a podcast, or the national business desk) and about a third open at
+stage 2, 3 or 4, so growing a company adds doors instead of closing them. The
+long ladder across runs is the wardrobe, and it is priced in fiscal years
+survived rather than in companies started: reach year 3, close five years across
+your two best companies, and up from there.
+
+The diagnosis, what BitLife is actually doing that works, and the four rules any
+future change to this loop has to keep are in
+**[docs/PROGRESSION.md](docs/PROGRESSION.md)**. None of it touches the balance
+curve above — `scripts/simulate.mjs` does not fire activities and never has.
+
 ## Brand laws enforced in code
 
 - `#FF6B00` is the only colour that asks you to do something. Solvency green is

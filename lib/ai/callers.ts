@@ -65,6 +65,22 @@ export interface Caller {
   difficulty: 1 | 2 | 3 | 4 | 5;
   /** Stage the player must reach before this person will take the call. */
   minStage: number;
+  /**
+   * Which register this person reads as, so the cast can be checked.
+   *
+   * Not decoration and not a stat: `scripts/room-test.mjs` asserts it against
+   * `VOICES[caller.voice].reads`, because the roster is cast by hand and three
+   * of the twenty had drifted — Rosa Delgado answered in a man's voice, Nikhil
+   * Batra in a woman's. Nothing could catch that while the only record of what
+   * a `room_*` key sounds like was the key's own name, which deliberately
+   * describes the REGISTER rather than the person so a caller can be recast
+   * without renaming a voice.
+   *
+   * It decides casting and nothing else. It never reaches a prompt, it is never
+   * scored, and Brand Law 5's prohibition on judging anybody by how they sound
+   * is untouched by it.
+   */
+  gender: "male" | "female";
   /** What they say when they pick up. Never the player's words — only theirs. */
   greeting: string;
   /** The thing they are listening for. Shown before you dial: this is fair. */
@@ -98,9 +114,10 @@ export const CALLERS: Caller[] = [
        the name over the door. */
     title: "Angel investor, two exits",
     company: "Delgado Capital",
+    gender: "female",
     focus: "all",
     temperament: "operator",
-    voice: "room_even",
+    voice: "room_dry",
     difficulty: 1,
     minStage: 1,
     greeting: "You've got me walking to my car, so make it quick.",
@@ -111,6 +128,7 @@ export const CALLERS: Caller[] = [
     name: "Tunde Okafor",
     title: "Buyer, regional grocery group",
     company: "Merrow & Sons",
+    gender: "male",
     focus: ["FOOD", "PET", "SUSTAIN", "BEAUTY"],
     temperament: "numbers",
     voice: "room_deep",
@@ -124,6 +142,7 @@ export const CALLERS: Caller[] = [
     name: "Annika Lindqvist",
     title: "Marketplace category lead",
     company: "Northgate",
+    gender: "female",
     focus: ["ECOM", "FASHION", "TOYS", "PET"],
     temperament: "numbers",
     voice: "room_calm",
@@ -137,9 +156,10 @@ export const CALLERS: Caller[] = [
     name: "Nikhil Batra",
     title: "Seed investor",
     company: "Halfmoon Capital",
+    gender: "male",
     focus: ["TECH", "EDTECH", "GAMING", "CONTENT"],
     temperament: "vision",
-    voice: "room_bright",
+    voice: "room_steady",
     difficulty: 2,
     minStage: 1,
     greeting: "I back people early. Tell me what you're building.",
@@ -150,6 +170,7 @@ export const CALLERS: Caller[] = [
     name: "Claire Moreau",
     title: "Head of brand partnerships",
     company: "Atlas Group",
+    gender: "female",
     focus: "all",
     temperament: "brand",
     voice: "room_warm",
@@ -165,6 +186,7 @@ export const CALLERS: Caller[] = [
     name: "Kenji Haruki",
     title: "Managing partner",
     company: "Shorewall Ventures",
+    gender: "male",
     focus: "all",
     temperament: "numbers",
     voice: "room_deep",
@@ -178,6 +200,7 @@ export const CALLERS: Caller[] = [
     name: "Grace Abara",
     title: "Retail chain founder",
     company: "Kindred Stores",
+    gender: "female",
     focus: ["FOOD", "FASHION", "BEAUTY", "TOYS", "SUSTAIN"],
     temperament: "operator",
     voice: "room_soft",
@@ -191,6 +214,7 @@ export const CALLERS: Caller[] = [
     name: "Mira Volkov",
     title: "Growth investor",
     company: "Pelican Partners",
+    gender: "female",
     focus: ["TECH", "EDTECH", "GAMING"],
     temperament: "numbers",
     voice: "room_calm",
@@ -204,6 +228,7 @@ export const CALLERS: Caller[] = [
     name: "Bjorn Sorensen",
     title: "Distribution director",
     company: "Continental Freight",
+    gender: "male",
     focus: ["ECOM", "FOOD", "TOYS", "PET", "FITNESS"],
     temperament: "operator",
     voice: "room_even",
@@ -217,6 +242,7 @@ export const CALLERS: Caller[] = [
     name: "Paloma Reyes",
     title: "Creator-economy investor",
     company: "Loop Fund",
+    gender: "female",
     focus: ["CONTENT", "GAMING", "EDTECH", "FASHION"],
     temperament: "brand",
     voice: "room_warm",
@@ -230,6 +256,7 @@ export const CALLERS: Caller[] = [
     name: "Anil Chandra",
     title: "Procurement lead, school district",
     company: "Westbrook USD",
+    gender: "male",
     focus: ["EDTECH"],
     temperament: "sceptic",
     voice: "room_plain",
@@ -245,6 +272,7 @@ export const CALLERS: Caller[] = [
     name: "Eleanor Whitlock",
     title: "Partner",
     company: "Ravenscourt",
+    gender: "female",
     focus: "all",
     temperament: "sceptic",
     voice: "room_calm",
@@ -258,9 +286,10 @@ export const CALLERS: Caller[] = [
     name: "Sora Nakamura",
     title: "Corp dev",
     company: "Ashford Holdings",
+    gender: "female",
     focus: "all",
     temperament: "numbers",
-    voice: "room_crisp",
+    voice: "room_dry",
     difficulty: 4,
     minStage: 3,
     greeting: "We acquire. We don't invest. Still want the two minutes?",
@@ -271,6 +300,7 @@ export const CALLERS: Caller[] = [
     name: "Diogo Ferreira",
     title: "Platform partnerships",
     company: "Junction",
+    gender: "male",
     focus: ["TECH", "GAMING", "CONTENT", "ECOM"],
     temperament: "operator",
     voice: "room_plain",
@@ -284,6 +314,7 @@ export const CALLERS: Caller[] = [
     name: "Folake Adeyemi",
     title: "Impact fund lead",
     company: "Meridian Impact",
+    gender: "female",
     focus: ["SUSTAIN", "EDTECH", "FOOD", "PET"],
     temperament: "sceptic",
     voice: "room_bright",
@@ -297,6 +328,7 @@ export const CALLERS: Caller[] = [
     name: "Simran Kaur",
     title: "Consumer brand builder",
     company: "Ninefold",
+    gender: "female",
     focus: ["BEAUTY", "FASHION", "FITNESS", "FOOD"],
     temperament: "brand",
     voice: "room_warm",
@@ -312,6 +344,7 @@ export const CALLERS: Caller[] = [
     name: "Marcus Castellan",
     title: "Founding partner",
     company: "Castellan Bruce",
+    gender: "male",
     focus: "all",
     temperament: "sceptic",
     voice: "room_crisp",
@@ -325,6 +358,7 @@ export const CALLERS: Caller[] = [
     name: "Valentina Ibarra",
     title: "Late-stage lead",
     company: "Solano Growth",
+    gender: "female",
     focus: "all",
     temperament: "numbers",
     voice: "room_soft",
@@ -338,6 +372,7 @@ export const CALLERS: Caller[] = [
     name: "Hugo Eriksson",
     title: "Chair",
     company: "Norsholm Industries",
+    gender: "male",
     focus: "all",
     temperament: "operator",
     voice: "room_even",
@@ -351,6 +386,7 @@ export const CALLERS: Caller[] = [
     name: "Lena Zhao",
     title: "Sovereign fund director",
     company: "Meridian Reserve",
+    gender: "female",
     focus: "all",
     temperament: "vision",
     voice: "room_soft",
@@ -358,6 +394,171 @@ export const CALLERS: Caller[] = [
     minStage: 5,
     greeting: "We hold for twenty years. Where is this in twenty?",
     wants: "A reason this still exists in two decades.",
+  },
+
+  // ── Added for the daily rotation ─────────────────────────────────────────
+  //
+  // The Index shows a PAGE rather than the whole book now, and it turns over
+  // every real day (see `tradeIndex`). A rotation is only a rotation if the
+  // pool it draws from is bigger than the page, and at stage 1 the pool was
+  // three people for a software company — so these eleven are weighted to the
+  // early stages, where the book was thinnest, rather than to the top.
+  //
+  // Cast the same way as the twenty above: by hand, register matched to the
+  // person, and `scripts/room-test.mjs` fails the build if the two disagree.
+  {
+    id: "novak",
+    name: "Petra Novak",
+    title: "Angel syndicate lead",
+    company: "Kestrel Angels",
+    gender: "female",
+    focus: "all",
+    temperament: "vision",
+    voice: "room_bright",
+    difficulty: 1,
+    minStage: 1,
+    greeting: "I take one of these a week. Go.",
+    wants: "Why you, and not the other four people doing this.",
+  },
+  {
+    id: "opoku",
+    name: "Kwame Opoku",
+    title: "Buyer, independent retail group",
+    company: "Ashbourne Retail",
+    gender: "male",
+    focus: ["TOYS", "PET", "BEAUTY", "FASHION", "SUSTAIN"],
+    temperament: "numbers",
+    voice: "room_plain",
+    difficulty: 1,
+    minStage: 1,
+    greeting: "Two minutes. I am on the shop floor.",
+    wants: "Your margin, and how fast you can restock.",
+  },
+  {
+    id: "mbeki",
+    name: "Sipho Mbeki",
+    title: "Head of partnerships",
+    company: "Ledbury Digital",
+    gender: "male",
+    focus: ["TECH", "EDTECH", "CONTENT", "GAMING"],
+    temperament: "operator",
+    voice: "room_even",
+    difficulty: 2,
+    minStage: 1,
+    greeting: "We partner. We do not buy. Still interested?",
+    wants: "What each side puts in, and who owns the customer after.",
+  },
+  {
+    id: "halloran",
+    name: "Niamh Halloran",
+    title: "Procurement lead",
+    company: "Corrib Group",
+    gender: "female",
+    focus: ["SUSTAIN", "FASHION", "BEAUTY", "TOYS"],
+    temperament: "sceptic",
+    voice: "room_dry",
+    difficulty: 2,
+    minStage: 1,
+    greeting: "Send me a deck. No? Fine. Talk.",
+    wants: "Where it is made, and who actually checked.",
+  },
+  {
+    id: "iqbal",
+    name: "Yusra Iqbal",
+    title: "Head of tooling",
+    company: "Halcyon Labs",
+    gender: "female",
+    focus: ["TECH", "EDTECH", "GAMING", "CONTENT"],
+    temperament: "numbers",
+    voice: "room_dry",
+    difficulty: 2,
+    minStage: 1,
+    greeting: "We buy tools. We also build them, so be careful.",
+    wants: "What it replaces, and what it costs us to switch.",
+  },
+  {
+    id: "tanaka",
+    name: "Hiro Tanaka",
+    title: "Platform relations",
+    company: "Yamabuki Interactive",
+    gender: "male",
+    focus: ["GAMING", "TECH", "CONTENT"],
+    temperament: "numbers",
+    voice: "room_crisp",
+    difficulty: 3,
+    minStage: 2,
+    greeting: "Every studio tells me they are different. Two minutes.",
+    wants: "Retention past day thirty. Nothing else.",
+  },
+  {
+    id: "oyelaran",
+    name: "Bisi Oyelaran",
+    title: "Regional franchise director",
+    company: "Adeniyi Holdings",
+    gender: "female",
+    focus: "all",
+    temperament: "operator",
+    voice: "room_warm",
+    difficulty: 3,
+    minStage: 2,
+    greeting: "I have done this fourteen times. Convince me on fifteen.",
+    wants: "What one unit looks like when you are not in the room.",
+  },
+  {
+    id: "brandt",
+    name: "Lukas Brandt",
+    title: "Impact fund principal",
+    company: "Falkenberg Impact",
+    gender: "male",
+    focus: ["SUSTAIN", "TECH", "EDTECH", "PET"],
+    temperament: "vision",
+    voice: "room_steady",
+    difficulty: 3,
+    minStage: 2,
+    greeting: "Impact and returns. In that order, or do not bother.",
+    wants: "What you measure, and who audits the measuring.",
+  },
+  {
+    id: "conteh",
+    name: "Aminata Conteh",
+    title: "Head of buying",
+    company: "Rosewater Stores",
+    gender: "female",
+    focus: ["FASHION", "BEAUTY", "CONTENT", "TOYS"],
+    temperament: "brand",
+    voice: "room_soft",
+    difficulty: 4,
+    minStage: 3,
+    greeting: "I have four minutes and you have two of them.",
+    wants: "Sell-through in a shop like mine, not in general.",
+  },
+  {
+    id: "petrov",
+    name: "Dmitri Petrov",
+    title: "Debt finance",
+    company: "Brackwater Lending",
+    gender: "male",
+    focus: "all",
+    temperament: "numbers",
+    voice: "room_deep",
+    difficulty: 4,
+    minStage: 3,
+    greeting: "I do not want equity. I want to be paid back.",
+    wants: "Your worst month, and how you covered it.",
+  },
+  {
+    id: "hughes",
+    name: "Marianne Hughes",
+    title: "Chair",
+    company: "Stanbridge Partners",
+    gender: "female",
+    focus: "all",
+    temperament: "sceptic",
+    voice: "room_calm",
+    difficulty: 5,
+    minStage: 4,
+    greeting: "I sit on nine boards. Why should there be a tenth?",
+    wants: "What you would do with a chair who says no to you.",
   },
 ];
 
@@ -446,12 +647,60 @@ export const digitsOf = (input: string): string => {
   return digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
 };
 
+/**
+ * Every line in the book, assigned once and never twice.
+ *
+ * ── Why this is a table and not a formula ──────────────────────────────────
+ *
+ * It was a formula: hash the caller id, take a modulo for the area code and
+ * another for the last two digits. That works with twenty listings and it works
+ * by luck. There are eight usable area codes and a hundred lines inside the
+ * fiction block, so eight hundred numbers exist — and by the birthday problem
+ * thirty-one callers collide better than half the time. A collision is not a
+ * cosmetic bug: two businesses share a number, `callerByNumber` returns
+ * whichever comes first in the array, and the other one is unreachable forever
+ * with nothing on any screen to say why.
+ *
+ * So the hash still CHOOSES, and a linear probe over the whole eight hundred
+ * settles ties. It is deterministic (same order, same ids, same numbers every
+ * build), it is exhaustive up to eight hundred listings, and `room-test`
+ * asserts the uniqueness it now guarantees rather than hoping for it.
+ *
+ * Built once, lazily, because `CALLERS` has to be fully evaluated first.
+ */
+let LINES: Map<string, string> | null = null;
+
+/** Eight area codes by a hundred lines. The whole space a listing can sit in. */
+const SLOTS = FICTION_AREA_CODES.length * 100;
+
+function lineTable(): Map<string, string> {
+  if (LINES) return LINES;
+  const table = new Map<string, string>();
+  const taken = new Set<string>();
+  for (const caller of CALLERS) {
+    const h = hashString(`room-line:${caller.id}`);
+    // `hashString` returns an unsigned 32-bit value and `>>>` keeps it that
+    // way, so this needs no sign correction — the same trap `caseVariantFor`
+    // in components/IslandGlyph.tsx fell into with a signed shift.
+    const start = (h >>> 3) % SLOTS;
+    for (let step = 0; step < SLOTS; step += 1) {
+      const slot = (start + step) % SLOTS;
+      const area = FICTION_AREA_CODES[Math.floor(slot / 100)];
+      const line = 100 + (slot % 100);
+      const printed = `(${area}) 555-0${line}`;
+      if (taken.has(printed)) continue;
+      taken.add(printed);
+      table.set(caller.id, printed);
+      break;
+    }
+  }
+  LINES = table;
+  return table;
+}
+
 /** The number as it is printed in the index: `(411) 555-0132`. */
 export function phoneOf(caller: Caller): string {
-  const h = hashString(`room-line:${caller.id}`);
-  const area = FICTION_AREA_CODES[h % FICTION_AREA_CODES.length];
-  const line = 100 + ((h >>> 8) % 100);
-  return `(${area}) 555-0${line}`;
+  return lineTable().get(caller.id) ?? "(911) 555-0100";
 }
 
 /**
@@ -469,22 +718,91 @@ export function callerByNumber(input: string): Caller | null {
 }
 
 /**
- * The trade index: businesses in this company's niche, with their numbers.
+ * How many listings the book prints on any one day.
  *
- * The same set `availableCallers` returns — one function decides who is
- * reachable, and the index is a VIEW of that rather than a second opinion, or
- * the book would print numbers that refuse to connect.
- *
- * Ordered by how hard they are to win rather than by name. A directory sorted
- * alphabetically is a phone book; sorted by difficulty it is a ladder, and the
- * first name on it is the one a founder at this stage should actually be
- * ringing.
+ * Four, against a ration of three calls. That relationship is the design: the
+ * page holds one more business than you can possibly ring, so choosing is a
+ * real act rather than a formality, and whoever you did not ring is somebody
+ * you may not see tomorrow.
  */
-export function tradeIndex(state: RunState): { caller: Caller; phone: string }[] {
-  return availableCallers(state)
-    .slice()
-    .sort((a, b) => a.difficulty - b.difficulty || a.minStage - b.minStage)
-    .map((caller) => ({ caller, phone: phoneOf(caller) }));
+export const INDEX_PAGE = 4;
+
+/**
+ * The day the book turns over, on the REAL clock and in UTC.
+ *
+ * The same day the call ration rolls on (`callDayISO` in
+ * lib/engine/activities.ts, and the reasoning is written out there): the
+ * leaderboard verifier buckets cold calls by UTC date, and a book that turned
+ * over on the player's midnight while the calls refilled on UTC's would put the
+ * two out of step for a third of the world.
+ */
+const indexDayISO = (d = new Date()) => d.toISOString().slice(0, 10);
+
+/**
+ * THE TRADE INDEX — the page of the book you are looking at today.
+ *
+ * ── Why it is a page and not the whole book ────────────────────────────────
+ *
+ * It used to print everybody who would take a call, which meant it printed the
+ * same names on Monday, Tuesday and every Tuesday after that. A directory that
+ * never changes is a directory you read once and then work down like a list of
+ * chores — and working down a fixed list is the contacts app this screen exists
+ * to stop being.
+ *
+ * So the page turns over every real day. Different businesses, different
+ * people, chosen from everyone who would actually take the call. A player who
+ * opens The Index on Wednesday is looking at a market that has moved, which is
+ * the honest version of what a market does.
+ *
+ * ── What does NOT change with it ───────────────────────────────────────────
+ *
+ * Who answers. `callerByNumber` searches the whole roster and `availableCallers`
+ * decides who picks up, neither of which knows what day it is. A number copied
+ * from yesterday's page still rings, and it still rings the same person. The
+ * rotation governs what is PRINTED and nothing else — a book that changed who
+ * existed would make the number in a player's notes a lie.
+ *
+ * ── Seeded by day and by company ───────────────────────────────────────────
+ *
+ * `mulberry32` over the date and the run's own seed, so the page is stable all
+ * day (a re-render does not reshuffle it under a player mid-copy), and two
+ * companies on the same device see different pages — which is what makes an
+ * archipelago of ten feel like ten businesses rather than one address book.
+ *
+ * Sorted by difficulty AFTER the draw, so the page still reads as a ladder: the
+ * first entry is the one a founder at this stage should be ringing today.
+ */
+export function tradeIndex(
+  state: RunState,
+  now = new Date(),
+): { caller: Caller; phone: string }[] {
+  const pool = availableCallers(state);
+  const byLadder = (a: Caller, b: Caller) =>
+    a.difficulty - b.difficulty || a.minStage - b.minStage || (a.id < b.id ? -1 : 1);
+
+  const page =
+    pool.length <= INDEX_PAGE ? pool.slice() : drawPage(pool, state.seed, indexDayISO(now));
+
+  return page.sort(byLadder).map((caller) => ({ caller, phone: phoneOf(caller) }));
+}
+
+/**
+ * Today's draw — a partial Fisher-Yates over a copy, taking the first
+ * `INDEX_PAGE`.
+ *
+ * A copy because `availableCallers` hands back a fresh array today and might
+ * not tomorrow, and shuffling the roster in place would reorder the book for
+ * every company on the device. Partial because only the first four matter and
+ * the rest of the walk is work nobody reads.
+ */
+function drawPage(pool: Caller[], seed: number, dayISO: string): Caller[] {
+  const rng = mulberry32(hashString(`index:${seed}:${dayISO}`));
+  const deck = pool.slice();
+  for (let i = 0; i < INDEX_PAGE; i += 1) {
+    const j = i + Math.floor(rng() * (deck.length - i));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+  return deck.slice(0, INDEX_PAGE);
 }
 
 // ── Resolving a pitch ───────────────────────────────────────────────────────

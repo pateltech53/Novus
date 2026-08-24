@@ -117,8 +117,17 @@ export type TapeEntry =
    * here: more than three sharing one date is a forged tape (§7.4).
    */
   | { t: "coldcall"; investorId: string; transcript: string; atISO: DateISO }
-  /** An activity from the activity bar. Spends resources, never time. */
-  | { t: "activity"; id: string }
+  /**
+   * An activity from the activity bar. Spends resources, never time.
+   *
+   * `option` is the branch of a two-level activity — "talk to the press" is the
+   * id, "the national business desk" is the option. Optional and additive: no
+   * tape recorded before two-level activities existed carries one, and no
+   * activity that existed then has branches, so every historical entry replays
+   * exactly as it did. A tape naming a branch that no longer exists skips that
+   * entry rather than silently taking a different one.
+   */
+  | { t: "activity"; id: string; option?: string }
   /**
    * Pro was toggled. Audit only — Pro gates which candidates and industries a
    * player can SEE, and is enforced never to change what any of them are worth

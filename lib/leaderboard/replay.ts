@@ -1,5 +1,5 @@
 import eventsData from "@/data/events.json";
-import { activityById, isAvailable, isLocked } from "@/lib/engine/activities";
+import { activityById, applyActivity, isAvailable, isLocked } from "@/lib/engine/activities";
 import { applyOutcome } from "@/lib/engine/effects";
 import { assetById, buyAsset, sellAsset } from "@/lib/engine/holdings";
 import { specFor, specForRun } from "@/lib/engine/industries/index";
@@ -731,7 +731,17 @@ export function applyTapeEntry(
        * Outside the freeze on purpose — it reads `state.pro` and no clock.
        */
       if (isLocked(activity, state)) return skip("that activity is Pro");
-      withFrozenClock(cursor.clockISO, () => activity.apply(state));
+      /*
+       * `applyActivity` rather than `activity.apply`, because a two-level
+       * activity has no single outcome — the tape names which branch was taken
+       * and this is what resolves it. It returns false for a branch that is
+       * gone or unreachable, which is a skip: replaying the WRONG branch would
+       * produce a company that never existed and score it anyway.
+       */
+      const ran = withFrozenClock(cursor.clockISO, () =>
+        applyActivity(activity, state, entry.option),
+      );
+      if (!ran) return skip("that activity had no such option");
       refreshBooks(state);
       break;
     }

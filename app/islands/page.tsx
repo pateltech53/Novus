@@ -912,11 +912,40 @@ function SeaIsland({
     <button
       type="button"
       onClick={onOpen}
-      className="nv-press relative flex flex-col items-center"
+      className="nv-press nv-isle relative flex flex-col items-center"
       /* The whole island is the target and it is bigger than 44px at every
          depth on this scene, so no minimum is forced — forcing one would put an
-         invisible rectangle over the water beside the small far islands. */
+         invisible rectangle over the water beside the small far islands.
+
+         `nv-isle` is the pointer answer — a lift and a wake, both defined in
+         globals.css and both switched off on touch, where `nv-press` already
+         says the same thing with a scale. */
     >
+      {/*
+        The wake. Positioned against the button rather than inside the bobbing
+        wrapper on purpose: foam sits on the WATER, and a wake that rode up and
+        down with the island would read as a shadow glued to its hull.
+
+        Sized off the island's own width so it stays in proportion at every
+        depth, and CENTRED at 86% of the box rather than hung below it: the
+        label starts at 100%, and the first version of this reached past the
+        bottom edge and washed out the year under every hovered island.
+      */}
+      {(() => {
+        const w = Math.round(base * depth);
+        const wake = Math.round(w * 0.2);
+        return (
+          <span
+            aria-hidden
+            className="nv-isle-wake pointer-events-none absolute left-1/2 -translate-x-1/2 rounded-[50%]"
+            style={{
+              width: Math.round(w * 1.15),
+              height: wake,
+              top: Math.round(w * ISLAND_ASPECT * 0.86 - wake / 2),
+            }}
+          />
+        );
+      })()}
       {/*
         The bob lives on a WRAPPER, never on the glyph and never on the
         positioned parent: Framer owns the transform on the entrance, CSS owns
@@ -982,7 +1011,10 @@ function SeaEmpty({
       type="button"
       onClick={onFound}
       disabled={busy}
-      className="nv-press relative flex flex-col items-center disabled:opacity-60"
+      /* The same pointer answer as a real island. An empty place that stayed
+         dead under the cursor while its neighbours lifted would read as the one
+         thing on the scene you cannot press, which is the opposite of true. */
+      className="nv-press nv-isle relative flex flex-col items-center disabled:opacity-60"
     >
       {/* The same footprint an island would take, so founding one does not
           shuffle the scene — the shape changes, the composition does not. */}
@@ -1021,7 +1053,7 @@ function SeaLocked({
     <button
       type="button"
       onClick={onAsk}
-      className="nv-press relative flex flex-col items-center opacity-70"
+      className="nv-press nv-isle relative flex flex-col items-center opacity-70"
     >
       <span
         aria-hidden

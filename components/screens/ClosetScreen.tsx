@@ -17,16 +17,18 @@ import {
 } from "@/lib/engine/avatar";
 import {
   SKINS,
+  currentRecord,
+  demandText,
   equipSkin,
   isSkinWearable,
   loadWardrobe,
   skinDef,
   skinProgress,
+  syncEarnedSkins,
   type SkinId,
 } from "@/lib/engine/wardrobe";
 import { STAGE_NAME, STAGE_REVENUE_FLOOR } from "@/lib/engine/constants";
 import { fmtMoney } from "@/lib/engine/format";
-import { loadLegacy } from "@/lib/engine/save";
 import { isPro, loadEntitlements, onEntitlementsChange } from "@/lib/monetization";
 import { useUpgrade } from "@/components/upgrade/UpgradeProvider";
 import type { StageNum } from "@/lib/engine/types";
@@ -36,6 +38,17 @@ const NAME_MAX = 18;
 
 /** Distance in stages, spelled out. Index is stages remaining, 1..4. */
 const STAGES_AWAY = ["", "one stage up", "two stages up", "three stages up", "four stages up"];
+
+/**
+ * Fiscal years this company has already CLOSED, which is one fewer than the
+ * year it is currently in — a run in fiscal year 4 has three behind it.
+ *
+ * The wardrobe demands count closed years, and they have to count this run's
+ * as well as the record's, or a founder eight years into their first company
+ * would be told they had never closed one.
+ */
+const closedYears = (run: { year: number } | null): number =>
+  run ? Math.max(0, Math.trunc(run.year) - 1) : 0;
 
 /**
  * What a locked tier is actually waiting on.
@@ -90,9 +103,28 @@ export function ClosetScreen({
   const { run } = useGame();
   const upgrade = useUpgrade();
   const [name, setName] = useState(run?.avatar.name ?? "");
-  // Read once on open. This screen only mounts client-side (behind a tap), so
-  // the storage reads are safe, and nothing else writes these while it is up.
-  const [runsFinished] = useState(() => loadLegacy().runsCompleted);
+  /*
+   * Read once on open. This screen only mounts client-side (behind a tap), so
+   * the storage reads are safe, and nothing else writes these while it is up.
+   *
+   * Both initialisers are PURE reads. `loadWardrobe` already reports the fits
+   * an old run-count save had earned, so the first paint is correct before
+   * anything is written — and writing from a `useState` initialiser would be
+   * writing during render, which fires the wardrobe's change event and can set
+   * state in another component mid-render.
+   */
+  const [ledger, setLedger] = useState<SkinId[]>(() => loadWardrobe().earned ?? []);
+  const [record] = useState(() => currentRecord(closedYears(run)));
+  /*
+   * The commit, after paint. It banks a fit whose demands were met on a device
+   * that happened to be offline at the time, and it is what persists the
+   * migration off the old run-count rule. Once per open; the sync writes
+   * nothing when there is nothing to bank.
+   */
+  const years = closedYears(run);
+  useEffect(() => {
+    if (syncEarnedSkins(years).length > 0) setLedger(loadWardrobe().earned ?? []);
+  }, [years]);
   /*
    * Pro is the one value on this screen that another surface can change while
    * it is open: the upgrade screen opens straight from the wardrobe track, and
@@ -116,7 +148,9 @@ export function ClosetScreen({
   // What is actually on the founder's back — storage says equipped, but only
   // an earned fit on an active Pro renders. Everything else is the tier.
   const wornSkin =
-    equipped && isSkinWearable(skinDef(equipped), runsFinished, proActive) ? equipped : null;
+    equipped && isSkinWearable(skinDef(equipped), record, proActive, ledger)
+      ? equipped
+      : null;
 
   const wear = (id: SkinId) => {
     const next = equipped === id ? null : id; // tap the worn fit to take it off
@@ -330,32 +364,35 @@ export function ClosetScreen({
           })}
         </ul>
 
-        {/* The wardrobe track — Pro's long cosmetic ladder, earned by finishing runs. */}
+        {/* The wardrobe track — Pro's long cosmetic ladder, earned by years played. */}
         <div className="mt-7 flex items-baseline justify-between gap-3">
           <h2 className="text-2xs font-bold tracking-[0.16em] text-[var(--text-tertiary)]">
             THE WARDROBE TRACK
           </h2>
+          {/* The record itself, in the unit the demands are written in. It used
+              to read "n runs finished", which was the whole of the old rule and
+              is now one clause on two of the six fits. */}
           <span className="tnum text-2xs text-[var(--text-tertiary)]">
-            {runsFinished} {runsFinished === 1 ? "run" : "runs"} finished
+            {record.careerYears} {record.careerYears === 1 ? "year" : "years"} · best{" "}
+            {record.bestYear}
           </span>
         </div>
         <p className="mt-1 text-2xs leading-snug text-[var(--text-tertiary)]">
-          Six fits, earned by finishing runs — going under counts, walking away counts. Pro
+          Six fits, earned by fiscal years survived — how deep you got, and how often. Pro
           wears them; the tiers above stay free and stay the default. Cosmetics never touch
           score, survival, or the leaderboard.
         </p>
 
         <ul className="mt-2 space-y-2">
           {SKINS.map((s) => {
-            const p = skinProgress(s, runsFinished);
+            const p = skinProgress(s, record, ledger.includes(s.id));
             const wearable = proActive && p.earned;
             const worn = wornSkin === s.id;
-            const pct = Math.round(p.frac * 100);
 
             return (
               <li
                 key={s.id}
-                className={`flex items-center gap-3 rounded-[var(--radius-card)] p-3 ${
+                className={`flex items-start gap-3 rounded-[var(--radius-card)] p-3 ${
                   worn ? "bg-[var(--surface-elevated)] shadow-[var(--e2)]" : "bg-[var(--surface)]"
                 }`}
               >
@@ -384,34 +421,60 @@ export function ClosetScreen({
                     <span className="mt-0.5 block text-2xs leading-snug text-[var(--text-secondary)]">
                       {proActive
                         ? s.blurb
-                        : "Earned — your finished runs are banked. Pro wears it."}
+                        : "Earned — the years are on your record. Pro wears it."}
                     </span>
                   ) : (
+                    /*
+                     * ONE ROW PER CLAUSE, never one bar for the fit.
+                     *
+                     * Two of the six ask for two different things, and a single
+                     * bar averaging them would tell a player who has done half
+                     * of one and none of the other that they are a quarter of
+                     * the way to a fit whose harder half they have not started.
+                     * The demand is written as an instruction — "Reach fiscal
+                     * year 6" — because that is a thing to go and do; the bar
+                     * underneath is where they stand.
+                     */
                     <>
-                      <span
-                        role="meter"
-                        aria-label={`${s.label} unlock progress`}
-                        aria-valuenow={pct}
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                        aria-valuetext={`${p.done} of ${p.need} finished runs`}
-                        className="mt-1.5 block h-1.5 w-full overflow-hidden rounded-full bg-[var(--chip)]"
-                      >
-                        {/* Plain inline width, same as the ladder: the true
-                            fraction is in the DOM at first paint. */}
-                        <span
-                          aria-hidden="true"
-                          className="block h-full rounded-full transition-[width] duration-500"
-                          style={{
-                            width: `${p.frac * 100}%`,
-                            background: "var(--n-7)",
-                            transitionTimingFunction: "var(--ease-out)",
-                          }}
-                        />
-                      </span>
-                      <span className="mt-1 block text-2xs leading-snug text-[var(--text-secondary)]">
-                        {p.done} of {p.need} runs
-                      </span>
+                      {p.clauses.map((c, i) => (
+                        <span key={i} className="mt-1.5 block">
+                          <span className="flex items-baseline justify-between gap-2">
+                            <span
+                              className={`text-2xs leading-snug ${
+                                c.met
+                                  ? "text-[var(--text-tertiary)] line-through"
+                                  : "text-[var(--text-secondary)]"
+                              }`}
+                            >
+                              {demandText(c.demand)}
+                            </span>
+                            <span className="tnum shrink-0 text-2xs text-[var(--text-tertiary)]">
+                              {c.done}/{c.need}
+                            </span>
+                          </span>
+                          <span
+                            role="meter"
+                            aria-label={`${s.label}: ${demandText(c.demand)}`}
+                            aria-valuenow={Math.round(c.frac * 100)}
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                            aria-valuetext={`${c.done} of ${c.need}`}
+                            className="mt-1 block h-1.5 w-full overflow-hidden rounded-full bg-[var(--chip)]"
+                          >
+                            {/* Plain inline width, same as the ladder: the true
+                                fraction is in the DOM at first paint. */}
+                            <span
+                              aria-hidden="true"
+                              className="block h-full rounded-full transition-[width] duration-500"
+                              style={{
+                                width: `${c.frac * 100}%`,
+                                background: c.met ? "var(--n-10)" : "var(--n-7)",
+                                transitionTimingFunction: "var(--ease-out)",
+                              }}
+                            />
+                          </span>
+                        </span>
+                      ))}
                     </>
                   )}
                 </span>
@@ -432,8 +495,8 @@ export function ClosetScreen({
                 ) : p.earned ? (
                   /*
                    * The sharpest gate in the app, so it gets the one live
-                   * control: this fit has been EARNED — the runs are finished
-                   * and banked — and the only thing between the founder and
+                   * control: this fit has been EARNED — the years are on the
+                   * record — and the only thing between the founder and
                    * wearing it is the plan. A dead grey chip reading "PRO" was
                    * the answer to that, next to a portrait already greyscaled.
                    */

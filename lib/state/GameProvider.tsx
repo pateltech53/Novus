@@ -27,7 +27,7 @@ import {
 } from "@/lib/engine/run";
 import { buildAutopsy, type AutopsyReport } from "@/lib/engine/autopsy";
 import type { CompanyBrief } from "@/lib/engine/company-brief";
-import { activityById, isLocked, isOfferable } from "@/lib/engine/activities";
+import { activityById, applyActivity, isLocked, isOfferable } from "@/lib/engine/activities";
 import { callerById, consumeCall, type CallOutcome } from "@/lib/ai/callers";
 import { syncPositioning } from "@/lib/engine/positioning";
 import { TANK_REQUIRED_THROUGH_YEAR } from "@/lib/engine/constants";
@@ -120,6 +120,15 @@ import {
   type IslandSummary,
   type Profile,
 } from "@/lib/engine/save";
+/*
+ * The wardrobe's demands are measured in FISCAL YEARS, so the moment a year
+ * closes is the moment a fit can become earned. `syncEarnedSkins` banks it into
+ * a sticky ledger rather than the track re-deriving it at read time, because
+ * the record it reads from can shrink — `legacy.autopsies` keeps ten companies
+ * — and a fit must never un-earn. Cosmetic only; nothing it writes is visible
+ * to the sim, the score or the board (Brand Law 4).
+ */
+import { syncEarnedSkins } from "@/lib/engine/wardrobe";
 import { useOutside } from "@/components/native/useOutside";
 
 const EVENTS = eventsData as unknown as GameEvent[];
@@ -303,7 +312,7 @@ interface GameContextValue {
   saveProfileFields(fields: Partial<Profile>): void;
   choicesFor(ev: GameEvent): ReturnType<typeof visibleChoices>;
   /** Activity-bar actions. These spend resources and never advance time. */
-  runActivity(id: string): void;
+  runActivity(id: string, optionId?: string): void;
 
   // ── Team ────────────────────────────────────────────────────────────────
   hire(candidateId: string): void;
@@ -802,6 +811,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     legacy.bestYear = Math.max(legacy.bestYear, summary.year);
     if (!legacy.badges.includes(summary.badge)) legacy.badges.push(summary.badge);
     saveLegacy(legacy);
+    // A closed year can be the one that earns a fit. Banked here rather than
+    // read live — see the note on the import.
+    syncEarnedSkins(summary.year);
     recordYearClose();
     commit(working);
     setYearEnd(summary);
@@ -922,6 +934,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         legacy.bestYear = Math.max(legacy.bestYear, summary.year);
         if (!legacy.badges.includes(summary.badge)) legacy.badges.push(summary.badge);
         saveLegacy(legacy);
+        syncEarnedSkins(summary.year);
         // One of today's ration, spent at the moment the year actually closes.
         recordYearClose();
         commit(working);
@@ -1027,6 +1040,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     });
     legacy.autopsies = legacy.autopsies.slice(0, 10);
     saveLegacy(legacy);
+    // The company is on the record now, which can complete a `topRuns` or
+    // `careerYears` demand that was one company short a second ago.
+    syncEarnedSkins();
   }, []);
 
   /**
@@ -1619,7 +1635,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   );
 
   const runActivity = useCallback(
-    (id: string) => {
+    (id: string, optionId?: string) => {
       const state = runRef.current;
       if (!state || !state.alive) return;
       // Looks in the industry lens as well as the shared registry, so a FOOD
@@ -1641,11 +1657,18 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
        */
       if (isLocked(activity, state)) return;
       const working: RunState = structuredClone(state);
-      activity.apply(working);
+      /*
+       * `applyActivity` owns both shapes of activity — the one-tap kind and the
+       * two-level kind that asks WHICH before it does anything. It refuses a
+       * branch that does not exist or is not reachable at this stage, and a
+       * refusal must not reach the tape: an `{ t: "activity" }` entry the
+       * verifier would then reject is worse than a press that did nothing.
+       */
+      if (!applyActivity(activity, working, optionId)) return;
       // Activities spend resources and never advance time, but they absolutely
       // reach the books — `apply` runs effects through the same seeded RNG the
       // events do. A tape without them replays a different company.
-      recordTap(working, { t: "activity", id });
+      recordTap(working, { t: "activity", id, ...(optionId ? { option: optionId } : {}) });
       commit(working);
     },
     [commit],
