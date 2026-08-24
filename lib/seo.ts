@@ -52,6 +52,123 @@ export const absoluteUrl = (path = "/"): string =>
  */
 export const ORGANIZATION_ID = `${SITE_ORIGIN}/#team`;
 
+/**
+ * THE TEAM — one list, read by the page and by the structured data.
+ *
+ * ── Why it moved here ───────────────────────────────────────────────────────
+ *
+ * It was two lists: `TEAM` in components/landing/Landing.tsx carried the name,
+ * the role and the photograph, and `member` below carried the name again. Two
+ * copies of a person's name in one repository is the same failure mode the
+ * FAQ has its own note about — the moment one is edited, the page and the graph
+ * describe two different people, and the one place that shows up is a search
+ * result nobody on the team is looking at.
+ *
+ * That is not hypothetical here. This list exists in its current form because a
+ * name changed: Dhruv Patel is Dhruv Amit Patel, and a rename that reached the
+ * page but not the graph would have left the crawler's copy stale.
+ *
+ * ── `alternateName`, which is the whole point of the rename ─────────────────
+ *
+ * A person who has been published under one string and is now published under
+ * a longer one is ONE person, and a search engine has no way to know that
+ * unless it is told. `alternateName` is how it is told: it says "Dhruv Amit
+ * Patel" and "Dhruv Patel" are the same entity, so whatever authority the
+ * shorter form has accumulated attaches to the fuller one rather than
+ * competing with it. Without it, the rename reads as a new person with no
+ * history.
+ *
+ * ── `roles` is an array, and stays one ──────────────────────────────────────
+ *
+ * schema.org's `jobTitle` accepts a list, and these people hold several titles
+ * each. Flattening them into one string — "CEO, Co-Founder, Software Engineer
+ * and COO" — would hand a crawler a single job title that is four job titles
+ * with commas in it, and it is the four it should be able to read separately.
+ * The page joins them for display; the graph does not.
+ *
+ * Photos ship from files named by each person — no guessed mappings.
+ */
+export interface TeamMember {
+  name: string;
+  /** Every title this person holds, most senior first. */
+  roles: readonly string[];
+  photo: string;
+  /** Founders are also listed under the Organization's `founder`. */
+  founder?: boolean;
+  /** A name this person has previously been published under, if any. */
+  alsoKnownAs?: string;
+}
+
+export const TEAM: readonly TeamMember[] = [
+  {
+    name: "Yuvan Satish",
+    roles: ["Co-Founder", "CMO", "CHRO"],
+    photo: "/landing/team/yuvan.webp",
+    founder: true,
+  },
+  {
+    name: "Dhruv Amit Patel",
+    alsoKnownAs: "Dhruv Patel",
+    roles: ["CEO", "Co-Founder", "Software Engineer", "COO"],
+    photo: "/landing/team/dhruv.webp",
+    founder: true,
+  },
+  {
+    name: "Zach Han",
+    roles: ["Co-Founder", "Mobile App Developer", "Full-Stack Developer", "CFO"],
+    photo: "/landing/team/zach.webp",
+    founder: true,
+  },
+  {
+    name: "Ana Hashem",
+    roles: ["Customer Research"],
+    photo: "/landing/team/ana.webp",
+  },
+  {
+    name: "Monica Raina",
+    roles: ["Outreach"],
+    photo: "/landing/team/monica.webp",
+  },
+];
+
+/**
+ * The role line as the page prints it: `CEO · CO-FOUNDER · SOFTWARE ENGINEER`.
+ *
+ * The hyphen becomes a NON-BREAKING one on the way out. These captions sit in a
+ * column about 180px wide and four titles wrap to four lines, which is fine —
+ * what is not fine is where they wrapped: "FULL-STACK DEVELOPER" broke after
+ * the hyphen and printed "FULL-" alone at the end of a line. The interpunct
+ * between titles is still a breakable space either side, so the line breaks
+ * BETWEEN roles, which is the only place it should.
+ *
+ * Done here rather than in the data: `jobTitle` in the graph should carry an
+ * ordinary hyphen, because it is a job title and not a line of type.
+ */
+export const roleLine = (member: TeamMember): string =>
+  member.roles.join(" · ").replace(/-/g, "\u2011");
+
+/**
+ * A stable `@id` per person, so the graph names an ENTITY rather than repeating
+ * a string. Derived from the name, and deliberately not from `alsoKnownAs`:
+ * the id follows the person's current name and the old one is carried as an
+ * alternate, which is the direction that keeps a rename from forking them.
+ */
+const personId = (name: string) =>
+  `${SITE_ORIGIN}/#${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+
+const personNode = (member: TeamMember) => ({
+  "@type": "Person",
+  "@id": personId(member.name),
+  name: member.name,
+  ...(member.alsoKnownAs ? { alternateName: member.alsoKnownAs } : {}),
+  jobTitle: [...member.roles],
+  image: absoluteUrl(member.photo),
+  worksFor: { "@id": ORGANIZATION_ID },
+  // The section that actually shows this person, so the claim is checkable
+  // against a page a crawler can fetch rather than only asserted.
+  mainEntityOfPage: `${SITE_ORIGIN}/#team`,
+});
+
 export const ORGANIZATION_NODE = {
   "@type": "Organization",
   "@id": ORGANIZATION_ID,
@@ -65,14 +182,19 @@ export const ORGANIZATION_NODE = {
   ],
   description:
     "Five students who built Novus at the LaunchX Flagship program, San Diego, summer 2026.",
-  member: [
-    { "@type": "Person", name: "Yuvan Satish" },
-    { "@type": "Person", name: "Dhruv Patel" },
-    { "@type": "Person", name: "Zach Han" },
-    { "@type": "Person", name: "Ana Hashem" },
-    { "@type": "Person", name: "Monica Raina" },
-  ],
-} as const;
+  /*
+   * `founder` as well as `member`, because they are different claims and only
+   * one of them answers "who started this".
+   *
+   * References rather than repeated objects: `member` below carries the full
+   * Person node for all five, and JSON-LD resolves a bare `@id` against it, so
+   * the founders are described once and cited twice. Inlining them in both
+   * places would have doubled the graph to say the same thing, and left two
+   * copies of every job title to drift apart.
+   */
+  founder: TEAM.filter((m) => m.founder).map((m) => ({ "@id": personId(m.name) })),
+  member: TEAM.map(personNode),
+};
 
 /**
  * The WebSite node.
@@ -138,6 +260,23 @@ export const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Who made Novus?",
-    a: "Five students — Yuvan, Dhruv, Zach, Ana and Monica — at the LaunchX Flagship program in San Diego, summer 2026. Designed, coded and pitched in one summer.",
+    a: "Five students at the LaunchX Flagship program in San Diego, summer 2026. It was co-founded by Dhruv Amit Patel, who is CEO and COO and wrote much of the software; Zach Han, who built the mobile app and the full stack and is CFO; and Yuvan Satish, who is CMO and CHRO. Ana Hashem led customer research and Monica Raina led outreach. Designed, coded and pitched in one summer.",
+  },
+  /*
+   * A question about a person, in a product FAQ, on purpose.
+   *
+   * "Who is <founder>" is a real query with a real answer, and the answer is
+   * on this page already — a photograph, a name and a role, in the team
+   * section. What it lacked was the question. A search engine matching that
+   * query had a name in a grid and nothing that read as a definition, and the
+   * name it had was the old one.
+   *
+   * Everything below is a fact stated elsewhere on the same page, which is the
+   * rule for this list and the rule Google enforces on FAQPage markup: the
+   * marked-up answer has to be the answer a visitor can see.
+   */
+  {
+    q: "Who is Dhruv Amit Patel?",
+    a: "Dhruv Amit Patel is the CEO, COO and a co-founder of Novus, and one of its software engineers. He built Novus with Zach Han and Yuvan Satish at the LaunchX Flagship program in San Diego, summer 2026 — a business simulation where you run a company month by month and close each fiscal year by pitching it out loud to five AI investors.",
   },
 ];
