@@ -118,7 +118,7 @@ export function RobinGhood({
                   setTab(t.id);
                   closeDetail();
                 }}
-                className={`min-w-0 flex-1 truncate rounded-[var(--radius-pill)] px-2 py-2 text-2xs font-bold tracking-[0.12em] transition-colors duration-150 ${
+                className={`min-w-0 flex-1 truncate rounded-[var(--radius-pill)] px-1 py-2 text-2xs font-bold tracking-[0.12em] transition-colors duration-150 ${
                   tab === t.id
                     ? "bg-[var(--card)] text-[var(--text)] shadow-[var(--e1)]"
                     : "text-[var(--text-secondary)]"
@@ -386,10 +386,12 @@ function TransferPanel({
               onClick={() => onTransfer(o.amount)}
               className="nv-gc min-w-0 rounded-[var(--radius-row)] nv-t-action px-2 py-3 text-center"
             >
-              <span className="tnum block truncate text-sm font-extrabold text-[var(--n-11)]">
+              {/* The tone owns its ink (white on the orange) — ramp tokens here
+                  flipped near-black in the light theme. */}
+              <span className="tnum block truncate text-sm font-extrabold">
                 {usd(o.amount, false)}
               </span>
-              <span className="block text-2xs font-bold tracking-[0.08em] text-[var(--n-9)]">
+              <span className="block text-2xs font-bold tracking-[0.08em] text-[var(--on-action)]/80">
                 {Math.round(o.f * 100)}% OF CASH
               </span>
             </button>
@@ -475,7 +477,9 @@ function MarketRow({
 
       <Sparkline data={spark} up={up} />
 
-      <span className="w-[4.75rem] shrink-0 text-right">
+      {/* 84px: a four-figure price with cents is 9 mono glyphs ≈ 81px — the
+          old 76px ellipsized it. The truncating name column absorbs the 8px. */}
+      <span className="w-[5.25rem] shrink-0 text-right">
         <span className="tnum block truncate text-[0.9375rem] font-extrabold leading-tight">
           {usd(q.price)}
         </span>

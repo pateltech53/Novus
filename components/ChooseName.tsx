@@ -121,7 +121,7 @@ export function ChooseName({
           <Link
             href="/privacy"
             target="_blank"
-            className="inline-block py-1.5 font-bold underline underline-offset-2"
+            className="-my-1.5 inline-block py-1.5 font-bold underline underline-offset-2"
           >
             privacy policy
           </Link>{" "}
@@ -141,7 +141,7 @@ export function ChooseName({
       </button>
 
       {error ? (
-        <p role="alert" className="mt-3 text-2xs leading-relaxed text-[var(--color-alert)]">
+        <p role="alert" className="mt-3 text-2xs leading-relaxed text-[var(--alert)]">
           {error}
         </p>
       ) : null}

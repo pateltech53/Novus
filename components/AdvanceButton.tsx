@@ -86,7 +86,7 @@ export function AdvanceButton({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={SWAP}
-              className="flex h-14 w-full items-center justify-center gap-2 text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--on-prestige)] nv-press disabled:cursor-not-allowed"
+              className="flex h-14 w-full items-center justify-center gap-2 text-[0.9375rem] font-extrabold tracking-[0.04em] text-[var(--on-prestige)] nv-press min-[360px]:text-[1.0625rem] disabled:cursor-not-allowed"
             >
               <LockGlyph />
               CLOSE THE YEAR
@@ -102,7 +102,7 @@ export function AdvanceButton({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={SWAP}
-              className="flex h-14 w-full items-center justify-center gap-2 text-[1.0625rem] font-extrabold tracking-[0.04em] text-[var(--on-action)] nv-press disabled:cursor-not-allowed"
+              className="flex h-14 w-full items-center justify-center gap-2 text-[0.9375rem] font-extrabold tracking-[0.04em] text-[var(--on-action)] nv-press min-[360px]:text-[1.0625rem] disabled:cursor-not-allowed"
             >
               ADVANCE MONTH
               <span aria-hidden="true">▸</span>
@@ -114,7 +114,10 @@ export function AdvanceButton({
       {/* Where the year is and where the tap takes it. Untinted, so the accent
           stays on the control that acts — and a figure the player reads rather
           than presses, which is why it is a span and not a second button. */}
-      <Glass className="flex shrink-0 items-center rounded-[var(--radius-pill)] px-4">
+      {/* px steps down at the 320px floor so the gate button beside it keeps
+          room for its own label — at 320 the fixed paddings clipped both ends
+          of CLOSE THE YEAR. */}
+      <Glass className="flex shrink-0 items-center rounded-[var(--radius-pill)] px-2.5 min-[360px]:px-4">
         <AnimatePresence mode="wait" initial={false}>
           <motion.span
             // Keyed on the text, so MAY → JUN crossfades on the same clock as

@@ -405,7 +405,9 @@ export default function ChapterPage() {
     );
   }
 
-  const seatsLeft = chapter ? chapter.seats - chapter.seatsUsed : 0;
+  /* Clamped: a billing-portal downgrade can leave more seats filled than the
+     new licence holds, and "-15 SEATS LEFT" is not a count anyone meant. */
+  const seatsLeft = chapter ? Math.max(0, chapter.seats - chapter.seatsUsed) : 0;
   const renews = chapter?.currentPeriodEnd
     ? new Date(chapter.currentPeriodEnd).toLocaleDateString(undefined, {
         year: "numeric",
@@ -528,7 +530,7 @@ export default function ChapterPage() {
               type="button"
               onClick={() => void registerRows()}
               disabled={busy !== null || parseLines(registerText).length === 0}
-              className="nv-gc h-12 rounded-[var(--radius-pill)] nv-t-action text-sm font-extrabold tracking-[0.04em] shadow-[var(--e2)] disabled:cursor-not-allowed disabled:opacity-35"
+              className="nv-gc h-12 rounded-[var(--radius-card)] nv-t-action text-sm font-extrabold tracking-[0.04em] shadow-[var(--e2)] disabled:cursor-not-allowed disabled:opacity-35"
             >
               {busy === "register" ? "CREATING…" : "REGISTER SEATS"}
             </button>
@@ -653,7 +655,7 @@ function Results({ rows }: { rows: RowResult[] | null }) {
       <ul className="mt-1 space-y-1">
         {rows.map((r, i) => (
           <li key={`${r.email}-${i}`} className="text-2xs leading-relaxed">
-            <span className="tnum font-bold">{r.email}</span>{" "}
+            <span className="tnum font-bold break-all">{r.email}</span>{" "}
             <span
               className={r.ok ? "text-[var(--text-secondary)]" : "text-[var(--alert)]"}
               role={r.ok ? undefined : "alert"}

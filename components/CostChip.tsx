@@ -112,12 +112,18 @@ export function CostChip({ known, className = "" }: { known: string; className?:
       // `.tnum` already carries `--font-ledger` and tabular figures; a
       // `font-mono` here would replace the ledger face with Tailwind's default
       // stack and quietly undo the one thing this chip is for.
-      className={`tnum shrink-0 text-right text-2xs font-semibold ${className}`}
+      //
+      // NOT `shrink-0`: the longest authored strings (41 mono characters) are
+      // wider than a whole choice row on a phone, and a chip that refuses to
+      // shrink ran over the "?" button and out of the sheet. The chip shrinks
+      // to its min-content instead — each CLAUSE stays whole (nowrap below),
+      // so lines break only at the separators and stack on the right edge.
+      className={`tnum text-right text-2xs font-semibold ${className}`}
     >
       {clauses.map((clause, i) => (
         <span key={`${clause}-${i}`}>
           {i > 0 && <span className="text-[var(--text-tertiary)]"> · </span>}
-          <span className={TONE_CLASS[toneOf(clause)]}>{clause}</span>
+          <span className={`whitespace-nowrap ${TONE_CLASS[toneOf(clause)]}`}>{clause}</span>
         </span>
       ))}
     </span>

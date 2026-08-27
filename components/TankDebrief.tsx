@@ -259,7 +259,7 @@ export function TankDebrief({
                     note.tone === "watch" ? "text-[var(--text-primary)]" : "text-[var(--n-7)]"
                   }`}
                 >
-                  {note.topic}
+                  {note.topic.toUpperCase()}
                 </span>
                 <span className="text-sm leading-snug text-[var(--text-secondary)]">
                   {note.text}

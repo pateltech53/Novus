@@ -241,6 +241,8 @@ export const SPEC: IndustrySpec = {
   // same revenue per line as FOOD's 2,600 covers at $13 — deliberately, so the
   // shared burn and stage maths behave identically across lenses.
   baseUnits: 3600,
+  // The label says "views", the engine counts milles — the screen multiplies.
+  unitDisplayScale: 1000,
   // Structurally higher than FOOD's 62: there is no cost of goods in a video.
   // Which is precisely why a creator can post a beautiful margin during the
   // year their business quietly stops working.

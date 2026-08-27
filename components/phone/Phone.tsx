@@ -346,7 +346,7 @@ export function Phone({
             >
               <span
                 aria-hidden="true"
-                className="h-1.5 w-28 rounded-full bg-[var(--color-navy)]/25"
+                className="h-1.5 w-28 rounded-full bg-[var(--text)]/25"
               />
             </button>
           </div>

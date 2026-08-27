@@ -472,7 +472,10 @@ export function InstitutionsStory() {
                       }`}
                       style={fx(0.16 + i * 0.045, 0.1, { dy: 12 })}
                     >
-                      <p className="tnum text-xs font-bold text-[var(--text-secondary)]">
+                      {/* min-w-0 + truncate: at 360px the full mono label ran
+                          under the INVITED/CLAIMED chip and doubled every row.
+                          The masked email's tail is decorative in this mock. */}
+                      <p className="tnum min-w-0 truncate text-xs font-bold text-[var(--text-secondary)]">
                         {seat.label} · {seat.email}
                       </p>
                       <span className="tnum relative text-2xs font-bold">

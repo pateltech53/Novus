@@ -99,7 +99,7 @@ export function AnswerHelp({
         animate={{ opacity: 1, y: 0 }}
         className="mt-3 rounded-[var(--radius-row)] bg-[var(--surface)] p-3"
       >
-        <p className="text-2xs font-bold tracking-[0.14em] text-[var(--color-prestige)]">
+        <p className="text-2xs font-bold tracking-[0.14em] text-[var(--prestige)]">
           WHAT THEY ARE REALLY ASKING
         </p>
         <p className="mt-1 text-sm leading-snug text-[var(--text-primary)]">

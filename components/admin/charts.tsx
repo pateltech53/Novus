@@ -80,11 +80,17 @@ interface Tip {
 function TipBox({ tip, width }: { tip: Tip; width: number }) {
   const boxW = 148;
   const left = Math.max(4, Math.min(tip.x + 10, width - boxW - 4));
+  /* Clamped vertically too: hovering a value near the baseline would
+     otherwise push the box past the 168px plot and over the AS A TABLE
+     control below it. Height derived from the line count — a flat clamp
+     over-lifts the one-line tips. */
+  const boxH = 26 + 18 * tip.lines.length;
+  const top = Math.min(Math.max(2, tip.y - 8), PLOT_H - boxH);
   return (
     <div
       role="status"
       className="pointer-events-none absolute z-10 rounded-[var(--radius-row)] bg-[var(--n-3)] px-2.5 py-1.5 shadow-[var(--e2)] ring-1 ring-[var(--hairline)]"
-      style={{ left, top: Math.max(2, tip.y - 8), width: boxW }}
+      style={{ left, top, width: boxW }}
     >
       <p className="text-2xs font-bold text-[var(--text-primary)]">{tip.title}</p>
       {tip.lines.map((l, i) => (
@@ -143,8 +149,13 @@ export function ChartShell({
           <table className="w-full text-left text-2xs">
             <thead>
               <tr>
-                {table.head.map((h) => (
-                  <th key={h} className="border-b border-[var(--hairline)] py-1 pr-3 font-bold text-[var(--text-tertiary)]">
+                {/* Column 0 is the label; every other column is a figure and
+                    right-aligns so the tabular digits share an edge. */}
+                {table.head.map((h, j) => (
+                  <th
+                    key={h}
+                    className={`border-b border-[var(--hairline)] py-1 pr-3 font-bold text-[var(--text-tertiary)]${j > 0 ? " text-right" : ""}`}
+                  >
                     {h}
                   </th>
                 ))}
@@ -154,7 +165,10 @@ export function ChartShell({
               {table.rows.map((r, i) => (
                 <tr key={i}>
                   {r.map((c, j) => (
-                    <td key={j} className="tnum border-b border-[var(--hairline)] py-1 pr-3 text-[var(--text-secondary)]">
+                    <td
+                      key={j}
+                      className={`tnum border-b border-[var(--hairline)] py-1 pr-3 text-[var(--text-secondary)]${j > 0 ? " text-right" : ""}`}
+                    >
                       {c}
                     </td>
                   ))}
@@ -361,6 +375,18 @@ export function DualLines({
   const lastA = [...data].reverse().find((d) => d.a != null);
   const lastB = [...data].reverse().find((d) => d.b != null);
 
+  /* The two direct labels are right-anchored at the same x, so when the lines
+     end within a text height of each other the fixed −6/+12 offsets collide.
+     Clamp each into the plot first, then push B a line away from A — flipping
+     above when the bottom bound is hit. */
+  const clampLabelY = (v: number) => Math.max(M.top + 8, Math.min(M.top + innerH - 2, v));
+  const labelYA = lastA ? clampLabelY(y(lastA.a!) - 6) : 0;
+  let labelYB = lastB ? clampLabelY(y(lastB.b!) + 12) : 0;
+  if (lastA && lastB && Math.abs(labelYA - labelYB) < 11) {
+    labelYB = labelYA + 11;
+    if (labelYB > M.top + innerH - 2) labelYB = labelYA - 11;
+  }
+
   return (
     <div ref={ref} className="relative">
       {tip && <TipBox tip={tip} width={width} />}
@@ -404,12 +430,12 @@ export function DualLines({
 
         {/* Direct labels at each line's last tracked point. */}
         {lastA && (
-          <text x={Math.min(x(data.indexOf(lastA)), width - M.right - 2)} y={y(lastA.a!) - 6} textAnchor="end" fontSize={10} fontWeight={700} fill="var(--text-secondary)">
+          <text x={Math.min(x(data.indexOf(lastA)), width - M.right - 2)} y={labelYA} textAnchor="end" fontSize={10} fontWeight={700} fill="var(--text-secondary)">
             {aLabel}
           </text>
         )}
         {lastB && (
-          <text x={Math.min(x(data.indexOf(lastB)), width - M.right - 2)} y={y(lastB.b!) + 12} textAnchor="end" fontSize={10} fontWeight={700} fill="var(--text-secondary)">
+          <text x={Math.min(x(data.indexOf(lastB)), width - M.right - 2)} y={labelYB} textAnchor="end" fontSize={10} fontWeight={700} fill="var(--text-secondary)">
             {bLabel}
           </text>
         )}

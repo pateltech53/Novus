@@ -71,10 +71,12 @@ export function AiStatusBanner() {
 
   return (
     <div
-      // Above the home indicator and the native tab bar, both of which report
-      // their height as CSS variables the rest of the app already uses.
+      // Pinned TOP. The bottom pin only cleared the NATIVE chrome — on web
+      // and Android the DOM dock (ADVANCE MONTH + tab bar) reserves its own
+      // in-flow height that no variable reports, so the banner sat directly
+      // on the one control that moves time. No route puts chrome at the top.
       className="pointer-events-none fixed inset-x-0 z-[60] flex justify-center px-3"
-      style={{ bottom: "calc(var(--nv-chrome-bottom, 0px) + var(--nv-safe-bottom) + 12px)" }}
+      style={{ top: "calc(var(--nv-chrome-top, 0px) + var(--nv-safe-top))" }}
       role="status"
       aria-live="polite"
     >

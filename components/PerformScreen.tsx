@@ -885,9 +885,12 @@ export function PerformScreen() {
               */}
               {/* Nothing coming through after twelve seconds of talking: give them
                   a keyboard rather than a zero. */}
+              {/* Ramp tokens, not white literals: the dock is --stage-floor,
+                  which is near-white in the light theme — literal white here
+                  was the white-on-white PitchNotes already documents fixing. */}
               {phase === "recording" && elapsed >= 12 && !heard && !interim && (
                 <div className="mb-3">
-                  <p className="mb-1 text-2xs font-bold tracking-[0.12em] text-white/55">
+                  <p className="mb-1 text-2xs font-bold tracking-[0.12em] text-[var(--n-7)]">
                     YOUR MIC ISN&rsquo;T COMING THROUGH — TYPE IT
                   </p>
                   <textarea
@@ -895,19 +898,19 @@ export function PerformScreen() {
                     onChange={(e) => setTypedRescue(e.target.value)}
                     rows={3}
                     placeholder="What you just said"
-                    className="w-full resize-none rounded-[var(--radius-row)] bg-white/12 px-3 py-2 text-sm leading-snug text-white outline-none ring-1 ring-white/20 focus:ring-white/50 placeholder:text-white/40"
+                    className="w-full resize-none rounded-[var(--radius-row)] bg-[var(--n-3)] px-3 py-2 text-sm leading-snug text-[var(--n-11)] outline-none ring-1 ring-[var(--hairline)] focus:ring-[var(--n-7)] placeholder:text-[var(--n-7)]"
                   />
                 </div>
               )}
 
               {phase === "recording" && (heard || interim) && (
-                <div className="mb-3 max-h-32 overflow-y-auto rounded-[var(--radius-row)] bg-white/10 px-3 py-2">
-                  <p className="text-2xs font-bold tracking-[0.12em] text-white/55">
+                <div className="mb-3 max-h-32 overflow-y-auto rounded-[var(--radius-row)] bg-[var(--n-3)] px-3 py-2">
+                  <p className="text-2xs font-bold tracking-[0.12em] text-[var(--n-7)]">
                     WHAT THEY HEARD
                   </p>
-                  <p className="mt-1 text-sm leading-snug text-white">
+                  <p className="mt-1 text-sm leading-snug text-[var(--n-11)]">
                     {heard}
-                    {interim && <span className="text-white/50"> {interim}</span>}
+                    {interim && <span className="text-[var(--n-9)]"> {interim}</span>}
                   </p>
                 </div>
               )}

@@ -166,10 +166,14 @@ export function ScrollPhone({ children }: { children: React.ReactNode }) {
 
   return (
     <div ref={sectionRef} className="relative h-[300svh]">
-      <div className="sticky top-0 flex h-[100svh] items-center overflow-hidden">
+      {/* items-center-safe + the smaller phone box: at 52svh/min-320px the
+          mobile stack ran past 100svh on short phones and centring clipped it
+          at BOTH ends. safe centring pins residual overflow to the top edge
+          instead. */}
+      <div className="sticky top-0 flex h-[100svh] items-center-safe overflow-hidden">
         <div className="mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-4 px-6 lg:grid-cols-12 lg:gap-6 lg:px-10">
           <div className="order-2 lg:order-1 lg:col-span-5">{children}</div>
-          <div className="relative order-1 h-[52svh] min-h-[320px] lg:order-2 lg:col-span-7 lg:h-[78svh]">
+          <div className="relative order-1 h-[42svh] min-h-[260px] lg:order-2 lg:col-span-7 lg:h-[78svh]">
             {!webglOk ? (
               // No WebGL: the same capture, flat, framed. Nothing is lost but
               // the turn.

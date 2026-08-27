@@ -169,7 +169,7 @@ function CandidateCard({
       <div className="flex min-w-0 items-start gap-3">
         <span
           aria-hidden="true"
-          className="tnum grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[var(--color-navy)] text-sm font-extrabold text-[var(--n-11)]"
+          className="tnum grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[var(--color-navy)] text-sm font-extrabold text-white"
         >
           {monogram(candidate.name)}
         </span>

@@ -375,7 +375,10 @@ export function Landing() {
           <div id={ACCOUNT_ANCHOR} className="mt-6 max-w-[24rem] scroll-mt-6">
             <AccountGate />
           </div>
-          <div className="mt-12 flex flex-col gap-3 border-t border-[var(--hairline)] pt-5 sm:flex-row sm:items-baseline sm:justify-between">
+          {/* sm:flex-wrap: seven children total ~950px of natural width, and
+              forcing one row between 640px and ~1030px shrank each into a
+              narrow multi-line fragment with misaligned baselines. */}
+          <div className="mt-12 flex flex-col gap-3 border-t border-[var(--hairline)] pt-5 sm:flex-row sm:flex-wrap sm:items-baseline sm:justify-between">
             <p className="text-2xs font-extrabold tracking-[0.24em] text-[var(--text-tertiary)]">
               NOVUS
             </p>
@@ -496,8 +499,12 @@ function PricingSection() {
   /** The chapter column's own error line — a teacher refused at 35 SEATS
    *  should not read the message inside the Pro card two columns away. */
   const [chapterError, setChapterError] = useState<string | null>(null);
+  /** Same reasoning for the Free column: PLAY FREE's refusal used to render
+   *  inside the Pro card, a different card from the button pressed. */
+  const [freeError, setFreeError] = useState<string | null>(null);
 
   const enter = async () => {
+    setFreeError(null);
     // Settled state first, exactly as AccountGate's CONTINUE does and for the
     // same reason: these three reads are localStorage, and on a device the
     // boot restore is still filling they answer for a player who is not this
@@ -522,7 +529,7 @@ function PricingSection() {
       // nothing opened.
       releaseEnter();
       setBusy(null);
-      setError(
+      setFreeError(
         "Novus plays on a free account, so your companies are saved and can follow you to a new device. Create one below and you're in.",
       );
       document
@@ -751,6 +758,11 @@ function PricingSection() {
             >
               {entering ? "OPENING…" : "PLAY FREE"}
             </button>
+            {freeError ? (
+              <p role="alert" className="mt-2 text-xs leading-relaxed text-[var(--alert)]">
+                {freeError}
+              </p>
+            ) : null}
           </div>
 
           {/* Pro — two cadences, one card, yearly framed by its saving. */}
@@ -892,7 +904,7 @@ function PricingSection() {
             {error ? (
               <p
                 role="alert"
-                className="mt-2 text-xs leading-relaxed text-[var(--color-alert)]"
+                className="mt-2 text-xs leading-relaxed text-[var(--alert)]"
               >
                 {error}
               </p>
@@ -914,13 +926,16 @@ function PricingSection() {
                 <div key={licence.id} className="border-t border-[var(--hairline)] pt-3">
                   <div className="flex items-baseline justify-between gap-3">
                     <p className="text-sm font-bold">{licence.seats} seats</p>
+                    {/* Per-seat maths on its own line for BOTH rows: inline it
+                        fit at desktop and wrapped only the 100-seat row on a
+                        360px phone, giving the two rows different shapes. */}
                     <p className="tnum text-right text-sm">
                       <span className="font-extrabold">
                         {formatPrice(licence.priceCents)}
                       </span>
-                      <span className="text-2xs text-[var(--text-tertiary)]">
-                        {" "}
-                        / yr · {formatPrice(perSeatCents(licence))} a seat
+                      <span className="text-2xs text-[var(--text-tertiary)]"> / yr</span>
+                      <span className="block text-2xs text-[var(--text-tertiary)]">
+                        {formatPrice(perSeatCents(licence))} a seat
                       </span>
                     </p>
                   </div>
@@ -958,7 +973,7 @@ function PricingSection() {
             {chapterError ? (
               <p
                 role="alert"
-                className="mt-2 text-xs leading-relaxed text-[var(--color-alert)]"
+                className="mt-2 text-xs leading-relaxed text-[var(--alert)]"
               >
                 {chapterError}
               </p>
@@ -1008,7 +1023,7 @@ function YourPlan({ label = "YOUR PLAN" }: { label?: string }) {
     /* `--surface`, a step BELOW the card it sits on, not `--surface-elevated`
        — which is `--n-3`, the card's own fill, and would have made the pill a
        ring around nothing. */
-    <span className="shrink-0 rounded-[var(--radius-pill)] bg-[var(--surface)] px-2.5 py-1 text-2xs font-bold tracking-[0.12em] text-[var(--color-prestige)] ring-1 ring-[var(--hairline)]">
+    <span className="shrink-0 rounded-[var(--radius-pill)] bg-[var(--surface)] px-2.5 py-1 text-2xs font-bold tracking-[0.12em] text-[var(--prestige)] ring-1 ring-[var(--hairline)]">
       {label}
     </span>
   );
@@ -1048,7 +1063,7 @@ function TalkFirstRow() {
     <div className="rounded-[var(--radius-row)] bg-[var(--surface)] p-3 ring-1 ring-[var(--hairline)]">
       <div className="flex items-baseline justify-between gap-3">
         <p className="text-sm font-bold">Another size, or something custom?</p>
-        <p className="text-2xs font-bold tracking-[0.1em] text-[var(--color-prestige)]">
+        <p className="text-2xs font-bold tracking-[0.1em] text-[var(--prestige)]">
           RECOMMENDED
         </p>
       </div>

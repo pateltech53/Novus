@@ -394,7 +394,7 @@ function RosterCard({
               type="button"
               onClick={onConfirmFire}
               aria-label={`Confirm letting ${e.name} go`}
-              className="flex-1 rounded-[var(--radius-pill)] px-4 py-2.5 text-xs font-extrabold text-[var(--n-11)] nv-press"
+              className="flex-1 rounded-[var(--radius-pill)] px-4 py-2.5 text-xs font-extrabold text-[var(--on-action)] nv-press"
               style={{ background: BAD }}
             >
               Do it

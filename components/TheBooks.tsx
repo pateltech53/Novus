@@ -89,11 +89,14 @@ export function TheBooks({
    * The phone stays two-up at every width now, because the phone's cards
    * carry display-size figures — the log is one row instead of half the
    * screen, and the ledger is what got the reclaimed room. Four-up returns at
-   * `lg`, where the desktop rail keeps the compact cards this component had
-   * before.
+   * `xl`, not `lg`: between 1024 and ~1280px the desktop rail leaves a
+   * four-up card ~53-87px of content, which truncates VALUATION and any
+   * "−$999.9K" figure — the same failure the phone escaped, one breakpoint
+   * up. At `xl` the rail is wide enough for the compact cards this component
+   * had before.
    */
   return (
-    <div className="grid grid-cols-2 gap-2 px-3 pt-3 lg:grid-cols-4 lg:gap-1.5">
+    <div className="grid grid-cols-2 gap-2 px-3 pt-3 lg:gap-1.5 xl:grid-cols-4">
       {cols.map((col) => (
         <BookCard key={col.label} {...col} rookie={run.rookieMode} onTermTap={onTermTap} />
       ))}

@@ -886,14 +886,16 @@ export default function AdminPage() {
     <main className="mx-auto w-full max-w-4xl px-6 pb-[max(6rem,calc(var(--nv-overlay-bottom)+2rem))] pt-[max(2.5rem,var(--nv-safe-top),calc(var(--nv-overlay-top)+0.75rem))]">
       {/* ── Masthead ────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
+        {/* min-w-0 + truncate: a long operator email on a 360px phone was
+            silently clipped at the viewport edge with no way to reach it. */}
+        <div className="min-w-0">
           <p className="text-2xs font-bold tracking-[0.18em] text-[var(--color-prestige)]">
             NOVUS ADMIN
           </p>
           <h1 className="mt-1.5 text-[1.75rem] font-extrabold leading-tight tracking-[-0.02em]">
             The console
           </h1>
-          <p className="tnum mt-1 text-sm text-[var(--text-secondary)]">{email}</p>
+          <p className="tnum mt-1 truncate text-sm text-[var(--text-secondary)]">{email}</p>
         </div>
         {/* On iOS the way back is the toolbar's leading chevron and refresh
             its trailing circle — the DOM chip is not rendered at all rather
@@ -1094,8 +1096,16 @@ export default function AdminPage() {
             ]}
             table={{
               head: ["week", "cohort", "7d", "30d"],
+              /* Same gating as the bars (built from `cohorts` in order, so the
+                 indexes align): a cohort too young to have lived the window
+                 shows the chart's dash, never a confident 0. */
               rows: cohorts
-                .map((c) => [c.week, c.cohort, `${c.retained_7}`, `${c.retained_30}`])
+                .map((c, i) => [
+                  c.week,
+                  c.cohort,
+                  retentionBars[i].a == null ? "—" : `${c.retained_7}`,
+                  retentionBars[i].b == null ? "—" : `${c.retained_30}`,
+                ])
                 .reverse(),
             }}
           >
@@ -1107,7 +1117,9 @@ export default function AdminPage() {
             note="Signed up and never seen again after their first day. Lower is better."
             table={{
               head: ["week", "cohort", "bounced"],
-              rows: cohorts.map((c) => [c.week, c.cohort, c.bounced]).reverse(),
+              rows: cohorts
+                .map((c, i) => [c.week, c.cohort, bounceBars[i].a == null ? "—" : c.bounced])
+                .reverse(),
             }}
           >
             <WeeklyPercentBars data={bounceBars} aLabel="bounced" />

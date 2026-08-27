@@ -69,7 +69,10 @@ export function KeyTermsSheet({ onClose }: { onClose: () => void }) {
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search a word — runway, dilution, churn…"
           autoComplete="off"
-          className="mb-3 w-full rounded-[var(--radius-row)] bg-[var(--surface)] px-3.5 py-2.5 text-sm text-[var(--text-primary)] outline-none ring-1 ring-[var(--hairline)] transition-shadow focus:ring-[var(--text-secondary)] placeholder:text-[var(--text-tertiary)]"
+          /* text-base, not text-sm: a sub-16px input makes mobile Safari zoom
+             the page on focus, and the zoom outlives the keyboard under the
+             fixed sheet. */
+          className="mb-3 w-full rounded-[var(--radius-row)] bg-[var(--surface)] px-3.5 py-2.5 text-base text-[var(--text-primary)] outline-none ring-1 ring-[var(--hairline)] transition-shadow focus:ring-[var(--text-secondary)] placeholder:text-[var(--text-tertiary)]"
         />
 
         {shown.length === 0 ? (

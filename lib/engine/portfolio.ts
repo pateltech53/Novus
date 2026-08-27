@@ -196,6 +196,13 @@ export interface IndustrySpec {
   baselinePrice: number;
   /** Units a median item sells in its peak year at stage 1. */
   baseUnits: number;
+  /**
+   * Display-only multiplier for units. CONTENT simulates in milles — its RPM
+   * price is per thousand views — so the raw figure is 1000× smaller than the
+   * "views" the label promises. The engine stays in its own grain; only the
+   * rendered number is scaled. Absent means 1.
+   */
+  unitDisplayScale?: number;
   /** Gross margin the industry is expected to run at, percentage points. */
   baselineGmPt: number;
   /** 2-of-N chips offered at launch. Drive cannibalization and event targeting. */
@@ -245,6 +252,15 @@ export const liveItems = (p: Portfolio): LineItem[] =>
 
 export const earningItems = (p: Portfolio): LineItem[] =>
   p.items.filter((i) => i.state === "live" || i.state === "declining");
+
+/**
+ * A units figure, in the grain the label promises. Locale is pinned to en-US
+ * for the same reason fmtMoney's is: one table must not mix two grouping
+ * conventions.
+ */
+export function fmtUnits(n: number, spec: IndustrySpec): string {
+  return (n * (spec.unitDisplayScale ?? 1)).toLocaleString("en-US");
+}
 
 // ── Price tiers ─────────────────────────────────────────────────────────────
 

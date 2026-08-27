@@ -18,6 +18,7 @@ import { specForRun } from "@/lib/engine/industries/index";
 import {
   earningItems,
   ensurePortfolio,
+  fmtUnits,
   liveItems,
   portfolioCap,
 } from "@/lib/engine/portfolio";
@@ -115,7 +116,7 @@ export function CompanyDossier({
     <motion.div
       className={`fixed inset-0 flex justify-center ${
         overlay
-          ? "z-[90] items-start px-3 pt-[max(0.75rem,var(--nv-safe-top))] pb-3"
+          ? "z-[90] items-start px-3 pt-[max(0.75rem,var(--nv-safe-top))] pb-[max(0.75rem,var(--nv-safe-bottom))]"
           : "z-50 items-end"
       }`}
       initial={{ opacity: 0 }}
@@ -372,7 +373,7 @@ function Body({ run }: { run: RunState }) {
                     <span className="tnum block truncate text-2xs text-[var(--text-tertiary)]">
                       {fmtPrice(item.price)}
                       {h
-                        ? ` · ${h.units.toLocaleString()} ${spec.demandUnit} in FY${h.year}`
+                        ? ` · ${fmtUnits(h.units, spec)} ${spec.demandUnit} in FY${h.year}`
                         : " · no closed year yet"}
                       {item.state === "declining" ? " · past peak" : ""}
                     </span>

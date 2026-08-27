@@ -119,6 +119,15 @@
      hard-coding because the brand values were too bright for light surfaces. */
   --solvency: oklch(0.76 0.17 162);
   --alert: oklch(0.68 0.21 25);
+  /* Prestige gold as INK — the same correction the pair above encodes. The
+     brand constant reads on dark and lands near 1.6:1 on a white card; text
+     uses this, fills and rings keep --color-prestige. */
+  --prestige: var(--color-prestige);
+  /* Ink FOR the solvency/alert grounds (the impact chips). The pair above are
+     bright INKS in this theme, so white text on them fails — dark ink holds.
+     Same pattern as --on-prestige. */
+  --on-solvency: oklch(0.18 0.02 162);
+  --on-alert: oklch(0.18 0.03 25);
 
   /* ── Elevation · two shadows each, a tight contact + a wide ambient ───── */
   --e0: none;
@@ -242,6 +251,12 @@
 
   --solvency: oklch(0.52 0.14 162);
   --alert: oklch(0.52 0.20 25);
+  /* Deepened until gold holds AA on white for 12px text, the way the action
+     orange was — same lightness step as the light --alert. */
+  --prestige: oklch(0.52 0.12 80);
+  /* The light fills are deep enough for white ink on both chips. */
+  --on-solvency: oklch(0.99 0 0);
+  --on-alert: oklch(0.99 0 0);
 
   /* Lighter AND tighter. A lit room casts shorter shadows. */
   --e1: 0 1px 2px oklch(0.2 0.01 85 / 0.07), 0 1px 3px oklch(0.2 0.01 85 / 0.05);
@@ -889,7 +904,10 @@ textarea {
 .nv-gc.nv-flat {
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
-  --gc-drop: none;
+  /* A zero shadow, never the keyword: `none` inside the composed box-shadow
+     list invalidates the whole declaration, taking the ring and underside
+     with it. Same shape as the quiet tone and the scrim. */
+  --gc-drop: 0 0 0 0 transparent;
 }
 
 /*
@@ -1523,14 +1541,8 @@ textarea {
   inset: -8px;
 }
 
-/* Press state — touch's primary feedback. Hover is desktop-only, below. */
-.nv-press {
-  transition: transform 120ms var(--ease-out);
-}
-.nv-press:active {
-  transform: scale(0.97);
-}
-
+/* The press state lives in the Motion section below — one definition, not a
+   pair that silently disagreed on duration and magnitude. */
 @media (hover: hover) {
   .nv-hover:hover {
     background: var(--action-hover);
@@ -2010,6 +2022,11 @@ html:has([data-pv-snap]) {
  */
 .pv-dark {
   color-scheme: dark;
+
+  /* The ramp's emphasis step, re-pointed with the rest: :focus-visible and
+     the control tints read --n-11 directly, and the light theme's near-black
+     value is invisible on navy — a focus ring nobody can see. */
+  --n-11: oklch(0.975 0.004 250);
 
   --bg: var(--color-navy);
   --surface: color-mix(in oklch, var(--color-navy) 86%, white);

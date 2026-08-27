@@ -36,7 +36,10 @@ export function Wordbar({
 
 export function StoryFooter() {
   return (
-    <div className="mt-14 flex flex-col gap-3 border-t border-[var(--hairline)] pt-5 sm:flex-row sm:items-baseline sm:justify-between">
+    /* sm:flex-wrap: the four children total ~720px of natural width, and a
+       forced single row between 640px and ~780px shrank the tagline and the
+       legal links into misaligned multi-line fragments. */
+    <div className="mt-14 flex flex-col gap-3 border-t border-[var(--hairline)] pt-5 sm:flex-row sm:flex-wrap sm:items-baseline sm:justify-between">
       <p className="text-2xs font-extrabold tracking-[0.24em] text-[var(--text-tertiary)]">
         NOVUS
       </p>

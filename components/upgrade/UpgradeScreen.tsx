@@ -288,8 +288,12 @@ export function UpgradeScreen({
       {/* Deliberately NOT `.tnum`. It carries a price, but it is a sentence —
           and `.tnum` sets the ledger face, which put the whole promise in
           monospace. The ledger face belongs to figures being compared, which is
-          the two tiles above, not this. */}
-      <p className="mt-1.5 text-center text-2xs leading-snug text-[var(--text-tertiary)]">
+          the two tiles above, not this.
+
+          min-h reserves the wrapped sentence's lines while billing status is
+          still the " " placeholder, so the pinned strip does not grow and
+          shove the tiles and GET PRO upward when it resolves. */}
+      <p className="mt-1.5 min-h-[3lh] text-center text-2xs leading-snug text-[var(--text-tertiary)]">
         {priceLine}
       </p>
     </>

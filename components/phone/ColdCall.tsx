@@ -281,7 +281,7 @@ function Dialler({
             {match.name}, {match.title.toLowerCase()}.
           </span>
         ) : miss ? (
-          <span className="text-[var(--color-alert)]">
+          <span className="text-[var(--alert)]">
             No such number. Nothing was used — check the listing in The Index.
           </span>
         ) : enough ? (
@@ -775,15 +775,17 @@ function Result({
               .slice(0, 5)
               .map((f, i) => (
                 <li key={i} className="flex gap-2 text-2xs leading-snug">
+                  {/* Fixed slot: "!", "+" and "–" have different advances, and
+                      an unsized marker gave every row its own left edge. */}
                   <span
                     aria-hidden="true"
-                    className={
+                    className={`w-3 shrink-0 text-center ${
                       f.kind === "contradiction"
                         ? "text-[var(--alert)]"
                         : f.weight > 0
                           ? "text-[var(--text-secondary)]"
                           : "text-[var(--text-tertiary)]"
-                    }
+                    }`}
                   >
                     {f.kind === "contradiction" ? "!" : f.weight > 0 ? "+" : "–"}
                   </span>

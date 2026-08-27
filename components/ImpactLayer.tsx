@@ -86,11 +86,15 @@ export function ImpactProvider({ children }: { children: React.ReactNode }) {
           <motion.span
             key={item.id}
             className="tnum rounded-full px-3 py-1.5 text-sm font-extrabold shadow-[var(--e2)]"
+            /* Each ground gets its own ink: the dark theme's solvency/alert
+               are bright, and white-on-bright was ~1.8:1 on the one chip
+               whose figure has to be read. Navy is constant, so its white
+               ink is too. */
             style={
               item.tone === "up"
-                ? { background: "var(--solvency)", color: "var(--on-action)" }
+                ? { background: "var(--solvency)", color: "var(--on-solvency)" }
                 : item.tone === "down"
-                  ? { background: "var(--alert)", color: "var(--on-action)" }
+                  ? { background: "var(--alert)", color: "var(--on-alert)" }
                   : { background: "var(--color-navy)", color: "var(--on-action)" }
             }
             initial={{ opacity: 0, y: 18, scale: 0.85 }}

@@ -121,7 +121,7 @@ export function SharkMessage({
               <span className="text-2xs font-bold tracking-[0.12em] text-[var(--alert)]">OUT</span>
             )}
             {jointWith && (
-              <span className="text-2xs font-bold tracking-[0.12em] text-[var(--color-prestige)]">
+              <span className="text-2xs font-bold tracking-[0.12em] text-[var(--prestige)]">
                 WITH {(CAST[jointWith]?.name ?? "").split(" ")[0].toUpperCase()}
               </span>
             )}
@@ -159,7 +159,9 @@ export function SharkMessage({
 function OfferCard({ offer }: { offer: SharkOffer }) {
   return (
     <div className="w-full max-w-[min(95%,32rem)] rounded-[var(--radius-card)] bg-[var(--surface-elevated)] px-3.5 py-3 shadow-[var(--e2)] ring-1 ring-[var(--color-prestige)]/30">
-      <p className="tnum text-base font-bold text-[var(--color-prestige)]">
+      {/* --prestige, not the brand constant: the terms are the key figure of
+          the room and the constant is ~1.6:1 on the light theme's white card. */}
+      <p className="tnum text-base font-bold text-[var(--prestige)]">
         {fmtMoney(offer.amount_usd)} for {offer.equity_pct}%
       </p>
       {/*

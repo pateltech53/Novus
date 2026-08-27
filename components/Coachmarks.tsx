@@ -314,13 +314,24 @@ export function Coachmarks({
     // Keyboard parity: Enter completes a step for anyone not using a pointer.
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Enter" || !step) return;
+      // Enter on the card's own buttons (GOT IT, back) already advances via
+      // their native click — a second advance here double-stepped the tour.
+      if ((e.target as HTMLElement | null)?.closest?.("button")) return;
+      // An "ack" step has nothing to press: advance without clicking the
+      // spotlighted content, exactly as GOT IT does. Same when the target is
+      // missing.
+      if (step.mode === "ack" || !rect) {
+        if (index >= steps.length - 1) onFinish();
+        else onAdvance();
+        return;
+      }
       if (!activate(step.target)) return;
       if (index >= steps.length - 1) onFinish();
       else onAdvance();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [step, index, steps.length, onAdvance, onFinish]);
+  }, [step, rect, index, steps.length, onAdvance, onFinish]);
 
   if (!step) return null;
 
@@ -359,8 +370,21 @@ export function Coachmarks({
       ? (window.visualViewport?.height ?? window.innerHeight)
       : 800;
   const MARGIN = 16;
-  const spaceBelow = hole ? vh - (hole.top + hole.height + 14) - MARGIN : 0;
-  const spaceAbove = hole ? hole.top - 14 - MARGIN : 0;
+  /* The native chrome is real room the card does not have: UIKit's dock and
+     toolbar composite ABOVE the webview, so a card that only cleared MARGIN
+     could pin its GOT IT button underneath them. chrome.ts writes plain px
+     inline once measured; 0 on web/Android, where the DOM chrome takes its
+     own in-flow space. */
+  const chromeStyle =
+    typeof window !== "undefined" ? document.documentElement.style : null;
+  const chromeBottom =
+    parseFloat(chromeStyle?.getPropertyValue("--nv-chrome-bottom") || "") || 0;
+  const chromeTop =
+    parseFloat(chromeStyle?.getPropertyValue("--nv-chrome-top") || "") || 0;
+  const spaceBelow = hole
+    ? vh - (hole.top + hole.height + 14) - MARGIN - chromeBottom
+    : 0;
+  const spaceAbove = hole ? hole.top - 14 - MARGIN - chromeTop : 0;
 
   let place = step.place ?? (spaceBelow >= spaceAbove ? "below" : "above");
   if (hole) {
@@ -379,8 +403,11 @@ export function Coachmarks({
    */
   const room = place === "above" ? spaceAbove : spaceBelow;
   const anchored = !!hole && room >= 180;
+  /* No 200px floor: anchoring is allowed from 180px of room, and flooring the
+     cap above the room pushed the pinned footer past the margin. The room IS
+     the cap. */
   const cardMaxHeight = anchored
-    ? `${Math.round(Math.min(Math.max(200, room), vh * 0.78))}px`
+    ? `${Math.round(Math.min(room, vh * 0.78))}px`
     : "78dvh";
 
   return (

@@ -799,7 +799,9 @@ function Label({
       >
         {title}
       </span>
-      <span className="flex items-center gap-1 text-[0.5rem] font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
+      {/* 12px floor (design.md §4.3) — this was 8px, the only stage/status
+          readout on the archipelago, illegible on a phone. */}
+      <span className="flex items-center gap-1 text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
         {dot && (
           <span
             aria-hidden
@@ -1186,9 +1188,13 @@ function Gallery({
                   }
                 >
                   <IslandGlyph
-                              alive={island.alive}
+                    alive={island.alive}
                     seed={island.seed}
-                    size={236}
+                    /* 196 × 512/448 = 224px tall — exactly the h-56 box. At
+                       236 the artwork was ~270px tall and the box sheared its
+                       top and bottom off at every viewport. Also ≤ the 224px
+                       the flex-1 well offers between the arrows at 360px. */
+                    size={Math.floor(224 / ISLAND_ASPECT)}
                   />
                 </span>
               </motion.div>
@@ -1206,11 +1212,14 @@ function Gallery({
       {/* Which of them this is. Dots rather than "3 of 5": at ten islands the
           count is the same size as the words, and dots also say WHERE. */}
       {many && (
-        <div className="mt-3 flex items-center justify-center gap-1.5">
+        /* flex-wrap + shrink-0: with one dot per island and fixed gaps, a big
+           archipelago compressed every dot toward a sliver on a 360px phone.
+           Wrapping keeps each dot whole at every count up to the storage cap. */
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
           {Array.from({ length: total }, (_, i) => (
             <span
               key={i}
-              className={`h-1.5 rounded-[var(--radius-pill)] ${
+              className={`h-1.5 shrink-0 rounded-[var(--radius-pill)] ${
                 i === index
                   ? "w-4 bg-[var(--text-primary)]"
                   : "w-1.5 bg-[var(--n-6)]"
@@ -1341,7 +1350,8 @@ function Figure({
 }) {
   return (
     <div className="min-w-0">
-      <dt className="text-[0.5625rem] font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
+      {/* 12px floor — 9px labels naming money figures failed §4.3. */}
+      <dt className="text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
         {label}
       </dt>
       <dd

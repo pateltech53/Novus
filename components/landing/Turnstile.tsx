@@ -139,7 +139,7 @@ export function Turnstile({ onToken }: { onToken: (token: string | null) => void
 
   if (failed) {
     return (
-      <p role="alert" className="mt-4 text-center text-2xs leading-relaxed text-[var(--color-alert)]">
+      <p role="alert" className="mt-4 text-center text-2xs leading-relaxed text-[var(--alert)]">
         The human check could not load. Check your connection and reload the page.
       </p>
     );

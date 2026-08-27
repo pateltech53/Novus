@@ -83,6 +83,7 @@ const STYLE = `
   @media only screen and (max-width: 600px) {
     .nv-pad   { padding: 28px 22px !important; }
     .nv-h1    { font-size: 27px !important; }
+    .nv-btn   { width: 100% !important; }
     .nv-btn a { display: block !important; }
   }
   @media (prefers-color-scheme: dark) {
@@ -166,7 +167,7 @@ const button = (href: string, label: string): string => {
   return `
                       <table role="presentation" cellpadding="0" cellspacing="0" border="0" class="nv-btn" style="margin:26px 0 0;">
                         <tr>
-                          <td align="center" bgcolor="${LIGHT.action}" style="border-radius:999px;">
+                          <td align="center" style="border-radius:999px;">
                             <!--[if mso]>
                             <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${url}" style="height:50px;v-text-anchor:middle;width:248px;" arcsize="50%" stroke="f" fillcolor="${LIGHT.action}">
                               <w:anchorlock/>

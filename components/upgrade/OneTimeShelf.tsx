@@ -356,7 +356,7 @@ export function OneTimeShelf({
         </li>
       </ul>
       {message && (
-        <p role="alert" className="mt-1 text-2xs leading-relaxed text-[var(--color-alert)]">
+        <p role="alert" className="mt-1 text-2xs leading-relaxed text-[var(--alert)]">
           {message}
         </p>
       )}

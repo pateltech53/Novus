@@ -204,13 +204,12 @@ export function AssetsScreen({
 
           <div className="mt-3 grid grid-cols-2 gap-2 border-t border-[var(--hairline)] pt-3">
             <Figure label="PAID IN" value={fmtMoney(totalPaid)} />
+            {/* Percent on its own line (as OwnedCard's GAIN does) — the joined
+                string truncated the percentage away in the half-width cell. */}
             <Figure
               label="UNREALISED"
-              value={
-                totalPaid > 0
-                  ? `${signed(gain)} · ${fmtPct(gainPct, true)}`
-                  : "—"
-              }
+              value={totalPaid > 0 ? signed(gain) : "—"}
+              sub={totalPaid > 0 ? fmtPct(gainPct, true) : undefined}
               color={totalPaid > 0 ? (gain >= 0 ? UP : DOWN) : undefined}
             />
           </div>
@@ -440,6 +439,11 @@ function ForSaleCard({
             SEE PRO
           </button>
         ) : (
+          /* The tone comes OFF when the button cannot act — `disabled:`
+             utilities lose to the unlayered .nv-t-action rules, so the old
+             classes rendered a full orange CTA at 45% opacity instead of the
+             quiet grey chip. Same conditional-tone pattern as OwnedCard's
+             SELL above. */
           <button
             type="button"
             disabled={disabled}
@@ -449,7 +453,9 @@ function ForSaleCard({
                 ? `${def.name}, ${fmtMoney(short)} short`
                 : `Buy ${def.name} for ${fmtMoney(price)}`
             }
-            className="nv-gc h-11 shrink-0 rounded-[var(--radius-pill)] nv-t-action px-6 text-2xs font-extrabold tracking-[0.12em] disabled:cursor-not-allowed disabled:bg-[var(--chip)] disabled:text-[var(--text-tertiary)]"
+            className={`nv-gc h-11 shrink-0 rounded-[var(--radius-pill)] px-6 text-2xs font-extrabold tracking-[0.12em] ${
+              disabled ? "cursor-not-allowed text-[var(--text-tertiary)]" : "nv-t-action"
+            }`}
           >
             BUY
           </button>

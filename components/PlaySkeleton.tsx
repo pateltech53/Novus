@@ -20,7 +20,7 @@
  * A skeleton is the fastest way to put slop into a product: sweep a gradient
  * across some grey capsules and every app looks like every other app. This one
  * draws the surfaces `/play` actually has, at the sizes it actually has them —
- * the masthead block, the four Books cards in their 2×2 (4-up at `lg`), the log
+ * the masthead block, the four Books cards in their 2×2 (4-up at `xl`), the log
  * row, the advance deck and the tab bar — in the neutral one step off the
  * ground. Nothing animates. Nothing pulses. It reads as a room with the lights
  * still down, which is true, rather than as a loading widget, which is a
@@ -48,7 +48,7 @@ export function PlaySkeleton() {
        * the screen no longer had, which is precisely the layout jump this
        * component exists to prevent.
        */
-      className="min-h-dvh bg-[var(--bg)] lg:mx-auto lg:grid lg:min-h-dvh lg:max-w-6xl lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:gap-6 lg:px-6 lg:py-6"
+      className="min-h-dvh bg-[var(--bg)] lg:mx-auto lg:grid lg:min-h-dvh lg:max-w-[88rem] lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)_minmax(0,21rem)] lg:gap-5 lg:px-5 lg:py-5"
     >
       <p className="sr-only" role="status">
         Opening the books…
@@ -57,19 +57,19 @@ export function PlaySkeleton() {
       {/* Masthead on phone, left column at lg — where HomeStage lands. */}
       <div
         aria-hidden="true"
-        className="h-[32svh] min-h-[200px] bg-[var(--n-1)] lg:sticky lg:top-6 lg:h-[26rem] lg:self-start lg:overflow-hidden lg:rounded-[var(--radius-card)] lg:shadow-[var(--e2)]"
+        className="h-[32svh] min-h-[200px] bg-[var(--n-1)] lg:sticky lg:top-5 lg:h-[calc(100dvh-2.5rem)] lg:self-start lg:overflow-hidden lg:rounded-[var(--radius-card)] lg:bg-[var(--surface)] lg:shadow-[var(--e2)]"
       />
 
       <div
         aria-hidden="true"
-        className="flex min-h-0 flex-col lg:h-[calc(100dvh-3rem)] lg:overflow-hidden lg:rounded-[var(--radius-card)] lg:bg-[var(--surface)] lg:shadow-[var(--e2)]"
+        className="flex min-h-0 flex-col lg:h-[calc(100dvh-2.5rem)] lg:overflow-hidden lg:rounded-[var(--radius-card)] lg:bg-[var(--surface)] lg:shadow-[var(--e2)]"
       >
-        {/* The Books — same grid as TheBooks.tsx:65. */}
-        <div className="grid grid-cols-2 gap-2 px-3 pt-3 lg:grid-cols-4 lg:gap-1.5">
+        {/* The Books — same grid as TheBooks.tsx (two-up until xl). */}
+        <div className="grid grid-cols-2 gap-2 px-3 pt-3 lg:gap-1.5 xl:grid-cols-4">
           {[0, 1, 2, 3].map((i) => (
             <div
               key={i}
-              className="h-[4.5rem] rounded-[var(--radius-card)] bg-[var(--n-1)] lg:h-[3.25rem]"
+              className="h-[4.5rem] rounded-[var(--radius-card)] bg-[var(--n-1)] xl:h-[3.25rem]"
             />
           ))}
         </div>
@@ -84,18 +84,28 @@ export function PlaySkeleton() {
           ))}
         </div>
 
-        {/* The deck: ADVANCE MONTH, then the tab bar, both at their real heights
-            so nothing jumps when the screen arrives. Fixed on phone exactly as
-            the real screen has it, static in the desktop rail. */}
-        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-[var(--hairline)] bg-[var(--bg)] px-3 pt-2 lg:static lg:bg-[var(--surface)]">
-          <div className="h-14 rounded-[var(--radius-pill)] bg-[var(--n-1)]" />
-          <div className="mx-auto mt-1.5 grid w-full max-w-2xl grid-cols-3 gap-2 pt-1 pb-[max(0.375rem,var(--nv-safe-bottom))] min-[360px]:grid-cols-6">
+        {/* The deck: ADVANCE MONTH, then the tab bar, both at their real
+            geometry — pill inside the max-w-2xl px-4 well AdvanceButton uses,
+            tabs in ActivityBar's gapless max-w-2xl grid — so nothing shifts
+            when the screen arrives. Fixed on phone exactly as the real screen
+            has it, static in the desktop rail. */}
+        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-[var(--hairline)] bg-[var(--bg)] pt-2 lg:static lg:bg-[var(--surface)]">
+          <div className="mx-auto w-full max-w-2xl px-4">
+            <div className="h-14 rounded-[var(--radius-pill)] bg-[var(--n-1)]" />
+          </div>
+          <div className="mx-auto mt-1.5 grid w-full max-w-2xl grid-cols-3 pt-1 pb-[max(0.375rem,var(--nv-safe-bottom))] min-[360px]:grid-cols-6">
             {[0, 1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="h-9 rounded-[var(--radius-card)] bg-[var(--n-1)]" />
             ))}
           </div>
         </div>
       </div>
+
+      {/* The right rail — the life log's reading column at lg. */}
+      <div
+        aria-hidden="true"
+        className="hidden lg:block lg:h-[calc(100dvh-2.5rem)] lg:rounded-[var(--radius-card)] lg:bg-[var(--surface)] lg:shadow-[var(--e2)]"
+      />
     </main>
   );
 }

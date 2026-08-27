@@ -166,6 +166,9 @@ export function AccountGate() {
 
   const firstFieldRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  /** True only for a mode change the player tapped for — gates the
+   *  scroll-and-focus effect below. */
+  const wantsFocus = useRef(false);
 
   /*
    * Field ids have to be unique per instance, and this component is rendered
@@ -232,6 +235,14 @@ export function AccountGate() {
 
   useEffect(() => {
     if (mode !== "signUp" && mode !== "signIn") return;
+    /*
+     * Only when the player asked. The async session-expiry demotion above
+     * also lands in signIn, and with two gates on the landing page both used
+     * to yank scroll and raise the keyboard seconds after load, unprompted.
+     * `go()` sets the flag; the demotion never does.
+     */
+    if (!wantsFocus.current) return;
+    wantsFocus.current = false;
 
     /*
      * Bring the form to the player.
@@ -315,6 +326,7 @@ export function AccountGate() {
 
   const go = (next: Mode) => {
     play("click");
+    wantsFocus.current = true;
     setError(null);
     setNotice(null);
     setResetSaid(null);
@@ -697,7 +709,7 @@ export function AccountGate() {
                   target="_blank"
                   // inline-block + py gives the link a real hit area without
                   // breaking the sentence it sits inside.
-                  className="inline-block py-1.5 font-bold underline underline-offset-2"
+                  className="-my-1.5 inline-block py-1.5 font-bold underline underline-offset-2"
                 >
                   privacy policy
                 </Link>{" "}
@@ -786,7 +798,7 @@ export function AccountGate() {
       {error ? (
         <p
           role="alert"
-          className="mx-auto mt-3 max-w-[21rem] text-center text-2xs leading-relaxed text-[var(--color-alert)]"
+          className="mx-auto mt-3 max-w-[21rem] text-center text-2xs leading-relaxed text-[var(--alert)]"
         >
           {error}
         </p>
@@ -836,7 +848,7 @@ export function AccountGate() {
               key={resetSaid.n}
               role="status"
               className={`mx-auto max-w-[21rem] text-center text-2xs leading-relaxed ${
-                resetSaid.ok ? "text-[var(--text-secondary)]" : "text-[var(--color-alert)]"
+                resetSaid.ok ? "text-[var(--text-secondary)]" : "text-[var(--alert)]"
               }`}
             >
               {resetSaid.text}
@@ -930,7 +942,7 @@ function PlanStanding() {
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <span
           className={`text-2xs font-bold tracking-[0.14em] ${
-            standing.pro ? "text-[var(--color-prestige)]" : "text-[var(--text-tertiary)]"
+            standing.pro ? "text-[var(--prestige)]" : "text-[var(--text-tertiary)]"
           }`}
         >
           {standing.badge}

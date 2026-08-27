@@ -57,8 +57,12 @@ export function TierUnlock({
       role="dialog"
       aria-label={`New tier unlocked: ${def.label}`}
     >
+      {/* Capped and scrollable, like every sheet: with no max-height a short
+          viewport (landscape phone, short window) clipped the centred card at
+          both ends and put WEAR IT out of reach. overflow-y-auto still clips
+          the rounded corners. */}
       <motion.div
-        className="w-full max-w-sm overflow-hidden rounded-[var(--radius-card)] bg-[var(--surface)] shadow-[var(--e4)]"
+        className="max-h-[min(88dvh,calc(100dvh-2rem))] w-full max-w-sm overflow-y-auto rounded-[var(--radius-card)] bg-[var(--surface)] shadow-[var(--e4)]"
         initial={{ scale: 0.94, y: 12 }}
         animate={{ scale: 1, y: 0 }}
         transition={SHEET_SPRING}

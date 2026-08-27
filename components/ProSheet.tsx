@@ -244,10 +244,10 @@ export function ProSheet({ onClose }: { onClose: () => void }) {
         <table className="mt-5 w-full text-left">
           <thead>
             <tr>
-              <th className="pb-2 pl-5 text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
+              <th className="pb-2 pl-5 pr-4 text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
                 &nbsp;
               </th>
-              <th className="pb-2 text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
+              <th className="pb-2 pr-3 text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
                 FREE
               </th>
               <th className="pr-5 pb-2 text-2xs font-bold tracking-[0.12em] text-[var(--color-prestige)]">
@@ -258,8 +258,8 @@ export function ProSheet({ onClose }: { onClose: () => void }) {
           <tbody>
             {ROWS.map((row) => (
               <tr key={row.label} className="border-t border-[var(--hairline)]">
-                <td className="py-2.5 pl-5 text-sm text-[var(--text-secondary)]">{row.label}</td>
-                <td className="py-2.5 text-sm font-semibold">{row.free}</td>
+                <td className="py-2.5 pl-5 pr-4 text-sm text-[var(--text-secondary)]">{row.label}</td>
+                <td className="py-2.5 pr-3 text-sm font-semibold">{row.free}</td>
                 <td className="py-2.5 pr-5 text-sm font-semibold">{row.pro}</td>
               </tr>
             ))}
@@ -355,7 +355,10 @@ export function ProSheet({ onClose }: { onClose: () => void }) {
               {/* The disclosure a subscription has to carry beside its button:
                   what it is, how long, what it costs, that it renews, and how
                   to stop it. */}
-              <p className="mt-2 text-center text-2xs leading-relaxed text-[var(--text-tertiary)]">
+              {/* min-h reserves the disclosure's two lines while billingStatus()
+                  is still answering, so the buttons below do not jump when it
+                  lands. */}
+              <p className="mt-2 min-h-[2lh] text-center text-2xs leading-relaxed text-[var(--text-tertiary)]">
                 {canCharge === null
                   ? " "
                   : canCharge

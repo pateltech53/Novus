@@ -39,8 +39,11 @@ export function BuyOnWeb({ className = "" }: { className?: string }) {
         <ExternalGlyph />
       </button>
 
-      <p className="tnum mt-2 text-center text-2xs font-bold tracking-[0.06em] text-[var(--text-secondary)]">
-        {formatPrice(PRO_YEARLY.priceCents)} A YEAR · {formatPrice(PRO_MONTHLY.priceCents)} A MONTH
+      {/* `.tnum` on the figures only — on the paragraph it set "A YEAR · A
+          MONTH" in the ledger face, the exact misuse UpgradeScreen documents. */}
+      <p className="mt-2 text-center text-2xs font-bold tracking-[0.06em] text-[var(--text-secondary)]">
+        <span className="tnum">{formatPrice(PRO_YEARLY.priceCents)}</span> A YEAR ·{" "}
+        <span className="tnum">{formatPrice(PRO_MONTHLY.priceCents)}</span> A MONTH
       </p>
 
       <p className="mt-1.5 text-center text-2xs leading-relaxed text-[var(--text-tertiary)]">

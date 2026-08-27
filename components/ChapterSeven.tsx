@@ -41,7 +41,10 @@ export function ChapterSeven({ report }: { report: AutopsyReport }) {
         <div className="relative border border-[var(--hairline)] px-5 py-7">
           <motion.p
             className="absolute -top-3 right-4 border-2 border-[var(--alert)] px-2.5 py-0.5 text-sm font-extrabold tracking-[0.2em] text-[var(--alert)]"
-            style={{ transform: "rotate(-6deg)" }}
+            /* A motion value, not a transform string: framer owns transform on
+               an element it scales, so the raw string never painted and the
+               stamp sat perfectly level. */
+            style={{ rotate: -6 }}
             initial={{ scale: 1.6, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ ...EXIT, delay: 0.35 }}

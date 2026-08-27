@@ -144,7 +144,7 @@ export function AdminSkipPrompt() {
 
   return (
     <div
-      className="fixed inset-0 z-[120] flex items-end justify-center bg-black/45 p-4 sm:items-center"
+      className="fixed inset-0 z-[120] flex items-end justify-center bg-black/45 px-4 pt-4 pb-[max(1rem,var(--nv-safe-bottom))] sm:items-center"
       onClick={() => {
         if (phase === "choose") finish("cancel");
       }}

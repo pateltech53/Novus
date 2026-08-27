@@ -58,10 +58,13 @@ import { KeyTermsSheet } from "@/components/KeyTermsSheet";
 
 type Tab = "company" | "numbers" | "order";
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: "company", label: "THE COMPANY" },
-  { id: "numbers", label: "THE NUMBERS" },
-  { id: "order", label: "THE ORDER" },
+/* No "THE": the prefix is what cannot fit three-across at the 12px floor on
+   a phone — with it the pills wrapped to two lines and the row's min-content
+   could clip the TERMS? button. Screen readers keep the full name. */
+const TABS: { id: Tab; label: string; spoken: string }[] = [
+  { id: "company", label: "COMPANY", spoken: "The company" },
+  { id: "numbers", label: "NUMBERS", spoken: "The numbers" },
+  { id: "order", label: "ORDER", spoken: "The order" },
 ];
 
 /*
@@ -167,7 +170,8 @@ export const PitchNotes = memo(function PitchNotes({
             type="button"
             onClick={() => setTab(t.id)}
             aria-pressed={tab === t.id}
-            className={`nv-gc flex-1 rounded-[var(--radius-pill)] px-2 py-1.5 text-2xs font-extrabold tracking-[0.08em] ${
+            aria-label={t.spoken}
+            className={`nv-gc flex-1 whitespace-nowrap rounded-[var(--radius-pill)] px-2 py-1.5 text-2xs font-extrabold tracking-[0.08em] ${
               tab === t.id
                 ? onStage
                   ?"bg-[var(--n-5)]"

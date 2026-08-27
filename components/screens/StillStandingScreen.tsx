@@ -707,15 +707,18 @@ function Row({
       }`}
     >
       <div className="flex items-start gap-3">
-        <span className="tnum w-8 shrink-0 pt-0.5 text-right text-sm font-extrabold text-[var(--text-tertiary)]">
+        <span className="tnum min-w-8 shrink-0 pt-0.5 text-right text-sm font-extrabold text-[var(--text-tertiary)]">
           {row.rank}
         </span>
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[0.9375rem] font-extrabold leading-snug">
-            {row.company_name}
+          {/* The name truncates in its own span so the YOU badge survives a
+              long company name — it used to be the ellipsis's first victim on
+              exactly the row it marks. */}
+          <p className="flex items-center gap-2 text-[0.9375rem] font-extrabold leading-snug">
+            <span className="truncate">{row.company_name}</span>
             {mine && (
-              <span className="ml-2 rounded-full bg-[var(--color-prestige)] px-1.5 py-0.5 text-2xs font-bold tracking-[0.1em] text-[var(--on-prestige)]">
+              <span className="shrink-0 rounded-full bg-[var(--color-prestige)] px-1.5 py-0.5 text-2xs font-bold tracking-[0.1em] text-[var(--on-prestige)]">
                 YOU
               </span>
             )}

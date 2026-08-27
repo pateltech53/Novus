@@ -303,7 +303,9 @@ function MarketDateline() {
       <span className="text-2xs font-bold tracking-[0.16em] text-[var(--color-prestige)]">
         TODAY&rsquo;S MARKET
       </span>
-      <span className="text-2xs tracking-[0.1em] text-[var(--on-action)]/45">
+      {/* Truncates from the tail on narrow bars — the date survives, only
+          "…GETS THIS" goes; without this the line wrapped ragged in the bar. */}
+      <span className="min-w-0 truncate text-right text-2xs tracking-[0.1em] text-[var(--on-action)]/45">
         {today.toUpperCase()} · EVERY FOUNDER GETS THIS
       </span>
     </div>

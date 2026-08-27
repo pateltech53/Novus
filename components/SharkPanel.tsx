@@ -944,7 +944,11 @@ export function SharkPanel({
       transition={{ duration: 0.25 }}
     >
       {/* THE SET — a header on a phone, a column on a desktop. */}
-      <div className="mx-auto w-full max-w-lg shrink-0 px-4 pt-[max(0.5rem,var(--nv-safe-top))] lg:mx-0 lg:min-h-0 lg:max-w-none lg:overflow-y-auto lg:px-0 lg:pt-0">
+      {/* Capped on the phone too: with YOUR NOTES open this header stack ran
+          to ~580px on a short phone, collapsing the thread and clipping the
+          docked composer. Below lg it scrolls internally, as the lg column
+          already does. */}
+      <div className="mx-auto max-h-[55dvh] w-full max-w-lg shrink-0 overflow-y-auto px-4 pt-[max(0.5rem,var(--nv-safe-top))] lg:mx-0 lg:max-h-none lg:min-h-0 lg:max-w-none lg:px-0 lg:pt-0">
         {/*
           Capped rather than free. At 3:2 the plate takes 66% of the width in
           height, which on a short phone left the thread a few lines tall and
@@ -1098,12 +1102,15 @@ export function SharkPanel({
                   </h2>
                   <ul className="mt-2 overflow-hidden rounded-[var(--radius-card)] bg-[var(--surface-elevated)] shadow-[var(--e2)]">
                     {offers.map((entry) => (
-                      <li key={entry.shark}>
+                      /* The divider lives on the li: on the button it was
+                         always its li's last child, so last:border-b-0 erased
+                         every separator, not just the final one. */
+                      <li key={entry.shark} className="border-b border-[var(--hairline)] last:border-b-0">
                         <button
                           type="button"
                           disabled={!!accepted}
                           onClick={() => accept(entry)}
-                          className={`block w-full border-b border-[var(--hairline)] px-3 py-3 text-left last:border-b-0 disabled:cursor-default ${
+                          className={`block w-full px-3 py-3 text-left disabled:cursor-default ${
                             accepted?.shark === entry.shark
                               ? "bg-[color-mix(in_oklch,var(--color-prestige)_14%,transparent)]"
                               : accepted

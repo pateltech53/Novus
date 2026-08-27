@@ -479,7 +479,7 @@ function FoundPage() {
             </span>
           </span>
           <span className="shrink-0 rounded-full bg-[var(--chip)] px-2.5 py-1 text-2xs font-extrabold tracking-[0.1em] text-[var(--text-secondary)]">
-            {briefOpen ? "HIDE" : filledCount(brief) > 0 ? `${filledCount(brief)}/4` : "ADD ›"}
+            {briefOpen ? "HIDE" : filledCount(brief) > 0 ? `${filledCount(brief)}/5` : "ADD ›"}
           </span>
         </button>
 
@@ -640,9 +640,13 @@ function FoundPage() {
 
 /** How much of the brief is answered, for the collapsed header's counter. */
 function filledCount(brief: CompanyBrief): number {
-  return [brief.whatItDoes, brief.usp, brief.whyCustomers, brief.mission].filter((v) =>
-    v.trim(),
-  ).length;
+  return [
+    brief.companyType,
+    brief.whatItDoes,
+    brief.usp,
+    brief.whyCustomers,
+    brief.mission,
+  ].filter((v) => v.trim()).length;
 }
 
 /**

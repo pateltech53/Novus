@@ -4,7 +4,7 @@ Two boards, one submission path.
 
 | Board | Orders by | Existing name |
 |---|---|---|
-| Survival | `years_survived desc` | **Still Standing** (already used in `ProSheet.tsx`, `PlansSheet.tsx`, `BeeMail.tsx`) |
+| Survival | `years_survived desc` | **Still Standing** (already used in `ProSheet.tsx`, `BeeMail.tsx`) |
 | Valuation | `peak_valuation desc` | none — pick one in copy, not here |
 
 **This is built.** It was a plan, and the plan was followed; what follows is now a description
@@ -670,7 +670,7 @@ exactly the right line: it catches states the engine could not have produced, an
 > position **never** are. This is a product for minors — a legal constraint, not a taste one.
 
 The app already promises this in copy: `ProSheet.tsx` lists "Score, survival, leaderboard — Free:
-Identical, Pro: Identical", and `PlansSheet.tsx` says "Leaderboard — Same for everyone". Shipping a
+Identical, Pro: Identical". Shipping a
 board makes that promise testable by anyone with a spreadsheet.
 
 ### 8.1 How the schema enforces it

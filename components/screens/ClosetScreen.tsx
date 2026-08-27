@@ -180,9 +180,12 @@ export function ClosetScreen({
       */}
       <Glass
         as="header"
-        className="sticky top-0 z-10 px-5 pt-[max(0.75rem,var(--nv-safe-top))] pb-3"
+        className="sticky top-0 z-10 pt-[max(0.75rem,var(--nv-safe-top))] pb-3"
       >
-        <div className="mx-auto flex w-full max-w-md items-center justify-between">
+        {/* Padding inside the capped row, not outside it: with px on the pane
+            the header's edges sat up to 20px outboard of the max-w-md body on
+            wide viewports. */}
+        <div className="mx-auto flex w-full max-w-md items-center justify-between px-5">
           <h1 className="text-xl font-extrabold tracking-[-0.01em]">The Closet</h1>
           <button
             type="button"
@@ -269,9 +272,12 @@ export function ClosetScreen({
             // a full bar with nothing to explain it.
             const cleared = p.remaining <= 0;
             // Rounding a real sliver down to "0%" would read as "you have not
-            // started", which is a different claim. Say "<1%" instead.
+            // started", which is a different claim. Say "<1%" instead. The
+            // mirror case rounds UP: 99.6% showing "100%" beside "$X to go"
+            // is two contradictory claims in one row, so that says ">99%".
             const pct = Math.round(p.frac * 100);
-            const pctLabel = pct === 0 && p.frac > 0 ? "<1%" : `${pct}%`;
+            const pctLabel =
+              pct === 0 && p.frac > 0 ? "<1%" : pct === 100 && !cleared ? ">99%" : `${pct}%`;
 
             return (
               <li key={t.tier}>

@@ -164,7 +164,9 @@ export function YearEndStatement({ summary }: { summary: YearEndSummary }) {
                   }`}
                 >
                   <span className="text-[0.9375rem] font-semibold">{option.label}</span>
-                  <span className="tnum text-xs text-[var(--text-tertiary)]">
+                  {/* text-right so a wrapped effects line stays on the figure
+                      column's right edge instead of falling back to the left. */}
+                  <span className="tnum text-right text-xs text-[var(--text-tertiary)]">
                     {option.known}
                   </span>
                 </button>

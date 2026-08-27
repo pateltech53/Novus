@@ -8,6 +8,7 @@ import {
   clampPrice,
   earningItems,
   ensurePortfolio,
+  fmtUnits,
   liveItems,
   nudgePrice,
   portfolioCap,
@@ -52,7 +53,7 @@ import { suggestProducts, type ProductIdea } from "@/lib/ai/products";
  */
 
 export function ProductSheet() {
-  const { run } = useGame();
+  const { run, clearFlag } = useGame();
   const [launching, setLaunching] = useState(false);
   const [detail, setDetail] = useState<string | null>(null);
 
@@ -70,7 +71,14 @@ export function ProductSheet() {
     return (
       <LaunchFlow
         spec={spec}
-        onDone={() => setLaunching(false)}
+        onDone={() => {
+          setLaunching(false);
+          // An activity that opened this flow set a flag on the persisted run;
+          // CANCEL has to clear it or the flow re-mounts forever. No-ops after
+          // a launch, which already deleted both.
+          clearFlag("launch_sheet_open");
+          clearFlag("launch_seasonal");
+        }}
       />
     );
   }
@@ -151,7 +159,7 @@ export function ProductSheet() {
                   {it.launchedYear}
                   {it.retiredYear ? `–${it.retiredYear}` : ""}
                   {it.verdict ? ` · ${it.verdict}` : ""}
-                  {best > 0 && ` · best year ${best.toLocaleString()} ${spec.demandUnit}`}
+                  {best > 0 && ` · best year ${fmtUnits(best, spec)} ${spec.demandUnit}`}
                   {it.state === "recalled" && " · recalled"}
                 </li>
               );
@@ -191,13 +199,13 @@ function ItemRow({
           <span className="block truncate text-sm font-bold">{item.name}</span>
           <span className="tnum block text-2xs text-[var(--text-tertiary)]">
             {fmtPrice(item.price)}
-            {last && ` · ${last.units.toLocaleString()} ${spec.demandUnit}`}
+            {last && ` · ${fmtUnits(last.units, spec)} ${spec.demandUnit}`}
             {item.state === "declining" && " · past peak"}
           </span>
         </span>
         <Sparkline units={item.history.map((h) => h.units)} />
         {last && (
-          <span className="tnum w-9 shrink-0 text-right text-2xs font-bold text-[var(--text-secondary)]">
+          <span className="tnum min-w-9 shrink-0 text-right text-2xs font-bold text-[var(--text-secondary)]">
             {last.grossMargin}%
           </span>
         )}
@@ -294,7 +302,7 @@ function ItemDetail({
             {item.history.map((h) => (
               <tr key={h.year} className="border-t border-[var(--hairline)]">
                 <td className="py-1.5 text-left font-semibold">{h.year}</td>
-                <td className="py-1.5 text-right">{h.units.toLocaleString()}</td>
+                <td className="py-1.5 text-right">{fmtUnits(h.units, spec)}</td>
                 <td className="py-1.5 text-right">{fmtMoney(h.revenue)}</td>
                 <td className="py-1.5 text-right">{h.grossMargin}%</td>
               </tr>
@@ -309,12 +317,12 @@ function ItemDetail({
           {(() => {
             const h = item.history.at(-1)!;
             const bits = [
-              `At ${fmtPrice(item.price)} you sold ${h.units.toLocaleString()} ${spec.demandUnit} in FY${h.year}.`,
+              `At ${fmtPrice(item.price)} you sold ${fmtUnits(h.units, spec)} ${spec.demandUnit} in FY${h.year}.`,
             ];
             if (h.leakPct >= 5)
               bits.push(`${h.leakPct}% of it went to ${spec.leakLabel.toLowerCase()}.`);
             if (h.cannibalized > 0 && item.meta.lastCulprit)
-              bits.push(`${item.meta.lastCulprit} took ${h.cannibalized.toLocaleString()} of them.`);
+              bits.push(`${item.meta.lastCulprit} took ${fmtUnits(h.cannibalized, spec)} of them.`);
             return bits.join(" ");
           })()}
         </p>

@@ -176,7 +176,7 @@ export default function JoinPage() {
             </button>
 
             {error ? (
-              <p role="alert" className="mt-3 text-2xs leading-relaxed text-[var(--color-alert)]">
+              <p role="alert" className="mt-3 text-2xs leading-relaxed text-[var(--alert)]">
                 {error}
               </p>
             ) : null}

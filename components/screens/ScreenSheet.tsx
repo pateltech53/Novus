@@ -188,7 +188,7 @@ export function ScreenSheet({
      * click.
      */
     if ((e.target as HTMLElement | null)?.closest("button,a,input,select,textarea")) {
-      if (e.currentTarget.getAttribute("aria-label") !== "Drag down to close") return;
+      return;
     }
     drag.current = { id: e.pointerId, from: e.clientY, at: e.timeStamp };
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -299,21 +299,19 @@ export function ScreenSheet({
             `touch-action: none` is scoped here and nowhere else — it is what
             stops the browser reading the drag as a scroll of the sheet, and
             putting it on the sheet would stop the sheet scrolling at all. */}
+        {/* Decoration, not a control: the WHOLE header carries the drag
+            handlers above, so the strip needs none of its own — and a 22px
+            role="button" nobody can focus or activate was both a phantom tap
+            target (every device audit flagged it) and screen-reader noise.
+            The CLOSE button (or the native toolbar's) is the accessible way
+            out. `touch-none` stays: it is what stops a touch drag that starts
+            here being read as a scroll. */}
         {docked ? null : (
           <div
-            role="button"
-            tabIndex={-1}
-            aria-label="Drag down to close"
-            onPointerDown={onGrab}
-            onPointerMove={onGrabMove}
-            onPointerUp={onGrabEnd}
-            onPointerCancel={onGrabEnd}
+            aria-hidden="true"
             className="-mt-1 mb-1 flex h-[22px] cursor-grab touch-none items-center justify-center active:cursor-grabbing"
           >
-            <span
-              aria-hidden="true"
-              className="h-[5px] w-9 rounded-full bg-[var(--n-6)]"
-            />
+            <span className="h-[5px] w-9 rounded-full bg-[var(--n-6)]" />
           </div>
         )}
         <div className="flex items-start justify-between gap-3">

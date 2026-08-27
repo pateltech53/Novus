@@ -80,8 +80,17 @@ export function LockScreen({ onUnlock }: { onUnlock: () => void }) {
     });
   };
 
+  /* No meridiem — a real lock screen shows none, and " PM" at text-[4.5rem]
+     is wider than the phone frame can offer, so it either wrapped onto a
+     76px second line or (with ICU's narrow no-break space) overflowed the
+     padding. 24-hour locales are untouched. */
   const time = now
-    ? now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+    ? new Intl.DateTimeFormat([], { hour: "numeric", minute: "2-digit" })
+        .formatToParts(now)
+        .filter((p) => p.type !== "dayPeriod")
+        .map((p) => p.value)
+        .join("")
+        .trim()
     : "";
   const date = now
     ? now.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })

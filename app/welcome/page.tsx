@@ -947,7 +947,15 @@ function PlansSheet({
         {/* The one line under the button has to match what the button does.
             Before billing it promised no card; with Stripe wired up that would
             be false, and this is the screen a teacher reads before spending. */}
-        <p className="mt-1.5 text-center text-2xs leading-relaxed text-[var(--text-tertiary)]">
+        {/* Where the line can ever hold text, its space is reserved up front —
+            the whitespace placeholder collapsed to one line, so the resolved
+            three-line Stripe sentence shoved CONTINUE FREE down after it was
+            already tappable. The store build keeps the collapsed height. */}
+        <p
+          className={`mt-1.5 text-center text-2xs leading-relaxed text-[var(--text-tertiary)] ${
+            sellsHere === true ? "min-h-[3lh]" : ""
+          }`}
+        >
           {sellsHere !== true || canCharge === null
             ? " "
             : canCharge
@@ -958,7 +966,7 @@ function PlansSheet({
         {error ? (
           <p
             role="alert"
-            className="mt-1.5 text-center text-2xs leading-relaxed text-[var(--color-alert)]"
+            className="mt-1.5 text-center text-2xs leading-relaxed text-[var(--alert)]"
           >
             {error}
           </p>
