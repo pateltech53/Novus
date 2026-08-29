@@ -1,0 +1,535 @@
+<template>
+  <div
+    data-composition-id="sc05-lifesim"
+    data-width="1080"
+    data-height="1920"
+    data-duration="10"
+    style="position: absolute; inset: 0; overflow: hidden; font-family: 'Urbanist', system-ui, sans-serif;"
+  >
+    <style>
+      @font-face {
+        font-family: "Urbanist";
+        font-style: normal;
+        font-weight: 100 900;
+        src: url("assets/fonts/urbanist-latin.woff2") format("woff2");
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+      @font-face {
+        font-family: "Urbanist";
+        font-style: normal;
+        font-weight: 100 900;
+        src: url("assets/fonts/urbanist-latin-ext.woff2") format("woff2");
+        unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+      }
+      .n05-bg,
+      .n05-cam {
+        --paper: #f7f5f0;
+        --card: #ffffff;
+        --ink: #0b1e36;
+        --ink-60: rgba(11, 30, 54, 0.6);
+        --ink-40: rgba(11, 30, 54, 0.4);
+        --line: rgba(11, 30, 54, 0.1);
+        --action: #ff6b00;
+        --alert: #ff3333;
+        --solvent: #3ddc97;
+        --gold: #ffc24b;
+      }
+      .n05-bg {
+        position: absolute;
+        inset: 0;
+        background: var(--paper);
+      }
+      .n05-cam {
+        position: absolute;
+        inset: 0;
+      }
+      #n05-duo {
+        position: absolute;
+        inset: 0;
+      }
+      #n05-phone {
+        position: absolute;
+        left: 320px;
+        top: 130px;
+        width: 440px;
+        height: 952px;
+        box-sizing: border-box;
+        border: 11px solid var(--ink);
+        border-radius: 46px;
+        background: var(--ink);
+        overflow: hidden;
+        box-shadow: 0 30px 70px rgba(11, 30, 54, 0.18);
+        opacity: 0;
+      }
+      #n05-shot {
+        display: block;
+        width: 100%;
+      }
+      #n05-pill {
+        position: absolute;
+        left: 127px;
+        bottom: 29px;
+        width: 165px;
+        height: 11px;
+        border-radius: 6px;
+        background: #ffffff;
+        opacity: 0;
+        visibility: hidden;
+      }
+      #n05-tile {
+        position: absolute;
+        left: 70px;
+        top: 1150px;
+        width: 460px;
+        height: 470px;
+        box-sizing: border-box;
+        border: 12px solid var(--card);
+        border-radius: 24px;
+        overflow: hidden;
+        background: var(--card);
+        box-shadow: 0 18px 50px rgba(11, 30, 54, 0.1);
+        opacity: 0;
+        visibility: hidden;
+      }
+      #n05-months {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      #n05-meter {
+        position: absolute;
+        left: 70px;
+        top: 1644px;
+        width: 460px;
+        opacity: 0;
+      }
+      #n05-mlabel {
+        display: flex;
+        align-items: center;
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--ink-60);
+        line-height: 26px;
+      }
+      #n05-mcol {
+        display: inline-block;
+        width: 14px;
+        height: 26px;
+        overflow: hidden;
+        text-align: center;
+      }
+      #n05-mstack {
+        display: block;
+      }
+      .n05-mrow {
+        display: block;
+        height: 26px;
+        line-height: 26px;
+        letter-spacing: 0;
+      }
+      #n05-track {
+        margin-top: 12px;
+        width: 460px;
+        height: 8px;
+        border-radius: 4px;
+        background: rgba(11, 30, 54, 0.12);
+        overflow: hidden;
+      }
+      #n05-fill {
+        display: block;
+        width: 100%;
+        height: 100%;
+        border-radius: 4px;
+        background: var(--action);
+      }
+      .n05-card {
+        position: absolute;
+        left: 570px;
+        width: 440px;
+        height: 150px;
+        box-sizing: border-box;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        box-shadow: 0 18px 50px rgba(11, 30, 54, 0.1);
+        padding: 22px 32px;
+        opacity: 0;
+        visibility: hidden;
+      }
+      #n05-card-cash { top: 1130px; }
+      #n05-card-burn { top: 1296px; }
+      #n05-card-run  { top: 1462px; }
+      .n05-card-label {
+        font-size: 19px;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--ink-60);
+      }
+      .n05-card-value {
+        margin-top: 10px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 46px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: var(--ink);
+      }
+      .n05-odo {
+        display: flex;
+        height: 52px;
+      }
+      .n05-odo-col {
+        display: inline-block;
+        width: 28px;
+        height: 52px;
+        overflow: hidden;
+        text-align: center;
+      }
+      .n05-odo-stack {
+        display: block;
+      }
+      .n05-odo-digit {
+        display: block;
+        height: 52px;
+        line-height: 52px;
+      }
+      .n05-odo-static {
+        display: inline-block;
+        line-height: 52px;
+        white-space: pre;
+      }
+      .n05-arrow {
+        font-size: 22px;
+        line-height: 1;
+        opacity: 0;
+      }
+      .n05-arrow-up { color: var(--solvent); }
+      .n05-arrow-bad { color: var(--alert); }
+      #n05-year {
+        position: absolute;
+        left: 570px;
+        top: 1628px;
+        width: 440px;
+        height: 120px;
+        background: var(--card);
+        border-radius: 20px;
+        box-shadow: 0 18px 50px rgba(11, 30, 54, 0.1);
+        overflow: hidden;
+        opacity: 0;
+        visibility: hidden;
+      }
+      #n05-ystack {
+        display: block;
+      }
+      .n05-yrow {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 120px;
+        font-size: 54px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: var(--ink);
+      }
+      #n05-ygold {
+        position: absolute;
+        left: 130px;
+        bottom: 12px;
+        width: 180px;
+        height: 6px;
+        border-radius: 3px;
+        background: var(--gold);
+        opacity: 0;
+        visibility: hidden;
+      }
+      #n05-band {
+        position: absolute;
+        left: 90px;
+        top: 1740px;
+        width: 900px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 20px 28px;
+      }
+      #n05-l1 {
+        margin: 0;
+        font-size: 44px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: var(--ink);
+        line-height: 1;
+        white-space: nowrap;
+      }
+      #n05-l1 .n05-w {
+        display: inline-block;
+        opacity: 0;
+      }
+      #n05-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+      .n05-chip {
+        display: inline-block;
+        background: var(--ink);
+        color: #ffffff;
+        font-size: 26px;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        line-height: 1;
+        padding: 12px 26px;
+        border-radius: 999px;
+        opacity: 0;
+      }
+      #n05-l3 {
+        position: absolute;
+        left: 90px;
+        top: 1756px;
+        margin: 0;
+        font-size: 30px;
+        font-weight: 600;
+        color: var(--ink-60);
+        white-space: nowrap;
+        line-height: 1.1;
+      }
+      #n05-l3 .n05-w {
+        display: inline-block;
+        opacity: 0;
+      }
+    </style>
+
+    <div class="n05-bg"></div>
+    <div class="n05-cam">
+      <!-- Device duo (phone + months tile + month meter) — slides UP on the nudge -->
+      <div id="n05-duo">
+        <div id="n05-phone" data-layout-ignore>
+          <img id="n05-shot" src="assets/app/phone.webp" alt="" />
+          <div id="n05-pill" data-layout-allow-occlusion></div>
+        </div>
+        <div id="n05-tile" data-layout-ignore data-layout-allow-occlusion>
+          <video id="n05-months" src="assets/months.mp4" data-start="4.1" data-duration="5.9" data-track-index="5" muted playsinline preload="auto" data-end="10" data-has-audio="false"></video>
+        </div>
+        <div id="n05-meter">
+          <div id="n05-mlabel">
+            <span>MONTH&nbsp;</span>
+            <span id="n05-mcol" data-layout-ignore>
+              <span id="n05-mstack">
+                <span class="n05-mrow">4</span>
+                <span class="n05-mrow">5</span>
+                <span class="n05-mrow">6</span>
+              </span>
+            </span>
+            <span>&nbsp;/&nbsp;12</span>
+          </div>
+          <div id="n05-track"><div id="n05-fill"></div></div>
+        </div>
+      </div>
+
+      <!-- The Books strip -->
+      <div id="n05-card-cash" class="n05-card">
+        <div class="n05-card-label">Cash</div>
+        <div class="n05-card-value">
+          <span class="n05-odo" id="n05-odo-cash" data-final="$48,200"></span>
+          <span class="n05-arrow n05-arrow-up">&#9650;</span>
+        </div>
+      </div>
+      <div id="n05-card-burn" class="n05-card">
+        <div class="n05-card-label">Burn</div>
+        <div class="n05-card-value">
+          <span class="n05-odo" id="n05-odo-burn" data-final="$6,100"></span>
+          <span class="n05-arrow n05-arrow-bad">&#9650;</span>
+        </div>
+      </div>
+      <div id="n05-card-run" class="n05-card">
+        <div class="n05-card-label">Runway</div>
+        <div class="n05-card-value">
+          <span class="n05-odo" id="n05-odo-run" data-final="8 MO"></span>
+          <span class="n05-arrow n05-arrow-up">&#9650;</span>
+        </div>
+      </div>
+
+      <!-- Year odometer (whole-word roll) -->
+      <div id="n05-year" data-layout-ignore>
+        <span id="n05-ystack">
+          <span class="n05-yrow">YEAR 1</span>
+          <span class="n05-yrow" id="n05-y2">YEAR 2</span>
+        </span>
+        <div id="n05-ygold" data-layout-allow-occlusion></div>
+      </div>
+
+      <!-- Bottom copy band -->
+      <div id="n05-band">
+        <h2 id="n05-l1">
+          <span class="n05-w">Grow</span>
+          <span class="n05-w">it,</span>
+          <span class="n05-w">year</span>
+          <span class="n05-w">by</span>
+          <span class="n05-w">year.</span>
+        </h2>
+        <div id="n05-chips">
+          <span class="n05-chip">Build.</span>
+          <span class="n05-chip">Decide.</span>
+          <span class="n05-chip">Pitch.</span>
+          <span class="n05-chip">Adapt.</span>
+        </div>
+      </div>
+      <p id="n05-l3">
+        <span class="n05-w">Years</span>
+        <span class="n05-w">only</span>
+        <span class="n05-w">pass</span>
+        <span class="n05-w">when</span>
+        <span class="n05-w">you</span>
+        <span class="n05-w">perform.</span>
+      </p>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      (function () {
+        const tl = gsap.timeline({ paused: true });
+        const DIGIT_H = 52;
+
+        // Build digit-column odometers for The Books values (synchronous, deterministic).
+        const odoRolls = [];
+        document.querySelectorAll(".n05-odo").forEach(function (odo) {
+          const cols = [];
+          odo.getAttribute("data-final").split("").forEach(function (ch) {
+            if (/[0-9]/.test(ch)) {
+              const col = document.createElement("span");
+              col.className = "n05-odo-col";
+              col.setAttribute("data-layout-ignore", "");
+              col.setAttribute("data-target", ch);
+              const stack = document.createElement("span");
+              stack.className = "n05-odo-stack";
+              for (let d = 0; d <= 9; d++) {
+                const dg = document.createElement("span");
+                dg.className = "n05-odo-digit";
+                dg.textContent = String(d);
+                stack.appendChild(dg);
+              }
+              col.appendChild(stack);
+              odo.appendChild(col);
+              cols.push({ stack: stack, target: parseInt(ch, 10) });
+            } else {
+              const st = document.createElement("span");
+              st.className = "n05-odo-static";
+              st.textContent = ch;
+              odo.appendChild(st);
+            }
+          });
+          odoRolls.push({ id: odo.id, cols: cols });
+        });
+
+        // Initial states owned by the timeline (cold-seek safe from t=0).
+        tl.set("#n05-fill", { scaleX: 4 / 12, transformOrigin: "left center" }, 2.0);
+
+        // Camera with intent: mapped pan across the scene.
+        tl.fromTo(".n05-cam", { x: 0 }, { x: -20, autoAlpha: 1, duration: 7.0, ease: "power1.inOut" }, 2.4);
+
+        // 0.2 — the phone settles (hero arrival, per beat sheet).
+        tl.fromTo(
+          "#n05-phone",
+          { y: 40, autoAlpha: 0 },
+          { y: 0, autoAlpha: 1, duration: 0.55, ease: "expo.out" }, 0.35);
+
+        // 0.48 — swipe pill appears; 0.7 — unlock swipe (audio: unlock at 0.7).
+        tl.fromTo("#n05-pill", { y: 16, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.18, ease: "power4.out" }, 2.48);
+        tl.fromTo("#n05-shot", { y: 0 }, { y: -120, autoAlpha: 1, duration: 0.55, ease: "expo.out" }, 2.7);
+        tl.to("#n05-pill", { y: -90, duration: 0.35, ease: "power2.out" }, 2.7);
+        tl.to("#n05-pill", { autoAlpha: 0, duration: 0.2, ease: "power1.out" }, 2.78);
+
+        // Copy line 1 — spread waterfall, shrinking gaps, 0.5 -> 2.7.
+        const l1Times = [0.8, 1.48, 2.06, 2.56, 3.0];
+        document.querySelectorAll("#n05-l1 .n05-w").forEach(function (el, i) {
+          tl.fromTo(el, { y: 46, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.16, ease: "power4.out" }, l1Times[i]);
+        });
+
+        // 2.1 — months video tile reveals (stomp inside the footage reads ~2.75).
+        tl.fromTo("#n05-tile", { x: 50, autoAlpha: 0 }, { x: 0, autoAlpha: 1, duration: 0.55, ease: "expo.out" }, 4.1);
+        tl.fromTo("#n05-meter", { y: 16, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.4, ease: "power4.out" }, 4.3);
+
+        // 2.75 — stomp impact: the tile takes the hit (causal squash, audio: activity).
+        tl.to("#n05-tile", { scale: 0.982, duration: 0.07, ease: "power2.in", transformOrigin: "50% 100%" }, 4.72);
+        tl.to("#n05-tile", { scale: 1, duration: 0.25, ease: "power2.out" }, 4.79);
+
+        // 3.1 — the month advances: bar fill 4/12 -> 6/12, digit rolls 4 -> 6.
+        tl.to("#n05-fill", { scaleX: 6 / 12, duration: 0.55, ease: "expo.out" }, 5.1);
+        tl.fromTo("#n05-mstack", { y: 0 }, { y: -52, autoAlpha: 1, duration: 0.7, ease: "expo.out" }, 5.1);
+
+        // 4.2 — nudge curve: device duo slides UP 120px (10/65/25 dist, 20/18/62 time).
+        tl.to("#n05-duo", { y: -12, duration: 0.18, ease: "power3.in" }, 6.2);
+        tl.to("#n05-duo", { y: -78, duration: 0.162, ease: "none" }, 6.38);
+        tl.to("#n05-duo", { y: -120, duration: 0.558, ease: "power4.out" }, 6.542);
+
+        // The Books strip enters right during the burst (shrinking gaps).
+        const cardTimes = { "n05-card-cash": 4.28, "n05-card-burn": 4.43, "n05-card-run": 4.56 };
+        Object.keys(cardTimes).forEach(function (id) {
+          tl.fromTo(
+            "#" + id,
+            { x: 146, autoAlpha: 0 },
+            { x: 0, autoAlpha: 1, duration: 0.55, ease: "power4.out" },
+            cardTimes[id]
+          );
+        });
+        tl.fromTo("#n05-year", { x: 146, autoAlpha: 0 }, { x: 0, autoAlpha: 1, duration: 0.55, ease: "power4.out" }, 6.66);
+
+        // 4.4 — the numbers roll (audio: money). Per-column odometer, expo.out, staggered.
+        const rollStarts = { "n05-odo-cash": 4.4, "n05-odo-burn": 4.52, "n05-odo-run": 4.62 };
+        odoRolls.forEach(function (r) {
+          const T = rollStarts[r.id];
+          r.cols.forEach(function (c, i) {
+            tl.fromTo(
+              c.stack,
+              { y: 0 },
+              { y: -DIGIT_H * c.target, autoAlpha: 1, duration: 0.9 + i * 0.08, ease: "expo.out" },
+              T + i * 0.06
+            );
+          });
+        });
+
+        // Direction arrows pop with each roll — green = upside, red = burn damage.
+        const arrowTimes = [6.42, 6.54, 6.64];
+        document.querySelectorAll(".n05-arrow").forEach(function (el, i) {
+          tl.fromTo(
+            el,
+            { y: 10, scale: 0.6, autoAlpha: 0 },
+            { y: 0, scale: 1, autoAlpha: 1, duration: 0.3, ease: "back.out(1.6)" },
+            arrowTimes[i]
+          );
+        });
+
+        // 4.6 — punch-chips, one every 0.25s.
+        document.querySelectorAll(".n05-chip").forEach(function (el, i) {
+          tl.fromTo(el, { y: 40, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.16, ease: "power4.out" }, 6.6 + i * 0.25);
+        });
+
+        // 6.4 — YEAR 1 -> YEAR 2 whole-word roll (stillness held since ~5.9; chime at 6.5).
+        tl.fromTo("#n05-ystack", { y: 0 }, { y: -120, autoAlpha: 1, duration: 0.55, ease: "expo.out" }, 8.4);
+
+        // Gold tick flash on landing — prestige only, then it recedes.
+        tl.fromTo(
+          "#n05-ygold",
+          { scaleX: 0, autoAlpha: 0, transformOrigin: "left center" },
+          { scaleX: 1, autoAlpha: 1, duration: 0.3, ease: "expo.out" }, 8.6);
+        tl.to("#n05-y2", { color: "#ffc24b", duration: 0.15, ease: "power1.out" }, 8.6);
+        tl.to("#n05-ygold", { autoAlpha: 0, duration: 0.2, ease: "power2.in" }, 9.1);
+        tl.to("#n05-y2", { color: "#0b1e36", duration: 0.3, ease: "power1.inOut" }, 9.25);
+
+        // 6.9 — band (line 1 + chips) all out; 7.0 — closer line, small.
+        tl.to("#n05-band", { y: 34, autoAlpha: 0, duration: 0.22, ease: "power2.in" }, 8.9);
+        const l3Times = [8.7, 8.79, 8.87, 8.94, 9.01, 9.07];
+        document.querySelectorAll("#n05-l3 .n05-w").forEach(function (el, i) {
+          tl.fromTo(el, { y: 24, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.16, ease: "power4.out" }, l3Times[i]);
+        });
+
+        window.__timelines["sc05-lifesim"] = tl;
+      })();
+    </script>
+  </div>
+</template>
