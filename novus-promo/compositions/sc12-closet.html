@@ -1,0 +1,475 @@
+<template>
+  <div
+    data-composition-id="sc12-closet"
+    data-width="1920"
+    data-height="1080"
+    data-duration="10"
+    style="position: absolute; inset: 0; overflow: hidden; font-family: 'Urbanist', system-ui, sans-serif;"
+  >
+    <style>
+      @font-face {
+        font-family: "Urbanist";
+        font-style: normal;
+        font-weight: 100 900;
+        src: url("assets/fonts/urbanist-latin.woff2") format("woff2");
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+      @font-face {
+        font-family: "Urbanist";
+        font-style: normal;
+        font-weight: 100 900;
+        src: url("assets/fonts/urbanist-latin-ext.woff2") format("woff2");
+        unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+      }
+      .n12-bg {
+        position: absolute;
+        inset: 0;
+        background: #f7f5f0;
+      }
+      .n12-cam {
+        position: absolute;
+        inset: 0;
+      }
+      #n12-label {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 96px;
+        text-align: center;
+        font-size: 23px;
+        font-weight: 700;
+        letter-spacing: 0.24em;
+        color: rgba(11, 30, 54, 0.6);
+        opacity: 0;
+      }
+      /* the whole left group (chest + cards) nudges left when friends arrive */
+      #n12-group {
+        position: absolute;
+        inset: 0;
+      }
+      /* ---- briefcase ---- */
+      #n12-case {
+        position: absolute;
+        left: 760px;
+        top: 380px;
+        width: 400px;
+        height: 300px;
+        opacity: 0;
+      }
+      #n12-glow {
+        position: absolute;
+        left: -160px;
+        top: -170px;
+        width: 720px;
+        height: 620px;
+        border-radius: 50%;
+        background: radial-gradient(closest-side, rgba(255, 194, 75, 0.55), rgba(255, 194, 75, 0));
+        opacity: 0;
+      }
+      #n12-lid {
+        position: absolute;
+        left: 0;
+        top: 40px;
+        width: 400px;
+        height: 110px;
+        border-radius: 26px 26px 6px 6px;
+        background: linear-gradient(180deg, #1d3355, #152a47);
+        border: 2px solid rgba(11, 30, 54, 0.5);
+        transform-origin: bottom center;
+        z-index: 2;
+      }
+      #n12-handle {
+        position: absolute;
+        left: 50%;
+        top: -34px;
+        width: 130px;
+        height: 46px;
+        margin-left: -65px;
+        border: 12px solid #10233c;
+        border-bottom: none;
+        border-radius: 22px 22px 0 0;
+      }
+      #n12-body {
+        position: absolute;
+        left: 0;
+        top: 148px;
+        width: 400px;
+        height: 152px;
+        border-radius: 6px 6px 26px 26px;
+        background: linear-gradient(180deg, #152a47, #0e1f38);
+        border: 2px solid rgba(11, 30, 54, 0.5);
+        box-shadow: 0 26px 60px rgba(11, 30, 54, 0.28);
+      }
+      .n12-clasp {
+        position: absolute;
+        top: -12px;
+        width: 34px;
+        height: 26px;
+        border-radius: 6px;
+        background: linear-gradient(180deg, #ffd98a, #ffc24b);
+        border: 1px solid rgba(11, 30, 54, 0.35);
+      }
+      #n12-clasp-l { left: 58px; }
+      #n12-clasp-r { right: 58px; }
+      #n12-fin {
+        position: absolute;
+        left: 50%;
+        top: 42px;
+        width: 56px;
+        height: 50px;
+        margin-left: -28px;
+      }
+      /* ---- skin cards ---- */
+      .n12-card {
+        position: absolute;
+        left: 858px;
+        top: 400px;
+        width: 205px;
+        height: 285px;
+        border-radius: 20px;
+        background: #ffffff;
+        border: 1px solid rgba(11, 30, 54, 0.1);
+        box-shadow: 0 20px 50px rgba(11, 30, 54, 0.16);
+        overflow: hidden;
+        opacity: 0;
+        visibility: hidden;
+      }
+      .n12-card img {
+        width: 100%;
+        height: 196px;
+        object-fit: cover;
+        object-position: top center;
+        display: block;
+        background: #f1efe9;
+      }
+      .n12-card b {
+        display: block;
+        padding: 10px 14px 2px;
+        font-size: 19px;
+        font-weight: 800;
+        color: #0b1e36;
+      }
+      .n12-card i {
+        display: inline-block;
+        margin: 4px 14px 0;
+        font-style: normal;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        border-radius: 999px;
+        padding: 4px 12px;
+      }
+      .n12-common {
+        background: rgba(11, 30, 54, 0.08);
+        color: rgba(11, 30, 54, 0.62);
+      }
+      .n12-epic {
+        background: rgba(255, 194, 75, 0.28);
+        color: #5a420a;
+      }
+      #n12-equip {
+        position: absolute;
+        left: 1146px;
+        top: 196px;
+        z-index: 3;
+        background: #ff6b00;
+        color: #ffffff;
+        border-radius: 999px;
+        padding: 11px 22px;
+        font-size: 19px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        box-shadow: 0 12px 28px rgba(255, 107, 0, 0.35);
+        opacity: 0;
+        visibility: hidden;
+      }
+      #n12-ring {
+        position: absolute;
+        left: 1110px;
+        top: 222px;
+        width: 217px;
+        height: 297px;
+        border: 4px solid #ff6b00;
+        border-radius: 24px;
+        opacity: 0;
+        visibility: hidden;
+      }
+      /* ---- Still Standing (friends) ---- */
+      #n12-friends {
+        position: absolute;
+        right: 150px;
+        top: 260px;
+        width: 640px;
+        opacity: 0;
+        visibility: hidden;
+      }
+      #n12-fr-label {
+        font-size: 21px;
+        font-weight: 700;
+        letter-spacing: 0.22em;
+        color: rgba(11, 30, 54, 0.6);
+        margin-bottom: 14px;
+      }
+      #n12-board {
+        background: #ffffff;
+        border: 1px solid rgba(11, 30, 54, 0.1);
+        border-radius: 22px;
+        box-shadow: 0 24px 60px rgba(11, 30, 54, 0.14);
+        padding: 14px 0;
+        overflow: hidden;
+      }
+      .n12-row {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding: 17px 30px;
+        font-size: 25px;
+        font-weight: 700;
+        color: #0b1e36;
+        opacity: 0;
+      }
+      .n12-row .n12-numwin {
+        width: 34px;
+        height: 32px;
+        overflow: hidden;
+      }
+      .n12-row .n12-numroll span {
+        display: block;
+        height: 32px;
+        line-height: 32px;
+        font-weight: 800;
+        color: rgba(11, 30, 54, 0.55);
+      }
+      .n12-row small {
+        margin-left: auto;
+        font-size: 19px;
+        font-weight: 700;
+        color: rgba(11, 30, 54, 0.45);
+      }
+      #n12-row-you {
+        background: rgba(255, 107, 0, 0.07);
+        border-left: 5px solid #ff6b00;
+        font-weight: 800;
+      }
+      #n12-crown {
+        display: inline-block;
+        width: 26px;
+        height: 26px;
+        opacity: 0;
+      }
+      #n12-crown svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      /* copy band */
+      #n12-copy {
+        position: absolute;
+        left: 140px;
+        top: 966px;
+        height: 80px;
+      }
+      .n12-line {
+        position: absolute;
+        left: 0;
+        top: 0;
+        font-size: 54px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #0b1e36;
+        white-space: nowrap;
+      }
+      .n12-line .n12-w {
+        display: inline-block;
+        opacity: 0;
+      }
+    </style>
+
+    <div class="n12-bg"></div>
+    <div class="n12-cam" id="n12-cam">
+      <div id="n12-label">THE CLOSET · YEAR-END REWARDS</div>
+
+      <div id="n12-group">
+        <div id="n12-case">
+          <div id="n12-glow"></div>
+          <div id="n12-lid">
+            <div id="n12-handle"></div>
+            <img id="n12-fin" src="assets/novus-fin.svg" alt="" />
+          </div>
+          <div id="n12-body">
+            <div class="n12-clasp" id="n12-clasp-l"></div>
+            <div class="n12-clasp" id="n12-clasp-r"></div>
+          </div>
+        </div>
+
+        <div class="n12-card" id="n12-card-1">
+          <img src="assets/founder/chef-female.webp" alt="" />
+          <b>Chef Fit</b>
+          <i class="n12-common">COMMON</i>
+        </div>
+        <div class="n12-card" id="n12-card-2">
+          <img src="assets/founder/coder-male.webp" alt="" />
+          <b>Coder Fit</b>
+          <i class="n12-common">COMMON</i>
+        </div>
+        <div class="n12-card" id="n12-card-3">
+          <img src="assets/founder/gymbro-male.webp" alt="" />
+          <b>Gym Bro Fit</b>
+          <i class="n12-common">RARE</i>
+        </div>
+        <div class="n12-card" id="n12-card-4">
+          <img src="assets/founder/female-2.webp" alt="" />
+          <b>Boardroom Fit</b>
+          <i class="n12-epic">EPIC</i>
+        </div>
+        <div id="n12-ring" data-layout-allow-occlusion></div>
+        <div id="n12-equip" data-layout-allow-occlusion>EQUIPPED</div>
+      </div>
+
+      <div id="n12-friends">
+        <div id="n12-fr-label">STILL STANDING · YOUR FRIENDS</div>
+        <div id="n12-board">
+          <div class="n12-row" id="n12-row-1">
+            <span class="n12-numwin" data-layout-ignore><span class="n12-numroll"><span>1</span></span></span>
+            Priya — Fizzle Labs
+            <span id="n12-crown"><svg viewBox="0 0 24 24"><path d="M3 8 L8 12 L12 5 L16 12 L21 8 L19 18 L5 18 Z" fill="#FFC24B"/></svg></span>
+            <small>Year 4</small>
+          </div>
+          <div class="n12-row" id="n12-row-marco">
+            <span class="n12-numwin" data-layout-ignore><span class="n12-numroll" id="n12-marconum"><span>2</span><span>3</span></span></span>
+            Marco — Marco's Empire
+            <small>Year 3</small>
+          </div>
+          <div class="n12-row" id="n12-row-you">
+            <span class="n12-numwin" data-layout-ignore><span class="n12-numroll" id="n12-younum"><span>3</span><span>2</span></span></span>
+            YOU — Marrow &amp; Co
+            <small>Year 2</small>
+          </div>
+          <div class="n12-row" id="n12-row-4">
+            <span class="n12-numwin" data-layout-ignore><span class="n12-numroll"><span>4</span></span></span>
+            Dev — Chai Chart
+            <small>Year 1</small>
+          </div>
+        </div>
+      </div>
+
+      <div id="n12-copy">
+        <h2 class="n12-line" id="n12-l1">
+          <span class="n12-w">Win</span>
+          <span class="n12-w">the</span>
+          <span class="n12-w">year.</span>
+          <span class="n12-w">Unlock</span>
+          <span class="n12-w">the</span>
+          <span class="n12-w">drip.</span>
+        </h2>
+        <h2 class="n12-line" id="n12-l2">
+          <span class="n12-w">Compete</span>
+          <span class="n12-w">with</span>
+          <span class="n12-w">your</span>
+          <span class="n12-w">friends.</span>
+        </h2>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      (function () {
+        const tl = gsap.timeline({ paused: true });
+
+        // Camera with intent: settle wide, then ease toward the action.
+        tl.fromTo(".n12-cam", { scale: 1.0, transformOrigin: "50% 46%" }, { scale: 1.035, duration: 9.2, ease: "power1.inOut" }, 0.4);
+
+        tl.fromTo("#n12-label", { y: 18, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.32, ease: "power4.out" }, 0.5);
+
+        // The chest drops in and THUDS (impact at 0.9).
+        tl.fromTo(
+          "#n12-case",
+          { y: -420, autoAlpha: 1 },
+          { y: 0, autoAlpha: 1, duration: 0.5, ease: "power3.in" },
+          0.42
+        );
+        tl.to("#n12-case", { y: -26, duration: 0.16, ease: "power2.out" }, 0.92);
+        tl.to("#n12-case", { y: 0, duration: 0.2, ease: "power2.in" }, 1.08);
+
+        // It wants to open: two shakes (clicks at 1.35 / 1.75).
+        tl.to("#n12-case", { rotation: -3, duration: 0.085, ease: "power1.inOut", transformOrigin: "bottom center" }, 1.35);
+        tl.to("#n12-case", { rotation: 2.4, duration: 0.085, ease: "power1.inOut" }, 1.44);
+        tl.to("#n12-case", { rotation: 0, duration: 0.1, ease: "power1.inOut" }, 1.53);
+        tl.to("#n12-case", { rotation: 3, duration: 0.085, ease: "power1.inOut" }, 1.75);
+        tl.to("#n12-case", { rotation: -2.4, duration: 0.085, ease: "power1.inOut" }, 1.84);
+        tl.to("#n12-case", { rotation: 0, duration: 0.1, ease: "power1.inOut" }, 1.93);
+
+        // 2.2 — it POPS open (unlock): lid swings back, gold glow bursts.
+        tl.to("#n12-lid", { rotationX: 118, duration: 0.4, ease: "back.out(1.4)", transformPerspective: 900 }, 2.2);
+        tl.fromTo("#n12-glow", { scale: 0.5, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: 0.35, ease: "power2.out" }, 2.24);
+        tl.to("#n12-glow", { autoAlpha: 0.35, duration: 1.4, ease: "power1.inOut" }, 2.7);
+
+        // 2.65-3.45 — skin cards fly OUT of the case and fan into a row.
+        const fan = [
+          ["#n12-card-1", -496, -12, 2.65],
+          ["#n12-card-2", -248, 6, 2.9],
+          ["#n12-card-3", 6, -6, 3.15],
+          ["#n12-card-4", 258, 10, 3.4],
+        ];
+        fan.forEach(function (f) {
+          tl.set(f[0], { visibility: "visible" }, f[3]);
+          tl.fromTo(
+            f[0],
+            { x: 0, y: 40, scale: 0.35, rotation: f[2] * 2, autoAlpha: 0 },
+            { x: f[1], y: -152, scale: 1, rotation: f[2] * 0.25, autoAlpha: 1, duration: 0.5, ease: "back.out(1.45)" },
+            f[3]
+          );
+        });
+
+        // 4.5 — EQUIP the epic fit (success at 4.5).
+        tl.set(["#n12-ring", "#n12-equip"], { visibility: "visible" }, 4.4);
+        tl.fromTo("#n12-ring", { scale: 0.9, autoAlpha: 0, transformOrigin: "50% 50%" }, { scale: 1, autoAlpha: 1, duration: 0.3, ease: "back.out(1.7)" }, 4.45);
+        tl.fromTo("#n12-equip", { y: 20, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.3, ease: "power4.out" }, 4.55);
+        tl.to("#n12-card-4", { y: -172, duration: 0.3, ease: "power2.out" }, 4.5);
+
+        // Copy 1.
+        tl.fromTo(
+          "#n12-l1 .n12-w",
+          { y: 46, autoAlpha: 0 },
+          { y: 0, autoAlpha: 1, duration: 0.16, ease: "power4.out", stagger: 0.08 },
+          2.75
+        );
+        tl.to("#n12-l1", { y: -30, autoAlpha: 0, duration: 0.24, ease: "power2.in" }, 5.55);
+
+        // 5.8 — nudge the chest group LEFT (3-phase), friends board slides in.
+        tl.to("#n12-group", { x: -36, duration: 0.14, ease: "power3.in" }, 5.8);
+        tl.to("#n12-group", { x: -270, duration: 0.13, ease: "none" }, 5.94);
+        tl.to("#n12-group", { x: -360, duration: 0.45, ease: "power4.out" }, 6.07);
+
+        tl.set("#n12-friends", { visibility: "visible" }, 5.9);
+        tl.fromTo("#n12-friends", { x: 300, autoAlpha: 0 }, { x: 0, autoAlpha: 1, duration: 0.5, ease: "power4.out" }, 5.95);
+        let rowAt = 6.1;
+        let rowGap = 0.09;
+        ["#n12-row-1", "#n12-row-marco", "#n12-row-you", "#n12-row-4"].forEach(function (id) {
+          tl.fromTo(id, { y: 30, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.15, ease: "power4.out" }, rowAt);
+          rowAt += rowGap;
+          rowGap *= 0.85;
+        });
+
+        // Copy 2.
+        tl.fromTo(
+          "#n12-l2 .n12-w",
+          { y: 46, autoAlpha: 0 },
+          { y: 0, autoAlpha: 1, duration: 0.16, ease: "power4.out", stagger: 0.085 },
+          6.35
+        );
+
+        // 7.3 — YOU climb to #2 (bonus): rows swap, ranks re-roll.
+        tl.to("#n12-row-you", { y: -66, duration: 0.5, ease: "power3.inOut" }, 7.3);
+        tl.to("#n12-row-marco", { y: 66, duration: 0.5, ease: "power3.inOut" }, 7.3);
+        tl.fromTo("#n12-younum", { y: 0 }, { y: -32, autoAlpha: 1, duration: 0.35, ease: "expo.out" }, 7.42);
+        tl.fromTo("#n12-marconum", { y: 0 }, { y: -32, autoAlpha: 1, duration: 0.35, ease: "expo.out" }, 7.42);
+
+        // 8.35 — the leader's crown glints (sparkle).
+        tl.fromTo("#n12-crown", { scale: 0.4, rotation: -18, autoAlpha: 0, transformOrigin: "50% 80%" }, { scale: 1, rotation: 0, autoAlpha: 1, duration: 0.35, ease: "back.out(1.6)" }, 8.35);
+
+        window.__timelines["sc12-closet"] = tl;
+      })();
+    </script>
+  </div>
+</template>

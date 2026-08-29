@@ -1,0 +1,351 @@
+<template>
+  <div
+    data-composition-id="sc01-search"
+    data-width="1080"
+    data-height="1920"
+    data-duration="8"
+    style="position: absolute; inset: 0; overflow: hidden; font-family: 'Urbanist', system-ui, sans-serif;"
+  >
+    <style>
+      @font-face {
+        font-family: "Urbanist";
+        font-style: normal;
+        font-weight: 100 900;
+        src: url("assets/fonts/urbanist-latin.woff2") format("woff2");
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+      @font-face {
+        font-family: "Urbanist";
+        font-style: normal;
+        font-weight: 100 900;
+        src: url("assets/fonts/urbanist-latin-ext.woff2") format("woff2");
+        unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+      }
+      .n01-bg {
+        position: absolute;
+        inset: 0;
+        background: #ffffff;
+      }
+      .n01-cam {
+        position: absolute;
+        inset: 0;
+      }
+      #n01-bar {
+        position: absolute;
+        left: 90px;
+        top: 700px;
+        width: 900px;
+        height: 92px;
+        border-radius: 46px;
+        border: 1.5px solid #dfe1e5;
+        background: #ffffff;
+        box-shadow: 0 10px 34px rgba(32, 33, 36, 0.1);
+        display: flex;
+        align-items: center;
+        padding: 0 34px;
+        gap: 20px;
+      }
+      #n01-mag {
+        width: 30px;
+        height: 30px;
+        flex: none;
+      }
+      .n01-q {
+        position: absolute;
+        left: 84px;
+        top: 0;
+        height: 92px;
+        display: flex;
+        align-items: center;
+        font-size: 31px;
+        font-weight: 500;
+        color: #202124;
+        white-space: nowrap;
+      }
+      .n01-q span {
+        opacity: 0;
+      }
+      #n01-caret {
+        position: absolute;
+        left: 84px;
+        top: 26px;
+        width: 2.5px;
+        height: 40px;
+        background: #202124;
+        opacity: 0;
+      }
+      #n01-sugg {
+        position: absolute;
+        left: 90px;
+        top: 812px;
+        width: 900px;
+        border-radius: 24px;
+        border: 1.5px solid #eceef1;
+        background: #ffffff;
+        box-shadow: 0 16px 40px rgba(32, 33, 36, 0.08);
+        padding: 16px 0;
+        opacity: 0;
+      }
+      .n01-srow {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding: 13px 34px;
+        font-size: 24px;
+        font-weight: 500;
+        color: #5f6368;
+        white-space: nowrap;
+      }
+      .n01-srow i {
+        width: 18px;
+        height: 18px;
+        border: 2px solid #bdc1c6;
+        border-radius: 50%;
+        flex: none;
+      }
+      #n01-sugg {
+        height: 150px;
+      }
+      .n01-set {
+        position: absolute;
+        inset: 16px 0;
+        opacity: 0;
+      }
+      /* Results page */
+      #n01-results {
+        position: absolute;
+        left: 90px;
+        top: 560px;
+        width: 900px;
+        opacity: 0;
+      }
+      #n01-r1 {
+        padding: 26px 30px;
+        border-radius: 20px;
+      }
+      #n01-r1 .n01-url {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 22px;
+        font-weight: 500;
+        color: #1f7a4d;
+      }
+      #n01-r1 .n01-url b {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: #f1f3f4;
+        display: grid;
+        place-items: center;
+        flex: none;
+      }
+      #n01-r1 .n01-url b img {
+        width: 15px;
+        height: 14px;
+        display: block;
+      }
+      #n01-r1 h3 {
+        margin-top: 8px;
+        font-size: 37px;
+        font-weight: 600;
+        color: #1a0dab;
+        letter-spacing: 0;
+      }
+      #n01-r1 p {
+        margin-top: 8px;
+        font-size: 25px;
+        font-weight: 500;
+        color: #4d5156;
+      }
+      .n01-skel {
+        margin-top: 30px;
+        padding: 0 30px;
+      }
+      .n01-skel div {
+        height: 20px;
+        border-radius: 10px;
+        background: #eceef1;
+        margin-bottom: 16px;
+      }
+      #n01-cursor {
+        position: absolute;
+        left: 46%;
+        top: 112%;
+        width: 132px;
+        height: 132px;
+        z-index: 20;
+        filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.28));
+        pointer-events: none;
+        will-change: transform;
+        opacity: 0;
+      }
+    </style>
+
+    <div class="n01-bg"></div>
+    <div class="n01-cam" id="n01-cam">
+      <div id="n01-bar">
+        <svg id="n01-mag" viewBox="0 0 24 24" fill="none">
+          <circle cx="10.5" cy="10.5" r="6.6" stroke="#9aa0a6" stroke-width="2.4" />
+          <path d="M15.6 15.6 L21 21" stroke="#9aa0a6" stroke-width="2.6" stroke-linecap="round" />
+        </svg>
+        <div class="n01-q" id="n01-q1" data-text="how to learn business skills as a teen"></div>
+        <div class="n01-q" id="n01-q2" data-text="how to practice pitching"></div>
+        <div class="n01-q" id="n01-q3" data-text="how to prep for DECA or FBLA"></div>
+        <div class="n01-q" id="n01-q4" data-text="life sim for business"></div>
+        <div class="n01-q" id="n01-q5" data-text="how do i become rich"></div>
+        <div class="n01-q" id="n01-q6" data-text="Novus Pitch"></div>
+        <div id="n01-caret"></div>
+      </div>
+
+      <div id="n01-sugg">
+        <div class="n01-set" id="n01-s1" style="opacity: 1;">
+          <div class="n01-srow"><i></i>business skills for teenagers free</div>
+          <div class="n01-srow"><i></i>business courses online — 6 weeks</div>
+        </div>
+        <div class="n01-set" id="n01-s2">
+          <div class="n01-srow"><i></i>practice pitching alone in your room</div>
+          <div class="n01-srow"><i></i>pitch practice with feedback</div>
+        </div>
+        <div class="n01-set" id="n01-s3">
+          <div class="n01-srow"><i></i>DECA roleplay practice scenarios</div>
+          <div class="n01-srow"><i></i>FBLA competitive events prep</div>
+        </div>
+        <div class="n01-set" id="n01-s4">
+          <div class="n01-srow"><i></i>life simulator but for a company</div>
+          <div class="n01-srow"><i></i>tycoon games that teach real business</div>
+        </div>
+        <div class="n01-set" id="n01-s5">
+          <div class="n01-srow"><i></i>step 1: stop watching videos about it</div>
+          <div class="n01-srow"><i></i>how do i become rich at 15</div>
+        </div>
+        <div class="n01-set" id="n01-s6">
+          <div class="n01-srow"><i></i>novus pitch — the business life simulator</div>
+          <div class="n01-srow"><i></i>novus pitch the founder run</div>
+        </div>
+      </div>
+
+      <div id="n01-results">
+        <div id="n01-r1">
+          <div class="n01-url"><b><img src="assets/novus-fin.svg" alt="" /></b>novuspitch.com</div>
+          <h3>Novus Pitch — The business life simulator</h3>
+          <p>Run a company. Pitch on camera. Survive the sharks. Every year is earned.</p>
+        </div>
+        <div class="n01-skel">
+          <div style="width: 72%"></div>
+          <div style="width: 58%"></div>
+          <div style="width: 65%; opacity: 0.6"></div>
+          <div style="width: 44%; opacity: 0.6"></div>
+        </div>
+      </div>
+    </div>
+
+    <svg id="n01-cursor" viewBox="0 0 24 24">
+      <path
+        d="M5 2 L5 19 L9.2 15.6 L12 21.4 L14.8 20 L12.1 14.4 L17.5 14 Z"
+        fill="#ffffff"
+        stroke="#1c1c1c"
+        stroke-width="1.3"
+        stroke-linejoin="round"
+      />
+    </svg>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      (function () {
+        // Build char spans for the typewriter (synchronous, deterministic).
+        document.querySelectorAll(".n01-q").forEach(function (q) {
+          if (q.childNodes.length) return;
+          q.getAttribute("data-text").split("").forEach(function (ch) {
+            const s = document.createElement("span");
+            s.innerHTML = ch === " " ? "&nbsp;" : ch;
+            q.appendChild(s);
+          });
+        });
+
+        const tl = gsap.timeline({ paused: true });
+        const CAM = "#n01-cam";
+        gsap.set(CAM, { transformOrigin: "50% 39%" });
+
+        // Cursor enters the room from below, taps the bar (no target reaction), drifts aside.
+        tl.fromTo(
+          "#n01-cursor",
+          { x: 0, y: 0, autoAlpha: 1 },
+          { y: -1415, autoAlpha: 1, duration: 0.62, ease: "power3.out", immediateRender: false },
+          0.05
+        );
+        tl.to("#n01-cursor", { scale: 0.84, duration: 0.09, ease: "power2.in", transformOrigin: "21% 14%" }, 0.42);
+        tl.to("#n01-cursor", { scale: 1, duration: 0.2, ease: "power2.out", transformOrigin: "21% 14%" }, 0.51);
+        tl.to("#n01-cursor", { x: 280, y: -1111, duration: 0.8, ease: "power2.out" }, 0.8);
+
+        // Caret + suggestions live.
+        tl.fromTo("#n01-caret", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.05 }, 0.45);
+        tl.fromTo("#n01-sugg", { y: 14, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.4, ease: "power3.out" }, 0.62);
+
+        // Typewriter helper: reveal chars, walk the caret.
+        const BAR_X = 84;
+        function typeRun(sel, t0, span) {
+          const chars = document.querySelectorAll(sel + " span");
+          const per = span / chars.length;
+          tl.set(sel, { autoAlpha: 1 }, t0 - 0.02);
+          chars.forEach(function (c, i) {
+            tl.set(c, { autoAlpha: 1 }, t0 + i * per);
+          });
+          // measure-free caret ride: shift caret with an approximate advance per char
+          tl.to("#n01-caret", { x: chars.length * 14.3, duration: span, ease: "none" }, t0);
+        }
+
+        // Zoom match-cut between queries: push in, swap at peak blur, land closer.
+        const bases = [1.0, 1.07, 1.14, 1.21, 1.28, 1.34];
+        function matchCut(k, tSubmit) {
+          const peak = bases[k] + 0.42;
+          tl.to(CAM, { scale: peak, filter: "blur(8px)", duration: 0.17, ease: "power3.in" }, tSubmit + 0.01);
+          tl.set("#n01-q" + (k + 1), { autoAlpha: 0 }, tSubmit + 0.18);
+          tl.set("#n01-caret", { x: 0 }, tSubmit + 0.18);
+          tl.set("#n01-s" + (k + 1), { autoAlpha: 0 }, tSubmit + 0.18);
+          tl.set("#n01-s" + (k + 2), { autoAlpha: 1 }, tSubmit + 0.18);
+          tl.to(CAM, { scale: bases[k + 1], filter: "blur(0px)", duration: 0.24, ease: "power3.out" }, tSubmit + 0.18);
+        }
+
+        // The six searches (typing/submit instants match the placed SFX).
+        gsap.set(["#n01-q2", "#n01-q3", "#n01-q4", "#n01-q5", "#n01-q6"], { autoAlpha: 0 });
+        typeRun("#n01-q1", 0.5, 1.2);
+        matchCut(0, 1.78);
+        typeRun("#n01-q2", 2.05, 0.85);
+        matchCut(1, 2.98);
+        typeRun("#n01-q3", 3.25, 0.75);
+        matchCut(2, 4.08);
+        typeRun("#n01-q4", 4.35, 0.65);
+        matchCut(3, 5.08);
+        typeRun("#n01-q5", 5.3, 0.65);
+        matchCut(4, 6.05);
+        typeRun("#n01-q6", 6.3, 0.8);
+
+        // Final submit → the results page.
+        tl.to(CAM, { scale: 1.42, filter: "blur(8px)", duration: 0.15, ease: "power3.in" }, 7.13);
+        tl.to(CAM, { scale: 1.36, filter: "blur(0px)", duration: 0.2, ease: "power3.out" }, 7.28);
+        tl.to("#n01-bar", { y: -180, duration: 0.34, ease: "power3.inOut" }, 7.24);
+        tl.set("#n01-sugg", { autoAlpha: 0 }, 7.26);
+        tl.set("#n01-caret", { autoAlpha: 0 }, 7.26);
+        tl.fromTo(
+          "#n01-results",
+          { y: 46, autoAlpha: 0 },
+          { y: 0, autoAlpha: 1, duration: 0.34, ease: "power4.out" },
+          7.3
+        );
+
+        // Cursor returns, clicks the first result — the click ignites the zoom-through.
+        tl.to("#n01-cursor", { x: 54, y: -1560, duration: 0.3, ease: "power2.out" }, 7.32);
+        tl.to("#n01-cursor", { scale: 0.84, duration: 0.08, ease: "power2.in", transformOrigin: "21% 14%" }, 7.62);
+        tl.to("#n01-cursor", { scale: 1, duration: 0.16, ease: "power2.out", transformOrigin: "21% 14%" }, 7.7);
+        tl.to("#n01-r1", { backgroundColor: "rgba(26, 13, 171, 0.06)", duration: 0.1, ease: "power1.in" }, 7.62);
+
+        // Internal camera starts the push INTO the result — the wrapper finishes it.
+        gsap.set("#n01-results", { transformOrigin: "40% 30%" });
+        tl.to(CAM, { scale: 1.58, duration: 0.36, ease: "power2.in" }, 7.64);
+
+        window.__timelines["sc01-search"] = tl;
+      })();
+    </script>
+  </div>
+</template>

@@ -45,9 +45,8 @@
         width: 1920px;
         height: 1080px;
         overflow: hidden;
-        background: #f7f5f0; /* opaque stage ground — seam dips must never flash white-of-nothing */
+        background: #f7f5f0; /* opaque stage ground — seam dips must never flash */
       }
-      /* Tweened stage ground under every scene (light world default, navy for the tank act). */
       #stage {
         position: absolute;
         inset: 0;
@@ -61,142 +60,156 @@
     </style>
   </head>
   <body>
-    <div data-hf-id="hf-l9si" id="root" data-composition-id="main" data-start="0" data-duration="84" data-width="1920" data-height="1080" data-fps="30">
+    <div data-hf-id="hf-51vn" id="root" data-composition-id="main" data-start="0" data-duration="96" data-width="1920" data-height="1080" data-fps="30">
       <div data-hf-id="hf-1rt5" id="stage"></div>
 
-      <!-- 11 scenes, adjacent windows on one track; the master timeline carries every seam. -->
+      <!-- v3: 12 scenes, adjacent windows; boundaries 8/14/22/34/44/48/60/66/76/82/88. -->
       <div data-hf-id="hf-9i5x" id="el-sc01" data-composition-id="sc01-search" data-composition-src="compositions/sc01-search.html" data-start="0" data-duration="8" data-track-index="1" data-width="1920" data-height="1080"></div>
       <div data-hf-id="hf-vchk" id="el-sc02" data-composition-id="sc02-reveal" data-composition-src="compositions/sc02-reveal.html" data-start="8" data-duration="6" data-track-index="1" data-width="1920" data-height="1080"></div>
       <div data-hf-id="hf-4xty" id="el-sc03" data-composition-id="sc03-devices" data-composition-src="compositions/sc03-devices.html" data-start="14" data-duration="8" data-track-index="1" data-width="1920" data-height="1080"></div>
-      <div data-hf-id="hf-522l" id="el-sc04" data-composition-id="sc04-loop" data-composition-src="compositions/sc04-loop.html" data-start="22" data-duration="10" data-track-index="1" data-width="1920" data-height="1080"></div>
-      <div data-hf-id="hf-09cg" id="el-sc05" data-composition-id="sc05-lifesim" data-composition-src="compositions/sc05-lifesim.html" data-start="32" data-duration="8" data-track-index="1" data-width="1920" data-height="1080"></div>
-      <div data-hf-id="hf-8ebc" id="el-sc06" data-composition-id="sc06-hook" data-composition-src="compositions/sc06-hook.html" data-start="40" data-duration="4" data-track-index="1" data-width="1920" data-height="1080"></div>
-      <div data-hf-id="hf-mrm0" id="el-sc07" data-composition-id="sc07-tank" data-composition-src="compositions/sc07-tank.html" data-start="44" data-duration="12" data-track-index="1" data-width="1920" data-height="1080"></div>
-      <div data-hf-id="hf-teol" id="el-sc08" data-composition-id="sc08-levelup" data-composition-src="compositions/sc08-levelup.html" data-start="56" data-duration="8" data-track-index="1" data-width="1920" data-height="1080"></div>
-      <div data-hf-id="hf-lsv3" id="el-sc09" data-composition-id="sc09-montage" data-composition-src="compositions/sc09-montage.html" data-start="64" data-duration="6" data-track-index="1" data-width="1920" data-height="1080"></div>
-      <div data-hf-id="hf-9adw" id="el-sc10" data-composition-id="sc10-build" data-composition-src="compositions/sc10-build.html" data-start="70" data-duration="6" data-track-index="1" data-width="1920" data-height="1080"></div>
-      <div data-hf-id="hf-0g73" id="el-sc11" data-composition-id="sc11-cta" data-composition-src="compositions/sc11-cta.html" data-start="76" data-duration="8" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div data-hf-id="hf-v6s7" id="el-sc04" data-composition-id="sc04-loop" data-composition-src="compositions/sc04-loop.html" data-start="22" data-duration="12" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div data-hf-id="hf-wegx" id="el-sc05" data-composition-id="sc05-lifesim" data-composition-src="compositions/sc05-lifesim.html" data-start="34" data-duration="10" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div data-hf-id="hf-ibvo" id="el-sc06" data-composition-id="sc06-hook" data-composition-src="compositions/sc06-hook.html" data-start="44" data-duration="4" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div data-hf-id="hf-f7ik" id="el-sc07" data-composition-id="sc07-tank" data-composition-src="compositions/sc07-tank.html" data-start="48" data-duration="12" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div data-hf-id="hf-638s" id="el-sc08" data-composition-id="sc08-levelup" data-composition-src="compositions/sc08-levelup.html" data-start="60" data-duration="6" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div data-hf-id="hf-dyk0" id="el-sc12" data-composition-id="sc12-closet" data-composition-src="compositions/sc12-closet.html" data-start="66" data-duration="10" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div data-hf-id="hf-zc9y" id="el-sc09" data-composition-id="sc09-montage" data-composition-src="compositions/sc09-montage.html" data-start="76" data-duration="6" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div data-hf-id="hf-tfbj" id="el-sc10" data-composition-id="sc10-build" data-composition-src="compositions/sc10-build.html" data-start="82" data-duration="6" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div data-hf-id="hf-lnrc" id="el-sc11" data-composition-id="sc11-cta" data-composition-src="compositions/sc11-cta.html" data-start="88" data-duration="8" data-track-index="1" data-width="1920" data-height="1080"></div>
 
-      <!-- ============ AUDIO ============ -->
-      <!-- Music bed (synthesized, sections keyed to the storyboard) -->
-      <audio data-hf-id="hf-9y6p" id="au-music" src="assets/music.mp3" data-start="0" data-duration="84" data-track-index="20" data-volume="0.9"></audio>
+      <!-- ============ AUDIO (v3 — varied, no back-to-back repeats) ============ -->
+      <audio data-hf-id="hf-8bz0" id="au-music" src="assets/music.mp3" data-start="0" data-duration="96" data-track-index="20" data-volume="0.9"></audio>
 
-      <!-- Seam whooshes -->
+      <!-- Seam whooshes (alternating variants) -->
       <audio data-hf-id="hf-ss85" id="au-wh-s2" src="assets/sfx/whoosh-cinematic.mp3" data-start="7.55" data-duration="2.0" data-track-index="21" data-volume="0.55"></audio>
       <audio data-hf-id="hf-p34l" id="au-wh-s3" src="assets/sfx/whoosh.mp3" data-start="13.7" data-duration="0.57" data-track-index="21" data-volume="0.5"></audio>
-      <audio data-hf-id="hf-jnex" id="au-wh-s4" src="assets/sfx/whoosh.mp3" data-start="21.7" data-duration="0.57" data-track-index="21" data-volume="0.5"></audio>
-      <audio data-hf-id="hf-ci23" id="au-wh-s5" src="assets/sfx/whoosh.mp3" data-start="31.7" data-duration="0.57" data-track-index="21" data-volume="0.5"></audio>
-      <audio data-hf-id="hf-3np8" id="au-wh-s6" src="assets/sfx/whoosh-cinematic.mp3" data-start="39.55" data-duration="2.0" data-track-index="21" data-volume="0.6"></audio>
-      <audio data-hf-id="hf-vxoi" id="au-wh-s7" src="assets/sfx/whoosh.mp3" data-start="43.7" data-duration="0.57" data-track-index="21" data-volume="0.5"></audio>
-      <audio data-hf-id="hf-z7ng" id="au-wh-s8" src="assets/sfx/whoosh.mp3" data-start="55.7" data-duration="0.57" data-track-index="21" data-volume="0.5"></audio>
-      <audio data-hf-id="hf-30aq" id="au-wh-s9" src="assets/sfx/whoosh.mp3" data-start="63.7" data-duration="0.57" data-track-index="21" data-volume="0.5"></audio>
-      <audio data-hf-id="hf-rg8q" id="au-wh-s10" src="assets/sfx/whoosh.mp3" data-start="69.7" data-duration="0.57" data-track-index="21" data-volume="0.5"></audio>
-      <audio data-hf-id="hf-vycy" id="au-wh-s11" src="assets/sfx/whoosh-cinematic.mp3" data-start="75.55" data-duration="2.0" data-track-index="21" data-volume="0.6"></audio>
+      <audio data-hf-id="hf-8c5g" id="au-wh-s4" src="assets/sfx/whoosh-hi.mp3" data-start="21.7" data-duration="0.5" data-track-index="21" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-x42p" id="au-wh-s5" src="assets/sfx/whoosh.mp3" data-start="33.7" data-duration="0.57" data-track-index="21" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-rpjx" id="au-wh-s6" src="assets/sfx/whoosh-cinematic.mp3" data-start="43.55" data-duration="2.0" data-track-index="21" data-volume="0.6"></audio>
+      <audio data-hf-id="hf-485g" id="au-wh-s7" src="assets/sfx/whoosh-lo.mp3" data-start="47.7" data-duration="0.68" data-track-index="21" data-volume="0.52"></audio>
+      <audio data-hf-id="hf-epm8" id="au-wh-s8" src="assets/sfx/whoosh.mp3" data-start="59.7" data-duration="0.57" data-track-index="21" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-msyc" id="au-wh-s12" src="assets/sfx/whoosh-hi.mp3" data-start="65.7" data-duration="0.5" data-track-index="21" data-volume="0.48"></audio>
+      <audio data-hf-id="hf-zg1z" id="au-wh-s9" src="assets/sfx/whoosh.mp3" data-start="75.7" data-duration="0.57" data-track-index="21" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-bov8" id="au-wh-s10" src="assets/sfx/whoosh-lo.mp3" data-start="81.7" data-duration="0.68" data-track-index="21" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-ny0h" id="au-wh-s11" src="assets/sfx/whoosh-cinematic.mp3" data-start="87.55" data-duration="2.0" data-track-index="21" data-volume="0.6"></audio>
 
       <!-- Impacts on drops -->
       <audio data-hf-id="hf-hbde" id="au-imp-8" src="assets/sfx/impact-bass-1.mp3" data-start="8" data-duration="2.1" data-track-index="22" data-volume="0.75"></audio>
-      <audio data-hf-id="hf-2970" id="au-imp-40" src="assets/sfx/impact-bass-2.mp3" data-start="40" data-duration="2.5" data-track-index="22" data-volume="0.7"></audio>
-      <audio data-hf-id="hf-90gk" id="au-imp-44" src="assets/sfx/impact-bass-1.mp3" data-start="44" data-duration="2.1" data-track-index="22" data-volume="0.8"></audio>
-      <audio data-hf-id="hf-jutm" id="au-imp-56" src="assets/sfx/impact-bass-2.mp3" data-start="56" data-duration="2.5" data-track-index="22" data-volume="0.7"></audio>
-      <audio data-hf-id="hf-oefy" id="au-imp-76" src="assets/sfx/impact-bass-1.mp3" data-start="76" data-duration="2.1" data-track-index="22" data-volume="0.8"></audio>
-      <audio data-hf-id="hf-lccv" id="au-imp-80" src="assets/sfx/impact-bass-2.mp3" data-start="80" data-duration="2.5" data-track-index="22" data-volume="0.8"></audio>
+      <audio data-hf-id="hf-0gzo" id="au-imp-44" src="assets/sfx/impact-bass-2.mp3" data-start="44" data-duration="2.5" data-track-index="22" data-volume="0.7"></audio>
+      <audio data-hf-id="hf-pvec" id="au-imp-48" src="assets/sfx/impact-bass-1.mp3" data-start="48" data-duration="2.1" data-track-index="22" data-volume="0.8"></audio>
+      <audio data-hf-id="hf-ijzs" id="au-imp-60" src="assets/sfx/impact-bass-2.mp3" data-start="60" data-duration="2.5" data-track-index="22" data-volume="0.7"></audio>
+      <audio data-hf-id="hf-gj84" id="au-imp-88" src="assets/sfx/impact-bass-1.mp3" data-start="88" data-duration="2.1" data-track-index="22" data-volume="0.8"></audio>
+      <audio data-hf-id="hf-6l79" id="au-imp-92" src="assets/sfx/impact-bass-2.mp3" data-start="92" data-duration="2.5" data-track-index="22" data-volume="0.8"></audio>
 
-      <!-- Search-hook typing + submits (sc01) -->
+      <!-- sc01 search: alternating typing textures + clicks -->
       <audio data-hf-id="hf-utq3" id="au-ty-1" src="assets/sfx/typing.mp3" data-start="0.5" data-duration="1.2" data-track-index="23" data-volume="0.6"></audio>
-      <audio data-hf-id="hf-922u" id="au-ty-2" src="assets/sfx/typing.mp3" data-start="2.05" data-duration="0.85" data-track-index="23" data-volume="0.6"></audio>
+      <audio data-hf-id="hf-il50" id="au-ty-2" src="assets/sfx/typing-hi.mp3" data-start="2.05" data-duration="0.85" data-track-index="23" data-volume="0.55"></audio>
       <audio data-hf-id="hf-c1wz" id="au-ty-3" src="assets/sfx/typing.mp3" data-start="3.25" data-duration="0.75" data-track-index="23" data-volume="0.6"></audio>
-      <audio data-hf-id="hf-093z" id="au-ty-4" src="assets/sfx/typing.mp3" data-start="4.35" data-duration="0.65" data-track-index="23" data-volume="0.6"></audio>
+      <audio data-hf-id="hf-txrx" id="au-ty-4" src="assets/sfx/typing-hi.mp3" data-start="4.35" data-duration="0.65" data-track-index="23" data-volume="0.55"></audio>
       <audio data-hf-id="hf-79q6" id="au-ty-5" src="assets/sfx/typing.mp3" data-start="5.3" data-duration="0.65" data-track-index="23" data-volume="0.6"></audio>
-      <audio data-hf-id="hf-opw0" id="au-ty-6" src="assets/sfx/typing.mp3" data-start="6.3" data-duration="0.8" data-track-index="23" data-volume="0.65"></audio>
+      <audio data-hf-id="hf-sp6h" id="au-ty-6" src="assets/sfx/typing-hi.mp3" data-start="6.3" data-duration="0.8" data-track-index="23" data-volume="0.6"></audio>
       <audio data-hf-id="hf-kped" id="au-cl-1" src="assets/sfx/click.mp3" data-start="1.78" data-duration="0.18" data-track-index="24" data-volume="0.7"></audio>
-      <audio data-hf-id="hf-94nf" id="au-cl-2" src="assets/sfx/click.mp3" data-start="2.98" data-duration="0.18" data-track-index="24" data-volume="0.7"></audio>
+      <audio data-hf-id="hf-ovr8" id="au-cl-2" src="assets/sfx/click-soft.mp3" data-start="2.98" data-duration="0.36" data-track-index="24" data-volume="0.7"></audio>
       <audio data-hf-id="hf-zuit" id="au-cl-3" src="assets/sfx/click.mp3" data-start="4.08" data-duration="0.18" data-track-index="24" data-volume="0.7"></audio>
-      <audio data-hf-id="hf-vbtn" id="au-cl-4" src="assets/sfx/click.mp3" data-start="5.08" data-duration="0.18" data-track-index="24" data-volume="0.7"></audio>
-      <audio data-hf-id="hf-terw" id="au-cl-5" src="assets/sfx/click.mp3" data-start="6.05" data-duration="0.18" data-track-index="24" data-volume="0.7"></audio>
+      <audio data-hf-id="hf-sld0" id="au-cl-4" src="assets/sfx/click-soft.mp3" data-start="5.08" data-duration="0.36" data-track-index="24" data-volume="0.7"></audio>
+      <audio data-hf-id="hf-ix1b" id="au-cl-5" src="assets/sfx/click-hi.mp3" data-start="6.05" data-duration="0.15" data-track-index="24" data-volume="0.7"></audio>
       <audio data-hf-id="hf-zpou" id="au-cl-6" src="assets/sfx/click.mp3" data-start="7.12" data-duration="0.18" data-track-index="24" data-volume="0.7"></audio>
       <audio data-hf-id="hf-z2c0" id="au-res-pop" src="assets/sfx/pop.mp3" data-start="7.28" data-duration="0.5" data-track-index="25" data-volume="0.55"></audio>
       <audio data-hf-id="hf-w4lp" id="au-cl-go" src="assets/sfx/click.mp3" data-start="7.62" data-duration="0.18" data-track-index="24" data-volume="0.85"></audio>
 
       <!-- sc02 reveal -->
-      <audio data-hf-id="hf-eudt" id="au-fin-pop" src="assets/sfx/pop.mp3" data-start="8.75" data-duration="0.6" data-track-index="25" data-volume="0.6"></audio>
+      <audio data-hf-id="hf-5qwj" id="au-fin-pop" src="assets/sfx/pop-hi.mp3" data-start="8.75" data-duration="0.55" data-track-index="25" data-volume="0.6"></audio>
       <audio data-hf-id="hf-u314" id="au-splash" src="assets/sfx/splash.mp3" data-start="10.15" data-duration="1.6" data-track-index="25" data-volume="0.5"></audio>
 
       <!-- sc03 devices -->
       <audio data-hf-id="hf-s93o" id="au-lap-open" src="assets/sfx/whoosh-short.mp3" data-start="15.1" data-duration="0.57" data-track-index="25" data-volume="0.5"></audio>
       <audio data-hf-id="hf-f8tg" id="au-ph-in" src="assets/sfx/pop.mp3" data-start="17.35" data-duration="0.6" data-track-index="25" data-volume="0.55"></audio>
-
-      <!-- sc03 in-screen ADVANCE MONTH click -->
       <audio data-hf-id="hf-9nfg" id="au-adv3" src="assets/sfx/click.mp3" data-start="19.6" data-duration="0.18" data-track-index="24" data-volume="0.7"></audio>
-      <audio data-hf-id="hf-4cok" id="au-adv3-tick" src="assets/sfx/pop.mp3" data-start="19.78" data-duration="0.5" data-track-index="26" data-volume="0.45"></audio>
+      <audio data-hf-id="hf-2ewt" id="au-adv3-tick" src="assets/sfx/activity.mp3" data-start="19.78" data-duration="1.0" data-track-index="26" data-volume="0.4"></audio>
 
-      <!-- sc04 gameplay loop -->
-      <audio data-hf-id="hf-o6v8" id="au-founder" src="assets/sfx/success.mp3" data-start="23.1" data-duration="0.74" data-track-index="25" data-volume="0.6"></audio>
-      <audio data-hf-id="hf-qz2i" id="au-industry" src="assets/sfx/tab.mp3" data-start="24.7" data-duration="1.2" data-track-index="25" data-volume="0.55"></audio>
-      <audio data-hf-id="hf-i6kj" id="au-event" src="assets/sfx/notification.mp3" data-start="26.2" data-duration="1.6" data-track-index="25" data-volume="0.6"></audio>
-      <audio data-hf-id="hf-dn6c" id="au-decide" src="assets/sfx/click.mp3" data-start="28.05" data-duration="0.18" data-track-index="24" data-volume="0.8"></audio>
-      <audio data-hf-id="hf-lrnt" id="au-money-1" src="assets/sfx/money.mp3" data-start="28.55" data-duration="1.7" data-track-index="25" data-volume="0.6"></audio>
-      <audio data-hf-id="hf-p9l4" id="au-xp-1" src="assets/sfx/sparkle.mp3" data-start="30.5" data-duration="1.3" data-track-index="25" data-volume="0.5"></audio>
+      <!-- sc04 gameplay loop (starts 22; internals +2s: title beat first) -->
+      <audio data-hf-id="hf-8u16" id="au-title4" src="assets/sfx/chime-lo.mp3" data-start="22.45" data-duration="1.4" data-track-index="25" data-volume="0.45"></audio>
+      <audio data-hf-id="hf-0lou" id="au-founder" src="assets/sfx/success.mp3" data-start="25.1" data-duration="0.74" data-track-index="25" data-volume="0.6"></audio>
+      <audio data-hf-id="hf-yh0c" id="au-industry" src="assets/sfx/tab.mp3" data-start="26.7" data-duration="1.2" data-track-index="25" data-volume="0.55"></audio>
+      <audio data-hf-id="hf-c71x" id="au-event" src="assets/sfx/notification.mp3" data-start="28.2" data-duration="1.6" data-track-index="25" data-volume="0.6"></audio>
+      <audio data-hf-id="hf-m02x" id="au-decide" src="assets/sfx/click.mp3" data-start="30.05" data-duration="0.18" data-track-index="24" data-volume="0.8"></audio>
+      <audio data-hf-id="hf-j602" id="au-money-1" src="assets/sfx/money.mp3" data-start="30.55" data-duration="1.7" data-track-index="25" data-volume="0.6"></audio>
+      <audio data-hf-id="hf-1rmy" id="au-xp-1" src="assets/sfx/sparkle.mp3" data-start="32.5" data-duration="1.3" data-track-index="25" data-volume="0.5"></audio>
 
-      <!-- sc05 life-sim -->
-      <audio data-hf-id="hf-6sh2" id="au-unlock-ph" src="assets/sfx/unlock.mp3" data-start="32.7" data-duration="1.6" data-track-index="25" data-volume="0.5"></audio>
-      <audio data-hf-id="hf-jb3g" id="au-advance" src="assets/sfx/activity.mp3" data-start="34.75" data-duration="1.03" data-track-index="25" data-volume="0.65"></audio>
-      <audio data-hf-id="hf-xldo" id="au-books" src="assets/sfx/money.mp3" data-start="36.4" data-duration="1.7" data-track-index="25" data-volume="0.55"></audio>
-      <audio data-hf-id="hf-jnoe" id="au-year2" src="assets/sfx/chime.mp3" data-start="38.5" data-duration="1.4" data-track-index="25" data-volume="0.5"></audio>
+      <!-- sc05 life-sim (starts 34; internals +2s) -->
+      <audio data-hf-id="hf-uq96" id="au-unlock-ph" src="assets/sfx/unlock.mp3" data-start="36.7" data-duration="1.6" data-track-index="25" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-itrc" id="au-advance" src="assets/sfx/activity.mp3" data-start="38.75" data-duration="1.03" data-track-index="25" data-volume="0.65"></audio>
+      <audio data-hf-id="hf-ed05" id="au-books" src="assets/sfx/money-lo.mp3" data-start="40.4" data-duration="1.9" data-track-index="25" data-volume="0.55"></audio>
+      <audio data-hf-id="hf-xrtf" id="au-year2" src="assets/sfx/chime.mp3" data-start="42.5" data-duration="1.4" data-track-index="25" data-volume="0.5"></audio>
 
       <!-- sc06 → sc07: riser into the tank -->
-      <audio data-hf-id="hf-yw66" id="au-riser-tank" src="assets/sfx/riser.mp3" data-start="41.9" data-duration="2.1" data-media-start="7.6" data-track-index="25" data-volume="0.5"></audio>
-      <audio data-hf-id="hf-waav" id="au-sting" src="assets/sfx/tank-sting.mp3" data-start="44.05" data-duration="4.0" data-track-index="26" data-volume="0.7"></audio>
-      <audio data-hf-id="hf-lono" id="au-ambient" src="assets/sfx/tank-ambient.mp3" data-start="44.2" data-duration="11.6" data-track-index="27" data-volume="0.22"></audio>
+      <audio data-hf-id="hf-ssre" id="au-riser-tank" src="assets/sfx/riser.mp3" data-start="45.9" data-duration="2.1" data-media-start="7.6" data-track-index="25" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-kngm" id="au-sting" src="assets/sfx/tank-sting.mp3" data-start="48.05" data-duration="4.0" data-track-index="27" data-volume="0.7"></audio>
+      <audio data-hf-id="hf-q8dt" id="au-ambient" src="assets/sfx/tank-ambient.mp3" data-start="48.2" data-duration="11.6" data-track-index="28" data-volume="0.22"></audio>
 
-      <!-- sc07 pitch beats -->
-      <audio data-hf-id="hf-kbwf" id="au-panel" src="assets/sfx/pop.mp3" data-start="48.2" data-duration="0.6" data-track-index="25" data-volume="0.5"></audio>
-      <audio data-hf-id="hf-6zzm" id="au-eye-up" src="assets/sfx/sparkle.mp3" data-start="50.6" data-duration="1.3" data-track-index="25" data-volume="0.5"></audio>
-      <audio data-hf-id="hf-d075" id="au-filler" src="assets/sfx/error.mp3" data-start="52.55" data-duration="1.0" data-track-index="25" data-volume="0.42"></audio>
-      <audio data-hf-id="hf-eha3" id="au-score" src="assets/sfx/chime.mp3" data-start="54.15" data-duration="1.6" data-track-index="25" data-volume="0.55"></audio>
+      <!-- sc07 pitch beats (starts 48; internals unchanged) -->
+      <audio data-hf-id="hf-nmyn" id="au-panel" src="assets/sfx/pop-lo.mp3" data-start="52.2" data-duration="0.65" data-track-index="25" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-8kn2" id="au-eye-up" src="assets/sfx/sparkle.mp3" data-start="54.6" data-duration="1.3" data-track-index="25" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-c559" id="au-filler" src="assets/sfx/error.mp3" data-start="56.55" data-duration="1.0" data-track-index="25" data-volume="0.42"></audio>
+      <audio data-hf-id="hf-lpxr" id="au-score" src="assets/sfx/chime-hi.mp3" data-start="58.15" data-duration="1.4" data-track-index="25" data-volume="0.55"></audio>
 
-      <!-- sc08 level up -->
-      <audio data-hf-id="hf-1qhf" id="au-fill" src="assets/sfx/bonus.mp3" data-start="57.3" data-duration="1.2" data-track-index="25" data-volume="0.55"></audio>
-      <audio data-hf-id="hf-075s" id="au-flash" src="assets/sfx/celebrate.mp3" data-start="58.55" data-duration="1.7" data-track-index="25" data-volume="0.65"></audio>
-      <audio data-hf-id="hf-hsx2" id="au-fy2" src="assets/sfx/unlock.mp3" data-start="60.3" data-duration="1.8" data-track-index="25" data-volume="0.55"></audio>
-      <audio data-hf-id="hf-dpd8" id="au-val-roll" src="assets/sfx/money.mp3" data-start="62.2" data-duration="1.7" data-track-index="25" data-volume="0.6"></audio>
+      <!-- sc08 level up (starts 60, 6s) -->
+      <audio data-hf-id="hf-68eu" id="au-fill" src="assets/sfx/bonus.mp3" data-start="61.3" data-duration="1.2" data-track-index="25" data-volume="0.55"></audio>
+      <audio data-hf-id="hf-0h05" id="au-flash" src="assets/sfx/celebrate.mp3" data-start="62.55" data-duration="1.7" data-track-index="25" data-volume="0.65"></audio>
+      <audio data-hf-id="hf-sfoa" id="au-fy2" src="assets/sfx/unlock.mp3" data-start="64.35" data-duration="1.6" data-track-index="26" data-volume="0.55"></audio>
+      <audio data-hf-id="hf-8ncb" id="au-val-roll" src="assets/sfx/money.mp3" data-start="64.7" data-duration="1.3" data-track-index="25" data-volume="0.55"></audio>
 
-      <!-- sc09 UI montage -->
-      <audio data-hf-id="hf-n2o6" id="au-adv-click" src="assets/sfx/click.mp3" data-start="65.55" data-duration="0.18" data-track-index="24" data-volume="0.8"></audio>
-      <audio data-hf-id="hf-uzau" id="au-adv-wh" src="assets/sfx/whoosh-short.mp3" data-start="65.65" data-duration="0.57" data-track-index="25" data-volume="0.5"></audio>
-      <audio data-hf-id="hf-edxw" id="au-pitch-tab" src="assets/sfx/tab.mp3" data-start="67.1" data-duration="1.2" data-track-index="25" data-volume="0.5"></audio>
-      <audio data-hf-id="hf-iqvy" id="au-rotate" src="assets/sfx/whoosh-short.mp3" data-start="68.6" data-duration="0.57" data-track-index="25" data-volume="0.45"></audio>
+      <!-- sc12 the closet: chest + skins + friends (starts 66) -->
+      <audio data-hf-id="hf-11je" id="au-chest-thud" src="assets/sfx/impact-bass-2.mp3" data-start="66.9" data-duration="1.4" data-track-index="26" data-volume="0.35"></audio>
+      <audio data-hf-id="hf-bqqt" id="au-shake-1" src="assets/sfx/click-soft.mp3" data-start="67.35" data-duration="0.36" data-track-index="24" data-volume="0.55"></audio>
+      <audio data-hf-id="hf-t5p6" id="au-shake-2" src="assets/sfx/click-soft.mp3" data-start="67.75" data-duration="0.36" data-track-index="24" data-volume="0.6"></audio>
+      <audio data-hf-id="hf-pzzk" id="au-chest-open" src="assets/sfx/unlock.mp3" data-start="68.2" data-duration="1.8" data-track-index="25" data-volume="0.6"></audio>
+      <audio data-hf-id="hf-mq3s" id="au-skins-fan" src="assets/sfx/sparkle.mp3" data-start="68.65" data-duration="1.6" data-track-index="26" data-volume="0.55"></audio>
+      <audio data-hf-id="hf-c5e4" id="au-card-1" src="assets/sfx/key-press.mp3" data-start="68.9" data-duration="0.24" data-track-index="24" data-volume="0.55"></audio>
+      <audio data-hf-id="hf-vwz8" id="au-card-2" src="assets/sfx/key-press.mp3" data-start="69.16" data-duration="0.24" data-track-index="24" data-volume="0.55"></audio>
+      <audio data-hf-id="hf-ry12" id="au-card-3" src="assets/sfx/key-press.mp3" data-start="69.42" data-duration="0.24" data-track-index="24" data-volume="0.55"></audio>
+      <audio data-hf-id="hf-lq9f" id="au-equip" src="assets/sfx/success.mp3" data-start="70.5" data-duration="0.74" data-track-index="25" data-volume="0.6"></audio>
+      <audio data-hf-id="hf-za4n" id="au-friends-in" src="assets/sfx/chime-lo.mp3" data-start="71.9" data-duration="1.35" data-track-index="25" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-epmo" id="au-rank-up" src="assets/sfx/bonus.mp3" data-start="73.3" data-duration="1.2" data-track-index="25" data-volume="0.55"></audio>
+      <audio data-hf-id="hf-57eo" id="au-crown" src="assets/sfx/sparkle.mp3" data-start="74.35" data-duration="1.4" data-track-index="26" data-volume="0.45"></audio>
 
-      <!-- sc10 build montage hits -->
-      <audio data-hf-id="hf-r7l7" id="au-b1" src="assets/sfx/pop.mp3" data-start="70.9" data-duration="0.5" data-track-index="25" data-volume="0.5"></audio>
-      <audio data-hf-id="hf-8wo5" id="au-b2" src="assets/sfx/pop.mp3" data-start="71.7" data-duration="0.5" data-track-index="25" data-volume="0.5"></audio>
-      <audio data-hf-id="hf-xq9r" id="au-b3" src="assets/sfx/pop.mp3" data-start="72.5" data-duration="0.5" data-track-index="25" data-volume="0.5"></audio>
-      <audio data-hf-id="hf-21cp" id="au-b4" src="assets/sfx/pop.mp3" data-start="73.3" data-duration="0.5" data-track-index="25" data-volume="0.5"></audio>
+      <!-- sc09 UI montage (starts 76) -->
+      <audio data-hf-id="hf-tc87" id="au-adv-click" src="assets/sfx/click.mp3" data-start="77.55" data-duration="0.18" data-track-index="24" data-volume="0.8"></audio>
+      <audio data-hf-id="hf-1z7z" id="au-adv-wh" src="assets/sfx/whoosh-short.mp3" data-start="77.65" data-duration="0.57" data-track-index="25" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-objn" id="au-pitch-tab" src="assets/sfx/tab.mp3" data-start="79.1" data-duration="1.2" data-track-index="25" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-un4b" id="au-rotate" src="assets/sfx/whoosh-short-hi.mp3" data-start="80.6" data-duration="0.5" data-track-index="25" data-volume="0.45"></audio>
 
-      <!-- sc11 CTA -->
-      <audio data-hf-id="hf-bhcn" id="au-cta-line" src="assets/sfx/success.mp3" data-start="78.4" data-duration="0.74" data-track-index="25" data-volume="0.6"></audio>
-      <audio data-hf-id="hf-78hc" id="au-cta-btn" src="assets/sfx/pop.mp3" data-start="80.7" data-duration="0.6" data-track-index="25" data-volume="0.6"></audio>
+      <!-- sc10 build montage hits (starts 82, varied) -->
+      <audio data-hf-id="hf-39nw" id="au-b1" src="assets/sfx/pop.mp3" data-start="82.9" data-duration="0.5" data-track-index="25" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-upyn" id="au-b2" src="assets/sfx/click-soft.mp3" data-start="83.7" data-duration="0.36" data-track-index="25" data-volume="0.55"></audio>
+      <audio data-hf-id="hf-2014" id="au-b3" src="assets/sfx/pop-hi.mp3" data-start="84.5" data-duration="0.45" data-track-index="25" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-m3zc" id="au-b4" src="assets/sfx/key-press.mp3" data-start="85.3" data-duration="0.4" data-track-index="25" data-volume="0.55"></audio>
+
+      <!-- sc11 CTA (starts 88) -->
+      <audio data-hf-id="hf-y46x" id="au-cta-line" src="assets/sfx/success.mp3" data-start="90.4" data-duration="0.74" data-track-index="25" data-volume="0.6"></audio>
+      <audio data-hf-id="hf-32g7" id="au-cta-btn" src="assets/sfx/pop.mp3" data-start="92.7" data-duration="0.6" data-track-index="25" data-volume="0.6"></audio>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
       const tl = gsap.timeline({ paused: true });
 
-      // Stage ground world flips (light default; navy for reveal + tank act).
+      // Stage ground world flips (light default; navy for reveal + hook/tank act).
       tl.set("#stage", { backgroundColor: "#0B1E36" }, 7.9);
       tl.set("#stage", { backgroundColor: "#F7F5F0" }, 14.0);
-      tl.set("#stage", { backgroundColor: "#0B1E36" }, 39.9);
-      tl.set("#stage", { backgroundColor: "#F7F5F0" }, 56.0);
+      tl.set("#stage", { backgroundColor: "#0B1E36" }, 43.9);
+      tl.set("#stage", { backgroundColor: "#F7F5F0" }, 60.0);
 
       // <seams:auto> — generated by seam-stamp.mjs from ledger.json; do not hand-edit.
       // Regenerate: node <motion-doctrine>/scripts/seam-stamp.mjs --ledger ledger.json --write index.html
       gsap.set("#el-sc01", { autoAlpha: 1, xPercent: 0, yPercent: 0, scale: 1, filter: "blur(0px)", transformOrigin: "50% 50%" });
-      gsap.set(["#el-sc03","#el-sc05","#el-sc07","#el-sc08","#el-sc09","#el-sc10"], { autoAlpha: 0, xPercent: 0, yPercent: 0, scale: 1, filter: "blur(0px)", transformOrigin: "50% 50%" });
+      gsap.set(["#el-sc03","#el-sc05","#el-sc07","#el-sc08","#el-sc12","#el-sc09","#el-sc10"], { autoAlpha: 0, xPercent: 0, yPercent: 0, scale: 1, filter: "blur(0px)", transformOrigin: "50% 50%" });
       gsap.set("#el-sc02", { autoAlpha: 0, scale: 0.78, filter: "blur(18px)", xPercent: 0, yPercent: 0, transformOrigin: "50% 50%" });
       gsap.set("#el-sc04", { autoAlpha: 0, scale: 0.78, filter: "blur(18px)", xPercent: 0, yPercent: 0, transformOrigin: "50% 50%" });
       gsap.set("#el-sc06", { autoAlpha: 0, scale: 1.25, filter: "blur(18px)", xPercent: 0, yPercent: 0, transformOrigin: "50% 50%" });
       gsap.set("#el-sc11", { autoAlpha: 0, scale: 1.25, filter: "blur(18px)", xPercent: 0, yPercent: 0, transformOrigin: "50% 50%" });
       
-      // SEAM — search→reveal : zoom-through (push, through the clicked result) (cut @8)
+      // SEAM — search→reveal : zoom-through (push) (cut @8)
       tl.to("#el-sc01", { scale: 1.18, filter: "blur(18px)", duration: 0.21, ease: "power3.in" }, 7.79);
       tl.to("#el-sc01", { autoAlpha: 0, duration: 0.21, ease: "none" }, 7.79);
       tl.set("#el-sc01", { autoAlpha: 0 }, 8);
@@ -213,42 +226,47 @@
       tl.set("#el-sc03", { autoAlpha: 0 }, 22);
       tl.fromTo("#el-sc04", { autoAlpha: 0.15, scale: 0.78, filter: "blur(18px)" }, { autoAlpha: 1, scale: 1.0, filter: "blur(0px)", duration: 0.5, ease: "expo.out", immediateRender: false }, 22);
       
-      // SEAM — loop→lifesim : cut-the-curve LEFT (cut @32)
-      tl.to("#el-sc04", { xPercent: -12, autoAlpha: 0, duration: 0.34, ease: "power3.in" }, 31.66);
-      tl.set("#el-sc04", { autoAlpha: 0 }, 32);
-      tl.fromTo("#el-sc05", { xPercent: 10, autoAlpha: 0.35 }, { xPercent: 0, autoAlpha: 1, duration: 0.42, ease: "power4.out", immediateRender: false }, 32);
+      // SEAM — loop→lifesim : cut-the-curve LEFT (cut @34)
+      tl.to("#el-sc04", { xPercent: -12, autoAlpha: 0, duration: 0.34, ease: "power3.in" }, 33.66);
+      tl.set("#el-sc04", { autoAlpha: 0 }, 34);
+      tl.fromTo("#el-sc05", { xPercent: 10, autoAlpha: 0.35 }, { xPercent: 0, autoAlpha: 1, duration: 0.42, ease: "power4.out", immediateRender: false }, 34);
       
-      // SEAM — lifesim→hook : inverse zoom-through (pull — the question lands) (cut @40)
-      tl.to("#el-sc05", { scale: 0.8, filter: "blur(18px)", duration: 0.21, ease: "power3.in" }, 39.79);
-      tl.to("#el-sc05", { autoAlpha: 0, duration: 0.21, ease: "none" }, 39.79);
-      tl.set("#el-sc05", { autoAlpha: 0 }, 40);
-      tl.fromTo("#el-sc06", { autoAlpha: 0.15, scale: 1.25, filter: "blur(18px)" }, { autoAlpha: 1, scale: 1.0, filter: "blur(0px)", duration: 0.5, ease: "expo.out", immediateRender: false }, 40);
+      // SEAM — lifesim→hook : inverse zoom-through (pull) (cut @44)
+      tl.to("#el-sc05", { scale: 0.8, filter: "blur(18px)", duration: 0.21, ease: "power3.in" }, 43.79);
+      tl.to("#el-sc05", { autoAlpha: 0, duration: 0.21, ease: "none" }, 43.79);
+      tl.set("#el-sc05", { autoAlpha: 0 }, 44);
+      tl.fromTo("#el-sc06", { autoAlpha: 0.15, scale: 1.25, filter: "blur(18px)" }, { autoAlpha: 1, scale: 1.0, filter: "blur(0px)", duration: 0.5, ease: "expo.out", immediateRender: false }, 44);
       
-      // SEAM — hook→tank : cut-the-curve LEFT (cut @44)
-      tl.to("#el-sc06", { xPercent: -12, autoAlpha: 0, duration: 0.34, ease: "power3.in" }, 43.66);
-      tl.set("#el-sc06", { autoAlpha: 0 }, 44);
-      tl.fromTo("#el-sc07", { xPercent: 10, autoAlpha: 0.35 }, { xPercent: 0, autoAlpha: 1, duration: 0.42, ease: "power4.out", immediateRender: false }, 44);
+      // SEAM — hook→tank : cut-the-curve LEFT (cut @48)
+      tl.to("#el-sc06", { xPercent: -12, autoAlpha: 0, duration: 0.34, ease: "power3.in" }, 47.66);
+      tl.set("#el-sc06", { autoAlpha: 0 }, 48);
+      tl.fromTo("#el-sc07", { xPercent: 10, autoAlpha: 0.35 }, { xPercent: 0, autoAlpha: 1, duration: 0.42, ease: "power4.out", immediateRender: false }, 48);
       
-      // SEAM — tank→levelup : cut-the-curve UP (elevation out of the tank) (cut @56)
-      tl.to("#el-sc07", { yPercent: -12, autoAlpha: 0, duration: 0.34, ease: "power3.in" }, 55.66);
-      tl.set("#el-sc07", { autoAlpha: 0 }, 56);
-      tl.fromTo("#el-sc08", { yPercent: 10, autoAlpha: 0.35 }, { yPercent: 0, autoAlpha: 1, duration: 0.42, ease: "power4.out", immediateRender: false }, 56);
+      // SEAM — tank→levelup : cut-the-curve UP (cut @60)
+      tl.to("#el-sc07", { yPercent: -12, autoAlpha: 0, duration: 0.34, ease: "power3.in" }, 59.66);
+      tl.set("#el-sc07", { autoAlpha: 0 }, 60);
+      tl.fromTo("#el-sc08", { yPercent: 10, autoAlpha: 0.35 }, { yPercent: 0, autoAlpha: 1, duration: 0.42, ease: "power4.out", immediateRender: false }, 60);
       
-      // SEAM — levelup→montage : cut-the-curve LEFT (cut @64)
-      tl.to("#el-sc08", { xPercent: -12, autoAlpha: 0, duration: 0.34, ease: "power3.in" }, 63.66);
-      tl.set("#el-sc08", { autoAlpha: 0 }, 64);
-      tl.fromTo("#el-sc09", { xPercent: 10, autoAlpha: 0.35 }, { xPercent: 0, autoAlpha: 1, duration: 0.42, ease: "power4.out", immediateRender: false }, 64);
+      // SEAM — levelup→closet : cut-the-curve LEFT (cut @66)
+      tl.to("#el-sc08", { xPercent: -12, autoAlpha: 0, duration: 0.34, ease: "power3.in" }, 65.66);
+      tl.set("#el-sc08", { autoAlpha: 0 }, 66);
+      tl.fromTo("#el-sc12", { xPercent: 10, autoAlpha: 0.35 }, { xPercent: 0, autoAlpha: 1, duration: 0.42, ease: "power4.out", immediateRender: false }, 66);
       
-      // SEAM — montage→build : cut-the-curve LEFT (cut @70)
-      tl.to("#el-sc09", { xPercent: -12, autoAlpha: 0, duration: 0.34, ease: "power3.in" }, 69.66);
-      tl.set("#el-sc09", { autoAlpha: 0 }, 70);
-      tl.fromTo("#el-sc10", { xPercent: 10, autoAlpha: 0.35 }, { xPercent: 0, autoAlpha: 1, duration: 0.42, ease: "power4.out", immediateRender: false }, 70);
+      // SEAM — closet→montage : cut-the-curve LEFT (cut @76)
+      tl.to("#el-sc12", { xPercent: -12, autoAlpha: 0, duration: 0.34, ease: "power3.in" }, 75.66);
+      tl.set("#el-sc12", { autoAlpha: 0 }, 76);
+      tl.fromTo("#el-sc09", { xPercent: 10, autoAlpha: 0.35 }, { xPercent: 0, autoAlpha: 1, duration: 0.42, ease: "power4.out", immediateRender: false }, 76);
       
-      // SEAM — build→cta : inverse zoom-through (pull — the CTA arrives) (cut @76)
-      tl.to("#el-sc10", { scale: 0.8, filter: "blur(18px)", duration: 0.21, ease: "power3.in" }, 75.79);
-      tl.to("#el-sc10", { autoAlpha: 0, duration: 0.21, ease: "none" }, 75.79);
-      tl.set("#el-sc10", { autoAlpha: 0 }, 76);
-      tl.fromTo("#el-sc11", { autoAlpha: 0.15, scale: 1.25, filter: "blur(18px)" }, { autoAlpha: 1, scale: 1.0, filter: "blur(0px)", duration: 0.5, ease: "expo.out", immediateRender: false }, 76);
+      // SEAM — montage→build : cut-the-curve LEFT (cut @82)
+      tl.to("#el-sc09", { xPercent: -12, autoAlpha: 0, duration: 0.34, ease: "power3.in" }, 81.66);
+      tl.set("#el-sc09", { autoAlpha: 0 }, 82);
+      tl.fromTo("#el-sc10", { xPercent: 10, autoAlpha: 0.35 }, { xPercent: 0, autoAlpha: 1, duration: 0.42, ease: "power4.out", immediateRender: false }, 82);
+      
+      // SEAM — build→cta : inverse zoom-through (pull — CTA arrives) (cut @88)
+      tl.to("#el-sc10", { scale: 0.8, filter: "blur(18px)", duration: 0.21, ease: "power3.in" }, 87.79);
+      tl.to("#el-sc10", { autoAlpha: 0, duration: 0.21, ease: "none" }, 87.79);
+      tl.set("#el-sc10", { autoAlpha: 0 }, 88);
+      tl.fromTo("#el-sc11", { autoAlpha: 0.15, scale: 1.25, filter: "blur(18px)" }, { autoAlpha: 1, scale: 1.0, filter: "blur(0px)", duration: 0.5, ease: "expo.out", immediateRender: false }, 88);
       
       // </seams:auto>
 

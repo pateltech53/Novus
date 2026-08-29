@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Deterministic offline synth — composes the Novus B2C promo track.
-// 84s, 120 BPM (2s bars), D minor. Sections mirror the storyboard:
+// 96s, 120 BPM (2s bars), D minor. v3 section map:
 //   bars  0-3   (0-8s)   A  minimal search-hook groove
 //   bars  4-6   (8-14s)  B  drop 1 — brand reveal
 //   bars  7-10  (14-22s) C  groove + arp (product reveal)
@@ -18,7 +18,7 @@ const SR = 44100;
 const BPM = 120;
 const BEAT = 60 / BPM; // 0.5s
 const BAR = BEAT * 4; // 2s
-const DUR = 84;
+const DUR = 96;
 const N = Math.ceil(DUR * SR);
 const L = new Float64Array(N);
 const R = new Float64Array(N);
@@ -45,10 +45,10 @@ const C = [48, 52, 55, 60];
 const Gm = [43, 50, 55, 58];
 const A7 = [45, 49, 55, 61];
 const barChord = (bar) => {
-  if (bar >= 20 && bar <= 21) return [Dm, Bb][bar - 20];
-  if (bar >= 22 && bar <= 27) return [Dm, Dm, Gm, Gm, A7, A7][bar - 22];
-  if (bar >= 28 && bar <= 31) return [Bb, Fv, C, Dm][bar - 28];
-  if (bar >= 38) return [Dm, Bb, Fv, Dm][bar - 38] || Dm;
+  if (bar >= 22 && bar <= 23) return [Dm, Bb][bar - 22];
+  if (bar >= 24 && bar <= 29) return [Dm, Dm, Gm, Gm, A7, A7][bar - 24];
+  if (bar >= 30 && bar <= 37) return [Bb, Fv, C, Dm][(bar - 30) % 4];
+  if (bar >= 44) return [Dm, Bb, Fv, Dm][bar - 44] || Dm;
   return [Dm, Bb, Fv, C][bar % 4];
 };
 const bassNote = (bar) => barChord(bar)[0] - 12; // root, one octave down
@@ -56,11 +56,11 @@ const bassNote = (bar) => barChord(bar)[0] - 12; // root, one octave down
 // ---- section helpers ----
 const S = (t) => Math.floor(t / BAR); // bar index at time t
 const inRange = (bar, a, b) => bar >= a && bar <= b;
-const drums1 = (bar) => inRange(bar, 4, 19) || inRange(bar, 28, 37) || inRange(bar, 38, 39);
-const darkSec = (bar) => inRange(bar, 22, 27);
+const drums1 = (bar) => inRange(bar, 4, 21) || inRange(bar, 30, 43) || inRange(bar, 44, 45);
+const darkSec = (bar) => inRange(bar, 24, 29);
 const minimal = (bar) => inRange(bar, 0, 3);
-const breakdown = (bar) => inRange(bar, 20, 21);
-const outro = (bar) => bar >= 40;
+const breakdown = (bar) => inRange(bar, 22, 23);
+const outro = (bar) => bar >= 46;
 
 // ---- voices ----
 function addKick(t, amp = 1) {
@@ -251,7 +251,7 @@ for (let bar = 0; bar < NBARS; bar++) {
   const bn = bassNote(bar);
 
   // PADS: everywhere except outro tail; quiet in minimal, big in breakdown
-  if (bar < 40) {
+  if (bar < 46) {
     const amp = minimal(bar) ? 0.085 : breakdown(bar) ? 0.12 : darkSec(bar) ? 0.07 : 0.075;
     addPad(t0, ch, BAR + 0.4, amp);
   }
@@ -285,7 +285,7 @@ for (let bar = 0; bar < NBARS; bar++) {
     addStab(t0 + 2.5 * BEAT, ch, 0.2, 0.15);
     if (bar % 2 === 1) addStab(t0 + 3.5 * BEAT, ch, 0.16, 0.12);
     // arp melody in C/E/H/I sections
-    if (inRange(bar, 7, 10) || inRange(bar, 16, 19) || inRange(bar, 28, 37)) {
+    if (inRange(bar, 7, 10) || inRange(bar, 17, 21) || inRange(bar, 30, 40)) {
       const seq = [3, 2, 3, 1, 3, 2, 0, 2, 3, 2, 3, 1, 3, 0, 2, 1];
       for (let s16 = 0; s16 < 16; s16++)
         addPluck(t0 + s16 * (BEAT / 4), ch[seq[s16]] + 24, 0.11, 0.05, s16 % 2 ? 0.7 : 0.3);
@@ -309,12 +309,7 @@ for (let bar = 0; bar < NBARS; bar++) {
     if (bar % 2 === 0) addStab(t0 + 3 * BEAT, ch, 0.3, 0.09, 0.12);
   }
 
-  // FINAL BUILD J (bars 35-37)
-  if (inRange(bar, 35, 37)) {
-    // kick every beat already via drums1? drums1 covers 28-37 -> yes. Add roll + riser on 36-37.
-  }
-
-  // OUTRO K: bars 40-41 ring-out handled after loop
+  // OUTRO: ring-out handled after loop
 }
 
 // section punctuation
@@ -322,21 +317,22 @@ addImpact(8.0, 0.95); // drop 1 / brand reveal
 addRiser(6.2, 1.8, 0.16);
 addRiser(12.5, 1.5, 0.13);
 addImpact(22.0, 0.6);
-addImpact(32.0, 0.6);
-addRiser(38.5, 1.5, 0.14);
-addImpact(40.0, 0.7); // breakdown slam
-addRiser(42.0, 2.0, 0.2);
-addImpact(44.0, 0.95); // tank arrival
-addImpact(56.0, 0.85); // level-up return
-addRiser(54.5, 1.5, 0.16);
-addImpact(64.0, 0.55);
-addRiser(72.0, 4.0, 0.3); // final build
-addRoll(72.0, 4.0);
-addImpact(76.0, 1.0); // peak
-addImpact(80.0, 1.0); // CTA hit
-addPad(80.0, Dm, 3.4, 0.11); // ring-out chord
+addImpact(34.0, 0.6);
+addRiser(42.5, 1.5, 0.14);
+addImpact(44.0, 0.7); // breakdown slam
+addRiser(46.0, 2.0, 0.2);
+addImpact(48.0, 0.95); // tank arrival
+addImpact(60.0, 0.85); // level-up return
+addRiser(58.5, 1.5, 0.16);
+addImpact(66.0, 0.5); // the closet opens
+addImpact(76.0, 0.55);
+addRiser(84.0, 4.0, 0.3); // final build
+addRoll(84.0, 4.0);
+addImpact(88.0, 1.0); // peak
+addImpact(92.0, 1.0); // CTA hit
+addPad(92.0, Dm, 3.4, 0.11); // ring-out chord
 
-// bars 38-39 (76-80) peak already covered by drums1(38,39)
+// bars 44-45 (88-92) peak covered by drums1
 
 // ---- sidechain pump: duck everything but kicks slightly after each kick ----
 // (applied as a global gentle duck — kicks were added first at full level, so
@@ -373,7 +369,7 @@ let peak = 0;
 for (let i = 0; i < N; i++) peak = Math.max(peak, Math.abs(L[i]), Math.abs(R[i]));
 const g = 0.91 / peak;
 const fadeIn = 0.03 * SR;
-const fadeStart = 82.6 * SR;
+const fadeStart = 94.6 * SR;
 for (let i = 0; i < N; i++) {
   let f = 1;
   if (i < fadeIn) f = i / fadeIn;

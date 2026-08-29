@@ -1,0 +1,125 @@
+<template>
+  <div
+    data-composition-id="sc06-hook"
+    data-width="1080"
+    data-height="1920"
+    data-duration="4"
+    style="position: absolute; inset: 0; overflow: hidden; font-family: 'Urbanist', system-ui, sans-serif;"
+  >
+    <style>
+      @font-face {
+        font-family: "Urbanist";
+        font-style: normal;
+        font-weight: 100 900;
+        src: url("assets/fonts/urbanist-latin.woff2") format("woff2");
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+      @font-face {
+        font-family: "Urbanist";
+        font-style: normal;
+        font-weight: 100 900;
+        src: url("assets/fonts/urbanist-latin-ext.woff2") format("woff2");
+        unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+      }
+      .n06-bg {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(900px 1250px at 50% 44%, #152a47 0%, #0b1e36 62%);
+      }
+      .n06-cam {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        /* Lifts the question block's center to ~46% of the 1920 frame. */
+        padding-bottom: 154px;
+      }
+      .n06-row {
+        font-size: 66px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.16;
+        color: #f8fafc;
+        text-align: center;
+        white-space: nowrap;
+        margin: 0;
+      }
+      .n06-mattered {
+        display: inline-block;
+      }
+      #n06-rule {
+        display: block;
+        width: 600px;
+        height: 5px;
+        margin-top: 22px;
+        border-radius: 3px;
+        background: #ff6b00;
+        opacity: 0;
+      }
+      #n06-sub {
+        margin-top: 24px;
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        color: rgba(248, 250, 252, 0.55);
+        text-align: center;
+        opacity: 0;
+      }
+    </style>
+
+    <div class="n06-bg"></div>
+    <div class="n06-cam">
+      <h2 class="n06-row" id="n06-r1">What if you could</h2>
+      <h2 class="n06-row" id="n06-r2">practice before it</h2>
+      <h2 class="n06-row" id="n06-r3">actually <span class="n06-mattered">mattered?</span></h2>
+      <div id="n06-rule"></div>
+      <div id="n06-sub">Novus is the reps.</div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      (function () {
+        const tl = gsap.timeline({ paused: true });
+
+        // 0-0.6: hands off — the master wrapper carries the Z-pull.
+        // The question is composed and visible at local 0 (CSS, no entrance).
+
+        // 0.7: thin orange underline draws under the last row.
+        tl.fromTo(
+          "#n06-rule",
+          { scaleX: 0, autoAlpha: 1, transformOrigin: "left center" },
+          { scaleX: 1, autoAlpha: 1, duration: 0.45, ease: "expo.out" },
+          0.7
+        );
+
+        // 1.15-2.6: the only motion during the stillness — a slow camera settle.
+        // Shrinking (1.035 -> 1.0) = pull-sign safe.
+        tl.fromTo(
+          ".n06-cam",
+          { scale: 1.035, transformOrigin: "50% 50%" },
+          { scale: 1.0, duration: 1.45, ease: "power1.out" },
+          1.15
+        );
+
+        // 2.4: sub-line fades up.
+        tl.fromTo(
+          "#n06-sub",
+          { y: 18, autoAlpha: 0 },
+          { y: 0, autoAlpha: 1, duration: 0.45, ease: "power4.out" },
+          2.4
+        );
+
+        // 3.1: the underline charges — a heartbeat of intent. Composed by 3.3.
+        tl.to(
+          "#n06-rule",
+          { scaleX: 1.18, duration: 0.2, ease: "power2.out", transformOrigin: "left center" },
+          3.1
+        );
+
+        window.__timelines["sc06-hook"] = tl;
+      })();
+    </script>
+  </div>
+</template>

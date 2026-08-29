@@ -3,7 +3,7 @@
     data-composition-id="sc04-loop"
     data-width="1920"
     data-height="1080"
-    data-duration="10"
+    data-duration="12"
     style="position: absolute; inset: 0; overflow: hidden; font-family: 'Urbanist', system-ui, sans-serif;"
   >
     <style>
@@ -398,6 +398,7 @@
     </style>
 
     <div class="n04-bg"></div>
+      <h1 id="n04-hero" style="position:absolute;left:0;right:0;top:440px;z-index:6;text-align:center;font-size:92px;font-weight:800;letter-spacing:-0.02em;color:#0b1e36;opacity:0;">Simulate a real business.</h1>
     <div class="n04-cam">
       <div id="n04-card">
         <!-- P1 · create your founder -->
@@ -597,131 +598,121 @@
         tl.fromTo(
           ".n04-cam",
           { scale: 1.0, transformOrigin: "50% 42%" },
-          { scale: 1.045, duration: 9.0, ease: "none" },
-          0.4
-        );
+          { scale: 1.045, duration: 11.0, ease: "power1.inOut" }, 0.4);
+
+        // v3 hero beat — say what Novus IS before showing the loop.
+        tl.fromTo("#n04-hero", { y: 56, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.5, ease: "power4.out" }, 0.45);
+        tl.to("#n04-hero", { y: -34, autoAlpha: 0, duration: 0.3, ease: "power2.in" }, 2.05);
 
         // ============ P1 · create your founder (0.45–2.35) ============
-        tl.fromTo("#n04-p1-label", { y: 40, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.16, ease: "power4.out" }, 0.45);
-        tl.fromTo("#n04-p1-title", { y: 52, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.18, ease: "power4.out" }, 0.53);
+        tl.fromTo("#n04-p1-label", { y: 40, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.16, ease: "power4.out" }, 2.45);
+        tl.fromTo("#n04-p1-title", { y: 52, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.18, ease: "power4.out" }, 2.53);
         // avatar waterfall — shrinking gaps
-        tl.fromTo("#n04-av1", { y: 54, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.17, ease: "power4.out" }, 0.60);
-        tl.fromTo("#n04-av2", { y: 54, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.17, ease: "power4.out" }, 0.71);
-        tl.fromTo("#n04-av3", { y: 54, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.17, ease: "power4.out" }, 0.80);
-        tl.fromTo("#n04-av4", { y: 54, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.17, ease: "power4.out" }, 0.87);
+        tl.fromTo("#n04-av1", { y: 54, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.17, ease: "power4.out" }, 2.6);
+        tl.fromTo("#n04-av2", { y: 54, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.17, ease: "power4.out" }, 2.71);
+        tl.fromTo("#n04-av3", { y: 54, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.17, ease: "power4.out" }, 2.8);
+        tl.fromTo("#n04-av4", { y: 54, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.17, ease: "power4.out" }, 2.87);
         // selection ring pops on the first founder, then hops
         tl.fromTo(
           "#n04-ring1",
           { scale: 0.6, autoAlpha: 0, transformOrigin: "50% 50%" },
-          { scale: 1, autoAlpha: 1, duration: 0.16, ease: "back.out(1.6)" },
-          0.74
-        );
-        tl.to("#n04-ring1", { x: 240, duration: 0.13, ease: "power2.inOut" }, 0.80);
-        tl.to("#n04-ring1", { x: 480, duration: 0.1, ease: "power2.inOut" }, 0.97);
+          { scale: 1, autoAlpha: 1, duration: 0.16, ease: "back.out(1.6)" }, 2.74);
+        tl.to("#n04-ring1", { x: 240, duration: 0.13, ease: "power2.inOut" }, 2.8);
+        tl.to("#n04-ring1", { x: 480, duration: 0.1, ease: "power2.inOut" }, 2.97);
         // confirm at 1.1 (audio: success) — chosen avatar pops, ring pulses, pill lands
-        tl.to("#n04-av3", { scale: 1.12, duration: 0.1, ease: "power2.out", transformOrigin: "50% 50%" }, 1.1);
-        tl.to("#n04-av3", { scale: 1.0, duration: 0.16, ease: "power2.inOut" }, 1.22);
-        tl.to("#n04-ring1", { scale: 1.08, duration: 0.1, ease: "power2.out" }, 1.1);
-        tl.to("#n04-ring1", { scale: 1.0, duration: 0.16, ease: "power2.inOut" }, 1.22);
+        tl.to("#n04-av3", { scale: 1.12, duration: 0.1, ease: "power2.out", transformOrigin: "50% 50%" }, 3.1);
+        tl.to("#n04-av3", { scale: 1.0, duration: 0.16, ease: "power2.inOut" }, 3.22);
+        tl.to("#n04-ring1", { scale: 1.08, duration: 0.1, ease: "power2.out" }, 3.1);
+        tl.to("#n04-ring1", { scale: 1.0, duration: 0.16, ease: "power2.inOut" }, 3.22);
         tl.fromTo(
           "#n04-pill",
           { scale: 0.5, autoAlpha: 0, transformOrigin: "12% 100%" },
-          { scale: 1, autoAlpha: 1, duration: 0.3, ease: "back.out(1.7)" },
-          1.16
-        );
+          { scale: 1, autoAlpha: 1, duration: 0.3, ease: "back.out(1.7)" }, 3.16);
         // sequenced UI life: the unchosen founders step back
-        tl.to("#n04-av1", { autoAlpha: 0.4, duration: 0.3, ease: "power2.inOut" }, 1.35);
-        tl.to("#n04-av2", { autoAlpha: 0.4, duration: 0.3, ease: "power2.inOut" }, 1.35);
-        tl.to("#n04-av4", { autoAlpha: 0.4, duration: 0.3, ease: "power2.inOut" }, 1.35);
+        tl.to("#n04-av1", { autoAlpha: 0.4, duration: 0.3, ease: "power2.inOut" }, 3.35);
+        tl.to("#n04-av2", { autoAlpha: 0.4, duration: 0.3, ease: "power2.inOut" }, 3.35);
+        tl.to("#n04-av4", { autoAlpha: 0.4, duration: 0.3, ease: "power2.inOut" }, 3.35);
         // P1 exits up
-        tl.to("#n04-p1", { y: -60, autoAlpha: 0, duration: 0.26, ease: "power2.in" }, 2.08);
+        tl.to("#n04-p1", { y: -60, autoAlpha: 0, duration: 0.26, ease: "power2.in" }, 4.08);
 
         // ============ P2 · pick your industry (2.35–4.05) ============
-        tl.set("#n04-p2", { autoAlpha: 1 }, 2.26);
-        tl.fromTo("#n04-p2-title", { y: 46, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.18, ease: "power4.out" }, 2.28);
-        tl.fromTo("#n04-tile-food", { y: 50, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.15, ease: "power4.out" }, 2.30);
-        tl.fromTo("#n04-tile-tech", { y: 50, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.15, ease: "power4.out" }, 2.37);
-        tl.fromTo("#n04-tile-fashion", { y: 50, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.15, ease: "power4.out" }, 2.42);
-        tl.fromTo("#n04-tile-gaming", { y: 50, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.15, ease: "power4.out" }, 2.46);
+        tl.set("#n04-p2", { autoAlpha: 1 }, 4.26);
+        tl.fromTo("#n04-p2-title", { y: 46, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.18, ease: "power4.out" }, 4.28);
+        tl.fromTo("#n04-tile-food", { y: 50, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.15, ease: "power4.out" }, 4.3);
+        tl.fromTo("#n04-tile-tech", { y: 50, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.15, ease: "power4.out" }, 4.37);
+        tl.fromTo("#n04-tile-fashion", { y: 50, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.15, ease: "power4.out" }, 4.42);
+        tl.fromTo("#n04-tile-gaming", { y: 50, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.15, ease: "power4.out" }, 4.46);
         // ring on FOOD, hop to GAMING, snap-select at 2.7 (audio: tab)
         tl.fromTo(
           "#n04-ring2",
           { scale: 0.75, autoAlpha: 0, transformOrigin: "50% 50%" },
-          { scale: 1, autoAlpha: 1, duration: 0.14, ease: "back.out(1.6)" },
-          2.47
-        );
-        tl.to("#n04-ring2", { x: 588, y: 248, duration: 0.12, ease: "power2.inOut" }, 2.58);
-        tl.to("#n04-tile-gaming", { backgroundColor: "#0b1e36", color: "#ffffff", duration: 0.12, ease: "power2.out" }, 2.70);
-        tl.to("#n04-tile-gaming", { scale: 1.06, duration: 0.09, ease: "power2.out", transformOrigin: "50% 50%" }, 2.70);
-        tl.to("#n04-tile-gaming", { scale: 1.0, duration: 0.12, ease: "power2.inOut" }, 2.80);
-        tl.to("#n04-tile-food", { autoAlpha: 0.45, duration: 0.3, ease: "power2.inOut" }, 2.84);
-        tl.to("#n04-tile-tech", { autoAlpha: 0.45, duration: 0.3, ease: "power2.inOut" }, 2.84);
-        tl.to("#n04-tile-fashion", { autoAlpha: 0.45, duration: 0.3, ease: "power2.inOut" }, 2.84);
+          { scale: 1, autoAlpha: 1, duration: 0.14, ease: "back.out(1.6)" }, 4.47);
+        tl.to("#n04-ring2", { x: 588, y: 248, duration: 0.12, ease: "power2.inOut" }, 4.58);
+        tl.to("#n04-tile-gaming", { backgroundColor: "#0b1e36", color: "#ffffff", duration: 0.12, ease: "power2.out" }, 4.7);
+        tl.to("#n04-tile-gaming", { scale: 1.06, duration: 0.09, ease: "power2.out", transformOrigin: "50% 50%" }, 4.7);
+        tl.to("#n04-tile-gaming", { scale: 1.0, duration: 0.12, ease: "power2.inOut" }, 4.8);
+        tl.to("#n04-tile-food", { autoAlpha: 0.45, duration: 0.3, ease: "power2.inOut" }, 4.84);
+        tl.to("#n04-tile-tech", { autoAlpha: 0.45, duration: 0.3, ease: "power2.inOut" }, 4.84);
+        tl.to("#n04-tile-fashion", { autoAlpha: 0.45, duration: 0.3, ease: "power2.inOut" }, 4.84);
         // P2 exits up
-        tl.to("#n04-p2", { y: -60, autoAlpha: 0, duration: 0.24, ease: "power2.in" }, 3.82);
+        tl.to("#n04-p2", { y: -60, autoAlpha: 0, duration: 0.24, ease: "power2.in" }, 5.82);
 
         // ============ P3 · Today's Market (4.05–6.35) ============
-        tl.set("#n04-p3", { autoAlpha: 1 }, 4.06);
+        tl.set("#n04-p3", { autoAlpha: 1 }, 6.06);
         // event card slides up from below the surface (audio: notification at 4.2)
-        tl.fromTo("#n04-event", { y: 420 }, { y: 0, autoAlpha: 1, duration: 0.6, ease: "expo.out" }, 4.08);
+        tl.fromTo("#n04-event", { y: 420 }, { y: 0, autoAlpha: 1, duration: 0.6, ease: "expo.out" }, 6.08);
         // oversized cursor enters from the card's bottom edge, glides to the orange button
         tl.fromTo(
           "#n04-cursor",
           { x: 240, y: 400, autoAlpha: 0 },
-          { x: 30, y: 56, autoAlpha: 1, duration: 0.62, ease: "power2.out" },
-          5.1
-        );
-        tl.to("#n04-cursor", { x: 0, y: 0, duration: 0.26, ease: "power3.out" }, 5.76);
+          { x: 30, y: 56, autoAlpha: 1, duration: 0.62, ease: "power2.out" }, 7.1);
+        tl.to("#n04-cursor", { x: 0, y: 0, duration: 0.26, ease: "power3.out" }, 7.76);
         // stillness 6.02–6.05, then CLICK at 6.05 (audio: click)
-        tl.to("#n04-cursor", { scale: 0.84, duration: 0.07, ease: "power2.in", transformOrigin: "21% 14%" }, 6.05);
-        tl.to("#n04-cursor", { scale: 1.0, duration: 0.12, ease: "power2.out" }, 6.13);
-        tl.to("#n04-btn-go", { scale: 0.94, backgroundColor: "#d85a00", duration: 0.07, ease: "power2.in", transformOrigin: "50% 50%" }, 6.05);
-        tl.to("#n04-btn-go", { scale: 1.0, backgroundColor: "#ff6b00", duration: 0.16, ease: "power2.out" }, 6.14);
+        tl.to("#n04-cursor", { scale: 0.84, duration: 0.07, ease: "power2.in", transformOrigin: "21% 14%" }, 8.05);
+        tl.to("#n04-cursor", { scale: 1.0, duration: 0.12, ease: "power2.out" }, 8.13);
+        tl.to("#n04-btn-go", { scale: 0.94, backgroundColor: "#d85a00", duration: 0.07, ease: "power2.in", transformOrigin: "50% 50%" }, 8.05);
+        tl.to("#n04-btn-go", { scale: 1.0, backgroundColor: "#ff6b00", duration: 0.16, ease: "power2.out" }, 8.14);
         // P3 exits up
-        tl.to("#n04-p3", { y: -50, autoAlpha: 0, duration: 0.22, ease: "power2.in" }, 6.30);
+        tl.to("#n04-p3", { y: -50, autoAlpha: 0, duration: 0.22, ease: "power2.in" }, 8.3);
 
         // ============ P4 · The Books react (6.35–8.25) ============
-        tl.set("#n04-p4", { autoAlpha: 1 }, 6.52);
-        tl.fromTo("#n04-p4-label", { y: 40, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.16, ease: "power4.out" }, 6.55);
-        tl.fromTo("#n04-stat-cost", { y: 54, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.16, ease: "power4.out" }, 6.40);
-        tl.fromTo("#n04-stat-burn", { y: 54, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.16, ease: "power4.out" }, 6.46);
-        tl.fromTo("#n04-stat-runway", { y: 54, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.16, ease: "power4.out" }, 6.51);
+        tl.set("#n04-p4", { autoAlpha: 1 }, 8.52);
+        tl.fromTo("#n04-p4-label", { y: 40, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.16, ease: "power4.out" }, 8.55);
+        tl.fromTo("#n04-stat-cost", { y: 54, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.16, ease: "power4.out" }, 8.4);
+        tl.fromTo("#n04-stat-burn", { y: 54, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.16, ease: "power4.out" }, 8.46);
+        tl.fromTo("#n04-stat-runway", { y: 54, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.16, ease: "power4.out" }, 8.51);
         // odometers roll at 6.55 (audio: money)
-        roll(odoCost, 6.55);
-        roll(odoBurn, 6.55);
-        roll(odoRunway, 6.55);
-        tl.fromTo("#n04-mark-burn", { scale: 0.4, autoAlpha: 0, transformOrigin: "50% 50%" }, { scale: 1, autoAlpha: 1, duration: 0.28, ease: "back.out(1.6)" }, 6.55);
-        tl.fromTo("#n04-mark-runway", { scale: 0.4, autoAlpha: 0, transformOrigin: "50% 50%" }, { scale: 1, autoAlpha: 1, duration: 0.28, ease: "back.out(1.6)" }, 6.55);
-        tl.fromTo("#n04-p4-cap", { y: 30, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.3, ease: "power4.out" }, 7.35);
+        roll(odoCost, 8.55);
+        roll(odoBurn, 8.55);
+        roll(odoRunway, 8.55);
+        tl.fromTo("#n04-mark-burn", { scale: 0.4, autoAlpha: 0, transformOrigin: "50% 50%" }, { scale: 1, autoAlpha: 1, duration: 0.28, ease: "back.out(1.6)" }, 8.55);
+        tl.fromTo("#n04-mark-runway", { scale: 0.4, autoAlpha: 0, transformOrigin: "50% 50%" }, { scale: 1, autoAlpha: 1, duration: 0.28, ease: "back.out(1.6)" }, 8.55);
+        tl.fromTo("#n04-p4-cap", { y: 30, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.3, ease: "power4.out" }, 9.35);
         // P4 exits up
-        tl.to("#n04-p4", { y: -50, autoAlpha: 0, duration: 0.22, ease: "power2.in" }, 8.06);
+        tl.to("#n04-p4", { y: -50, autoAlpha: 0, duration: 0.22, ease: "power2.in" }, 10.06);
 
         // ============ P5 · XP (8.25–9.55) ============
-        tl.set("#n04-p5", { autoAlpha: 1 }, 8.28);
-        tl.fromTo("#n04-xp-row", { y: 50, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.18, ease: "power4.out" }, 8.30);
-        tl.fromTo("#n04-xpbar", { y: 40, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.18, ease: "power4.out" }, 8.38);
+        tl.set("#n04-p5", { autoAlpha: 1 }, 10.28);
+        tl.fromTo("#n04-xp-row", { y: 50, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.18, ease: "power4.out" }, 10.3);
+        tl.fromTo("#n04-xpbar", { y: 40, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.18, ease: "power4.out" }, 10.38);
         // XP tick at 8.5 (audio: sparkle) — bar fill + odometer together
         tl.fromTo(
           "#n04-xpfill",
           { scaleX: 0.42, transformOrigin: "left center" },
-          { scaleX: 0.78, autoAlpha: 1, duration: 0.85, ease: "expo.out" },
-          8.5
-        );
-        roll(odoXp, 8.5);
+          { scaleX: 0.78, autoAlpha: 1, duration: 0.85, ease: "expo.out" }, 10.5);
+        roll(odoXp, 10.5);
         tl.fromTo(
           "#n04-chip",
           { scale: 0.5, autoAlpha: 0, transformOrigin: "50% 50%" },
-          { scale: 1, autoAlpha: 1, duration: 0.3, ease: "back.out(1.7)" },
-          8.55
-        );
+          { scale: 1, autoAlpha: 1, duration: 0.3, ease: "back.out(1.7)" }, 10.55);
 
         // ============ kinetic copy beats ============
-        waterfallWords("#n04-cl1 .n04-w", 0.6);
-        tl.to("#n04-cl1", { y: -34, autoAlpha: 0, duration: 0.22, ease: "power2.in" }, 2.68);
-        waterfallWords("#n04-cl2 .n04-w", 5.5);
-        tl.to("#n04-cl2", { y: -34, autoAlpha: 0, duration: 0.22, ease: "power2.in" }, 7.08);
-        waterfallWords("#n04-cl3 .n04-w", 7.7);
-        tl.to("#n04-cl3", { y: -34, autoAlpha: 0, duration: 0.23, ease: "power2.in" }, 9.15);
+        waterfallWords("#n04-cl1 .n04-w", 2.6);
+        tl.to("#n04-cl1", { y: -34, autoAlpha: 0, duration: 0.22, ease: "power2.in" }, 4.68);
+        waterfallWords("#n04-cl2 .n04-w", 7.5);
+        tl.to("#n04-cl2", { y: -34, autoAlpha: 0, duration: 0.22, ease: "power2.in" }, 9.08);
+        waterfallWords("#n04-cl3 .n04-w", 9.7);
+        tl.to("#n04-cl3", { y: -34, autoAlpha: 0, duration: 0.23, ease: "power2.in" }, 11.15);
 
         window.__timelines["sc04-loop"] = tl;
       })();

@@ -1,9 +1,9 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en" data-resolution="portrait">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=1080, height=1920" />
-    <title>Novus Promo — 9:16 Vertical</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1080, height=1920">
+    <title>Novus B2C Promo 9:16 — HyperFrames</title>
     <script src="assets/vendor/gsap.min.js"></script>
     <style>
       * {
@@ -35,7 +35,7 @@
         width: 1080px;
         height: 1920px;
         overflow: hidden;
-        background: #0a0f1e;
+        background: #f7f5f0;
       }
       body {
         font-family: "Urbanist", system-ui, sans-serif;
@@ -45,1268 +45,232 @@
         width: 1080px;
         height: 1920px;
         overflow: hidden;
+        background: #f7f5f0; /* opaque stage ground — seam dips must never flash */
       }
-      #v-bg {
+      #stage {
         position: absolute;
         inset: 0;
-        background: #0a0f1e;
+        background: #f7f5f0;
       }
-      .clip {
+      #root > div[data-composition-src] {
         position: absolute;
         inset: 0;
-        overflow: hidden;
-      }
-      .vcam {
-        position: absolute;
-        inset: 0;
-      }
-      .vw {
-        display: inline-block;
-        opacity: 0;
-      }
-      /* Shared device frame chrome */
-      .vframe {
-        position: absolute;
-        border-radius: 24px;
-        background: #0d1526;
-        border: 1px solid rgba(245, 247, 250, 0.08);
-        box-shadow:
-          0 30px 90px rgba(0, 0, 0, 0.55),
-          0 18px 70px rgba(255, 107, 0, 0.14);
-        overflow: hidden;
-        opacity: 0;
-      }
-      .vchrome {
-        height: 52px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 0 20px;
-        background: rgba(245, 247, 250, 0.04);
-        border-bottom: 1px solid rgba(245, 247, 250, 0.06);
-      }
-      .vchrome i {
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        background: rgba(245, 247, 250, 0.16);
-      }
-      .vurl {
-        margin-left: 14px;
-        font-size: 17px;
-        font-weight: 500;
-        color: rgba(245, 247, 250, 0.62);
-        background: rgba(245, 247, 250, 0.05);
-        border-radius: 8px;
-        padding: 6px 16px;
-      }
-
-      /* Scene 1 */
-      #v1-line-wrap {
-        position: absolute;
-        inset: 0 80px;
-        display: grid;
-        place-items: center;
-        text-align: center;
-      }
-      #v1-line {
-        font-size: 84px;
-        font-weight: 800;
-        letter-spacing: -0.02em;
-        line-height: 1.1;
-        color: #f5f7fa;
-        max-width: 900px;
-      }
-      #v1-dot {
-        position: absolute;
-        left: 526px;
-        top: 946px;
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        background: #ff6b00;
-        opacity: 0;
-      }
-      #v1-zero {
-        color: #ff6b00;
-      }
-      #v1-period {
-        display: inline-block;
-        width: 16px;
-        height: 16px;
-        margin-left: 5px;
-        border-radius: 50%;
-        background: #ff6b00;
-        opacity: 0;
-      }
-
-      /* Scene 2 */
-      .v2-beat {
-        position: absolute;
-        inset: 0 80px;
-        display: grid;
-        place-items: center;
-        text-align: center;
-      }
-      #v2-beat1 h1 {
-        font-size: 68px;
-        font-weight: 800;
-        letter-spacing: -0.02em;
-        line-height: 1.14;
-        color: #f5f7fa;
-        max-width: 860px;
-      }
-      #v2-beat2 h1 {
-        font-size: 92px;
-        font-weight: 800;
-        letter-spacing: -0.02em;
-        line-height: 1.08;
-        color: #f5f7fa;
-        max-width: 900px;
-      }
-      #v2-zero {
-        color: #ff6b00;
-      }
-      #v2-support {
-        position: absolute;
-        left: 80px;
-        right: 80px;
-        bottom: 300px;
-        text-align: center;
-        font-size: 30px;
-        font-weight: 500;
-        color: rgba(245, 247, 250, 0.6);
-        opacity: 0;
-      }
-
-      /* Scene 3 */
-      #v3-lockup {
-        position: absolute;
-        left: 0;
-        right: 0;
-        top: 420px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-      }
-      #v3-wordmark {
-        font-size: 132px;
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        color: #f5f7fa;
-        line-height: 1;
-        opacity: 0;
-      }
-      #v3-rule {
-        width: 220px;
-        height: 6px;
-        margin-top: 26px;
-        border-radius: 3px;
-        background: #ff6b00;
-        opacity: 0;
-      }
-      #v3-tagline {
-        margin-top: 28px;
-        font-size: 34px;
-        font-weight: 500;
-        color: rgba(245, 247, 250, 0.6);
-        opacity: 0;
-      }
-      #v3-shark {
-        position: absolute;
-        left: 330px;
-        top: 950px;
-        width: 420px;
-        height: auto;
-        opacity: 0;
-      }
-
-      /* Scene 4 */
-      .v4-line {
-        position: absolute;
-        left: 90px;
-        top: 220px;
-        font-size: 64px;
-        font-weight: 800;
-        letter-spacing: -0.02em;
-        line-height: 1.1;
-        color: #f5f7fa;
-        max-width: 900px;
-      }
-      #v4-chips {
-        position: absolute;
-        left: 90px;
-        top: 480px;
-        display: flex;
-        gap: 12px;
-      }
-      .v4-chip {
-        font-size: 22px;
-        font-weight: 700;
-        letter-spacing: 0.06em;
-        color: #ff6b00;
-        border: 2px solid rgba(255, 107, 0, 0.45);
-        border-radius: 999px;
-        padding: 9px 20px;
-        opacity: 0;
-      }
-      #v4-frame {
-        left: 90px;
-        top: 640px;
-        width: 900px;
-        height: 1120px;
-      }
-      .v4-phase {
-        position: absolute;
-        inset: 52px 0 0 0;
-        padding: 40px;
-        opacity: 0;
-      }
-      #v4-founder-card {
-        width: 100%;
-        height: 100%;
-        border-radius: 16px;
-        background: rgba(245, 247, 250, 0.03);
-        border: 1px solid rgba(245, 247, 250, 0.07);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 20px;
-      }
-      #v4-avatar {
-        width: 140px;
-        height: 140px;
-        border-radius: 50%;
-        background: rgba(245, 247, 250, 0.08);
-        border: 2px solid rgba(245, 247, 250, 0.14);
-        display: grid;
-        place-items: center;
-        font-size: 52px;
-        font-weight: 800;
-        color: rgba(245, 247, 250, 0.7);
-      }
-      #v4-founder-card h3 {
-        font-size: 46px;
-        font-weight: 800;
-        color: #f5f7fa;
-        letter-spacing: -0.01em;
-      }
-      #v4-founder-card p {
-        font-size: 21px;
-        font-weight: 500;
-        letter-spacing: 0.14em;
-        color: rgba(245, 247, 250, 0.62);
-      }
-      #v4-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: 1fr 1fr;
-        gap: 20px;
-        width: 100%;
-        height: 100%;
-      }
-      .v4-tile {
-        border-radius: 16px;
-        background: rgba(245, 247, 250, 0.04);
-        border: 2px solid rgba(245, 247, 250, 0.08);
-        display: grid;
-        place-items: center;
-        font-size: 38px;
-        font-weight: 800;
-        letter-spacing: 0.1em;
-        color: rgba(245, 247, 250, 0.82);
-      }
-      #v4-ring {
-        position: absolute;
-        border-radius: 16px;
-        border: 3px solid rgba(245, 247, 250, 0.75);
-        width: 400px;
-        height: 484px;
-        left: 40px;
-        top: 92px;
-        opacity: 0;
-      }
-      #v4-years {
-        width: 100%;
-        height: 100%;
-        border-radius: 16px;
-        background: rgba(245, 247, 250, 0.03);
-        border: 1px solid rgba(245, 247, 250, 0.07);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 34px;
-        overflow: hidden;
-      }
-      #v4-year-window {
-        height: 120px;
-        overflow: hidden;
-      }
-      #v4-year-roll {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-      }
-      #v4-year-roll span {
-        font-size: 96px;
-        font-weight: 800;
-        letter-spacing: 0.02em;
-        color: #f5f7fa;
-        line-height: 120px;
-        display: block;
-      }
-      #v4-track {
-        width: 560px;
-        height: 8px;
-        border-radius: 4px;
-        background: rgba(245, 247, 250, 0.09);
-        overflow: hidden;
-      }
-      #v4-fill {
-        display: block;
-        width: 100%;
-        height: 100%;
-        background: rgba(245, 247, 250, 0.55);
-      }
-      #v4-years p {
-        font-size: 21px;
-        font-weight: 500;
-        letter-spacing: 0.16em;
-        color: rgba(245, 247, 250, 0.62);
-      }
-
-      /* Scene 5 */
-      #v5-frame {
-        left: 60px;
-        top: 120px;
-        width: 960px;
-        height: 1290px;
-      }
-      .v5-app {
-        position: absolute;
-        inset: 52px 0 0 0;
-        display: flex;
-        flex-direction: column;
-        gap: 24px;
-        padding: 28px 32px;
-      }
-      #v5-cam-panel {
-        height: 600px;
-        border-radius: 16px;
-        background: linear-gradient(160deg, rgba(245, 247, 250, 0.055), rgba(245, 247, 250, 0.02));
-        border: 1px solid rgba(245, 247, 250, 0.08);
-        position: relative;
-        overflow: hidden;
-      }
-      #v5-live {
-        position: absolute;
-        left: 22px;
-        top: 18px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 17px;
-        font-weight: 700;
-        letter-spacing: 0.18em;
-        color: rgba(245, 247, 250, 0.65);
-      }
-      #v5-live i {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        background: rgba(245, 247, 250, 0.65);
-      }
-      #v5-timer {
-        position: absolute;
-        right: 22px;
-        top: 16px;
-        font-size: 18px;
-        font-weight: 700;
-        color: rgba(245, 247, 250, 0.65);
-        font-variant-numeric: tabular-nums;
-      }
-      #v5-silhouette {
-        position: absolute;
-        left: 50%;
-        bottom: -40px;
-        margin-left: -160px;
-        width: 320px;
-        height: 360px;
-        border-radius: 160px 160px 0 0;
-        background: rgba(245, 247, 250, 0.09);
-      }
-      #v5-silhouette::before {
-        content: "";
-        position: absolute;
-        left: 50%;
-        top: -110px;
-        margin-left: -80px;
-        width: 160px;
-        height: 160px;
-        border-radius: 50%;
-        background: rgba(245, 247, 250, 0.09);
-      }
-      #v5-caption {
-        position: absolute;
-        left: 0;
-        right: 0;
-        bottom: 18px;
-        text-align: center;
-        font-size: 16px;
-        font-weight: 500;
-        letter-spacing: 0.2em;
-        color: rgba(245, 247, 250, 0.62);
-      }
-      #v5-panel-label {
-        font-size: 16px;
-        font-weight: 700;
-        letter-spacing: 0.22em;
-        color: rgba(245, 247, 250, 0.62);
-      }
-      #v5-sharks {
-        display: flex;
-        justify-content: space-between;
-        padding: 0 40px;
-      }
-      .v5-shark {
-        width: 88px;
-        height: 88px;
-        border-radius: 50%;
-        border: 2px solid rgba(245, 247, 250, 0.14);
-        background: rgba(245, 247, 250, 0.05);
-        overflow: hidden;
-        opacity: 0;
-      }
-      .v5-shark img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
-      .v5-meter {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-      }
-      .v5-meter label {
-        font-size: 20px;
-        font-weight: 700;
-        letter-spacing: 0.14em;
-        color: rgba(245, 247, 250, 0.72);
-        display: flex;
-        justify-content: space-between;
-      }
-      .v5-meter label em {
-        font-style: normal;
-        color: rgba(245, 247, 250, 0.62);
-        font-variant-numeric: tabular-nums;
-      }
-      .v5-track {
-        width: 100%;
-        height: 10px;
-        border-radius: 5px;
-        background: rgba(245, 247, 250, 0.08);
-        overflow: hidden;
-      }
-      .v5-fill {
-        display: block;
-        width: 100%;
-        height: 100%;
-        border-radius: 5px;
-        background: rgba(245, 247, 250, 0.35);
-      }
-      #v5-copy {
-        position: absolute;
-        left: 80px;
-        top: 1490px;
-        height: 200px;
-      }
-      .v5-line {
-        position: absolute;
-        left: 0;
-        top: 0;
-        font-size: 47px;
-        font-weight: 800;
-        letter-spacing: -0.02em;
-        line-height: 1.16;
-        color: #f5f7fa;
-        white-space: nowrap;
-      }
-      #v5-l1b {
-        top: 62px;
-      }
-
-      /* Scene 6 */
-      #v6-frame {
-        left: 70px;
-        top: 150px;
-        width: 940px;
-        height: 1150px;
-      }
-      #v6-grid {
-        position: absolute;
-        inset: 52px 0 0 0;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: 1fr 1fr;
-        gap: 24px;
-        padding: 40px 44px;
-      }
-      .v6-card {
-        border-radius: 16px;
-        background: rgba(245, 247, 250, 0.035);
-        border: 1px solid rgba(245, 247, 250, 0.07);
-        padding: 30px 32px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        opacity: 0;
-      }
-      .v6-card h4 {
-        font-size: 21px;
-        font-weight: 700;
-        letter-spacing: 0.2em;
-        color: rgba(245, 247, 250, 0.68);
-      }
-      .v6-card small {
-        font-size: 17px;
-        font-weight: 500;
-        color: rgba(245, 247, 250, 0.6);
-      }
-      .v6-val {
-        display: flex;
-        align-items: baseline;
-        font-size: 50px;
-        font-weight: 800;
-        color: #f5f7fa;
-        font-variant-numeric: tabular-nums;
-        height: 58px;
-        overflow: hidden;
-      }
-      .v6-col {
-        display: inline-block;
-        height: 58px;
-        overflow: hidden;
-      }
-      .v6-stack {
-        display: block;
-      }
-      .v6-digit,
-      .v6-static {
-        display: block;
-        line-height: 58px;
-        height: 58px;
-      }
-      .v6-static {
-        display: inline-block;
-      }
-      #v6-event {
-        visibility: hidden;
-        position: absolute;
-        left: 60px;
-        right: 60px;
-        top: 210px;
-        bottom: 250px;
-        border-radius: 20px;
-        background: #101a30;
-        border: 1px solid rgba(245, 247, 250, 0.12);
-        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
-        padding: 44px 48px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        opacity: 0;
-      }
-      #v6-event-tag {
-        font-size: 18px;
-        font-weight: 700;
-        letter-spacing: 0.24em;
-        color: rgba(245, 247, 250, 0.62);
-      }
-      #v6-event h3 {
-        font-size: 44px;
-        font-weight: 800;
-        letter-spacing: -0.01em;
-        line-height: 1.18;
-        color: #f5f7fa;
-        max-width: 640px;
-      }
-      #v6-event-actions {
-        display: flex;
-        gap: 16px;
-        flex-wrap: wrap;
-      }
-      .v6-btn {
-        font-size: 23px;
-        font-weight: 800;
-        border-radius: 14px;
-        padding: 17px 30px;
-        letter-spacing: 0.02em;
-      }
-      #v6-btn-primary {
-        background: #ff6b00;
-        color: #0a0f1e;
-      }
-      #v6-btn-secondary {
-        background: transparent;
-        border: 2px solid rgba(245, 247, 250, 0.18);
-        color: rgba(245, 247, 250, 0.7);
-      }
-      #v6-copy {
-        position: absolute;
-        left: 0;
-        right: 0;
-        top: 1450px;
-        text-align: center;
-      }
-      .v6-line {
-        font-size: 47px;
-        font-weight: 800;
-        letter-spacing: -0.02em;
-        line-height: 1.24;
-        color: #f5f7fa;
-        white-space: nowrap;
-      }
-
-      /* Scene 7 */
-      #v7-top,
-      #v7-bottom {
-        position: absolute;
-        left: 0;
-        right: 0;
-        height: 50%;
-        display: grid;
-        place-items: center;
-      }
-      #v7-top {
-        top: 0;
-      }
-      #v7-bottom {
-        bottom: 0;
-      }
-      #v7-top h1 {
-        font-size: 124px;
-        font-weight: 800;
-        letter-spacing: -0.02em;
-        color: #f5f7fa;
-      }
-      #v7-bottom h1 {
-        font-size: 124px;
-        font-weight: 800;
-        letter-spacing: -0.02em;
-        color: rgba(245, 247, 250, 0.4);
-      }
-      #v7-divider {
-        position: absolute;
-        left: 220px;
-        top: 958px;
-        width: 640px;
-        height: 4px;
-        border-radius: 2px;
-        background: #ff6b00;
-        opacity: 0;
-      }
-      #v7-final {
-        position: absolute;
-        inset: 0 90px;
-        display: grid;
-        place-items: center;
-        text-align: center;
-      }
-      #v7-final h1 {
-        font-size: 78px;
-        font-weight: 800;
-        letter-spacing: -0.02em;
-        line-height: 1.12;
-        color: #f5f7fa;
-        max-width: 860px;
-      }
-
-      /* Scene 8 */
-      #v8-stack {
-        position: absolute;
-        inset: 0 80px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 34px;
-        text-align: center;
-      }
-      #v8-line1 {
-        font-size: 96px;
-        font-weight: 800;
-        letter-spacing: -0.02em;
-        line-height: 1.06;
-        color: #f5f7fa;
-        max-width: 880px;
-      }
-      #v8-line2 {
-        font-size: 52px;
-        font-weight: 800;
-        letter-spacing: 0.02em;
-        color: #ff6b00;
-        opacity: 0;
-      }
-      #v8-shark {
-        position: absolute;
-        right: 70px;
-        bottom: 90px;
-        width: 260px;
-        height: auto;
-        opacity: 0;
-      }
-      #v8-qr {
-        position: absolute;
-        left: 80px;
-        bottom: 110px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 14px;
-        opacity: 0;
-      }
-      #v8-qr img {
-        width: 180px;
-        height: 180px;
-        display: block;
-      }
-      #v8-qr small {
-        font-size: 17px;
-        font-weight: 500;
-        letter-spacing: 0.14em;
-        color: rgba(245, 247, 250, 0.6);
-      }
-      #v8-fade {
-        position: absolute;
-        inset: 0;
-        background: #000000;
-        opacity: 0;
-        pointer-events: none;
+        will-change: transform, opacity, filter;
       }
     </style>
   </head>
   <body>
-    <div
-      id="root"
-      data-composition-id="main-vertical"
-      data-start="0"
-      data-duration="55"
-      data-width="1080"
-      data-height="1920"
-      data-fps="30"
-    >
-      <div id="v-bg"></div>
+    <div data-hf-id="hf-51vn" id="root" data-composition-id="main" data-start="0" data-duration="96" data-width="1080" data-height="1920" data-fps="30">
+      <div data-hf-id="hf-1rt5" id="stage"></div>
 
-      <!-- Scene 1 — cold open (0–4) -->
-      <section id="v-s1" class="clip" data-start="0" data-duration="4" data-track-index="1">
-        <div class="vcam" id="v1-cam">
-          <div id="v1-dot"></div>
-          <div id="v1-line-wrap">
-            <h1 id="v1-line">
-              <span class="vw v1-w">Every</span>
-              <span class="vw v1-w">founder</span>
-              <span class="vw v1-w">starts</span>
-              <span class="vw v1-w">at</span>
-              <span class="vw v1-w" id="v1-zero">zero</span><span id="v1-period"></span>
-            </h1>
-          </div>
-        </div>
-      </section>
+      <!-- v3: 12 scenes, adjacent windows; boundaries 8/14/22/34/44/48/60/66/76/82/88. -->
+      <div data-hf-id="hf-9i5x" id="el-sc01" data-composition-id="sc01-search" data-composition-src="compositions/sc01-search.html" data-start="0" data-duration="8" data-track-index="1" data-width="1080" data-height="1920"></div>
+      <div data-hf-id="hf-vchk" id="el-sc02" data-composition-id="sc02-reveal" data-composition-src="compositions/sc02-reveal.html" data-start="8" data-duration="6" data-track-index="1" data-width="1080" data-height="1920"></div>
+      <div data-hf-id="hf-4xty" id="el-sc03" data-composition-id="sc03-devices" data-composition-src="compositions/sc03-devices.html" data-start="14" data-duration="8" data-track-index="1" data-width="1080" data-height="1920"></div>
+      <div data-hf-id="hf-v6s7" id="el-sc04" data-composition-id="sc04-loop" data-composition-src="compositions/sc04-loop.html" data-start="22" data-duration="12" data-track-index="1" data-width="1080" data-height="1920"></div>
+      <div data-hf-id="hf-wegx" id="el-sc05" data-composition-id="sc05-lifesim" data-composition-src="compositions/sc05-lifesim.html" data-start="34" data-duration="10" data-track-index="1" data-width="1080" data-height="1920"></div>
+      <div data-hf-id="hf-ibvo" id="el-sc06" data-composition-id="sc06-hook" data-composition-src="compositions/sc06-hook.html" data-start="44" data-duration="4" data-track-index="1" data-width="1080" data-height="1920"></div>
+      <div data-hf-id="hf-f7ik" id="el-sc07" data-composition-id="sc07-tank" data-composition-src="compositions/sc07-tank.html" data-start="48" data-duration="12" data-track-index="1" data-width="1080" data-height="1920"></div>
+      <div data-hf-id="hf-638s" id="el-sc08" data-composition-id="sc08-levelup" data-composition-src="compositions/sc08-levelup.html" data-start="60" data-duration="6" data-track-index="1" data-width="1080" data-height="1920"></div>
+      <div data-hf-id="hf-dyk0" id="el-sc12" data-composition-id="sc12-closet" data-composition-src="compositions/sc12-closet.html" data-start="66" data-duration="10" data-track-index="1" data-width="1080" data-height="1920"></div>
+      <div data-hf-id="hf-zc9y" id="el-sc09" data-composition-id="sc09-montage" data-composition-src="compositions/sc09-montage.html" data-start="76" data-duration="6" data-track-index="1" data-width="1080" data-height="1920"></div>
+      <div data-hf-id="hf-tfbj" id="el-sc10" data-composition-id="sc10-build" data-composition-src="compositions/sc10-build.html" data-start="82" data-duration="6" data-track-index="1" data-width="1080" data-height="1920"></div>
+      <div data-hf-id="hf-lnrc" id="el-sc11" data-composition-id="sc11-cta" data-composition-src="compositions/sc11-cta.html" data-start="88" data-duration="8" data-track-index="1" data-width="1080" data-height="1920"></div>
 
-      <!-- Scene 2 — the taunt (4–9) -->
-      <section id="v-s2" class="clip" data-start="4" data-duration="5" data-track-index="1">
-        <div class="vcam" id="v2-cam">
-          <div class="v2-beat" id="v2-beat1">
-            <h1>
-              <span class="vw v2-w1">You've</span>
-              <span class="vw v2-w1">watched</span>
-              <span class="vw v2-w1">a</span>
-              <span class="vw v2-w1">hundred</span>
-              <span class="vw v2-w1">startup</span>
-              <span class="vw v2-w1">videos.</span>
-            </h1>
-          </div>
-          <div class="v2-beat" id="v2-beat2">
-            <h1>
-              <span class="vw v2-w2">You've</span>
-              <span class="vw v2-w2">built</span>
-              <span class="vw v2-w2" id="v2-zero">zero</span>
-              <span class="vw v2-w2">companies.</span>
-            </h1>
-          </div>
-          <p id="v2-support">You can't learn to ride a bike from YouTube.</p>
-        </div>
-      </section>
+      <!-- ============ AUDIO (v3 — varied, no back-to-back repeats) ============ -->
+      <audio data-hf-id="hf-8bz0" id="au-music" src="assets/music.mp3" data-start="0" data-duration="96" data-track-index="20" data-volume="0.9"></audio>
 
-      <!-- Scene 3 — reveal (9–13) -->
-      <section id="v-s3" class="clip" data-start="9" data-duration="4" data-track-index="1">
-        <div class="vcam" id="v3-cam">
-          <div id="v3-lockup">
-            <div id="v3-wordmark">NOVUS</div>
-            <div id="v3-rule"></div>
-            <p id="v3-tagline">The entrepreneurship life simulator.</p>
-          </div>
-          <img id="v3-shark" src="assets/shark.png" alt="" />
-        </div>
-      </section>
+      <!-- Seam whooshes (alternating variants) -->
+      <audio data-hf-id="hf-ss85" id="au-wh-s2" src="assets/sfx/whoosh-cinematic.mp3" data-start="7.55" data-duration="2.0" data-track-index="21" data-volume="0.55"></audio>
+      <audio data-hf-id="hf-p34l" id="au-wh-s3" src="assets/sfx/whoosh.mp3" data-start="13.7" data-duration="0.57" data-track-index="21" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-8c5g" id="au-wh-s4" src="assets/sfx/whoosh-hi.mp3" data-start="21.7" data-duration="0.5" data-track-index="21" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-x42p" id="au-wh-s5" src="assets/sfx/whoosh.mp3" data-start="33.7" data-duration="0.57" data-track-index="21" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-rpjx" id="au-wh-s6" src="assets/sfx/whoosh-cinematic.mp3" data-start="43.55" data-duration="2.0" data-track-index="21" data-volume="0.6"></audio>
+      <audio data-hf-id="hf-485g" id="au-wh-s7" src="assets/sfx/whoosh-lo.mp3" data-start="47.7" data-duration="0.68" data-track-index="21" data-volume="0.52"></audio>
+      <audio data-hf-id="hf-epm8" id="au-wh-s8" src="assets/sfx/whoosh.mp3" data-start="59.7" data-duration="0.57" data-track-index="21" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-msyc" id="au-wh-s12" src="assets/sfx/whoosh-hi.mp3" data-start="65.7" data-duration="0.5" data-track-index="21" data-volume="0.48"></audio>
+      <audio data-hf-id="hf-zg1z" id="au-wh-s9" src="assets/sfx/whoosh.mp3" data-start="75.7" data-duration="0.57" data-track-index="21" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-bov8" id="au-wh-s10" src="assets/sfx/whoosh-lo.mp3" data-start="81.7" data-duration="0.68" data-track-index="21" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-ny0h" id="au-wh-s11" src="assets/sfx/whoosh-cinematic.mp3" data-start="87.55" data-duration="2.0" data-track-index="21" data-volume="0.6"></audio>
 
-      <!-- Scene 4 — start a company (13–22) -->
-      <section id="v-s4" class="clip" data-start="13" data-duration="9" data-track-index="1">
-        <div class="vcam" id="v4-cam">
-          <h2 class="v4-line" id="v4-l1">
-            <span class="vw v4-wl1">Found</span>
-            <span class="vw v4-wl1">a</span>
-            <span class="vw v4-wl1">company.</span>
-          </h2>
-          <h2 class="v4-line" id="v4-l2">
-            <span class="vw v4-wl2">Pick</span>
-            <span class="vw v4-wl2">your</span>
-            <span class="vw v4-wl2">industry.</span>
-          </h2>
-          <h2 class="v4-line" id="v4-l3">
-            <span class="vw v4-wl3">Live</span>
-            <span class="vw v4-wl3">it,</span>
-            <span class="vw v4-wl3">year</span>
-            <span class="vw v4-wl3">by</span>
-            <span class="vw v4-wl3">year.</span>
-          </h2>
+      <!-- Impacts on drops -->
+      <audio data-hf-id="hf-hbde" id="au-imp-8" src="assets/sfx/impact-bass-1.mp3" data-start="8" data-duration="2.1" data-track-index="22" data-volume="0.75"></audio>
+      <audio data-hf-id="hf-0gzo" id="au-imp-44" src="assets/sfx/impact-bass-2.mp3" data-start="44" data-duration="2.5" data-track-index="22" data-volume="0.7"></audio>
+      <audio data-hf-id="hf-pvec" id="au-imp-48" src="assets/sfx/impact-bass-1.mp3" data-start="48" data-duration="2.1" data-track-index="22" data-volume="0.8"></audio>
+      <audio data-hf-id="hf-ijzs" id="au-imp-60" src="assets/sfx/impact-bass-2.mp3" data-start="60" data-duration="2.5" data-track-index="22" data-volume="0.7"></audio>
+      <audio data-hf-id="hf-gj84" id="au-imp-88" src="assets/sfx/impact-bass-1.mp3" data-start="88" data-duration="2.1" data-track-index="22" data-volume="0.8"></audio>
+      <audio data-hf-id="hf-6l79" id="au-imp-92" src="assets/sfx/impact-bass-2.mp3" data-start="92" data-duration="2.5" data-track-index="22" data-volume="0.8"></audio>
 
-          <div id="v4-chips">
-            <div class="v4-chip" id="v4-chip-food">FOOD</div>
-            <div class="v4-chip" id="v4-chip-tech">TECH</div>
-            <div class="v4-chip" id="v4-chip-fashion">FASHION</div>
-            <div class="v4-chip" id="v4-chip-gaming">GAMING</div>
-          </div>
+      <!-- sc01 search: alternating typing textures + clicks -->
+      <audio data-hf-id="hf-utq3" id="au-ty-1" src="assets/sfx/typing.mp3" data-start="0.5" data-duration="1.2" data-track-index="23" data-volume="0.6"></audio>
+      <audio data-hf-id="hf-il50" id="au-ty-2" src="assets/sfx/typing-hi.mp3" data-start="2.05" data-duration="0.85" data-track-index="23" data-volume="0.55"></audio>
+      <audio data-hf-id="hf-c1wz" id="au-ty-3" src="assets/sfx/typing.mp3" data-start="3.25" data-duration="0.75" data-track-index="23" data-volume="0.6"></audio>
+      <audio data-hf-id="hf-txrx" id="au-ty-4" src="assets/sfx/typing-hi.mp3" data-start="4.35" data-duration="0.65" data-track-index="23" data-volume="0.55"></audio>
+      <audio data-hf-id="hf-79q6" id="au-ty-5" src="assets/sfx/typing.mp3" data-start="5.3" data-duration="0.65" data-track-index="23" data-volume="0.6"></audio>
+      <audio data-hf-id="hf-sp6h" id="au-ty-6" src="assets/sfx/typing-hi.mp3" data-start="6.3" data-duration="0.8" data-track-index="23" data-volume="0.6"></audio>
+      <audio data-hf-id="hf-kped" id="au-cl-1" src="assets/sfx/click.mp3" data-start="1.78" data-duration="0.18" data-track-index="24" data-volume="0.7"></audio>
+      <audio data-hf-id="hf-ovr8" id="au-cl-2" src="assets/sfx/click-soft.mp3" data-start="2.98" data-duration="0.36" data-track-index="24" data-volume="0.7"></audio>
+      <audio data-hf-id="hf-zuit" id="au-cl-3" src="assets/sfx/click.mp3" data-start="4.08" data-duration="0.18" data-track-index="24" data-volume="0.7"></audio>
+      <audio data-hf-id="hf-sld0" id="au-cl-4" src="assets/sfx/click-soft.mp3" data-start="5.08" data-duration="0.36" data-track-index="24" data-volume="0.7"></audio>
+      <audio data-hf-id="hf-ix1b" id="au-cl-5" src="assets/sfx/click-hi.mp3" data-start="6.05" data-duration="0.15" data-track-index="24" data-volume="0.7"></audio>
+      <audio data-hf-id="hf-zpou" id="au-cl-6" src="assets/sfx/click.mp3" data-start="7.12" data-duration="0.18" data-track-index="24" data-volume="0.7"></audio>
+      <audio data-hf-id="hf-z2c0" id="au-res-pop" src="assets/sfx/pop.mp3" data-start="7.28" data-duration="0.5" data-track-index="25" data-volume="0.55"></audio>
+      <audio data-hf-id="hf-w4lp" id="au-cl-go" src="assets/sfx/click.mp3" data-start="7.62" data-duration="0.18" data-track-index="24" data-volume="0.85"></audio>
 
-          <div class="vframe" id="v4-frame">
-            <div class="vchrome">
-              <i></i><i></i><i></i>
-              <div class="vurl">novuspitch.com/found</div>
-            </div>
-            <div class="v4-phase" id="v4-phase-a">
-              <div id="v4-founder-card">
-                <div id="v4-avatar">M</div>
-                <h3>Marrow &amp; Co</h3>
-                <p>FOUNDER &middot; FY 1 &middot; GARAGE</p>
-              </div>
-            </div>
-            <div class="v4-phase" id="v4-phase-b">
-              <div id="v4-grid">
-                <div class="v4-tile">FOOD</div>
-                <div class="v4-tile">TECH</div>
-                <div class="v4-tile">FASHION</div>
-                <div class="v4-tile">GAMING</div>
-              </div>
-            </div>
-            <div id="v4-ring"></div>
-            <div class="v4-phase" id="v4-phase-c">
-              <div id="v4-years">
-                <div id="v4-year-window" data-layout-ignore>
-                  <div id="v4-year-roll">
-                    <span>YEAR 1</span>
-                    <span>YEAR 2</span>
-                  </div>
-                </div>
-                <div id="v4-track"><span id="v4-fill"></span></div>
-                <p>12 MONTHS &middot; ONE SHOT EACH</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <!-- sc02 reveal -->
+      <audio data-hf-id="hf-5qwj" id="au-fin-pop" src="assets/sfx/pop-hi.mp3" data-start="8.75" data-duration="0.55" data-track-index="25" data-volume="0.6"></audio>
+      <audio data-hf-id="hf-u314" id="au-splash" src="assets/sfx/splash.mp3" data-start="10.15" data-duration="1.6" data-track-index="25" data-volume="0.5"></audio>
 
-      <!-- Scene 5 — pitch the sharks (22–32) -->
-      <section id="v-s5" class="clip" data-start="22" data-duration="10" data-track-index="1">
-        <div class="vcam" id="v5-cam">
-          <div class="vframe" id="v5-frame">
-            <div class="vchrome">
-              <i></i><i></i><i></i>
-              <div class="vurl">novuspitch.com/the-tank</div>
-            </div>
-            <div class="v5-app">
-              <div id="v5-cam-panel">
-                <div id="v5-live"><i></i>LIVE</div>
-                <div id="v5-timer">0:47</div>
-                <div id="v5-silhouette"></div>
-                <div id="v5-caption">YOUR PITCH &middot; CAMERA ON</div>
-              </div>
-              <div id="v5-panel-label">THE TANK &middot; 5 SHARKS WATCHING</div>
-              <div id="v5-sharks">
-                <div class="v5-shark"><img src="assets/sharks/viktor.webp" alt="" /></div>
-                <div class="v5-shark"><img src="assets/sharks/serena.webp" alt="" /></div>
-                <div class="v5-shark"><img src="assets/sharks/marcus.webp" alt="" /></div>
-                <div class="v5-shark"><img src="assets/sharks/lily.webp" alt="" /></div>
-                <div class="v5-shark"><img src="assets/sharks/dev.webp" alt="" /></div>
-              </div>
-              <div class="v5-meter">
-                <label>EYE CONTACT <em>61</em></label>
-                <div class="v5-track"><span class="v5-fill" id="v5-eye-fill"></span></div>
-              </div>
-              <div class="v5-meter">
-                <label>TONE <em>54</em></label>
-                <div class="v5-track"><span class="v5-fill" id="v5-tone-fill"></span></div>
-              </div>
-              <div class="v5-meter">
-                <label>FILLER WORDS <em>12</em></label>
-                <div class="v5-track"><span class="v5-fill" id="v5-filler-fill"></span></div>
-              </div>
-            </div>
-          </div>
+      <!-- sc03 devices -->
+      <audio data-hf-id="hf-s93o" id="au-lap-open" src="assets/sfx/whoosh-short.mp3" data-start="15.1" data-duration="0.57" data-track-index="25" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-f8tg" id="au-ph-in" src="assets/sfx/pop.mp3" data-start="17.35" data-duration="0.6" data-track-index="25" data-volume="0.55"></audio>
+      <audio data-hf-id="hf-9nfg" id="au-adv3" src="assets/sfx/click.mp3" data-start="19.6" data-duration="0.18" data-track-index="24" data-volume="0.7"></audio>
+      <audio data-hf-id="hf-2ewt" id="au-adv3-tick" src="assets/sfx/activity.mp3" data-start="19.78" data-duration="1.0" data-track-index="26" data-volume="0.4"></audio>
 
-          <div id="v5-copy">
-            <h2 class="v5-line" id="v5-l1">
-              <span class="vw v5-wl1">Pitch</span>
-              <span class="vw v5-wl1">real</span>
-              <span class="vw v5-wl1">investors.</span>
-            </h2>
-            <h2 class="v5-line" id="v5-l1b">
-              <span class="vw v5-wl1b">Well</span>
-              <span class="vw v5-wl1b">&mdash;</span>
-              <span class="vw v5-wl1b">five</span>
-              <span class="vw v5-wl1b">AI</span>
-              <span class="vw v5-wl1b">sharks.</span>
-            </h2>
-            <h2 class="v5-line" id="v5-l2">
-              <span class="vw v5-wl2">They</span>
-              <span class="vw v5-wl2">read</span>
-              <span class="vw v5-wl2">your</span>
-              <span class="vw v5-wl2">eye</span>
-              <span class="vw v5-wl2">contact.</span>
-            </h2>
-            <h2 class="v5-line" id="v5-l3">
-              <span class="vw v5-wl3">Your</span>
-              <span class="vw v5-wl3">tone.</span>
-            </h2>
-            <h2 class="v5-line" id="v5-l4">
-              <span class="vw v5-wl4">Every</span>
-              <span class="vw v5-wl4">filler</span>
-              <span class="vw v5-wl4">word.</span>
-            </h2>
-          </div>
-        </div>
-      </section>
+      <!-- sc04 gameplay loop (starts 22; internals +2s: title beat first) -->
+      <audio data-hf-id="hf-8u16" id="au-title4" src="assets/sfx/chime-lo.mp3" data-start="22.45" data-duration="1.4" data-track-index="25" data-volume="0.45"></audio>
+      <audio data-hf-id="hf-0lou" id="au-founder" src="assets/sfx/success.mp3" data-start="25.1" data-duration="0.74" data-track-index="25" data-volume="0.6"></audio>
+      <audio data-hf-id="hf-yh0c" id="au-industry" src="assets/sfx/tab.mp3" data-start="26.7" data-duration="1.2" data-track-index="25" data-volume="0.55"></audio>
+      <audio data-hf-id="hf-c71x" id="au-event" src="assets/sfx/notification.mp3" data-start="28.2" data-duration="1.6" data-track-index="25" data-volume="0.6"></audio>
+      <audio data-hf-id="hf-m02x" id="au-decide" src="assets/sfx/click.mp3" data-start="30.05" data-duration="0.18" data-track-index="24" data-volume="0.8"></audio>
+      <audio data-hf-id="hf-j602" id="au-money-1" src="assets/sfx/money.mp3" data-start="30.55" data-duration="1.7" data-track-index="25" data-volume="0.6"></audio>
+      <audio data-hf-id="hf-1rmy" id="au-xp-1" src="assets/sfx/sparkle.mp3" data-start="32.5" data-duration="1.3" data-track-index="25" data-volume="0.5"></audio>
 
-      <!-- Scene 6 — run the numbers (32–40) -->
-      <section id="v-s6" class="clip" data-start="32" data-duration="8" data-track-index="1">
-        <div class="vcam" id="v6-cam">
-          <div class="vframe" id="v6-frame">
-            <div class="vchrome">
-              <i></i><i></i><i></i>
-              <div class="vurl">novuspitch.com/books</div>
-            </div>
-            <div id="v6-grid">
-              <div class="v6-card" id="v6-card-cash">
-                <h4>CASH</h4>
-                <div class="v6-val" id="v6-cash-val" data-layout-ignore data-final="$184,200"></div>
-                <small>money in the bank right now.</small>
-              </div>
-              <div class="v6-card" id="v6-card-burn">
-                <h4>BURN</h4>
-                <div class="v6-val" id="v6-burn-val" data-layout-ignore data-final="$12,400"></div>
-                <small>how fast the bank account shrinks.</small>
-              </div>
-              <div class="v6-card" id="v6-card-runway">
-                <h4>RUNWAY</h4>
-                <div class="v6-val" id="v6-runway-val" data-layout-ignore data-final="14 mo"></div>
-                <small>months left before $0.</small>
-              </div>
-              <div class="v6-card" id="v6-card-valuation">
-                <h4>VALUATION</h4>
-                <div class="v6-val" id="v6-valuation-val" data-layout-ignore data-final="$2.4M"></div>
-                <small>the price tag on the whole company.</small>
-              </div>
-            </div>
-            <div id="v6-event" data-layout-allow-occlusion data-layout-allow-overflow>
-              <div id="v6-event-tag">MARKET EVENT &middot; FY 2, MONTH 7</div>
-              <h3>Competitor copies your bestseller.</h3>
-              <div id="v6-event-actions">
-                <div class="v6-btn" id="v6-btn-primary">Ship v2 tonight</div>
-                <div class="v6-btn" id="v6-btn-secondary">Slash prices</div>
-              </div>
-            </div>
-          </div>
+      <!-- sc05 life-sim (starts 34; internals +2s) -->
+      <audio data-hf-id="hf-uq96" id="au-unlock-ph" src="assets/sfx/unlock.mp3" data-start="36.7" data-duration="1.6" data-track-index="25" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-itrc" id="au-advance" src="assets/sfx/activity.mp3" data-start="38.75" data-duration="1.03" data-track-index="25" data-volume="0.65"></audio>
+      <audio data-hf-id="hf-ed05" id="au-books" src="assets/sfx/money-lo.mp3" data-start="40.4" data-duration="1.9" data-track-index="25" data-volume="0.55"></audio>
+      <audio data-hf-id="hf-xrtf" id="au-year2" src="assets/sfx/chime.mp3" data-start="42.5" data-duration="1.4" data-track-index="25" data-volume="0.5"></audio>
 
-          <div id="v6-copy">
-            <h2 class="v6-line" id="v6-la">
-              <span class="vw v6-wa">The</span>
-              <span class="vw v6-wa">market</span>
-              <span class="vw v6-wa">doesn't</span>
-              <span class="vw v6-wa">wait</span>
-            </h2>
-            <h2 class="v6-line" id="v6-lb">
-              <span class="vw v6-wb">for</span>
-              <span class="vw v6-wb">you</span>
-              <span class="vw v6-wb">to</span>
-              <span class="vw v6-wb">feel</span>
-              <span class="vw v6-wb">ready.</span>
-            </h2>
-          </div>
-        </div>
-      </section>
+      <!-- sc06 → sc07: riser into the tank -->
+      <audio data-hf-id="hf-ssre" id="au-riser-tank" src="assets/sfx/riser.mp3" data-start="45.9" data-duration="2.1" data-media-start="7.6" data-track-index="25" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-kngm" id="au-sting" src="assets/sfx/tank-sting.mp3" data-start="48.05" data-duration="4.0" data-track-index="27" data-volume="0.7"></audio>
+      <audio data-hf-id="hf-q8dt" id="au-ambient" src="assets/sfx/tank-ambient.mp3" data-start="48.2" data-duration="11.6" data-track-index="28" data-volume="0.22"></audio>
 
-      <!-- Scene 7 — stakes (40–47) -->
-      <section id="v-s7" class="clip" data-start="40" data-duration="7" data-track-index="1">
-        <div class="vcam" id="v7-cam">
-          <div id="v7-top">
-            <h1><span class="vw v7-wt">IPO.</span></h1>
-          </div>
-          <div id="v7-bottom">
-            <h1><span class="vw v7-wb">Chapter</span> <span class="vw v7-wb">7.</span></h1>
-          </div>
-          <div id="v7-divider"></div>
-          <div id="v7-final">
-            <h1>
-              <span class="vw v7-wf">Years</span>
-              <span class="vw v7-wf">only</span>
-              <span class="vw v7-wf">pass</span>
-              <span class="vw v7-wf">when</span>
-              <span class="vw v7-wf">you</span>
-              <span class="vw v7-wf">perform.</span>
-            </h1>
-          </div>
-        </div>
-      </section>
+      <!-- sc07 pitch beats (starts 48; internals unchanged) -->
+      <audio data-hf-id="hf-nmyn" id="au-panel" src="assets/sfx/pop-lo.mp3" data-start="52.2" data-duration="0.65" data-track-index="25" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-8kn2" id="au-eye-up" src="assets/sfx/sparkle.mp3" data-start="54.6" data-duration="1.3" data-track-index="25" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-c559" id="au-filler" src="assets/sfx/error.mp3" data-start="56.55" data-duration="1.0" data-track-index="25" data-volume="0.42"></audio>
+      <audio data-hf-id="hf-lpxr" id="au-score" src="assets/sfx/chime-hi.mp3" data-start="58.15" data-duration="1.4" data-track-index="25" data-volume="0.55"></audio>
 
-      <!-- Scene 8 — CTA (47–55) -->
-      <section id="v-s8" class="clip" data-start="47" data-duration="8" data-track-index="1">
-        <div class="vcam" id="v8-cam">
-          <div id="v8-stack">
-            <h1 id="v8-line1">
-              <span class="vw v8-w">Will</span>
-              <span class="vw v8-w">you</span>
-              <span class="vw v8-w">be</span>
-              <span class="vw v8-w">ready?</span>
-            </h1>
-            <div id="v8-line2">novuspitch.com</div>
-          </div>
-          <img id="v8-shark" src="assets/shark.png" alt="" />
-          <div id="v8-qr">
-            <img src="assets/qr-novuspitch.svg" alt="" />
-            <small>SCAN TO PLAY</small>
-          </div>
-        </div>
-        <div id="v8-fade"></div>
-      </section>
+      <!-- sc08 level up (starts 60, 6s) -->
+      <audio data-hf-id="hf-68eu" id="au-fill" src="assets/sfx/bonus.mp3" data-start="61.3" data-duration="1.2" data-track-index="25" data-volume="0.55"></audio>
+      <audio data-hf-id="hf-0h05" id="au-flash" src="assets/sfx/celebrate.mp3" data-start="62.55" data-duration="1.7" data-track-index="25" data-volume="0.65"></audio>
+      <audio data-hf-id="hf-sfoa" id="au-fy2" src="assets/sfx/unlock.mp3" data-start="64.35" data-duration="1.6" data-track-index="26" data-volume="0.55"></audio>
+      <audio data-hf-id="hf-8ncb" id="au-val-roll" src="assets/sfx/money.mp3" data-start="64.7" data-duration="1.3" data-track-index="25" data-volume="0.55"></audio>
+
+      <!-- sc12 the closet: chest + skins + friends (starts 66) -->
+      <audio data-hf-id="hf-11je" id="au-chest-thud" src="assets/sfx/impact-bass-2.mp3" data-start="66.9" data-duration="1.4" data-track-index="26" data-volume="0.35"></audio>
+      <audio data-hf-id="hf-bqqt" id="au-shake-1" src="assets/sfx/click-soft.mp3" data-start="67.35" data-duration="0.36" data-track-index="24" data-volume="0.55"></audio>
+      <audio data-hf-id="hf-t5p6" id="au-shake-2" src="assets/sfx/click-soft.mp3" data-start="67.75" data-duration="0.36" data-track-index="24" data-volume="0.6"></audio>
+      <audio data-hf-id="hf-pzzk" id="au-chest-open" src="assets/sfx/unlock.mp3" data-start="68.2" data-duration="1.8" data-track-index="25" data-volume="0.6"></audio>
+      <audio data-hf-id="hf-mq3s" id="au-skins-fan" src="assets/sfx/sparkle.mp3" data-start="68.65" data-duration="1.6" data-track-index="26" data-volume="0.55"></audio>
+      <audio data-hf-id="hf-c5e4" id="au-card-1" src="assets/sfx/key-press.mp3" data-start="68.9" data-duration="0.24" data-track-index="24" data-volume="0.55"></audio>
+      <audio data-hf-id="hf-vwz8" id="au-card-2" src="assets/sfx/key-press.mp3" data-start="69.16" data-duration="0.24" data-track-index="24" data-volume="0.55"></audio>
+      <audio data-hf-id="hf-ry12" id="au-card-3" src="assets/sfx/key-press.mp3" data-start="69.42" data-duration="0.24" data-track-index="24" data-volume="0.55"></audio>
+      <audio data-hf-id="hf-lq9f" id="au-equip" src="assets/sfx/success.mp3" data-start="70.5" data-duration="0.74" data-track-index="25" data-volume="0.6"></audio>
+      <audio data-hf-id="hf-za4n" id="au-friends-in" src="assets/sfx/chime-lo.mp3" data-start="71.9" data-duration="1.35" data-track-index="25" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-epmo" id="au-rank-up" src="assets/sfx/bonus.mp3" data-start="73.3" data-duration="1.2" data-track-index="25" data-volume="0.55"></audio>
+      <audio data-hf-id="hf-57eo" id="au-crown" src="assets/sfx/sparkle.mp3" data-start="74.35" data-duration="1.4" data-track-index="26" data-volume="0.45"></audio>
+
+      <!-- sc09 UI montage (starts 76) -->
+      <audio data-hf-id="hf-tc87" id="au-adv-click" src="assets/sfx/click.mp3" data-start="77.55" data-duration="0.18" data-track-index="24" data-volume="0.8"></audio>
+      <audio data-hf-id="hf-1z7z" id="au-adv-wh" src="assets/sfx/whoosh-short.mp3" data-start="77.65" data-duration="0.57" data-track-index="25" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-objn" id="au-pitch-tab" src="assets/sfx/tab.mp3" data-start="79.1" data-duration="1.2" data-track-index="25" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-un4b" id="au-rotate" src="assets/sfx/whoosh-short-hi.mp3" data-start="80.6" data-duration="0.5" data-track-index="25" data-volume="0.45"></audio>
+
+      <!-- sc10 build montage hits (starts 82, varied) -->
+      <audio data-hf-id="hf-39nw" id="au-b1" src="assets/sfx/pop.mp3" data-start="82.9" data-duration="0.5" data-track-index="25" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-upyn" id="au-b2" src="assets/sfx/click-soft.mp3" data-start="83.7" data-duration="0.36" data-track-index="25" data-volume="0.55"></audio>
+      <audio data-hf-id="hf-2014" id="au-b3" src="assets/sfx/pop-hi.mp3" data-start="84.5" data-duration="0.45" data-track-index="25" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-m3zc" id="au-b4" src="assets/sfx/key-press.mp3" data-start="85.3" data-duration="0.4" data-track-index="25" data-volume="0.55"></audio>
+
+      <!-- sc11 CTA (starts 88) -->
+      <audio data-hf-id="hf-y46x" id="au-cta-line" src="assets/sfx/success.mp3" data-start="90.4" data-duration="0.74" data-track-index="25" data-volume="0.6"></audio>
+      <audio data-hf-id="hf-32g7" id="au-cta-btn" src="assets/sfx/pop.mp3" data-start="92.7" data-duration="0.6" data-track-index="25" data-volume="0.6"></audio>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
-      (function () {
-        // Odometer digit columns, built synchronously at load (deterministic).
-        var DIGIT_H = 58;
-        ["v6-cash-val", "v6-burn-val", "v6-runway-val", "v6-valuation-val"].forEach(function (id) {
-          var el = document.getElementById(id);
-          if (!el || el.childNodes.length) return;
-          el.getAttribute("data-final").split("").forEach(function (ch) {
-            if (/[0-9]/.test(ch)) {
-              var col = document.createElement("span");
-              col.className = "v6-col";
-              col.setAttribute("data-target", ch);
-              var stack = document.createElement("span");
-              stack.className = "v6-stack";
-              for (var d = 0; d <= 9; d++) {
-                var s = document.createElement("span");
-                s.className = "v6-digit";
-                s.textContent = String(d);
-                stack.appendChild(s);
-              }
-              col.appendChild(stack);
-              el.appendChild(col);
-            } else {
-              var st = document.createElement("span");
-              st.className = "v6-static";
-              st.textContent = ch;
-              el.appendChild(st);
-            }
-          });
-        });
+      const tl = gsap.timeline({ paused: true });
 
-        var tl = gsap.timeline({ paused: true });
-        var WORD_IN = { y: 40, autoAlpha: 0, filter: "blur(6px)" };
-        function wordsTo(stagger) {
-          return { y: 0, autoAlpha: 1, filter: "blur(0px)", duration: 0.9, ease: "expo.out", stagger: stagger };
-        }
+      // Stage ground world flips (light default; navy for reveal + hook/tank act).
+      tl.set("#stage", { backgroundColor: "#0B1E36" }, 7.9);
+      tl.set("#stage", { backgroundColor: "#F7F5F0" }, 14.0);
+      tl.set("#stage", { backgroundColor: "#0B1E36" }, 43.9);
+      tl.set("#stage", { backgroundColor: "#F7F5F0" }, 60.0);
 
-        /* ---------- Scene 1 (0–4) ---------- */
-        tl.fromTo("#v1-cam", { scale: 1.0 }, { scale: 1.04, duration: 4, ease: "power1.inOut" }, 0);
-        tl.fromTo("#v1-dot", { scale: 0, autoAlpha: 1 }, { scale: 1, autoAlpha: 1, duration: 0.55, ease: "back.out(2.5)" }, 0.35);
-        tl.to("#v1-dot", { scale: 1.22, duration: 0.18, ease: "power1.inOut" }, 1.0);
-        tl.to("#v1-dot", { scale: 1.0, duration: 0.18, ease: "power1.inOut" }, 1.18);
-        tl.to("#v1-dot", { scale: 0, autoAlpha: 0, duration: 0.25, ease: "power2.in" }, 1.55);
-        tl.fromTo(".v1-w", WORD_IN, wordsTo(0.12), 1.55);
-        tl.fromTo("#v1-period", { scale: 0, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: 0.45, ease: "back.out(3)" }, 2.55);
+      // <seams:auto> — generated by seam-stamp.mjs from ledger.json; do not hand-edit.
+      // Regenerate: node <motion-doctrine>/scripts/seam-stamp.mjs --ledger ledger.json --write index.html
+      gsap.set("#el-sc01", { autoAlpha: 1, xPercent: 0, yPercent: 0, scale: 1, filter: "blur(0px)", transformOrigin: "50% 50%" });
+      gsap.set(["#el-sc03","#el-sc05","#el-sc07","#el-sc08","#el-sc12","#el-sc09","#el-sc10"], { autoAlpha: 0, xPercent: 0, yPercent: 0, scale: 1, filter: "blur(0px)", transformOrigin: "50% 50%" });
+      gsap.set("#el-sc02", { autoAlpha: 0, scale: 0.78, filter: "blur(18px)", xPercent: 0, yPercent: 0, transformOrigin: "50% 50%" });
+      gsap.set("#el-sc04", { autoAlpha: 0, scale: 0.78, filter: "blur(18px)", xPercent: 0, yPercent: 0, transformOrigin: "50% 50%" });
+      gsap.set("#el-sc06", { autoAlpha: 0, scale: 1.25, filter: "blur(18px)", xPercent: 0, yPercent: 0, transformOrigin: "50% 50%" });
+      gsap.set("#el-sc11", { autoAlpha: 0, scale: 1.25, filter: "blur(18px)", xPercent: 0, yPercent: 0, transformOrigin: "50% 50%" });
+      
+      // SEAM — search→reveal : zoom-through (push) (cut @8)
+      tl.to("#el-sc01", { scale: 1.18, filter: "blur(18px)", duration: 0.21, ease: "power3.in" }, 7.79);
+      tl.to("#el-sc01", { autoAlpha: 0, duration: 0.21, ease: "none" }, 7.79);
+      tl.set("#el-sc01", { autoAlpha: 0 }, 8);
+      tl.fromTo("#el-sc02", { autoAlpha: 0.15, scale: 0.78, filter: "blur(18px)" }, { autoAlpha: 1, scale: 1.0, filter: "blur(0px)", duration: 0.5, ease: "expo.out", immediateRender: false }, 8);
+      
+      // SEAM — reveal→devices : cut-the-curve LEFT (cut @14)
+      tl.to("#el-sc02", { xPercent: -12, autoAlpha: 0, duration: 0.34, ease: "power3.in" }, 13.66);
+      tl.set("#el-sc02", { autoAlpha: 0 }, 14);
+      tl.fromTo("#el-sc03", { xPercent: 10, autoAlpha: 0.35 }, { xPercent: 0, autoAlpha: 1, duration: 0.42, ease: "power4.out", immediateRender: false }, 14);
+      
+      // SEAM — devices→loop : zoom-through (push, into the laptop screen) (cut @22)
+      tl.to("#el-sc03", { scale: 1.18, filter: "blur(18px)", duration: 0.21, ease: "power3.in" }, 21.79);
+      tl.to("#el-sc03", { autoAlpha: 0, duration: 0.21, ease: "none" }, 21.79);
+      tl.set("#el-sc03", { autoAlpha: 0 }, 22);
+      tl.fromTo("#el-sc04", { autoAlpha: 0.15, scale: 0.78, filter: "blur(18px)" }, { autoAlpha: 1, scale: 1.0, filter: "blur(0px)", duration: 0.5, ease: "expo.out", immediateRender: false }, 22);
+      
+      // SEAM — loop→lifesim : cut-the-curve LEFT (cut @34)
+      tl.to("#el-sc04", { xPercent: -12, autoAlpha: 0, duration: 0.34, ease: "power3.in" }, 33.66);
+      tl.set("#el-sc04", { autoAlpha: 0 }, 34);
+      tl.fromTo("#el-sc05", { xPercent: 10, autoAlpha: 0.35 }, { xPercent: 0, autoAlpha: 1, duration: 0.42, ease: "power4.out", immediateRender: false }, 34);
+      
+      // SEAM — lifesim→hook : inverse zoom-through (pull) (cut @44)
+      tl.to("#el-sc05", { scale: 0.8, filter: "blur(18px)", duration: 0.21, ease: "power3.in" }, 43.79);
+      tl.to("#el-sc05", { autoAlpha: 0, duration: 0.21, ease: "none" }, 43.79);
+      tl.set("#el-sc05", { autoAlpha: 0 }, 44);
+      tl.fromTo("#el-sc06", { autoAlpha: 0.15, scale: 1.25, filter: "blur(18px)" }, { autoAlpha: 1, scale: 1.0, filter: "blur(0px)", duration: 0.5, ease: "expo.out", immediateRender: false }, 44);
+      
+      // SEAM — hook→tank : cut-the-curve LEFT (cut @48)
+      tl.to("#el-sc06", { xPercent: -12, autoAlpha: 0, duration: 0.34, ease: "power3.in" }, 47.66);
+      tl.set("#el-sc06", { autoAlpha: 0 }, 48);
+      tl.fromTo("#el-sc07", { xPercent: 10, autoAlpha: 0.35 }, { xPercent: 0, autoAlpha: 1, duration: 0.42, ease: "power4.out", immediateRender: false }, 48);
+      
+      // SEAM — tank→levelup : cut-the-curve UP (cut @60)
+      tl.to("#el-sc07", { yPercent: -12, autoAlpha: 0, duration: 0.34, ease: "power3.in" }, 59.66);
+      tl.set("#el-sc07", { autoAlpha: 0 }, 60);
+      tl.fromTo("#el-sc08", { yPercent: 10, autoAlpha: 0.35 }, { yPercent: 0, autoAlpha: 1, duration: 0.42, ease: "power4.out", immediateRender: false }, 60);
+      
+      // SEAM — levelup→closet : cut-the-curve LEFT (cut @66)
+      tl.to("#el-sc08", { xPercent: -12, autoAlpha: 0, duration: 0.34, ease: "power3.in" }, 65.66);
+      tl.set("#el-sc08", { autoAlpha: 0 }, 66);
+      tl.fromTo("#el-sc12", { xPercent: 10, autoAlpha: 0.35 }, { xPercent: 0, autoAlpha: 1, duration: 0.42, ease: "power4.out", immediateRender: false }, 66);
+      
+      // SEAM — closet→montage : cut-the-curve LEFT (cut @76)
+      tl.to("#el-sc12", { xPercent: -12, autoAlpha: 0, duration: 0.34, ease: "power3.in" }, 75.66);
+      tl.set("#el-sc12", { autoAlpha: 0 }, 76);
+      tl.fromTo("#el-sc09", { xPercent: 10, autoAlpha: 0.35 }, { xPercent: 0, autoAlpha: 1, duration: 0.42, ease: "power4.out", immediateRender: false }, 76);
+      
+      // SEAM — montage→build : cut-the-curve LEFT (cut @82)
+      tl.to("#el-sc09", { xPercent: -12, autoAlpha: 0, duration: 0.34, ease: "power3.in" }, 81.66);
+      tl.set("#el-sc09", { autoAlpha: 0 }, 82);
+      tl.fromTo("#el-sc10", { xPercent: 10, autoAlpha: 0.35 }, { xPercent: 0, autoAlpha: 1, duration: 0.42, ease: "power4.out", immediateRender: false }, 82);
+      
+      // SEAM — build→cta : inverse zoom-through (pull — CTA arrives) (cut @88)
+      tl.to("#el-sc10", { scale: 0.8, filter: "blur(18px)", duration: 0.21, ease: "power3.in" }, 87.79);
+      tl.to("#el-sc10", { autoAlpha: 0, duration: 0.21, ease: "none" }, 87.79);
+      tl.set("#el-sc10", { autoAlpha: 0 }, 88);
+      tl.fromTo("#el-sc11", { autoAlpha: 0.15, scale: 1.25, filter: "blur(18px)" }, { autoAlpha: 1, scale: 1.0, filter: "blur(0px)", duration: 0.5, ease: "expo.out", immediateRender: false }, 88);
+      
+      // </seams:auto>
 
-        /* ---------- Scene 2 (4–9) ---------- */
-        tl.fromTo("#v2-cam", { scale: 1.0 }, { scale: 1.04, duration: 5, ease: "power1.inOut" }, 4);
-        tl.fromTo(".v2-w1", WORD_IN, wordsTo(0.09), 4.15);
-        tl.to("#v2-beat1", { y: -28, autoAlpha: 0, duration: 0.3, ease: "power2.in" }, 6.15);
-        tl.fromTo(".v2-w2", { y: 44, autoAlpha: 0, filter: "blur(6px)" }, wordsTo(0.1), 6.55);
-        tl.to("#v2-beat2", { x: -2, duration: 0.028, ease: "power1.inOut" }, 7.3);
-        tl.to("#v2-beat2", { x: 2, duration: 0.028, ease: "power1.inOut" }, 7.33);
-        tl.to("#v2-beat2", { x: -2, duration: 0.028, ease: "power1.inOut" }, 7.36);
-        tl.to("#v2-beat2", { x: 0, duration: 0.028, ease: "power1.inOut" }, 7.39);
-        tl.fromTo("#v2-support", { y: 20, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.7, ease: "expo.out" }, 7.4);
-
-        /* ---------- Scene 3 (9–13) ---------- */
-        tl.fromTo("#v3-cam", { scale: 1.0 }, { scale: 1.04, duration: 4, ease: "power1.inOut" }, 9);
-        tl.fromTo(
-          "#v3-wordmark",
-          { scale: 1.15, autoAlpha: 0, filter: "blur(10px)", transformOrigin: "center center" },
-          { scale: 1.0, autoAlpha: 1, filter: "blur(0px)", duration: 1.0, ease: "expo.out" },
-          9.55
-        );
-        tl.fromTo(
-          "#v3-rule",
-          { scaleX: 0, autoAlpha: 1, transformOrigin: "center center" },
-          { scaleX: 1, autoAlpha: 1, duration: 0.5, ease: "expo.out" },
-          10.25
-        );
-        tl.fromTo("#v3-shark", { x: 560, autoAlpha: 0 }, { x: 0, autoAlpha: 1, duration: 0.9, ease: "expo.out" }, 10.0);
-        tl.to("#v3-shark", { rotation: -4, scale: 1.05, duration: 0.25, ease: "power1.inOut", transformOrigin: "bottom center" }, 11.25);
-        tl.to("#v3-shark", { rotation: 0, scale: 1.0, duration: 0.3, ease: "power1.inOut" }, 11.55);
-        tl.fromTo("#v3-tagline", { y: 20, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.7, ease: "expo.out" }, 10.8);
-
-        /* ---------- Scene 4 (13–22) ---------- */
-        tl.fromTo("#v4-cam", { scale: 1.0 }, { scale: 1.04, duration: 9, ease: "power1.inOut" }, 13);
-        tl.fromTo(
-          "#v4-frame",
-          { y: 90, autoAlpha: 0, rotationY: -4, scale: 0.97, transformPerspective: 1200 },
-          { y: 0, autoAlpha: 1, rotationY: 0, scale: 1, duration: 1.1, ease: "expo.out" },
-          13.3
-        );
-        tl.fromTo(".v4-wl1", WORD_IN, wordsTo(0.1), 13.5);
-        tl.to("#v4-l1", { y: -28, autoAlpha: 0, duration: 0.3, ease: "power2.in" }, 16.0);
-        tl.fromTo("#v4-phase-a", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.7, ease: "expo.out" }, 13.9);
-        tl.to("#v4-phase-a", { autoAlpha: 0, duration: 0.3, ease: "power2.in" }, 16.3);
-        tl.fromTo(".v4-wl2", WORD_IN, wordsTo(0.1), 16.4);
-        tl.to("#v4-l2", { y: -28, autoAlpha: 0, duration: 0.3, ease: "power2.in" }, 18.9);
-        tl.fromTo("#v4-phase-b", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.7, ease: "expo.out" }, 16.6);
-        tl.fromTo(
-          "#v4-chips > div",
-          { y: 20, autoAlpha: 0 },
-          { y: 0, autoAlpha: 0.55, duration: 0.5, ease: "expo.out", stagger: 0.09 },
-          16.65
-        );
-        tl.fromTo("#v4-ring", { autoAlpha: 0, scale: 0.9 }, { autoAlpha: 1, scale: 1, duration: 0.35, ease: "back.out(2)" }, 17.2);
-        tl.to("#v4-chip-food", { autoAlpha: 1, scale: 1.08, duration: 0.2, ease: "power1.out" }, 17.2);
-        tl.to("#v4-chip-food", { autoAlpha: 0.55, scale: 1, duration: 0.25, ease: "power1.inOut" }, 17.6);
-        tl.to("#v4-ring", { x: 420, duration: 0.35, ease: "expo.out" }, 17.7);
-        tl.to("#v4-chip-tech", { autoAlpha: 1, scale: 1.08, duration: 0.2, ease: "power1.out" }, 17.7);
-        tl.to("#v4-chip-tech", { autoAlpha: 0.55, scale: 1, duration: 0.25, ease: "power1.inOut" }, 18.1);
-        tl.to("#v4-ring", { x: 0, y: 504, duration: 0.35, ease: "expo.out" }, 18.2);
-        tl.to("#v4-chip-fashion", { autoAlpha: 1, scale: 1.08, duration: 0.2, ease: "power1.out" }, 18.2);
-        tl.to("#v4-chip-fashion", { autoAlpha: 0.55, scale: 1, duration: 0.25, ease: "power1.inOut" }, 18.6);
-        tl.to("#v4-ring", { x: 420, duration: 0.35, ease: "expo.out" }, 18.7);
-        tl.to("#v4-chip-gaming", { autoAlpha: 1, scale: 1.08, duration: 0.2, ease: "power1.out" }, 18.7);
-        tl.to("#v4-ring", { autoAlpha: 0, duration: 0.25, ease: "power2.in" }, 19.05);
-        tl.to("#v4-phase-b", { autoAlpha: 0, duration: 0.3, ease: "power2.in" }, 19.1);
-        tl.to("#v4-chips > div", { autoAlpha: 0, duration: 0.3, ease: "power2.in", stagger: 0.03 }, 19.4);
-        tl.fromTo(".v4-wl3", WORD_IN, wordsTo(0.1), 19.3);
-        tl.fromTo("#v4-phase-c", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.7, ease: "expo.out" }, 19.4);
-        tl.fromTo("#v4-fill", { scaleX: 0, transformOrigin: "left center" }, { scaleX: 1, duration: 1.5, ease: "power1.inOut" }, 19.8);
-        tl.to("#v4-year-roll", { y: -120, duration: 0.7, ease: "expo.out" }, 21.1);
-
-        /* ---------- Scene 5 (22–32) ---------- */
-        tl.fromTo("#v5-cam", { scale: 1.0 }, { scale: 1.04, duration: 10, ease: "power1.inOut" }, 22);
-        tl.fromTo(
-          "#v5-frame",
-          { y: 100, autoAlpha: 0, rotationY: 3.5, scale: 0.97, transformPerspective: 1400 },
-          { y: 0, autoAlpha: 1, rotationY: 0, scale: 1, duration: 1.2, ease: "expo.out" },
-          22.25
-        );
-        tl.fromTo(
-          ".v5-shark",
-          { scale: 0, autoAlpha: 0 },
-          { scale: 1, autoAlpha: 1, duration: 0.55, ease: "back.out(2.2)", stagger: 0.09 },
-          23.1
-        );
-        tl.fromTo("#v5-eye-fill", { scaleX: 0.2, transformOrigin: "left center" }, { scaleX: 0.55, duration: 1.4, ease: "power1.inOut" }, 23.2);
-        tl.fromTo("#v5-tone-fill", { scaleX: 0.15, transformOrigin: "left center" }, { scaleX: 0.48, duration: 1.6, ease: "power1.inOut" }, 23.4);
-        tl.fromTo("#v5-filler-fill", { scaleX: 0.1, transformOrigin: "left center" }, { scaleX: 0.3, duration: 1.5, ease: "power1.inOut" }, 23.6);
-        tl.fromTo(".v5-wl1", WORD_IN, wordsTo(0.09), 22.6);
-        tl.fromTo(".v5-wl1b", WORD_IN, wordsTo(0.09), 23.6);
-        tl.to("#v5-l1", { y: -24, autoAlpha: 0, duration: 0.3, ease: "power2.in" }, 25.3);
-        tl.to("#v5-l1b", { y: -24, autoAlpha: 0, duration: 0.3, ease: "power2.in" }, 25.3);
-        tl.fromTo(".v5-wl2", WORD_IN, wordsTo(0.09), 25.6);
-        tl.to("#v5-eye-fill", { scaleX: 0.72, duration: 0.6, ease: "power2.out" }, 26.0);
-        tl.to("#v5-l2", { y: -24, autoAlpha: 0, duration: 0.3, ease: "power2.in" }, 27.5);
-        tl.fromTo(".v5-wl3", WORD_IN, wordsTo(0.09), 27.8);
-        tl.to("#v5-tone-fill", { scaleX: 0.66, duration: 0.6, ease: "power2.out" }, 28.1);
-        tl.to("#v5-l3", { y: -24, autoAlpha: 0, duration: 0.3, ease: "power2.in" }, 29.2);
-        tl.fromTo(".v5-wl4", WORD_IN, wordsTo(0.09), 29.5);
-        tl.to("#v5-filler-fill", { backgroundColor: "#ff6b00", duration: 0.2, ease: "power1.in" }, 29.7);
-        tl.to("#v5-filler-fill", { scaleX: 0.48, duration: 0.14, ease: "power1.out" }, 29.8);
-        tl.to("#v5-filler-fill", { scaleX: 0.64, duration: 0.14, ease: "power1.out" }, 30.1);
-        tl.to("#v5-filler-fill", { scaleX: 0.84, duration: 0.16, ease: "power1.out" }, 30.4);
-
-        /* ---------- Scene 6 (32–40) ---------- */
-        tl.fromTo("#v6-cam", { scale: 1.0 }, { scale: 1.04, duration: 8, ease: "power1.inOut" }, 32);
-        tl.fromTo(
-          "#v6-frame",
-          { y: 90, autoAlpha: 0, rotationY: -3.5, scale: 0.97, transformPerspective: 1400 },
-          { y: 0, autoAlpha: 1, rotationY: 0, scale: 1, duration: 1.1, ease: "expo.out" },
-          32.2
-        );
-        tl.fromTo("#v6-card-cash", { y: 26, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.7, ease: "expo.out" }, 32.6);
-        tl.fromTo("#v6-card-burn", { y: 26, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.7, ease: "expo.out" }, 33.2);
-        tl.fromTo("#v6-card-runway", { y: 26, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.7, ease: "expo.out" }, 33.8);
-        tl.fromTo("#v6-card-valuation", { y: 26, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.7, ease: "expo.out" }, 34.4);
-        [
-          ["v6-cash-val", 33.0],
-          ["v6-burn-val", 33.6],
-          ["v6-runway-val", 34.2],
-          ["v6-valuation-val", 34.8],
-        ].forEach(function (pair) {
-          var cols = document.querySelectorAll("#" + pair[0] + " .v6-col .v6-stack");
-          cols.forEach(function (stack, i) {
-            var target = Number(stack.parentNode.getAttribute("data-target"));
-            tl.fromTo(stack, { y: 0 }, { y: -DIGIT_H * target, duration: 0.9 + i * 0.08, ease: "expo.out" }, pair[1] + i * 0.06);
-          });
-        });
-        tl.to("#v6-grid", { autoAlpha: 0, duration: 0.25, ease: "power1.in" }, 37.25);
-        tl.fromTo("#v6-event", { y: 1150, autoAlpha: 1 }, { y: 0, autoAlpha: 1, duration: 0.85, ease: "expo.out" }, 37.0);
-        tl.fromTo(".v6-wa", WORD_IN, wordsTo(0.09), 37.3);
-        tl.fromTo(".v6-wb", WORD_IN, wordsTo(0.09), 37.9);
-
-        /* ---------- Scene 7 (40–47) ---------- */
-        tl.fromTo("#v7-cam", { scale: 1.0 }, { scale: 1.04, duration: 7, ease: "power1.inOut" }, 40);
-        tl.fromTo(
-          "#v7-divider",
-          { scaleX: 0, autoAlpha: 1, transformOrigin: "left center" },
-          { scaleX: 1, autoAlpha: 1, duration: 0.8, ease: "expo.out" },
-          40.4
-        );
-        tl.fromTo(".v7-wt", WORD_IN, wordsTo(0), 40.7);
-        tl.fromTo(".v7-wb", WORD_IN, wordsTo(0.1), 41.0);
-        tl.to("#v7-top", { scale: 0.94, autoAlpha: 0, duration: 0.35, ease: "power2.in" }, 44.0);
-        tl.to("#v7-bottom", { scale: 0.94, autoAlpha: 0, duration: 0.35, ease: "power2.in" }, 44.0);
-        tl.to("#v7-divider", { scaleX: 0, transformOrigin: "center center", duration: 0.35, ease: "power2.in" }, 44.0);
-        tl.fromTo(".v7-wf", WORD_IN, wordsTo(0.1), 44.5);
-        tl.to("#v7-final", { autoAlpha: 0, duration: 0.45, ease: "power2.in" }, 46.55);
-        tl.set("#v7-final", { autoAlpha: 0 }, 47.0);
-
-        /* ---------- Scene 8 (47–55) ---------- */
-        tl.fromTo("#v8-cam", { scale: 1.0 }, { scale: 1.04, duration: 8, ease: "power1.inOut" }, 47);
-        tl.fromTo(
-          "#v8-shark",
-          { scale: 0, autoAlpha: 0, rotation: -6, transformOrigin: "bottom center" },
-          { scale: 1, autoAlpha: 1, rotation: 0, duration: 0.7, ease: "back.out(2.2)" },
-          47.7
-        );
-        tl.to("#v8-shark", { scale: 1.03, duration: 0.5, ease: "power1.inOut" }, 50.0);
-        tl.to("#v8-shark", { scale: 1.0, duration: 0.5, ease: "power1.inOut" }, 50.5);
-        tl.to("#v8-shark", { scale: 1.03, duration: 0.5, ease: "power1.inOut" }, 52.2);
-        tl.to("#v8-shark", { scale: 1.0, duration: 0.5, ease: "power1.inOut" }, 52.7);
-        tl.fromTo(".v8-w", WORD_IN, wordsTo(0.11), 48.0);
-        tl.fromTo("#v8-line2", { y: 26, autoAlpha: 0, filter: "blur(4px)" }, { y: 0, autoAlpha: 1, filter: "blur(0px)", duration: 0.8, ease: "expo.out" }, 48.8);
-        tl.fromTo("#v8-qr", { y: 20, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.7, ease: "expo.out" }, 49.4);
-        tl.fromTo("#v8-fade", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.5, ease: "power1.in" }, 54.5);
-
-        window.__timelines["main-vertical"] = tl;
-      })();
+      window.__timelines["main"] = tl;
     </script>
   </body>
 </html>

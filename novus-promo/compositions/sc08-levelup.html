@@ -3,7 +3,7 @@
     data-composition-id="sc08-levelup"
     data-width="1920"
     data-height="1080"
-    data-duration="8"
+    data-duration="6"
     style="position: absolute; inset: 0; overflow: hidden; font-family: 'Urbanist', system-ui, sans-serif;"
   >
     <style>
@@ -417,34 +417,6 @@
         </div>
       </div>
 
-      <div id="n08-lbwrap">
-        <div id="n08-lblabel">Still Standing</div>
-        <div id="n08-lb">
-          <div class="n08-row" id="n08-row1">
-            <span class="n08-rank">1</span>
-            <span id="n08-crown"></span>
-            <span><b>Priya</b> — Fizzle Labs <span class="n08-meta">· Year 4</span></span>
-          </div>
-          <div class="n08-row" id="n08-row-marco">
-            <span class="n08-rankwin" data-layout-ignore>
-              <span class="n08-rankstack" id="n08-marconum"><span>2</span><span>3</span></span>
-            </span>
-            <span><b>Marco</b> — Marco's Empire <span class="n08-meta">· Year 3</span></span>
-          </div>
-          <div class="n08-row" id="n08-row-you">
-            <span id="n08-youbar"></span>
-            <span class="n08-rankwin" data-layout-ignore>
-              <span class="n08-rankstack" id="n08-younum"><span>3</span><span>2</span></span>
-            </span>
-            <span><b>YOU</b> — Marrow &amp; Co <span class="n08-meta">· Year 2</span></span>
-          </div>
-          <div class="n08-row" id="n08-row4">
-            <span class="n08-rank">4</span>
-            <span><b>Dev</b> — Chai Chart <span class="n08-meta">· Year 1</span></span>
-          </div>
-        </div>
-      </div>
-
       <div id="n08-val">
         <div id="n08-vallabel">Valuation</div>
         <div id="n08-valright">
@@ -462,11 +434,6 @@
       <h2 class="n08-line" id="n08-l2">
         <span class="n08-w">Level</span>
         <span class="n08-w">up.</span>
-      </h2>
-      <h2 class="n08-line" id="n08-l3">
-        <span class="n08-w">Outlast</span>
-        <span class="n08-w">your</span>
-        <span class="n08-w">friends.</span>
       </h2>
     </div>
 
@@ -652,55 +619,19 @@
         tl.to("#n08-shift", { y: 45, duration: 0.09, ease: "none" }, 4.42);
         tl.to("#n08-shift", { y: 60, duration: 0.31, ease: "power4.out" }, 4.51);
 
-        // 4.9 — Still Standing leaderboard rises; rows waterfall with shrinking gaps.
-        tl.fromTo(
-          "#n08-lbwrap",
-          { y: 60, autoAlpha: 0 },
-          { y: 0, autoAlpha: 1, duration: 0.4, ease: "power4.out" },
-          4.9
-        );
-        var rowIds = ["#n08-row1", "#n08-row-marco", "#n08-row-you", "#n08-row4"];
-        var rowAt = 4.98;
-        var rowGap = 0.085;
-        rowIds.forEach(function (id) {
-          tl.fromTo(
-            id,
-            { y: 34, autoAlpha: 0 },
-            { y: 0, autoAlpha: 1, duration: 0.15, ease: "power4.out" },
-            rowAt
-          );
-          rowAt += rowGap;
-          rowGap *= 0.85;
-        });
-
-        // 5.3 — YOU climb to #2: rows y-swap, ranks re-roll via stacked spans.
-        tl.to("#n08-row-you", { y: -68, duration: 0.5, ease: "power3.inOut" }, 5.3);
-        tl.to("#n08-row-marco", { y: 68, duration: 0.5, ease: "power3.inOut" }, 5.3);
-        tl.fromTo("#n08-younum", { y: 0 }, { y: -30, duration: 0.35, ease: "expo.out" }, 5.4);
-        tl.fromTo("#n08-marconum", { y: 0 }, { y: -30, duration: 0.35, ease: "expo.out" }, 5.4);
-
-        // Copy 3: "Outlast your friends." 5.4 -> 7.3.
-        tl.fromTo(
-          "#n08-l3 .n08-w",
-          { y: 46, autoAlpha: 0 },
-          { y: 0, autoAlpha: 1, duration: 0.16, ease: "power4.out", stagger: 0.085 },
-          5.4
-        );
-        tl.to("#n08-l3", { y: -34, autoAlpha: 0, duration: 0.22, ease: "power2.in" }, 7.3);
-
         // 6.0 — valuation strip rises; 6.2 the digits slot-roll $25K -> $2.4M (money SFX).
         tl.fromTo(
           "#n08-val",
           { y: 50, autoAlpha: 0 },
           { y: 0, autoAlpha: 1, duration: 0.35, ease: "power4.out" },
-          6.0
+          4.55
         );
         valStacks.forEach(function (s, i) {
           tl.fromTo(
             s.el,
             { y: 0 },
             { y: -s.H * s.target, duration: 0.66 + i * 0.06, ease: "expo.out" },
-            6.2 + i * 0.05
+            4.7 + i * 0.05
           );
         });
 
@@ -709,7 +640,7 @@
           "#n08-up",
           { scale: 0.5, autoAlpha: 0, transformOrigin: "center center" },
           { scale: 1, autoAlpha: 1, duration: 0.28, ease: "back.out(1.6)" },
-          6.55
+          5.15
         );
 
         window.__timelines["sc08-levelup"] = tl;

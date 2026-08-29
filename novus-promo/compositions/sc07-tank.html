@@ -99,27 +99,67 @@
         inset: 0;
         background: rgba(11, 30, 54, 0.62);
       }
-      #n07-student {
+      #n07-bubble {
         position: absolute;
-        left: 700px;
-        bottom: -66px;
-        width: 640px;
+        left: 730px;
+        top: 300px;
+        width: 470px;
+        height: 470px;
         opacity: 0;
       }
-      #n07-student video {
-        width: 100%;
+      #n07-bubble-ring {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        background: #152a47;
+        border: 7px solid rgba(248, 250, 252, 0.16);
+        box-shadow: 0 34px 90px rgba(0, 0, 0, 0.55);
+        overflow: hidden;
+      }
+      #n07-bubble-ring img {
+        width: 118%;
+        margin-left: -9%;
+        margin-top: 6%;
         display: block;
       }
-      #n07-student::before {
-        content: "";
+      #n07-rec {
+        position: absolute;
+        left: 18px;
+        top: 6px;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        background: rgba(11, 30, 54, 0.85);
+        border: 1px solid rgba(248, 250, 252, 0.14);
+        border-radius: 999px;
+        padding: 9px 18px;
+        font-size: 17px;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        color: #f8fafc;
+      }
+      #n07-rec i {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        background: #ff3333;
+      }
+      #n07-waves {
         position: absolute;
         left: 50%;
-        bottom: 46px;
-        width: 500px;
-        height: 60px;
-        margin-left: -250px;
-        border-radius: 50%;
-        background: radial-gradient(closest-side, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0));
+        bottom: -58px;
+        margin-left: -62px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        height: 40px;
+      }
+      #n07-waves span {
+        display: block;
+        width: 9px;
+        height: 34px;
+        border-radius: 5px;
+        background: rgba(248, 250, 252, 0.55);
       }
       /* HUD */
       .n07-panel {
@@ -378,8 +418,12 @@
       <div id="n07-room">
         <div id="n07-roombg"><img src="assets/app/tank-set.webp" alt="" /></div>
 
-        <div id="n07-student">
-          <video id="n07-student-vid" src="assets/student-alpha.webm" data-start="2.9" data-duration="9.1" data-track-index="5" muted playsinline></video>
+        <div id="n07-bubble">
+          <div id="n07-bubble-ring"><img src="assets/founder/gamer-female.webp" alt="" /></div>
+          <div id="n07-rec"><i></i>REC</div>
+          <div id="n07-waves">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
         </div>
 
         <div class="n07-panel" id="n07-live">
@@ -429,11 +473,12 @@
         </div>
 
         <h2 id="n07-copy">
-          <span class="n07-w">Pitch.</span>
+          <span class="n07-w">You</span>
+          <span class="n07-w">pitch.</span>
           <span class="n07-w">On</span>
           <span class="n07-w">camera.</span>
-          <span class="n07-w">For</span>
-          <span class="n07-w">real.</span>
+          <span class="n07-w">Out</span>
+          <span class="n07-w">loud.</span>
         </h2>
       </div>
 
@@ -480,13 +525,31 @@
         tl.fromTo("#n07-room", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.45, ease: "power2.out" }, 2.6);
         tl.to("#n07-set", { autoAlpha: 0, duration: 0.4, ease: "none" }, 2.65);
 
-        // The player enters the game — student slides in, riding the current.
+        // The player enters the game — your founder pops up in the recording bubble.
         tl.fromTo(
-          "#n07-student",
+          "#n07-bubble",
           { x: 280, autoAlpha: 0 },
           { x: 0, autoAlpha: 1, duration: 0.7, ease: "expo.out" },
           3.0
         );
+        // She's talking: audio-wave bars perform in bursts (deterministic, finite).
+        (function () {
+          const bars = document.querySelectorAll("#n07-waves span");
+          const bursts = [3.7, 4.4, 5.1, 5.9, 6.5, 8.6, 9.3];
+          bursts.forEach(function (t, bi) {
+            bars.forEach(function (b, i) {
+              const peak = [0.55, 1.0, 0.7, 0.9, 0.5][(i + bi) % 5];
+              tl.fromTo(b, { scaleY: 0.3, transformOrigin: "center center" },
+                { scaleY: peak, autoAlpha: 1, duration: 0.16, ease: "power2.out" }, t + i * 0.04);
+              tl.to(b, { scaleY: 0.3, duration: 0.2, ease: "power2.in" }, t + 0.2 + i * 0.04);
+            });
+          });
+        })();
+        // Emphasis leans on the meter beats.
+        tl.to("#n07-bubble", { scale: 1.05, duration: 0.25, ease: "power2.out", transformOrigin: "50% 60%" }, 6.55);
+        tl.to("#n07-bubble", { scale: 1.0, duration: 0.3, ease: "power2.inOut" }, 6.85);
+        tl.to("#n07-bubble", { rotation: -2.5, duration: 0.22, ease: "power2.out", transformOrigin: "50% 80%" }, 8.55);
+        tl.to("#n07-bubble", { rotation: 0, duration: 0.3, ease: "power2.inOut" }, 8.82);
 
         // HUD assembles.
         tl.fromTo("#n07-live", { y: -36, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.4, ease: "power4.out" }, 4.2);
@@ -542,7 +605,7 @@
           10.15
         );
         tl.to("#n07-score-roll", { y: -330, duration: 1.0, ease: "expo.out" }, 10.45);
-        tl.to("#n07-student", { autoAlpha: 0.25, duration: 0.3, ease: "none" }, 10.05);
+        tl.to("#n07-bubble", { autoAlpha: 0.25, duration: 0.3, ease: "none" }, 10.05);
 
         // Feed the UP exit — the whole room starts rising just before the cut.
         tl.to("#n07-cam", { y: -26, duration: 0.5, ease: "power2.in" }, 11.5);
