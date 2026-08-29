@@ -1,0 +1,1053 @@
+{
+  "version": 1,
+  "styleVersion": "v1",
+  "basePath": "/briefcase",
+  "skins": {
+    "100": {
+      "name": "The Magnate",
+      "tier": 5,
+      "collection": "legendary",
+      "inPool": true,
+      "rarity": "legendary",
+      "color": "#F5C518",
+      "urls": null
+    },
+    "101": {
+      "name": "Perennial",
+      "tier": 4,
+      "collection": "milestone_only",
+      "inPool": false,
+      "rarity": "epic",
+      "color": "#FF6B00",
+      "urls": null
+    },
+    "001": {
+      "name": "Day One Hoodie",
+      "tier": 1,
+      "collection": "garage",
+      "inPool": true,
+      "rarity": "common",
+      "color": "#8E9BAA",
+      "urls": null
+    },
+    "002": {
+      "name": "Ship It Tee",
+      "tier": 1,
+      "collection": "garage",
+      "inPool": true,
+      "rarity": "common",
+      "color": "#8E9BAA",
+      "urls": null
+    },
+    "003": {
+      "name": "Garage Flannel",
+      "tier": 1,
+      "collection": "garage",
+      "inPool": true,
+      "rarity": "common",
+      "color": "#8E9BAA",
+      "urls": null
+    },
+    "004": {
+      "name": "Campus Crew",
+      "tier": 1,
+      "collection": "garage",
+      "inPool": true,
+      "rarity": "common",
+      "color": "#8E9BAA",
+      "urls": null
+    },
+    "005": {
+      "name": "Denim Dreamer",
+      "tier": 1,
+      "collection": "garage",
+      "inPool": true,
+      "rarity": "common",
+      "color": "#8E9BAA",
+      "urls": null
+    },
+    "006": {
+      "name": "Cap & Grind",
+      "tier": 1,
+      "collection": "garage",
+      "inPool": true,
+      "rarity": "common",
+      "color": "#8E9BAA",
+      "urls": null
+    },
+    "007": {
+      "name": "Cargo Builder",
+      "tier": 1,
+      "collection": "garage",
+      "inPool": true,
+      "rarity": "common",
+      "color": "#8E9BAA",
+      "urls": null
+    },
+    "008": {
+      "name": "Trailhead Vest",
+      "tier": 1,
+      "collection": "garage",
+      "inPool": true,
+      "rarity": "common",
+      "color": "#8E9BAA",
+      "urls": null
+    },
+    "009": {
+      "name": "Track Startup",
+      "tier": 1,
+      "collection": "garage",
+      "inPool": true,
+      "rarity": "common",
+      "color": "#8E9BAA",
+      "urls": null
+    },
+    "010": {
+      "name": "Crunch Time PJs",
+      "tier": 1,
+      "collection": "garage",
+      "inPool": true,
+      "rarity": "common",
+      "color": "#8E9BAA",
+      "urls": null
+    },
+    "011": {
+      "name": "First Desk",
+      "tier": 1,
+      "collection": "office",
+      "inPool": true,
+      "rarity": "common",
+      "color": "#8E9BAA",
+      "urls": null
+    },
+    "012": {
+      "name": "Quiet Analyst",
+      "tier": 1,
+      "collection": "office",
+      "inPool": true,
+      "rarity": "common",
+      "color": "#8E9BAA",
+      "urls": null
+    },
+    "013": {
+      "name": "Casual Friday",
+      "tier": 1,
+      "collection": "office",
+      "inPool": true,
+      "rarity": "common",
+      "color": "#8E9BAA",
+      "urls": null
+    },
+    "014": {
+      "name": "Ivy Intern",
+      "tier": 1,
+      "collection": "office",
+      "inPool": true,
+      "rarity": "common",
+      "color": "#8E9BAA",
+      "urls": null
+    },
+    "015": {
+      "name": "Client Ready",
+      "tier": 1,
+      "collection": "office",
+      "inPool": true,
+      "rarity": "common",
+      "color": "#8E9BAA",
+      "urls": null
+    },
+    "016": {
+      "name": "Commuter",
+      "tier": 1,
+      "collection": "office",
+      "inPool": true,
+      "rarity": "common",
+      "color": "#8E9BAA",
+      "urls": null
+    },
+    "017": {
+      "name": "Soft Launch",
+      "tier": 2,
+      "collection": "office",
+      "inPool": true,
+      "rarity": "uncommon",
+      "color": "#2EC4B6",
+      "urls": null
+    },
+    "018": {
+      "name": "Deal Desk",
+      "tier": 2,
+      "collection": "office",
+      "inPool": true,
+      "rarity": "uncommon",
+      "color": "#2EC4B6",
+      "urls": null
+    },
+    "019": {
+      "name": "Junior Partner",
+      "tier": 2,
+      "collection": "office",
+      "inPool": true,
+      "rarity": "uncommon",
+      "color": "#2EC4B6",
+      "urls": null
+    },
+    "020": {
+      "name": "Monochrome Minimal",
+      "tier": 2,
+      "collection": "office",
+      "inPool": true,
+      "rarity": "uncommon",
+      "color": "#2EC4B6",
+      "urls": null
+    },
+    "021": {
+      "name": "The Standard",
+      "tier": 2,
+      "collection": "corporate",
+      "inPool": true,
+      "rarity": "uncommon",
+      "color": "#2EC4B6",
+      "urls": null
+    },
+    "022": {
+      "name": "Boardroom Charcoal",
+      "tier": 2,
+      "collection": "corporate",
+      "inPool": true,
+      "rarity": "uncommon",
+      "color": "#2EC4B6",
+      "urls": null
+    },
+    "023": {
+      "name": "The Closer",
+      "tier": 2,
+      "collection": "corporate",
+      "inPool": true,
+      "rarity": "uncommon",
+      "color": "#2EC4B6",
+      "urls": null
+    },
+    "024": {
+      "name": "Portfolio Check",
+      "tier": 2,
+      "collection": "corporate",
+      "inPool": true,
+      "rarity": "uncommon",
+      "color": "#2EC4B6",
+      "urls": null
+    },
+    "025": {
+      "name": "Managing Director",
+      "tier": 2,
+      "collection": "corporate",
+      "inPool": true,
+      "rarity": "uncommon",
+      "color": "#2EC4B6",
+      "urls": null
+    },
+    "026": {
+      "name": "Old Reliable",
+      "tier": 2,
+      "collection": "corporate",
+      "inPool": true,
+      "rarity": "uncommon",
+      "color": "#2EC4B6",
+      "urls": null
+    },
+    "027": {
+      "name": "Modern Exec",
+      "tier": 2,
+      "collection": "corporate",
+      "inPool": true,
+      "rarity": "uncommon",
+      "color": "#2EC4B6",
+      "urls": null
+    },
+    "028": {
+      "name": "Quarterly Review",
+      "tier": 2,
+      "collection": "corporate",
+      "inPool": true,
+      "rarity": "uncommon",
+      "color": "#2EC4B6",
+      "urls": null
+    },
+    "029": {
+      "name": "Power Move",
+      "tier": 3,
+      "collection": "corporate",
+      "inPool": true,
+      "rarity": "rare",
+      "color": "#3A6BFF",
+      "urls": null
+    },
+    "030": {
+      "name": "White Collar",
+      "tier": 3,
+      "collection": "corporate",
+      "inPool": true,
+      "rarity": "rare",
+      "color": "#3A6BFF",
+      "urls": null
+    },
+    "031": {
+      "name": "Block Founder",
+      "tier": 1,
+      "collection": "street",
+      "inPool": true,
+      "rarity": "common",
+      "color": "#8E9BAA",
+      "urls": null
+    },
+    "032": {
+      "name": "Drop Day",
+      "tier": 1,
+      "collection": "street",
+      "inPool": true,
+      "rarity": "common",
+      "color": "#8E9BAA",
+      "urls": null
+    },
+    "033": {
+      "name": "Bucket List",
+      "tier": 1,
+      "collection": "street",
+      "inPool": true,
+      "rarity": "common",
+      "color": "#8E9BAA",
+      "urls": null
+    },
+    "034": {
+      "name": "Heat Check",
+      "tier": 1,
+      "collection": "street",
+      "inPool": true,
+      "rarity": "common",
+      "color": "#8E9BAA",
+      "urls": null
+    },
+    "035": {
+      "name": "Letterman",
+      "tier": 1,
+      "collection": "street",
+      "inPool": true,
+      "rarity": "common",
+      "color": "#8E9BAA",
+      "urls": null
+    },
+    "036": {
+      "name": "Deck Check",
+      "tier": 1,
+      "collection": "street",
+      "inPool": true,
+      "rarity": "common",
+      "color": "#8E9BAA",
+      "urls": null
+    },
+    "037": {
+      "name": "Ghost Mode",
+      "tier": 2,
+      "collection": "street",
+      "inPool": true,
+      "rarity": "uncommon",
+      "color": "#2EC4B6",
+      "urls": null
+    },
+    "038": {
+      "name": "Winter Hustle",
+      "tier": 2,
+      "collection": "street",
+      "inPool": true,
+      "rarity": "uncommon",
+      "color": "#2EC4B6",
+      "urls": null
+    },
+    "039": {
+      "name": "Self Made",
+      "tier": 2,
+      "collection": "street",
+      "inPool": true,
+      "rarity": "uncommon",
+      "color": "#2EC4B6",
+      "urls": null
+    },
+    "040": {
+      "name": "Camo Ops",
+      "tier": 2,
+      "collection": "street",
+      "inPool": true,
+      "rarity": "uncommon",
+      "color": "#2EC4B6",
+      "urls": null
+    },
+    "041": {
+      "name": "Mad Avenue '62",
+      "tier": 2,
+      "collection": "retro",
+      "inPool": true,
+      "rarity": "uncommon",
+      "color": "#2EC4B6",
+      "urls": null
+    },
+    "042": {
+      "name": "Groovy Ledger '74",
+      "tier": 2,
+      "collection": "retro",
+      "inPool": true,
+      "rarity": "uncommon",
+      "color": "#2EC4B6",
+      "urls": null
+    },
+    "043": {
+      "name": "Fax & Facts '95",
+      "tier": 2,
+      "collection": "retro",
+      "inPool": true,
+      "rarity": "uncommon",
+      "color": "#2EC4B6",
+      "urls": null
+    },
+    "044": {
+      "name": "Typewriter Tycoon",
+      "tier": 2,
+      "collection": "retro",
+      "inPool": true,
+      "rarity": "uncommon",
+      "color": "#2EC4B6",
+      "urls": null
+    },
+    "045": {
+      "name": "Wall Street '87",
+      "tier": 2,
+      "collection": "retro",
+      "inPool": true,
+      "rarity": "uncommon",
+      "color": "#2EC4B6",
+      "urls": null
+    },
+    "046": {
+      "name": "Dot-Com Y2K",
+      "tier": 3,
+      "collection": "retro",
+      "inPool": true,
+      "rarity": "rare",
+      "color": "#3A6BFF",
+      "urls": null
+    },
+    "047": {
+      "name": "Gatsby Gains",
+      "tier": 3,
+      "collection": "retro",
+      "inPool": true,
+      "rarity": "rare",
+      "color": "#3A6BFF",
+      "urls": null
+    },
+    "048": {
+      "name": "The Negotiator",
+      "tier": 3,
+      "collection": "retro",
+      "inPool": true,
+      "rarity": "rare",
+      "color": "#3A6BFF",
+      "urls": null
+    },
+    "049": {
+      "name": "Profit Fever",
+      "tier": 3,
+      "collection": "retro",
+      "inPool": true,
+      "rarity": "rare",
+      "color": "#3A6BFF",
+      "urls": null
+    },
+    "050": {
+      "name": "Steam Baron",
+      "tier": 3,
+      "collection": "retro",
+      "inPool": true,
+      "rarity": "rare",
+      "color": "#3A6BFF",
+      "urls": null
+    },
+    "051": {
+      "name": "Keynote",
+      "tier": 2,
+      "collection": "tech",
+      "inPool": true,
+      "rarity": "uncommon",
+      "color": "#2EC4B6",
+      "urls": null
+    },
+    "052": {
+      "name": "Move Fast",
+      "tier": 2,
+      "collection": "tech",
+      "inPool": true,
+      "rarity": "uncommon",
+      "color": "#2EC4B6",
+      "urls": null
+    },
+    "053": {
+      "name": "Server Room",
+      "tier": 2,
+      "collection": "tech",
+      "inPool": true,
+      "rarity": "uncommon",
+      "color": "#2EC4B6",
+      "urls": null
+    },
+    "054": {
+      "name": "Augmented",
+      "tier": 2,
+      "collection": "tech",
+      "inPool": true,
+      "rarity": "uncommon",
+      "color": "#2EC4B6",
+      "urls": null
+    },
+    "055": {
+      "name": "Prototype",
+      "tier": 3,
+      "collection": "tech",
+      "inPool": true,
+      "rarity": "rare",
+      "color": "#3A6BFF",
+      "urls": null
+    },
+    "056": {
+      "name": "Orbit",
+      "tier": 3,
+      "collection": "tech",
+      "inPool": true,
+      "rarity": "rare",
+      "color": "#3A6BFF",
+      "urls": null
+    },
+    "057": {
+      "name": "Neon Founder",
+      "tier": 3,
+      "collection": "tech",
+      "inPool": true,
+      "rarity": "rare",
+      "color": "#3A6BFF",
+      "urls": null
+    },
+    "058": {
+      "name": "Circuit Blazer",
+      "tier": 3,
+      "collection": "tech",
+      "inPool": true,
+      "rarity": "rare",
+      "color": "#3A6BFF",
+      "urls": null
+    },
+    "059": {
+      "name": "Hologram",
+      "tier": 4,
+      "collection": "tech",
+      "inPool": true,
+      "rarity": "epic",
+      "color": "#FF6B00",
+      "urls": null
+    },
+    "060": {
+      "name": "Mech Mode",
+      "tier": 4,
+      "collection": "tech",
+      "inPool": true,
+      "rarity": "epic",
+      "color": "#FF6B00",
+      "urls": null
+    },
+    "061": {
+      "name": "Milano Sartoria",
+      "tier": 3,
+      "collection": "world",
+      "inPool": true,
+      "rarity": "rare",
+      "color": "#3A6BFF",
+      "urls": null
+    },
+    "062": {
+      "name": "Ginza Minimal",
+      "tier": 3,
+      "collection": "world",
+      "inPool": true,
+      "rarity": "rare",
+      "color": "#3A6BFF",
+      "urls": null
+    },
+    "063": {
+      "name": "Seoul Avant",
+      "tier": 3,
+      "collection": "world",
+      "inPool": true,
+      "rarity": "rare",
+      "color": "#3A6BFF",
+      "urls": null
+    },
+    "064": {
+      "name": "Madison Ave",
+      "tier": 3,
+      "collection": "world",
+      "inPool": true,
+      "rarity": "rare",
+      "color": "#3A6BFF",
+      "urls": null
+    },
+    "065": {
+      "name": "Mumbai Bandhgala",
+      "tier": 3,
+      "collection": "world",
+      "inPool": true,
+      "rarity": "rare",
+      "color": "#3A6BFF",
+      "urls": null
+    },
+    "066": {
+      "name": "Savile Row",
+      "tier": 4,
+      "collection": "world",
+      "inPool": true,
+      "rarity": "epic",
+      "color": "#FF6B00",
+      "urls": null
+    },
+    "067": {
+      "name": "Paris Atelier",
+      "tier": 4,
+      "collection": "world",
+      "inPool": true,
+      "rarity": "epic",
+      "color": "#FF6B00",
+      "urls": null
+    },
+    "068": {
+      "name": "Shanghai Modern",
+      "tier": 4,
+      "collection": "world",
+      "inPool": true,
+      "rarity": "epic",
+      "color": "#FF6B00",
+      "urls": null
+    },
+    "069": {
+      "name": "Lagos Agbada",
+      "tier": 4,
+      "collection": "world",
+      "inPool": true,
+      "rarity": "epic",
+      "color": "#FF6B00",
+      "urls": null
+    },
+    "070": {
+      "name": "Dubai Gold Line",
+      "tier": 4,
+      "collection": "world",
+      "inPool": true,
+      "rarity": "epic",
+      "color": "#FF6B00",
+      "urls": null
+    },
+    "071": {
+      "name": "Line Cook",
+      "tier": 1,
+      "collection": "industry",
+      "inPool": true,
+      "rarity": "common",
+      "color": "#8E9BAA",
+      "urls": null
+    },
+    "072": {
+      "name": "On Call",
+      "tier": 1,
+      "collection": "industry",
+      "inPool": true,
+      "rarity": "common",
+      "color": "#8E9BAA",
+      "urls": null
+    },
+    "073": {
+      "name": "Captain",
+      "tier": 1,
+      "collection": "industry",
+      "inPool": true,
+      "rarity": "common",
+      "color": "#8E9BAA",
+      "urls": null
+    },
+    "074": {
+      "name": "Grease & Gears",
+      "tier": 1,
+      "collection": "industry",
+      "inPool": true,
+      "rarity": "common",
+      "color": "#8E9BAA",
+      "urls": null
+    },
+    "075": {
+      "name": "Barista Craft",
+      "tier": 1,
+      "collection": "industry",
+      "inPool": true,
+      "rarity": "common",
+      "color": "#8E9BAA",
+      "urls": null
+    },
+    "076": {
+      "name": "Last Mile",
+      "tier": 1,
+      "collection": "industry",
+      "inPool": true,
+      "rarity": "common",
+      "color": "#8E9BAA",
+      "urls": null
+    },
+    "077": {
+      "name": "Site Boss",
+      "tier": 1,
+      "collection": "industry",
+      "inPool": true,
+      "rarity": "common",
+      "color": "#8E9BAA",
+      "urls": null
+    },
+    "078": {
+      "name": "Shop Floor",
+      "tier": 1,
+      "collection": "industry",
+      "inPool": true,
+      "rarity": "common",
+      "color": "#8E9BAA",
+      "urls": null
+    },
+    "079": {
+      "name": "Executive Chef",
+      "tier": 3,
+      "collection": "industry",
+      "inPool": true,
+      "rarity": "rare",
+      "color": "#3A6BFF",
+      "urls": null
+    },
+    "080": {
+      "name": "Chief of Surgery",
+      "tier": 3,
+      "collection": "industry",
+      "inPool": true,
+      "rarity": "rare",
+      "color": "#3A6BFF",
+      "urls": null
+    },
+    "081": {
+      "name": "Commencement",
+      "tier": 3,
+      "collection": "seasonal",
+      "inPool": true,
+      "rarity": "rare",
+      "color": "#3A6BFF",
+      "urls": null
+    },
+    "082": {
+      "name": "Offsite Linen",
+      "tier": 3,
+      "collection": "seasonal",
+      "inPool": true,
+      "rarity": "rare",
+      "color": "#3A6BFF",
+      "urls": null
+    },
+    "083": {
+      "name": "Fortune Founder",
+      "tier": 4,
+      "collection": "seasonal",
+      "inPool": true,
+      "rarity": "epic",
+      "color": "#FF6B00",
+      "urls": null
+    },
+    "084": {
+      "name": "Snowline Gala",
+      "tier": 4,
+      "collection": "seasonal",
+      "inPool": true,
+      "rarity": "epic",
+      "color": "#FF6B00",
+      "urls": null
+    },
+    "085": {
+      "name": "Vampire VC",
+      "tier": 4,
+      "collection": "seasonal",
+      "inPool": true,
+      "rarity": "epic",
+      "color": "#FF6B00",
+      "urls": null
+    },
+    "086": {
+      "name": "Confetti Closer",
+      "tier": 4,
+      "collection": "seasonal",
+      "inPool": true,
+      "rarity": "epic",
+      "color": "#FF6B00",
+      "urls": null
+    },
+    "087": {
+      "name": "Founding Day",
+      "tier": 4,
+      "collection": "seasonal",
+      "inPool": true,
+      "rarity": "epic",
+      "color": "#FF6B00",
+      "urls": null
+    },
+    "088": {
+      "name": "Midnight NYE",
+      "tier": 4,
+      "collection": "seasonal",
+      "inPool": true,
+      "rarity": "epic",
+      "color": "#FF6B00",
+      "urls": null
+    },
+    "089": {
+      "name": "Lantern Festival",
+      "tier": 4,
+      "collection": "seasonal",
+      "inPool": true,
+      "rarity": "epic",
+      "color": "#FF6B00",
+      "urls": null
+    },
+    "090": {
+      "name": "Beach Board Meeting",
+      "tier": 4,
+      "collection": "seasonal",
+      "inPool": true,
+      "rarity": "epic",
+      "color": "#FF6B00",
+      "urls": null
+    },
+    "091": {
+      "name": "The Gold Standard",
+      "tier": 5,
+      "collection": "legendary",
+      "inPool": true,
+      "rarity": "legendary",
+      "color": "#F5C518",
+      "urls": null
+    },
+    "092": {
+      "name": "Diamond Hands",
+      "tier": 5,
+      "collection": "legendary",
+      "inPool": true,
+      "rarity": "legendary",
+      "color": "#F5C518",
+      "urls": null
+    },
+    "093": {
+      "name": "The Apex",
+      "tier": 5,
+      "collection": "legendary",
+      "inPool": true,
+      "rarity": "legendary",
+      "color": "#F5C518",
+      "urls": null
+    },
+    "094": {
+      "name": "Midas Touch",
+      "tier": 5,
+      "collection": "legendary",
+      "inPool": true,
+      "rarity": "legendary",
+      "color": "#F5C518",
+      "urls": null
+    },
+    "095": {
+      "name": "Astro Founder",
+      "tier": 5,
+      "collection": "legendary",
+      "inPool": true,
+      "rarity": "legendary",
+      "color": "#F5C518",
+      "urls": null
+    },
+    "096": {
+      "name": "The Chairman",
+      "tier": 5,
+      "collection": "legendary",
+      "inPool": true,
+      "rarity": "legendary",
+      "color": "#F5C518",
+      "urls": null
+    },
+    "097": {
+      "name": "Phoenix Clause",
+      "tier": 5,
+      "collection": "legendary",
+      "inPool": true,
+      "rarity": "legendary",
+      "color": "#F5C518",
+      "urls": null
+    },
+    "098": {
+      "name": "Ghost Equity",
+      "tier": 5,
+      "collection": "legendary",
+      "inPool": true,
+      "rarity": "legendary",
+      "color": "#F5C518",
+      "urls": null
+    },
+    "099": {
+      "name": "Prism Legacy",
+      "tier": 5,
+      "collection": "legendary",
+      "inPool": true,
+      "rarity": "legendary",
+      "color": "#F5C518",
+      "urls": null
+    }
+  },
+  "cases": {
+    "t1-canvas": {
+      "name": "Canvas Case",
+      "tier": 1,
+      "states": null
+    },
+    "t2-leather": {
+      "name": "Leather Attaché",
+      "tier": 2,
+      "states": null
+    },
+    "t3-titanium": {
+      "name": "Titanium Case",
+      "tier": 3,
+      "states": null
+    },
+    "t4-obsidian": {
+      "name": "Obsidian Executive",
+      "tier": 4,
+      "states": null
+    },
+    "t5-gold": {
+      "name": "Gold Briefcase",
+      "tier": 5,
+      "states": null
+    },
+    "t1-denim": {
+      "name": "Denim Canvas (reskin)",
+      "tier": 1,
+      "reskin": true,
+      "states": null
+    }
+  },
+  "keys": {
+    "t1": {
+      "tier": 1,
+      "url": null
+    },
+    "t2": {
+      "tier": 2,
+      "url": null
+    },
+    "t3": {
+      "tier": 3,
+      "url": null
+    },
+    "t4": {
+      "tier": 4,
+      "url": null
+    },
+    "t5": {
+      "tier": 5,
+      "url": null
+    }
+  },
+  "props": {
+    "shark-token": {
+      "name": "Shark Token",
+      "kind": "object",
+      "url": null
+    },
+    "frame-bronze-ledger": {
+      "name": "Bronze Ledger",
+      "kind": "frame",
+      "url": null
+    },
+    "frame-silver-portfolio": {
+      "name": "Silver Portfolio",
+      "kind": "frame",
+      "url": null
+    },
+    "frame-gold-boardroom": {
+      "name": "Gold Boardroom",
+      "kind": "frame",
+      "url": null
+    },
+    "frame-molten-gold": {
+      "name": "Molten Gold",
+      "kind": "frame",
+      "url": null
+    },
+    "bg-skyline-office": {
+      "name": "Skyline Corner Office",
+      "kind": "background",
+      "url": null
+    },
+    "pose-trophy-lift_novus": {
+      "name": "Trophy Lift (Novus)",
+      "kind": "pose",
+      "base": "novus",
+      "url": null
+    },
+    "pose-trophy-lift_nova": {
+      "name": "Trophy Lift (Nova)",
+      "kind": "pose",
+      "base": "nova",
+      "url": null
+    }
+  },
+  "fx": {
+    "confetti-paper-cash": {
+      "name": "Paper Cash",
+      "sprites": {
+        "confetti-cash-1": null,
+        "confetti-cash-2": null,
+        "confetti-cash-3": null
+      }
+    },
+    "confetti-shark-fins": {
+      "name": "Shark Fins",
+      "sprites": {
+        "confetti-fin-1": null,
+        "confetti-fin-2": null,
+        "confetti-fin-3": null
+      }
+    },
+    "confetti-gold-trophies": {
+      "name": "Gold Trophies",
+      "sprites": {
+        "confetti-trophy-1": null,
+        "confetti-trophy-2": null,
+        "confetti-trophy-3": null
+      }
+    },
+    "cursor-trail": {
+      "name": "Orange Spark",
+      "sprites": {
+        "cursor-orange-spark": null
+      }
+    },
+    "aura": {
+      "name": "Founder's Seal",
+      "sprites": {
+        "aura-founders-seal": null
+      }
+    }
+  }
+}

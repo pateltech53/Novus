@@ -1,0 +1,15 @@
+{
+  "_comment": "Canon base founders (plan §10.2). Every skin renders on both. Generate candidates with `node scripts/generate-briefcase-art.mjs bases`, hand-pick one per base, then crown it with `crown --base <novus|nova> --pick <n>`. The crowned render lands in assets-src/briefcase/canon/ and is attached as a reference image to every subsequent skin generation.",
+  "novus": {
+    "name": "Novus",
+    "styling": "masc",
+    "description": "a teenage-coded young founder character, masc styling: short dark hair with a soft swoop, thick friendly eyebrows, big confident grin with visible teeth, simple oval eyes, warm light-tan toy skin tone",
+    "candidateOutfit": "plain heather-grey hoodie with a small orange #FF6B00 drawstring detail, dark jeans, white sneakers"
+  },
+  "nova": {
+    "name": "Nova",
+    "styling": "fem",
+    "description": "a teenage-coded young founder character, fem styling: shoulder-length dark hair in a low ponytail with side bang, expressive arched brows, big confident grin, simple oval eyes with small lashes, warm light-tan toy skin tone",
+    "candidateOutfit": "plain heather-grey hoodie with a small orange #FF6B00 drawstring detail, dark jeans, white sneakers"
+  }
+}

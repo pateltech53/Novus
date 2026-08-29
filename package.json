@@ -23,6 +23,8 @@
     "icons": "node scripts/make-icons.mjs && node scripts/make-app-icons.mjs",
     "models": "node scripts/build-models.mjs",
     "art": "node scripts/build-art.mjs",
+    "art:briefcase": "node scripts/generate-briefcase-art.mjs",
+    "art:briefcase:build": "node scripts/build-briefcase-art.mjs",
     "market:fixture": "node scripts/market-fixture.mjs",
     "test:outside": "node scripts/market-fixture.mjs --check && node scripts/verify-pbxproj.mjs",
     "test:board": "node scripts/leaderboard-test.mjs",
