@@ -230,6 +230,34 @@ export default function AssetReviewPage() {
     return { designs: skins.length, withArt, renders };
   }, [manifest]);
 
+  /**
+   * What is NOT here.
+   *
+   * A wall of art with gaps in it reads as a finished wall unless it says
+   * otherwise — the eye does not audit 400 tiles. This counts every slot the
+   * manifest declares against the ones that actually carry a url, so the
+   * page can open with the number rather than hide it behind a scroll.
+   */
+  const gaps = useMemo(() => {
+    if (!manifest) return null;
+    const skinIds: string[] = [];
+    for (const [id, s] of Object.entries(manifest.skins).sort(([a], [b]) => a.localeCompare(b))) {
+      if (!s.urls?.novus) skinIds.push(`${id}_novus`);
+      if (!s.urls?.nova) skinIds.push(`${id}_nova`);
+    }
+    const cases: string[] = [];
+    for (const [id, c] of Object.entries(manifest.cases))
+      for (const state of ["closed", "glow", "open"])
+        if (!c.states?.[state]) cases.push(`${id}-${state}`);
+    const keys = Object.entries(manifest.keys).filter(([, k]) => !k.url).map(([id]) => id);
+    const props = Object.entries(manifest.props).filter(([, p]) => !p.url).map(([id]) => id);
+    const fx: string[] = [];
+    for (const set of Object.values(manifest.fx))
+      for (const [id, url] of Object.entries(set.sprites)) if (!url) fx.push(id);
+    const total = skinIds.length + cases.length + keys.length + props.length + fx.length;
+    return { total, skinIds, cases, keys, props, fx };
+  }, [manifest]);
+
   if (error)
     return (
       <main className="mx-auto max-w-2xl p-8">
@@ -267,6 +295,65 @@ export default function AssetReviewPage() {
         </div>
         <ThemeToggle />
       </header>
+
+      {gaps && gaps.total > 0 && (
+        // Sits above the art on purpose. Everything below this line is
+        // finished work, and finished work is persuasive — the count of what
+        // is NOT done has to arrive before the eye starts believing the wall.
+        <section className="mt-4 rounded-[var(--radius-row)] border border-[#FF6B00]/40 bg-[#FF6B00]/[0.06] p-4">
+          <h2 className="text-2xs font-bold tracking-[0.1em] text-[#FF6B00]">
+            STILL MISSING — {gaps.total} ASSET{gaps.total === 1 ? "" : "S"}
+          </h2>
+          <p className="mt-1.5 text-2xs leading-relaxed text-[var(--text-secondary)]">
+            Generation stopped when the Gemini project ran out of prepaid credits, and a
+            handful of formalwear renders were refused by the image model&rsquo;s safety
+            classifier, which reads &ldquo;character reference + change the outfit&rdquo; as
+            editing a photo of a person. Top the project up at{" "}
+            <a
+              href="https://ai.studio/projects"
+              target="_blank"
+              rel="noreferrer"
+              className="underline decoration-dotted underline-offset-2"
+            >
+              ai.studio/projects
+            </a>{" "}
+            and re-run the generator — finished renders are never redone, so it picks up
+            exactly the list below.
+          </p>
+          <pre className="mt-2 overflow-x-auto rounded-[var(--radius-row)] bg-[var(--surface-elevated)] p-2 text-2xs">
+            npm run art:briefcase -- all --model gemini-3.1-flash-image --concurrency 4
+          </pre>
+          <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-2xs">
+            {([
+              ["Skin renders", gaps.skinIds],
+              ["Case states", gaps.cases],
+              ["Keys", gaps.keys],
+              ["Props", gaps.props],
+              ["FX sprites", gaps.fx],
+            ] as [string, string[]][])
+              .filter(([, list]) => list.length)
+              .map(([label, list]) => (
+                <div key={label} className="contents">
+                  <dt className="whitespace-nowrap font-bold">
+                    {label} ({list.length})
+                  </dt>
+                  <dd className="m-0 break-words font-mono text-[var(--text-tertiary)]">
+                    {list.join(" ")}
+                  </dd>
+                </div>
+              ))}
+          </dl>
+          <p className="mt-2.5 text-2xs leading-relaxed text-[var(--text-tertiary)]">
+            Worth replacing while you are there, though they did render:{" "}
+            <span className="font-mono">095_nova</span> picked up real space-agency logos
+            (trademark risk — <span className="font-mono">095_novus</span> is clean),{" "}
+            <span className="font-mono">037_nova</span> has stray &ldquo;FOUNDER&rdquo; text
+            on the collar, and the two Titanium case states failed the white-background
+            check. Those already have masters on disk, so replacing them needs{" "}
+            <span className="font-mono">--force</span>.
+          </p>
+        </section>
+      )}
 
       <div className="sticky top-0 z-10 -mx-4 mt-4 flex flex-wrap items-center gap-3 bg-[var(--surface)]/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
         <div className="flex items-center gap-1.5">
@@ -323,7 +410,10 @@ export default function AssetReviewPage() {
           title={COLLECTIONS[collection] ?? collection}
           count={`${skins.length} design${skins.length === 1 ? "" : "s"}`}
         >
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-x-4 gap-y-5">
+          {/* Cells hold a PAIR, so they need room for two tiles plus their
+              captions — at 150px each render was ~75px wide and every name
+              truncated to "001 …". */}
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-x-5 gap-y-6">
             {skins.map(([id, s]) => (
               // A real pair box, not display:contents. Dissolving the wrapper
               // made both figures direct grid items, so at most widths a
