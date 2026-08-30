@@ -1,0 +1,51 @@
+{
+  "_comment": "Prop & FX prompt cores (plan §10.4). The generator prepends the style block in object mode and appends the negative block. Flat FX sprites (confetti pieces, cursor spark, aura) generate through the sprite mode below — per Zach (29 Aug), these are AI-generated like everything else.",
+  "objectMode": "single object, centered, pure white seamless background, soft studio lighting from upper left, soft ambient occlusion under the object",
+  "caseStates": {
+    "closed": "closed",
+    "glow": "closed with a glowing seam and floating sparkles",
+    "open": "lid open with soft light rays from inside"
+  },
+  "cases": [
+    { "id": "t1-canvas", "tier": 1, "name": "Canvas Case", "core": "worn tan canvas briefcase with brass snap latches and a paper luggage tag" },
+    { "id": "t2-leather", "tier": 2, "name": "Leather Attaché", "core": "cognac leather briefcase, two gold buckles, visible stitching" },
+    { "id": "t3-titanium", "tier": 3, "name": "Titanium Case", "core": "brushed titanium briefcase, ribbed shell, combination dials, thin cool-blue LED seam" },
+    { "id": "t4-obsidian", "tier": 4, "name": "Obsidian Executive", "core": "matte black executive briefcase with a thin orange #FF6B00 pinline and holographic latch, faint ember glow" },
+    { "id": "t5-gold", "tier": 5, "name": "Gold Briefcase", "core": "mirror-polished gold briefcase with an embossed star medallion, gentle god-rays" },
+    { "id": "t1-denim", "tier": 1, "name": "Denim Canvas (reskin)", "core": "washed indigo denim-fabric briefcase with brass snap latches and a paper luggage tag" }
+  ],
+  "keys": [
+    { "id": "t1", "tier": 1, "core": "a chunky toy key in warm brass with a small canvas luggage tag tied to the bow" },
+    { "id": "t2", "tier": 2, "core": "a chunky toy key in ornate polished brass with a gold-buckle motif on the bow" },
+    { "id": "t3", "tier": 3, "core": "a chunky toy key in machined brushed titanium with a glowing cool-blue tip" },
+    { "id": "t4", "tier": 4, "core": "a chunky toy key in matte black with a glowing orange #FF6B00 core line" },
+    { "id": "t5", "tier": 5, "core": "a chunky toy key in solid mirror-polished gold with a star-shaped bow" }
+  ],
+  "objects": [
+    { "id": "shark-token", "name": "Shark Token", "core": "thick gold coin with a cartoon shark-fin emblem, slight 3/4 tilt" },
+    { "id": "frame-bronze-ledger", "name": "Bronze Ledger", "frame": true, "core": "square avatar frame border with a bronze ledger motif, empty center" },
+    { "id": "frame-silver-portfolio", "name": "Silver Portfolio", "frame": true, "core": "square avatar frame border with a silver portfolio motif, empty center" },
+    { "id": "frame-gold-boardroom", "name": "Gold Boardroom", "frame": true, "core": "square avatar frame border with gold boardroom pillar motifs, empty center" },
+    { "id": "frame-molten-gold", "name": "Molten Gold", "frame": true, "core": "square avatar frame border of flowing molten gold with soft drips, empty center" }
+  ],
+  "scenes": [
+    { "id": "bg-skyline-office", "name": "Skyline Corner Office", "aspect": "16:9", "core": "cozy stylized 3D corner office interior in the same soft clay/vinyl toy style: floor-to-ceiling windows over a golden-hour city skyline, tidy desk with a tiny gold trophy and laptop, deep navy and warm orange #FF6B00 accents, no characters" }
+  ],
+  "poses": [
+    { "id": "pose-trophy-lift_novus", "base": "novus", "name": "Trophy Lift (Novus)", "core": "both arms raised overhead lifting a shiny gold star trophy, celebratory open-mouth grin, wearing the same outfit as the reference character" },
+    { "id": "pose-trophy-lift_nova", "base": "nova", "name": "Trophy Lift (Nova)", "core": "both arms raised overhead lifting a shiny gold star trophy, celebratory open-mouth grin, wearing the same outfit as the reference character" }
+  ],
+  "sprites": [
+    { "id": "confetti-cash-1", "set": "confetti-paper-cash", "name": "Paper Cash", "core": "a single cartoon paper cash bill in green with a lighter oval seal in the middle, gently tilted" },
+    { "id": "confetti-cash-2", "set": "confetti-paper-cash", "name": "Paper Cash", "core": "a single cartoon paper cash bill in darker green, slightly folded in the middle as it flutters" },
+    { "id": "confetti-cash-3", "set": "confetti-paper-cash", "name": "Paper Cash", "core": "a single cartoon paper cash bill in light mint green with a thin border line, tilted the other way" },
+    { "id": "confetti-fin-1", "set": "confetti-shark-fins", "name": "Shark Fins", "core": "a single cartoon shark fin confetti piece in royal blue #3A6BFF, curved and glossy" },
+    { "id": "confetti-fin-2", "set": "confetti-shark-fins", "name": "Shark Fins", "core": "a single cartoon shark fin confetti piece in slate blue-grey with a small white water splash at its base" },
+    { "id": "confetti-fin-3", "set": "confetti-shark-fins", "name": "Shark Fins", "core": "a single cartoon shark fin confetti piece in teal #2EC4B6, tilted" },
+    { "id": "confetti-trophy-1", "set": "confetti-gold-trophies", "name": "Gold Trophies", "core": "a single tiny cartoon gold trophy cup with two handles and a star emblem, upright" },
+    { "id": "confetti-trophy-2", "set": "confetti-gold-trophies", "name": "Gold Trophies", "core": "a single tiny cartoon gold trophy cup with two handles, tilted to the left as it falls" },
+    { "id": "confetti-trophy-3", "set": "confetti-gold-trophies", "name": "Gold Trophies", "core": "a single tiny cartoon gold trophy cup with a star emblem, tilted to the right with two small sparkles" },
+    { "id": "cursor-orange-spark", "set": "cursor-trail", "name": "Orange Spark", "core": "a single four-point star spark in vivid orange #FF6B00 with a small soft glow and two tiny trailing sparkles" },
+    { "id": "aura-founders-seal", "set": "aura", "name": "Founder's Seal", "size": 512, "hole": true, "core": "a circular golden seal emblem: thin gold ring with two curved laurel branches meeting at the bottom and a small gold star at the top, soft gold glow, open empty center" }
+  ]
+}
