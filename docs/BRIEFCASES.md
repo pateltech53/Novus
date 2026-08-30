@@ -24,6 +24,13 @@ advertise itself.
 | **Open** | Three taps, each of which might upgrade the case, then the reveal. |
 | **Wear** | Skins land in MY SKINS; duplicates pay Shark Tokens instead. |
 
+Two other things hand out cases. **Career milestones** — first deal, five
+years, fiftieth pitch — are checked against the synced save on every visit, so
+one earned offline or before the beta reached you is still waiting. And the
+**token shop** sells a specific skin for tokens you earned, which arrives in a
+case like everything else (rule 5) but through the short ceremony: the full
+three-tap suspense is patronising on something you chose off a shelf.
+
 ### The 3 taps
 
 Borrowed from Duolingo's chest, and it is **theatre over a decision already
@@ -38,9 +45,17 @@ That is what makes it feel like somewhere new instead of a label changing.
 ### The reveal
 
 Borrowed from MadFut: silhouette → camera pull-back → the rarity in its own
-colour → the name → a rising wave hands over the card. Each beat answers one
-question in the order a player asks it — *is it good, how good, what is it*.
-Legendary holds the screen 1.6× as long and gets the loudest cue.
+colour → the name → a rising wave, and the card TURNS OVER onto the design.
+Each beat answers one question in the order a player asks it — *is it good,
+how good, what is it*. Legendary holds the screen 1.6× as long, gets the
+loudest cue, and throws five times the confetti.
+
+The card has two real faces with `backface-visibility`, rather than one card
+spun 360°: a full spin passes through the mirror image, which is half a second
+of backwards type at exactly the moment the player is finally reading the name.
+Confetti is a canvas — one compositor layer instead of two hundred nodes, at
+the point in the ceremony where a flip, a wash and a rising wave are already
+running — and `prefers-reduced-motion` gets none of it.
 
 ## Where things live
 
@@ -57,7 +72,61 @@ Legendary holds the screen 1.6× as long and gets the loudest cue.
 | `components/rewards/CaseCanvas.tsx` | The rotating 3-D case. |
 | `components/rewards/MySkins.tsx` | The collection, including what is not in it. |
 | `components/rewards/BetaPanel.tsx` | The tester's shortcuts. |
+| `components/rewards/TokenShop.tsx` | Spend tokens on a skin you picked. |
+| `components/rewards/RewardsHome.tsx` | `/rewards` — today, vault, skins, shop, beta. |
+| `components/rewards/ClosetRewards.tsx` | The same collection, inside the Closet. |
+| `components/rewards/Confetti.tsx` | The burst. One canvas, not 240 divs. |
+| `components/rewards/BetaAutopilot.tsx` | `/play?beta=tank` — drive a run to the panel. |
+| `lib/rewards/progress.ts` | What a moment of play is worth, and which half of it is trusted. |
+| `lib/rewards/report.ts` | The client end: batched, fire-and-forget, silent off-beta. |
+| `lib/rewards/moments.ts` | Which activity counts as which moment. |
+| `lib/rewards/latch.ts` | The two facts that have to survive between moments. |
+| `app/api/rewards/*` | Twelve routes, all 404 without the flag. |
 | `public/briefcase/models/*-v1.glb` | Five cases and the token, from Meshy. |
+
+## How playing moves a mission
+
+There is no engine event bus — the build prompt assumed one. The sim is pure
+TypeScript in the browser and what reaches the server is the SAVE. So the game
+reports MOMENTS (`lib/rewards/report.ts`, batched, swallowing every failure)
+and the server decides what they are worth.
+
+The trust boundary is the interesting part, and it is written down in
+`lib/rewards/progress.ts` rather than assumed:
+
+- **`fromSave` facts** — the year reached, valuation, cash, net worth,
+  industries played — are re-read from the synced save and the posted number is
+  ignored. Lying means writing the lie into the save, which `/api/sync` already
+  owns.
+- **`fromEvent` facts** — a pitch score, a deal's equity — have no server-side
+  record to check yet, so they are taken on trust and RATE-CAPPED per type per
+  reward-day through a thin `reward_events` ledger. A pitch takes a minute;
+  twenty in a minute is not a pitch.
+
+Nothing hooks `lib/engine/*` or `lib/leaderboard/replay.ts`. The verifier
+re-runs those same functions server-side, and a report inside one would fire
+again for every tape it re-ran.
+
+Two missions need a fact from an earlier moment — grow revenue year over year,
+reject every offer then end the quarter cash-positive — and the engine keeps no
+per-year history. Rather than grow the tape the verifier reads to serve a
+cosmetic daily, the reward system remembers what it needs in `sessionStorage`
+(`lib/rewards/latch.ts`). Nothing remembered reads as *not done*, never as a
+win.
+
+### Three templates the sim cannot answer
+
+`F6` wants a loan paid off, `O9` a customer count, and `D8` originally named
+one shark. The engine has no debt instrument, models market share rather than
+customers, and keeps a single carried-across-runs respect number with no
+per-shark opinion in it. F6 and O9 are behind flags — the same mechanism cold
+calling already used — and D8 was rewritten to ask what the engine can
+actually answer. A mission stuck at 0/1 until the reset is worse than one
+fewer mission.
+
+Cold calling is dark for a different reason: The Room shipped, but the activity
+that opens it is Pro-only, and a daily a free account structurally cannot
+complete is worse than one fewer too.
 
 ## Rules the code enforces, not just documents
 
@@ -90,23 +159,28 @@ scores yesterday.
 
 For everything else there are the **beta tools** on a beta account — grant a
 case at any tier, mark a mission done (the real claim path then runs), unlock
-any of the 101 skins from a search box, add tokens, reset the day. A Gold case
-is a 2.5% roll on the hardest daily; verifying the Legendary reveal by playing
+any of the 101 skins from a search box or any of the six Closet fits, add
+tokens, reset the day, and autopilot a run to the year-end tank. A Gold case is
+a 2.5% roll on the hardest daily; verifying the Legendary reveal by playing
 honestly would take a fortnight and luck.
+
+The autopilot is worth a note: it drives only the two controls a player has —
+ADVANCE, and the first choice on a blocking card — and stops dead at the gate.
+The pitch, the panel and the deal are the thing being tested and are never
+automated, and because every tap goes through the same `advance`/`choose` the
+screen uses, the tape it writes is one the leaderboard verifier accepts.
 
 ## Not finished
 
-- **The event-bus reducer.** Nothing yet moves `daily_progress.progress` from
-  real play — missions are completed through the beta tools only. Wiring
-  `achievements.ts` onto the engine's existing event bus is the next piece,
-  and it is what turns this from a demo into the loop.
-- **Player-facing surfaces.** The Daily Challenges panel, the Vault tab and the
-  reset countdown pill exist as APIs (`/api/rewards/daily`, `/vault`,
-  `/time`) but have no screen yet; `MySkins` and `BetaPanel` are built and
-  need a route to live on.
-- **Weekly Challenge, Perfect Week, leaderboard prizes, the token shop.**
-  Designed and seeded, not yet wired.
-- **Sound.** The ceremony reuses existing cues (`activity`, `bonus`,
-  `unlock`, `celebrate`). The spec's seven bespoke SFX are not recorded.
+- **Four delivery templates stay dark.** P2, P3, P4 and P7 want filler-word
+  counts, eye contact, pacing and a clarity score. `ContentScore` carries none
+  of them, and inventing the numbers to light up a mission would be worse than
+  the mission not appearing.
+- **Weekly Challenge, Perfect Week, leaderboard prizes.** Seeded in 0018 and
+  read by nothing yet.
+- **Sound.** The ceremony reuses existing cues (`activity`, `bonus`, `unlock`,
+  `celebrate`). The spec's seven bespoke SFX are not recorded.
 - **32 skin renders** are still missing from the art set — see
-  `docs/BRIEFCASE-ART.md`.
+  `docs/BRIEFCASE-ART.md`. The reveal falls back to a text card for a design
+  whose file 404s, and MY SKINS shows the same gap as an unfilled silhouette,
+  so nothing breaks; they are just not drawn yet.

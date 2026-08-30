@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import {
+  SKINS, demandText, loadWardrobe, saveWardrobe, skinDef, type SkinId,
+} from "@/lib/engine/wardrobe";
 import { RARITY_COLORS, TIER_NAMES, TIER_RARITY, type Tier } from "@/lib/rewards/tables";
 import { play } from "@/lib/sound";
 
@@ -30,6 +33,22 @@ export default function BetaPanel({ onOpenCase }: { onOpenCase?: (id: string) =>
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const [fits, setFits] = useState<SkinId[]>([]);
+
+  // Read lazily: `loadWardrobe` touches localStorage, which is not there
+  // during the server render.
+  useEffect(() => { setFits(loadWardrobe().earned ?? []); }, []);
+
+  /** Add one of the six tier fits to the local earned ledger. */
+  const unlockFit = (id: SkinId) => {
+    const state = loadWardrobe();
+    const earned = state.earned ?? [];
+    if (earned.includes(id)) { play("click"); return; }
+    saveWardrobe({ ...state, earned: [...earned, id] });
+    setFits([...earned, id]);
+    play("success");
+    setNote(`${skinDef(id).label} added to the Closet.`);
+  };
 
   const load = async () => {
     const [daily, inv] = await Promise.all([
@@ -181,6 +200,64 @@ export default function BetaPanel({ onOpenCase }: { onOpenCase?: (id: string) =>
             <p className="text-2xs text-[var(--text-tertiary)]">Nothing matches “{query}”.</p>
           )}
         </div>
+      </section>
+
+      {/*
+        Closet fits — the OTHER wardrobe.
+        ────────────────────────────────
+        The six tier fits are earned from a career record kept in this browser
+        (lib/engine/wardrobe.ts), not from the reward server, so unlocking one
+        is a local write and does not go through /api/rewards/sim. Both
+        wardrobes are testable from one screen because a tester does not care
+        which of them a fit came from.
+      */}
+      <section>
+        <p className="text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]">
+          CLOSET FITS
+        </p>
+        <p className="mt-1 text-2xs leading-snug text-[var(--text-tertiary)]">
+          Earned from your career record, stored on this device. Unlocking one here
+          is exactly what meeting its demand does.
+        </p>
+        <div className="mt-2 flex flex-col gap-1">
+          {SKINS.map((fit) => (
+            <button
+              key={fit.id}
+              onClick={() => unlockFit(fit.id)}
+              className="flex items-center justify-between gap-3 rounded-[var(--radius-row)] border border-[var(--hairline)] px-3 py-2 text-left text-2xs"
+            >
+              <span className="min-w-0 truncate">
+                {fit.label}
+                <span className="ml-1.5 text-[var(--text-tertiary)]">
+                  {demandText(fit.demands[0])}
+                </span>
+              </span>
+              <span className="shrink-0 font-bold text-[var(--text-tertiary)]">
+                {fits.includes(fit.id) ? "EARNED ✓" : "UNLOCK"}
+              </span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/*
+        Straight to the panel. The tank is behind a fiscal year, so testing it
+        used to mean a dozen advances and a dozen cards first — every attempt.
+        The autopilot on /play taps ADVANCE and takes the first choice until
+        the year-end gate, then stops: the pitch and the panel are the thing
+        being tested and are never automated.
+      */}
+      <section>
+        <p className="text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]">
+          THE TANK
+        </p>
+        <a
+          href="/play?beta=tank"
+          className="mt-2 flex items-center justify-between gap-3 rounded-[var(--radius-row)] bg-[#FF6B00] px-3 py-2.5 text-2xs font-bold text-white"
+        >
+          AUTOPILOT TO THE YEAR-END PITCH
+          <span aria-hidden>&rarr;</span>
+        </a>
       </section>
 
       {/* Tokens — so the shop is reachable without opening forty cases. */}

@@ -96,6 +96,8 @@ import { storefront } from "@/lib/commerce";
  * statically and rejects anything that is not an object literal.
  */
 
+import BetaAutopilot from "@/components/rewards/BetaAutopilot";
+
 const loadPerformScreen = () => import("@/components/PerformScreen");
 const PerformScreen = dynamic(
   () => loadPerformScreen().then((m) => m.PerformScreen),
@@ -802,6 +804,14 @@ function PlayScreen() {
      * the working column on six words while the left column sat half empty.
      */
     <main className="min-h-dvh bg-[var(--bg)] lg:mx-auto lg:grid lg:min-h-dvh lg:max-w-[88rem] lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)_minmax(0,21rem)] lg:gap-5 lg:px-5 lg:py-5">
+      {/*
+        Arrives from the beta panel's "jump to the tank". Renders nothing
+        without `?beta=tank` in the URL, and drives only the two controls a
+        player has — ADVANCE, and the first choice on a blocking card — so
+        the tape it writes is one the leaderboard verifier accepts.
+      */}
+      <BetaAutopilot />
+
       {/* Left column on desktop; masthead on phone. */}
       <div className="lg:sticky lg:top-5 lg:flex lg:h-[calc(100dvh-2.5rem)] lg:flex-col lg:self-start lg:overflow-hidden lg:rounded-[var(--radius-card)] lg:bg-[var(--surface)] lg:shadow-[var(--e2)]">
         <HomeStage
