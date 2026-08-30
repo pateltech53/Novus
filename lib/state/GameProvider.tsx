@@ -26,6 +26,9 @@ import {
   type YearEndSummary,
 } from "@/lib/engine/run";
 import { buildAutopsy, type AutopsyReport } from "@/lib/engine/autopsy";
+import { previousYear, rememberYear, takeRejectedOffers } from "@/lib/rewards/latch";
+import { momentFor } from "@/lib/rewards/moments";
+import { reportPlay } from "@/lib/rewards/report";
 import type { CompanyBrief } from "@/lib/engine/company-brief";
 import { activityById, applyActivity, isLocked, isOfferable } from "@/lib/engine/activities";
 import { callerById, consumeCall, type CallOutcome } from "@/lib/ai/callers";
@@ -653,6 +656,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setPerform(null);
       setAtGate(false);
       commit(next);
+      // Past every bail-out, so this only fires for a run that actually began.
+      reportPlay("run.started", {
+        industry: opts.industry,
+        // R2 asks whether the LAST company went under. Read from the local
+        // legacy rather than asserted by a screen: the autopsy is written by
+        // the engine at Chapter 7 and there is nothing here to fake it with.
+        afterBankruptcy: loadLegacy().autopsies.at(-1)?.endedBy === "chapter7",
+      });
       saveProfile({
         founderName: opts.founderName,
         playerAge: opts.playerAge,
@@ -696,6 +707,27 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
      */
     recordTap(working, { t: "advance", atISO: working.lastPlayedISO ?? tapeToday() });
     commit(working);
+    /*
+     * There is no "a quarter ended" moment in the engine — `advanceMonth`
+     * calls `quarterTick` every third month and says nothing about it. So the
+     * quarter is read off the month the advance landed on. Reading it here
+     * rather than in the engine keeps the hook out of `lib/engine/run.ts`,
+     * which the leaderboard verifier replays server-side and which would
+     * double-count every tape it re-ran.
+     */
+    if (working.month % 3 === 0) {
+      /*
+       * D7 — "reject every offer, then end the next quarter cash-positive" —
+       * is the one mission whose condition spans two screens, so the half that
+       * happened in the tank travels here through a one-shot latch. Reading it
+       * clears it: the quarter after the next one is not the mission.
+       */
+      reportPlay("quarter.ended", {
+        year: working.year,
+        cashPositive: working.stats.cash > 0,
+        rejectedAll: takeRejectedOffers(),
+      });
+    }
     resolvingRef.current = null;
     setQueue(turn.cards);
     setMarketId(turn.marketEventId);
@@ -745,11 +777,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       }
       recordTap(working, { t: "choice", eventId: ev.id, choice: index });
       commit(working);
+      reportPlay(ev.id === marketId ? "event.market" : "event.resolved", { eventId: ev.id });
       setLastDeltas(result.lines.flatMap((l) => l.deltas ?? []));
       setQueue((q) => q.slice(1));
       resolvingRef.current = null;
     },
-    [queue, commit],
+    [queue, commit, marketId],
   );
 
   const dismissCard = useCallback(() => {
@@ -815,6 +848,17 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     // read live — see the note on the import.
     syncEarnedSkins(summary.year);
     recordYearClose();
+    /*
+     * The reward loop's biggest single moment: a closed year is what most of
+     * the finance and operations templates are written against. Fire-and-
+     * forget — lib/rewards/report.ts batches and swallows every failure, so a
+     * briefcase system that is down cannot affect a year closing.
+     *
+     * The numbers the server can check for itself (year, valuation, cash) are
+     * re-read from the synced save on its side and ignored here; these are the
+     * ones only the client saw.
+     */
+    reportPlay("year.ended", { year: summary.year });
     commit(working);
     setYearEnd(summary);
     setAtGate(false);
@@ -921,6 +965,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
          * out twice. `lib/leaderboard/replay.ts` owns it and the verifier runs
          * the same function — see the note beside the import.
          */
+        const respectBefore = working.stats.respect;
+        // Read before the close, because the close is what moves them.
+        const priorYear = previousYear(working.id, working.year);
+        const wtpBefore = working.stats.cwp;
         const { summary, portfolioYear: pYear } = closeFiscalYear(
           working,
           result,
@@ -938,6 +986,66 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         // One of today's ration, spent at the moment the year actually closes.
         recordYearClose();
         commit(working);
+        /*
+         * The pitched close, which is how most years actually end — the skip
+         * path had this and this path did not, so until now the great
+         * majority of closed years reported nothing at all.
+         *
+         * `year.ended` carries only the year: the server re-reads valuation,
+         * cash and net worth from the synced save rather than believing a
+         * number a browser posted. `deal.closed` is the other half of the
+         * same moment and only exists when a shark actually signed.
+         */
+        /*
+         * Everything the year-end family grades on, in one moment.
+         *
+         * The server ignores `year`, valuation, cash and net worth and re-reads
+         * them from the synced save; the rest are event-asserted and therefore
+         * rate-capped (lib/rewards/progress.ts explains the split). Growth
+         * against last year comes from the reward system's own memory of the
+         * previous close, because the engine keeps no per-year history — a run
+         * with nothing remembered reports zero growth rather than a win.
+         */
+        const runway = working.stats.burnMonthly > 0
+          ? working.stats.cash / working.stats.burnMonthly
+          : 999;                                   // profitable: runway is not the constraint
+        reportPlay("year.ended", {
+          year: summary.year,
+          runwayMonths: Math.floor(runway),
+          grossMarginPct: Math.round(working.stats.grossMarginPt),
+          revenueGrowthPct: priorYear && priorYear.revenue > 0
+            ? Math.round(((summary.revenue - priorYear.revenue) / priorYear.revenue) * 100)
+            : 0,
+          wtpPct: priorYear && priorYear.wtp > 0
+            ? Math.round(((wtpBefore - priorYear.wtp) / priorYear.wtp) * 100)
+            : 0,
+          // R1 — "turn a losing year into a profitable next year".
+          recovered: !!priorYear && priorYear.profit < 0 && summary.profit > 0,
+        });
+        rememberYear({
+          runId: working.id,
+          year: summary.year,
+          revenue: summary.revenue,
+          profit: summary.profit,
+          wtp: working.stats.cwp,
+        });
+        /*
+         * The two derived-number families. Both carry no numbers: `advanceBy`
+         * grades F4 and B2 off the SYNCED SAVE and ignores anything posted
+         * here, so these exist purely to say "now is a moment when this
+         * changed" — which is the only thing a client is trusted to assert.
+         */
+        reportPlay("valuation.updated", {});
+        reportPlay("networth.updated", {});
+        /*
+         * D8 asks whether the room thought better of you than it did before.
+         * Respect is a single carried-across-runs number that the PANEL never
+         * touches — `closeFiscalYear` applies it — so the delta only exists
+         * here, either side of that call. (`deal.closed` is reported from
+         * PitchScore instead: the deal reaches this function as two numbers,
+         * and D4 needs the shark's name.)
+         */
+        if (working.stats.respect > respectBefore) reportPlay("shark.respect", {});
         setYearEnd(summary);
         setAtGate(false);
         // Another year survived is a different result for the same run, and
@@ -1034,6 +1142,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       runId: state.id,
       companyName: report.companyName,
       years: report.yearsSurvived,
+      endedBy: state.endedBy,
+      industry: state.industry,
       causes: closedOnPurpose
         ? ["Closed by the founder."]
         : report.fatalDecisions.map((d) => d.choiceLabel),
@@ -1145,6 +1255,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         if (cand.pro && !draft.pro) return; // Pro gates content, never outcomes
         hireCandidate(draft, cand);
         recordTap(draft, { t: "hire", index });
+        reportPlay("staff.hired", { count: 1 });
         return `${cand.name} joins as ${cand.role}. Payroll is a promise you make every month.`;
       });
     },
@@ -1184,9 +1295,15 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         const index = draft.holdings.findIndex((h) => h.id === holdingId);
         const held = draft.holdings[index];
         const def = held ? assetById(held.defId) : null;
+        // What it cost, read before `sellAsset` removes the row — the profit
+        // is the whole point of template F7 and it is unrecoverable after.
+        const basis = held?.paid ?? 0;
         const proceeds = sellAsset(draft, holdingId);
         if (!proceeds || !def) return;
         recordTap(draft, { t: "sell-asset", index });
+        reportPlay("asset.sold", {
+          profitPct: basis > 0 ? Math.round(((proceeds - basis) / basis) * 100) : 0,
+        });
         return `You sell ${def.name}. The money comes back; the thing does not.`;
       });
     },
@@ -1397,6 +1514,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         ),
       );
       commit(working);
+      reportPlay("product.launched", { name: item.name });
       return item;
     },
     [commit],
@@ -1411,6 +1529,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const gone = retireItem(working, id);
       if (!gone) return;
       recordTap(working, { t: "retire", index });
+      reportPlay("product.retired", { name: gone.name });
       refreshBooks(working);
       working.log.push(
         makeLine(working, "decision", `You discontinued ${gone.name}. It stays in the archive.`),
@@ -1525,6 +1644,20 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       // Consumed regardless of the answer. A cold call you fumbled is still a
       // cold call you made, and the scarcity is the mechanic.
       consumeCall(working);
+
+      /*
+       * Both moments, on the same rule as the call itself: `call.completed`
+       * for every call made, `call.won` only for one that landed. The caller's
+       * temperament travels with the win because template C3 asks for a
+       * specific kind of investor.
+       */
+      reportPlay("call.completed", { caller: callerId });
+      if (outcome.accepted) {
+        reportPlay("call.won", {
+          caller: callerId,
+          temperament: callerById(callerId)?.temperament ?? "",
+        });
+      }
 
       if (outcome.accepted) {
         working.coldCallsClosed = [...(working.coldCallsClosed ?? []), callerId];
@@ -1670,6 +1803,15 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       // events do. A tape without them replays a different company.
       recordTap(working, { t: "activity", id, ...(optionId ? { option: optionId } : {}) });
       commit(working);
+      /*
+       * The reward system's view of an activity, if it has one. The table
+       * lives in lib/rewards/moments.ts rather than as a switch here: an
+       * activity the table does not know about emits nothing, which is the
+       * right default — a new activity should not start counting toward a
+       * mission nobody wrote for it.
+       */
+      const moment = momentFor(id);
+      if (moment) reportPlay(moment, { id, ...(optionId ? { option: optionId } : {}) });
     },
     [commit],
   );

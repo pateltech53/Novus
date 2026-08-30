@@ -87,6 +87,22 @@ const PRUNE = [
     why: "operator console — no native surface links to it, and robots.ts already disallows it",
   },
   { path: ["og.png"], why: "social card — nothing on device renders an OpenGraph image" },
+  /*
+   * The briefcase art the GAME never asks for.
+   *
+   * Of the seven folders under public/briefcase, exactly two are reachable
+   * from app code: `skins` (MySkins and the reveal card) and `models` (the
+   * rotating case). The rest — the case renders, the props, the effect
+   * sprites, the key art and the manifest that indexes them — are read by one
+   * screen, /admin/assets, and that screen is pruned three entries above. So
+   * on device they are not merely unused-looking, they are unreachable: the
+   * only code that names them is already gone by the time this runs.
+   */
+  { path: ["briefcase", "cases"], why: "case renders — only /admin/assets draws them, and it is pruned above" },
+  { path: ["briefcase", "props"], why: "prop art — same, review-only" },
+  { path: ["briefcase", "fx"], why: "effect sprites — same, review-only" },
+  { path: ["briefcase", "keys"], why: "key art — same, review-only" },
+  { path: ["briefcase", "manifest.json"], why: "the index /admin/assets fetches — nothing else reads it" },
 ];
 
 function pruneBundle(outDir) {
@@ -292,8 +308,29 @@ console.log(`  · bundle is ${mb} MB on device`);
  *     product decision about which phones to support, not a build tweak.
  *
  * Lower this line as each lands.
+ *
+ * ── 50, and where the 4 MB went ─────────────────────────────────────────────
+ *
+ * The briefcase art. `skins` is 6.6 MB and `models` 1.1 MB, and both are
+ * reachable on device — the reveal card and MY SKINS draw every design, and
+ * the case that rotates through the three taps is a glb. The 1.9 MB of
+ * review-only art that came with them is pruned above rather than counted.
+ *
+ * A design is 640² and ~39 kB, which is the right size rather than a generous
+ * one: the reveal card is 224 px wide and a 3× phone asks for 672. Sixteen
+ * designs are still unrendered, so expect skins to reach ~7.9 MB — 50 is set
+ * to hold that too, and is not somewhere to spend again.
+ *
+ * There is a third reduction to add to the two above, and it is the largest:
+ *
+ *   · `skins` need not be in the binary at all. Every /api/rewards route 404s
+ *     without the beta flag, so the wardrobe cannot be claimed, opened or even
+ *     listed offline — 6.6 MB of art is being carried for a feature that
+ *     already requires the network. Serving it from the origin instead needs
+ *     an absolute URL and a CSP entry, which is a deliberate change and not
+ *     one to smuggle into the commit that adds the feature.
  */
-const CEILING_MB = 46;
+const CEILING_MB = 50;
 if (bytes / 1024 / 1024 > CEILING_MB) {
   console.error(
     `\n  ✗ bundle is ${mb} MB, over the ${CEILING_MB} MB ceiling.\n` +

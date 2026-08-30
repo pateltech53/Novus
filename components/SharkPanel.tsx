@@ -141,6 +141,8 @@ export interface TankOutcome {
   acceptedWith: SharkId | null;
   /** Investor-only reads, surfaced only in the debrief. */
   privateNotes: { shark: SharkId; note: string }[];
+  /** The founder pushed back on the table rather than taking what was offered. */
+  countered: boolean;
   /** True when no turn in the session reached a model. */
   offline: boolean;
 }
@@ -833,6 +835,7 @@ export function SharkPanel({
       acceptedFrom: accepted?.shark ?? null,
       acceptedWith: accepted?.with ?? null,
       privateNotes: privateNotesRef.current,
+      countered: counterRef.current !== "",
       // True only when NOT ONE turn reached a model. The debrief says so out
       // loud rather than presenting an offline session as a live one.
       offline: liveTurnsRef.current === 0,

@@ -35,6 +35,8 @@
     "test:variety": "node scripts/variety-test.mjs",
     "test:room": "node scripts/room-test.mjs",
     "test:wardrobe": "node scripts/wardrobe-test.mjs",
+    "rewards:seed": "node scripts/rewards-seed.mjs",
+    "test:rewards": "node scripts/rewards-test.mjs",
     "test:playbook": "node scripts/playbook-test.mjs",
     "test:exits": "node scripts/exit-audit.mjs",
     "test:notes": "node scripts/notes-clip-probe.mjs",

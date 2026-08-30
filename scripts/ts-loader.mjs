@@ -12,6 +12,22 @@ const here = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolvePath(here, "..");
 
 export function resolve(specifier, context, next) {
+  /*
+   * `server-only` is a bundler boundary marker, not a runtime dependency.
+   *
+   * Its index.js throws on import so that a Client Component pulling in server
+   * code fails the BUILD. Under this harness there is no client boundary to
+   * protect — there is no bundle at all — so the throw would only mean the
+   * server-side modules are the ones that can never be tested, which is
+   * exactly backwards: lib/rewards/roll.ts carries the odds every reward in
+   * the game is drawn from. The package ships empty.js for this case (it is
+   * what the "react-server" export condition resolves to); pointing at it here
+   * keeps the build-time guard intact and makes the module reachable from a
+   * test.
+   */
+  if (specifier === "server-only") {
+    return next(pathToFileURL(resolvePath(projectRoot, "node_modules/server-only/empty.js")).href, context);
+  }
   // Map the "@/..." path alias used by the app.
   if (specifier.startsWith("@/")) {
     const target = resolvePath(projectRoot, specifier.slice(2));

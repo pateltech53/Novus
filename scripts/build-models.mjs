@@ -102,6 +102,31 @@ const MODELS = [
       { pattern: null, size: 1024 },
     ],
   },
+  /*
+   * The five briefcases and the token, from Meshy (text-to-3D, same route as
+   * the shark). These spin in the unlock ceremony at roughly 260-360 px and
+   * are the only mesh on screen while they do it, so they can afford a little
+   * more geometry than the mascot — but only a little: the ceremony is the
+   * moment the game must not stutter, and on a mid-range phone the frame it
+   * drops is the one the player is looking hardest at.
+   *
+   * The Meshy exports arrive around 1 MB each with 1024-2048 maps, which is
+   * film density for a prop the size of a playing card.
+   */
+  ...[
+    ["Canvas Case", "t1-canvas"],
+    ["Leather Attache", "t2-leather"],
+    ["Titanium Case", "t3-titanium"],
+    ["Obsidian Executive", "t4-obsidian"],
+    ["Gold Briefcase", "t5-gold"],
+    ["Shark Token", "shark-token"],
+  ].map(([name, slug]) => ({
+    name: `${name} (briefcase)`,
+    from: `assets-src/briefcase/models/${slug}.original.glb`,
+    to: `public/briefcase/models/${slug}-v1.glb`,
+    ratio: 0.35,
+    textures: [{ pattern: null, size: 512 }],
+  })),
 ];
 
 const mb = (bytes) => `${(bytes / 1_000_000).toFixed(2)} MB`;
