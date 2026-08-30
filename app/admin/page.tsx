@@ -147,6 +147,7 @@ interface Detail {
     comp_pro: boolean;
     comp_until: string | null;
     comp_note: string | null;
+    rewards_beta?: boolean;
   } | null;
   billing: {
     subscription_status: string | null;
@@ -562,6 +563,24 @@ export default function AdminPage() {
         call("/api/admin/comp", {
           method: "POST",
           body: JSON.stringify({ profileId: id, active: true, until, note: "console gift" }),
+        }),
+      [refreshOpen],
+    );
+
+  /*
+   * The briefcase beta, on or off for one account.
+   *
+   * Deliberately the same shape as the gift above: an operator decision
+   * written to a cell nobody else can write, revocable in one tap. That is
+   * what "ship to staff, then to 10%" means in practice — not a redeploy.
+   */
+  const setBeta = (id: string, active: boolean) =>
+    act(
+      `beta:${id}`,
+      () =>
+        call("/api/admin/beta", {
+          method: "POST",
+          body: JSON.stringify({ profileId: id, active }),
         }),
       [refreshOpen],
     );
@@ -1434,6 +1453,7 @@ export default function AdminPage() {
                       self={u.id === selfId}
                       onSetRole={(role) => void setRole(u.id, role)}
                       onGiftPro={(until) => void giftPro(u.id, until)}
+                      onSetBeta={(active) => void setBeta(u.id, active)}
                       onRevokePro={() => void revokePro(u.id)}
                       onTogglePack={(code, grant) => void togglePack(u.id, code, grant)}
                       onSetIslands={(n) => void setIslands(u.id, n)}
@@ -1572,6 +1592,7 @@ function DetailPanel({
   self,
   onSetRole,
   onGiftPro,
+  onSetBeta,
   onRevokePro,
   onTogglePack,
   onSetIslands,
@@ -1586,6 +1607,7 @@ function DetailPanel({
   self: boolean;
   onSetRole: (role: "admin" | "player") => void;
   onGiftPro: (untilISO: string | null) => void;
+  onSetBeta: (active: boolean) => void;
   onRevokePro: () => void;
   onTogglePack: (code: string, grant: boolean) => void;
   onSetIslands: (n: number) => void;
@@ -1745,6 +1767,30 @@ function DetailPanel({
           {compActive && (
             <Chip onClick={onRevokePro} disabled={busy !== null} danger>
               REVOKE GIFT
+            </Chip>
+          )}
+        </div>
+      </div>
+
+      {/* Briefcase beta */}
+      <div>
+        <p className="text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]">
+          BRIEFCASE BETA{e?.rewards_beta ? " — on for this account" : ""}
+        </p>
+        <p className="mt-1 text-2xs leading-relaxed text-[var(--text-secondary)]">
+          Daily missions, cases, the unlock ceremony and the wardrobe. While it is
+          on, this account also gets the tester shortcuts — grant a case at any
+          tier, complete a mission, unlock any skin — which act only on their own
+          account.
+        </p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {e?.rewards_beta ? (
+            <Chip onClick={() => onSetBeta(false)} disabled={busy !== null} danger>
+              TURN BETA OFF
+            </Chip>
+          ) : (
+            <Chip onClick={() => onSetBeta(true)} disabled={busy !== null}>
+              TURN BETA ON
             </Chip>
           )}
         </div>
