@@ -115,6 +115,25 @@ export const SHEET_SPRING = { type: "spring", stiffness: 380, damping: 34 } as c
  */
 export const SETTLE_SPRING = { type: "spring", stiffness: 260, damping: 26 } as const;
 
+/**
+ * The briefcase landing in the unlock ceremony.
+ *
+ * Bouncier than anything else in the app on purpose: the case is a PRIZE
+ * arriving, and the overshoot is the difference between a reward that lands
+ * and a panel that appears. The two numbers are fixed by the briefcase spec
+ * (§7.2 beat 3) rather than chosen here — they are the same values the design
+ * doc hands to the native side — so they live in the motion system instead of
+ * being inlined at the one call site that needs them.
+ */
+export const CASE_SPRING = { type: "spring", stiffness: 300, damping: 18 } as const;
+
+/**
+ * A label stamping in — the tier nameplate under the case, the rarity word on
+ * a reveal card. Tighter and snappier than CASE_SPRING because type should
+ * arrive and stop, not wobble.
+ */
+export const STAMP_SPRING = { type: "spring", stiffness: 320, damping: 16 } as const;
+
 // ── Choreography ────────────────────────────────────────────────────────────
 
 /**

@@ -61,7 +61,11 @@ export function rollTier(band: Band, seed: string): { tier: Tier; path: Tier[] }
   const payingTaps = new Set<number>();
   while (payingTaps.size < upgrades) payingTaps.add(Math.floor(rand() * UPGRADE_TAPS));
 
-  const path: Tier[] = [];
+  // The path INCLUDES the starting tier, so it has UPGRADE_TAPS + 1 entries
+  // and `path[tapsSpent]` is always the tier on screen. Without the start in
+  // it, the ceremony has nothing to show before the first tap and would open
+  // on the tier that tap was supposed to reveal.
+  const path: Tier[] = [start];
   let current = start;
   for (let tap = 0; tap < UPGRADE_TAPS; tap++) {
     if (payingTaps.has(tap)) current = (current + 1) as Tier;
