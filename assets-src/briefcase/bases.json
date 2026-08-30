@@ -1,15 +1,18 @@
 {
-  "_comment": "Canon base founders (plan §10.2). Every skin renders on both. Generate candidates with `node scripts/generate-briefcase-art.mjs bases`, hand-pick one per base, then crown it with `crown --base <novus|nova> --pick <n>`. The crowned render lands in assets-src/briefcase/canon/ and is attached as a reference image to every subsequent skin generation.",
+  "_comment": "Canon base founders (plan §10.2, amended by Zach 30 Aug: the founders are SHARKS, same cast as the five panel sharks in public/sharks/). Every skin renders on both. Generate candidates with `node scripts/generate-briefcase-art.mjs bases`, hand-pick one per base, then crown it with `crown --base <novus|nova> --pick <n>`. The crowned render lands in assets-src/briefcase/canon/ and is attached as a reference image to every subsequent skin generation.",
+  "_species": "Read from the shipped cast: a chunky cartoon shark standing upright on two stubby legs — two-tone grey (darker top, pale grey-cream belly and snout underside), a tall dorsal fin, a long tail fin sweeping to one side, side fins doubling as arms ending in simple mitt hands, three short gill slits, a wide grin full of neat white teeth, big simple expressive eyes, dark rounded shoes.",
   "novus": {
     "name": "Novus",
     "styling": "masc",
-    "description": "a teenage-coded young founder character, masc styling: short dark hair with a soft swoop, thick friendly eyebrows, big confident grin with visible teeth, simple oval eyes, warm light-tan toy skin tone",
+    "refs": ["public/sharks/marcus.webp", "public/sharks/dev.webp"],
+    "description": "a friendly cartoon SHARK founder — the exact same shark species, proportions and material as the reference images (chunky upright shark, two-tone grey with a pale cream belly, tall dorsal fin, long sweeping tail fin, side fins as arms with simple mitt hands, three gill slits, dark rounded shoes). Masc styling: broad squared snout, thick confident brow, a wide open grin showing neat white teeth, big simple oval eyes",
     "candidateOutfit": "plain heather-grey hoodie with a small orange #FF6B00 drawstring detail, dark jeans, white sneakers"
   },
   "nova": {
     "name": "Nova",
     "styling": "fem",
-    "description": "a teenage-coded young founder character, fem styling: shoulder-length dark hair in a low ponytail with side bang, expressive arched brows, big confident grin, simple oval eyes with small lashes, warm light-tan toy skin tone",
+    "refs": ["public/sharks/serena.webp", "public/sharks/marcus.webp"],
+    "description": "a friendly cartoon SHARK founder — the exact same shark species, proportions and material as the reference images (chunky upright shark, two-tone grey with a pale cream belly, tall dorsal fin, long sweeping tail fin, side fins as arms with simple mitt hands, three gill slits, dark rounded shoes). Fem styling exactly like the female shark in the first reference: softer rounded snout, large bright expressive eyes with lashes and a defined eyelid, a small dark swept tuft crest on top of the head, a warm confident grin showing neat white teeth",
     "candidateOutfit": "plain heather-grey hoodie with a small orange #FF6B00 drawstring detail, dark jeans, white sneakers"
   }
 }

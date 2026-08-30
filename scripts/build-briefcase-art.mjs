@@ -169,36 +169,58 @@ async function loadQa(path, key) {
 }
 
 let total = 0;
+/**
+ * Ships TWO files per asset from one keying pass:
+ *   .webp — what the app will serve (small, alpha)
+ *   .png  — the same pixels lossless, for review and for any tool that wants
+ *           PNG (Zach, 30 Aug). Same basename, so a manifest url swaps by ext.
+ */
 async function shipKeyed(srcPath, outRel, key, { size, quality = 82, seedCenter = false } = {}) {
   const raw = await loadQa(srcPath, key);
   if (!raw) return false;
   keyOutBackground(raw.data, raw.width, raw.height, { seedCenter });
   const outPath = join(OUT, outRel);
   mkdirSync(dirname(outPath), { recursive: true });
-  const buf = await sharp(raw.data, { raw: { width: raw.width, height: raw.height, channels: 4 } })
-    .trim({ threshold: 1 })
-    .resize({ width: size, height: size, fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
-    .webp({ quality, effort: 5 })
-    .toBuffer();
-  writeFileSync(outPath, buf);
-  total += buf.length;
+  const shaped = () =>
+    sharp(raw.data, { raw: { width: raw.width, height: raw.height, channels: 4 } })
+      .trim({ threshold: 1 })
+      .resize({ width: size, height: size, fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } });
+  const webp = await shaped().webp({ quality, effort: 5 }).toBuffer();
+  const png = await shaped().png({ compressionLevel: 9, palette: true }).toBuffer();
+  writeFileSync(outPath, webp);
+  writeFileSync(outPath.replace(/\.webp$/, ".png"), png);
+  total += webp.length + png.length;
   return true;
 }
 
+/** Backdrops keep their background, so they skip keying — still both formats. */
 async function shipScene(srcPath, outRel, key, { width = 1600, quality = 80 } = {}) {
   if (!existsSync(srcPath)) return false;
   const outPath = join(OUT, outRel);
   mkdirSync(dirname(outPath), { recursive: true });
-  const buf = await sharp(srcPath).resize({ width }).webp({ quality, effort: 5 }).toBuffer();
-  writeFileSync(outPath, buf);
-  total += buf.length;
+  const webp = await sharp(srcPath).resize({ width }).webp({ quality, effort: 5 }).toBuffer();
+  const png = await sharp(srcPath).resize({ width }).png({ compressionLevel: 9 }).toBuffer();
+  writeFileSync(outPath, webp);
+  writeFileSync(outPath.replace(/\.webp$/, ".png"), png);
+  total += webp.length + png.length;
   return true;
 }
 
 // ── Skins ────────────────────────────────────────────────────────────────────
 
-const manifest = { version: 1, styleVersion: "v1", basePath: "/briefcase", skins: {}, cases: {}, keys: {}, props: {}, fx: {} };
+const manifest = {
+  version: 1,
+  styleVersion: "v1",
+  basePath: "/briefcase",
+  // Every asset ships twice: .webp for the app, .png (same basename) for
+  // review and for tools that want lossless. `png` mirrors `urls`.
+  formats: ["webp", "png"],
+  skins: {}, cases: {}, keys: {}, props: {}, fx: {},
+};
 const bases = ["novus", "nova"];
+/** The PNG twin of a shipped webp url (null-safe). */
+const pngOf = (u) => (u ? u.replace(/\.webp$/, ".png") : null);
+const pngMap = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, pngOf(v)]));
 let shipped = 0, missing = 0;
 
 for (const s of SKINS) {
@@ -213,13 +235,16 @@ for (const s of SKINS) {
       urls[base] = `/briefcase/${rel}`; // already built in an earlier pass
     } else missing++;
   }
+  const any = urls.novus || urls.nova;
+  const webp = { novus: urls.novus ?? null, nova: urls.nova ?? null };
   manifest.skins[s.id] = {
     name: s.name,
     tier: Number(s.tier),
     collection: s.collection,
     inPool: s.collection !== "milestone_only",
     ...RARITY[Number(s.tier)],
-    urls: urls.novus || urls.nova ? { novus: urls.novus ?? null, nova: urls.nova ?? null } : null,
+    urls: any ? webp : null,
+    png: any ? pngMap(webp) : null,
   };
 }
 
@@ -239,8 +264,14 @@ for (const c of PROPS.cases) {
     } else if (existsSync(join(OUT, rel))) states[state] = `/briefcase/${rel}`;
     else missing++;
   }
-  const any = Object.values(states).some(Boolean);
-  manifest.cases[c.id] = { name: c.name, tier: c.tier, reskin: c.id === "t1-denim" || undefined, states: any ? states : null };
+  const anyState = Object.values(states).some(Boolean);
+  manifest.cases[c.id] = {
+    name: c.name,
+    tier: c.tier,
+    reskin: c.id === "t1-denim" || undefined,
+    states: anyState ? states : null,
+    png: anyState ? pngMap(states) : null,
+  };
 }
 
 for (const k of PROPS.keys) {
@@ -250,7 +281,7 @@ for (const k of PROPS.keys) {
   if (existsSync(rawPath) && (await shipKeyed(rawPath, rel, `key ${k.id}`, { size: 640 }))) { url = `/briefcase/${rel}`; shipped++; }
   else if (existsSync(join(OUT, rel))) url = `/briefcase/${rel}`;
   else missing++;
-  manifest.keys[k.id] = { tier: k.tier, url };
+  manifest.keys[k.id] = { tier: k.tier, url, png: pngOf(url) };
 }
 
 for (const o of PROPS.objects) {
@@ -262,7 +293,7 @@ for (const o of PROPS.objects) {
     shipped++;
   } else if (existsSync(join(OUT, rel))) url = `/briefcase/${rel}`;
   else missing++;
-  manifest.props[o.id] = { name: o.name, kind: o.frame ? "frame" : "object", url };
+  manifest.props[o.id] = { name: o.name, kind: o.frame ? "frame" : "object", url, png: pngOf(url) };
 }
 
 for (const s of PROPS.scenes) {
@@ -272,7 +303,7 @@ for (const s of PROPS.scenes) {
   if (existsSync(rawPath) && (await shipScene(rawPath, rel, `scene ${s.id}`))) { url = `/briefcase/${rel}`; shipped++; }
   else if (existsSync(join(OUT, rel))) url = `/briefcase/${rel}`;
   else missing++;
-  manifest.props[s.id] = { name: s.name, kind: "background", url };
+  manifest.props[s.id] = { name: s.name, kind: "background", url, png: pngOf(url) };
 }
 
 for (const p of PROPS.poses) {
@@ -282,7 +313,7 @@ for (const p of PROPS.poses) {
   if (existsSync(rawPath) && (await shipKeyed(rawPath, rel, `pose ${p.id}`, { size: 640 }))) { url = `/briefcase/${rel}`; shipped++; }
   else if (existsSync(join(OUT, rel))) url = `/briefcase/${rel}`;
   else missing++;
-  manifest.props[p.id] = { name: p.name, kind: "pose", base: p.base, url };
+  manifest.props[p.id] = { name: p.name, kind: "pose", base: p.base, url, png: pngOf(url) };
 }
 
 // ── FX sprites (AI-generated flat 2D; keyed like everything else) ────────────
@@ -296,13 +327,97 @@ for (const s of PROPS.sprites) {
     shipped++;
   } else if (existsSync(join(OUT, rel))) url = `/briefcase/${rel}`;
   else missing++;
-  (manifest.fx[s.set] ??= { name: s.name, sprites: {} }).sprites[s.id] = url;
+  const set = (manifest.fx[s.set] ??= { name: s.name, sprites: {}, png: {} });
+  set.sprites[s.id] = url;
+  set.png[s.id] = pngOf(url);
 }
 
 // ── Manifest + contact sheets ────────────────────────────────────────────────
 
 mkdirSync(OUT, { recursive: true });
 writeFileSync(join(OUT, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
+
+/*
+ * A gallery GitHub itself renders.
+ *
+ * The admin wall at /admin/assets needs the app running; this is the same
+ * art in a file you can open in the GitHub UI on a phone, which is where
+ * "does this set hang together?" actually gets answered. Relative image
+ * paths, so it works in the repo browser and in any local markdown viewer.
+ */
+const rel = (u) => (u ? `../..${u}`.replace("../../briefcase", "../../public/briefcase") : null);
+const img = (u, alt, w = 130) => (u ? `<img src="${rel(u)}" alt="${alt}" width="${w}">` : "—");
+const md = [];
+md.push("# Briefcase art — review gallery\n");
+md.push(
+  `Every asset the generator produced, straight from \`public/briefcase/\` (style \`${manifest.styleVersion}\`). ` +
+  `Nothing here is wired into the game yet — this page exists to be judged.\n`,
+);
+md.push(
+  `Both founders are sharks from the panel cast: **Novus** (masc) and **Nova** (fem). ` +
+  `Each design renders on both. For an interactive version with dark/light/checker grounds and tier ` +
+  `filters, run the app and open \`/admin/assets\`.\n`,
+);
+{
+  const skins = Object.values(manifest.skins);
+  const renders = skins.reduce((n, s) => n + (s.urls?.novus ? 1 : 0) + (s.urls?.nova ? 1 : 0), 0);
+  const props = Object.values(manifest.props).filter((p) => p.url).length;
+  const cases = Object.values(manifest.cases).reduce(
+    (n, c) => n + Object.values(c.states ?? {}).filter(Boolean).length, 0);
+  const keys = Object.values(manifest.keys).filter((k) => k.url).length;
+  const fx = Object.values(manifest.fx).reduce(
+    (n, s) => n + Object.values(s.sprites).filter(Boolean).length, 0);
+  md.push(`**${renders}** skin renders · **${cases}** case states · **${keys}** keys · **${props}** props · **${fx}** FX sprites\n`);
+}
+// Walk the CSV, not the manifest object: "100" and "101" are canonical
+// integer keys, so JS enumerates them BEFORE "001" and the gallery would
+// open on the Legendary collection with The Magnate at the top.
+const byCollection = {};
+for (const row of SKINS) (byCollection[row.collection] ??= []).push([row.id, manifest.skins[row.id]]);
+const COLLECTION_TITLES = {
+  garage: "Garage Days", office: "First Office", corporate: "Corporate Ladder",
+  street: "Street CEO", retro: "Retro Business", tech: "Tech Visionary",
+  world: "World Tour Tailoring", industry: "Industry Pro", seasonal: "Seasonal & Events",
+  legendary: "Legendary Founders", milestone_only: "Milestone only",
+};
+// The gallery links the PNGs, not the webp: every markdown renderer in the
+// chain (GitHub, phones, editors) draws a PNG without argument.
+for (const [collection, skins] of Object.entries(byCollection)) {
+  md.push(`\n## ${COLLECTION_TITLES[collection] ?? collection}\n`);
+  md.push("| # | Name | Tier | Novus | Nova |");
+  md.push("|---|---|---|---|---|");
+  for (const [id, s] of skins)
+    md.push(`| ${id} | ${s.name} | T${s.tier} ${s.rarity} | ${img(s.png?.novus, `${id} novus`)} | ${img(s.png?.nova, `${id} nova`)} |`);
+}
+md.push("\n## Briefcases\n");
+md.push("| Case | Tier | Closed | Glow | Open |");
+md.push("|---|---|---|---|---|");
+for (const [id, c] of Object.entries(manifest.cases))
+  md.push(`| ${c.name} | T${c.tier} | ${img(c.png?.closed, `${id} closed`, 160)} | ${img(c.png?.glow, `${id} glow`, 160)} | ${img(c.png?.open, `${id} open`, 160)} |`);
+md.push("\n## Keys\n");
+md.push(`| ${Object.keys(manifest.keys).map((k) => k.toUpperCase()).join(" | ")} |`);
+md.push(`|${Object.keys(manifest.keys).map(() => "---").join("|")}|`);
+md.push(`| ${Object.entries(manifest.keys).map(([id, k]) => img(k.png, `key ${id}`)).join(" | ")} |`);
+md.push("\n## Props\n");
+md.push("| Asset | Kind | Art |");
+md.push("|---|---|---|");
+for (const [id, p] of Object.entries(manifest.props))
+  md.push(`| ${p.name} | ${p.kind} | ${img(p.png, id, p.kind === "background" ? 320 : 150)} |`);
+md.push("\n## FX sprites\n");
+for (const [setId, set] of Object.entries(manifest.fx)) {
+  const shots = Object.entries(set.png ?? {}).filter(([, u]) => u);
+  if (!shots.length) continue;
+  md.push(`\n**${set.name}** (\`${setId}\`)\n`);
+  md.push(`| ${shots.map(([id]) => id).join(" | ")} |`);
+  md.push(`|${shots.map(() => "---").join("|")}|`);
+  md.push(`| ${shots.map(([id, u]) => img(u, id, 90)).join(" | ")} |`);
+}
+md.push("\n---\n");
+md.push("_Generated by `scripts/build-briefcase-art.mjs`. See `docs/BRIEFCASE-ART.md` for the pipeline._\n");
+const galleryDir = join(root, "docs", "asset-review");
+mkdirSync(galleryDir, { recursive: true });
+writeFileSync(join(galleryDir, "README.md"), md.join("\n"));
+console.log("gallery → docs/asset-review/README.md (browsable on GitHub)");
 
 if (!SKIP_SHEETS) {
   // Per-collection grids from the SHIPPED art (what players will see), on

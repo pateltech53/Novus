@@ -2,6 +2,10 @@
   "version": 1,
   "styleVersion": "v1",
   "basePath": "/briefcase",
+  "formats": [
+    "webp",
+    "png"
+  ],
   "skins": {
     "100": {
       "name": "The Magnate",
@@ -10,7 +14,8 @@
       "inPool": true,
       "rarity": "legendary",
       "color": "#F5C518",
-      "urls": null
+      "urls": null,
+      "png": null
     },
     "101": {
       "name": "Perennial",
@@ -19,7 +24,14 @@
       "inPool": false,
       "rarity": "epic",
       "color": "#FF6B00",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t4/101_novus.webp",
+        "nova": "/briefcase/skins/t4/101_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t4/101_novus.png",
+        "nova": "/briefcase/skins/t4/101_nova.png"
+      }
     },
     "001": {
       "name": "Day One Hoodie",
@@ -28,7 +40,14 @@
       "inPool": true,
       "rarity": "common",
       "color": "#8E9BAA",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t1/001_novus.webp",
+        "nova": "/briefcase/skins/t1/001_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t1/001_novus.png",
+        "nova": "/briefcase/skins/t1/001_nova.png"
+      }
     },
     "002": {
       "name": "Ship It Tee",
@@ -37,7 +56,14 @@
       "inPool": true,
       "rarity": "common",
       "color": "#8E9BAA",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t1/002_novus.webp",
+        "nova": "/briefcase/skins/t1/002_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t1/002_novus.png",
+        "nova": "/briefcase/skins/t1/002_nova.png"
+      }
     },
     "003": {
       "name": "Garage Flannel",
@@ -46,7 +72,14 @@
       "inPool": true,
       "rarity": "common",
       "color": "#8E9BAA",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t1/003_novus.webp",
+        "nova": "/briefcase/skins/t1/003_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t1/003_novus.png",
+        "nova": "/briefcase/skins/t1/003_nova.png"
+      }
     },
     "004": {
       "name": "Campus Crew",
@@ -55,7 +88,14 @@
       "inPool": true,
       "rarity": "common",
       "color": "#8E9BAA",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t1/004_novus.webp",
+        "nova": "/briefcase/skins/t1/004_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t1/004_novus.png",
+        "nova": "/briefcase/skins/t1/004_nova.png"
+      }
     },
     "005": {
       "name": "Denim Dreamer",
@@ -64,7 +104,14 @@
       "inPool": true,
       "rarity": "common",
       "color": "#8E9BAA",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t1/005_novus.webp",
+        "nova": "/briefcase/skins/t1/005_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t1/005_novus.png",
+        "nova": "/briefcase/skins/t1/005_nova.png"
+      }
     },
     "006": {
       "name": "Cap & Grind",
@@ -73,7 +120,14 @@
       "inPool": true,
       "rarity": "common",
       "color": "#8E9BAA",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t1/006_novus.webp",
+        "nova": "/briefcase/skins/t1/006_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t1/006_novus.png",
+        "nova": "/briefcase/skins/t1/006_nova.png"
+      }
     },
     "007": {
       "name": "Cargo Builder",
@@ -82,7 +136,14 @@
       "inPool": true,
       "rarity": "common",
       "color": "#8E9BAA",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t1/007_novus.webp",
+        "nova": "/briefcase/skins/t1/007_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t1/007_novus.png",
+        "nova": "/briefcase/skins/t1/007_nova.png"
+      }
     },
     "008": {
       "name": "Trailhead Vest",
@@ -91,7 +152,14 @@
       "inPool": true,
       "rarity": "common",
       "color": "#8E9BAA",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t1/008_novus.webp",
+        "nova": "/briefcase/skins/t1/008_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t1/008_novus.png",
+        "nova": "/briefcase/skins/t1/008_nova.png"
+      }
     },
     "009": {
       "name": "Track Startup",
@@ -100,7 +168,14 @@
       "inPool": true,
       "rarity": "common",
       "color": "#8E9BAA",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t1/009_novus.webp",
+        "nova": "/briefcase/skins/t1/009_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t1/009_novus.png",
+        "nova": "/briefcase/skins/t1/009_nova.png"
+      }
     },
     "010": {
       "name": "Crunch Time PJs",
@@ -109,7 +184,14 @@
       "inPool": true,
       "rarity": "common",
       "color": "#8E9BAA",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t1/010_novus.webp",
+        "nova": "/briefcase/skins/t1/010_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t1/010_novus.png",
+        "nova": "/briefcase/skins/t1/010_nova.png"
+      }
     },
     "011": {
       "name": "First Desk",
@@ -118,7 +200,14 @@
       "inPool": true,
       "rarity": "common",
       "color": "#8E9BAA",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t1/011_novus.webp",
+        "nova": "/briefcase/skins/t1/011_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t1/011_novus.png",
+        "nova": "/briefcase/skins/t1/011_nova.png"
+      }
     },
     "012": {
       "name": "Quiet Analyst",
@@ -127,7 +216,14 @@
       "inPool": true,
       "rarity": "common",
       "color": "#8E9BAA",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t1/012_novus.webp",
+        "nova": "/briefcase/skins/t1/012_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t1/012_novus.png",
+        "nova": "/briefcase/skins/t1/012_nova.png"
+      }
     },
     "013": {
       "name": "Casual Friday",
@@ -136,7 +232,14 @@
       "inPool": true,
       "rarity": "common",
       "color": "#8E9BAA",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t1/013_novus.webp",
+        "nova": "/briefcase/skins/t1/013_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t1/013_novus.png",
+        "nova": "/briefcase/skins/t1/013_nova.png"
+      }
     },
     "014": {
       "name": "Ivy Intern",
@@ -145,7 +248,14 @@
       "inPool": true,
       "rarity": "common",
       "color": "#8E9BAA",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t1/014_novus.webp",
+        "nova": "/briefcase/skins/t1/014_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t1/014_novus.png",
+        "nova": "/briefcase/skins/t1/014_nova.png"
+      }
     },
     "015": {
       "name": "Client Ready",
@@ -154,7 +264,14 @@
       "inPool": true,
       "rarity": "common",
       "color": "#8E9BAA",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t1/015_novus.webp",
+        "nova": "/briefcase/skins/t1/015_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t1/015_novus.png",
+        "nova": "/briefcase/skins/t1/015_nova.png"
+      }
     },
     "016": {
       "name": "Commuter",
@@ -163,7 +280,14 @@
       "inPool": true,
       "rarity": "common",
       "color": "#8E9BAA",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t1/016_novus.webp",
+        "nova": "/briefcase/skins/t1/016_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t1/016_novus.png",
+        "nova": "/briefcase/skins/t1/016_nova.png"
+      }
     },
     "017": {
       "name": "Soft Launch",
@@ -172,7 +296,14 @@
       "inPool": true,
       "rarity": "uncommon",
       "color": "#2EC4B6",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t2/017_novus.webp",
+        "nova": "/briefcase/skins/t2/017_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t2/017_novus.png",
+        "nova": "/briefcase/skins/t2/017_nova.png"
+      }
     },
     "018": {
       "name": "Deal Desk",
@@ -181,7 +312,14 @@
       "inPool": true,
       "rarity": "uncommon",
       "color": "#2EC4B6",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t2/018_novus.webp",
+        "nova": "/briefcase/skins/t2/018_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t2/018_novus.png",
+        "nova": "/briefcase/skins/t2/018_nova.png"
+      }
     },
     "019": {
       "name": "Junior Partner",
@@ -190,7 +328,8 @@
       "inPool": true,
       "rarity": "uncommon",
       "color": "#2EC4B6",
-      "urls": null
+      "urls": null,
+      "png": null
     },
     "020": {
       "name": "Monochrome Minimal",
@@ -199,7 +338,14 @@
       "inPool": true,
       "rarity": "uncommon",
       "color": "#2EC4B6",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t2/020_novus.webp",
+        "nova": "/briefcase/skins/t2/020_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t2/020_novus.png",
+        "nova": "/briefcase/skins/t2/020_nova.png"
+      }
     },
     "021": {
       "name": "The Standard",
@@ -208,7 +354,14 @@
       "inPool": true,
       "rarity": "uncommon",
       "color": "#2EC4B6",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t2/021_novus.webp",
+        "nova": "/briefcase/skins/t2/021_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t2/021_novus.png",
+        "nova": "/briefcase/skins/t2/021_nova.png"
+      }
     },
     "022": {
       "name": "Boardroom Charcoal",
@@ -217,7 +370,14 @@
       "inPool": true,
       "rarity": "uncommon",
       "color": "#2EC4B6",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t2/022_novus.webp",
+        "nova": null
+      },
+      "png": {
+        "novus": "/briefcase/skins/t2/022_novus.png",
+        "nova": null
+      }
     },
     "023": {
       "name": "The Closer",
@@ -226,7 +386,14 @@
       "inPool": true,
       "rarity": "uncommon",
       "color": "#2EC4B6",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t2/023_novus.webp",
+        "nova": null
+      },
+      "png": {
+        "novus": "/briefcase/skins/t2/023_novus.png",
+        "nova": null
+      }
     },
     "024": {
       "name": "Portfolio Check",
@@ -235,7 +402,14 @@
       "inPool": true,
       "rarity": "uncommon",
       "color": "#2EC4B6",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t2/024_novus.webp",
+        "nova": null
+      },
+      "png": {
+        "novus": "/briefcase/skins/t2/024_novus.png",
+        "nova": null
+      }
     },
     "025": {
       "name": "Managing Director",
@@ -244,7 +418,14 @@
       "inPool": true,
       "rarity": "uncommon",
       "color": "#2EC4B6",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t2/025_novus.webp",
+        "nova": "/briefcase/skins/t2/025_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t2/025_novus.png",
+        "nova": "/briefcase/skins/t2/025_nova.png"
+      }
     },
     "026": {
       "name": "Old Reliable",
@@ -253,7 +434,14 @@
       "inPool": true,
       "rarity": "uncommon",
       "color": "#2EC4B6",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t2/026_novus.webp",
+        "nova": null
+      },
+      "png": {
+        "novus": "/briefcase/skins/t2/026_novus.png",
+        "nova": null
+      }
     },
     "027": {
       "name": "Modern Exec",
@@ -262,7 +450,14 @@
       "inPool": true,
       "rarity": "uncommon",
       "color": "#2EC4B6",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t2/027_novus.webp",
+        "nova": "/briefcase/skins/t2/027_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t2/027_novus.png",
+        "nova": "/briefcase/skins/t2/027_nova.png"
+      }
     },
     "028": {
       "name": "Quarterly Review",
@@ -271,7 +466,14 @@
       "inPool": true,
       "rarity": "uncommon",
       "color": "#2EC4B6",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t2/028_novus.webp",
+        "nova": "/briefcase/skins/t2/028_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t2/028_novus.png",
+        "nova": "/briefcase/skins/t2/028_nova.png"
+      }
     },
     "029": {
       "name": "Power Move",
@@ -280,7 +482,8 @@
       "inPool": true,
       "rarity": "rare",
       "color": "#3A6BFF",
-      "urls": null
+      "urls": null,
+      "png": null
     },
     "030": {
       "name": "White Collar",
@@ -289,7 +492,14 @@
       "inPool": true,
       "rarity": "rare",
       "color": "#3A6BFF",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t3/030_novus.webp",
+        "nova": "/briefcase/skins/t3/030_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t3/030_novus.png",
+        "nova": "/briefcase/skins/t3/030_nova.png"
+      }
     },
     "031": {
       "name": "Block Founder",
@@ -298,7 +508,14 @@
       "inPool": true,
       "rarity": "common",
       "color": "#8E9BAA",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t1/031_novus.webp",
+        "nova": "/briefcase/skins/t1/031_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t1/031_novus.png",
+        "nova": "/briefcase/skins/t1/031_nova.png"
+      }
     },
     "032": {
       "name": "Drop Day",
@@ -307,7 +524,14 @@
       "inPool": true,
       "rarity": "common",
       "color": "#8E9BAA",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t1/032_novus.webp",
+        "nova": "/briefcase/skins/t1/032_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t1/032_novus.png",
+        "nova": "/briefcase/skins/t1/032_nova.png"
+      }
     },
     "033": {
       "name": "Bucket List",
@@ -316,7 +540,14 @@
       "inPool": true,
       "rarity": "common",
       "color": "#8E9BAA",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t1/033_novus.webp",
+        "nova": "/briefcase/skins/t1/033_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t1/033_novus.png",
+        "nova": "/briefcase/skins/t1/033_nova.png"
+      }
     },
     "034": {
       "name": "Heat Check",
@@ -325,7 +556,14 @@
       "inPool": true,
       "rarity": "common",
       "color": "#8E9BAA",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t1/034_novus.webp",
+        "nova": "/briefcase/skins/t1/034_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t1/034_novus.png",
+        "nova": "/briefcase/skins/t1/034_nova.png"
+      }
     },
     "035": {
       "name": "Letterman",
@@ -334,7 +572,14 @@
       "inPool": true,
       "rarity": "common",
       "color": "#8E9BAA",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t1/035_novus.webp",
+        "nova": "/briefcase/skins/t1/035_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t1/035_novus.png",
+        "nova": "/briefcase/skins/t1/035_nova.png"
+      }
     },
     "036": {
       "name": "Deck Check",
@@ -343,7 +588,14 @@
       "inPool": true,
       "rarity": "common",
       "color": "#8E9BAA",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t1/036_novus.webp",
+        "nova": "/briefcase/skins/t1/036_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t1/036_novus.png",
+        "nova": "/briefcase/skins/t1/036_nova.png"
+      }
     },
     "037": {
       "name": "Ghost Mode",
@@ -352,7 +604,14 @@
       "inPool": true,
       "rarity": "uncommon",
       "color": "#2EC4B6",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t2/037_novus.webp",
+        "nova": "/briefcase/skins/t2/037_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t2/037_novus.png",
+        "nova": "/briefcase/skins/t2/037_nova.png"
+      }
     },
     "038": {
       "name": "Winter Hustle",
@@ -361,7 +620,14 @@
       "inPool": true,
       "rarity": "uncommon",
       "color": "#2EC4B6",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t2/038_novus.webp",
+        "nova": "/briefcase/skins/t2/038_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t2/038_novus.png",
+        "nova": "/briefcase/skins/t2/038_nova.png"
+      }
     },
     "039": {
       "name": "Self Made",
@@ -370,7 +636,14 @@
       "inPool": true,
       "rarity": "uncommon",
       "color": "#2EC4B6",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t2/039_novus.webp",
+        "nova": "/briefcase/skins/t2/039_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t2/039_novus.png",
+        "nova": "/briefcase/skins/t2/039_nova.png"
+      }
     },
     "040": {
       "name": "Camo Ops",
@@ -379,7 +652,14 @@
       "inPool": true,
       "rarity": "uncommon",
       "color": "#2EC4B6",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t2/040_novus.webp",
+        "nova": "/briefcase/skins/t2/040_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t2/040_novus.png",
+        "nova": "/briefcase/skins/t2/040_nova.png"
+      }
     },
     "041": {
       "name": "Mad Avenue '62",
@@ -388,7 +668,14 @@
       "inPool": true,
       "rarity": "uncommon",
       "color": "#2EC4B6",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t2/041_novus.webp",
+        "nova": null
+      },
+      "png": {
+        "novus": "/briefcase/skins/t2/041_novus.png",
+        "nova": null
+      }
     },
     "042": {
       "name": "Groovy Ledger '74",
@@ -397,7 +684,14 @@
       "inPool": true,
       "rarity": "uncommon",
       "color": "#2EC4B6",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t2/042_novus.webp",
+        "nova": null
+      },
+      "png": {
+        "novus": "/briefcase/skins/t2/042_novus.png",
+        "nova": null
+      }
     },
     "043": {
       "name": "Fax & Facts '95",
@@ -406,7 +700,14 @@
       "inPool": true,
       "rarity": "uncommon",
       "color": "#2EC4B6",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t2/043_novus.webp",
+        "nova": "/briefcase/skins/t2/043_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t2/043_novus.png",
+        "nova": "/briefcase/skins/t2/043_nova.png"
+      }
     },
     "044": {
       "name": "Typewriter Tycoon",
@@ -415,7 +716,14 @@
       "inPool": true,
       "rarity": "uncommon",
       "color": "#2EC4B6",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t2/044_novus.webp",
+        "nova": "/briefcase/skins/t2/044_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t2/044_novus.png",
+        "nova": "/briefcase/skins/t2/044_nova.png"
+      }
     },
     "045": {
       "name": "Wall Street '87",
@@ -424,7 +732,14 @@
       "inPool": true,
       "rarity": "uncommon",
       "color": "#2EC4B6",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t2/045_novus.webp",
+        "nova": null
+      },
+      "png": {
+        "novus": "/briefcase/skins/t2/045_novus.png",
+        "nova": null
+      }
     },
     "046": {
       "name": "Dot-Com Y2K",
@@ -433,7 +748,14 @@
       "inPool": true,
       "rarity": "rare",
       "color": "#3A6BFF",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t3/046_novus.webp",
+        "nova": "/briefcase/skins/t3/046_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t3/046_novus.png",
+        "nova": "/briefcase/skins/t3/046_nova.png"
+      }
     },
     "047": {
       "name": "Gatsby Gains",
@@ -442,7 +764,14 @@
       "inPool": true,
       "rarity": "rare",
       "color": "#3A6BFF",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t3/047_novus.webp",
+        "nova": "/briefcase/skins/t3/047_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t3/047_novus.png",
+        "nova": "/briefcase/skins/t3/047_nova.png"
+      }
     },
     "048": {
       "name": "The Negotiator",
@@ -451,7 +780,14 @@
       "inPool": true,
       "rarity": "rare",
       "color": "#3A6BFF",
-      "urls": null
+      "urls": {
+        "novus": null,
+        "nova": "/briefcase/skins/t3/048_nova.webp"
+      },
+      "png": {
+        "novus": null,
+        "nova": "/briefcase/skins/t3/048_nova.png"
+      }
     },
     "049": {
       "name": "Profit Fever",
@@ -460,7 +796,14 @@
       "inPool": true,
       "rarity": "rare",
       "color": "#3A6BFF",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t3/049_novus.webp",
+        "nova": "/briefcase/skins/t3/049_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t3/049_novus.png",
+        "nova": "/briefcase/skins/t3/049_nova.png"
+      }
     },
     "050": {
       "name": "Steam Baron",
@@ -469,7 +812,14 @@
       "inPool": true,
       "rarity": "rare",
       "color": "#3A6BFF",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t3/050_novus.webp",
+        "nova": "/briefcase/skins/t3/050_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t3/050_novus.png",
+        "nova": "/briefcase/skins/t3/050_nova.png"
+      }
     },
     "051": {
       "name": "Keynote",
@@ -478,7 +828,14 @@
       "inPool": true,
       "rarity": "uncommon",
       "color": "#2EC4B6",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t2/051_novus.webp",
+        "nova": null
+      },
+      "png": {
+        "novus": "/briefcase/skins/t2/051_novus.png",
+        "nova": null
+      }
     },
     "052": {
       "name": "Move Fast",
@@ -487,7 +844,14 @@
       "inPool": true,
       "rarity": "uncommon",
       "color": "#2EC4B6",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t2/052_novus.webp",
+        "nova": "/briefcase/skins/t2/052_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t2/052_novus.png",
+        "nova": "/briefcase/skins/t2/052_nova.png"
+      }
     },
     "053": {
       "name": "Server Room",
@@ -496,7 +860,14 @@
       "inPool": true,
       "rarity": "uncommon",
       "color": "#2EC4B6",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t2/053_novus.webp",
+        "nova": "/briefcase/skins/t2/053_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t2/053_novus.png",
+        "nova": "/briefcase/skins/t2/053_nova.png"
+      }
     },
     "054": {
       "name": "Augmented",
@@ -505,7 +876,14 @@
       "inPool": true,
       "rarity": "uncommon",
       "color": "#2EC4B6",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t2/054_novus.webp",
+        "nova": "/briefcase/skins/t2/054_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t2/054_novus.png",
+        "nova": "/briefcase/skins/t2/054_nova.png"
+      }
     },
     "055": {
       "name": "Prototype",
@@ -514,7 +892,14 @@
       "inPool": true,
       "rarity": "rare",
       "color": "#3A6BFF",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t3/055_novus.webp",
+        "nova": "/briefcase/skins/t3/055_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t3/055_novus.png",
+        "nova": "/briefcase/skins/t3/055_nova.png"
+      }
     },
     "056": {
       "name": "Orbit",
@@ -523,7 +908,14 @@
       "inPool": true,
       "rarity": "rare",
       "color": "#3A6BFF",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t3/056_novus.webp",
+        "nova": null
+      },
+      "png": {
+        "novus": "/briefcase/skins/t3/056_novus.png",
+        "nova": null
+      }
     },
     "057": {
       "name": "Neon Founder",
@@ -532,7 +924,14 @@
       "inPool": true,
       "rarity": "rare",
       "color": "#3A6BFF",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t3/057_novus.webp",
+        "nova": null
+      },
+      "png": {
+        "novus": "/briefcase/skins/t3/057_novus.png",
+        "nova": null
+      }
     },
     "058": {
       "name": "Circuit Blazer",
@@ -541,7 +940,14 @@
       "inPool": true,
       "rarity": "rare",
       "color": "#3A6BFF",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t3/058_novus.webp",
+        "nova": "/briefcase/skins/t3/058_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t3/058_novus.png",
+        "nova": "/briefcase/skins/t3/058_nova.png"
+      }
     },
     "059": {
       "name": "Hologram",
@@ -550,7 +956,14 @@
       "inPool": true,
       "rarity": "epic",
       "color": "#FF6B00",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t4/059_novus.webp",
+        "nova": "/briefcase/skins/t4/059_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t4/059_novus.png",
+        "nova": "/briefcase/skins/t4/059_nova.png"
+      }
     },
     "060": {
       "name": "Mech Mode",
@@ -559,7 +972,14 @@
       "inPool": true,
       "rarity": "epic",
       "color": "#FF6B00",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t4/060_novus.webp",
+        "nova": "/briefcase/skins/t4/060_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t4/060_novus.png",
+        "nova": "/briefcase/skins/t4/060_nova.png"
+      }
     },
     "061": {
       "name": "Milano Sartoria",
@@ -568,7 +988,14 @@
       "inPool": true,
       "rarity": "rare",
       "color": "#3A6BFF",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t3/061_novus.webp",
+        "nova": "/briefcase/skins/t3/061_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t3/061_novus.png",
+        "nova": "/briefcase/skins/t3/061_nova.png"
+      }
     },
     "062": {
       "name": "Ginza Minimal",
@@ -577,7 +1004,14 @@
       "inPool": true,
       "rarity": "rare",
       "color": "#3A6BFF",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t3/062_novus.webp",
+        "nova": "/briefcase/skins/t3/062_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t3/062_novus.png",
+        "nova": "/briefcase/skins/t3/062_nova.png"
+      }
     },
     "063": {
       "name": "Seoul Avant",
@@ -586,7 +1020,14 @@
       "inPool": true,
       "rarity": "rare",
       "color": "#3A6BFF",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t3/063_novus.webp",
+        "nova": null
+      },
+      "png": {
+        "novus": "/briefcase/skins/t3/063_novus.png",
+        "nova": null
+      }
     },
     "064": {
       "name": "Madison Ave",
@@ -595,7 +1036,14 @@
       "inPool": true,
       "rarity": "rare",
       "color": "#3A6BFF",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t3/064_novus.webp",
+        "nova": "/briefcase/skins/t3/064_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t3/064_novus.png",
+        "nova": "/briefcase/skins/t3/064_nova.png"
+      }
     },
     "065": {
       "name": "Mumbai Bandhgala",
@@ -604,7 +1052,8 @@
       "inPool": true,
       "rarity": "rare",
       "color": "#3A6BFF",
-      "urls": null
+      "urls": null,
+      "png": null
     },
     "066": {
       "name": "Savile Row",
@@ -613,7 +1062,14 @@
       "inPool": true,
       "rarity": "epic",
       "color": "#FF6B00",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t4/066_novus.webp",
+        "nova": null
+      },
+      "png": {
+        "novus": "/briefcase/skins/t4/066_novus.png",
+        "nova": null
+      }
     },
     "067": {
       "name": "Paris Atelier",
@@ -622,7 +1078,14 @@
       "inPool": true,
       "rarity": "epic",
       "color": "#FF6B00",
-      "urls": null
+      "urls": {
+        "novus": null,
+        "nova": "/briefcase/skins/t4/067_nova.webp"
+      },
+      "png": {
+        "novus": null,
+        "nova": "/briefcase/skins/t4/067_nova.png"
+      }
     },
     "068": {
       "name": "Shanghai Modern",
@@ -631,7 +1094,14 @@
       "inPool": true,
       "rarity": "epic",
       "color": "#FF6B00",
-      "urls": null
+      "urls": {
+        "novus": null,
+        "nova": "/briefcase/skins/t4/068_nova.webp"
+      },
+      "png": {
+        "novus": null,
+        "nova": "/briefcase/skins/t4/068_nova.png"
+      }
     },
     "069": {
       "name": "Lagos Agbada",
@@ -640,7 +1110,14 @@
       "inPool": true,
       "rarity": "epic",
       "color": "#FF6B00",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t4/069_novus.webp",
+        "nova": "/briefcase/skins/t4/069_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t4/069_novus.png",
+        "nova": "/briefcase/skins/t4/069_nova.png"
+      }
     },
     "070": {
       "name": "Dubai Gold Line",
@@ -649,7 +1126,14 @@
       "inPool": true,
       "rarity": "epic",
       "color": "#FF6B00",
-      "urls": null
+      "urls": {
+        "novus": null,
+        "nova": "/briefcase/skins/t4/070_nova.webp"
+      },
+      "png": {
+        "novus": null,
+        "nova": "/briefcase/skins/t4/070_nova.png"
+      }
     },
     "071": {
       "name": "Line Cook",
@@ -658,7 +1142,14 @@
       "inPool": true,
       "rarity": "common",
       "color": "#8E9BAA",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t1/071_novus.webp",
+        "nova": "/briefcase/skins/t1/071_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t1/071_novus.png",
+        "nova": "/briefcase/skins/t1/071_nova.png"
+      }
     },
     "072": {
       "name": "On Call",
@@ -667,7 +1158,14 @@
       "inPool": true,
       "rarity": "common",
       "color": "#8E9BAA",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t1/072_novus.webp",
+        "nova": "/briefcase/skins/t1/072_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t1/072_novus.png",
+        "nova": "/briefcase/skins/t1/072_nova.png"
+      }
     },
     "073": {
       "name": "Captain",
@@ -676,7 +1174,14 @@
       "inPool": true,
       "rarity": "common",
       "color": "#8E9BAA",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t1/073_novus.webp",
+        "nova": "/briefcase/skins/t1/073_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t1/073_novus.png",
+        "nova": "/briefcase/skins/t1/073_nova.png"
+      }
     },
     "074": {
       "name": "Grease & Gears",
@@ -685,7 +1190,14 @@
       "inPool": true,
       "rarity": "common",
       "color": "#8E9BAA",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t1/074_novus.webp",
+        "nova": "/briefcase/skins/t1/074_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t1/074_novus.png",
+        "nova": "/briefcase/skins/t1/074_nova.png"
+      }
     },
     "075": {
       "name": "Barista Craft",
@@ -694,7 +1206,14 @@
       "inPool": true,
       "rarity": "common",
       "color": "#8E9BAA",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t1/075_novus.webp",
+        "nova": "/briefcase/skins/t1/075_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t1/075_novus.png",
+        "nova": "/briefcase/skins/t1/075_nova.png"
+      }
     },
     "076": {
       "name": "Last Mile",
@@ -703,7 +1222,14 @@
       "inPool": true,
       "rarity": "common",
       "color": "#8E9BAA",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t1/076_novus.webp",
+        "nova": "/briefcase/skins/t1/076_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t1/076_novus.png",
+        "nova": "/briefcase/skins/t1/076_nova.png"
+      }
     },
     "077": {
       "name": "Site Boss",
@@ -712,7 +1238,14 @@
       "inPool": true,
       "rarity": "common",
       "color": "#8E9BAA",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t1/077_novus.webp",
+        "nova": "/briefcase/skins/t1/077_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t1/077_novus.png",
+        "nova": "/briefcase/skins/t1/077_nova.png"
+      }
     },
     "078": {
       "name": "Shop Floor",
@@ -721,7 +1254,14 @@
       "inPool": true,
       "rarity": "common",
       "color": "#8E9BAA",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t1/078_novus.webp",
+        "nova": "/briefcase/skins/t1/078_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t1/078_novus.png",
+        "nova": "/briefcase/skins/t1/078_nova.png"
+      }
     },
     "079": {
       "name": "Executive Chef",
@@ -730,7 +1270,14 @@
       "inPool": true,
       "rarity": "rare",
       "color": "#3A6BFF",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t3/079_novus.webp",
+        "nova": "/briefcase/skins/t3/079_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t3/079_novus.png",
+        "nova": "/briefcase/skins/t3/079_nova.png"
+      }
     },
     "080": {
       "name": "Chief of Surgery",
@@ -739,7 +1286,14 @@
       "inPool": true,
       "rarity": "rare",
       "color": "#3A6BFF",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t3/080_novus.webp",
+        "nova": null
+      },
+      "png": {
+        "novus": "/briefcase/skins/t3/080_novus.png",
+        "nova": null
+      }
     },
     "081": {
       "name": "Commencement",
@@ -748,7 +1302,14 @@
       "inPool": true,
       "rarity": "rare",
       "color": "#3A6BFF",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t3/081_novus.webp",
+        "nova": "/briefcase/skins/t3/081_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t3/081_novus.png",
+        "nova": "/briefcase/skins/t3/081_nova.png"
+      }
     },
     "082": {
       "name": "Offsite Linen",
@@ -757,7 +1318,14 @@
       "inPool": true,
       "rarity": "rare",
       "color": "#3A6BFF",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t3/082_novus.webp",
+        "nova": "/briefcase/skins/t3/082_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t3/082_novus.png",
+        "nova": "/briefcase/skins/t3/082_nova.png"
+      }
     },
     "083": {
       "name": "Fortune Founder",
@@ -766,7 +1334,14 @@
       "inPool": true,
       "rarity": "epic",
       "color": "#FF6B00",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t4/083_novus.webp",
+        "nova": "/briefcase/skins/t4/083_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t4/083_novus.png",
+        "nova": "/briefcase/skins/t4/083_nova.png"
+      }
     },
     "084": {
       "name": "Snowline Gala",
@@ -775,7 +1350,14 @@
       "inPool": true,
       "rarity": "epic",
       "color": "#FF6B00",
-      "urls": null
+      "urls": {
+        "novus": null,
+        "nova": "/briefcase/skins/t4/084_nova.webp"
+      },
+      "png": {
+        "novus": null,
+        "nova": "/briefcase/skins/t4/084_nova.png"
+      }
     },
     "085": {
       "name": "Vampire VC",
@@ -784,7 +1366,14 @@
       "inPool": true,
       "rarity": "epic",
       "color": "#FF6B00",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t4/085_novus.webp",
+        "nova": "/briefcase/skins/t4/085_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t4/085_novus.png",
+        "nova": "/briefcase/skins/t4/085_nova.png"
+      }
     },
     "086": {
       "name": "Confetti Closer",
@@ -793,7 +1382,14 @@
       "inPool": true,
       "rarity": "epic",
       "color": "#FF6B00",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t4/086_novus.webp",
+        "nova": "/briefcase/skins/t4/086_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t4/086_novus.png",
+        "nova": "/briefcase/skins/t4/086_nova.png"
+      }
     },
     "087": {
       "name": "Founding Day",
@@ -802,7 +1398,14 @@
       "inPool": true,
       "rarity": "epic",
       "color": "#FF6B00",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t4/087_novus.webp",
+        "nova": null
+      },
+      "png": {
+        "novus": "/briefcase/skins/t4/087_novus.png",
+        "nova": null
+      }
     },
     "088": {
       "name": "Midnight NYE",
@@ -811,7 +1414,14 @@
       "inPool": true,
       "rarity": "epic",
       "color": "#FF6B00",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t4/088_novus.webp",
+        "nova": "/briefcase/skins/t4/088_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t4/088_novus.png",
+        "nova": "/briefcase/skins/t4/088_nova.png"
+      }
     },
     "089": {
       "name": "Lantern Festival",
@@ -820,7 +1430,14 @@
       "inPool": true,
       "rarity": "epic",
       "color": "#FF6B00",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t4/089_novus.webp",
+        "nova": "/briefcase/skins/t4/089_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t4/089_novus.png",
+        "nova": "/briefcase/skins/t4/089_nova.png"
+      }
     },
     "090": {
       "name": "Beach Board Meeting",
@@ -829,7 +1446,14 @@
       "inPool": true,
       "rarity": "epic",
       "color": "#FF6B00",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t4/090_novus.webp",
+        "nova": "/briefcase/skins/t4/090_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t4/090_novus.png",
+        "nova": "/briefcase/skins/t4/090_nova.png"
+      }
     },
     "091": {
       "name": "The Gold Standard",
@@ -838,7 +1462,14 @@
       "inPool": true,
       "rarity": "legendary",
       "color": "#F5C518",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t5/091_novus.webp",
+        "nova": "/briefcase/skins/t5/091_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t5/091_novus.png",
+        "nova": "/briefcase/skins/t5/091_nova.png"
+      }
     },
     "092": {
       "name": "Diamond Hands",
@@ -847,7 +1478,14 @@
       "inPool": true,
       "rarity": "legendary",
       "color": "#F5C518",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t5/092_novus.webp",
+        "nova": "/briefcase/skins/t5/092_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t5/092_novus.png",
+        "nova": "/briefcase/skins/t5/092_nova.png"
+      }
     },
     "093": {
       "name": "The Apex",
@@ -856,7 +1494,14 @@
       "inPool": true,
       "rarity": "legendary",
       "color": "#F5C518",
-      "urls": null
+      "urls": {
+        "novus": null,
+        "nova": "/briefcase/skins/t5/093_nova.webp"
+      },
+      "png": {
+        "novus": null,
+        "nova": "/briefcase/skins/t5/093_nova.png"
+      }
     },
     "094": {
       "name": "Midas Touch",
@@ -865,7 +1510,14 @@
       "inPool": true,
       "rarity": "legendary",
       "color": "#F5C518",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t5/094_novus.webp",
+        "nova": "/briefcase/skins/t5/094_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t5/094_novus.png",
+        "nova": "/briefcase/skins/t5/094_nova.png"
+      }
     },
     "095": {
       "name": "Astro Founder",
@@ -874,7 +1526,14 @@
       "inPool": true,
       "rarity": "legendary",
       "color": "#F5C518",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t5/095_novus.webp",
+        "nova": "/briefcase/skins/t5/095_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t5/095_novus.png",
+        "nova": "/briefcase/skins/t5/095_nova.png"
+      }
     },
     "096": {
       "name": "The Chairman",
@@ -883,7 +1542,14 @@
       "inPool": true,
       "rarity": "legendary",
       "color": "#F5C518",
-      "urls": null
+      "urls": {
+        "novus": null,
+        "nova": "/briefcase/skins/t5/096_nova.webp"
+      },
+      "png": {
+        "novus": null,
+        "nova": "/briefcase/skins/t5/096_nova.png"
+      }
     },
     "097": {
       "name": "Phoenix Clause",
@@ -892,7 +1558,8 @@
       "inPool": true,
       "rarity": "legendary",
       "color": "#F5C518",
-      "urls": null
+      "urls": null,
+      "png": null
     },
     "098": {
       "name": "Ghost Equity",
@@ -901,7 +1568,14 @@
       "inPool": true,
       "rarity": "legendary",
       "color": "#F5C518",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t5/098_novus.webp",
+        "nova": "/briefcase/skins/t5/098_nova.webp"
+      },
+      "png": {
+        "novus": "/briefcase/skins/t5/098_novus.png",
+        "nova": "/briefcase/skins/t5/098_nova.png"
+      }
     },
     "099": {
       "name": "Prism Legacy",
@@ -910,143 +1584,238 @@
       "inPool": true,
       "rarity": "legendary",
       "color": "#F5C518",
-      "urls": null
+      "urls": {
+        "novus": "/briefcase/skins/t5/099_novus.webp",
+        "nova": null
+      },
+      "png": {
+        "novus": "/briefcase/skins/t5/099_novus.png",
+        "nova": null
+      }
     }
   },
   "cases": {
     "t1-canvas": {
       "name": "Canvas Case",
       "tier": 1,
-      "states": null
+      "states": {
+        "closed": "/briefcase/cases/t1-canvas-closed.webp",
+        "glow": "/briefcase/cases/t1-canvas-glow.webp",
+        "open": "/briefcase/cases/t1-canvas-open.webp"
+      },
+      "png": {
+        "closed": "/briefcase/cases/t1-canvas-closed.png",
+        "glow": "/briefcase/cases/t1-canvas-glow.png",
+        "open": "/briefcase/cases/t1-canvas-open.png"
+      }
     },
     "t2-leather": {
       "name": "Leather Attaché",
       "tier": 2,
-      "states": null
+      "states": {
+        "closed": "/briefcase/cases/t2-leather-closed.webp",
+        "glow": "/briefcase/cases/t2-leather-glow.webp",
+        "open": "/briefcase/cases/t2-leather-open.webp"
+      },
+      "png": {
+        "closed": "/briefcase/cases/t2-leather-closed.png",
+        "glow": "/briefcase/cases/t2-leather-glow.png",
+        "open": "/briefcase/cases/t2-leather-open.png"
+      }
     },
     "t3-titanium": {
       "name": "Titanium Case",
       "tier": 3,
-      "states": null
+      "states": {
+        "closed": "/briefcase/cases/t3-titanium-closed.webp",
+        "glow": "/briefcase/cases/t3-titanium-glow.webp",
+        "open": "/briefcase/cases/t3-titanium-open.webp"
+      },
+      "png": {
+        "closed": "/briefcase/cases/t3-titanium-closed.png",
+        "glow": "/briefcase/cases/t3-titanium-glow.png",
+        "open": "/briefcase/cases/t3-titanium-open.png"
+      }
     },
     "t4-obsidian": {
       "name": "Obsidian Executive",
       "tier": 4,
-      "states": null
+      "states": {
+        "closed": "/briefcase/cases/t4-obsidian-closed.webp",
+        "glow": "/briefcase/cases/t4-obsidian-glow.webp",
+        "open": "/briefcase/cases/t4-obsidian-open.webp"
+      },
+      "png": {
+        "closed": "/briefcase/cases/t4-obsidian-closed.png",
+        "glow": "/briefcase/cases/t4-obsidian-glow.png",
+        "open": "/briefcase/cases/t4-obsidian-open.png"
+      }
     },
     "t5-gold": {
       "name": "Gold Briefcase",
       "tier": 5,
-      "states": null
+      "states": {
+        "closed": "/briefcase/cases/t5-gold-closed.webp",
+        "glow": "/briefcase/cases/t5-gold-glow.webp",
+        "open": "/briefcase/cases/t5-gold-open.webp"
+      },
+      "png": {
+        "closed": "/briefcase/cases/t5-gold-closed.png",
+        "glow": "/briefcase/cases/t5-gold-glow.png",
+        "open": "/briefcase/cases/t5-gold-open.png"
+      }
     },
     "t1-denim": {
       "name": "Denim Canvas (reskin)",
       "tier": 1,
       "reskin": true,
-      "states": null
+      "states": {
+        "closed": "/briefcase/cases/t1-denim-closed.webp",
+        "glow": "/briefcase/cases/t1-denim-glow.webp",
+        "open": "/briefcase/cases/t1-denim-open.webp"
+      },
+      "png": {
+        "closed": "/briefcase/cases/t1-denim-closed.png",
+        "glow": "/briefcase/cases/t1-denim-glow.png",
+        "open": "/briefcase/cases/t1-denim-open.png"
+      }
     }
   },
   "keys": {
     "t1": {
       "tier": 1,
-      "url": null
+      "url": "/briefcase/keys/t1.webp",
+      "png": "/briefcase/keys/t1.png"
     },
     "t2": {
       "tier": 2,
-      "url": null
+      "url": "/briefcase/keys/t2.webp",
+      "png": "/briefcase/keys/t2.png"
     },
     "t3": {
       "tier": 3,
-      "url": null
+      "url": "/briefcase/keys/t3.webp",
+      "png": "/briefcase/keys/t3.png"
     },
     "t4": {
       "tier": 4,
-      "url": null
+      "url": "/briefcase/keys/t4.webp",
+      "png": "/briefcase/keys/t4.png"
     },
     "t5": {
       "tier": 5,
-      "url": null
+      "url": "/briefcase/keys/t5.webp",
+      "png": "/briefcase/keys/t5.png"
     }
   },
   "props": {
     "shark-token": {
       "name": "Shark Token",
       "kind": "object",
-      "url": null
+      "url": "/briefcase/props/shark-token.webp",
+      "png": "/briefcase/props/shark-token.png"
     },
     "frame-bronze-ledger": {
       "name": "Bronze Ledger",
       "kind": "frame",
-      "url": null
+      "url": "/briefcase/props/frame-bronze-ledger.webp",
+      "png": "/briefcase/props/frame-bronze-ledger.png"
     },
     "frame-silver-portfolio": {
       "name": "Silver Portfolio",
       "kind": "frame",
-      "url": null
+      "url": "/briefcase/props/frame-silver-portfolio.webp",
+      "png": "/briefcase/props/frame-silver-portfolio.png"
     },
     "frame-gold-boardroom": {
       "name": "Gold Boardroom",
       "kind": "frame",
-      "url": null
+      "url": "/briefcase/props/frame-gold-boardroom.webp",
+      "png": "/briefcase/props/frame-gold-boardroom.png"
     },
     "frame-molten-gold": {
       "name": "Molten Gold",
       "kind": "frame",
-      "url": null
+      "url": "/briefcase/props/frame-molten-gold.webp",
+      "png": "/briefcase/props/frame-molten-gold.png"
     },
     "bg-skyline-office": {
       "name": "Skyline Corner Office",
       "kind": "background",
-      "url": null
+      "url": "/briefcase/props/bg-skyline-office.webp",
+      "png": "/briefcase/props/bg-skyline-office.png"
     },
     "pose-trophy-lift_novus": {
       "name": "Trophy Lift (Novus)",
       "kind": "pose",
       "base": "novus",
-      "url": null
+      "url": "/briefcase/props/pose-trophy-lift_novus.webp",
+      "png": "/briefcase/props/pose-trophy-lift_novus.png"
     },
     "pose-trophy-lift_nova": {
       "name": "Trophy Lift (Nova)",
       "kind": "pose",
       "base": "nova",
-      "url": null
+      "url": "/briefcase/props/pose-trophy-lift_nova.webp",
+      "png": "/briefcase/props/pose-trophy-lift_nova.png"
     }
   },
   "fx": {
     "confetti-paper-cash": {
       "name": "Paper Cash",
       "sprites": {
-        "confetti-cash-1": null,
-        "confetti-cash-2": null,
-        "confetti-cash-3": null
+        "confetti-cash-1": "/briefcase/fx/confetti-cash-1.webp",
+        "confetti-cash-2": "/briefcase/fx/confetti-cash-2.webp",
+        "confetti-cash-3": "/briefcase/fx/confetti-cash-3.webp"
+      },
+      "png": {
+        "confetti-cash-1": "/briefcase/fx/confetti-cash-1.png",
+        "confetti-cash-2": "/briefcase/fx/confetti-cash-2.png",
+        "confetti-cash-3": "/briefcase/fx/confetti-cash-3.png"
       }
     },
     "confetti-shark-fins": {
       "name": "Shark Fins",
       "sprites": {
-        "confetti-fin-1": null,
-        "confetti-fin-2": null,
-        "confetti-fin-3": null
+        "confetti-fin-1": "/briefcase/fx/confetti-fin-1.webp",
+        "confetti-fin-2": "/briefcase/fx/confetti-fin-2.webp",
+        "confetti-fin-3": "/briefcase/fx/confetti-fin-3.webp"
+      },
+      "png": {
+        "confetti-fin-1": "/briefcase/fx/confetti-fin-1.png",
+        "confetti-fin-2": "/briefcase/fx/confetti-fin-2.png",
+        "confetti-fin-3": "/briefcase/fx/confetti-fin-3.png"
       }
     },
     "confetti-gold-trophies": {
       "name": "Gold Trophies",
       "sprites": {
-        "confetti-trophy-1": null,
-        "confetti-trophy-2": null,
-        "confetti-trophy-3": null
+        "confetti-trophy-1": "/briefcase/fx/confetti-trophy-1.webp",
+        "confetti-trophy-2": "/briefcase/fx/confetti-trophy-2.webp",
+        "confetti-trophy-3": "/briefcase/fx/confetti-trophy-3.webp"
+      },
+      "png": {
+        "confetti-trophy-1": "/briefcase/fx/confetti-trophy-1.png",
+        "confetti-trophy-2": "/briefcase/fx/confetti-trophy-2.png",
+        "confetti-trophy-3": "/briefcase/fx/confetti-trophy-3.png"
       }
     },
     "cursor-trail": {
       "name": "Orange Spark",
       "sprites": {
-        "cursor-orange-spark": null
+        "cursor-orange-spark": "/briefcase/fx/cursor-orange-spark.webp"
+      },
+      "png": {
+        "cursor-orange-spark": "/briefcase/fx/cursor-orange-spark.png"
       }
     },
     "aura": {
       "name": "Founder's Seal",
       "sprites": {
-        "aura-founders-seal": null
+        "aura-founders-seal": "/briefcase/fx/aura-founders-seal.webp"
+      },
+      "png": {
+        "aura-founders-seal": "/briefcase/fx/aura-founders-seal.png"
       }
     }
   }
