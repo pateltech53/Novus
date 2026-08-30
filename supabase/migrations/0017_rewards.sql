@@ -425,3 +425,20 @@ alter table public.reward_events enable row level security;
 drop policy if exists "reward events: read own" on public.reward_events;
 create policy "reward events: read own" on public.reward_events
   for select to authenticated using (user_id = auth.uid());
+
+
+-- ═══ milestones already paid ═══════════════════════════════════════════════
+-- One row per milestone per player, and the row IS the idempotency: two taps
+-- on /api/rewards/milestones race into one insert and the loser grants
+-- nothing. A timestamp comparison would leave a window two requests wide.
+create table if not exists public.milestones_claimed (
+  user_id      uuid not null references public.profiles(id) on delete cascade,
+  milestone_id text not null,
+  claimed_at   timestamptz not null default now(),
+  primary key (user_id, milestone_id)
+);
+
+alter table public.milestones_claimed enable row level security;
+drop policy if exists "milestones: read own" on public.milestones_claimed;
+create policy "milestones: read own" on public.milestones_claimed
+  for select to authenticated using (user_id = auth.uid());

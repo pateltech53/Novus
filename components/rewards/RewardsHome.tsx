@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Ceremony, { type RevealPayload } from "./Ceremony";
 import MySkins from "./MySkins";
 import BetaPanel from "./BetaPanel";
+import TokenShop from "./TokenShop";
 import { RARITY_COLORS, TIER_ODDS, type Band, type Tier } from "@/lib/rewards/tables";
 import { play } from "@/lib/sound";
 import { startPlayHeartbeat } from "@/lib/rewards/report";
@@ -22,7 +23,7 @@ import { startPlayHeartbeat } from "@/lib/rewards/report";
  * opens, so an overlay that is dismissed mid-animation loses nothing.
  */
 
-type Tab = "today" | "vault" | "skins" | "beta";
+type Tab = "today" | "vault" | "skins" | "shop" | "beta";
 
 interface DailySlotView {
   slot: number;
@@ -61,6 +62,17 @@ export default function RewardsHome() {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+  /*
+   * Career milestones are derived from the synced save, so they are checked on
+   * every visit rather than pushed at the moment they happen. A player who
+   * passed one offline, or before the beta reached them, collects it here.
+   */
+  useEffect(() => {
+    void fetch("/api/rewards/milestones", { method: "POST", credentials: "same-origin" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { if (data?.granted?.length) void load(); })
+      .catch(() => {});
+  }, [load]);
   // "Play for N minutes today" is measured in foreground ticks, so the clock
   // runs while this screen is open too — it is part of the session.
   useEffect(() => startPlayHeartbeat(), []);
@@ -114,6 +126,7 @@ export default function RewardsHome() {
           ["today", "TODAY"],
           ["vault", unopened ? `VAULT · ${unopened}` : "VAULT"],
           ["skins", "MY SKINS"],
+          ["shop", "SHOP"],
           ["beta", "BETA"],
         ] as [Tab, string][]).map(([id, label]) => (
           <button
@@ -231,6 +244,7 @@ export default function RewardsHome() {
       )}
 
       {!loading && tab === "skins" && <MySkins />}
+      {!loading && tab === "shop" && <TokenShop onBought={(id) => void open(id)} />}
       {!loading && tab === "beta" && <BetaPanel onOpenCase={(id) => void open(id)} />}
 
       {reveal && (

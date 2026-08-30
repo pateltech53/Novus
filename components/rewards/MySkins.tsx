@@ -58,17 +58,34 @@ const COLLECTION_NAMES: Record<string, string> = {
 /** Which founder the wardrobe is previewing. Every design ships on both. */
 type Base = "novus" | "nova";
 
-export default function MySkins({ base = "novus" }: { base?: Base }) {
+export default function MySkins({
+  base = "novus",
+  embedded = false,
+}: {
+  base?: Base;
+  /**
+   * Mounted inside another screen (the Closet) rather than owning a tab.
+   *
+   * Two differences, both because it is a guest: it renders NOTHING at all
+   * until it knows it has something to show — no "LOADING…" line, no empty
+   * header — so a closet on an account outside the beta looks exactly as it
+   * did before this existed, and it drops the outer bottom padding that a
+   * full-height tab needs.
+   */
+  embedded?: boolean;
+}) {
   const [catalog, setCatalog] = useState<CatalogSkin[]>([]);
   const [owned, setOwned] = useState<OwnedRow[]>([]);
   const [tokens, setTokens] = useState(0);
   const [tierFilter, setTierFilter] = useState<Tier | null>(null);
   const [loading, setLoading] = useState(true);
+  /** The gate answered 404 — this account is not in the beta. */
+  const [absent, setAbsent] = useState(false);
   const [preview, setPreview] = useState<Base>(base);
 
   const load = async () => {
     const res = await fetch("/api/rewards/inventory", { credentials: "same-origin" });
-    if (!res.ok) { setLoading(false); return; }
+    if (!res.ok) { setAbsent(true); setLoading(false); return; }
     const data = await res.json();
     setCatalog(data.catalog ?? []);
     setOwned(data.owned ?? []);
@@ -108,12 +125,16 @@ export default function MySkins({ base = "novus" }: { base?: Base }) {
     if (res.ok) { play("success"); void load(); }
   };
 
+  // Off-beta, this component is invisible everywhere. The Closet must not
+  // grow an empty band for a player who cannot see any of it.
+  if (absent) return null;
   if (loading) {
+    if (embedded) return null;
     return <p className="p-6 text-2xs tracking-[0.1em] text-[var(--text-tertiary)]">LOADING…</p>;
   }
 
   return (
-    <div className="pb-24">
+    <div className={embedded ? "" : "pb-24"}>
       <header className="flex flex-wrap items-baseline justify-between gap-3 px-4 pt-4 sm:px-6">
         <div>
           <h2 className="text-base font-bold tracking-tight">My skins</h2>

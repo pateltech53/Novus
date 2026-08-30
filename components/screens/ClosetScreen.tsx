@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { SHEET_SPRING } from "@/components/ui/Motion";
 import { useGame } from "@/lib/state/GameProvider";
 import { FounderPortrait } from "@/components/FounderAvatar";
+import ClosetRewards from "@/components/rewards/ClosetRewards";
 import { Glass } from "@/components/ui/Glass";
 import {
   TIERS,
@@ -520,6 +521,17 @@ export function ClosetScreen({
         <p className="mt-1 text-2xs leading-snug text-[var(--text-tertiary)]">
           Tap EQUIPPED to take a fit off and wear your tier again.
         </p>
+
+        {/*
+         * The briefcase collection — sealed cases, then every skin in the
+         * catalog with the uncollected ones as silhouettes.
+         *
+         * Renders NOTHING for an account outside the briefcase beta, which is
+         * why it sits inline rather than behind a conditional here: the
+         * component owns the gate, and the Closet does not need to know
+         * whether the flag is on.
+         */}
+        <ClosetRewards base={avatar.gender === "female" ? "nova" : "novus"} />
 
         {/* Name + title. */}
         <h2 className="mt-7 text-2xs font-bold tracking-[0.16em] text-[var(--text-tertiary)]">
