@@ -64,7 +64,14 @@ for (let i = 0; i < rest.length; i++) {
 /** A mistyped numeric flag must die loudly — Number("two") is NaN, and NaN
  *  worker counts silently spawn zero workers and "succeed". */
 function numFlag(name, dflt) {
-  const v = Number(flags[name] ?? dflt);
+  const raw = flags[name] ?? dflt;
+  // `--limit` with nothing after it parses as boolean true, and Number(true)
+  // is 1 — a full run would silently stop after one asset.
+  if (typeof raw === "boolean") {
+    console.error(`--${name} needs a value`);
+    process.exit(2);
+  }
+  const v = Number(raw);
   if (!Number.isFinite(v) || v < (name === "limit" ? 1 : 0)) {
     console.error(`--${name} needs a number, got "${flags[name]}"`);
     process.exit(2);
@@ -150,8 +157,22 @@ const posePrompt = (core) =>
 
 // ── Gemini call ──────────────────────────────────────────────────────────────
 
+const MIME = { ".webp": "image/webp", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg" };
+
 const refPart = (path) => {
-  const mime = path.endsWith(".webp") ? "image/webp" : "image/png";
+  const ext = path.slice(path.lastIndexOf(".")).toLowerCase();
+  const mime = MIME[ext];
+  // A missing or unreadable reference must fail HERE, naming the file. Every
+  // request carries these, so the alternative is 244 identical ENOENTs — or,
+  // worse, a mislabelled mime the API accepts and renders from badly.
+  if (!mime) {
+    console.error(`✗ reference ${path}: unsupported type "${ext}" (use webp, png or jpeg)`);
+    process.exit(1);
+  }
+  if (!existsSync(path)) {
+    console.error(`✗ reference image not found: ${path}\n  Check the "refs" paths in assets-src/briefcase/bases.json.`);
+    process.exit(1);
+  }
   return { inline_data: { mime_type: mime, data: readFileSync(path).toString("base64") } };
 };
 
@@ -212,14 +233,20 @@ async function generateImage({ prompt, refs, aspect = "1:1" }) {
       const parts = json.candidates?.[0]?.content?.parts ?? [];
       const img = parts.find((p) => p.inlineData?.data);
       if (img) return Buffer.from(img.inlineData.data, "base64");
-      const reason = json.candidates?.[0]?.finishReason;
+      // A block on the way IN returns no candidate at all, only
+      // promptFeedback.blockReason — which is exactly the shape the outfit
+      // refusals arrive as, so reading finishReason alone left the clarifier
+      // ladder as dead code for the case it was written for.
+      const reason = json.candidates?.[0]?.finishReason ?? json.promptFeedback?.blockReason;
       if (reason === "PROHIBITED_CONTENT" && blocked < SAFETY_CLARIFIERS.length) {
         body = bodyFor(prompt + SAFETY_CLARIFIERS[blocked++]);
         continue;
       }
-      // No image part — an empty candidate or a block we could not clear.
-      // One clean retry on its own counter, not the HTTP error budget.
-      if (!reason && emptyAttempts++ < 1) continue;
+      // Anything else with no image — an empty candidate, IMAGE_SAFETY on the
+      // generated frame, a soft text refusal — gets one plain re-roll on its
+      // own counter, not the HTTP error budget. Most of those are sampling
+      // luck and clear on the second try.
+      if (emptyAttempts++ < 1) continue;
       throw new Error(`no image in response (${reason ?? "empty"}): ${JSON.stringify(json).slice(0, 200)}`);
     }
 
@@ -290,14 +317,31 @@ const looksLikeImage = (b) =>
   (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) || // jpeg
   (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46); // webp/riff
 
-/** Masters are PNG regardless of what the model answered with. */
-async function toPng(buf) {
+/**
+ * Masters are PNG regardless of what the model answered with.
+ *
+ * If the transcode fails we keep the original bytes rather than dropping an
+ * image the API was already paid for: the build step sniffs content, not
+ * extensions, so a JPEG sitting at a .png path still processes correctly.
+ */
+async function toPng(buf, key) {
   if (isPng(buf)) return buf;
-  const { default: sharp } = await import("sharp");
-  return sharp(buf).png({ compressionLevel: 9 }).toBuffer();
+  try {
+    const { default: sharp } = await import("sharp");
+    return await sharp(buf).png({ compressionLevel: 9 }).toBuffer();
+  } catch (e) {
+    console.warn(`  ! ${key}: kept the original encoding, PNG transcode failed (${e.message.slice(0, 80)})`);
+    return buf;
+  }
 }
 
 async function runJobs(jobs) {
+  // A typo'd --only would otherwise build zero jobs, print "0 to generate"
+  // and exit 0 — indistinguishable from "already done".
+  if (ONLY && !jobs.length) {
+    console.error(`✗ --only ${ONLY.join(",")} matched no assets. Check the ids against skins.csv / props.json.`);
+    process.exit(2);
+  }
   const pending = jobs.filter((j) => FORCE || !existsSync(j.out));
   const todo = pending.slice(0, LIMIT);
   console.log(`${jobs.length} assets, ${jobs.length - pending.length} already done, ${todo.length} to generate (model ${MOCK ? "MOCK" : MODEL})`);
@@ -318,7 +362,7 @@ async function runJobs(jobs) {
         if (!MOCK) {
           if (!looksLikeImage(png) || png.length < 20_000)
             throw new Error(`suspicious output (${png.length} bytes)`);
-          png = await toPng(png);
+          png = await toPng(png, job.key);
         }
         mkdirSync(dirname(job.out), { recursive: true });
         // Write-then-rename: a crash mid-write must not leave a truncated
@@ -495,7 +539,9 @@ if (command === "bases") {
 } else if (command === "status") {
   const count = (dir) => (existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith(".png")).length : 0);
   const skinsTotal = SKINS.length * Object.keys(BASES).length;
-  const propsTotal = PROPS.cases.length * 3 + PROPS.keys.length + PROPS.objects.length + PROPS.scenes.length + PROPS.poses.length;
+  const propsTotal =
+    PROPS.cases.length * Object.keys(PROPS.caseStates).length +
+    PROPS.keys.length + PROPS.objects.length + PROPS.scenes.length + PROPS.poses.length;
   console.log(`canon:      ${Object.keys(BASES).filter((b) => existsSync(canonPath(b))).map((b) => b).join(", ") || "none crowned"}`);
   console.log(`candidates: ${count(join(STAGING, "bases"))}`);
   console.log(`skins:      ${count(join(STAGING, "raw", "skins"))} / ${skinsTotal}`);

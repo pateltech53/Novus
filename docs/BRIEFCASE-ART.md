@@ -132,21 +132,31 @@ one anyway with `--lenient` if you must.
 
 ## Where things live
 
-Every asset ships **twice**: `.webp` for the app and `.png` beside it with the
-same basename, lossless, for review and for any tool that wants PNG. The
-manifest carries both (`urls` and `png`).
+Every asset is written **twice, to two different roots**:
+
+- `public/briefcase/**.webp` — what the app serves. ~9 MB for the set.
+- `art-review/briefcase/**.png` — the same keyed pixels, lossless, for review
+  and for handing to any tool that wants PNG. ~120 MB.
+
+The split is deliberate. Lossless is the right format for a master (quantising
+to a 256-colour palette measurably damages the soft alpha ramp and the
+gradients: on a sample skin, 2.4% of visible pixels move by more than 8
+levels, and the feathered edge shifts by up to 41), but `public/` is the
+deploy root — everything in it is uploaded and served, so 120 MB of review
+pixels no player requests must not live there. `art-review/` is tracked in
+git and never deployed. The manifest's `urls` are served URLs; its `png`
+entries are **repo paths**, not links.
 
 | Path | What | In git? |
 |---|---|---|
 | `assets-src/briefcase/` | style/negative blocks, `skins.csv`, `props.json`, `bases.json` | yes |
 | `assets-src/briefcase/canon/` | the two crowned shark founder renders — the anchor of every skin | yes |
 | `.assets-staging/briefcase/` | raw 1K generation masters, candidates, contact sheets, log | no (ignored) |
-| `public/briefcase/skins/t{1–5}/{id}_{novus,nova}.{webp,png}` | keyed 640 px skin renders | yes |
-| `public/briefcase/cases/{case}-{closed,glow,open}.{webp,png}` | keyed 1024 px briefcases | yes |
-| `public/briefcase/keys/t{1–5}.{webp,png}` | keyed 640 px keys | yes |
-| `public/briefcase/props/` | token, frames, backdrop, poses | yes |
-| `public/briefcase/fx/` | flat FX sprites (confetti, spark, aura) | yes |
-| `public/briefcase/manifest.json` | id → name/tier/rarity/urls + png; `urls: null` = art not generated yet, app shows the tier-colored placeholder card | yes |
+| `public/briefcase/skins/t{1–5}/{id}_{novus,nova}.webp` | keyed 640 px skin renders, served | yes |
+| `public/briefcase/cases/{case}-{closed,glow,open}.webp` | keyed 1024 px briefcases | yes |
+| `public/briefcase/keys/t{1–5}.webp` · `props/` · `fx/` | keys, token, frames, backdrop, poses, FX sprites | yes |
+| `public/briefcase/manifest.json` | id → name/tier/rarity/urls + png paths; `urls: null` = art not generated yet, app shows the tier-colored placeholder card | yes |
+| `art-review/briefcase/**.png` | lossless twins of everything above — review and handoff, never deployed | yes |
 | `docs/asset-review/README.md` | the GitHub-rendered gallery, rebuilt by the build step | yes |
 | `app/admin/assets/page.tsx` | the interactive review wall | yes |
 

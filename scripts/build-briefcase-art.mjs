@@ -32,6 +32,21 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SRC = join(root, "assets-src", "briefcase");
 const STAGING = join(root, ".assets-staging", "briefcase");
 const OUT = join(root, "public", "briefcase");
+/**
+ * The PNGs live OUTSIDE public/.
+ *
+ * They are lossless on purpose — quantising would crush the soft alpha ramp
+ * that is the whole thing worth inspecting — and lossless costs ~15× the
+ * webp, ~120 MB across the set. public/ is the deploy root: everything in it
+ * is uploaded and served, so parking a review artefact there would ship
+ * 120 MB to the CDN for pixels no player ever requests. Tracked in git
+ * (that is the point — they are the reviewable, hand-offable copy), just not
+ * deployed.
+ */
+const PNG_OUT = join(root, "art-review", "briefcase");
+const pngPathFor = (outRel) => join(PNG_OUT, outRel.replace(/\.webp$/, ".png"));
+/** Repo-relative, NOT a URL: nothing serves these. */
+const pngRepoPath = (outRel) => `art-review/briefcase/${outRel.replace(/\.webp$/, ".png")}`;
 const LENIENT = process.argv.includes("--lenient");
 const SKIP_SHEETS = process.argv.includes("--skip-sheets");
 const { default: sharp } = await import("sharp");
@@ -141,13 +156,21 @@ function keyOutBackground(data, w, h, { tolerance = 34, feather = 0.7, edge = 16
 
 const flagged = [];
 
-/** min-resolution + border-whiteness gate. Returns raw RGBA or null if failed. */
-async function loadQa(path, key) {
+/** min-resolution + border-whiteness gate. Returns raw RGBA or null if failed.
+ *  Backdrops are full-bleed scenes, so they are held to resolution only. */
+async function loadQa(path, key, { needsWhiteBorder = true } = {}) {
   const img = sharp(path).ensureAlpha();
   const { width, height } = await img.metadata();
   const { data } = await img.raw().toBuffer({ resolveWithObject: true });
   const problems = [];
   if (Math.min(width, height) < 1000) problems.push(`only ${width}×${height}`);
+  if (!needsWhiteBorder) {
+    if (problems.length) {
+      flagged.push(`${key}: ${problems.join(", ")}`);
+      if (!LENIENT) return null;
+    }
+    return { data, width, height };
+  }
   let whiteish = 0, n = 0;
   const white = (i) => data[i * 4] > 235 && data[i * 4 + 1] > 235 && data[i * 4 + 2] > 235;
   for (let x = 0; x < width; x += 4) {
@@ -168,7 +191,9 @@ async function loadQa(path, key) {
   return { data, width, height };
 }
 
-let total = 0;
+/** Counted apart: only the webp is served to players; the PNG is review
+ *  weight, and one blended total hides which of the two is growing. */
+const shippedBytes = { webp: 0, png: 0 };
 /**
  * Ships TWO files per asset from one keying pass:
  *   .webp — what the app will serve (small, alpha)
@@ -186,23 +211,39 @@ async function shipKeyed(srcPath, outRel, key, { size, quality = 82, seedCenter 
       .trim({ threshold: 1 })
       .resize({ width: size, height: size, fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } });
   const webp = await shaped().webp({ quality, effort: 5 }).toBuffer();
-  const png = await shaped().png({ compressionLevel: 9, palette: true }).toBuffer();
+  // NOT palette:true. Quantising to 256 colours crushes the soft alpha ramp
+  // the feathering pass just built — which is the exact thing the PNG exists
+  // to let someone inspect. Truly lossless, and it costs a few hundred kB.
+  const png = await shaped().png({ compressionLevel: 9 }).toBuffer();
   writeFileSync(outPath, webp);
-  writeFileSync(outPath.replace(/\.webp$/, ".png"), png);
-  total += webp.length + png.length;
+  const pngPath = pngPathFor(outRel);
+  mkdirSync(dirname(pngPath), { recursive: true });
+  writeFileSync(pngPath, png);
+  shippedBytes.webp += webp.length;
+  shippedBytes.png += png.length;
   return true;
 }
 
-/** Backdrops keep their background, so they skip keying — still both formats. */
+/**
+ * Backdrops keep their background, so they skip keying — but not QA: a
+ * backdrop that came back at 512 px would silently ship upscaled and blurry.
+ * Decoded once, and never enlarged past the source.
+ */
 async function shipScene(srcPath, outRel, key, { width = 1600, quality = 80 } = {}) {
-  if (!existsSync(srcPath)) return false;
+  const raw = await loadQa(srcPath, key, { needsWhiteBorder: false });
+  if (!raw) return false;
   const outPath = join(OUT, outRel);
   mkdirSync(dirname(outPath), { recursive: true });
-  const webp = await sharp(srcPath).resize({ width }).webp({ quality, effort: 5 }).toBuffer();
-  const png = await sharp(srcPath).resize({ width }).png({ compressionLevel: 9 }).toBuffer();
+  const pipeline = sharp(raw.data, { raw: { width: raw.width, height: raw.height, channels: 4 } })
+    .resize({ width: Math.min(width, raw.width), withoutEnlargement: true });
+  const webp = await pipeline.clone().webp({ quality, effort: 5 }).toBuffer();
+  const png = await pipeline.clone().png({ compressionLevel: 9 }).toBuffer();
   writeFileSync(outPath, webp);
-  writeFileSync(outPath.replace(/\.webp$/, ".png"), png);
-  total += webp.length + png.length;
+  const pngPath = pngPathFor(outRel);
+  mkdirSync(dirname(pngPath), { recursive: true });
+  writeFileSync(pngPath, png);
+  shippedBytes.webp += webp.length;
+  shippedBytes.png += png.length;
   return true;
 }
 
@@ -218,8 +259,8 @@ const manifest = {
   skins: {}, cases: {}, keys: {}, props: {}, fx: {},
 };
 const bases = ["novus", "nova"];
-/** The PNG twin of a shipped webp url (null-safe). */
-const pngOf = (u) => (u ? u.replace(/\.webp$/, ".png") : null);
+/** The PNG twin of a shipped webp url — a REPO PATH, not a served url. */
+const pngOf = (u) => (u ? pngRepoPath(u.replace("/briefcase/", "")) : null);
 const pngMap = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, pngOf(v)]));
 let shipped = 0, missing = 0;
 
@@ -345,13 +386,18 @@ writeFileSync(join(OUT, "manifest.json"), JSON.stringify(manifest, null, 2) + "\
  * "does this set hang together?" actually gets answered. Relative image
  * paths, so it works in the repo browser and in any local markdown viewer.
  */
-const rel = (u) => (u ? `../..${u}`.replace("../../briefcase", "../../public/briefcase") : null);
+/** docs/asset-review/README.md → repo root is two levels up. */
+const rel = (p) => (p ? `../../${p}` : null);
 const img = (u, alt, w = 130) => (u ? `<img src="${rel(u)}" alt="${alt}" width="${w}">` : "—");
 const md = [];
 md.push("# Briefcase art — review gallery\n");
 md.push(
-  `Every asset the generator produced, straight from \`public/briefcase/\` (style \`${manifest.styleVersion}\`). ` +
-  `Nothing here is wired into the game yet — this page exists to be judged.\n`,
+  `Every asset the generator produced (style \`${manifest.styleVersion}\`). Nothing here is wired into the ` +
+  `game yet — this page exists to be judged.\n`,
+);
+md.push(
+  `The images below are the lossless PNGs in \`art-review/briefcase/\`, which is tracked in git but NOT ` +
+  `deployed. The app's copies are the webp twins under \`public/briefcase/\`, same pixels, ~15× smaller.\n`,
 );
 md.push(
   `Both founders are sharks from the panel cast: **Novus** (masc) and **Nova** (fem). ` +
@@ -416,16 +462,35 @@ for (const [setId, set] of Object.entries(manifest.fx)) {
   // Name the gaps. A dash in a table reads as "not made yet", but not as
   // "here is the command that makes it" — and a half-built set that does not
   // say what it is missing gets mistaken for a finished one.
-  const gaps = [];
+  // Two different absences that need two different commands. A render the
+  // API never produced is filled by a plain resume; one the QA gate REJECTED
+  // already has a master on disk, so a resume skips it and only --force
+  // replaces it. Listing them together under one command was a lie.
+  const ungenerated = [], rejected = [];
   for (const row of SKINS)
     for (const base of bases)
-      if (!manifest.skins[row.id]?.urls?.[base]) gaps.push(`${row.id}_${base}`);
-  if (gaps.length) {
-    md.push(`\n## Still to generate (${gaps.length})\n`);
-    md.push("```\n" + gaps.join(" ") + "\n```\n");
+      if (!manifest.skins[row.id]?.urls?.[base]) {
+        const id = `${row.id}_${base}`;
+        (existsSync(join(STAGING, "raw", "skins", `${id}.png`)) ? rejected : ungenerated).push(id);
+      }
+  if (ungenerated.length) {
+    md.push(`\n## Still to generate (${ungenerated.length})\n`);
+    md.push("```\n" + ungenerated.join(" ") + "\n```\n");
     md.push(
-      "Re-run the generator and it picks up exactly these — finished renders are never redone:\n\n" +
+      "No master exists for these yet, so a plain resume picks up exactly them — " +
+      "finished renders are never redone:\n\n" +
       "```sh\nnpm run art:briefcase -- all --model gemini-3.1-flash-image --concurrency 4\n```\n",
+    );
+  }
+  if (rejected.length) {
+    md.push(`\n## Generated but rejected by QA (${rejected.length})\n`);
+    md.push("```\n" + rejected.join(" ") + "\n```\n");
+    md.push(
+      "A master exists but failed the resolution / white-background gate, so it was not shipped. " +
+      "A resume will SKIP these — replacing them needs `--force`:\n\n" +
+      "```sh\nnpm run art:briefcase -- skins --only " +
+      [...new Set(rejected.map((r) => r.split("_")[0]))].join(",") +
+      " --force --model gemini-3.1-flash-image\n```\n",
     );
   }
 }
@@ -466,7 +531,10 @@ if (!SKIP_SHEETS) {
   console.log(`contact sheets → .assets-staging/briefcase/sheets/`);
 }
 
-console.log(`\n${shipped} assets shipped this pass (${(total / 1048576).toFixed(2)} MB), ${missing} awaiting generation`);
+const mb = (n) => (n / 1048576).toFixed(2);
+console.log(
+  `\n${shipped} assets shipped this pass — ${mb(shippedBytes.webp)} MB webp (what players download) ` +
+  `+ ${mb(shippedBytes.png)} MB png (review only), ${missing} awaiting generation`);
 if (flagged.length) {
   console.log(`\n${LENIENT ? "shipped DESPITE" : "skipped by"} QA (regenerate these ids):`);
   for (const f of flagged) console.log(`  ⚠ ${f}`);

@@ -120,6 +120,7 @@ function Tile({
   src,
   png,
   label,
+  alt,
   sub,
   color,
   ground,
@@ -128,6 +129,8 @@ function Tile({
   src: string | null;
   png?: string | null;
   label: string;
+  /** Distinct from `label` when two tiles share a caption (novus vs nova). */
+  alt?: string;
   sub?: string;
   color?: string;
   ground: Ground;
@@ -143,9 +146,12 @@ function Tile({
           // Plain <img>: these are review pixels, not app pixels — next/image
           // would resample them and hide exactly the softness we are judging.
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={src} alt={label} loading="lazy" className="max-h-full max-w-full object-contain" />
+          <img src={src} alt={alt ?? label} loading="lazy" className="max-h-full max-w-full object-contain" />
         ) : (
-          <span className="text-2xs tracking-[0.08em] text-[var(--n-6)]">NOT GENERATED</span>
+          // Fixed slate, not a theme token: the grounds below are literal hex
+          // and do not flip with the theme, so a token here went to ~2.4:1 on
+          // half the combinations.
+          <span className="text-2xs tracking-[0.08em] text-[#5b6472]">NOT GENERATED</span>
         )}
         {color && (
           <span
@@ -160,13 +166,12 @@ function Tile({
         {sub && <span className="shrink-0 text-2xs text-[var(--text-tertiary)]">{sub}</span>}
       </figcaption>
       {png && (
-        <a
-          href={png}
-          download
-          className="text-2xs text-[var(--text-tertiary)] underline decoration-dotted underline-offset-2 hover:text-[var(--text-secondary)]"
-        >
-          PNG
-        </a>
+        // A repo path, not a link: the PNGs are tracked but deliberately not
+        // deployed (see PNG_OUT in scripts/build-briefcase-art.mjs), so an
+        // <a href> here would 404. Shown so the file is findable.
+        <code className="truncate text-2xs text-[var(--text-tertiary)]" title={png}>
+          {png.replace("art-review/briefcase/", "")}
+        </code>
       )}
     </figure>
   );
@@ -256,6 +261,8 @@ export default function AssetReviewPage() {
                 {manifest.styleVersion}
               </>
             )}
+            {" "}Tiles are the shipped webp; the lossless PNG of each sits at the path beneath it, under{" "}
+            <code>art-review/briefcase/</code>.
           </p>
         </div>
         <ThemeToggle />
@@ -268,6 +275,7 @@ export default function AssetReviewPage() {
             <button
               key={g}
               onClick={() => setGround(g)}
+              aria-pressed={ground === g}
               className={`rounded-[var(--radius-row)] border px-2 py-1 text-2xs tracking-[0.06em] ${
                 ground === g
                   ? "border-[var(--n-11)] font-bold"
@@ -282,6 +290,7 @@ export default function AssetReviewPage() {
           <span className="text-2xs tracking-[0.1em] text-[var(--text-tertiary)]">TIER</span>
           <button
             onClick={() => setTier(null)}
+            aria-pressed={tier === null}
             className={`rounded-[var(--radius-row)] border px-2 py-1 text-2xs ${
               tier === null
                 ? "border-[var(--n-11)] font-bold"
@@ -294,6 +303,7 @@ export default function AssetReviewPage() {
             <button
               key={t}
               onClick={() => setTier(tier === t ? null : t)}
+              aria-pressed={tier === t}
               className={`rounded-[var(--radius-row)] border px-2 py-1 text-2xs ${
                 tier === t
                   ? "border-[var(--n-11)] font-bold"
@@ -315,12 +325,18 @@ export default function AssetReviewPage() {
         >
           <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-x-4 gap-y-5">
             {skins.map(([id, s]) => (
-              <div key={id} className="contents">
+              // A real pair box, not display:contents. Dissolving the wrapper
+              // made both figures direct grid items, so at most widths a
+              // design's novus landed at the end of one row and its nova at
+              // the start of the next — which defeats the whole point of
+              // showing them together.
+              <div key={id} className="grid grid-cols-2 gap-2">
                 <Tile
                   src={s.urls?.novus ?? null}
                   png={s.png?.novus ?? null}
                   label={`${id} ${s.name}`}
-                  sub={`${TIER_NAMES[s.tier]} · novus`}
+                  alt={`${s.name} on Novus`}
+                  sub="novus"
                   color={s.color}
                   ground={ground}
                 />
@@ -328,7 +344,8 @@ export default function AssetReviewPage() {
                   src={s.urls?.nova ?? null}
                   png={s.png?.nova ?? null}
                   label={`${id} ${s.name}`}
-                  sub={`${TIER_NAMES[s.tier]} · nova`}
+                  alt={`${s.name} on Nova`}
+                  sub="nova"
                   color={s.color}
                   ground={ground}
                 />
@@ -338,10 +355,14 @@ export default function AssetReviewPage() {
         </Band>
       ))}
 
-      {/* Cases — three states each, read left to right as the ceremony plays */}
-      <Band title="Briefcases" count={`${Object.keys(manifest.cases).length} cases × 3 states`}>
+      {/* Cases — three states each, read left to right as the ceremony plays.
+          Tiered like skins, so the filter reaches them too. */}
+      <Band
+        title="Briefcases"
+        count={`${Object.entries(manifest.cases).filter(([, c]) => !tier || c.tier === tier).length} shown`}
+      >
         <div className="flex flex-col gap-5">
-          {Object.entries(manifest.cases).map(([id, c]) => (
+          {Object.entries(manifest.cases).filter(([, c]) => !tier || c.tier === tier).map(([id, c]) => (
             <div key={id}>
               <p className="mb-2 text-2xs font-bold tracking-[0.06em]">
                 {c.name}
@@ -365,15 +386,23 @@ export default function AssetReviewPage() {
         </div>
       </Band>
 
-      <Band title="Keys" count={`${Object.keys(manifest.keys).length}`}>
+      <Band
+        title="Keys"
+        count={`${Object.entries(manifest.keys).filter(([, k]) => !tier || k.tier === tier).length} shown`}
+      >
         <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
-          {Object.entries(manifest.keys).map(([id, k]) => (
+          {Object.entries(manifest.keys).filter(([, k]) => !tier || k.tier === tier).map(([id, k]) => (
             <Tile key={id} src={k.url} png={k.png} label={id} sub={TIER_NAMES[k.tier]} ground={ground} />
           ))}
         </div>
       </Band>
 
-      <Band title="Props" count={`${Object.keys(manifest.props).length}`}>
+      {/* Props and FX carry no tier, so the filter cannot narrow them — say
+          so rather than leaving them looking unfiltered by oversight. */}
+      <Band
+        title="Props"
+        count={tier ? `${Object.keys(manifest.props).length} — untiered, filter does not apply` : `${Object.keys(manifest.props).length}`}
+      >
         <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4">
           {Object.entries(manifest.props).map(([id, p]) => (
             <Tile key={id} src={p.url} png={p.png} label={p.name} sub={p.kind} ground={ground} size={190} />
@@ -381,7 +410,10 @@ export default function AssetReviewPage() {
         </div>
       </Band>
 
-      <Band title="FX sprites" count={`${Object.keys(manifest.fx).length} sets`}>
+      <Band
+        title="FX sprites"
+        count={tier ? `${Object.keys(manifest.fx).length} sets — untiered, filter does not apply` : `${Object.keys(manifest.fx).length} sets`}
+      >
         <div className="flex flex-col gap-5">
           {Object.entries(manifest.fx).map(([setId, set]) => (
             <div key={setId}>

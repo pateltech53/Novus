@@ -29,8 +29,8 @@
         "nova": "/briefcase/skins/t4/101_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t4/101_novus.png",
-        "nova": "/briefcase/skins/t4/101_nova.png"
+        "novus": "art-review/briefcase/skins/t4/101_novus.png",
+        "nova": "art-review/briefcase/skins/t4/101_nova.png"
       }
     },
     "001": {
@@ -45,8 +45,8 @@
         "nova": "/briefcase/skins/t1/001_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t1/001_novus.png",
-        "nova": "/briefcase/skins/t1/001_nova.png"
+        "novus": "art-review/briefcase/skins/t1/001_novus.png",
+        "nova": "art-review/briefcase/skins/t1/001_nova.png"
       }
     },
     "002": {
@@ -61,8 +61,8 @@
         "nova": "/briefcase/skins/t1/002_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t1/002_novus.png",
-        "nova": "/briefcase/skins/t1/002_nova.png"
+        "novus": "art-review/briefcase/skins/t1/002_novus.png",
+        "nova": "art-review/briefcase/skins/t1/002_nova.png"
       }
     },
     "003": {
@@ -77,8 +77,8 @@
         "nova": "/briefcase/skins/t1/003_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t1/003_novus.png",
-        "nova": "/briefcase/skins/t1/003_nova.png"
+        "novus": "art-review/briefcase/skins/t1/003_novus.png",
+        "nova": "art-review/briefcase/skins/t1/003_nova.png"
       }
     },
     "004": {
@@ -93,8 +93,8 @@
         "nova": "/briefcase/skins/t1/004_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t1/004_novus.png",
-        "nova": "/briefcase/skins/t1/004_nova.png"
+        "novus": "art-review/briefcase/skins/t1/004_novus.png",
+        "nova": "art-review/briefcase/skins/t1/004_nova.png"
       }
     },
     "005": {
@@ -109,8 +109,8 @@
         "nova": "/briefcase/skins/t1/005_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t1/005_novus.png",
-        "nova": "/briefcase/skins/t1/005_nova.png"
+        "novus": "art-review/briefcase/skins/t1/005_novus.png",
+        "nova": "art-review/briefcase/skins/t1/005_nova.png"
       }
     },
     "006": {
@@ -125,8 +125,8 @@
         "nova": "/briefcase/skins/t1/006_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t1/006_novus.png",
-        "nova": "/briefcase/skins/t1/006_nova.png"
+        "novus": "art-review/briefcase/skins/t1/006_novus.png",
+        "nova": "art-review/briefcase/skins/t1/006_nova.png"
       }
     },
     "007": {
@@ -141,8 +141,8 @@
         "nova": "/briefcase/skins/t1/007_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t1/007_novus.png",
-        "nova": "/briefcase/skins/t1/007_nova.png"
+        "novus": "art-review/briefcase/skins/t1/007_novus.png",
+        "nova": "art-review/briefcase/skins/t1/007_nova.png"
       }
     },
     "008": {
@@ -157,8 +157,8 @@
         "nova": "/briefcase/skins/t1/008_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t1/008_novus.png",
-        "nova": "/briefcase/skins/t1/008_nova.png"
+        "novus": "art-review/briefcase/skins/t1/008_novus.png",
+        "nova": "art-review/briefcase/skins/t1/008_nova.png"
       }
     },
     "009": {
@@ -173,8 +173,8 @@
         "nova": "/briefcase/skins/t1/009_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t1/009_novus.png",
-        "nova": "/briefcase/skins/t1/009_nova.png"
+        "novus": "art-review/briefcase/skins/t1/009_novus.png",
+        "nova": "art-review/briefcase/skins/t1/009_nova.png"
       }
     },
     "010": {
@@ -189,8 +189,8 @@
         "nova": "/briefcase/skins/t1/010_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t1/010_novus.png",
-        "nova": "/briefcase/skins/t1/010_nova.png"
+        "novus": "art-review/briefcase/skins/t1/010_novus.png",
+        "nova": "art-review/briefcase/skins/t1/010_nova.png"
       }
     },
     "011": {
@@ -205,8 +205,8 @@
         "nova": "/briefcase/skins/t1/011_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t1/011_novus.png",
-        "nova": "/briefcase/skins/t1/011_nova.png"
+        "novus": "art-review/briefcase/skins/t1/011_novus.png",
+        "nova": "art-review/briefcase/skins/t1/011_nova.png"
       }
     },
     "012": {
@@ -221,8 +221,8 @@
         "nova": "/briefcase/skins/t1/012_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t1/012_novus.png",
-        "nova": "/briefcase/skins/t1/012_nova.png"
+        "novus": "art-review/briefcase/skins/t1/012_novus.png",
+        "nova": "art-review/briefcase/skins/t1/012_nova.png"
       }
     },
     "013": {
@@ -237,8 +237,8 @@
         "nova": "/briefcase/skins/t1/013_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t1/013_novus.png",
-        "nova": "/briefcase/skins/t1/013_nova.png"
+        "novus": "art-review/briefcase/skins/t1/013_novus.png",
+        "nova": "art-review/briefcase/skins/t1/013_nova.png"
       }
     },
     "014": {
@@ -253,8 +253,8 @@
         "nova": "/briefcase/skins/t1/014_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t1/014_novus.png",
-        "nova": "/briefcase/skins/t1/014_nova.png"
+        "novus": "art-review/briefcase/skins/t1/014_novus.png",
+        "nova": "art-review/briefcase/skins/t1/014_nova.png"
       }
     },
     "015": {
@@ -269,8 +269,8 @@
         "nova": "/briefcase/skins/t1/015_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t1/015_novus.png",
-        "nova": "/briefcase/skins/t1/015_nova.png"
+        "novus": "art-review/briefcase/skins/t1/015_novus.png",
+        "nova": "art-review/briefcase/skins/t1/015_nova.png"
       }
     },
     "016": {
@@ -285,8 +285,8 @@
         "nova": "/briefcase/skins/t1/016_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t1/016_novus.png",
-        "nova": "/briefcase/skins/t1/016_nova.png"
+        "novus": "art-review/briefcase/skins/t1/016_novus.png",
+        "nova": "art-review/briefcase/skins/t1/016_nova.png"
       }
     },
     "017": {
@@ -301,8 +301,8 @@
         "nova": "/briefcase/skins/t2/017_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t2/017_novus.png",
-        "nova": "/briefcase/skins/t2/017_nova.png"
+        "novus": "art-review/briefcase/skins/t2/017_novus.png",
+        "nova": "art-review/briefcase/skins/t2/017_nova.png"
       }
     },
     "018": {
@@ -317,8 +317,8 @@
         "nova": "/briefcase/skins/t2/018_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t2/018_novus.png",
-        "nova": "/briefcase/skins/t2/018_nova.png"
+        "novus": "art-review/briefcase/skins/t2/018_novus.png",
+        "nova": "art-review/briefcase/skins/t2/018_nova.png"
       }
     },
     "019": {
@@ -343,8 +343,8 @@
         "nova": "/briefcase/skins/t2/020_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t2/020_novus.png",
-        "nova": "/briefcase/skins/t2/020_nova.png"
+        "novus": "art-review/briefcase/skins/t2/020_novus.png",
+        "nova": "art-review/briefcase/skins/t2/020_nova.png"
       }
     },
     "021": {
@@ -359,8 +359,8 @@
         "nova": "/briefcase/skins/t2/021_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t2/021_novus.png",
-        "nova": "/briefcase/skins/t2/021_nova.png"
+        "novus": "art-review/briefcase/skins/t2/021_novus.png",
+        "nova": "art-review/briefcase/skins/t2/021_nova.png"
       }
     },
     "022": {
@@ -375,7 +375,7 @@
         "nova": null
       },
       "png": {
-        "novus": "/briefcase/skins/t2/022_novus.png",
+        "novus": "art-review/briefcase/skins/t2/022_novus.png",
         "nova": null
       }
     },
@@ -391,7 +391,7 @@
         "nova": null
       },
       "png": {
-        "novus": "/briefcase/skins/t2/023_novus.png",
+        "novus": "art-review/briefcase/skins/t2/023_novus.png",
         "nova": null
       }
     },
@@ -407,7 +407,7 @@
         "nova": null
       },
       "png": {
-        "novus": "/briefcase/skins/t2/024_novus.png",
+        "novus": "art-review/briefcase/skins/t2/024_novus.png",
         "nova": null
       }
     },
@@ -423,8 +423,8 @@
         "nova": "/briefcase/skins/t2/025_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t2/025_novus.png",
-        "nova": "/briefcase/skins/t2/025_nova.png"
+        "novus": "art-review/briefcase/skins/t2/025_novus.png",
+        "nova": "art-review/briefcase/skins/t2/025_nova.png"
       }
     },
     "026": {
@@ -439,7 +439,7 @@
         "nova": null
       },
       "png": {
-        "novus": "/briefcase/skins/t2/026_novus.png",
+        "novus": "art-review/briefcase/skins/t2/026_novus.png",
         "nova": null
       }
     },
@@ -455,8 +455,8 @@
         "nova": "/briefcase/skins/t2/027_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t2/027_novus.png",
-        "nova": "/briefcase/skins/t2/027_nova.png"
+        "novus": "art-review/briefcase/skins/t2/027_novus.png",
+        "nova": "art-review/briefcase/skins/t2/027_nova.png"
       }
     },
     "028": {
@@ -471,8 +471,8 @@
         "nova": "/briefcase/skins/t2/028_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t2/028_novus.png",
-        "nova": "/briefcase/skins/t2/028_nova.png"
+        "novus": "art-review/briefcase/skins/t2/028_novus.png",
+        "nova": "art-review/briefcase/skins/t2/028_nova.png"
       }
     },
     "029": {
@@ -497,8 +497,8 @@
         "nova": "/briefcase/skins/t3/030_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t3/030_novus.png",
-        "nova": "/briefcase/skins/t3/030_nova.png"
+        "novus": "art-review/briefcase/skins/t3/030_novus.png",
+        "nova": "art-review/briefcase/skins/t3/030_nova.png"
       }
     },
     "031": {
@@ -513,8 +513,8 @@
         "nova": "/briefcase/skins/t1/031_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t1/031_novus.png",
-        "nova": "/briefcase/skins/t1/031_nova.png"
+        "novus": "art-review/briefcase/skins/t1/031_novus.png",
+        "nova": "art-review/briefcase/skins/t1/031_nova.png"
       }
     },
     "032": {
@@ -529,8 +529,8 @@
         "nova": "/briefcase/skins/t1/032_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t1/032_novus.png",
-        "nova": "/briefcase/skins/t1/032_nova.png"
+        "novus": "art-review/briefcase/skins/t1/032_novus.png",
+        "nova": "art-review/briefcase/skins/t1/032_nova.png"
       }
     },
     "033": {
@@ -545,8 +545,8 @@
         "nova": "/briefcase/skins/t1/033_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t1/033_novus.png",
-        "nova": "/briefcase/skins/t1/033_nova.png"
+        "novus": "art-review/briefcase/skins/t1/033_novus.png",
+        "nova": "art-review/briefcase/skins/t1/033_nova.png"
       }
     },
     "034": {
@@ -561,8 +561,8 @@
         "nova": "/briefcase/skins/t1/034_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t1/034_novus.png",
-        "nova": "/briefcase/skins/t1/034_nova.png"
+        "novus": "art-review/briefcase/skins/t1/034_novus.png",
+        "nova": "art-review/briefcase/skins/t1/034_nova.png"
       }
     },
     "035": {
@@ -577,8 +577,8 @@
         "nova": "/briefcase/skins/t1/035_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t1/035_novus.png",
-        "nova": "/briefcase/skins/t1/035_nova.png"
+        "novus": "art-review/briefcase/skins/t1/035_novus.png",
+        "nova": "art-review/briefcase/skins/t1/035_nova.png"
       }
     },
     "036": {
@@ -593,8 +593,8 @@
         "nova": "/briefcase/skins/t1/036_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t1/036_novus.png",
-        "nova": "/briefcase/skins/t1/036_nova.png"
+        "novus": "art-review/briefcase/skins/t1/036_novus.png",
+        "nova": "art-review/briefcase/skins/t1/036_nova.png"
       }
     },
     "037": {
@@ -609,8 +609,8 @@
         "nova": "/briefcase/skins/t2/037_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t2/037_novus.png",
-        "nova": "/briefcase/skins/t2/037_nova.png"
+        "novus": "art-review/briefcase/skins/t2/037_novus.png",
+        "nova": "art-review/briefcase/skins/t2/037_nova.png"
       }
     },
     "038": {
@@ -625,8 +625,8 @@
         "nova": "/briefcase/skins/t2/038_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t2/038_novus.png",
-        "nova": "/briefcase/skins/t2/038_nova.png"
+        "novus": "art-review/briefcase/skins/t2/038_novus.png",
+        "nova": "art-review/briefcase/skins/t2/038_nova.png"
       }
     },
     "039": {
@@ -641,8 +641,8 @@
         "nova": "/briefcase/skins/t2/039_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t2/039_novus.png",
-        "nova": "/briefcase/skins/t2/039_nova.png"
+        "novus": "art-review/briefcase/skins/t2/039_novus.png",
+        "nova": "art-review/briefcase/skins/t2/039_nova.png"
       }
     },
     "040": {
@@ -657,8 +657,8 @@
         "nova": "/briefcase/skins/t2/040_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t2/040_novus.png",
-        "nova": "/briefcase/skins/t2/040_nova.png"
+        "novus": "art-review/briefcase/skins/t2/040_novus.png",
+        "nova": "art-review/briefcase/skins/t2/040_nova.png"
       }
     },
     "041": {
@@ -673,7 +673,7 @@
         "nova": null
       },
       "png": {
-        "novus": "/briefcase/skins/t2/041_novus.png",
+        "novus": "art-review/briefcase/skins/t2/041_novus.png",
         "nova": null
       }
     },
@@ -689,7 +689,7 @@
         "nova": null
       },
       "png": {
-        "novus": "/briefcase/skins/t2/042_novus.png",
+        "novus": "art-review/briefcase/skins/t2/042_novus.png",
         "nova": null
       }
     },
@@ -705,8 +705,8 @@
         "nova": "/briefcase/skins/t2/043_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t2/043_novus.png",
-        "nova": "/briefcase/skins/t2/043_nova.png"
+        "novus": "art-review/briefcase/skins/t2/043_novus.png",
+        "nova": "art-review/briefcase/skins/t2/043_nova.png"
       }
     },
     "044": {
@@ -721,8 +721,8 @@
         "nova": "/briefcase/skins/t2/044_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t2/044_novus.png",
-        "nova": "/briefcase/skins/t2/044_nova.png"
+        "novus": "art-review/briefcase/skins/t2/044_novus.png",
+        "nova": "art-review/briefcase/skins/t2/044_nova.png"
       }
     },
     "045": {
@@ -737,7 +737,7 @@
         "nova": null
       },
       "png": {
-        "novus": "/briefcase/skins/t2/045_novus.png",
+        "novus": "art-review/briefcase/skins/t2/045_novus.png",
         "nova": null
       }
     },
@@ -753,8 +753,8 @@
         "nova": "/briefcase/skins/t3/046_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t3/046_novus.png",
-        "nova": "/briefcase/skins/t3/046_nova.png"
+        "novus": "art-review/briefcase/skins/t3/046_novus.png",
+        "nova": "art-review/briefcase/skins/t3/046_nova.png"
       }
     },
     "047": {
@@ -769,8 +769,8 @@
         "nova": "/briefcase/skins/t3/047_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t3/047_novus.png",
-        "nova": "/briefcase/skins/t3/047_nova.png"
+        "novus": "art-review/briefcase/skins/t3/047_novus.png",
+        "nova": "art-review/briefcase/skins/t3/047_nova.png"
       }
     },
     "048": {
@@ -786,7 +786,7 @@
       },
       "png": {
         "novus": null,
-        "nova": "/briefcase/skins/t3/048_nova.png"
+        "nova": "art-review/briefcase/skins/t3/048_nova.png"
       }
     },
     "049": {
@@ -801,8 +801,8 @@
         "nova": "/briefcase/skins/t3/049_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t3/049_novus.png",
-        "nova": "/briefcase/skins/t3/049_nova.png"
+        "novus": "art-review/briefcase/skins/t3/049_novus.png",
+        "nova": "art-review/briefcase/skins/t3/049_nova.png"
       }
     },
     "050": {
@@ -817,8 +817,8 @@
         "nova": "/briefcase/skins/t3/050_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t3/050_novus.png",
-        "nova": "/briefcase/skins/t3/050_nova.png"
+        "novus": "art-review/briefcase/skins/t3/050_novus.png",
+        "nova": "art-review/briefcase/skins/t3/050_nova.png"
       }
     },
     "051": {
@@ -833,7 +833,7 @@
         "nova": null
       },
       "png": {
-        "novus": "/briefcase/skins/t2/051_novus.png",
+        "novus": "art-review/briefcase/skins/t2/051_novus.png",
         "nova": null
       }
     },
@@ -849,8 +849,8 @@
         "nova": "/briefcase/skins/t2/052_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t2/052_novus.png",
-        "nova": "/briefcase/skins/t2/052_nova.png"
+        "novus": "art-review/briefcase/skins/t2/052_novus.png",
+        "nova": "art-review/briefcase/skins/t2/052_nova.png"
       }
     },
     "053": {
@@ -865,8 +865,8 @@
         "nova": "/briefcase/skins/t2/053_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t2/053_novus.png",
-        "nova": "/briefcase/skins/t2/053_nova.png"
+        "novus": "art-review/briefcase/skins/t2/053_novus.png",
+        "nova": "art-review/briefcase/skins/t2/053_nova.png"
       }
     },
     "054": {
@@ -881,8 +881,8 @@
         "nova": "/briefcase/skins/t2/054_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t2/054_novus.png",
-        "nova": "/briefcase/skins/t2/054_nova.png"
+        "novus": "art-review/briefcase/skins/t2/054_novus.png",
+        "nova": "art-review/briefcase/skins/t2/054_nova.png"
       }
     },
     "055": {
@@ -897,8 +897,8 @@
         "nova": "/briefcase/skins/t3/055_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t3/055_novus.png",
-        "nova": "/briefcase/skins/t3/055_nova.png"
+        "novus": "art-review/briefcase/skins/t3/055_novus.png",
+        "nova": "art-review/briefcase/skins/t3/055_nova.png"
       }
     },
     "056": {
@@ -913,7 +913,7 @@
         "nova": null
       },
       "png": {
-        "novus": "/briefcase/skins/t3/056_novus.png",
+        "novus": "art-review/briefcase/skins/t3/056_novus.png",
         "nova": null
       }
     },
@@ -929,7 +929,7 @@
         "nova": null
       },
       "png": {
-        "novus": "/briefcase/skins/t3/057_novus.png",
+        "novus": "art-review/briefcase/skins/t3/057_novus.png",
         "nova": null
       }
     },
@@ -945,8 +945,8 @@
         "nova": "/briefcase/skins/t3/058_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t3/058_novus.png",
-        "nova": "/briefcase/skins/t3/058_nova.png"
+        "novus": "art-review/briefcase/skins/t3/058_novus.png",
+        "nova": "art-review/briefcase/skins/t3/058_nova.png"
       }
     },
     "059": {
@@ -961,8 +961,8 @@
         "nova": "/briefcase/skins/t4/059_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t4/059_novus.png",
-        "nova": "/briefcase/skins/t4/059_nova.png"
+        "novus": "art-review/briefcase/skins/t4/059_novus.png",
+        "nova": "art-review/briefcase/skins/t4/059_nova.png"
       }
     },
     "060": {
@@ -977,8 +977,8 @@
         "nova": "/briefcase/skins/t4/060_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t4/060_novus.png",
-        "nova": "/briefcase/skins/t4/060_nova.png"
+        "novus": "art-review/briefcase/skins/t4/060_novus.png",
+        "nova": "art-review/briefcase/skins/t4/060_nova.png"
       }
     },
     "061": {
@@ -993,8 +993,8 @@
         "nova": "/briefcase/skins/t3/061_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t3/061_novus.png",
-        "nova": "/briefcase/skins/t3/061_nova.png"
+        "novus": "art-review/briefcase/skins/t3/061_novus.png",
+        "nova": "art-review/briefcase/skins/t3/061_nova.png"
       }
     },
     "062": {
@@ -1009,8 +1009,8 @@
         "nova": "/briefcase/skins/t3/062_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t3/062_novus.png",
-        "nova": "/briefcase/skins/t3/062_nova.png"
+        "novus": "art-review/briefcase/skins/t3/062_novus.png",
+        "nova": "art-review/briefcase/skins/t3/062_nova.png"
       }
     },
     "063": {
@@ -1025,7 +1025,7 @@
         "nova": null
       },
       "png": {
-        "novus": "/briefcase/skins/t3/063_novus.png",
+        "novus": "art-review/briefcase/skins/t3/063_novus.png",
         "nova": null
       }
     },
@@ -1041,8 +1041,8 @@
         "nova": "/briefcase/skins/t3/064_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t3/064_novus.png",
-        "nova": "/briefcase/skins/t3/064_nova.png"
+        "novus": "art-review/briefcase/skins/t3/064_novus.png",
+        "nova": "art-review/briefcase/skins/t3/064_nova.png"
       }
     },
     "065": {
@@ -1067,7 +1067,7 @@
         "nova": null
       },
       "png": {
-        "novus": "/briefcase/skins/t4/066_novus.png",
+        "novus": "art-review/briefcase/skins/t4/066_novus.png",
         "nova": null
       }
     },
@@ -1084,7 +1084,7 @@
       },
       "png": {
         "novus": null,
-        "nova": "/briefcase/skins/t4/067_nova.png"
+        "nova": "art-review/briefcase/skins/t4/067_nova.png"
       }
     },
     "068": {
@@ -1100,7 +1100,7 @@
       },
       "png": {
         "novus": null,
-        "nova": "/briefcase/skins/t4/068_nova.png"
+        "nova": "art-review/briefcase/skins/t4/068_nova.png"
       }
     },
     "069": {
@@ -1115,8 +1115,8 @@
         "nova": "/briefcase/skins/t4/069_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t4/069_novus.png",
-        "nova": "/briefcase/skins/t4/069_nova.png"
+        "novus": "art-review/briefcase/skins/t4/069_novus.png",
+        "nova": "art-review/briefcase/skins/t4/069_nova.png"
       }
     },
     "070": {
@@ -1132,7 +1132,7 @@
       },
       "png": {
         "novus": null,
-        "nova": "/briefcase/skins/t4/070_nova.png"
+        "nova": "art-review/briefcase/skins/t4/070_nova.png"
       }
     },
     "071": {
@@ -1147,8 +1147,8 @@
         "nova": "/briefcase/skins/t1/071_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t1/071_novus.png",
-        "nova": "/briefcase/skins/t1/071_nova.png"
+        "novus": "art-review/briefcase/skins/t1/071_novus.png",
+        "nova": "art-review/briefcase/skins/t1/071_nova.png"
       }
     },
     "072": {
@@ -1163,8 +1163,8 @@
         "nova": "/briefcase/skins/t1/072_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t1/072_novus.png",
-        "nova": "/briefcase/skins/t1/072_nova.png"
+        "novus": "art-review/briefcase/skins/t1/072_novus.png",
+        "nova": "art-review/briefcase/skins/t1/072_nova.png"
       }
     },
     "073": {
@@ -1179,8 +1179,8 @@
         "nova": "/briefcase/skins/t1/073_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t1/073_novus.png",
-        "nova": "/briefcase/skins/t1/073_nova.png"
+        "novus": "art-review/briefcase/skins/t1/073_novus.png",
+        "nova": "art-review/briefcase/skins/t1/073_nova.png"
       }
     },
     "074": {
@@ -1195,8 +1195,8 @@
         "nova": "/briefcase/skins/t1/074_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t1/074_novus.png",
-        "nova": "/briefcase/skins/t1/074_nova.png"
+        "novus": "art-review/briefcase/skins/t1/074_novus.png",
+        "nova": "art-review/briefcase/skins/t1/074_nova.png"
       }
     },
     "075": {
@@ -1211,8 +1211,8 @@
         "nova": "/briefcase/skins/t1/075_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t1/075_novus.png",
-        "nova": "/briefcase/skins/t1/075_nova.png"
+        "novus": "art-review/briefcase/skins/t1/075_novus.png",
+        "nova": "art-review/briefcase/skins/t1/075_nova.png"
       }
     },
     "076": {
@@ -1227,8 +1227,8 @@
         "nova": "/briefcase/skins/t1/076_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t1/076_novus.png",
-        "nova": "/briefcase/skins/t1/076_nova.png"
+        "novus": "art-review/briefcase/skins/t1/076_novus.png",
+        "nova": "art-review/briefcase/skins/t1/076_nova.png"
       }
     },
     "077": {
@@ -1243,8 +1243,8 @@
         "nova": "/briefcase/skins/t1/077_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t1/077_novus.png",
-        "nova": "/briefcase/skins/t1/077_nova.png"
+        "novus": "art-review/briefcase/skins/t1/077_novus.png",
+        "nova": "art-review/briefcase/skins/t1/077_nova.png"
       }
     },
     "078": {
@@ -1259,8 +1259,8 @@
         "nova": "/briefcase/skins/t1/078_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t1/078_novus.png",
-        "nova": "/briefcase/skins/t1/078_nova.png"
+        "novus": "art-review/briefcase/skins/t1/078_novus.png",
+        "nova": "art-review/briefcase/skins/t1/078_nova.png"
       }
     },
     "079": {
@@ -1275,8 +1275,8 @@
         "nova": "/briefcase/skins/t3/079_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t3/079_novus.png",
-        "nova": "/briefcase/skins/t3/079_nova.png"
+        "novus": "art-review/briefcase/skins/t3/079_novus.png",
+        "nova": "art-review/briefcase/skins/t3/079_nova.png"
       }
     },
     "080": {
@@ -1291,7 +1291,7 @@
         "nova": null
       },
       "png": {
-        "novus": "/briefcase/skins/t3/080_novus.png",
+        "novus": "art-review/briefcase/skins/t3/080_novus.png",
         "nova": null
       }
     },
@@ -1307,8 +1307,8 @@
         "nova": "/briefcase/skins/t3/081_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t3/081_novus.png",
-        "nova": "/briefcase/skins/t3/081_nova.png"
+        "novus": "art-review/briefcase/skins/t3/081_novus.png",
+        "nova": "art-review/briefcase/skins/t3/081_nova.png"
       }
     },
     "082": {
@@ -1323,8 +1323,8 @@
         "nova": "/briefcase/skins/t3/082_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t3/082_novus.png",
-        "nova": "/briefcase/skins/t3/082_nova.png"
+        "novus": "art-review/briefcase/skins/t3/082_novus.png",
+        "nova": "art-review/briefcase/skins/t3/082_nova.png"
       }
     },
     "083": {
@@ -1339,8 +1339,8 @@
         "nova": "/briefcase/skins/t4/083_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t4/083_novus.png",
-        "nova": "/briefcase/skins/t4/083_nova.png"
+        "novus": "art-review/briefcase/skins/t4/083_novus.png",
+        "nova": "art-review/briefcase/skins/t4/083_nova.png"
       }
     },
     "084": {
@@ -1356,7 +1356,7 @@
       },
       "png": {
         "novus": null,
-        "nova": "/briefcase/skins/t4/084_nova.png"
+        "nova": "art-review/briefcase/skins/t4/084_nova.png"
       }
     },
     "085": {
@@ -1371,8 +1371,8 @@
         "nova": "/briefcase/skins/t4/085_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t4/085_novus.png",
-        "nova": "/briefcase/skins/t4/085_nova.png"
+        "novus": "art-review/briefcase/skins/t4/085_novus.png",
+        "nova": "art-review/briefcase/skins/t4/085_nova.png"
       }
     },
     "086": {
@@ -1387,8 +1387,8 @@
         "nova": "/briefcase/skins/t4/086_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t4/086_novus.png",
-        "nova": "/briefcase/skins/t4/086_nova.png"
+        "novus": "art-review/briefcase/skins/t4/086_novus.png",
+        "nova": "art-review/briefcase/skins/t4/086_nova.png"
       }
     },
     "087": {
@@ -1403,7 +1403,7 @@
         "nova": null
       },
       "png": {
-        "novus": "/briefcase/skins/t4/087_novus.png",
+        "novus": "art-review/briefcase/skins/t4/087_novus.png",
         "nova": null
       }
     },
@@ -1419,8 +1419,8 @@
         "nova": "/briefcase/skins/t4/088_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t4/088_novus.png",
-        "nova": "/briefcase/skins/t4/088_nova.png"
+        "novus": "art-review/briefcase/skins/t4/088_novus.png",
+        "nova": "art-review/briefcase/skins/t4/088_nova.png"
       }
     },
     "089": {
@@ -1435,8 +1435,8 @@
         "nova": "/briefcase/skins/t4/089_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t4/089_novus.png",
-        "nova": "/briefcase/skins/t4/089_nova.png"
+        "novus": "art-review/briefcase/skins/t4/089_novus.png",
+        "nova": "art-review/briefcase/skins/t4/089_nova.png"
       }
     },
     "090": {
@@ -1451,8 +1451,8 @@
         "nova": "/briefcase/skins/t4/090_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t4/090_novus.png",
-        "nova": "/briefcase/skins/t4/090_nova.png"
+        "novus": "art-review/briefcase/skins/t4/090_novus.png",
+        "nova": "art-review/briefcase/skins/t4/090_nova.png"
       }
     },
     "091": {
@@ -1467,8 +1467,8 @@
         "nova": "/briefcase/skins/t5/091_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t5/091_novus.png",
-        "nova": "/briefcase/skins/t5/091_nova.png"
+        "novus": "art-review/briefcase/skins/t5/091_novus.png",
+        "nova": "art-review/briefcase/skins/t5/091_nova.png"
       }
     },
     "092": {
@@ -1483,8 +1483,8 @@
         "nova": "/briefcase/skins/t5/092_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t5/092_novus.png",
-        "nova": "/briefcase/skins/t5/092_nova.png"
+        "novus": "art-review/briefcase/skins/t5/092_novus.png",
+        "nova": "art-review/briefcase/skins/t5/092_nova.png"
       }
     },
     "093": {
@@ -1500,7 +1500,7 @@
       },
       "png": {
         "novus": null,
-        "nova": "/briefcase/skins/t5/093_nova.png"
+        "nova": "art-review/briefcase/skins/t5/093_nova.png"
       }
     },
     "094": {
@@ -1515,8 +1515,8 @@
         "nova": "/briefcase/skins/t5/094_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t5/094_novus.png",
-        "nova": "/briefcase/skins/t5/094_nova.png"
+        "novus": "art-review/briefcase/skins/t5/094_novus.png",
+        "nova": "art-review/briefcase/skins/t5/094_nova.png"
       }
     },
     "095": {
@@ -1531,8 +1531,8 @@
         "nova": "/briefcase/skins/t5/095_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t5/095_novus.png",
-        "nova": "/briefcase/skins/t5/095_nova.png"
+        "novus": "art-review/briefcase/skins/t5/095_novus.png",
+        "nova": "art-review/briefcase/skins/t5/095_nova.png"
       }
     },
     "096": {
@@ -1548,7 +1548,7 @@
       },
       "png": {
         "novus": null,
-        "nova": "/briefcase/skins/t5/096_nova.png"
+        "nova": "art-review/briefcase/skins/t5/096_nova.png"
       }
     },
     "097": {
@@ -1573,8 +1573,8 @@
         "nova": "/briefcase/skins/t5/098_nova.webp"
       },
       "png": {
-        "novus": "/briefcase/skins/t5/098_novus.png",
-        "nova": "/briefcase/skins/t5/098_nova.png"
+        "novus": "art-review/briefcase/skins/t5/098_novus.png",
+        "nova": "art-review/briefcase/skins/t5/098_nova.png"
       }
     },
     "099": {
@@ -1589,7 +1589,7 @@
         "nova": null
       },
       "png": {
-        "novus": "/briefcase/skins/t5/099_novus.png",
+        "novus": "art-review/briefcase/skins/t5/099_novus.png",
         "nova": null
       }
     }
@@ -1604,9 +1604,9 @@
         "open": "/briefcase/cases/t1-canvas-open.webp"
       },
       "png": {
-        "closed": "/briefcase/cases/t1-canvas-closed.png",
-        "glow": "/briefcase/cases/t1-canvas-glow.png",
-        "open": "/briefcase/cases/t1-canvas-open.png"
+        "closed": "art-review/briefcase/cases/t1-canvas-closed.png",
+        "glow": "art-review/briefcase/cases/t1-canvas-glow.png",
+        "open": "art-review/briefcase/cases/t1-canvas-open.png"
       }
     },
     "t2-leather": {
@@ -1618,9 +1618,9 @@
         "open": "/briefcase/cases/t2-leather-open.webp"
       },
       "png": {
-        "closed": "/briefcase/cases/t2-leather-closed.png",
-        "glow": "/briefcase/cases/t2-leather-glow.png",
-        "open": "/briefcase/cases/t2-leather-open.png"
+        "closed": "art-review/briefcase/cases/t2-leather-closed.png",
+        "glow": "art-review/briefcase/cases/t2-leather-glow.png",
+        "open": "art-review/briefcase/cases/t2-leather-open.png"
       }
     },
     "t3-titanium": {
@@ -1632,9 +1632,9 @@
         "open": "/briefcase/cases/t3-titanium-open.webp"
       },
       "png": {
-        "closed": "/briefcase/cases/t3-titanium-closed.png",
-        "glow": "/briefcase/cases/t3-titanium-glow.png",
-        "open": "/briefcase/cases/t3-titanium-open.png"
+        "closed": "art-review/briefcase/cases/t3-titanium-closed.png",
+        "glow": "art-review/briefcase/cases/t3-titanium-glow.png",
+        "open": "art-review/briefcase/cases/t3-titanium-open.png"
       }
     },
     "t4-obsidian": {
@@ -1646,9 +1646,9 @@
         "open": "/briefcase/cases/t4-obsidian-open.webp"
       },
       "png": {
-        "closed": "/briefcase/cases/t4-obsidian-closed.png",
-        "glow": "/briefcase/cases/t4-obsidian-glow.png",
-        "open": "/briefcase/cases/t4-obsidian-open.png"
+        "closed": "art-review/briefcase/cases/t4-obsidian-closed.png",
+        "glow": "art-review/briefcase/cases/t4-obsidian-glow.png",
+        "open": "art-review/briefcase/cases/t4-obsidian-open.png"
       }
     },
     "t5-gold": {
@@ -1660,9 +1660,9 @@
         "open": "/briefcase/cases/t5-gold-open.webp"
       },
       "png": {
-        "closed": "/briefcase/cases/t5-gold-closed.png",
-        "glow": "/briefcase/cases/t5-gold-glow.png",
-        "open": "/briefcase/cases/t5-gold-open.png"
+        "closed": "art-review/briefcase/cases/t5-gold-closed.png",
+        "glow": "art-review/briefcase/cases/t5-gold-glow.png",
+        "open": "art-review/briefcase/cases/t5-gold-open.png"
       }
     },
     "t1-denim": {
@@ -1675,9 +1675,9 @@
         "open": "/briefcase/cases/t1-denim-open.webp"
       },
       "png": {
-        "closed": "/briefcase/cases/t1-denim-closed.png",
-        "glow": "/briefcase/cases/t1-denim-glow.png",
-        "open": "/briefcase/cases/t1-denim-open.png"
+        "closed": "art-review/briefcase/cases/t1-denim-closed.png",
+        "glow": "art-review/briefcase/cases/t1-denim-glow.png",
+        "open": "art-review/briefcase/cases/t1-denim-open.png"
       }
     }
   },
@@ -1685,27 +1685,27 @@
     "t1": {
       "tier": 1,
       "url": "/briefcase/keys/t1.webp",
-      "png": "/briefcase/keys/t1.png"
+      "png": "art-review/briefcase/keys/t1.png"
     },
     "t2": {
       "tier": 2,
       "url": "/briefcase/keys/t2.webp",
-      "png": "/briefcase/keys/t2.png"
+      "png": "art-review/briefcase/keys/t2.png"
     },
     "t3": {
       "tier": 3,
       "url": "/briefcase/keys/t3.webp",
-      "png": "/briefcase/keys/t3.png"
+      "png": "art-review/briefcase/keys/t3.png"
     },
     "t4": {
       "tier": 4,
       "url": "/briefcase/keys/t4.webp",
-      "png": "/briefcase/keys/t4.png"
+      "png": "art-review/briefcase/keys/t4.png"
     },
     "t5": {
       "tier": 5,
       "url": "/briefcase/keys/t5.webp",
-      "png": "/briefcase/keys/t5.png"
+      "png": "art-review/briefcase/keys/t5.png"
     }
   },
   "props": {
@@ -1713,51 +1713,51 @@
       "name": "Shark Token",
       "kind": "object",
       "url": "/briefcase/props/shark-token.webp",
-      "png": "/briefcase/props/shark-token.png"
+      "png": "art-review/briefcase/props/shark-token.png"
     },
     "frame-bronze-ledger": {
       "name": "Bronze Ledger",
       "kind": "frame",
       "url": "/briefcase/props/frame-bronze-ledger.webp",
-      "png": "/briefcase/props/frame-bronze-ledger.png"
+      "png": "art-review/briefcase/props/frame-bronze-ledger.png"
     },
     "frame-silver-portfolio": {
       "name": "Silver Portfolio",
       "kind": "frame",
       "url": "/briefcase/props/frame-silver-portfolio.webp",
-      "png": "/briefcase/props/frame-silver-portfolio.png"
+      "png": "art-review/briefcase/props/frame-silver-portfolio.png"
     },
     "frame-gold-boardroom": {
       "name": "Gold Boardroom",
       "kind": "frame",
       "url": "/briefcase/props/frame-gold-boardroom.webp",
-      "png": "/briefcase/props/frame-gold-boardroom.png"
+      "png": "art-review/briefcase/props/frame-gold-boardroom.png"
     },
     "frame-molten-gold": {
       "name": "Molten Gold",
       "kind": "frame",
       "url": "/briefcase/props/frame-molten-gold.webp",
-      "png": "/briefcase/props/frame-molten-gold.png"
+      "png": "art-review/briefcase/props/frame-molten-gold.png"
     },
     "bg-skyline-office": {
       "name": "Skyline Corner Office",
       "kind": "background",
       "url": "/briefcase/props/bg-skyline-office.webp",
-      "png": "/briefcase/props/bg-skyline-office.png"
+      "png": "art-review/briefcase/props/bg-skyline-office.png"
     },
     "pose-trophy-lift_novus": {
       "name": "Trophy Lift (Novus)",
       "kind": "pose",
       "base": "novus",
       "url": "/briefcase/props/pose-trophy-lift_novus.webp",
-      "png": "/briefcase/props/pose-trophy-lift_novus.png"
+      "png": "art-review/briefcase/props/pose-trophy-lift_novus.png"
     },
     "pose-trophy-lift_nova": {
       "name": "Trophy Lift (Nova)",
       "kind": "pose",
       "base": "nova",
       "url": "/briefcase/props/pose-trophy-lift_nova.webp",
-      "png": "/briefcase/props/pose-trophy-lift_nova.png"
+      "png": "art-review/briefcase/props/pose-trophy-lift_nova.png"
     }
   },
   "fx": {
@@ -1769,9 +1769,9 @@
         "confetti-cash-3": "/briefcase/fx/confetti-cash-3.webp"
       },
       "png": {
-        "confetti-cash-1": "/briefcase/fx/confetti-cash-1.png",
-        "confetti-cash-2": "/briefcase/fx/confetti-cash-2.png",
-        "confetti-cash-3": "/briefcase/fx/confetti-cash-3.png"
+        "confetti-cash-1": "art-review/briefcase/fx/confetti-cash-1.png",
+        "confetti-cash-2": "art-review/briefcase/fx/confetti-cash-2.png",
+        "confetti-cash-3": "art-review/briefcase/fx/confetti-cash-3.png"
       }
     },
     "confetti-shark-fins": {
@@ -1782,9 +1782,9 @@
         "confetti-fin-3": "/briefcase/fx/confetti-fin-3.webp"
       },
       "png": {
-        "confetti-fin-1": "/briefcase/fx/confetti-fin-1.png",
-        "confetti-fin-2": "/briefcase/fx/confetti-fin-2.png",
-        "confetti-fin-3": "/briefcase/fx/confetti-fin-3.png"
+        "confetti-fin-1": "art-review/briefcase/fx/confetti-fin-1.png",
+        "confetti-fin-2": "art-review/briefcase/fx/confetti-fin-2.png",
+        "confetti-fin-3": "art-review/briefcase/fx/confetti-fin-3.png"
       }
     },
     "confetti-gold-trophies": {
@@ -1795,9 +1795,9 @@
         "confetti-trophy-3": "/briefcase/fx/confetti-trophy-3.webp"
       },
       "png": {
-        "confetti-trophy-1": "/briefcase/fx/confetti-trophy-1.png",
-        "confetti-trophy-2": "/briefcase/fx/confetti-trophy-2.png",
-        "confetti-trophy-3": "/briefcase/fx/confetti-trophy-3.png"
+        "confetti-trophy-1": "art-review/briefcase/fx/confetti-trophy-1.png",
+        "confetti-trophy-2": "art-review/briefcase/fx/confetti-trophy-2.png",
+        "confetti-trophy-3": "art-review/briefcase/fx/confetti-trophy-3.png"
       }
     },
     "cursor-trail": {
@@ -1806,7 +1806,7 @@
         "cursor-orange-spark": "/briefcase/fx/cursor-orange-spark.webp"
       },
       "png": {
-        "cursor-orange-spark": "/briefcase/fx/cursor-orange-spark.png"
+        "cursor-orange-spark": "art-review/briefcase/fx/cursor-orange-spark.png"
       }
     },
     "aura": {
@@ -1815,7 +1815,7 @@
         "aura-founders-seal": "/briefcase/fx/aura-founders-seal.webp"
       },
       "png": {
-        "aura-founders-seal": "/briefcase/fx/aura-founders-seal.png"
+        "aura-founders-seal": "art-review/briefcase/fx/aura-founders-seal.png"
       }
     }
   }
