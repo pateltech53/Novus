@@ -400,3 +400,28 @@ as $$
   on conflict (profile_id) do update set rewards_beta = excluded.rewards_beta;
 $$;
 revoke all on function public.admin_set_rewards_beta(uuid, boolean) from public, anon, authenticated;
+
+
+-- ═══ the event ledger ══════════════════════════════════════════════════════
+-- What a player's day actually looked like, and the thing the per-day caps in
+-- /api/rewards/progress count against. Two jobs in one table: without it the
+-- cap could only be enforced inside a single request, and a script would just
+-- send more requests.
+--
+-- Deliberately thin — a type and a day, no payload. It exists to be COUNTED,
+-- and storing what the client claimed would invite reading it back as if it
+-- were true.
+create table if not exists public.reward_events (
+  id      bigserial primary key,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  date    date not null,
+  type    text not null,
+  at      timestamptz not null default now()
+);
+create index if not exists reward_events_user_day
+  on public.reward_events (user_id, date);
+
+alter table public.reward_events enable row level security;
+drop policy if exists "reward events: read own" on public.reward_events;
+create policy "reward events: read own" on public.reward_events
+  for select to authenticated using (user_id = auth.uid());

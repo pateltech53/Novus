@@ -26,6 +26,7 @@ import {
   type YearEndSummary,
 } from "@/lib/engine/run";
 import { buildAutopsy, type AutopsyReport } from "@/lib/engine/autopsy";
+import { reportPlay } from "@/lib/rewards/report";
 import type { CompanyBrief } from "@/lib/engine/company-brief";
 import { activityById, applyActivity, isLocked, isOfferable } from "@/lib/engine/activities";
 import { callerById, consumeCall, type CallOutcome } from "@/lib/ai/callers";
@@ -815,6 +816,17 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     // read live — see the note on the import.
     syncEarnedSkins(summary.year);
     recordYearClose();
+    /*
+     * The reward loop's biggest single moment: a closed year is what most of
+     * the finance and operations templates are written against. Fire-and-
+     * forget — lib/rewards/report.ts batches and swallows every failure, so a
+     * briefcase system that is down cannot affect a year closing.
+     *
+     * The numbers the server can check for itself (year, valuation, cash) are
+     * re-read from the synced save on its side and ignored here; these are the
+     * ones only the client saw.
+     */
+    reportPlay("year.ended", { year: summary.year });
     commit(working);
     setYearEnd(summary);
     setAtGate(false);

@@ -33,6 +33,7 @@ import { LiveTranscriber, resolveTranscript } from "@/lib/ai/transcribe";
 import { CompanyDossier, DossierGlyph } from "@/components/CompanyDossier";
 import { PitchNotes } from "@/components/PitchNotes";
 import { scorePitchContent, type ContentFinding } from "@/lib/ai/pitch-content";
+import { reportPlay } from "@/lib/rewards/report";
 import {
   createDeliveryCoach,
   type DeliveryLive,
@@ -454,6 +455,28 @@ export function PerformScreen() {
     if (run?.tutorial && run.year === 1) final = Math.max(KNOBS.tutorialScoreFloor, final);
     setScore(final);
     setPhase("score");
+    /*
+     * Tell the reward loop a pitch happened.
+     *
+     * Fire-and-forget by construction (lib/rewards/report.ts swallows every
+     * failure and batches): a briefcase system that is down, or an account
+     * outside the beta, must not be able to affect a pitch result. Nothing
+     * below this line reads the answer.
+     */
+    reportPlay("pitch.completed", {});
+    /*
+     * `final` is the 0–10 scale the panel and the year gate use; the daily
+     * templates are written against 0–100 ("score ≥ 75"), which is the scale
+     * a player sees on the score screen. Converted here rather than in the
+     * template so both stay readable in their own terms.
+     *
+     * Filler words, eye contact and pacing have templates but are not
+     * measured at this call site — the delivery pass that produced them was
+     * removed (see the note above). Those four templates therefore cannot
+     * progress yet; they are dark rather than broken, and a payload that
+     * invented the numbers would be worse than one that omits them.
+     */
+    reportPlay("pitch.scored", { score: Math.round(final * 10), words: content.words });
     cleanup();
   }, [elapsed, run, cleanup, heard, typedRescue]);
 
