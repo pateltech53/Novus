@@ -33,6 +33,14 @@ import { useGame } from "@/lib/state/GameProvider";
  * The beta panel lives on /rewards, outside the provider — it has no `advance`
  * to call. So the panel links to `/play?beta=tank` and this, mounted inside
  * the provider, is what the link arrives at.
+ *
+ * ── Why the URL check lives in the page and not here ────────────────────────
+ *
+ * /play has a first-load budget and this is a tool almost nobody loads. The
+ * page reads the flag — one `URLSearchParams` it pays for anyway — and only
+ * then imports this module, so a normal session never fetches the chunk at
+ * all. Arming from inside would mean shipping the whole driver to everyone to
+ * discover it was not wanted.
  */
 
 /** How long between taps. Slow enough to watch, fast enough to be worth it. */
@@ -42,7 +50,9 @@ const MAX_STEPS = 400;
 
 export default function BetaAutopilot() {
   const { run, queue, atGate, perform, busy, advance, choose } = useGame();
-  const [running, setRunning] = useState(false);
+  // Mounted at all means armed — the page only renders this when the flag is
+  // in the URL.
+  const [running, setRunning] = useState(true);
   const steps = useRef(0);
 
   const stop = useCallback(() => {
@@ -54,12 +64,6 @@ export default function BetaAutopilot() {
       url.searchParams.delete("beta");
       window.history.replaceState(null, "", url.toString());
     }
-  }, []);
-
-  // Arm from the URL, once.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (new URLSearchParams(window.location.search).get("beta") === "tank") setRunning(true);
   }, []);
 
   useEffect(() => {

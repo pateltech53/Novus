@@ -96,7 +96,16 @@ import { storefront } from "@/lib/commerce";
  * statically and rejects anything that is not an object literal.
  */
 
-import BetaAutopilot from "@/components/rewards/BetaAutopilot";
+/*
+ * The beta tank autopilot, which almost nobody loads.
+ *
+ * Behind `dynamic` AND behind the URL flag, so a normal session never fetches
+ * the chunk — /play is the heaviest route in the app and has a first-load
+ * budget to match.
+ */
+const BetaAutopilot = dynamic(() => import("@/components/rewards/BetaAutopilot"), {
+  ssr: false,
+});
 
 const loadPerformScreen = () => import("@/components/PerformScreen");
 const PerformScreen = dynamic(
@@ -322,6 +331,18 @@ function PlayScreen() {
    * hire flow, and it is honoured after the unlock rather than instead of it.
    */
   const [phoneApp, setPhoneApp] = useState<PhoneApp | "home" | null>(null);
+  /*
+   * `?beta=tank` — the beta panel's shortcut to the year-end pitch.
+   *
+   * Read in an effect rather than from `useSearchParams`, which would opt this
+   * route into a Suspense boundary for a flag almost nobody sets. False on the
+   * server render, so the autopilot's chunk is never in the initial payload.
+   */
+  const [autopilot, setAutopilot] = useState(false);
+  useEffect(() => {
+    setAutopilot(new URLSearchParams(window.location.search).get("beta") === "tank");
+  }, []);
+
   const [showPro, setShowPro] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showBoard, setShowBoard] = useState(false);
@@ -805,12 +826,11 @@ function PlayScreen() {
      */
     <main className="min-h-dvh bg-[var(--bg)] lg:mx-auto lg:grid lg:min-h-dvh lg:max-w-[88rem] lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)_minmax(0,21rem)] lg:gap-5 lg:px-5 lg:py-5">
       {/*
-        Arrives from the beta panel's "jump to the tank". Renders nothing
-        without `?beta=tank` in the URL, and drives only the two controls a
-        player has — ADVANCE, and the first choice on a blocking card — so
-        the tape it writes is one the leaderboard verifier accepts.
+        Arrives from the beta panel's "jump to the tank". Drives only the two
+        controls a player has — ADVANCE, and the first choice on a blocking
+        card — so the tape it writes is one the leaderboard verifier accepts.
       */}
-      <BetaAutopilot />
+      {autopilot && <BetaAutopilot />}
 
       {/* Left column on desktop; masthead on phone. */}
       <div className="lg:sticky lg:top-5 lg:flex lg:h-[calc(100dvh-2.5rem)] lg:flex-col lg:self-start lg:overflow-hidden lg:rounded-[var(--radius-card)] lg:bg-[var(--surface)] lg:shadow-[var(--e2)]">

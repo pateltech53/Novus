@@ -84,7 +84,22 @@ const BUDGETS = {
   // docs/PROGRESSION.md. This is the one kind of growth this budget exists to
   // permit rather than to stop — content the player reads, not a library they
   // pay for and never see.
-  "/play/page": 357,
+  //
+  // 359, not 357. The reward system now hears the game. `reportPlay` and the
+  // two small modules behind it — the activity-to-moment table and the
+  // sessionStorage latch that carries a fact from the tank to the next
+  // quarter — are imported by GameProvider, which every screen in this chunk
+  // shares. Measured at +1.2 kB gzipped between them.
+  //
+  // Before it, four moments in the entire game reported anything, so most days
+  // drew five daily missions of which three could not be completed by playing.
+  // The alternative to paying for it here was a dynamic import on the hot path
+  // of `commit` — a promise per moment, to defer half a kilobyte.
+  //
+  // The autopilot that drives a run to the tank is NOT in this number: it is
+  // behind `dynamic` and behind `?beta=tank`, so a normal session never
+  // fetches the chunk.
+  "/play/page": 359,
   "/found/page": 325,
   // The picker is the front door for anyone with a company, so it is on the
   // critical path for every returning player. 320 is a little above where it
@@ -99,7 +114,12 @@ const BUDGETS = {
   // as slow — it is deliberately NOT bundled into a content commit, because a
   // refactor of the provider that also triples the activity list is a change
   // nobody can review either half of.
-  "/islands/page": 331,
+  //
+  // 333 for the third time for the same reason: the picker mounts
+  // GameProvider, so it pays the +1.2 kB of reward reporting described above
+  // for a screen that shows islands on water and reports nothing. The same
+  // provider split that would recover the nine kilobytes recovers this too.
+  "/islands/page": 333,
   "/welcome/page": 195,
   "/chapter/page": 130,
   "/join/page": 120,
