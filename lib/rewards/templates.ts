@@ -82,7 +82,14 @@ export const TEMPLATES: Template[] = [
   { id: "D5", category: "deals", text: "Trigger a bidding war (2+ sharks competing)", params: { medium: [{}], hard: [{ n: 3 }] }, event: "panel.bidwar", flags: ["requires:sharks"] },
   { id: "D6", category: "deals", text: "Counter-offer and get it accepted", params: { medium: [{}], hard: [{}] }, event: "deal.countered", flags: ["requires:sharks"] },
   { id: "D7", category: "deals", text: "Reject every offer, then end the next quarter cash-positive", params: { medium: [{}], hard: [{}] }, event: "quarter.ended", flags: ["requires:sharks"] },
-  { id: "D8", category: "deals", text: "Raise {shark}'s respect this session", params: flag(["easy", "medium", "hard"]), event: "shark.respect", flags: ["requires:sharks"] },
+  /*
+   * Whole-panel, not per-shark. `RunState.stats.respect` is a single number
+   * carried across runs — there is no per-shark respect model to raise — so a
+   * mission naming one shark would be graded against every shark's opinion at
+   * once and would complete for the wrong reason. The version that is true to
+   * the engine is the one that ships.
+   */
+  { id: "D8", category: "deals", text: "Leave a panel with more respect than you walked in with", params: { easy: [{}], medium: [{}], hard: [{}] }, event: "shark.respect", flags: ["requires:sharks"] },
 
   // ── Cold calling (dark until the mode ships) ─────────────────────────────
   { id: "C1", category: "coldcall", text: "Make {n} cold calls", params: n(2, 3, 5), event: "call.completed", flags: ["requires:coldcall"] },
@@ -104,7 +111,10 @@ export const TEMPLATES: Template[] = [
     event: "valuation.updated", flags: [],
   },
   { id: "F5", category: "finance", text: "Hold gross margin ≥ {n}% for a full year", params: n(30, 45, 60), event: "year.ended", flags: [] },
-  { id: "F6", category: "finance", text: "Pay off a loan in full", params: flag(["easy", "medium", "hard"]), event: "loan.closed", flags: [] },
+  // Dark: the engine has no debt instrument, so there is no loan to pay off.
+  // Behind a flag rather than deleted, because the mission is a good one and
+  // the day it ships this is a one-word change.
+  { id: "F6", category: "finance", text: "Pay off a loan in full", params: flag(["easy", "medium", "hard"]), event: "loan.closed", flags: ["requires:debt"] },
   { id: "F7", category: "finance", text: "Sell an investment at ≥ {n}% profit", params: n(10, 25, 50), event: "asset.sold", flags: [] },
   { id: "F8", category: "finance", text: "Survive a down-market event without negative cash flow", params: { easy: [{}], medium: [{}], hard: [{ n: 2 }] }, event: "event.market", flags: [] },
 
@@ -122,9 +132,12 @@ export const TEMPLATES: Template[] = [
   { id: "O7", category: "ops", text: "Execute a strategic move (rebrand, logo or price reposition)", params: flag(["easy", "medium", "hard"]), event: "strategy.executed", flags: [] },
   { id: "O8", category: "ops", text: "Raise average WTP by {n}% in one year", params: n(5, 10, 20), event: "year.ended", flags: [] },
   {
+    // Dark: the sim models market share, brand and churn, but never a
+    // customer COUNT — there is no number to reach. Flagged rather than
+    // deleted; the day the engine grows one, this is a one-word change.
     id: "O9", category: "ops", text: "Reach {n} customers in a run",
     params: { easy: [{ n: 100 }], medium: [{ n: 1_000 }], hard: [{ n: 10_000 }] },
-    event: "customers.updated", flags: [],
+    event: "customers.updated", flags: ["requires:customers"],
   },
   { id: "O10", category: "ops", text: "Grow revenue {n}% year-over-year", params: n(10, 25, 50), event: "year.ended", flags: [] },
 

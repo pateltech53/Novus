@@ -483,6 +483,17 @@ export interface LegacyState {
      * lib/state/GameProvider.tsx.
      */
     runId?: string;
+    /**
+     * How the company ended, and what it did.
+     *
+     * Both optional for the same reason `runId` is: entries written before
+     * these existed have neither, and every reader must treat missing as
+     * "unknown" rather than as a match. They are here because the career
+     * milestones ("go bankrupt once", "sell a company", "play 12 industries")
+     * are graded off this list and had nothing to read.
+     */
+    endedBy?: "chapter7" | "acquired" | "ipo";
+    industry?: Industry;
     companyName: string;
     years: number;
     causes: string[];

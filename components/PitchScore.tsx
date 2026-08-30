@@ -11,6 +11,8 @@ import { TankDebrief } from "@/components/TankDebrief";
 import { speak } from "@/lib/ai/speech";
 import { getPlayerAsk } from "@/lib/ai/ask";
 import { CAST } from "@/lib/ai/panel-cast";
+import { latchRejectedOffers } from "@/lib/rewards/latch";
+import { reportPlay } from "@/lib/rewards/report";
 import { fmtMoney } from "@/lib/engine/format";
 import type { PitchTranscript } from "@/lib/ai/types";
 import type { DeliveryCoaching } from "@/lib/ai/delivery-coach";
@@ -166,6 +168,41 @@ export function PitchScore({
        * spends that time reading their number instead of watching a spinner,
        * and it is usually finished before they press through.
        */
+      /*
+       * ── The panel's moments, all from one place ─────────────────────────
+       *
+       * Every fact the deals family grades on is in `outcome`, and this is the
+       * only point where all of it is in one scope: how many bid, what was
+       * signed, by whom, and whether the founder pushed back first. Reporting
+       * from `SharkPanel` would mean four call sites inside a step machine;
+       * reporting from `submitPerform` would mean the shark's name never
+       * arrives, because the deal is banked as two numbers.
+       *
+       * `deal.closed` lives here rather than beside the year close for that
+       * reason — the server ignores the amount and re-reads the books either
+       * way, but D4 ("close a deal with {shark}") has nothing to grade without
+       * the name.
+       */
+      const bidders = outcome.offers.length;
+      reportPlay("panel.qna", { answered: outcome.answers.filter((a) => !a.declined).length });
+      if (bidders > 0) {
+        reportPlay("panel.offers", { offers: bidders });
+        if (bidders >= 2) reportPlay("panel.bidwar", { sharks: bidders });
+      }
+      if (outcome.accepted) {
+        reportPlay("deal.closed", {
+          amount: outcome.accepted.amount_usd,
+          equityPct: outcome.accepted.equity_pct,
+          shark: outcome.acceptedFrom ? (CAST[outcome.acceptedFrom]?.name ?? "") : "",
+          sharks: bidders,
+        });
+        // D6 asks for a counter that was ACCEPTED, so both halves are required
+        // — a push-back that ended in no deal is not the mission.
+        if (outcome.countered) reportPlay("deal.countered", {});
+      } else if (bidders > 0) {
+        // Walked away from a full table. D7 grades the quarter that follows.
+        latchRejectedOffers();
+      }
       setStage("score");
       const data = await buildDebrief({
         run,

@@ -4,11 +4,12 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import Confetti from "./Confetti";
 import { CASE_SPRING, EASE_OUT, STAMP_SPRING } from "@/components/ui/Motion";
 import { haptic } from "@/lib/haptics";
 import { play } from "@/lib/sound";
 import {
-  RARITY_COLORS, TIER_NAMES, UPGRADE_TAPS, type Rarity, type Tier,
+  RARITY_COLORS, RARITY_TIER, TIER_NAMES, UPGRADE_TAPS, type Rarity, type Tier,
 } from "@/lib/rewards/tables";
 
 /*
@@ -103,12 +104,19 @@ const REVEAL_MS: Record<Rarity, number> = {
 export default function Ceremony({
   payload,
   achievement,
+  base = "novus",
   onEquip,
   onClose,
 }: {
   payload: RevealPayload;
   /** The thing that earned this — etched in during the rise. */
   achievement?: string;
+  /**
+   * Which founder the revealed design is shown on. Every skin is rendered for
+   * both, and a player who plays Nova should not be handed a card of Novus
+   * wearing the thing they just won.
+   */
+  base?: "novus" | "nova";
   onEquip?: (itemId: string) => Promise<void> | void;
   onClose: () => void;
 }) {
@@ -247,6 +255,7 @@ export default function Ceremony({
             index={itemIndex}
             total={payload.items.length}
             equipped={equipped === item.itemId}
+            base={base}
             onCollect={nextItem}
             onCollectEquip={async () => {
               setEquipped(item.itemId);
@@ -380,14 +389,33 @@ function OpeningBeat({ tier, best, reduced }: { tier: Tier; best: Rarity; reduce
 }
 
 function RevealBeatView({
-  item, beat, reduced, index, total, equipped, onCollect, onCollectEquip,
+  item, beat, reduced, index, total, equipped, base, onCollect, onCollectEquip,
 }: {
   item: RevealItem; beat: RevealBeat; reduced: boolean;
-  index: number; total: number; equipped: boolean;
+  index: number; total: number; equipped: boolean; base: "novus" | "nova";
   onCollect: () => void; onCollectEquip: () => void;
 }) {
   const color = RARITY_COLORS[item.rarity];
   const isSkin = item.kind === "skin";
+  /** The artwork failed to load — 32 of the 101 designs are not rendered yet. */
+  const [artMissing, setArtMissing] = useState(false);
+
+  /*
+   * The reveal shows the ACTUAL design, not its name.
+   *
+   * `TIER_RARITY` is one-to-one across all five tiers, so the rarity that came
+   * back with the grant is enough to find the folder the render lives in —
+   * which is why the payload does not need to carry a per-item tier it would
+   * otherwise only use for a file path.
+   */
+  const art = isSkin
+    ? `/briefcase/skins/t${RARITY_TIER[item.rarity]}/${item.itemId.replace(/^skin_/, "")}_${base}.webp`
+    : null;
+  const showArt = art !== null && !artMissing;
+
+  // The turn happens once, on the last beat. `reduced` skips it: a card that
+  // rotates through 180° is exactly the kind of motion that setting is for.
+  const flipped = beat === "card" && !reduced;
 
   return (
     <motion.div
@@ -398,64 +426,148 @@ function RevealBeatView({
         <p className="text-2xs tracking-[0.18em] text-white/40">{index + 1} / {total}</p>
       )}
 
-      {/* The card. It starts as a black silhouette and the camera pulls back —
-          the rarity wash arrives before anything is legible. */}
-      <motion.div
-        className="relative grid aspect-[3/4] w-56 place-items-center overflow-hidden rounded-2xl border"
-        style={{ borderColor: beat === "silhouette" ? "#1b2436" : color }}
-        initial={{ scale: reduced ? 1 : 1.45, opacity: 0 }}
-        animate={{
-          scale: beat === "silhouette" ? (reduced ? 1 : 1.2) : 1,
-          opacity: 1,
-          boxShadow: beat === "silhouette" ? "0 0 0 rgba(0,0,0,0)" : `0 0 60px ${color}55`,
-        }}
-        transition={{ duration: reduced ? 0.15 : 0.75, ease: EASE_OUT }}
-      >
+      {/*
+        The confetti fires on the beat that turns the card over, so the paper
+        and the character arrive together. Keyed to THIS item — a case holding
+        three grants bursts three times, once per reveal.
+      */}
+      {beat === "card" && (
+        <Confetti key={`confetti-${index}`} color={color} rarity={item.rarity} reduced={reduced} />
+      )}
+
+      {/*
+        A real two-faced card rather than a spin.
+        ─────────────────────────────────────────
+        The face shows a black silhouette of the design and the camera pulls
+        back off it; the rarity wash and the name land while it is still a
+        shape. On the last beat the card TURNS OVER onto its back, which is
+        where the design is in colour.
+
+        Two faces and `backfaceVisibility: hidden` rather than one card rotated
+        360°, because a full spin passes through the mirror image — half a
+        second of backwards type at the exact moment the player is finally
+        reading the name. Perspective sits on the wrapper: a rotateY with no
+        depth is a horizontal squash.
+      */}
+      <div style={{ perspective: 1200 }}>
         <motion.div
-          className="absolute inset-0"
-          animate={{ background: beat === "silhouette" ? "#0B1220" : `linear-gradient(160deg, ${color}33, #0B1220 70%)` }}
-          transition={{ duration: reduced ? 0.15 : 0.5 }}
-        />
-        {/* The rising wave that hands over the card. */}
-        {beat === "card" && !reduced && (
+          className="relative aspect-[3/4] w-56"
+          style={{ transformStyle: "preserve-3d" }}
+          initial={{ scale: reduced ? 1 : 1.45, opacity: 0 }}
+          animate={{
+            scale: beat === "silhouette" ? (reduced ? 1 : 1.2) : 1,
+            opacity: 1,
+            rotateY: flipped ? 180 : 0,
+          }}
+          transition={{
+            duration: reduced ? 0.15 : 0.75,
+            ease: EASE_OUT,
+            rotateY: { duration: 0.85, ease: EASE_OUT },
+          }}
+        >
+          {/* ── the face: a shape, a colour, a name ─────────────────────── */}
           <motion.div
-            className="absolute inset-x-0 bottom-0 h-full origin-bottom"
-            style={{ background: `linear-gradient(to top, ${color}, transparent)` }}
-            initial={{ scaleY: 0, opacity: 0.9 }}
-            animate={{ scaleY: 1.3, opacity: 0 }}
-            transition={{ duration: 0.85, ease: EASE_OUT }}
-          />
-        )}
-        <div className="relative z-10 flex flex-col items-center gap-2 px-4 text-center">
-          {beat !== "silhouette" && (
-            <motion.p
-              className="text-sm font-black tracking-[0.18em]"
-              style={{ color }}
-              initial={{ y: reduced ? 0 : 14, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-            >
-              {RARITY_LABEL[item.rarity]}
-            </motion.p>
-          )}
-          {(beat === "name" || beat === "card") && (
-            <motion.p
-              className="text-base font-bold text-white"
-              initial={{ y: reduced ? 0 : 12, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-            >
-              {item.name}
-            </motion.p>
-          )}
-          {beat === "card" && item.wasDupe && (
-            <motion.p
-              className="text-2xs text-white/60"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            >
-              Already owned → +{item.tokens} tokens
-            </motion.p>
-          )}
-        </div>
-      </motion.div>
+            className="absolute inset-0 grid place-items-center overflow-hidden rounded-2xl border"
+            style={{
+              backfaceVisibility: "hidden",
+              WebkitBackfaceVisibility: "hidden",
+              borderColor: beat === "silhouette" ? "#1b2436" : color,
+            }}
+            animate={{
+              boxShadow: beat === "silhouette" ? "0 0 0 rgba(0,0,0,0)" : `0 0 60px ${color}55`,
+            }}
+            transition={{ duration: reduced ? 0.15 : 0.5 }}
+          >
+            <motion.div
+              className="absolute inset-0"
+              animate={{
+                background: beat === "silhouette"
+                  ? "#0B1220"
+                  : `linear-gradient(160deg, ${color}33, #0B1220 70%)`,
+              }}
+              transition={{ duration: reduced ? 0.15 : 0.5 }}
+            />
+            {showArt && (
+              // The shadow of the thing. Same file as the back face, so the
+              // turn costs no second download.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={art}
+                alt=""
+                aria-hidden
+                onError={() => setArtMissing(true)}
+                className="absolute inset-0 h-full w-full object-contain opacity-90"
+                style={{ filter: "brightness(0) saturate(0)" }}
+              />
+            )}
+            <div className="relative z-10 flex flex-col items-center gap-2 px-4 text-center">
+              {beat !== "silhouette" && (
+                <motion.p
+                  className="text-sm font-black tracking-[0.18em]"
+                  style={{ color }}
+                  initial={{ y: reduced ? 0 : 14, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                >
+                  {RARITY_LABEL[item.rarity]}
+                </motion.p>
+              )}
+              {(beat === "name" || beat === "card") && (
+                <motion.p
+                  className="text-base font-bold text-white"
+                  initial={{ y: reduced ? 0 : 12, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                >
+                  {item.name}
+                </motion.p>
+              )}
+            </div>
+          </motion.div>
+
+          {/* ── the back: the design itself ─────────────────────────────── */}
+          <div
+            className="absolute inset-0 grid place-items-center overflow-hidden rounded-2xl border"
+            style={{
+              backfaceVisibility: "hidden",
+              WebkitBackfaceVisibility: "hidden",
+              transform: "rotateY(180deg)",
+              borderColor: color,
+              background: `linear-gradient(160deg, ${color}44, #0B1220 72%)`,
+              boxShadow: `0 0 60px ${color}55`,
+            }}
+          >
+            {showArt && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={art}
+                alt={item.name}
+                onError={() => setArtMissing(true)}
+                className="absolute inset-0 h-full w-full object-contain"
+              />
+            )}
+            {/* The rising wave, on the face that receives it. */}
+            {beat === "card" && !reduced && (
+              <motion.div
+                className="absolute inset-x-0 bottom-0 h-full origin-bottom"
+                style={{ background: `linear-gradient(to top, ${color}, transparent)` }}
+                initial={{ scaleY: 0, opacity: 0.9 }}
+                animate={{ scaleY: 1.3, opacity: 0 }}
+                transition={{ duration: 0.85, ease: EASE_OUT }}
+              />
+            )}
+            <div className="relative z-10 flex flex-col items-center gap-1 self-end px-4 pb-4 text-center">
+              <p className="text-2xs font-black tracking-[0.18em]" style={{ color }}>
+                {RARITY_LABEL[item.rarity]}
+              </p>
+              <p className="text-base font-bold text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
+                {item.name}
+              </p>
+              {item.wasDupe && (
+                <p className="text-2xs text-white/70">Already owned &rarr; +{item.tokens} tokens</p>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      </div>
 
       {beat === "card" && (
         <motion.div

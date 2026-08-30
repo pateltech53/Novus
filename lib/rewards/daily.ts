@@ -40,14 +40,32 @@ export interface DailyConfig {
   slots: DailySlot[];
 }
 
-/** Feature flags a template can require. Cold calling is not live yet. */
+/**
+ * Feature flags a template can require.
+ *
+ * A template behind a false flag never enters the pool, which is how a mission
+ * for a mechanic that does not exist stays out of a player's day instead of
+ * sitting at 0/1 until the reset. Two are dark for different reasons:
+ *
+ *   · `coldcall` — The Room HAS shipped, but the activity that opens it is
+ *     Pro-only. A daily mission a free account is structurally unable to
+ *     complete is worse than one fewer mission, so it stays off until the
+ *     mission generator can be told which slots an account can actually reach.
+ *   · `debt` — there is no loan in the engine at all. Nothing to pay off.
+ *   · `customers` — the sim models market share, brand and churn, never a
+ *     customer count, so "reach 1,000 customers" has no number to read.
+ */
 export interface DailyFlags {
   coldcall?: boolean;
   energy?: boolean;
   sharks?: boolean;
+  debt?: boolean;
+  customers?: boolean;
 }
 
-const DEFAULT_FLAGS: DailyFlags = { coldcall: false, energy: false, sharks: true };
+const DEFAULT_FLAGS: DailyFlags = {
+  coldcall: false, energy: false, sharks: true, debt: false, customers: false,
+};
 
 const flagLive = (flags: string[], live: DailyFlags): boolean =>
   flags.every((flag) => {

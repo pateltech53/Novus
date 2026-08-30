@@ -52,6 +52,18 @@ export const TIER_RARITY: Record<Tier, Rarity> = {
 };
 
 /**
+ * The same map read backwards.
+ *
+ * Tier and rarity are one-to-one, which is what lets a grant travel with only
+ * its rarity and still be enough to find the artwork (`/briefcase/skins/tN/`).
+ * Derived from TIER_RARITY rather than typed out again, so the two cannot
+ * drift apart in a later edit.
+ */
+export const RARITY_TIER = Object.fromEntries(
+  Object.entries(TIER_RARITY).map(([tier, rarity]) => [rarity, Number(tier) as Tier]),
+) as Record<Rarity, Tier>;
+
+/**
  * Daily tier-roll odds, in percent, by slot difficulty (plan §4.1).
  *
  * The zeroes are the floor rule made data: a Medium slot cannot pay T1 because

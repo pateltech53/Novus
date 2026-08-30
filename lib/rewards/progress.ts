@@ -118,11 +118,20 @@ export function advanceBy(
     case "D3": return num("amount") >= n ? whole : 0;
     case "D4": return String(p.shark ?? "") === String(slot.param.shark ?? "") ? whole : 0;
     case "D5": return num("sharks") >= Math.max(2, n) ? whole : 0;
-    case "D6": case "D7": case "D8": return whole;
+    case "D6": case "D8": return whole;   // only emitted when they are true
+    /*
+     * D7 is the one mission that spans two moments. The client latches "walked
+     * away from a full table" in the tank and hands it to the next quarter;
+     * both halves have to be true for the quarter to count.
+     */
+    case "D7": return p.rejectedAll && p.cashPositive ? whole : 0;
 
     case "F3": return num("runwayMonths") >= n ? whole : 0;
     case "F5": return num("grossMarginPct") >= n ? whole : 0;
-    case "F6": case "F8": return whole;
+    case "F6": return whole;              // dark — the engine has no debt
+    // "Survive a down-market event WITHOUT negative cash flow" — the second
+    // half is the mission, so the event alone does not clear it.
+    case "F8": return p.cashPositive ? whole : 0;
     case "F7": return num("profitPct") >= n ? whole : 0;
 
     case "O3": return num("ctr") >= n ? whole : 0;
@@ -131,7 +140,12 @@ export function advanceBy(
     case "O9": return num("customers") >= n ? whole : 0;
     case "O10": return num("revenueGrowthPct") >= n ? whole : 0;
 
-    case "R1": case "R2": case "R4": return whole;
+    case "R4": return whole;
+    // Both of these compare against something that already happened — a losing
+    // year, a company that went under — so an unqualified event is not the
+    // mission and must not pay.
+    case "R1": return p.recovered ? whole : 0;
+    case "R2": return p.afterBankruptcy ? whole : 0;
     case "R3": return 1;
     case "B4": return whole;
 
