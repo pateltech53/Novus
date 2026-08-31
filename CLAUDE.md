@@ -16,9 +16,22 @@ load-bearing — see the doc index at the bottom. **The full project history,
 current state, in-flight work, and external-service inventory are in
 [docs/HANDOFF.md](docs/HANDOFF.md).**
 
-## The three rules that outrank everything
+## The four rules that outrank everything
 
-1. **`docs/DO-NOT-TOUCH.md` is non-negotiable.** The engine core
+1. **Every session leaves a record — whichever account it runs under.** Work
+   exists only once it is on GitHub: push your branch and open a PR even for
+   incomplete or abandoned work (session containers are ephemeral — an
+   unpushed change is gone the moment the session ends, and an unwritten
+   decision is gone the moment the chat scrolls away). Every commit carries
+   the `Co-Authored-By: Claude …` and `Claude-Session: https://claude.ai/code/…`
+   trailers so the session behind any change can always be found and read.
+   Substantial work updates [docs/HANDOFF.md](docs/HANDOFF.md) (current
+   state, open items) in the same PR; decisions made only in conversation
+   get written into a commit body or HANDOFF before the session ends. The
+   test: anyone — human or Claude, on any account — must be able to pick up
+   exactly where you stopped from the repo alone.
+
+2. **`docs/DO-NOT-TOUCH.md` is non-negotiable.** The engine core
    (`lib/engine/run.ts`, `effects.ts`, `events.ts`, `sim.ts`, `autopsy.ts`),
    `scripts/simulate.mjs`, and all of `data/sections/*.json` require naming
    the file and the exact change, then explicit sign-off, before any edit.
@@ -27,7 +40,7 @@ current state, in-flight work, and external-service inventory are in
    never add a second path. Authored prose in `data/sections/` is verbatim —
    never rewrite a character.
 
-2. **The Brand Laws** (full text in DO-NOT-TOUCH.md): no skip/simulate-year
+3. **The Brand Laws** (full text in DO-NOT-TOUCH.md): no skip/simulate-year
    button; the ±15% luck band never flips a result's sign; nothing purchasable
    may touch score, survival, revives, or leaderboard position (legal — the
    product serves minors); never score accent, voice pitch, energy, or speech
@@ -35,7 +48,7 @@ current state, in-flight work, and external-service inventory are in
    financial vocabulary only (burn rate, runway, Chapter 7 — never coins,
    gems, XP; Rookie Mode adds a gloss, never replaces the term).
 
-3. **A balance shift is a regression to report, never to retune away.** The
+4. **A balance shift is a regression to report, never to retune away.** The
    sim harness is deterministic (seeded, clock frozen to 2026-01-15), so a
    changed number at a fixed seed is real. Measure against a fresh baseline on
    the untouched tree — the historical targets in DO-NOT-TOUCH §2.2 (38% /
