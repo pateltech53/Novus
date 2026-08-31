@@ -54,12 +54,15 @@ const OVERLAYS = [
 ];
 
 /*
- * `CHROME` lets a machine whose Playwright build does not match its installed
- * browser point at the one it has, instead of downloading a second copy.
- * Unset, this is ordinary `chromium.launch()`.
+ * `NV_CHROMIUM` lets a machine whose Playwright build does not match its
+ * installed browser point at the one it has, instead of downloading a second
+ * copy. Unset, this is ordinary `chromium.launch()`. One name across all six
+ * probes — this one briefly answered to `CHROME` while audit-phone answered
+ * to `PLAYWRIGHT_CHROMIUM`, and setting the right knob for one script still
+ * failed the rest.
  */
 const browser = await chromium.launch(
-  process.env.CHROME ? { executablePath: process.env.CHROME } : {},
+  process.env.NV_CHROMIUM ? { executablePath: process.env.NV_CHROMIUM } : {},
 );
 const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
 
@@ -69,6 +72,21 @@ async function establishRun() {
   const input = page.locator('input[placeholder="Company name"]');
   const submit = page.locator("button", { hasText: "FOUND IT" }).first();
   await input.waitFor({ state: "visible", timeout: 30000 });
+  /*
+   * The paperwork gates FOUND IT on more than a name: the founder's pronoun
+   * and an industry are required too. This walk was written when the name
+   * was the whole form, and kept filling one field for thirty seconds before
+   * concluding the button "never enabled" — the first time anyone ran it
+   * against the grown form, it reported the probe's own staleness as an app
+   * bug. Food & Beverage is one of the four free industries, so the walk
+   * works on a build with no entitlements.
+   */
+  await page.locator("button", { hasText: /^HE$/ }).first().click().catch(() => {});
+  await page
+    .locator("button", { hasText: "Food & Beverage" })
+    .first()
+    .click()
+    .catch(() => {});
   for (let i = 0; i < 40; i++) {
     await input.fill("Exit Audit Co");
     try {

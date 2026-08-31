@@ -85,7 +85,9 @@ Android releases are tag-driven: push a `v*` tag and
 probes (`audit:phone`, `test:tap`, `test:exits`, `test:notes`,
 `test:home:fold`, `test:islands:layout`, `capture`, `safe-area-probe`) are
 manual-only — none run in CI, and a fresh machine needs
-`npx playwright install chromium` before the first one works.
+`npx playwright install chromium` before the first one works (or point
+`NV_CHROMIUM` at an existing Chromium binary — one name, honoured by every
+probe).
 
 Per-route gzipped First-Load-JS budgets live in `scripts/bundle-report.mjs`
 (BUDGETS table; e.g. /play 359 kB). Exceeding one fails the build; the

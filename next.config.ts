@@ -65,8 +65,18 @@ const CONTENT_SECURITY_POLICY = [
    * face models are WebAssembly, and instantiating them is a script-src
    * decision. It permits WASM compilation and nothing else; it is NOT
    * `'unsafe-eval'` and does not re-open `eval`.
+   *
+   * `'unsafe-eval'`, DEV ONLY: Next's dev server wraps every module in eval()
+   * (source maps, react-refresh), so the moment this CSP shipped, `npm run
+   * dev` served pages whose entire client bundle was refused — SSR HTML
+   * rendered, zero handlers attached, every page dead to the touch, and the
+   * one pageerror saying why sat in a console nobody had open. Discovered by
+   * test:exits, the only probe that drives the dev server rather than the
+   * export. The production header is unchanged: `next build` does not eval.
    */
-  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' ${TURNSTILE}`,
+  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${
+    process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""
+  } ${TURNSTILE}`,
 
   /*
    * Tailwind's runtime layer, next/font's face declarations and every

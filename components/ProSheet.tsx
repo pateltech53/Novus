@@ -393,14 +393,14 @@ export function ProSheet({ onClose }: { onClose: () => void }) {
             <button
               type="button"
               onClick={() => setLegal(TERMS)}
-              className="underline underline-offset-4"
+              className="-my-2 py-2 underline underline-offset-4"
             >
               TERMS OF USE
             </button>
             <button
               type="button"
               onClick={() => setLegal(PRIVACY)}
-              className="underline underline-offset-4"
+              className="-my-2 py-2 underline underline-offset-4"
             >
               PRIVACY
             </button>

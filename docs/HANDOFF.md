@@ -215,6 +215,24 @@ injection retired with the bundle; new assertions that the three files
 carrying the origin agree, and that the SPM manifest names every Capacitor
 plugin in package.json.
 
+**The first full probe run (same day, follow-up PR).** After #111 merged
+and deployed, all six manual Playwright probes were run — apparently for
+the first time as a set — and everything they surfaced was fixed: `npm run
+dev` had been dead since the CSP shipped in #93 (Next's dev server wraps
+every module in eval(), which `script-src` refused — SSR HTML rendered,
+zero handlers attached; dev now gets `'unsafe-eval'`, production header
+unchanged); the sheet drag-hint carried `role="button"` on a 22px strip it
+could never honour (role removed — it is a pointer affordance, and CLOSE is
+the accessible dismissal); eight legal-link buttons (ProSheet, UpgradeScreen,
+welcome ×2 rows) had 18px tap boxes, grown to 34px with `-my-2 py-2` so the
+layout does not move; exit-audit's founding-form walk predated the pronoun
+and industry fields and reported its own staleness as "FOUND IT never
+enabled"; and the probes answered to three different Chromium env vars
+(`NV_CHROMIUM`/`CHROME`/`PLAYWRIGHT_CHROMIUM`) — unified on `NV_CHROMIUM`.
+After the fixes: audit:phone 0 findings at all seven sizes and all three
+store-rule shells; tap, exits, home:fold, islands:layout and notes probes
+all green.
+
 ---
 
 ## 2. Current state (at `main` = 337c7fb, 2026-08-30)

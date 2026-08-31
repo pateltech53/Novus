@@ -50,7 +50,11 @@ const ROUTES = [
 
 mkdirSync(OUT, { recursive: true });
 
-const browser = await chromium.launch();
+const browser = await chromium.launch(
+  // Same escape hatch as every probe: a machine whose Playwright build does
+  // not match its installed browser points at the one it has.
+  process.env.NV_CHROMIUM ? { executablePath: process.env.NV_CHROMIUM } : {},
+);
 const results = [];
 let ciFailures = [];
 
