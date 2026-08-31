@@ -298,6 +298,10 @@ npx playwright install chromium    # only before the first browser probe (audit:
 Then read CLAUDE.md's doc index and open the doc for whatever subsystem the
 task touches. Work on a `claude/<topic>-<suffix>` branch, PR to main, in the
 house commit voice, and run the adversarial pass before calling it done.
+And CLAUDE.md rule 1 above all: whichever account the session runs under,
+push the branch, keep the session trailers on every commit, and update this
+file when the state of the project changes — the record is what lets the
+next session, on any account, continue instead of re-discover.
 
 ---
 
