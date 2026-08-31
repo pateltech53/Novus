@@ -17,8 +17,8 @@ them verbatim.
 
 ### Era 1 · Foundation (Jul 28 – Aug 1, PRs #1–#13)
 
-- **PR #1** imported the entire already-built web game in one commit (~40k
-  lines): engine, 255 authored events, all core screens, and the governing
+- **PR #1** imported the entire already-built web game in one commit (292
+  files, ~67k lines): engine, 255 authored events, all core screens, and the governing
   docs (design.md, DO-NOT-TOUCH.md, LEADERBOARD.md, BUILD-PROMPT.md). Almost
   everything since is infrastructure around a finished game.
 - **PR #2** Supabase: migrations 0001 (core) + 0002 (leaderboard), the RLS
@@ -52,9 +52,9 @@ them verbatim.
   were exactly wrong.
 - **Liquid Glass built out, then gated:** glass spread across the app
   (#14–#39), then **#40 reversed the ambition** — glass is iOS-only; **#52
-  retired CSS glass entirely** on every platform (owner's call, recorded in
-  design.md §0; the material sits one unwritten `[data-css-glass]` attribute
-  away).
+  (merged Aug 3, numerically past this era's range) retired CSS glass
+  entirely** on every platform (owner's call, recorded in design.md §0; the
+  material sits one unwritten `[data-css-glass]` attribute away).
 - **AI tier stood up (#23, #25–#27):** the keys had been read by NO file —
   everything silently ran local fallbacks. Now: `/api/tts` (ElevenLabs),
   `/api/stt` (Deepgram), `/api/pitch` (OpenRouter), 501-latching clients,
@@ -74,8 +74,10 @@ them verbatim.
 ### Era 3 · Operations and teachability (Aug 3 – Aug 4, PRs #47–#58)
 
 - **Admin console (#47, #49, #50):** `profiles.role` flipped only in the
-  Supabase dashboard (guard trigger blocks self-promotion); gifting lives in
-  `comp_*` columns beside webhook-owned `pro`; every action audited;
+  Supabase dashboard (guard trigger blocks self-promotion); gifted Pro and
+  comped chapters live in `comp_*` columns beside webhook-owned `pro` (packs
+  and islands are granted through the same functions the webhook calls);
+  every action audited;
   hand-rolled SVG analytics; checkout skip-or-real fork for operators.
 - **Pre-investor security pass (#55):** TTS relay closed, AI payload caps,
   invite-link expiry, webhook re-reads subscriptions from Stripe, deletion
@@ -89,7 +91,8 @@ them verbatim.
   KeyTermsSheet from one shared GLOSSARY, '?' explainers on decisions.
   **Settled by revert:** /play keeps its scroll (a no-scroll column clipped
   The Books); the desktop keeps its compact rail.
-- **The ledger (direct to main, 3f53c5e):** `lib/engine/ledger.ts` — the one
+- **The ledger (3f53c5e, no PR of its own — authored on main's then-tip,
+  reached origin/main through PR #63's merge):** `lib/engine/ledger.ts` — the one
   sanctioned engine-adjacent addition (observation only, sampled pre-tick,
   sim byte-identical) and the template for how to route around protected
   files. Radius budget settled (22/14/10/6). Phone masthead became a 76px
@@ -136,7 +139,8 @@ them verbatim.
 - **Chrome fixes + the 300ms kill (#90, #94–#96):** the /play nudge became a
   native glass panel after in-flow placement proved mathematically
   impossible; `lib/warm.tsx` replaced `dynamic()` for tap-opened overlays
-  (~315ms → 14–20ms, `test:tap` guards it).
+  (~315ms → 14–20ms; the manual probe `npm run test:tap` guards it — it is
+  not a CI gate).
 - **Pricing rework (#97):** typed price with 100×-anchor ceiling made safe by
   monotonic revenue decay past 1.6× (sub-1.6× curve byte-identical;
   `test:pricing`).
@@ -149,16 +153,18 @@ them verbatim.
   leaderboard submission became automatic (year close / company end / board
   open).
 - **The big mobile wave (#104):** shark GLB decimated 457k→65k triangles
-  (-v2 filenames); free tier = 1 year-close/day enforced in the engine on
-  both paths; The Room rebuilt as Index → copy a 555-01xx number → dialler
+  (-v2 filenames); free tier = 1 year-close/day (`FREE_LIMITS` in
+  `lib/monetization.ts`) enforced in GameProvider on both close paths —
+  skipped and pitched; The Room rebuilt as Index → copy a 555-01xx number → dialler
   (FOOD/ECOM/FITNESS deliberately have no phone); year-2 repetition fixed.
 - **The Playbook (#105, #106):** 17 → 48 shared activities, 9 with
   second-question branches; tape gains an additive `option` field; wardrobe
   re-costed to fiscal-year achievements with a sticky ledger; 4 progression
   rules recorded in docs/PROGRESSION.md.
 - **Briefcases (#107, #108):** gacha-style reward loop **behind a per-account
-  beta flag** (`entitlements.rewards_beta`; all /api/rewards/* 404 without
-  it). Server-authoritative rolls (client never rolls; migrations 0017/0018),
+  beta flag** (`entitlements.rewards_beta`; every /api/rewards/* route 404s
+  without it except `/odds` and `/time`, which are public by design).
+  Server-authoritative rolls (client never rolls; migrations 0017/0018),
   token shop never touches money, no reward grants permanent Pro. Art
   pipeline: 212 of 244 Gemini-generated assets shipped, 32 still missing.
 
@@ -172,9 +178,17 @@ measures (seed 1, frozen clock): `sim 30 8` → 40% survival, median death
 year 4; `sim 50 10 1` → 44%, $81.8M median valuation, 197/289 events seen,
 0 runtime errors. (These supersede every table in BASELINE.md — the event
 pool grew to 289 after its last re-baseline. Re-baseline on the untouched
-tree before judging any shift.)
+tree before judging any shift. Note the harness only plays the four free
+industries, so "197/289" has a structural ceiling — the gap is not all
+unreachable content.)
 
-### In-flight work (open PRs — both based on early-August main, expect conflicts)
+### In-flight work (open PRs — both based on early-August main; GitHub already reports both as conflicting)
+
+One trap before touching them: **head branches here are reused across PRs.**
+`claude/price-adjustment-improvements-1zdr30` also produced the merged #97;
+`claude/dynamic-island-widgets-4et73x` also produced the merged #81 and #90
+(and `claude/mobile-bugs-features-g1i0ax` produced #104–#106). One branch ≠
+one PR — never delete a "merged" branch that still carries an open PR.
 
 - **[#98 Paying in a browser now ends in the app](https://github.com/pateltech53/Novus/pull/98)**
   (branch `claude/price-adjustment-improvements-1zdr30`, +1156/−41): the
@@ -203,9 +217,12 @@ history, not as work to finish.
    SUITES in `scripts/db-test.mjs` — "the client never rolls" is currently
    asserted only by the migration's policy shape.
 3. Regenerate the 32 missing briefcase renders once Gemini credits/billing
-   allow (`npm run art:briefcase -- status`; 10 of the 32 are safety-filter
-   refusals on formalwear that need reworded prompts). docs/BRIEFCASE-ART.md
-   has the exact procedure.
+   allow (10 of the 32 are safety-filter refusals on formalwear that need
+   reworded prompts). The durable record of what is missing is
+   `public/briefcase/manifest.json` (`url: null` = never generated) — the raw
+   masters live in gitignored `.assets-staging/` on the original machine, so
+   `npm run art:briefcase -- status` reports 0 on a fresh clone.
+   docs/BRIEFCASE-ART.md has the exact procedure.
 4. Rewards beta: decide when to lift `rewards_beta` to everyone; BRIEFCASES.md
    lists the finish work (4 delivery templates dark, weekly challenge unread,
    bespoke SFX absent).
@@ -246,7 +263,7 @@ replacements for:
 
 | Service | Used for | Where configured |
 |---|---|---|
-| GitHub `pateltech53/Novus` | source, CI, Android releases | Actions secrets: `ANDROID_KEYSTORE_BASE64/PASSWORD`, `ANDROID_KEY_ALIAS/PASSWORD` |
+| GitHub `pateltech53/Novus` | source, CI; Android releases fire on pushing a `v*` tag | Actions secrets: `ANDROID_KEYSTORE_BASE64/PASSWORD`, `ANDROID_KEY_ALIAS/PASSWORD`. PRs are opened by user `zzzachariah` via the Claude GitHub App |
 | Vercel (or equivalent) | web deploy of novuspitch.com; runs `npm run build` | all `.env` vars below |
 | Supabase project | Postgres + auth; migrations 0001–0018 applied manually | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`; dashboard: Email ON / Confirm email OFF, redirect URLs for `/reset` + `/join/setup`, the `novus-expire-tapes` pg_cron job, first admin via `profiles.role` |
 | Stripe (live) | Pro subs, packs, chapter licences | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, price/product ids; live products incl. `prod_V0RQl8TDKC3JKu` (chapter_35 $799) and `prod_V4J52t9fUOcrVm` (chapter_100 $1,599); webhook endpoint on the deploy |
@@ -256,7 +273,14 @@ replacements for:
 | Google Gemini (billed) | briefcase art generation (dev-time only) | `GEMINI_API_KEY` for `scripts/generate-briefcase-art.mjs` |
 | Apple Developer | iOS signing, App Group `group.com.novuspitch.app`, widget bundle id, Sign in with Apple | manual, per docs/WIDGETS.md §the-four-steps + docs/APP-STORE.md §6 |
 | Google Play | Android releases | keystore secrets above |
+| Google Cloud Console | OAuth client for the off-by-default Google sign-in | `NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID`, `NEXT_PUBLIC_GOOGLE_IOS_CLIENT_ID` (+ `NEXT_PUBLIC_APPLE_SERVICES_ID`/`OAUTH_REDIRECT_ORIGIN` for Apple-on-web/Android); docs/OAUTH-SETUP.md |
 | Domain novuspitch.com (+ app.novuspitch.com) | web origin + native asset origin; `NEXT_PUBLIC_API_ORIGIN` must stay the www host (no redirect in front) | DNS/hosting |
+
+**The domain is load-bearing.** If it does not transfer with the accounts,
+these must change together: `lib/native/origins.ts` (CORS/CSRF allowlist),
+`lib/native/origin.ts` (API origin default), `capacitor.config.ts`
+(hostname), `lib/seo.ts` (site origin), plus every deploy env var above —
+and shipped app binaries carry the old origin until rebuilt.
 
 `GET /api/billing/status` and `GET /api/ai` are the built-in diagnostics for
 "which of these are actually configured on this deploy".
@@ -265,11 +289,50 @@ replacements for:
 
 ```bash
 npm install
-npm run check                      # should pass clean
+npm run check                      # should pass clean (verified 2026-08-31)
 npm run build                      # budgets should pass
-DATABASE_URL=postgres://... npm run test:db   # optional, needs a Postgres 16
+DATABASE_URL=postgres://... npm run test:db   # optional; PG* vars work too, needs CREATE DATABASE rights
+npx playwright install chromium    # only before the first browser probe (audit:phone, test:tap, …)
 ```
 
 Then read CLAUDE.md's doc index and open the doc for whatever subsystem the
 task touches. Work on a `claude/<topic>-<suffix>` branch, PR to main, in the
 house commit voice, and run the adversarial pass before calling it done.
+
+---
+
+## 4. Known-stale claims in older docs (do not re-propagate)
+
+The repo's habit is to mark supersessions rather than rewrite history, so
+several older documents still state things the code has moved past:
+
+- **README.md** — "237 authored events" (actual: 255 authored + overlay =
+  289 merged); presents the non-reproducing 38% / $279M balance curve as
+  current; "test:db applies every migration … all five" (there are 18); the
+  stub-only framing of the AI tier predates the live TTS/STT/panel routes.
+  The Scripts table there is also missing the newer suites — CLAUDE.md's
+  command list wins.
+- **docs/DO-NOT-TOUCH.md §2.2** — the balance target is recorded (by the doc
+  itself) as not reproducing; measure against a fresh HEAD baseline.
+- **docs/BASELINE.md** — every balance table predates the 289-event pool.
+- **design.md §1.4 / BUILD-PROMPT Phase 1.6** — "dark is the default":
+  superseded; light is the shipped default theme.
+- **docs/SUPABASE-SETUP.md §0–§1 and docs/LEADERBOARD.md §3.1** — "enable
+  anonymous sign-ins": predates the accounts reversal;
+  docs/ACCOUNTS-SETUP.md is the authority.
+- **docs/APP.md, last "Known edges" bullet** — "Pro is still simulated":
+  SIMULATE PRO was removed; store builds sell nothing, web sells real Stripe.
+- **docs/CHAPTERS.md §1** — "APPLY-ALL is 0001→0012": it now covers
+  0001→0016 (and migrations run to 0018).
+- **`.env.example`** — line ~69 uses the legacy `STRIPE_PRICE_EXTRA_RUN_SLOT`
+  name (still honoured); lines ~77–78: the chapter_35 id
+  `prod_V0RQl8TDKC3JKu` is **still current** (only its "$299" price comment
+  is stale), but the chapter_100 id `prod_V0RRsSw8Z2z0hD` is genuinely
+  retired — the current one is `prod_V4J52t9fUOcrVm`.
+- **supabase/RUN-THIS.sql** — the original 0006-era submission-path deploy
+  bundle; superseded by running the numbered migrations (or APPLY-ALL +
+  0017/0018). Its STEP 7 manual checks (the anon board-insert must fail
+  42501; the Brand Law 4 audit query) are still worth running on a fresh
+  deploy.
+- **docs/BUILD-PROMPT.md Phase 7** — assumes anonymous auth, stub-only AI,
+  and a table set that never shipped; historical rationale only.

@@ -64,8 +64,15 @@ limits/variety/room/wardrobe/playbook.
 pricing but adds `test:outside`, the budgeted `npm run build`, `test:db`
 against postgres:16, and an Android static-export/APK job. Run both `npm run
 check` and `npm run build` before opening a PR. `test:rewards` is in neither —
-run it by hand when touching rewards. `ios-build.yml` compiles Swift only when
-a PR touches `ios/**` (requires Xcode 26).
+run it by hand when touching rewards. `ios-build.yml` is the only thing that
+compiles Swift, and only when a push to main or a PR touches `ios/**`,
+`capacitor.config.ts`, or the workflow file itself (requires Xcode 26).
+Android releases are tag-driven: push a `v*` tag and
+`android-release.yml` publishes `novus.apk`/`novus.aab`. The Playwright
+probes (`audit:phone`, `test:tap`, `test:exits`, `test:notes`,
+`test:home:fold`, `test:islands:layout`, `capture`, `safe-area-probe`) are
+manual-only — none run in CI, and a fresh machine needs
+`npx playwright install chromium` before the first one works.
 
 Per-route gzipped First-Load-JS budgets live in `scripts/bundle-report.mjs`
 (BUDGETS table; e.g. /play 359 kB). Exceeding one fails the build; the
@@ -75,10 +82,17 @@ commit** with the reason in the message.
 ## Architecture in one screen
 
 ```
-data/sections/*.json (255 authored events, verbatim, PROTECTED)
-  + data/industry/*.json (exclusives + reskins overlay)
+data/sections/*.json (255 authored events, verbatim, PROTECTED; files A–N and P — no O)
+  + data/industry/*.json (exclusives + reskins overlay — the UNPROTECTED route for new content)
     ──npm run events──▶ data/events.json (generated, 289 events) ──▶ lib/engine
 ```
+
+New content goes through the overlay, not the protected sections: industry
+exclusives and reskins live in `data/industry/` and are merged by
+`scripts/parse-events.mjs` (its header essay is the instruction). The
+authored library and conversion contract live in `design/`
+(`NOVUS_EVENT_LIBRARY_B1.md`, `EVENT_SCHEMA.md`); a universal event in
+`data/sections/` needs sign-off like any protected edit.
 
 - **`lib/engine/`** — the whole game, pure TS, zero React, so
   `scripts/simulate.mjs` can play thousands of years headlessly. Protected
@@ -89,8 +103,9 @@ data/sections/*.json (255 authored events, verbatim, PROTECTED)
   mutations go through the shared orchestration in `lib/leaderboard/replay.ts`
   (the leaderboard verifier replays input tapes against the same code), and
   taps are recorded to the tape before commit.
-- **`app/`** — 21 pages, ~64 API route handlers. Every route exports
-  `runtime="nodejs"` + `dynamic="force-dynamic"`; every state-changing handler
+- **`app/`** — 19 pages, 63 API route handlers. Every route exports
+  `runtime="nodejs"`, and all but the deliberately-static `/api/rewards/odds`
+  also export `dynamic="force-dynamic"`; every state-changing handler
   opens with `if (crossSite(req))` (CSRF); every response on a path that read
   the session must return via `withSession()`/`attachSession()` (Supabase
   rotates the refresh token per read — dropping it silently signs the player
@@ -175,8 +190,9 @@ data/sections/*.json (255 authored events, verbatim, PROTECTED)
 - `npm run build` ≠ `npx next build` — the package script adds the bundle
   budget check that Vercel runs. CI was once green while the deploy was red.
 - Engine/content changes that break replay determinism must bump
-  `NOVUS_ENGINE_VERSION` + `NOVUS_LEADERBOARD_SEASON` together, or every
-  submitted leaderboard tape is silently invalidated.
+  `NOVUS_ENGINE_VERSION` + `NOVUS_LEADERBOARD_SEASON` together (env-overridable
+  constants defaulting in `lib/leaderboard/season.ts`), or every submitted
+  leaderboard tape is silently invalidated.
 - `env(safe-area-inset-top)` is 0 on WKWebView's first load; UIKit refuses
   present-onto-presenting silently; Auto Layout picks height 0 without an
   equality — the native layer's rule is *confirm or measure, never assume*
@@ -216,7 +232,12 @@ data/sections/*.json (255 authored events, verbatim, PROTECTED)
 | iOS widgets / Live Activities | docs/WIDGETS.md |
 | Chapters (classroom licences) | docs/CHAPTERS.md |
 | Briefcase reward loop (beta) | docs/BRIEFCASES.md (+ docs/BRIEFCASE-ART.md) |
+| SEO / www-vs-apex / structured data | docs/SEO.md |
+| Authored event library + conversion contract | design/NOVUS_EVENT_LIBRARY_B1.md, design/EVENT_SCHEMA.md |
 | Original 7-phase build brief (historical rationale) | docs/BUILD-PROMPT.md |
 
-When a doc and the code disagree, the code plus the newest doc wins;
-docs/HANDOFF.md lists the known-stale claims so you don't re-propagate them.
+When a doc and the code disagree, the code plus the newest doc wins.
+**README.md itself is partly historical** (it still says 237 events, quotes
+the non-reproducing 38%/$279M curve, and predates most of the systems above)
+— this file and docs/HANDOFF.md win; HANDOFF §4 lists the known-stale claims
+so you don't re-propagate them.
