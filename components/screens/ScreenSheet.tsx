@@ -188,7 +188,11 @@ export function ScreenSheet({
      * click.
      */
     if ((e.target as HTMLElement | null)?.closest("button,a,input,select,textarea")) {
-      if (e.currentTarget.getAttribute("aria-label") !== "Drag down to close") return;
+      // Only the header can be here: the hint strip below contains nothing
+      // interactive, so a press that started on a control is always a press
+      // of that control. (This used to exempt the strip by its aria-label —
+      // a branch no event could reach.)
+      return;
     }
     drag.current = { id: e.pointerId, from: e.clientY, at: e.timeStamp };
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -300,10 +304,19 @@ export function ScreenSheet({
             stops the browser reading the drag as a scroll of the sheet, and
             putting it on the sheet would stop the sheet scrolling at all. */}
         {docked ? null : (
+          /*
+           * No `role="button"`, deliberately. It carried one (with
+           * tabIndex={-1}, so keyboard users could never reach it) and that
+           * was wrong twice over: a button that cannot be clicked or
+           * keyed is a lie to assistive tech — the sheet's real dismissals
+           * are CLOSE and the back gesture — and everything claiming to be
+           * a button owes a 44pt target, which a 22px strip is not
+           * (audit-phone's touch-target rule flagged it on every sheet at
+           * every size). It is a pointer-drag affordance, nothing more,
+           * and now it says so.
+           */
           <div
-            role="button"
-            tabIndex={-1}
-            aria-label="Drag down to close"
+            aria-hidden="true"
             onPointerDown={onGrab}
             onPointerMove={onGrabMove}
             onPointerUp={onGrabEnd}

@@ -224,7 +224,11 @@ const AUDIT = () => {
 };
 
 const browser = await chromium.launch(
-  process.env.PLAYWRIGHT_CHROMIUM ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM } : {},
+  // NV_CHROMIUM: the one escape hatch every probe honours — see exit-audit's
+  // note. (This file read PLAYWRIGHT_CHROMIUM, exit-audit read CHROME, the
+  // other four read NV_CHROMIUM: three names for one knob, and a machine
+  // that set the right one for one script still failed the other five.)
+  process.env.NV_CHROMIUM ? { executablePath: process.env.NV_CHROMIUM } : {},
 );
 const SIZES = [
   ["se", 320, 568],
