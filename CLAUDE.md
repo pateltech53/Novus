@@ -64,7 +64,7 @@ npm run check          # local definition of done — must pass after EVERY chan
 npm run build          # events + next build + bundle budgets. NEVER bare `npx next build`
 npm run sim 50 10 1    # balance regression baseline (30 8 is the check gate)
 npm run test:db        # migrations + RLS suites; needs Postgres (DATABASE_URL)
-npm run build:native   # static export for the iOS/Android shells, then cap sync
+npm run build:native   # export (audits) + verify/copy the remote shell, then cap sync
 npm run test:outside   # Swift market fixture --check + pbxproj structural lint
 npm run audit:phone    # Playwright phone audit at 320/375/393/430 (build:native:only first)
 ```
@@ -149,14 +149,19 @@ authored library and conversion contract live in `design/`
   `lib/ai/prompts/` are verbatim pack files — behavioural fixes go in
   HOUSE_RULES (`lib/ai/server/panel-prompts.ts`). Delivery is measured but
   structurally unreachable from scorers (Brand Law 5).
-- **Native** — on iOS the tab bar, advance button, sheets and nudge are
-  withdrawn from the DOM and redrawn by UIKit as real Liquid Glass; DOM
-  elements under native chrome are **unrendered, not hidden**. CSS glass is
-  retired on every platform (deliberate; gated behind `[data-css-glass]`,
-  which nothing writes). All in-app document navigation must name
-  `index.html` explicitly (`lib/native/href.ts`) — the shell resolves
-  extensionless paths to the marketing page. The widget extension carries
-  Swift ports of `lib/engine/market.ts`/`format.ts`; editing those requires
+- **Native** — the shells are **remote**: `capacitor.config.ts` points the
+  webview at `https://www.novuspitch.com` (`server.url`), so a web deploy is
+  an app release and the binary carries only `native/shell/index.html` (the
+  offline notice). On iOS the tab bar, advance button, sheets and nudge are
+  withdrawn from the DOM and redrawn by UIKit as real Liquid Glass — pure
+  bridge traffic, indifferent to the content source; DOM elements under
+  native chrome are **unrendered, not hidden**. CSS glass is retired on
+  every platform (deliberate; gated behind `[data-css-glass]`, which nothing
+  writes). `lib/native/href.ts` appends `index.html` to document navigations
+  only in a *bundled* shell (old binaries); shells never get the desktop
+  composition at any width (the `desk:` variant in `globals.css`). The
+  widget extension carries Swift ports of
+  `lib/engine/market.ts`/`format.ts`; editing those requires
   `npm run market:fixture` or CI fails.
 
 ## Working conventions (match these exactly)

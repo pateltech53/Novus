@@ -168,6 +168,53 @@ them verbatim.
   token shop never touches money, no reward grants permanent Pro. Art
   pipeline: 212 of 244 Gemini-generated assets shipped, 32 still missing.
 
+### Era 6 · App Review round one, and the remote shell (Aug 31)
+
+**The missing history first, reconstructed after the fact because the
+sessions that made it left no record (rule 1 was not followed):** the app
+was submitted to App Review as builds 1.0(1)–1.0(3) — the version bumps were
+made on the build machine and never committed, so `MARKETING_VERSION` in the
+repo still reads 1.0/1. On 2026-08-31 Apple **rejected build 1.0(3)**
+(submission 871d2d5f-14cc-4457-9d18-4013cd49281c, reviewed on an iPad Air
+11-inch M3, iPadOS 26.6.1) on four guidelines. docs/APP-STORE.md §0 carries
+the full anatomy; the one-line version of each:
+
+- **2.1(a)** Sign in with Apple errored on every tap — a real defect in
+  `lib/cloud/native-oauth.ts`'s initialize options (no `apple` key without
+  the Services ID env; a flow-hijacking `redirectUrl` with it), compounded
+  by the SocialLogin plugin never being committed to the iOS SPM manifest.
+  Fixed in code; two Supabase-dashboard checks remain (APP-STORE.md §6.9).
+- **3.1.1** The post-Epic-injunction GET PRO link-out opened the pricing
+  page in SFSafariViewController — *inside* the app — where plans were
+  purchasable via Stripe. Store builds are sells-nothing again, and three
+  ungated price surfaces (the prerendered landing grid via an inverted
+  `useSellsHere` gate, `/chapter`, `/product/institutions`) are gated.
+- **Guideline 4** iPadOS windows the iPhone app at widths that flipped the
+  `lg:` desktop grid while UIKit owned the chrome. The seam is now `desk:`
+  (width AND not-a-shell, globals.css), the phone composition caps at a
+  centred `max-w-2xl`, and the UIKit chrome caps its floating surfaces at
+  the same 672 (`GlassChromeController.pinHorizontally`).
+- **2.3.6** The Age Rating questionnaire claimed In-App Controls that do
+  not exist. Metadata fix in App Store Connect: In-App Controls / Age
+  Assurance → **None** (APP-STORE.md §6.2 has the reasoning — do not build
+  server-side age collection to "fix" this).
+
+**The same PR reversed the shell architecture, at the owner's direct
+request** ("我网站有啥改动需要重新提交，我不希望这样"): the binaries no
+longer bundle the static export. `capacitor.config.ts` sets
+`server.url: "https://www.novuspitch.com/"` with `appStartPath: boot.html`
+(the entry document ported to `public/boot.html` with extensionless
+targets) and `errorPath` → `native/shell/index.html`, the one page still on
+device. A web deploy now IS an app release; the Liquid Glass chrome is pure
+bridge traffic and unaffected. Costs accepted deliberately and recorded in
+docs/APP.md: offline play is gone (open item below), cold start is
+network-bound, and the old `capacitor://` origin's localStorage is orphaned
+(pre-release, TestFlight-only exposure). `scripts/build-native.mjs` was
+rewritten around the new shape — the prune list, 50 MB ceiling and boot
+injection retired with the bundle; new assertions that the three files
+carrying the origin agree, and that the SPM manifest names every Capacitor
+plugin in package.json.
+
 ---
 
 ## 2. Current state (at `main` = 337c7fb, 2026-08-30)
@@ -241,6 +288,25 @@ history, not as work to finish.
    as unresolved.
 10. `.env.example` lines ~69/77–78 are stale (old chapter prices/ids, old
     `STRIPE_PRICE_EXTRA_RUN_SLOT` name — the legacy name still works).
+11. **Resubmission checklist for App Review round two** (all from the 1.0(3)
+    rejection, Era 6): deploy the web build carrying `public/boot.html` and
+    the commerce gates **before** submitting the binary (the shell loads the
+    live site — review-day site is review-day app); fix the Age Rating
+    questionnaire in App Store Connect (In-App Controls / Age Assurance →
+    None); verify the Supabase Apple provider's Client IDs carry the bundle
+    id `com.novuspitch.app` and the secret is the auto-renewing .p8 flow;
+    test Sign in with Apple on a physical iPhone AND iPad; commit the next
+    build-number bump.
+12. Offline play regressed with the remote shell (Era 6). If it ever matters
+    again: WKAppBoundDomains + `limitsNavigationsToAppBoundDomains: true` +
+    a service worker precaching the app routes — deliberate new work, not a
+    config flag.
+13. In-app sign-up is now technically possible (Turnstile loads fine from
+    the https origin the shell serves) — withheld as a product decision;
+    see docs/APP-STORE.md §2 before adding it.
+14. The wide-viewport audit sizes (ipad-portrait / ipad-wide / mid-band in
+    `scripts/audit-phone.mjs`) are manual-only like every Playwright probe —
+    run them before any resubmission; nothing in CI exercises iPad widths.
 
 ### Dead ends — settled decisions, do not redo
 
@@ -252,7 +318,11 @@ no-scroll /play (49b598b) · Instrument Serif display voice (4f4c8eb) · the
 scroll-scrubbed /product engine (38268d8) · CSP nonces (forces every page
 Dynamic) · `dynamic().preload()` (doesn't exist on App Router) · third-party
 fetches from SharkCanvas (#22) · enterprise self-serve checkout (#104) ·
-in-flow placement of the /play nudge (#95).
+in-flow placement of the /play nudge (#95) · the store-build GET PRO
+link-out via `Browser.open` (rejected by App Review — SFSafariViewController
+is inside the app; docs/APP-STORE.md §§0–1) · the bundled-export shell
+(replaced by `server.url` remote loading, Era 6 — do not re-bundle to "fix"
+offline without reading APP.md's trade-off record).
 
 ---
 
@@ -274,7 +344,7 @@ replacements for:
 | Apple Developer | iOS signing, App Group `group.com.novuspitch.app`, widget bundle id, Sign in with Apple | manual, per docs/WIDGETS.md §the-four-steps + docs/APP-STORE.md §6 |
 | Google Play | Android releases | keystore secrets above |
 | Google Cloud Console | OAuth client for the off-by-default Google sign-in | `NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID`, `NEXT_PUBLIC_GOOGLE_IOS_CLIENT_ID` (+ `NEXT_PUBLIC_APPLE_SERVICES_ID`/`OAUTH_REDIRECT_ORIGIN` for Apple-on-web/Android); docs/OAUTH-SETUP.md |
-| Domain novuspitch.com (+ app.novuspitch.com) | web origin + native asset origin; `NEXT_PUBLIC_API_ORIGIN` must stay the www host (no redirect in front) | DNS/hosting |
+| Domain novuspitch.com (+ app.novuspitch.com) | web origin — and, since Era 6, the origin the apps load live (`server.url`); `NEXT_PUBLIC_API_ORIGIN` must stay the www host (no redirect in front). app.novuspitch.com is only the legacy bundled-shell identity kept on the allow-lists | DNS/hosting |
 
 **The domain is load-bearing.** If it does not transfer with the accounts,
 these must change together: `lib/native/origins.ts` (CORS/CSRF allowlist),

@@ -1,12 +1,64 @@
 # Shipping Novus to the App Store
 
 What the code now does about App Review, what is still a form somebody has to
-fill in, and the two rejections this app was previously guaranteed to collect.
+fill in, and the rejections this app has actually collected.
 
 Nothing in here is speculative: every guideline number below was checked
 against what the build actually does, on the screens the shipped app actually
 opens. The app is iPhone-only (`TARGETED_DEVICE_FAMILY = "1"`), portrait-only,
-iOS 15 and up.
+iOS 15 and up — **and Apple reviews it on iPad anyway**, in iPadOS's window
+for iPhone apps (see §0).
+
+---
+
+## 0. Build 1.0(3): the real rejection, in four parts
+
+On 2026-08-31 Apple rejected build 1.0 (3) — reviewed on an iPad Air 11-inch
+(M3), iPadOS 26.6.1 — on four guidelines. What each one actually was, and
+what answered it:
+
+1. **2.1(a) — "An error message was displayed when we attempted to Sign in
+   with Apple."** A real defect, and a deterministic one: on iOS
+   `lib/cloud/native-oauth.ts` offered the Apple button unconditionally but
+   only passed an `apple` key to the plugin's `initialize()` when
+   `NEXT_PUBLIC_APPLE_SERVICES_ID` was baked — so an unconfigured build
+   errored on every tap ("No provider was initialized"), and a configured one
+   handed the plugin a `redirectUrl` that hijacked its native flow into a
+   backend exchange Supabase never answers, failing after the sheet instead
+   of before it. Fixed: iOS always initializes `apple: {}` (the Services ID
+   and return URL are Android's web-flow needs, not iOS's), the plugin is
+   committed to `ios/App/CapApp-SPM/Package.swift` so a binary can no longer
+   silently ship without it, and `scripts/build-native.mjs` fails the build
+   if the manifest and package.json ever disagree again. The error surface
+   now carries the underlying cause in parentheses, so the next screenshot
+   diagnoses itself. Not iPad-specific — it reproduced identically on iPhone.
+   Two dashboard checks remain for a person (§6a).
+
+2. **3.1.1 — "The plans can be purchased in the app using payment mechanisms
+   other than In-App Purchase."** The post-injunction GET PRO link-out
+   (§1 below) opened the pricing page in SFSafariViewController — inside the
+   app — where the plans were purchasable through Stripe. Withdrawn: store
+   builds are sells-nothing again, and three ungated price surfaces found in
+   the same audit (the prerendered landing pricing grid, `/chapter`'s licence
+   blurb, `/product/institutions`) are now gated the same way.
+
+3. **Guideline 4 — "crowded, laid out, or displayed in a way that made it
+   difficult to use" on iPad.** iPadOS windows the iPhone app at widths the
+   layout's `lg:` seam read as "desktop" while UIKit still owned the chrome:
+   unrendered rail and footer, a window-wide ADVANCE slab, content under
+   floating glass. The seam is now `desk:` — width AND not-a-shell — the
+   phone composition is capped and centred at wide sizes, and every floating
+   UIKit surface caps at the same 672 the DOM always used
+   (`GlassChromeController.pinHorizontally`).
+
+4. **2.3.6 — the Age Rating metadata claims In-App Controls the reviewer
+   could not find.** They could not find them because they do not exist —
+   the only age mechanism is a deliberate, self-declared 13+ age screen at
+   onboarding (`lib/auth/age.ts`), not a parental control. The fix is the
+   form, not the code: §6 item 2.
+
+The lesson this file had wrong is recorded in §5: "no iPad build means no
+iPad review" is false under current review practice.
 
 ---
 
@@ -40,11 +92,20 @@ what keeps the removal of the buttons from being a dead end, and it is why
 Restore is load-bearing here rather than ceremonial — it is the **only** way Pro
 can appear on a phone.
 
-The gate is a hook (`useSellsHere()`) rather than a plain call because the app
-ships as a static export: its HTML is prerendered on a machine where Capacitor
-reports "web", so anything read during render would paint one frame of a price
-inside the App Store build. It answers `null` until the shell is known and every
-caller renders nothing rather than the wrong thing.
+The gate is a hook (`useSellsHere()`) rather than a plain call because the
+prerendered HTML is built on a machine where Capacitor reports "web", so
+anything read during render would paint one frame of a price inside the App
+Store build. It answers `null` until the shell is known and every caller
+renders nothing rather than the wrong thing.
+
+**The interlude this table survived** (superseded, recorded so it is not
+retried): after the April 2025 *Epic v. Apple* injunction, store builds
+carried a GET PRO link-out with both plan prices, on the premise that
+`Browser.open` "genuinely leaves" the app. It does not — on iOS it is
+SFSafariViewController, a sheet inside the app — and build 1.0(3) was
+rejected under 3.1.1 for exactly that (§0). The link, the prices and the
+premise are gone; `lib/commerce.ts`'s header carries the full account. If Pro
+is ever to be sold in-app, the path is §7 (StoreKit 2), not a link.
 
 Android is gated with iOS. Google Play's Payments policy says the same thing
 about Play Billing; if that ever changes, `STOREFRONTS` in `lib/commerce.ts` is
@@ -73,13 +134,14 @@ the same `/api/auth/delete` route: the email, the progress and every company go,
 on the server and on the device, immediately and for real.
 
 The same section carries **sign in**, **sign out**, and the signed-in address.
-Sign-*up* is deliberately not there: creating an account passes a Cloudflare
-Turnstile check, and that widget is not loadable from the `capacitor://` origin
-the app runs on. A create form that fails on device is worse than one that was
-never offered, and the free game needs no account at all — which is what makes
-that an acceptable line to draw. If in-app sign-up is ever wanted, the work is a
-Turnstile-free path on `/api/auth/signup` with its own rate limit, not a widget
-in a webview.
+Sign-*up* is deliberately not there. The original reason — Turnstile is not
+loadable from the `capacitor://` origin — dissolved when the shell went
+remote (the app's pages are served from `https://www.novuspitch.com` now, an
+origin Turnstile is happy on), but the line stays drawn for the moment as a
+product decision: the free game needs no account at all, and in-app account
+creation for a product whose accounts belong to minors deserves its own
+deliberate pass, not a side effect of a shell change. It is now an unlocked
+follow-up rather than a technical impossibility.
 
 ---
 
@@ -137,7 +199,13 @@ the in-game `ProSheet`, and the landing page's pricing card.
 - **Export compliance.** `ITSAppUsesNonExemptEncryption` is declared false, so
   the question is answered once rather than on every upload.
 - **Orientation and device family.** iPhone-only, portrait-only, and the layout
-  is built for it. No iPad build means no iPad review.
+  is built for it. ~~No iPad build means no iPad review.~~ **Superseded by the
+  1.0(3) review** (§0): Apple reviewed the iPhone binary on an iPad Air in
+  iPadOS's iPhone-app window and rejected the layout it found there. The app
+  must render sanely at any window size the shell can be handed — which is
+  what the `desk:` variant and the 672-point chrome caps now guarantee — and
+  iPad-width belongs in every future manual audit (`npm run audit:phone` has
+  the sizes).
 - **No tracking.** No advertising SDK, no analytics, no social pixel — so no App
   Tracking Transparency prompt is required, and the privacy nutrition label is
   short (see below).
@@ -183,13 +251,27 @@ These cannot be done from the repository. Fill them in before submitting.
    content with no violence; the app is used by minors and the terms say 13+, so
    do not rate it 4+ — a 4+ rating puts the app in scope for the Kids Category
    rules it is not built for.
+
+   **The questionnaire's capability questions (learned from the 2.3.6
+   rejection of 1.0(3), §0):** answer **In-App Controls: None** and **Age
+   Assurance: None**. The app has no parental controls, no guardian
+   dashboard, no content restrictions and no age *verification* — the one
+   age mechanism is `lib/auth/age.ts`, a self-declared 13+ age **screen**
+   shown once at onboarding, whose own header says it is not verification,
+   and whose answer deliberately never reaches a server
+   (docs/LEADERBOARD.md §9.4). Claiming more than that in the form is what
+   drew the rejection: a reviewer past onboarding goes looking for a
+   control and correctly finds none. Do not "fix" this by building
+   server-side age assurance — collecting a minor's age server-side is the
+   thing the COPPA posture exists to avoid.
 3. **Support URL** and **Marketing URL** — `novuspitch.com` and the support page
    behind the same address as `SUPPORT_EMAIL` in `lib/app-info.ts`.
 4. **Privacy Policy URL** — `https://novuspitch.com/privacy`.
 5. **Licence Agreement** — paste `https://novuspitch.com/terms`, or the text
    itself, in place of Apple's standard EULA.
-6. **App Review notes.** Say three things, because a reviewer will otherwise
-   look for a paywall and not find one:
+6. **App Review notes.** Say four things, because a reviewer will otherwise
+   look for a paywall and not find one, and will notice the app loads its
+   content over the network:
    > Novus is free. Nothing is sold inside the app — the optional Pro
    > subscription is bought on the web and attaches to a Novus account, so it
    > appears in the app when that account signs in (Settings › Account › Sign
@@ -197,11 +279,32 @@ These cannot be done from the repository. Fill them in before submitting.
    > without an account. The year-end pitch uses the camera, the microphone
    > and speech recognition to transcribe what is said; all three are optional
    > and the pitch can be typed instead. Video never leaves the device.
+   > The app loads its interface from our own site (novuspitch.com); the tab
+   > bar, advance control, decision sheets, widgets and Live Activities are
+   > native UIKit/SwiftUI.
 7. **A demo account** with Pro on it, in the review notes, if you want the Pro
    surfaces exercised.
 8. **Version.** `MARKETING_VERSION` in the Xcode project, `versionName` in
    `android/app/build.gradle` and `APP_VERSION` in `lib/app-info.ts` all say
-   1.0. Move all three together — Settings prints the third one.
+   1.0. Move all three together — Settings prints the third one. (The bumps
+   to build (2) and (3) were made on the build machine and never committed —
+   commit the next one, so the repo can say what shipped.)
+9. **Before resubmitting over the 2.1(a) sign-in rejection**, two checks
+   outside the repo (docs/OAUTH-SETUP.md §4 has the walkthrough): in the
+   Supabase dashboard the Apple provider must be enabled with Client IDs
+   containing **both** `com.novuspitch.web` (the Services ID) **and**
+   `com.novuspitch.app` — the native token's audience is the *bundle id*,
+   and a list without it 401s every in-app sign-in; and the client secret
+   should be the auto-renewed .p8 flow, not a pasted six-month JWT nearing
+   expiry. Then run the §7 checks of that doc on a physical iPhone *and* an
+   iPad before submitting.
+10. **Deploy order for the remote shell.** The binary loads
+    `https://www.novuspitch.com/boot.html` at launch
+    (capacitor.config.ts). Deploy the web build that carries
+    `public/boot.html` and the gated pricing surfaces **before** submitting
+    a binary for review — a reviewer meets the site as it is on review day,
+    not as it was when the binary was built. That is the entire point of the
+    remote shell (web fixes need no resubmission), and it cuts both ways.
 
 ---
 
