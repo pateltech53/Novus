@@ -1,11 +1,34 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 
 import { MAX_NAME_LENGTH } from "@/lib/account";
 import { setDisplayName } from "@/lib/cloud/auth";
 import { play } from "@/lib/sound";
+import { useWarm, warm } from "@/lib/warm";
+
+/*
+ * The privacy sheet, split off the routes that carry this form.
+ *
+ * A static `import { LegalSheet }` here put framer-motion and the whole legal
+ * corpus into the landing page's first load — ChooseName renders inside
+ * AccountGate — and pushed `/` from under its 151 kB budget to 200 kB. The
+ * sheet is a tap-opened overlay, which is exactly what lib/warm.tsx exists
+ * for: the chunk loads on idle after mount (useWarm below), and a tap that
+ * beats the idle callback renders null for the frames the fetch needs
+ * instead of committing a Suspense fallback React would throttle.
+ */
+const PrivacySheet = warm(() =>
+  Promise.all([
+    import("@/components/LegalSheet"),
+    import("@/lib/legal/documents"),
+  ]).then(([sheet, docs]) => {
+    const Bound = ({ onClose }: { onClose: () => void }) => (
+      <sheet.LegalSheet doc={docs.PRIVACY} onClose={onClose} />
+    );
+    return Bound;
+  }),
+);
 
 /**
  * The one screen a Google or Apple account gets that an email account does not.
@@ -60,6 +83,8 @@ export function ChooseName({
   const [agreed, setAgreed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  useWarm([PrivacySheet.preload]);
 
   const submit = async () => {
     const chosen = name.trim();
@@ -118,18 +143,27 @@ export function ChooseName({
         />
         <span className="text-2xs leading-relaxed text-[var(--text-secondary)]">
           I&rsquo;ve read the{" "}
-          <Link
-            href="/privacy"
-            target="_blank"
+          {/* The in-app sheet, not a link. This form renders inside the
+              shipped app (the OAuth naming step in Settings), where a
+              target=_blank document navigation is at the mercy of the shell —
+              in the old bundled build the extensionless path resolved to the
+              MARKETING page, so "privacy policy" opened the price grid. The
+              sheet is how every other in-app surface shows the policy
+              (components/LegalSheet.tsx), and on the web it reads the same. */}
+          <button
+            type="button"
+            onClick={() => setShowPrivacy(true)}
             className="inline-block py-1.5 font-bold underline underline-offset-2"
           >
             privacy policy
-          </Link>{" "}
+          </button>{" "}
           — the short version: your email and progress are stored so you can sign
           back in, your video never leaves this device, words are judged, voices
           are not.
         </span>
       </label>
+
+      {showPrivacy && <PrivacySheet onClose={() => setShowPrivacy(false)} />}
 
       <button
         type="submit"

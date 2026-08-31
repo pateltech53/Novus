@@ -2,6 +2,8 @@
 
 import { forgetIdentity, identity, localAccount, sessionLost } from "./auth";
 import { restorePurchases } from "./billing";
+import { appPath } from "@/lib/native/href";
+import { isNative } from "@/lib/native/platform";
 
 /**
  * THE HEARTBEAT — how an open tab finds out the server changed its mind.
@@ -73,8 +75,12 @@ async function beat(): Promise<void> {
       if (strikes >= 2) {
         sessionLost();
         // The reload is the kick: every screen re-decides what to show with
-        // the device now empty, which lands on the front door's sign-in.
-        window.location.replace("/");
+        // the device now empty. On the web that is the front door's sign-in;
+        // in the app it is onboarding — "/" there is the marketing page, a
+        // surface the shell is never meant to show (and, before the Landing
+        // gate was fixed, one that flashed the price grid at whoever a
+        // mid-game session kick landed on).
+        window.location.replace(isNative() ? appPath("/welcome") : "/");
       }
       return;
     }

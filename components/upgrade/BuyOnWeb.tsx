@@ -1,74 +1,43 @@
 "use client";
 
-import { BUY_IN_BROWSER_NOTE, openProPurchase } from "@/lib/commerce";
-import { PRO_MONTHLY, PRO_YEARLY, formatPrice } from "@/lib/monetization";
+import { PRO_ON_ACCOUNT_NOTE } from "@/lib/commerce";
 
 /**
- * What a store build offers where a checkout button would be: a link out.
+ * What a store build offers where a checkout button would be: a statement of
+ * fact, and nothing else.
  *
- * ── One component, three surfaces ───────────────────────────────────────────
+ * ── One component, four surfaces ────────────────────────────────────────────
  *
- * The onboarding plans step, the Pro sheet and the upgrade paywall all reach
- * the same wall — nothing can be sold inside an App Store build (see
- * lib/commerce.ts) — and all three used to answer it with a paragraph saying
- * so and nothing else. A player who wanted Pro was told it existed, told it
- * could not be bought here, and left to work out the rest.
+ * The onboarding plans step, the Pro sheet, Settings and the upgrade paywall
+ * all reach the same wall — nothing can be sold inside a store build (see
+ * lib/commerce.ts) — and they answer it identically, from here, because four
+ * pricing surfaces that word the same fact four ways is how one of them ends
+ * up saying too much.
  *
- * They now answer it identically, from here, because three pricing surfaces
- * that word the same offer three ways is how one of them ends up lying about
- * what it costs or where the money goes.
+ * ── What used to be here, and why it is gone ────────────────────────────────
  *
- * ── Why the price is on it ──────────────────────────────────────────────────
+ * A GET PRO button that opened the website's pricing section, with both plan
+ * prices under it. That was built on the April 2025 *Epic v. Apple* carve-out
+ * and on the belief that `Browser.open` "genuinely leaves" the app — and App
+ * Review rejected build 1.0(3) over it (Guideline 3.1.1: "the plans can be
+ * purchased in the app using payment mechanisms other than In-App Purchase"),
+ * because on iOS `Browser.open` is SFSafariViewController: a sheet presented
+ * INSIDE the app, with a Done button returning to it, showing a page where
+ * both plans and the chapter licences were purchasable through Stripe. The
+ * full account is in lib/commerce.ts's header; the short version is that a
+ * store build is back to selling nothing, pricing nothing and linking to
+ * nothing, which is the shape that predates the experiment.
  *
- * A link labelled only GET PRO asks a player to open a browser to find out
- * what it costs. Both prices are stated here, from the same constants the web
- * checkout charges, so the number on the link is the number on the invoice.
+ * Restore stays, at the size Restore deserves — it is the one path by which
+ * Pro reaches a store build at all.
  */
 export function BuyOnWeb({ className = "" }: { className?: string }) {
   return (
-    <div className={className}>
-      {/* A button rather than an <a>: on a device this does not navigate, it
-          hands the URL to the system browser. An anchor would promise a
-          navigation the webview must never actually perform. */}
-      <button
-        type="button"
-        onClick={() => void openProPurchase()}
-        className="nv-gc flex h-14 w-full items-center justify-center gap-2 rounded-[var(--radius-card)] nv-t-action text-[1.0625rem] font-extrabold tracking-[0.04em] shadow-[var(--e2)]"
-      >
-        GET PRO
-        <ExternalGlyph />
-      </button>
-
-      <p className="tnum mt-2 text-center text-2xs font-bold tracking-[0.06em] text-[var(--text-secondary)]">
-        {formatPrice(PRO_YEARLY.priceCents)} A YEAR · {formatPrice(PRO_MONTHLY.priceCents)} A MONTH
-      </p>
-
-      <p className="mt-1.5 text-center text-2xs leading-relaxed text-[var(--text-tertiary)]">
-        {BUY_IN_BROWSER_NOTE}
-      </p>
-    </div>
-  );
-}
-
-/** The arrow that means "this leaves". The one thing the label cannot say. */
-function ExternalGlyph() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-      <path
-        d="M5.2 2.2h6.6v6.6"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M11.8 2.2 5.6 8.4M10 8.4v3.4H2.2V4h3.4"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <p
+      className={`text-center text-2xs leading-relaxed text-[var(--text-tertiary)] ${className}`}
+    >
+      {PRO_ON_ACCOUNT_NOTE}
+    </p>
   );
 }
 
