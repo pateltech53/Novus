@@ -71,8 +71,15 @@
             first read, but that happens AFTER this file has already chosen
             where to go.
           */
+          /*
+            50, not 10: ISLAND_CAP is 50 (lib/monetization.ts), and the
+            bundled ancestor of this file scanned only ten slots — a Pro
+            player whose surviving companies all sat on slots 10+ was routed
+            to /found, a screen demanding a new company, instead of to their
+            archipelago. The bound must track the cap, not a hunch about it.
+          */
           var anyIsland = localStorage.getItem("novus:run:v1") !== null;
-          for (var i = 0; !anyIsland && i < 10; i++) {
+          for (var i = 0; !anyIsland && i < 50; i++) {
             if (localStorage.getItem("novus:run:v1:" + i) !== null) anyIsland = true;
           }
           if (anyIsland) {

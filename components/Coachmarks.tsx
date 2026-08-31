@@ -74,8 +74,8 @@ interface Rect {
  *
  * A responsive layout renders the same control twice and hides one of them.
  * /play does exactly this with the activity bar: the six tabs are a bottom bar
- * on a phone (`lg:hidden`) and a list in the left rail on a desktop
- * (`hidden lg:block`). `querySelector` returns whichever comes first in the
+ * on a phone (`desk:hidden`) and a list in the left rail on a desktop
+ * (`hidden desk:block`). `querySelector` returns whichever comes first in the
  * document regardless of whether anyone can see it — and a `display: none`
  * element measures 0×0 at 0,0, so the tutorial cut a zero-size hole in the top
  * corner of the screen and said "everything else lives down here" while

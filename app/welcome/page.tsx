@@ -831,8 +831,11 @@ function PlansSheet({
                 </div>
               )}
 
-              {/* What replaces the prices in a store build: the same offer,
-                  pointed at the browser that is allowed to take the money. */}
+              {/* What replaces the prices in a store build: a statement of
+                  where Pro lives — no price, no link, no button (the 1.0(3)
+                  rejection; see BuyOnWeb.tsx). Deliberately no Restore here:
+                  onboarding's job is the game, and the note sends an owner
+                  to sign-in, after which Pro arrives with their saves. */}
               {sellsHere === false && <BuyOnWeb className="mt-4" />}
             </motion.div>
           ) : (
@@ -965,13 +968,15 @@ function PlansSheet({
         ) : null}
 
         {/* Same width and height as CHOOSE PRO, solid rather than accented.
-            Free is one of two answers to the question, not the way out of a
-            paywall, and a 12px underline at the bottom would say otherwise.
+            On the web, Free is one of two answers to the question, not the
+            way out of a paywall, and a 12px underline at the bottom would
+            say otherwise.
 
-            It used to go orange and read START PLAYING in a store build, where
-            it was the only button on the step. It is not the only one any more
-            — GET PRO is the other answer again — and two accented buttons on
-            one screen is the accent spent twice. */}
+            In a store build this IS the only button on the step again — the
+            GET PRO link-out came and went with the 1.0(3) rejection — and it
+            stays solid there too, deliberately: the one control on a screen
+            does not need the accent to be found, and one label on every
+            platform keeps the step (and the audit that reads it) simple. */}
         {/* `leaving`, not the `busy` above: that one belongs to CHOOSE PRO and
             its checkout. This is the last tap of onboarding, and it resolves to
             entryRoute() — /play for anyone with a run, the heaviest page in the

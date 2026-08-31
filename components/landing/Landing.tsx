@@ -716,8 +716,15 @@ function PricingSection() {
    * `=== true` for exactly this reason (lib/commerce.ts, "why a hook");
    * this one now matches. The web pays one effect-tick of delay before the
    * prices appear, which is the same price every other surface already paid.
+   *
+   * The stub is not decoration. /chapter's SEE THE LICENCES and the
+   * institutions story hard-navigate to /#pro, and a browser performs its
+   * fragment scroll against the HTML it parsed — which no longer contains
+   * the priced section. The zero-height anchor holds the position, so the
+   * buyer lands where the plans mount an effect-tick later instead of at
+   * the top of a marketing page they then have to scroll.
    */
-  if (sells !== true) return null;
+  if (sells !== true) return <div id="pro" aria-hidden="true" />;
 
   return (
     <section

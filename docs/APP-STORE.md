@@ -40,7 +40,10 @@ what answered it:
    app — where the plans were purchasable through Stripe. Withdrawn: store
    builds are sells-nothing again, and three ungated price surfaces found in
    the same audit (the prerendered landing pricing grid, `/chapter`'s licence
-   blurb, `/product/institutions`) are now gated the same way.
+   blurb, `/product/institutions`) are now gated the same way. One accepted
+   exception, on the record: the in-app Terms sheet states Pro's prices as
+   part of the EULA's subscription-terms disclosure (3.1.2 asks for exactly
+   that) — legal copy, changed only with the owner's sign-off.
 
 3. **Guideline 4 — "crowded, laid out, or displayed in a way that made it
    difficult to use" on iPad.** iPadOS windows the iPhone app at widths the

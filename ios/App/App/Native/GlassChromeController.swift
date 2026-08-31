@@ -230,8 +230,14 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
         /// everything edge-to-edge; App Review ran the iPhone app on an iPad
         /// Air (build 1.0(3), Guideline 4) where iPadOS windows pass 1000pt
         /// and the ADVANCE capsule became a window-wide slab. Every floating
-        /// surface is capped here and centred instead. The tab bar stays
-        /// full-width — wide tab bars are the system's own layout to manage.
+        /// CONTENT surface — deck, nudge, toast, the decision sheet — is
+        /// capped here and centred instead. Two exceptions, both deliberate:
+        /// the tab bar stays full-width (wide tab bars are the system's own
+        /// layout to manage), and the masthead's circular control clusters
+        /// keep the window's corners — corner controls belong to the window
+        /// the way a navigation bar's buttons do, and dragging them inboard
+        /// to a content column would detach them from the edges a thumb
+        /// finds them by.
         static let maxContentWidth: CGFloat = 672
     }
 
@@ -239,17 +245,22 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
     /// filling the window to within the side margins on a phone, capped at
     /// `Metric.maxContentWidth` and centred once the window is wider.
     ///
-    /// The fill is a high-priority EQUALITY, not a pair of required edge
-    /// pins: a required cap against required edge pins is an unsatisfiable
-    /// system the solver resolves by breaking a constraint of its choosing,
-    /// while an inequality-only system has many solutions and lets it pick
-    /// any of them (the layout rule this file lives by — measure or state an
-    /// equality, never assume). The required `leading ≥` keeps the margin
-    /// honest at every width the equality loses at.
+    /// The fill is a near-required EQUALITY (999), not a pair of required
+    /// edge pins: a required cap against required edge pins is an
+    /// unsatisfiable system the solver resolves by breaking a constraint of
+    /// its choosing, while an inequality-only system has many solutions and
+    /// lets it pick any of them (the layout rule this file lives by —
+    /// measure or state an equality, never assume). 999 rather than
+    /// .defaultHigh so the fill also outranks every content priority —
+    /// multiline labels resist compression at 750, and a tie there hands
+    /// the width decision to whichever constraint the solver breaks first.
+    /// The required `leading ≥` keeps the margin honest at every width the
+    /// equality loses at, and (with centerX) bounds the surface inside the
+    /// window no matter what the content wants.
     private func pinHorizontally(_ surface: UIView, in host: UIView) {
         let fill = surface.widthAnchor.constraint(
             equalTo: host.widthAnchor, constant: -2 * Metric.sideMargin)
-        fill.priority = .defaultHigh
+        fill.priority = UILayoutPriority(999)
         NSLayoutConstraint.activate([
             surface.centerXAnchor.constraint(equalTo: host.centerXAnchor),
             surface.widthAnchor.constraint(

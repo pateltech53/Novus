@@ -93,6 +93,13 @@
       still agree so they cannot drift apart silently.
     -->
     <script>
+      /*
+        Best-effort only: this page is served from the LOCAL origin, whose
+        localStorage the remote-served game never writes — so on a fresh
+        install the key is simply absent and prefers-color-scheme decides.
+        The probe stays because it costs nothing and still honours devices
+        that carry the key from the bundled era.
+      */
       (function () {
         try {
           var theme = localStorage.getItem("novus:theme:v1");
@@ -105,9 +112,13 @@
       })();
     </script>
     <main>
-      <h1>NO CONNECTION</h1>
+      <!-- "could not load", not "could not be reached": Android routes ANY
+           main-frame HTTP error (a 404 on a stale deep link, a 5xx mid-
+           deploy) to this page too, not only a dead network — the copy has
+           to be true for both. -->
+      <h1>COULD NOT LOAD</h1>
       <p>
-        Novus plays from the live site, and it could not be reached. Check the
+        Novus plays from the live site, and it could not load. Check the
         connection and try again.
       </p>
       <button onclick="location.replace('https://www.novuspitch.com/boot.html')">

@@ -232,9 +232,16 @@ restoreApiRoutes();
  *
  * A default written in two places is a default that will eventually disagree
  * with itself, and the half that loses is the one nobody is looking at. It
- * lives in lib/native/origin.ts now, and only there. Setting
- * NEXT_PUBLIC_API_ORIGIN in the environment still points a staging build
- * wherever it likes — `run()` passes the whole environment through.
+ * lives in lib/native/origin.ts now, and only there.
+ *
+ * Under the remote shell the env override is deliberately NOT enough on its
+ * own for a native build: NEXT_PUBLIC_API_ORIGIN still repoints the export's
+ * API calls, but verifyShellAgreement will then fail the build, on purpose —
+ * the shell's server.url in capacitor.config.ts and the RETRY origin in
+ * native/shell/index.html are hardcoded, and a staging SHELL that loads
+ * production pages against staging APIs (or vice versa) is exactly the
+ * split-brain the assertion exists to prevent. A staging shell edits all
+ * three, and the check is what remembers the third one.
  */
 const nativeEnv = { NEXT_PUBLIC_NATIVE: "1" };
 
@@ -321,6 +328,7 @@ function verifyCopied() {
   ];
 
   const shellSource = readFileSync(join(root, "native", "shell", "index.html"));
+  const bootSentinel = readFileSync(join(root, "native", "shell", "boot.html"));
 
   const stale = [];
   for (const [name, dir, configDir] of PLATFORMS) {
@@ -333,6 +341,18 @@ function verifyCopied() {
       stale.push(`${name}: the shell document was not copied — nothing answers offline`);
     } else if (!readFileSync(there).equals(shellSource)) {
       stale.push(`${name}: the copied shell document does not match native/shell/index.html`);
+    }
+
+    // iOS exits the process at launch when appStartPath names a file the
+    // LOCAL webDir does not hold, even though the load itself goes to
+    // server.url — CAPBridgeViewController.loadWebView() existence-checks
+    // before it loads. The sentinel's absence is not "offline is broken",
+    // it is "the app never opens".
+    const sentinel = join(dir, "boot.html");
+    if (!existsSync(sentinel)) {
+      stale.push(`${name}: boot.html sentinel missing — iOS fatalLoadError()s at launch without it`);
+    } else if (!readFileSync(sentinel).equals(bootSentinel)) {
+      stale.push(`${name}: the copied boot.html sentinel does not match native/shell/boot.html`);
     }
 
     const config = join(configDir, "capacitor.config.json");

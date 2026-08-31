@@ -218,7 +218,7 @@ export function UpgradeScreen({
   const priceBlock = (
     <>
       <div
-        className="grid grid-cols-2 gap-2 lg:grid-cols-1"
+        className="grid grid-cols-2 gap-2 desk:grid-cols-1"
         role="group"
         aria-label="Billing period"
       >
@@ -304,8 +304,9 @@ export function UpgradeScreen({
     <>
       {sellsHere === true ? priceBlock : null}
 
-      {/* A store build cannot take the money, so it hands the player to the
-          browser that can. */}
+      {/* A store build cannot take the money, and no longer points at
+          anywhere that can (the 1.0(3) rejection — see BuyOnWeb.tsx): it
+          states where Pro lives, and Restore below is the action. */}
       {sellsHere === false ? <BuyOnWeb /> : null}
 
       {/* Small, and here rather than only in Settings — the player is standing
@@ -362,7 +363,7 @@ export function UpgradeScreen({
   );
 
   return (
-    <div className="fixed inset-0 z-[98] flex items-end justify-center lg:items-center lg:p-6">
+    <div className="fixed inset-0 z-[98] flex items-end justify-center desk:items-center desk:p-6">
       <button
         type="button"
         aria-label="Close"
@@ -374,13 +375,13 @@ export function UpgradeScreen({
         role="dialog"
         aria-modal="true"
         aria-label="Novus Pro"
-        className="relative flex max-h-[min(92dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] w-full flex-col overflow-hidden rounded-t-[var(--radius-sheet)] bg-[var(--sheet)] shadow-[var(--e4)] lg:max-h-[min(42rem,92dvh)] lg:max-w-4xl lg:rounded-[var(--radius-sheet)]"
+        className="relative flex max-h-[min(92dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] w-full flex-col overflow-hidden rounded-t-[var(--radius-sheet)] bg-[var(--sheet)] shadow-[var(--e4)] desk:max-h-[min(42rem,92dvh)] desk:max-w-4xl desk:rounded-[var(--radius-sheet)]"
         initial={reduced ? { opacity: 0 } : { y: "8%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={reduced ? { opacity: 0, transition: EXIT } : { y: "6%", opacity: 0, transition: EXIT }}
         transition={SHEET_SPRING}
       >
-        <header className="flex items-start justify-between gap-4 px-5 pt-5 lg:px-7 lg:pt-6">
+        <header className="flex items-start justify-between gap-4 px-5 pt-5 desk:px-7 desk:pt-6">
           <p className="text-2xs font-bold tracking-[0.18em] text-[var(--color-prestige)]">
             NOVUS PRO
           </p>
@@ -410,10 +411,10 @@ export function UpgradeScreen({
           nothing at 320px. The pinned strip already carries a hairline and a
           solid fill, which reads as the deliberate boundary it is.
         */}
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-4 lg:grid lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start lg:gap-7 lg:px-7 lg:pb-7">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-4 desk:grid desk:grid-cols-[minmax(0,1fr)_19rem] desk:items-start desk:gap-7 desk:px-7 desk:pb-7">
           {/* ── The argument ─────────────────────────────────────────────── */}
           <div className="min-w-0">
-            <h2 className="mt-1 text-[1.625rem] font-extrabold leading-tight tracking-[-0.02em] [overflow-wrap:anywhere] lg:text-[1.75rem]">
+            <h2 className="mt-1 text-[1.625rem] font-extrabold leading-tight tracking-[-0.02em] [overflow-wrap:anywhere] desk:text-[1.75rem]">
               {gate ? gate.title : "Free is the whole game. Pro is more rooms in it."}
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">
@@ -491,7 +492,7 @@ export function UpgradeScreen({
             {/* The promise travels with the argument on desktop and sits above
                 the pinned strip on phone — either way it is read before the
                 button, never after it in a footnote. */}
-            <p className="mt-5 border-t border-[var(--hairline)] pt-3.5 text-xs leading-relaxed text-[var(--text-secondary)] lg:mt-6">
+            <p className="mt-5 border-t border-[var(--hairline)] pt-3.5 text-xs leading-relaxed text-[var(--text-secondary)] desk:mt-6">
               {PRO_PROMISE}{" "}
               <span className="text-[var(--text-primary)]">
                 That is not a promise — it is the design.
@@ -508,13 +509,13 @@ export function UpgradeScreen({
             both of them and the free exit rendered as bare text on white.
             Recessed, the three surfaces inside it read as three steps.
           */}
-          <div className="hidden lg:sticky lg:top-0 lg:mt-1 lg:block lg:rounded-[var(--radius-card)] lg:bg-[var(--bg)] lg:p-4">
+          <div className="hidden desk:sticky desk:top-0 desk:mt-1 desk:block desk:rounded-[var(--radius-card)] desk:bg-[var(--bg)] desk:p-4">
             {purchase}
           </div>
         </div>
 
         {/* ── The purchase · phone only, pinned ───────────────────────────── */}
-        <div className="shrink-0 border-t border-[var(--hairline)] bg-[var(--sheet)] px-5 pb-[max(1rem,var(--nv-safe-bottom))] pt-3 lg:hidden">
+        <div className="shrink-0 border-t border-[var(--hairline)] bg-[var(--sheet)] px-5 pb-[max(1rem,var(--nv-safe-bottom))] pt-3 desk:hidden">
           {purchase}
         </div>
       </motion.section>

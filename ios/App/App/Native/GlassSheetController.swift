@@ -214,19 +214,30 @@ final class GlassSheetController: UIViewController, UIScrollViewDelegate {
 
         /*
          * Full-bleed on a phone, capped and centred on anything wider. The
-         * fill is a high-priority equality under a required 672 cap — the
+         * fill is a near-required equality under a required 672 cap — the
          * same resolution GlassChromeController.pinHorizontally uses, and
          * the same 672 the DOM's sheets cap at (ScreenSheet's max-w-2xl), so
          * the native decision sheet and the web ones agree on a width. On an
          * iPad-wide window an edge-pinned bottom sheet was a wall-to-wall
          * band of rows (build 1.0(3), Guideline 4).
+         *
+         * 999, not .defaultHigh: every card label in the content stack is
+         * multiline with compression resistance at the default 750, and a
+         * multiline label's intrinsic width is its single-line width — far
+         * wider than a phone. At .defaultHigh (also 750) the fill TIED with
+         * that resistance and the solver was free to break the fill instead,
+         * stretching the panel toward the 672 cap on a 375pt screen. The
+         * required `leading ≥` bounds it to the window regardless, and 999
+         * makes the fill lose only to required constraints, never to a
+         * label's opinion of its own line length.
          */
         let fill = panel.widthAnchor.constraint(equalTo: view.widthAnchor)
-        fill.priority = .defaultHigh
+        fill.priority = UILayoutPriority(999)
 
         NSLayoutConstraint.activate([
             panel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             panel.widthAnchor.constraint(lessThanOrEqualToConstant: 672),
+            panel.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor),
             fill,
             panel.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             top,

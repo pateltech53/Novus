@@ -162,8 +162,11 @@ export function NextStep({
         */
         /* max-w-2xl + mx-auto: pinned above the dock it must stay the width
            of the controls it sits over, not the window's — an iPad-wide
-           nudge card is a banner, not a nudge. */
-        className="fixed inset-x-3 bottom-[var(--nudge-bottom)] z-30 mx-auto max-w-2xl desk:static desk:mx-3 desk:mt-2"
+           nudge card is a banner, not a nudge. desk:max-w-none hands the
+           desk composition back its uncapped card: there the column itself
+           is the cap, and a 42rem clamp inside a 44rem column left the card
+           newly narrower than the centred controls beneath it. */
+        className="fixed inset-x-3 bottom-[var(--nudge-bottom)] z-30 mx-auto max-w-2xl desk:static desk:mx-3 desk:mt-2 desk:max-w-none"
       >
         <div className="nv-gc relative rounded-[var(--radius-card)] shadow-[var(--e3)] desk:shadow-none">
           {/*

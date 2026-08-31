@@ -85,7 +85,11 @@ export function availableProviders(): OAuthProvider[] {
   if (!nativeAuthAvailable()) return [];
 
   const providers: OAuthProvider[] = [];
-  if (GOOGLE_WEB_CLIENT_ID) providers.push("google");
+  // On iOS the plugin configures its Google provider only when an iOS client
+  // id is present — a web client id alone initialises nothing there, and a
+  // button whose every tap fails is the defect class this file was rejected
+  // for. Offer only what the tap can honour, per platform.
+  if (GOOGLE_WEB_CLIENT_ID && (!isIOS() || GOOGLE_IOS_CLIENT_ID)) providers.push("google");
   if (isIOS() || (APPLE_SERVICES_ID && APPLE_REDIRECT_URL)) providers.push("apple");
   return providers;
 }
@@ -127,9 +131,18 @@ function initialise(): Promise<void> {
      * custom tab, which genuinely needs the Services ID and return URL.
      * docs/OAUTH-SETUP.md §4 records this contract.
      */
+    /*
+     * Android's key is gated on BOTH values — the same pair
+     * availableProviders() demands — because the plugin's Android
+     * initialize() rejects the WHOLE call over an empty redirectUrl, before
+     * it has registered any other provider. A deploy with the Services ID
+     * set and the return URL forgotten would otherwise break the Google
+     * button too: no Apple button on screen, and every Google tap failing
+     * with an error about Apple.
+     */
     ...(isIOS()
       ? { apple: {} }
-      : APPLE_SERVICES_ID
+      : APPLE_SERVICES_ID && APPLE_REDIRECT_URL
         ? { apple: { clientId: APPLE_SERVICES_ID, redirectUrl: APPLE_REDIRECT_URL } }
         : {}),
   }).catch((error: unknown) => {

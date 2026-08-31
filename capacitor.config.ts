@@ -81,6 +81,12 @@ const config: CapacitorConfig = {
     // provides the separator — "/boot.html" would produce a double-slash path
     // the server answers with a redirect. iOS appends it as a path component
     // and is indifferent either way.
+    //
+    // ⚠ iOS refuses to LAUNCH unless this path also exists as a file in the
+    // local webDir — CAPBridgeViewController.loadWebView() existence-checks
+    // appStartFileURL (local) before loading appStartServerURL (remote) and
+    // exits the process on a miss. native/shell/boot.html exists purely to
+    // satisfy that guard; build-native.mjs verifies it was copied.
     appStartPath: "boot.html",
     // What the player sees when the network cannot produce a page: the one
     // document still on the device. Served from the local origin, so it works

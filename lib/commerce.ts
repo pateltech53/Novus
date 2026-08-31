@@ -38,6 +38,14 @@ import { platform, type NativePlatform } from "@/lib/native/platform";
  * it. If a way to sell inside the app is ever wanted, it is StoreKit 2 and
  * real products (docs/APP-STORE.md §7), not a link wearing a costume.
  *
+ * One accepted exception to "no price": the Terms of Use sheet
+ * (lib/legal/documents.tsx) states what Pro costs and that it is billed by
+ * Stripe, and is reachable in-app beside every offer. That is EULA
+ * disclosure — subscription terms are precisely what 3.1.2 wants stated
+ * with the offer — and it is legal copy, which no session edits without the
+ * owner signing off the wording. Recorded here so the next sells-nothing
+ * audit does not report it as a leak.
+ *
  * ── Why a hook and not a plain call ─────────────────────────────────────────
  *
  * The native build is a static export: its HTML is prerendered on a machine
@@ -105,7 +113,13 @@ export const MANAGE_SUBSCRIPTION_NOTE =
  * MANAGE_SUBSCRIPTION_NOTE: it names no price, offers no link and issues no
  * instruction to go buy anything — the 3.1.3(a) line is between describing a
  * player's own account and pointing them at a till, and this sentence stays
- * on the describing side. Restore beside it is the action.
+ * on the describing side.
+ *
+ * It deliberately does not name Restore: three of the four surfaces render
+ * RestoreButton right beside this note, where the control explains itself,
+ * and the fourth — the onboarding plans step — has no Restore at all, so a
+ * sentence saying "tap Restore" would be an instruction pointing at a
+ * control that is not on the screen giving it.
  */
 export const PRO_ON_ACCOUNT_NOTE =
-  "Novus Pro attaches to a Novus account, not to this device. If your account has Pro, sign in and it arrives on the next sync — or tap Restore to check now.";
+  "Novus Pro attaches to a Novus account, not to this device. If your account has Pro, sign in and it arrives with your saves.";
