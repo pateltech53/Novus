@@ -362,8 +362,21 @@ export async function nativeProviderSignIn(provider: OAuthProvider): Promise<Pro
   try {
     const { nativeIdToken } = await import("@/lib/cloud/native-oauth");
     token = await nativeIdToken(provider);
-  } catch {
-    return fail("error", `Could not open the ${label} sign-in. Try again.`);
+  } catch (error) {
+    // The plugin's own words travel with the sentence. Build 1.0(3) was
+    // rejected over "an error message was displayed" on this exact surface,
+    // and the message named nothing — every failure between the tap and the
+    // sheet ("No provider was initialized", an ASAuthorizationError code, a
+    // redirect exchange gone wrong) wore the same clothes. A cause in
+    // parentheses is the difference between a reviewer's screenshot that
+    // diagnoses itself and an afternoon of archaeology.
+    const cause = (error instanceof Error ? error.message : String(error ?? "")).trim();
+    return fail(
+      "error",
+      cause
+        ? `Could not open the ${label} sign-in. (${cause})`
+        : `Could not open the ${label} sign-in. Try again.`,
+    );
   }
 
   // Dismissed the sheet. Not an error, and must not be shown as one.
@@ -379,6 +392,11 @@ export async function nativeProviderSignIn(provider: OAuthProvider): Promise<Pro
   const { res, body } = out;
   if (body.configured === false) {
     return fail("not-configured", "Accounts are not switched on for this build.");
+  }
+  // The throttle's answer is not "that sign-in was wrong", it is "stop for a
+  // moment" — a different instruction to the player, so a different reason.
+  if (res.status === 429) {
+    return fail("error", body.error ?? "Too many attempts. Try again shortly.");
   }
   if (!res.ok || !body.signedIn) {
     return fail("invalid", body.error ?? `That ${label} sign-in could not be completed.`);
