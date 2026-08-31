@@ -7,7 +7,7 @@ import { appPath } from "@/lib/native/href";
  * Where a tap on a widget lands.
  *
  * Every surface outside the app is a link, and a link that merely opens the
- * app is a wasted one: `native/boot.html` already decides which screen a cold
+ * app is a wasted one: `public/boot.html` already decides which screen a cold
  * start belongs on, so "open Novus" is what the icon does. A widget is worth
  * having only if tapping the score ring puts you in front of the stat it is
  * about.

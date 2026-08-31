@@ -13,9 +13,10 @@ import { useEffect } from "react";
  * imports — a module import is one more thing that can be the reason we are
  * here.
  *
- * That is also why it does not import `isNative()`: `/boot.html` exists only in
- * the shipped app bundle, and probing for the Capacitor global inline is
- * cheaper than trusting a module graph that has already thrown once.
+ * That is also why it does not import `isNative()`: probing for the Capacitor
+ * global inline is cheaper than trusting a module graph that has already
+ * thrown once. (`/boot.html` is served by the site itself now — public/ —
+ * so the shell target it reloads to is a real URL on every build.)
  *
  * If this screen is ever seen, something is wrong at a level where the only
  * honest offer is a full reload.
@@ -35,7 +36,7 @@ export default function GlobalError({
     <html lang="en">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-        {/* The same two grounds native/boot.html paints, for the same reason:
+        {/* The same two grounds public/boot.html paints, for the same reason:
             whatever shows here must not flash a different colour than the app. */}
         <style>{`
           html { background:#f6f7f9; color:#1c1d21; }

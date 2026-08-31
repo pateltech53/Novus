@@ -53,7 +53,7 @@ import { appPath } from "@/lib/native/href";
  *
  * Until this revision the only place to sign out, delete an account, read the
  * privacy policy or reach a human was the landing page — a route the shipped
- * app never opens (native/boot.html sends every cold start to /welcome, /found
+ * app never opens (public/boot.html sends every cold start to /welcome, /found
  * or /play). So in the app those controls did not exist at all, and three of
  * them are not optional:
  *

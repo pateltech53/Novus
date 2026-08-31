@@ -9,9 +9,10 @@
  * out from under it. Two full layouts in a row, the first of which was a
  * sentence in the middle of nothing.
  *
- * It matters more than it looks, because this is also the NATIVE app's normal
- * cold start: `native/boot.html` does `location.replace("/play/index.html")`,
- * so the first thing a player sees after the splash screen lifts is this. No
+ * It matters more than it looks, because this is also on the NATIVE app's
+ * cold-start path: `public/boot.html` (the shell's entry document) reads
+ * localStorage and `location.replace()`s into the game, so what a player sees
+ * right after the splash lifts is whatever the landing route paints first. No
  * amount of route-level polish reaches that path — only what this component
  * paints does.
  *

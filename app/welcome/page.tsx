@@ -635,7 +635,7 @@ function PlansSheet({
   /**
    * Whether this build may show a way to pay at all.
    *
-   * This is the step the shipped app boots into — native/boot.html sends a
+   * This is the step the shipped app boots into — public/boot.html sends a
    * first-run cold start straight to /welcome — so for a while the iPhone
    * build's fourth screen was a subscription button that opened Stripe
    * Checkout. That is App Store Guideline 3.1.1, the single most reliably
