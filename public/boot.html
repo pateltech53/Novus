@@ -6,6 +6,9 @@
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"
     />
+    <!-- The app's front door, not a page anyone should be sent to by a search
+         engine — it renders nothing and leaves immediately. -->
+    <meta name="robots" content="noindex" />
     <title>Novus</title>
     <style>
       /* The two grounds, matching --n-1 in each theme. Whatever this page
@@ -32,34 +35,29 @@
   </head>
   <body>
     <!--
-      The app's front door, and deliberately not a Next.js page.
+      The shipped app's entry document, and deliberately not a Next.js page.
 
-      A framework route cannot answer "which screen does this player belong on"
-      until the runtime, the router and the page chunk have all parsed — a
-      couple of hundred milliseconds of nothing on a cold start, spent to read
-      two keys out of localStorage. This document does it in one parse and
-      hands the webview straight to the right route, so the launch screen is
-      followed by the game rather than by a loading state.
+      capacitor.config.ts points server.appStartPath here, so this is the
+      first thing the shell loads on every launch. A framework route cannot
+      answer "which screen does this player belong on" until the runtime, the
+      router and the page chunk have all parsed — a couple of hundred
+      milliseconds of nothing on a cold start, spent to read two keys out of
+      localStorage. This document does it in one parse and hands the webview
+      straight to the right route, so the launch screen is followed by the
+      game rather than by a loading state.
 
-      Generated into the app bundle only; the web build never serves it.
-    -->
-    <!--
-      Every target below names index.html, and it is not optional.
-
-      The shell serves navigations through CapacitorRouter.route(for:), which
-      returns the bundle's ROOT index.html for any path with no file extension
-      — it assumes a single-document SPA. This export is a document per route
-      and the root is the marketing page, so "/play/" did not open the play
-      screen, it opened the landing page. Including from here: this file was
-      the first redirect of every launch, so the app opened on a marketing page
-      it is never meant to show, and every way out of it came back.
-
-      "/play/index.html" has an extension, so the router returns it untouched.
-      See lib/native/href.ts, which is the same rule for the TypeScript side.
+      It lives in public/ because the shell loads it from the live origin now
+      (capacitor.config.ts documents that decision). Its bundled ancestor,
+      native/boot.html, had to name every target "/route/index.html" because
+      the local file server resolved extensionless paths to the marketing
+      page; this one is answered by the real Next server, which resolves
+      routes, so the targets are the routes themselves. A browser that
+      stumbles in here is redirected the same way lib/entry.ts would have
+      sent it.
     -->
     <script>
       (function () {
-        var target = "/welcome/index.html";
+        var target = "/welcome";
         try {
           var theme = localStorage.getItem("novus:theme:v1");
           if (theme === "dark" || theme === "light") {
@@ -73,15 +71,22 @@
             first read, but that happens AFTER this file has already chosen
             where to go.
           */
+          /*
+            50, not 10: ISLAND_CAP is 50 (lib/monetization.ts), and the
+            bundled ancestor of this file scanned only ten slots — a Pro
+            player whose surviving companies all sat on slots 10+ was routed
+            to /found, a screen demanding a new company, instead of to their
+            archipelago. The bound must track the cap, not a hunch about it.
+          */
           var anyIsland = localStorage.getItem("novus:run:v1") !== null;
-          for (var i = 0; !anyIsland && i < 10; i++) {
+          for (var i = 0; !anyIsland && i < 50; i++) {
             if (localStorage.getItem("novus:run:v1:" + i) !== null) anyIsland = true;
           }
           if (anyIsland) {
-            target = "/islands/index.html";
+            target = "/islands";
           } else {
             var raw = localStorage.getItem("novus:profile:v1");
-            if (raw && JSON.parse(raw).onboarded) target = "/found/index.html";
+            if (raw && JSON.parse(raw).onboarded) target = "/found";
           }
         } catch (e) {
           /* First launch, or storage denied. Onboarding is the right answer. */

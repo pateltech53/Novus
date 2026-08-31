@@ -1,14 +1,18 @@
 # The app
 
 Novus ships as an iOS app, an Android app and a website from one codebase.
-Capacitor wraps the same static export in both shells. What differs is the
-chrome: on iOS the tab bar, the advance button and the masthead controls are
-withdrawn from the DOM and re-drawn by UIKit, so they are the system's real
-Liquid Glass rather than a CSS impression of it.
+The shells are **remote**: Capacitor points the webview at the live site
+(`server.url` in `capacitor.config.ts`), so a web deploy IS an app release
+and nothing but native code ever needs a store resubmission. What the shells
+add is the chrome: on iOS the tab bar, the advance button and the masthead
+controls are withdrawn from the DOM and re-drawn by UIKit, so they are the
+system's real Liquid Glass rather than a CSS impression of it — the whole
+handoff is plugin traffic over the injected bridge, which is exactly why it
+is indifferent to where the page came from.
 
 ```bash
 npm install
-npm run build:native          # export + copy into ios/ and android/
+npm run build:native          # export (for audits) + verify + copy the shell
 npm run ios                   # …and open Xcode
 npm run android               # …and open Android Studio
 ```
@@ -17,75 +21,92 @@ npm run android               # …and open Android Studio
 
 ## How the two builds differ
 
-| | web (`npm run build`) | app (`npm run build:native`) |
+| | web (`npm run build`) | app |
 |---|---|---|
-| Output | `.next` server build | `out/` static export |
-| Entry | `/` — the landing page | `boot.html` → the right screen |
-| API routes | served from the same origin | called at `NEXT_PUBLIC_API_ORIGIN` |
+| Output | `.next` server build | the same deploy, loaded remotely |
+| On device | — | `native/shell/index.html` (the offline notice) |
+| Entry | `/` — the landing page | `/boot.html` → the right screen |
+| API routes | same origin | same origin (`www.novuspitch.com` serves both) |
 | Tab bar / CTA / masthead controls | React + CSS glass | UIKit Liquid Glass (iOS) |
 | Haptics | `navigator.vibrate` (nothing on iOS) | the Taptic Engine |
 
-`NEXT_PUBLIC_NATIVE=1` is the switch. Everything it changes is in
-`next.config.ts` and `scripts/build-native.mjs`.
+`NEXT_PUBLIC_NATIVE=1` still exists and still flips `next.config.ts` into a
+static export — but the export's remaining job is the Playwright audits and a
+compile gate, not the binaries (`scripts/build-native.mjs`'s header carries
+the whole accounting of what was retired with the bundle).
 
-### The app's calls are cross-origin, and that has two consequences
+### One origin now, and what that retired (superseded 2026-08-31)
 
-The bundle is served from `app.novuspitch.com` — `capacitor://` on iOS,
-`https://` on Android — while the route handlers live at the real origin. Every
-call the app makes is therefore cross-origin, which the web build never is. Two
-things follow, and both were learned the hard way:
+The bundled shell served itself from `app.novuspitch.com` (`capacitor://` on
+iOS, `https://` on Android) and called the API cross-origin — a design that
+required CORS in `middleware.ts`, the `NATIVE_ORIGINS` allow-list feeding the
+CSRF guard, the native cookie jar for the session, and a build-time
+`NEXT_PUBLIC_API_ORIGIN` verified against the emitted chunks because a
+redirecting host fails every preflight. The remote shell is served from
+`https://www.novuspitch.com` — the same host the API answers at — so inside
+the app everything is **same-origin** again: the CSP's `connect-src 'self'`
+passes, `Sec-Fetch-Site` says `same-origin` and the CSRF guard needs no
+carve-out, and the session cookie is an ordinary first-party cookie.
 
-**CORS is required.** A JSON POST asking for credentials is preflighted, and a
-preflight with no `Access-Control-Allow-Origin` is refused before the real
-request is ever sent. `middleware.ts` answers it, echoing only the two origins
-in `lib/native/origins.ts` — never `*`, which is invalid with credentials
-anyway. Every other origin gets no CORS headers and stays blocked.
+The old machinery deliberately stays: `NATIVE_ORIGINS`, the CORS middleware
+and `CapacitorCookies` keep serving any bundled TestFlight build still out
+there, and `lib/native/origin.ts` keeps `apiUrl()` absolute (an absolute URL
+to your own origin is still `'self'` to CSP). `build-native.mjs` still reads
+the origin back out of the artifact — and now also asserts that
+`capacitor.config.ts`'s `server.url`, the offline page's RETRY link and the
+API origin are one host, because the whole security story above is
+same-origin and three files carry the value.
 
-**`NEXT_PUBLIC_API_ORIGIN` must be the canonical host.** Browsers do not follow
-redirects on a preflight, so an origin that 308s (`novuspitch.com` →
-`www.novuspitch.com`) fails every call from the app while working perfectly in
-a browser tab. Point it at the host that answers, not the one that redirects.
+**The web's security headers apply inside the app now.** The bundled shell
+never saw `next.config.ts`'s CSP; the remote one lives under it. That is a
+feature — the child-safety rule (`connect-src 'self'`, nothing third-party
+from a page a minor is looking at) is now enforced in the app by the same
+header that enforces it in the browser.
 
-Its default lives in `lib/native/origin.ts` and **only** there. It briefly lived
-in two places — `scripts/build-native.mjs` carried a copy — and when the one in
-source was corrected, the copy went on overriding it on every native build. The
-fix shipped, the build was green, the export was fresh, and no binary ever got
-it. So `build-native.mjs` now reads the origin back out of the chunks it just
-emitted and fails the build if the string that landed is not the string the
-repo declared. It prints the host on every run:
+### What the shells gave up, on the record
 
-```
-· the app will call https://www.novuspitch.com
-```
+- **Offline play.** The bundled app played entirely offline; the remote one
+  needs the network and shows `native/shell/index.html`
+  (`server.errorPath`) when it has none. Accepted deliberately in exchange
+  for web-deploy releases — the app was pre-release, so no player lost
+  anything. If offline ever matters again the honest path is
+  WKAppBoundDomains + a service worker, recorded as an open item in
+  docs/HANDOFF.md.
+- **The capacitor:// origin's localStorage.** An origin change orphans
+  per-origin storage; only TestFlight installs existed, and cloud sync
+  covers any signed-in account.
+- **A network-free cold start.** The splash still holds until the first real
+  frame (`lib/native/boot.ts`), but the first frame now arrives over TLS.
+  The 6-second `launchShowDuration` backstop in `capacitor.config.ts` was
+  calibrated to a local bundle and is now doing real work on bad networks.
 
-That line is worth reading. A value that can be overridden from three places
-needs to be checked against the artifact, not against the configuration.
+### What the build script still does, and why
 
-Both failures look identical from inside the app — "network error" — and
-neither can reproduce on the web, where the same code is same-origin and no
-preflight happens at all. That asymmetry is why they survived every check that
-ran on the web build.
-
-The same origin list drives the CSRF guard in `lib/supabase/route.ts`: the app
-is first-party and genuinely cross-site, so `Sec-Fetch-Site` says "cross-site"
-and is right. `crossSite()` checks the allow-list first for exactly that
-reason.
-
-### Two things that build script does, and why
-
-**`app/api` moves aside for the duration.** `output: "export"` refuses to build
+**`app/api` moves aside for the export.** `output: "export"` refuses to build
 a dynamic route handler, and all seven of ours are — they read cookies, verify
 Stripe signatures and talk to Supabase. There is no per-route opt-out.
 Narrowing `pageExtensions` to `.tsx` looks tidier and breaks Next's own
 resolution of its page aliases, so the directory moves and moves back in a
 `finally` that also runs on Ctrl-C.
 
-**`native/boot.html` becomes the app's entry point.** A Next.js route cannot
-answer "which screen does this player belong on" until the framework, the
-router and the page chunk have all parsed. That document reads two keys out of
-`localStorage` and redirects, in one parse. `index.html` — the marketing
-landing, with a WebGL scene on it — is never the first thing a cold start pays
-for.
+**`public/boot.html` is the app's entry point** — `server.appStartPath`
+points every launch at it. A Next.js route cannot answer "which screen does
+this player belong on" until the framework, the router and the page chunk
+have all parsed. That document reads two keys out of `localStorage` and
+redirects, in one parse. `/` — the marketing landing, with a WebGL scene on
+it — is never the first thing a cold start pays for. (Its bundled ancestor,
+`native/boot.html`, needed `index.html`-suffixed targets for the local file
+server's routing rule; the remote one navigates real routes, and
+`lib/native/href.ts` applies the suffix only when a document really is served
+by the bundled router.)
+
+**It verifies the native projects hold this build's shell** — the offline
+document byte-for-byte, and a generated `capacitor.config.json` carrying
+`server.url`, `appStartPath` and `errorPath`, because losing that config does
+not fail, it ships an app that opens on the offline page forever. And it
+fails the build if `package.json` carries a Capacitor plugin that
+`ios/App/CapApp-SPM/Package.swift` does not — the sign-in plugin shipped
+missing from build 1.0(3) exactly that way.
 
 ---
 
@@ -406,6 +427,14 @@ lets an app opt out of resizing. Both are one line each
 (`UISupportedInterfaceOrientations` in `Info.plist`, `TARGETED_DEVICE_FAMILY`
 in the project) if that changes.
 
+**iPhone-only does not mean iPad-free** — App Review ran build 1.0(3) on an
+iPad Air in iPadOS's window for iPhone apps and rejected what it saw
+(docs/APP-STORE.md §0). The answer is not an iPad build; it is that the
+layout now tolerates any window width the shell is handed: the `desk:`
+variant in `globals.css` keeps shells on the phone composition, capped and
+centred, and the UIKit chrome caps its floating surfaces at the DOM's own
+672 (`GlassChromeController.pinHorizontally`).
+
 Xcode 26 is needed for the Liquid Glass path to compile at all. On anything
 older the `#if compiler(>=6.2)` guards select the pre-26 material and the app
 still builds and runs — which is why `ios-build.yml` fails outright on an
@@ -464,10 +493,14 @@ NEXT_PUBLIC_TESTFLIGHT_URL=https://testflight.apple.com/join/…
   `backdrop-filter` at all and which costs a full-surface GPU pass per frame on
   the phones that most need to stay smooth. The platform that can do it
   properly does it natively.
-- **The bundle is ~58 MB on device**, most of it the mascot GLB, the onboarding
-  clips and the MediaPipe runtime that scores pitch delivery. All of it is
-  same-origin on purpose: a minors' product should not open a connection to a
-  CDN every time a camera turns on.
-- **Pro is still simulated.** `ProSheet` is a switch, not a purchase, so
-  nothing in the app touches Stripe and App Store guideline 3.1.1 does not
-  apply yet. It will the day that button becomes real.
+- **The binary carries one page.** The ~58 MB export that used to ship on
+  device (mascot GLB, onboarding clips, the MediaPipe runtime) is served
+  from the site now, like everything else — still all first-party on
+  purpose: a minors' product should not open a connection to a CDN every
+  time a camera turns on, and `connect-src 'self'` now enforces that inside
+  the app too. What remains on device is `native/shell/index.html`, the
+  offline notice.
+- **Nothing is sold in the app.** Store builds price nothing and link to
+  nothing (`lib/commerce.ts`; docs/APP-STORE.md §§0–1 for the two
+  experiments that preceded that rule and how each ended); Pro arrives via
+  account sign-in and Restore.

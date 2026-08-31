@@ -463,7 +463,7 @@ function PricingSection() {
   /**
    * This is a marketing page, and the whole page ships inside the app bundle —
    * `out/index.html` is the export of this file. Nothing routes here from
-   * inside the app on purpose (native/boot.html opens the game, sign-out lands
+   * inside the app on purpose (public/boot.html opens the game, sign-out lands
    * on the entry route, and the legal sheets name URLs instead of linking
    * them), but a price list one stray navigation away from an App Store build
    * is a rejection waiting for a bug. So the section that carries every price
@@ -535,7 +535,7 @@ function PricingSection() {
     // they already have (lib/entry.ts). Below that, a named account with an
     // onboarded profile skips straight to founding.
     // `entryRoute()` rather than a third copy of the ladder. This block and
-    // native/boot.html and lib/entry.ts were three transcriptions of one rule,
+    // public/boot.html and lib/entry.ts were three transcriptions of one rule,
     // and they had already drifted once — the whole reason lib/entry.ts exists.
     router.push(entryRoute());
   };
@@ -704,13 +704,33 @@ function PricingSection() {
     );
   };
 
-  if (sells === false) return null;
+  /*
+   * `=== true`, not `!== false`, and the difference was App Review finding
+   * prices in the binary. useSellsHere() answers null until the shell is
+   * known — which includes prerender, and the prerendered landing page IS the
+   * root document of the static export. Gating on `=== false` kept the whole
+   * price grid (plans, chapter licences, checkout buttons, the renewal
+   * disclosure) in that HTML, painted until hydration flipped the answer —
+   * seconds on a cold webview, and any stray extensionless navigation in the
+   * old bundled shell landed here. Every other pricing surface gates
+   * `=== true` for exactly this reason (lib/commerce.ts, "why a hook");
+   * this one now matches. The web pays one effect-tick of delay before the
+   * prices appear, which is the same price every other surface already paid.
+   *
+   * The stub is not decoration. /chapter's SEE THE LICENCES and the
+   * institutions story hard-navigate to /#pro, and a browser performs its
+   * fragment scroll against the HTML it parsed — which no longer contains
+   * the priced section. The zero-height anchor holds the position, so the
+   * buyer lands where the plans mount an effect-tick later instead of at
+   * the top of a marketing page they then have to scroll.
+   */
+  if (sells !== true) return <div id="pro" aria-hidden="true" />;
 
   return (
     <section
-      // The app's purchase link lands here by fragment — see PRO_PURCHASE_URL
-      // in lib/commerce.ts. A player who tapped GET PRO on a phone arrives at
-      // the plans, not at the top of a marketing page they then have to scroll.
+      // The chapter console's SEE THE LICENCES link lands here by fragment —
+      // a buyer arrives at the plans, not at the top of a marketing page they
+      // then have to scroll.
       id="pro"
       aria-label="Pricing"
       className="scroll-mt-6 border-y border-[var(--hairline)] bg-[var(--n-2)]"

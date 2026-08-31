@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"
+    />
+    <title>Novus</title>
+    <style>
+      html {
+        background: #f6f7f9;
+      }
+      @media (prefers-color-scheme: dark) {
+        html {
+          background: #1c1d21;
+        }
+      }
+      body {
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      A sentinel, not a page.
+
+      Capacitor's iOS controller refuses to launch unless server.appStartPath
+      names a file that exists in the LOCAL webDir — the guard in
+      CAPBridgeViewController.loadWebView() runs fileExists() on
+      appStartFileURL and calls fatalLoadError() (exit) on a miss — even
+      though the URL it then actually loads is the REMOTE
+      appStartServerURL (server.url + appStartPath). So this file's whole job
+      is to exist. Without it the app dies on the launch screen, on every
+      device, before a single request is made; scripts/build-native.mjs
+      verifies it was copied for exactly that reason.
+
+      If it is ever somehow loaded (it should not be — the load always goes
+      remote), it forwards itself to the real boot document, and paints the
+      theme ground in the meantime.
+    -->
+    <script>
+      location.replace("https://www.novuspitch.com/boot.html");
+    </script>
+  </body>
+</html>

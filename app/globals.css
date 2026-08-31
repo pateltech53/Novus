@@ -14,6 +14,36 @@
  */
 @import "tailwindcss";
 
+/*
+ * `desk:` — wide, AND not inside a native shell.
+ *
+ * The play screen (and the components composed into it) has two compositions
+ * split at 64rem, and for a long time that seam was `lg:` — width alone. Then
+ * Apple reviewed the iPhone app on an iPad Air (build 1.0(3), Guideline 4
+ * "crowded, laid out … difficult to use"): iPadOS runs it in a window that
+ * can pass 1024px, the CSS flipped to the three-column desk, and the native
+ * side did not — UIKit still owned the tab bar and the advance button
+ * (width-independent, probed once at launch), so the desktop rail's DOM
+ * controls were unrendered, the UIKit deck stretched to the full window, and
+ * the reservation spacer was `lg:hidden` so content ran beneath the glass.
+ * A desktop composition can never be correct while UIKit owns the chrome.
+ *
+ * So the seam carries both conditions now. `data-platform` is stamped on
+ * <html> by PLATFORM_INIT_SCRIPT (lib/native/platform.ts) before first paint,
+ * which is what makes this decidable in CSS with no flash and no hydration
+ * hazard; `:where()` keeps utility specificity flat. In a browser this is
+ * exactly `lg:`. In the shells it is never true, at any width — a wide iPad
+ * window gets the phone composition, centred (see the width caps on
+ * app/play/page.tsx's columns).
+ */
+@custom-variant desk {
+  @media (min-width: 64rem) {
+    &:where(html:not([data-platform="ios"]):not([data-platform="android"]) *) {
+      @slot;
+    }
+  }
+}
+
 @theme {
   /* ── Brand constants · locked by Brand Identity v2 ─────────────────────── */
   --color-action: #ff6b00; /* THE only colour that asks you to do something */
@@ -1491,20 +1521,24 @@ textarea {
   --nv-portrait-size: 4.75rem; /* 76px — an identity portrait, not the page */
 }
 
+/* The `html:not([data-platform])` guard is the `desk:` variant's condition,
+   by hand — this ladder only makes sense in the desktop rail, and the shells
+   never build that rail whatever the window measures (see `desk:` at the top
+   of this file). A wide iPad window keeps the 76px row portrait. */
 @media (min-width: 64rem) {
-  .nv-masthead {
+  html:not([data-platform="ios"]):not([data-platform="android"]) .nv-masthead {
     --nv-portrait-size: 10.5rem; /* 168px — the size the column was composed at */
   }
 }
 
 @media (min-width: 64rem) and (max-height: 780px) {
-  .nv-masthead {
+  html:not([data-platform="ios"]):not([data-platform="android"]) .nv-masthead {
     --nv-portrait-size: 8.25rem; /* 132px */
   }
 }
 
 @media (min-width: 64rem) and (max-height: 680px) {
-  .nv-masthead {
+  html:not([data-platform="ios"]):not([data-platform="android"]) .nv-masthead {
     --nv-portrait-size: 6.5rem; /* 104px */
   }
 }

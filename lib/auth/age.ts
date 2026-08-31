@@ -40,7 +40,10 @@
  * device's "forget this site") exists and is stated in the refusal copy.
  */
 
-/** The line. One constant, read by the screen, the account gate and the route. */
+/** The line. One constant, read by the onboarding screen and the account
+ *  gate — its two importers. No route reads it: the server deliberately never
+ *  receives an age (docs/LEADERBOARD.md §9.4), so there is nothing server-side
+ *  to enforce it against. */
 export const MIN_AGE = 13;
 
 /** True when this age may proceed. Anything unparseable is not old enough. */

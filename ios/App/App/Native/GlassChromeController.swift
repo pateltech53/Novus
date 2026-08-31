@@ -224,6 +224,51 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
         /// Low enough to read as "not this one", high enough that the glass is
         /// still visibly glass rather than a grey hole.
         static let coachDim: CGFloat = 0.22
+        /// The DOM composition's own content cap — Tailwind's `max-w-2xl`,
+        /// 672, the width AdvanceButton and ActivityBar have always laid out
+        /// at. This chrome was designed at 320–430pt windows and pinned
+        /// everything edge-to-edge; App Review ran the iPhone app on an iPad
+        /// Air (build 1.0(3), Guideline 4) where iPadOS windows pass 1000pt
+        /// and the ADVANCE capsule became a window-wide slab. Every floating
+        /// CONTENT surface — deck, nudge, toast, the decision sheet — is
+        /// capped here and centred instead. Two exceptions, both deliberate:
+        /// the tab bar stays full-width (wide tab bars are the system's own
+        /// layout to manage), and the masthead's circular control clusters
+        /// keep the window's corners — corner controls belong to the window
+        /// the way a navigation bar's buttons do, and dragging them inboard
+        /// to a content column would detach them from the edges a thumb
+        /// finds them by.
+        static let maxContentWidth: CGFloat = 672
+    }
+
+    /// Pins a floating chrome surface horizontally the one sanctioned way:
+    /// filling the window to within the side margins on a phone, capped at
+    /// `Metric.maxContentWidth` and centred once the window is wider.
+    ///
+    /// The fill is a near-required EQUALITY (999), not a pair of required
+    /// edge pins: a required cap against required edge pins is an
+    /// unsatisfiable system the solver resolves by breaking a constraint of
+    /// its choosing, while an inequality-only system has many solutions and
+    /// lets it pick any of them (the layout rule this file lives by —
+    /// measure or state an equality, never assume). 999 rather than
+    /// .defaultHigh so the fill also outranks every content priority —
+    /// multiline labels resist compression at 750, and a tie there hands
+    /// the width decision to whichever constraint the solver breaks first.
+    /// The required `leading ≥` keeps the margin honest at every width the
+    /// equality loses at, and (with centerX) bounds the surface inside the
+    /// window no matter what the content wants.
+    private func pinHorizontally(_ surface: UIView, in host: UIView) {
+        let fill = surface.widthAnchor.constraint(
+            equalTo: host.widthAnchor, constant: -2 * Metric.sideMargin)
+        fill.priority = UILayoutPriority(999)
+        NSLayoutConstraint.activate([
+            surface.centerXAnchor.constraint(equalTo: host.centerXAnchor),
+            surface.widthAnchor.constraint(
+                lessThanOrEqualToConstant: Metric.maxContentWidth),
+            surface.leadingAnchor.constraint(
+                greaterThanOrEqualTo: host.leadingAnchor, constant: Metric.sideMargin),
+            fill,
+        ])
     }
 
     // ── Install ──────────────────────────────────────────────────────────────
@@ -385,12 +430,10 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
         deckBox = box
 
         NSLayoutConstraint.activate([
-            box.leadingAnchor.constraint(equalTo: host.leadingAnchor, constant: Metric.sideMargin),
-            box.trailingAnchor.constraint(
-                equalTo: host.trailingAnchor, constant: -Metric.sideMargin),
             box.bottomAnchor.constraint(
                 equalTo: tabBar.topAnchor, constant: -Metric.deckBottomGap),
         ])
+        pinHorizontally(box, in: host)
     }
 
     /**
@@ -479,11 +522,8 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
             nudgeTapButton.trailingAnchor.constraint(equalTo: glass.contentView.trailingAnchor),
             nudgeTapButton.topAnchor.constraint(equalTo: glass.contentView.topAnchor),
             nudgeTapButton.bottomAnchor.constraint(equalTo: glass.contentView.bottomAnchor),
-
-            glass.leadingAnchor.constraint(equalTo: host.leadingAnchor, constant: Metric.sideMargin),
-            glass.trailingAnchor.constraint(
-                equalTo: host.trailingAnchor, constant: -Metric.sideMargin),
         ])
+        pinHorizontally(glass, in: host)
 
         // Above the deck when there is one to sit above, and above the tab bar
         // on the screens where the CTA is absent — the card is chrome either
@@ -1082,14 +1122,11 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
         glass.alpha = 0
         host.addSubview(glass)
         NSLayoutConstraint.activate([
-            glass.leadingAnchor.constraint(
-                equalTo: host.leadingAnchor, constant: Metric.sideMargin),
-            glass.trailingAnchor.constraint(
-                equalTo: host.trailingAnchor, constant: -Metric.sideMargin),
             glass.topAnchor.constraint(
                 equalTo: host.safeAreaLayoutGuide.topAnchor,
                 constant: Metric.controlTop * 2 + Metric.controlSize + 8),
         ])
+        pinHorizontally(glass, in: host)
         host.layoutIfNeeded()
         glass.transform = CGAffineTransform(translationX: 0, y: -14)
 

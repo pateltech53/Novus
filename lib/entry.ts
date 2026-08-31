@@ -14,7 +14,7 @@ import { hasAnySavedRun, loadProfile } from "@/lib/engine/save";
  * reach it.
  *
  * A saved run is therefore the FIRST question, not an afterthought. This is
- * exactly what the native launcher has always done (native/boot.html reads
+ * exactly what the native launcher has always done (public/boot.html reads
  * `novus:run:v1` before `novus:profile:v1`); the web now agrees with it, and
  * both read from the same rule instead of two copies that drift.
  *

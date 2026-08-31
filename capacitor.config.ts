@@ -8,31 +8,90 @@ import { KeyboardResize } from "@capacitor/keyboard";
  * chrome: on iOS the tab bar, the advance button and the masthead controls are
  * withdrawn from the DOM and re-drawn by UIKit, so they are real Liquid Glass
  * rather than a CSS impression of it. See ios/App/App/Native/ and
- * lib/native/chrome.ts for the two halves of that handoff.
+ * lib/native/chrome.ts for the two halves of that handoff. None of it depends
+ * on where the page came from — the whole handoff is plugin traffic over the
+ * injected bridge, which Capacitor injects into every document served from
+ * `server.url` exactly as it did into the bundled ones.
  *
- * `webDir: "out"` is the static export produced by `npm run build:native`.
- * Nothing is loaded over the network at boot — the whole app is on device,
- * which is what makes a cold start feel like a native launch instead of a page
- * load. The handful of server routes (session, sync, billing) are called at
- * their absolute origin; see lib/native/origin.ts.
+ * ── The shell is remote now, and that is the point ──────────────────────────
+ *
+ * This file used to say the opposite: `webDir: "out"` bundled the whole
+ * static export so nothing loaded over the network at boot. What that bought
+ * (offline play, a cold start with no network on its critical path) it paid
+ * for in release mechanics: every web change — a copy fix, a balance patch, a
+ * rejected screen — waited on an App Store resubmission. After the 1.0(3)
+ * rejection that trade was reversed, deliberately: the app now loads
+ * https://www.novuspitch.com live, so a deploy IS the release. Serving the
+ * same first-party origin the API lives on keeps every request same-origin —
+ * the CSP's `connect-src 'self'`, the CSRF guard's Sec-Fetch-Site check and
+ * the session cookie all pass without a carve-out.
+ *
+ * What was given up is written down, not wished away (docs/APP.md has the
+ * long form): the game no longer plays offline — `server.errorPath` shows
+ * native/shell/index.html when the network cannot produce a page — and a cold
+ * start is network-bound, softened by the splash holding until first paint.
+ * Old TestFlight builds served `capacitor://app.novuspitch.com` from disk;
+ * that origin's localStorage is unreachable from the new one, accepted while
+ * the app is pre-release with nothing shipped.
+ *
+ * Capacitor's reference frames `server.url` as a live-reload tool; it is also
+ * the supported way to point the shell at a production origin, and Apple's
+ * 2.5.2 permits WebKit-executed web content. The App Review posture for a
+ * remote shell (what keeps this out of 4.2 thin-wrapper territory is the
+ * UIKit chrome, widgets and Live Activities) is in docs/APP-STORE.md.
  */
 const config: CapacitorConfig = {
   appId: "com.novuspitch.app",
   appName: "Novus",
-  webDir: "out",
+  // The offline/error notice plus nothing else — see native/shell/. The
+  // export in out/ still exists for the Playwright audits, but it does not
+  // ship: the app's pages come from server.url below.
+  webDir: "native/shell",
 
   server: {
+    /*
+     * The trailing slash is load-bearing. iOS decides "stay in the webview or
+     * open the system browser" by prefix-matching the navigation URL against
+     * this string (WebViewDelegationHandler.swift), and without the slash
+     * `https://www.novuspitch.com.evil.example` passes the prefix test. With
+     * it, only this origin's own documents stay inside the shell — everything
+     * else (Stripe, mailto targets, external links) goes to the real browser.
+     *
+     * www, not the apex (which 308s — see lib/native/origin.ts) and not a
+     * dedicated app subdomain: the same host that answers the API keeps the
+     * shell same-origin with everything it calls.
+     */
+    url: "https://www.novuspitch.com/",
     // https on Android so localStorage, cookies and the camera all live under a
-    // secure origin. capacitor:// on iOS for the same reason.
+    // secure origin. capacitor:// on iOS for the same reason. Both now only
+    // name the LOCAL origin — the one that serves errorPath below and nothing
+    // else — but they are what old bundled builds ran at, so the values stay.
     androidScheme: "https",
     iosScheme: "capacitor",
-    // The one hostname the bundled app is allowed to treat as itself.
     hostname: "app.novuspitch.com",
-    // Not index.html: the landing page is a marketing surface with a WebGL
-    // scene on it, and making a cold start pay for that before it can decide
-    // which screen the player belongs on is the difference between a launch
-    // and a page load. See native/boot.html.
-    appStartPath: "/boot.html",
+    // Appended to server.url on both platforms, so a cold start lands on the
+    // boot router rather than the WebGL marketing page: public/boot.html reads
+    // two localStorage keys and hands the webview to the right screen in one
+    // parse, no framework. (Its bundled ancestor, native/boot.html, needed
+    // index.html-suffixed targets for the local file server; the remote one
+    // navigates real routes.)
+    //
+    // No leading slash: Android joins this to the url above by plain string
+    // concatenation (Bridge.java), and the url's trailing slash already
+    // provides the separator — "/boot.html" would produce a double-slash path
+    // the server answers with a redirect. iOS appends it as a path component
+    // and is indifferent either way.
+    //
+    // ⚠ iOS refuses to LAUNCH unless this path also exists as a file in the
+    // local webDir — CAPBridgeViewController.loadWebView() existence-checks
+    // appStartFileURL (local) before loading appStartServerURL (remote) and
+    // exits the process on a miss. native/shell/boot.html exists purely to
+    // satisfy that guard; build-native.mjs verifies it was copied.
+    appStartPath: "boot.html",
+    // What the player sees when the network cannot produce a page: the one
+    // document still on the device. Served from the local origin, so it works
+    // precisely when the remote origin does not.
+    errorPath: "index.html",
   },
 
   ios: {

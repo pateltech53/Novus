@@ -46,42 +46,25 @@ const TYPES = {
 };
 
 /**
- * The shell's routing rule, not a reasonable one.
+ * One routing rule again, and this time it is the real one everywhere.
  *
- * This server used to resolve a directory to the index.html inside it, which
- * is what a static file server does and what everyone assumed the app did.
- * The app does not. `CapacitorRouter.route(for:)`, which every navigation in
- * the iOS shell goes through, is this:
- *
- *     if pathUrl.pathExtension.isEmpty {
- *         return basePath + "/index.html"
- *     }
- *     return basePath + path
- *
- * An extensionless path gets the bundle's ROOT index.html — the shell assumes
- * one document and a client-side router, which is what nearly every Capacitor
- * app is and what a Next static export is not. In this repo the root document
- * is the marketing page, so "/play/" served the landing page, and so did every
- * other route, and so did the redirect boot.html performs on launch.
- *
- * That bug survived three rounds of testing against this harness because the
- * harness was kinder than the shell. It is not any more: the ios and android
- * shells route the way the device does, and the browser keeps ordinary static
- * file behaviour, because on the web that is genuinely what serves it.
+ * This harness spent a while emulating `CapacitorRouter.route(for:)` — the
+ * bundled shell's rule that resolved every extensionless path to the ROOT
+ * index.html, i.e. the marketing page — because the app shipped its export on
+ * device and the harness had been kinder than the shell (a cold launch onto
+ * the landing page survived three rounds of testing here). The shell loads
+ * the live site now (capacitor.config.ts server.url; the bundle is one
+ * offline page), so every shell is served by a real server that resolves
+ * routes, and the emulation would test a router no shipped binary runs.
+ * Ordinary static-file behaviour — a directory resolves to its index.html —
+ * is now the truth for browser and shells alike.
  */
-let shellRouting = false;
-
 const server = http.createServer(async (req, res) => {
   try {
     const url = decodeURIComponent(req.url.split("?")[0]);
-    let file;
-    if (shellRouting) {
-      file = extname(url) ? join(ROOT, url) : join(ROOT, "index.html");
-    } else {
-      file = join(ROOT, url);
-      const s = await stat(file).catch(() => null);
-      if (!s || s.isDirectory()) file = join(file, "index.html");
-    }
+    let file = join(ROOT, url);
+    const s = await stat(file).catch(() => null);
+    if (!s || s.isDirectory()) file = join(file, "index.html");
     const body = await readFile(file);
     res.writeHead(200, { "content-type": TYPES[extname(file)] || "application/octet-stream" });
     res.end(body);
@@ -248,11 +231,23 @@ const SIZES = [
   ["mini", 375, 812],
   ["pro", 393, 852],
   ["max", 430, 932],
+  /*
+   * The widths App Review actually ran. Build 1.0(3) was reviewed on an iPad
+   * Air 11-inch, where iPadOS windows the iPhone app at sizes nothing below
+   * ever tested (Guideline 4, "crowded, laid out … difficult to use"). The
+   * "shell" marker injects the ios bridge stub, so `desk:` never applies and
+   * what gets audited is what shipped wrongly before: the phone composition
+   * at tablet widths — now a centred max-w-2xl column instead of a stretch.
+   * mid-band is the 431–1023px browser window neither composition owned.
+   */
+  ["ipad-portrait", 820, 1180, "shell"],
+  ["ipad-wide", 1180, 820, "shell"],
+  ["mid-band", 700, 900],
 ];
 
 let failures = 0;
 
-for (const [name, width, height] of SIZES) {
+for (const [name, width, height, kind] of SIZES) {
   const ctx = await browser.newContext({
     viewport: { width, height },
     deviceScaleFactor: 2,
@@ -260,6 +255,11 @@ for (const [name, width, height] of SIZES) {
     hasTouch: true,
   });
   const page = await ctx.newPage();
+  if (kind === "shell") {
+    await page.addInitScript(() => {
+      window.webkit = { messageHandlers: { bridge: {} } };
+    });
+  }
   await page.addInitScript((s) => {
     localStorage.setItem("novus:run:v1", JSON.stringify(s.run));
     localStorage.setItem("novus:profile:v1", JSON.stringify(s.profile));
@@ -487,22 +487,18 @@ for (const [shell, inject] of SHELLS) {
   const problems = [];
   const want = (condition, complaint) => { if (!condition) problems.push(complaint); };
 
-  // From here the server routes the way this shell really does.
-  shellRouting = !sells;
-  /** How this shell has to name a route to actually get it. See lib/native/href.ts. */
-  const at = (route) => `http://127.0.0.1:${PORT}${sells ? `${route}/` : `${route}/index.html`}`;
+  /** Every shell is served by a real server now — routes are routes. */
+  const at = (route) => `http://127.0.0.1:${PORT}${route}/`;
 
   /*
    * ── The cold launch ──────────────────────────────────────────────────────
    *
-   * The one check that would have caught the bug this whole harness missed:
-   * open the app the way the shell opens it, and see which screen you get.
-   *
-   * boot.html reads localStorage and redirects, and under the shell's real
-   * routing that redirect had been landing on the bundle's root index.html —
-   * the marketing page — for every route, on every launch. Asserting on the
-   * ROUTE is not enough, because the URL bar said /play/ the whole time while
-   * the document was the landing page. So this asserts on what rendered.
+   * Open the app the way the shell opens it — public/boot.html, which
+   * server.appStartPath points every launch at — and assert on what RENDERED,
+   * not on the route. The bundled ancestor of this check caught a launch that
+   * landed on the marketing page while the URL bar said /play/ the whole
+   * time; the remote boot document redirects to extensionless routes, and
+   * this keeps proving those land on the game.
    */
   if (!sells) {
     await page.goto(`http://127.0.0.1:${PORT}/boot.html`, { waitUntil: "networkidle" });
@@ -525,10 +521,13 @@ for (const [shell, inject] of SHELLS) {
     const text = await page.evaluate(() => document.body.innerText);
     await page.screenshot({ path: join(SHOTS, `shell-${shell}-plans.png`) });
 
-    // A price is fine everywhere now: a store build states what Pro costs on
-    // the link that leaves for the browser. What may not be here is a way to
-    // PAY — the plan chips and the checkout button that opens Stripe.
-    want(PRICE.test(text), "no price on the plans step");
+    // A store build shows no price and no purchase link — the GET PRO
+    // link-out was the Guideline 3.1.1 rejection of build 1.0(3)
+    // (lib/commerce.ts has the account). What a store build states instead
+    // is the fact of where Pro lives, and Restore elsewhere is the action.
+    want(PRICE.test(text) === sells, sells
+      ? "no price on the plans step in a browser"
+      : `a price is on the plans step in the ${shell} build`);
     want((await picker(page)) === sells, sells
       ? "no plan picker in a browser"
       : `a plan picker is on the plans step in the ${shell} build`);
@@ -539,9 +538,10 @@ for (const [shell, inject] of SHELLS) {
       "the plans step is missing its terms/privacy links");
     want(text.includes("CONTINUE FREE"), "no way past the plans step");
     if (!sells) {
-      want(text.includes("GET PRO"), `no way to buy Pro at all in the ${shell} build`);
-      want(text.includes("opens your browser"),
-        `the ${shell} build does not say where the payment happens`);
+      want(!text.includes("GET PRO"),
+        `a purchase link is on the plans step in the ${shell} build`);
+      want(text.includes("attaches to a Novus account"),
+        `the ${shell} build does not say where Pro lives`);
     }
   }
 
@@ -562,7 +562,9 @@ for (const [shell, inject] of SHELLS) {
   await page.screenshot({ path: join(SHOTS, `shell-${shell}-pro.png`) });
 
   want(sheet.length > 0, "the Pro sheet did not open");
-  want(PRICE.test(sheet), "no price in the Pro sheet");
+  want(PRICE.test(sheet) === sells, sells
+    ? "no price in the Pro sheet in a browser"
+    : `a price is in the Pro sheet in the ${shell} build`);
   want((await picker(page)) === sells, sells
     ? "no plan picker in the Pro sheet in a browser"
     : `a plan picker is in the Pro sheet in the ${shell} build`);
@@ -570,9 +572,10 @@ for (const [shell, inject] of SHELLS) {
     ? "no CHOOSE PRO in the Pro sheet in a browser"
     : `CHOOSE PRO is in the Pro sheet in the ${shell} build`);
   if (!sells) {
-    want(sheet.includes("GET PRO"), `no way to buy Pro from the Pro sheet in the ${shell} build`);
-    want(sheet.includes("opens your browser"),
-      `the Pro sheet does not say where the payment happens in the ${shell} build`);
+    want(!sheet.includes("GET PRO"),
+      `a purchase link is in the Pro sheet in the ${shell} build`);
+    want(sheet.includes("attaches to a Novus account"),
+      `the Pro sheet does not say where Pro lives in the ${shell} build`);
   }
   // Required on every platform. It is how a purchase made anywhere — and in a
   // store build every purchase is made somewhere else — reaches this device.
@@ -607,17 +610,20 @@ for (const [shell, inject] of SHELLS) {
       await page.screenshot({ path: join(SHOTS, `shell-${shell}-upgrade.png`) });
 
       want(upgrade.includes("KEEP PLAYING FREE"), "the upgrade screen did not open");
-      want(PRICE.test(upgrade), "no price on the upgrade screen");
-      // GET PRO is on both, and means two different things: in a browser it
-      // opens Stripe, in a store build it opens Safari. The chips are what
-      // separate them — an in-app plan picker only exists where checkout does.
-      want(upgrade.includes("GET PRO"), "no GET PRO on the upgrade screen");
+      want(PRICE.test(upgrade) === sells, sells
+        ? "no price on the upgrade screen in a browser"
+        : `a price is on the upgrade screen in the ${shell} build`);
+      // GET PRO only where checkout exists. The store-build variant of this
+      // screen states the fact of where Pro lives and offers Restore.
+      want(upgrade.includes("GET PRO") === sells, sells
+        ? "no GET PRO on the upgrade screen in a browser"
+        : `a purchase link is on the upgrade screen in the ${shell} build`);
       want((await picker(page)) === sells, sells
         ? "no plan picker on the upgrade screen in a browser"
         : `a plan picker is on the upgrade screen in the ${shell} build`);
       if (!sells) {
-        want(upgrade.includes("opens your browser"),
-          `the upgrade screen does not say where the payment happens in the ${shell} build`);
+        want(upgrade.includes("attaches to a Novus account"),
+          `the upgrade screen does not say where Pro lives in the ${shell} build`);
       }
       want(RESTORE.test(upgrade), "the upgrade screen has no Restore");
       want(upgrade.includes("TERMS OF USE") && upgrade.includes("PRIVACY"),
@@ -636,7 +642,6 @@ for (const [shell, inject] of SHELLS) {
   } else {
     console.log(`✓ store rule · ${shell}${sells ? " (sells)" : " (sells nothing)"}`);
   }
-  shellRouting = false;
   await ctx.close();
 }
 

@@ -263,9 +263,35 @@ browser the webview cannot read, and the player returns exactly as signed out as
 they left. The app uses the native sheets instead and posts the resulting token
 to `/api/auth/oauth/native`.
 
-`@capgo/capacitor-social-login` is **already in `package.json`**. `npx cap sync`
-— which `npm run build:native` runs — adds it to `ios/App/CapApp-SPM/Package.swift`
-and to the Android project. There is nothing to install by hand.
+`@capgo/capacitor-social-login` is **already in `package.json`** and — since
+the 1.0(3) rejection — **already committed to
+`ios/App/CapApp-SPM/Package.swift`**, which is the half that used to be left
+to chance: `cap sync` regenerates that manifest on whatever machine runs it,
+the regeneration was never committed, and whether a binary could sign anyone
+in depended on the build machine's uncommitted state.
+`scripts/build-native.mjs` now fails the build if package.json carries a
+Capacitor plugin the committed manifest does not.
+
+### 5.0 The plugin's initialize contract — learned the hard way
+
+Build 1.0(3) went to review with a Sign in with Apple that errored on every
+tap ("An error message was displayed", Guideline 2.1(a)). The contract that
+was violated, now encoded in `lib/cloud/native-oauth.ts` and stated here so
+it is never re-derived from the plugin's source at 2am:
+
+- **iOS must pass an `apple` key to `initialize()`, and it must be empty.**
+  The plugin rejects an initialize with no providers in it ("No provider was
+  initialized") — so gating the key on `NEXT_PUBLIC_APPLE_SERVICES_ID`, as
+  the code once did, means an unconfigured build shows the button (correct —
+  native Apple sign-in needs no client id) and then errors on every tap.
+- **iOS must NOT pass `clientId`/`redirectUrl`.** Given a `redirectUrl`, the
+  plugin abandons returning the token after the system sheet and instead
+  POSTs the authorization code to that URL expecting a `success=true`
+  redirect — a contract Supabase's `/auth/v1/callback` does not speak — so a
+  build WITH the Services ID baked failed after the sheet instead of before.
+- **Android needs both.** There is no system sheet there; Apple on Android is
+  Apple's web flow in a custom tab, which is what the Services ID and return
+  URL exist for.
 
 `lib/cloud/native-oauth.ts` reaches the plugin through Capacitor's
 `registerPlugin("SocialLogin")` rather than importing the package, so:

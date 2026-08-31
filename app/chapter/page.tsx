@@ -6,6 +6,7 @@ import { API_CREDENTIALS, apiUrl } from "@/lib/native/origin";
 import { useNativeOverlay, useNativeOverlayOwned } from "@/components/native/useNativeOverlay";
 import { useResolvedTheme } from "@/lib/native/theme";
 import { openBillingPortal } from "@/lib/cloud/billing";
+import { useSellsHere } from "@/lib/commerce";
 import { CHAPTER_LICENCES, formatPrice, perSeatCents } from "@/lib/monetization";
 import { play } from "@/lib/sound";
 
@@ -300,6 +301,15 @@ export default function ChapterPage() {
    */
   const native = useNativeOverlayOwned();
   const resolvedTheme = useResolvedTheme();
+  /*
+   * This page had no commerce gate at all, and it shipped in the 1.0(3)
+   * binary printing both licence prices with a button into the pricing
+   * section — one of the surfaces behind the Guideline 3.1.1 rejection
+   * (lib/commerce.ts has the account). Store builds now get the console
+   * without a price, a licence link or a billing door: the seats still work,
+   * and the money stays where it is taken, in a browser.
+   */
+  const sells = useSellsHere();
   useNativeOverlay(
     useMemo(
       () => ({
@@ -324,16 +334,23 @@ export default function ChapterPage() {
                   style: "plain" as const,
                   enabled: busy === null,
                 },
-                {
-                  id: "billing",
-                  symbol: "creditcard",
-                  label: "Manage billing",
-                  style: "plain" as const,
-                },
+                // The billing circle opens Stripe's portal, which is a
+                // purchase mechanism — web only, same rule as every other
+                // money door.
+                ...(sells === true
+                  ? [
+                      {
+                        id: "billing",
+                        symbol: "creditcard",
+                        label: "Manage billing",
+                        style: "plain" as const,
+                      },
+                    ]
+                  : []),
               ]
             : [],
       }),
-      [resolvedTheme, phase, busy],
+      [resolvedTheme, phase, busy, sells],
     ),
     {
       onAction: (id) => {
@@ -382,25 +399,35 @@ export default function ChapterPage() {
             </a>
           </>
         )}
-        {phase === "no-chapter" && (
-          <>
+        {phase === "no-chapter" &&
+          // The priced version, with its door into the pricing section, only
+          // where selling is allowed. Until the shell is known (null) and in
+          // store builds (false) the page states what a chapter is and who to
+          // write to — no number, no link.
+          (sells === true ? (
+            <>
+              <Blurb title="No chapter on this account.">
+                A chapter is seats for a classroom or club — 35 for{" "}
+                {formatPrice(CHAPTER_LICENCES[0].priceCents)} a year, or 100 for{" "}
+                {formatPrice(CHAPTER_LICENCES[1].priceCents)}, which works out
+                between {formatPrice(perSeatCents(CHAPTER_LICENCES[1]))} and{" "}
+                {formatPrice(perSeatCents(CHAPTER_LICENCES[0]))} a seat. Buy one
+                from the pricing section and this page becomes its console. Any
+                other size is arranged by email — team@novuspitch.com.
+              </Blurb>
+              <a
+                href="/#pro"
+                className="nv-gc mt-6 flex h-14 w-full items-center justify-center rounded-[var(--radius-card)] nv-t-action px-6 text-[1.0625rem] font-extrabold tracking-[0.04em] shadow-[var(--e3)]"
+              >
+                SEE THE LICENCES
+              </a>
+            </>
+          ) : (
             <Blurb title="No chapter on this account.">
-              A chapter is seats for a classroom or club — 35 for{" "}
-              {formatPrice(CHAPTER_LICENCES[0].priceCents)} a year, or 100 for{" "}
-              {formatPrice(CHAPTER_LICENCES[1].priceCents)}, which works out
-              between {formatPrice(perSeatCents(CHAPTER_LICENCES[1]))} and{" "}
-              {formatPrice(perSeatCents(CHAPTER_LICENCES[0]))} a seat. Buy one
-              from the pricing section and this page becomes its console. Any
-              other size is arranged by email — team@novuspitch.com.
+              A chapter is seats for a classroom or club, set up on the web by
+              the adult who runs it. Questions go to team@novuspitch.com.
             </Blurb>
-            <a
-              href="/#pro"
-              className="nv-gc mt-6 flex h-14 w-full items-center justify-center rounded-[var(--radius-card)] nv-t-action px-6 text-[1.0625rem] font-extrabold tracking-[0.04em] shadow-[var(--e3)]"
-            >
-              SEE THE LICENCES
-            </a>
-          </>
-        )}
+          ))}
       </main>
     );
   }
@@ -442,6 +469,7 @@ export default function ChapterPage() {
             >
               BACK TO NOVUS
             </a>
+            {sells === true && (
             <button
               type="button"
               onClick={() => void openBillingPortal()}
@@ -449,6 +477,7 @@ export default function ChapterPage() {
             >
               MANAGE BILLING
             </button>
+            )}
           </div>
         )}
       </div>
@@ -460,7 +489,10 @@ export default function ChapterPage() {
         >
           The licence behind this chapter has lapsed, so every seat is off until
           it renews. The roster is kept — renewing lights the same seats back
-          up. MANAGE BILLING opens the subscription.
+          up.{" "}
+          {sells === true
+            ? "MANAGE BILLING opens the subscription."
+            : "The licence is billed on the web, and renewing it there lights this console back up."}
         </p>
       )}
 

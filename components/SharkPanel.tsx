@@ -941,13 +941,13 @@ export function SharkPanel({
      * gets the height rather than the photograph.
      */
     <motion.section
-      className="flex h-dvh flex-col overflow-hidden bg-[var(--bg)] lg:mx-auto lg:grid lg:max-w-[78rem] lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:gap-5 lg:px-5 lg:py-5"
+      className="flex h-dvh flex-col overflow-hidden bg-[var(--bg)] desk:mx-auto desk:grid desk:max-w-[78rem] desk:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] desk:gap-5 desk:px-5 desk:py-5"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.25 }}
     >
       {/* THE SET — a header on a phone, a column on a desktop. */}
-      <div className="mx-auto w-full max-w-lg shrink-0 px-4 pt-[max(0.5rem,var(--nv-safe-top))] lg:mx-0 lg:min-h-0 lg:max-w-none lg:overflow-y-auto lg:px-0 lg:pt-0">
+      <div className="mx-auto w-full max-w-lg shrink-0 px-4 pt-[max(0.5rem,var(--nv-safe-top))] desk:mx-0 desk:min-h-0 desk:max-w-none desk:overflow-y-auto desk:px-0 desk:pt-0">
         {/*
           Capped rather than free. At 3:2 the plate takes 66% of the width in
           height, which on a short phone left the thread a few lines tall and
@@ -960,7 +960,7 @@ export function SharkPanel({
           levelRef={micLevelRef}
           cameraStream={cam}
           year={run.year}
-          maxHeightClass="max-h-[30vh] lg:max-h-none"
+          maxHeightClass="max-h-[30vh] desk:max-h-none"
         />
 
         {/* Only on screen while something is actually being said. A player who
@@ -1008,12 +1008,12 @@ export function SharkPanel({
       </div>
 
       {/* THE CONVERSATION */}
-      <div className="mx-auto flex w-full min-h-0 max-w-lg flex-1 flex-col overflow-hidden lg:mx-0 lg:h-full lg:max-w-none lg:rounded-[var(--radius-card)] lg:bg-[var(--surface)] lg:shadow-[var(--e2)]">
+      <div className="mx-auto flex w-full min-h-0 max-w-lg flex-1 flex-col overflow-hidden desk:mx-0 desk:h-full desk:max-w-none desk:rounded-[var(--radius-card)] desk:bg-[var(--surface)] desk:shadow-[var(--e2)]">
         <div
           ref={threadRef}
           onScroll={onThreadScroll}
           data-thread=""
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 lg:px-5"
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 desk:px-5"
         >
           {/*
             Short conversations sit ON the floor, not at the ceiling.
@@ -1208,7 +1208,7 @@ export function SharkPanel({
           <div
             ref={footerRef}
             data-dock=""
-            className="shrink-0 border-t border-[var(--hairline)] bg-[var(--bg)] px-4 pb-[max(0.75rem,var(--nv-safe-bottom))] pt-3 lg:rounded-b-[var(--radius-card)] lg:bg-[var(--surface)] lg:px-5 lg:pb-4"
+            className="shrink-0 border-t border-[var(--hairline)] bg-[var(--bg)] px-4 pb-[max(0.75rem,var(--nv-safe-bottom))] pt-3 desk:rounded-b-[var(--radius-card)] desk:bg-[var(--surface)] desk:px-5 desk:pb-4"
           >
             {footer}
           </div>

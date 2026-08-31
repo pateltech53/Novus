@@ -85,7 +85,11 @@ export function availableProviders(): OAuthProvider[] {
   if (!nativeAuthAvailable()) return [];
 
   const providers: OAuthProvider[] = [];
-  if (GOOGLE_WEB_CLIENT_ID) providers.push("google");
+  // On iOS the plugin configures its Google provider only when an iOS client
+  // id is present — a web client id alone initialises nothing there, and a
+  // button whose every tap fails is the defect class this file was rejected
+  // for. Offer only what the tap can honour, per platform.
+  if (GOOGLE_WEB_CLIENT_ID && (!isIOS() || GOOGLE_IOS_CLIENT_ID)) providers.push("google");
   if (isIOS() || (APPLE_SERVICES_ID && APPLE_REDIRECT_URL)) providers.push("apple");
   return providers;
 }
@@ -104,9 +108,43 @@ function initialise(): Promise<void> {
           },
         }
       : {}),
-    ...(APPLE_SERVICES_ID
-      ? { apple: { clientId: APPLE_SERVICES_ID, redirectUrl: APPLE_REDIRECT_URL } }
-      : {}),
+    /*
+     * Apple, in the shape each platform's flow actually requires — and this
+     * distinction is load-bearing, because getting it wrong is not a config
+     * nicety but the App Review rejection of build 1.0(3) ("An error message
+     * was displayed when we attempted to Sign in with Apple"):
+     *
+     * On iOS the plugin's initialize() must see an `apple` KEY — an options
+     * object with no providers in it rejects with "No provider was
+     * initialized", so a build without NEXT_PUBLIC_APPLE_SERVICES_ID showed
+     * the Apple button (availableProviders() offers it unconditionally on
+     * iOS, correctly — the native sheet needs no client id) and then errored
+     * on every tap. But the key must be EMPTY: given a `redirectUrl`, the
+     * plugin abandons the return-the-token path after the system sheet and
+     * instead POSTs the authorization code to that URL expecting a
+     * success=true redirect — a contract Supabase's callback does not speak —
+     * so a build WITH the Services ID baked failed after the sheet instead of
+     * before it. `apple: {}` is the one shape that runs the plain
+     * ASAuthorizationController flow and hands back the idToken.
+     *
+     * Android has no system sheet; Apple there is Apple's web flow inside a
+     * custom tab, which genuinely needs the Services ID and return URL.
+     * docs/OAUTH-SETUP.md §4 records this contract.
+     */
+    /*
+     * Android's key is gated on BOTH values — the same pair
+     * availableProviders() demands — because the plugin's Android
+     * initialize() rejects the WHOLE call over an empty redirectUrl, before
+     * it has registered any other provider. A deploy with the Services ID
+     * set and the return URL forgotten would otherwise break the Google
+     * button too: no Apple button on screen, and every Google tap failing
+     * with an error about Apple.
+     */
+    ...(isIOS()
+      ? { apple: {} }
+      : APPLE_SERVICES_ID && APPLE_REDIRECT_URL
+        ? { apple: { clientId: APPLE_SERVICES_ID, redirectUrl: APPLE_REDIRECT_URL } }
+        : {}),
   }).catch((error: unknown) => {
     // Not memoised as a rejection: a first attempt that failed because the
     // network was down must not poison every attempt after it.

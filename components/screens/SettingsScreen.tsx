@@ -53,7 +53,7 @@ import { appPath } from "@/lib/native/href";
  *
  * Until this revision the only place to sign out, delete an account, read the
  * privacy policy or reach a human was the landing page — a route the shipped
- * app never opens (native/boot.html sends every cold start to /welcome, /found
+ * app never opens (public/boot.html sends every cold start to /welcome, /found
  * or /play). So in the app those controls did not exist at all, and three of
  * them are not optional:
  *
@@ -529,9 +529,12 @@ function ProSection() {
           </p>
         ) : null}
 
-        {/* A store build cannot take the money, so the offer is a link out to
-            the browser that can — the same component the Pro sheet and the
-            paywall use, so all three say the same thing at the same price. */}
+        {/* A store build cannot take the money, and since the 1.0(3)
+            rejection it does not point at anywhere that can either — the
+            component states where Pro lives, no price, no link (see
+            BuyOnWeb.tsx), and Restore below is the action. Same component as
+            the Pro sheet and the paywall, so every surface says the same
+            thing. */}
         {!pro && sellsHere === false ? <BuyOnWeb className="mt-3" /> : null}
 
         <RestoreButton busy={busy} onRestore={() => void restore()} className="mt-3" />

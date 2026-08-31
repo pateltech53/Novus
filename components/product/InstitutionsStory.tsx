@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { StoryFooter, Wordbar } from "@/components/product/Bits";
 import { CountUp, Pin, Rail, fx } from "@/components/product/Scroll";
+import { useSellsHere } from "@/lib/commerce";
 import { CHAPTER_LICENCES, formatPrice } from "@/lib/monetization";
 
 /**
@@ -62,6 +63,11 @@ const BOARD = [
 
 export function InstitutionsStory() {
   const [seats35, seats100] = CHAPTER_LICENCES;
+  // This page had no commerce gate: both licence prices shipped in the 1.0(3)
+  // binary, and under the remote shell the page is one tap of wandering away.
+  // Store builds get the story without a number on it — same rule as every
+  // pricing surface (lib/commerce.ts).
+  const sells = useSellsHere();
 
   return (
     <main data-pv-snap className="min-h-dvh">
@@ -618,12 +624,19 @@ export function InstitutionsStory() {
           <div className="mt-7">
             <TalkToTeam />
           </div>
-          <p className="tnum mt-4 max-w-[32rem] text-xs leading-relaxed text-[var(--text-tertiary)]">
-            Licences run {formatPrice(seats35.priceCents)} a year for{" "}
-            {seats35.seats} seats and {formatPrice(seats100.priceCents)} for{" "}
-            {seats100.seats}. Any other size is arranged over email, above.
-            Every seat is Pro, and no student ever pays.
-          </p>
+          {sells === true ? (
+            <p className="tnum mt-4 max-w-[32rem] text-xs leading-relaxed text-[var(--text-tertiary)]">
+              Licences run {formatPrice(seats35.priceCents)} a year for{" "}
+              {seats35.seats} seats and {formatPrice(seats100.priceCents)} for{" "}
+              {seats100.seats}. Any other size is arranged over email, above.
+              Every seat is Pro, and no student ever pays.
+            </p>
+          ) : (
+            <p className="mt-4 max-w-[32rem] text-xs leading-relaxed text-[var(--text-tertiary)]">
+              Licences are sized to the class and arranged over email, above.
+              Every seat is Pro, and no student ever pays.
+            </p>
+          )}
           <div className="mt-10">
             <Link
               href="/product/you"
@@ -652,6 +665,9 @@ function TalkToTeam() {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const addressRef = useRef<HTMLParagraphElement>(null);
+  // The licence link points into the pricing section — withdrawn wherever
+  // selling is (see the note on the price paragraph above).
+  const sells = useSellsHere();
 
   useEffect(() => {
     if (!open) return;
@@ -695,12 +711,14 @@ function TalkToTeam() {
         >
           TALK TO THE TEAM
         </button>
-        <a
-          href="/#pro"
-          className="px-2 py-2 text-center text-sm font-bold underline decoration-[var(--hairline)] underline-offset-4 transition-colors hover:decoration-[var(--text-primary)] sm:text-left"
-        >
-          Or start a licence now
-        </a>
+        {sells === true && (
+          <a
+            href="/#pro"
+            className="px-2 py-2 text-center text-sm font-bold underline decoration-[var(--hairline)] underline-offset-4 transition-colors hover:decoration-[var(--text-primary)] sm:text-left"
+          >
+            Or start a licence now
+          </a>
+        )}
       </div>
 
       {open ? (

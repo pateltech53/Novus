@@ -2,6 +2,8 @@
 
 import { createContext, useContext, useSyncExternalStore } from "react";
 
+import { isNative } from "@/lib/native/platform";
+
 /**
  * Where a screen goes on a desktop.
  *
@@ -39,11 +41,17 @@ export function useWorkspaceSlot(): HTMLElement | null {
 }
 
 /**
- * The same `lg:` seam the play screen's grid is built on, read at runtime.
+ * The same `desk:` seam the play screen's grid is built on, read at runtime.
  *
  * Tailwind can hide the slot with a class; only JS can decide not to portal
- * into it. 64rem is `lg`, and it is written here in `rem` rather than `px` so
- * a player who scales their text moves this seam with everything else.
+ * into it. 64rem is the width half, written in `rem` so a player who scales
+ * their text moves this seam with everything else. The other half is "not a
+ * shell" — see the `desk:` variant in globals.css. The two halves must agree,
+ * because this hook decides whether to PORTAL into the slot that variant
+ * shows or hides: when they disagreed (this read width alone), an Android
+ * tablet at ≥1024px — native, so no `desk:` styles, but no UIKit chrome
+ * either, so `!native` in ScreenSheet passed — docked four of the six
+ * activity screens into a display:none node, and the tabs opened nothing.
  */
 const WIDE = "(min-width: 64rem)";
 
@@ -57,7 +65,7 @@ function subscribe(onChange: () => void): () => void {
 export function useIsWide(): boolean {
   return useSyncExternalStore(
     subscribe,
-    () => !!window.matchMedia?.(WIDE).matches,
+    () => !!window.matchMedia?.(WIDE).matches && !isNative(),
     // The server has no viewport. `false` means the first paint is the sheet,
     // which is the correct answer on a phone and a one-frame correction on a
     // desktop — the opposite default would flash a docked panel onto a phone.
