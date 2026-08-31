@@ -93,7 +93,7 @@ export function TheBooks({
    * before.
    */
   return (
-    <div className="grid grid-cols-2 gap-2 px-3 pt-3 lg:grid-cols-4 lg:gap-1.5">
+    <div className="grid grid-cols-2 gap-2 px-3 pt-3 desk:grid-cols-4 desk:gap-1.5">
       {cols.map((col) => (
         <BookCard key={col.label} {...col} rookie={run.rookieMode} onTermTap={onTermTap} />
       ))}
@@ -187,16 +187,16 @@ function Gauge({ months, danger }: { months: number; danger: boolean }) {
     : GAUGE_SEGMENTS; // a profitable company is not running out
   return (
     /*
-      The row is the same height as a sparkline's (h-4 / lg:h-3) with the bar
+      The row is the same height as a sparkline's (h-4 / desk:h-3) with the bar
       centred inside it, so all four cards put their trend on one baseline and
       whatever sits under them — the Rookie line — lines up across the row.
       The bar itself stays thin; only the box it sits in is standardised.
     */
-    <span aria-hidden="true" className="mt-1.5 flex h-4 items-center gap-px lg:mt-1 lg:h-3">
+    <span aria-hidden="true" className="mt-1.5 flex h-4 items-center gap-px desk:mt-1 desk:h-3">
       {Array.from({ length: GAUGE_SEGMENTS }, (_, i) => (
         <span
           key={i}
-          className={`h-1.5 flex-1 rounded-[1px] lg:h-1 ${
+          className={`h-1.5 flex-1 rounded-[1px] desk:h-1 ${
             i < filled
               ? danger
                 ? "bg-[var(--alert)]"
@@ -235,7 +235,7 @@ function Spark({ points }: { points: number[] }) {
         aria-hidden="true"
         viewBox="0 0 100 24"
         preserveAspectRatio="none"
-        className="mt-1.5 block h-4 w-full text-[var(--hairline)] lg:mt-1 lg:h-3"
+        className="mt-1.5 block h-4 w-full text-[var(--hairline)] desk:mt-1 desk:h-3"
       >
         <line
           x1="0"
@@ -262,7 +262,7 @@ function Spark({ points }: { points: number[] }) {
       aria-hidden="true"
       viewBox="0 0 100 24"
       preserveAspectRatio="none"
-      className="mt-1.5 block h-4 w-full text-[var(--text-tertiary)] lg:mt-1 lg:h-3"
+      className="mt-1.5 block h-4 w-full text-[var(--text-tertiary)] desk:mt-1 desk:h-3"
     >
       <polyline
         points={d}
@@ -344,7 +344,7 @@ function BookCard({
        * desktop rail. The phone's figures were 12px — the legal floor spent on
        * the four numbers the whole game runs on — because the log needed the
        * rest of the screen. The log is one row now, and this is where that
-       * room went. Every `lg:` below is the rail keeping the compact card.
+       * room went. Every `desk:` below is the rail keeping the compact card.
        */
       /*
        * `flex flex-col justify-start` and not the default, because a <button>
@@ -356,7 +356,7 @@ function BookCard({
        * figures or change lines in a row sat on the same baseline. Measured at
        * 8px out on the desktop rail and 10px on a phone.
        */
-      className={`nv-gc flex min-w-0 flex-col items-stretch justify-start rounded-[var(--radius-row)] px-3.5 py-3 text-left lg:px-2 lg:py-2 ${
+      className={`nv-gc flex min-w-0 flex-col items-stretch justify-start rounded-[var(--radius-row)] px-3.5 py-3 text-left desk:px-2 desk:py-2 ${
         // The outline is ALWAYS drawn and only its colour changes, so the cue
         // fades on both edges instead of snapping on and snapping off. Toggling
         // the utility toggled outline-width too, which no transition can smooth.
@@ -369,7 +369,7 @@ function BookCard({
         {label}
       </span>
       <span
-        className={`tnum mt-1 block truncate text-2xl font-extrabold leading-tight lg:mt-0.5 lg:text-[0.9375rem] ${
+        className={`tnum mt-1 block truncate text-2xl font-extrabold leading-tight desk:mt-0.5 desk:text-[0.9375rem] ${
           danger
             ? "text-[var(--alert)]"
             : good
@@ -386,7 +386,7 @@ function BookCard({
         span is silent to a screen reader, and a hard space is not.
       */}
       <span
-        className={`tnum mt-0.5 block min-h-[1.05rem] truncate text-2xs font-bold leading-[1.05rem] lg:min-h-[1rem] lg:leading-[1rem] ${
+        className={`tnum mt-0.5 block min-h-[1.05rem] truncate text-2xs font-bold leading-[1.05rem] desk:min-h-[1rem] desk:leading-[1rem] ${
           delta.tone === "up"
             ? "text-[var(--solvency)]"
             : delta.tone === "down"
@@ -413,7 +413,7 @@ function BookCard({
       </span>
       {rookie && gloss && (
         // Rookie Mode ADDS a plain-English line. The real term stays.
-        <span className="mt-1 block text-sm leading-snug text-[var(--text-tertiary)] lg:mt-0.5 lg:text-2xs lg:leading-[1.25]">
+        <span className="mt-1 block text-sm leading-snug text-[var(--text-tertiary)] desk:mt-0.5 desk:text-2xs desk:leading-[1.25]">
           {gloss.rookie}
         </span>
       )}

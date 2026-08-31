@@ -371,7 +371,7 @@ function PlayScreen() {
    * above it. Measured rather than assumed, because the bar changes height:
    * two rows of tabs under 360px, and again whenever the term coach appears.
    *
-   * Desktop is untouched — `lg:static` puts it back as the last item of a
+   * Desktop is untouched — `desk:static` puts it back as the last item of a
    * column that is already viewport-height, where it was never the problem.
    */
   const [footerEl, setFooterEl] = useState<HTMLDivElement | null>(null);
@@ -792,9 +792,22 @@ function PlayScreen() {
     /*
      * Two compositions, not one stretched.
      *
-     * Under 1024px this is the phone: stage, Books, log, then a sticky footer.
+     * The seam is `desk:` — 64rem AND a browser (see the variant's essay in
+     * globals.css). It was `lg:`, width alone, until Apple reviewed the
+     * iPhone app on an iPad Air and iPadOS handed it a window wide enough to
+     * flip this grid while UIKit still owned the chrome: unrendered rail,
+     * full-window advance slab, content under glass — the Guideline 4
+     * rejection of build 1.0(3). Inside the shells this page is now the phone
+     * composition at every width, and the two columns below carry
+     * `max-w-2xl mx-auto` so a wide window shows a centred phone-width app
+     * on the ground rather than a full-bleed stretch — the same cap
+     * AdvanceButton and ActivityBar always had. That cap also covers the
+     * 431–1023px band in a browser, which neither composition ever owned.
      *
-     * At 1024px and up it becomes a centred two-column desk. The mascot is
+     * Under the seam this is the phone: stage, Books, log, then a sticky
+     * footer.
+     *
+     * At the seam it becomes a centred two-column desk. The mascot is
      * promoted to a persistent left column — it stops being a banner you
      * scroll past and becomes something present in the room. The Books dock to
      * the top of the right rail where the reading actually happens, and the
@@ -824,7 +837,7 @@ function PlayScreen() {
      * thumb is, and there is no thumb here: it was spending the full width of
      * the working column on six words while the left column sat half empty.
      */
-    <main className="min-h-dvh bg-[var(--bg)] lg:mx-auto lg:grid lg:min-h-dvh lg:max-w-[88rem] lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)_minmax(0,21rem)] lg:gap-5 lg:px-5 lg:py-5">
+    <main className="min-h-dvh bg-[var(--bg)] desk:mx-auto desk:grid desk:min-h-dvh desk:max-w-[88rem] desk:grid-cols-[minmax(0,18rem)_minmax(0,1fr)_minmax(0,21rem)] desk:gap-5 desk:px-5 desk:py-5">
       {/*
         Arrives from the beta panel's "jump to the tank". Drives only the two
         controls a player has — ADVANCE, and the first choice on a blocking
@@ -832,8 +845,9 @@ function PlayScreen() {
       */}
       {autopilot && <BetaAutopilot />}
 
-      {/* Left column on desktop; masthead on phone. */}
-      <div className="lg:sticky lg:top-5 lg:flex lg:h-[calc(100dvh-2.5rem)] lg:flex-col lg:self-start lg:overflow-hidden lg:rounded-[var(--radius-card)] lg:bg-[var(--surface)] lg:shadow-[var(--e2)]">
+      {/* Left column on desktop; masthead on phone — capped and centred
+          whenever the phone composition is what a wide window gets. */}
+      <div className="mx-auto w-full max-w-2xl desk:sticky desk:top-5 desk:flex desk:h-[calc(100dvh-2.5rem)] desk:max-w-none desk:flex-col desk:self-start desk:overflow-hidden desk:rounded-[var(--radius-card)] desk:bg-[var(--surface)] desk:shadow-[var(--e2)]">
         <HomeStage
           run={run}
           founderName={profile?.founderName ?? run.founderName}
@@ -864,7 +878,7 @@ function PlayScreen() {
           `data-coach="tabs"` is on BOTH copies, and the tutorial points at
           whichever one is visible — see `coachTarget` in
           components/Coachmarks.tsx. Before that, only the phone's bottom bar
-          carried the attribute, and on a desktop that element is `lg:hidden`:
+          carried the attribute, and on a desktop that element is `desk:hidden`:
           still in the document, so `querySelector` found it, and 0×0 at 0,0
           once measured. Three steps — the bar, PRODUCT and CLOSET — cut a
           zero-size hole in the top corner of an empty screen while the six
@@ -872,7 +886,7 @@ function PlayScreen() {
         */}
         {domChrome ? (
           <div
-            className="hidden min-h-0 flex-1 overflow-y-auto lg:block"
+            className="hidden min-h-0 flex-1 overflow-y-auto desk:block"
             data-coach="tabs"
           >
             <div className="px-4 pt-3 pb-1 text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
@@ -887,8 +901,9 @@ function PlayScreen() {
         ) : null}
       </div>
 
-      {/* The working column on desktop; the rest of the page on phone. */}
-      <div className="flex min-h-0 flex-col lg:h-[calc(100dvh-2.5rem)] lg:overflow-hidden lg:rounded-[var(--radius-card)] lg:bg-[var(--surface)] lg:shadow-[var(--e2)]">
+      {/* The working column on desktop; the rest of the page on phone — same
+          cap as the masthead column above, so the two agree on a width. */}
+      <div className="mx-auto flex w-full max-w-2xl min-h-0 flex-col desk:h-[calc(100dvh-2.5rem)] desk:max-w-none desk:overflow-hidden desk:rounded-[var(--radius-card)] desk:bg-[var(--surface)] desk:shadow-[var(--e2)]">
         <div data-coach="books">
           <TheBooks run={run} onTermTap={(t) => setTerm({ term: t })} />
         </div>
@@ -904,7 +919,7 @@ function PlayScreen() {
 
           Desktop keeps the inline feed: the right rail is the reading column
           the log was always short of, so there is nothing to compress. Same
-          `lg:` seam as the rest of this file's two compositions.
+          `desk:` seam as the rest of this file's two compositions.
         */}
         {/*
           The bottom reservation used to live here, as this row's padding, on
@@ -916,7 +931,7 @@ function PlayScreen() {
           occupies and composited under it. The reservation now sits after
           everything, next to the web one, where the flow actually ends.
         */}
-        <div className="px-3 pt-3 lg:hidden">
+        <div className="px-3 pt-3 desk:hidden">
           <LogButton
             month={run.month}
             year={run.year}
@@ -986,7 +1001,7 @@ function PlayScreen() {
         */}
         <div
           ref={setWorkspaceEl}
-          className="hidden min-h-0 flex-1 lg:flex lg:flex-col"
+          className="hidden min-h-0 flex-1 desk:flex desk:flex-col"
         >
           {!activity && !current && run.alive ? (
             <div className="flex flex-1 items-center justify-center px-6">
@@ -1015,12 +1030,12 @@ function PlayScreen() {
             */}
             <div
               aria-hidden="true"
-              className="shrink-0 lg:hidden"
+              className="shrink-0 desk:hidden"
               style={{ height: footerHeight + DOCK_FADE + FLOW_TAIL }}
             />
             <div
               ref={setFooterEl}
-              className="fixed inset-x-0 bottom-0 z-20 border-t border-[var(--hairline)] bg-[var(--bg)] pt-2 lg:static lg:bg-[var(--surface)]"
+              className="fixed inset-x-0 bottom-0 z-20 border-t border-[var(--hairline)] bg-[var(--bg)] pt-2 desk:static desk:bg-[var(--surface)]"
             >
               {/*
                 ── Content dissolves under this dock; it does not get sliced ──
@@ -1032,12 +1047,12 @@ function PlayScreen() {
                 "there is more below" or as a rendering fault.
 
                 A border with a fade above it says the first. Phone only: on
-                desktop this block is `lg:static` at the foot of a column with
+                desktop this block is `desk:static` at the foot of a column with
                 nothing passing beneath it.
               */}
               <div
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-x-0 bottom-full h-9 bg-gradient-to-t from-[var(--bg)] to-transparent lg:hidden"
+                className="pointer-events-none absolute inset-x-0 bottom-full h-9 bg-gradient-to-t from-[var(--bg)] to-transparent desk:hidden"
               />
               <TermCoach
                 term={term?.term ?? null}
@@ -1055,7 +1070,7 @@ function PlayScreen() {
                 />
               </div>
               {/* Phone only: on desktop these six live in the left rail. */}
-              <div className="mt-1.5 lg:hidden" data-coach="tabs">
+              <div className="mt-1.5 desk:hidden" data-coach="tabs">
                 <ActivityBar active={activity} onOpen={openActivity} />
               </div>
             </div>
@@ -1074,7 +1089,7 @@ function PlayScreen() {
           */
           <div
             aria-hidden="true"
-            className="shrink-0 lg:hidden"
+            className="shrink-0 desk:hidden"
             style={{ height: "calc(var(--nv-chrome-bottom, 0px) + 0.75rem)" }}
           />
         )}
@@ -1088,7 +1103,7 @@ function PlayScreen() {
         The phone keeps the one-row summary and the sheet, because on a phone
         there genuinely is no room for it.
       */}
-      <aside className="hidden lg:flex lg:h-[calc(100dvh-2.5rem)] lg:flex-col lg:overflow-hidden lg:rounded-[var(--radius-card)] lg:bg-[var(--surface)] lg:shadow-[var(--e2)]">
+      <aside className="hidden desk:flex desk:h-[calc(100dvh-2.5rem)] desk:flex-col desk:overflow-hidden desk:rounded-[var(--radius-card)] desk:bg-[var(--surface)] desk:shadow-[var(--e2)]">
         <div className="flex shrink-0 items-baseline gap-2 border-b border-[var(--hairline)] px-4 py-3">
           <span className="text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
             LIFE LOG

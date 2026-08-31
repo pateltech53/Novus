@@ -138,7 +138,7 @@ export function NextStep({
            not be tapped. Geometry alone would not have caught it. */
         data-nudge="next-step"
         /* Through a custom property rather than as `style={{ bottom }}`, so
-           that `lg:static` can drop it on desktop. An inline declaration beats
+           that `desk:static` can drop it on desktop. An inline declaration beats
            a stylesheet rule whatever media query that rule is in.
 
            `z-30` clears the dock's `z-20` and, with it, the fade the dock
@@ -157,12 +157,15 @@ export function NextStep({
           `position` stayed `relative` with `bottom: 186px` sitting inert on it.
 
           So placement lives out here on a plain div and the material stays on
-          the card inside. `lg:static` then genuinely drops the float on
+          the card inside. `desk:static` then genuinely drops the float on
           desktop, because a static box ignores `inset` and `bottom` both.
         */
-        className="fixed inset-x-3 bottom-[var(--nudge-bottom)] z-30 lg:static lg:mx-3 lg:mt-2"
+        /* max-w-2xl + mx-auto: pinned above the dock it must stay the width
+           of the controls it sits over, not the window's — an iPad-wide
+           nudge card is a banner, not a nudge. */
+        className="fixed inset-x-3 bottom-[var(--nudge-bottom)] z-30 mx-auto max-w-2xl desk:static desk:mx-3 desk:mt-2"
       >
-        <div className="nv-gc relative rounded-[var(--radius-card)] shadow-[var(--e3)] lg:shadow-none">
+        <div className="nv-gc relative rounded-[var(--radius-card)] shadow-[var(--e3)] desk:shadow-none">
           {/*
           ── The card IS the button ────────────────────────────────────────
 

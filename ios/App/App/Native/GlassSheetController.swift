@@ -212,9 +212,22 @@ final class GlassSheetController: UIViewController, UIScrollViewDelegate {
             greaterThanOrEqualTo: view.safeAreaLayoutGuide.topAnchor, constant: 24)
         top.priority = .required
 
+        /*
+         * Full-bleed on a phone, capped and centred on anything wider. The
+         * fill is a high-priority equality under a required 672 cap — the
+         * same resolution GlassChromeController.pinHorizontally uses, and
+         * the same 672 the DOM's sheets cap at (ScreenSheet's max-w-2xl), so
+         * the native decision sheet and the web ones agree on a width. On an
+         * iPad-wide window an edge-pinned bottom sheet was a wall-to-wall
+         * band of rows (build 1.0(3), Guideline 4).
+         */
+        let fill = panel.widthAnchor.constraint(equalTo: view.widthAnchor)
+        fill.priority = .defaultHigh
+
         NSLayoutConstraint.activate([
-            panel.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            panel.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            panel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            panel.widthAnchor.constraint(lessThanOrEqualToConstant: 672),
+            fill,
             panel.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             top,
             panel.heightAnchor.constraint(

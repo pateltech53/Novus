@@ -151,7 +151,7 @@ export function HomeStage({
         inside the panel's own 14px one is a child rounder than its parent —
         the one arrangement the radius budget rules out. Squared at `lg`.
       */
-      className="nv-masthead nv-stage relative overflow-hidden rounded-b-[var(--radius-sheet)] px-5 pb-5 lg:rounded-b-none"
+      className="nv-masthead nv-stage relative overflow-hidden rounded-b-[var(--radius-sheet)] px-5 pb-5 desk:rounded-b-none"
       style={{
         paddingTop: nativeControls
           ? "max(var(--nv-chrome-top, 0px), var(--nv-safe-top), 0.5rem)"
@@ -173,7 +173,7 @@ export function HomeStage({
         one line they need 280px — 60 for the capsule, 220 for the cluster —
         and the phone has it. The DESKTOP RAIL DOES NOT: `18rem` minus this
         section's `px-5` leaves 248, so the phone button ended 12px past the
-        panel and the panel is `lg:overflow-hidden`. Not cramped — GONE, with
+        panel and the panel is `desk:overflow-hidden`. Not cramped — GONE, with
         no scrollbar to hint that anything was there.
 
         No amount of tightening fixes that: five 36px targets and the capsule
@@ -210,7 +210,7 @@ export function HomeStage({
             line by construction, spread edge to edge, so the gap between the
             buttons is whatever the rail has left rather than a number that
             has to be re-guessed every time the count changes. */}
-        <div className="ml-auto flex items-center gap-2.5 lg:ml-0 lg:w-full lg:justify-between">
+        <div className="ml-auto flex items-center gap-2.5 desk:ml-0 desk:w-full desk:justify-between">
         {/* The book — the key terms page, and the Rookie switch on it. First
             in the row because it is the door a confused player is looking
             for, and the tutorial points at it by name. */}
@@ -274,7 +274,7 @@ export function HomeStage({
         The height that buys goes to The Books, which is where a game about
         cash, burn, runway and valuation should be spending it.
 
-        `lg:` puts the centred column back, because the desktop rail was never
+        `desk:` puts the centred column back, because the desktop rail was never
         the problem: it is a 100dvh column with room for the full portrait.
       */}
       {/* `mt-2.5` on a phone: the founder's head was landing directly against
@@ -282,7 +282,7 @@ export function HomeStage({
           touching, which reads as a collision rather than a stack. Desktop
           keeps its own rhythm; there the capsule row and the portrait are in
           separate columns. */}
-      <div className="relative mt-2.5 flex items-center gap-3.5 lg:mt-0 lg:flex-col lg:items-center lg:gap-0">
+      <div className="relative mt-2.5 flex items-center gap-3.5 desk:mt-0 desk:flex-col desk:items-center desk:gap-0">
         {/* The player's own founder, not a generic mascot. This is the same
             character that sits in the panel, the Closet and the year-end
             statement — previously the avatar existed only on the screen that
@@ -291,7 +291,7 @@ export function HomeStage({
             prop threaded through two components. */}
         <FounderAvatar avatar={run.avatar} size={168} priority className="shrink-0" />
 
-        <div className="min-w-0 flex-1 lg:w-full lg:flex-none">
+        <div className="min-w-0 flex-1 desk:w-full desk:flex-none">
         {/* Beside the portrait the title has ~245px rather than the full
             width, so it steps down one notch and wraps to at most two lines
             instead of truncating — a company name the player chose is not a
@@ -310,7 +310,7 @@ export function HomeStage({
           Shown even with one island, because founding the second one lives
           through the same door.
         */}
-        <h1 className="lg:mt-1 lg:text-center">
+        <h1 className="desk:mt-1 desk:text-center">
           <button
             type="button"
             onClick={onOpenIslands}
@@ -323,7 +323,7 @@ export function HomeStage({
                under the 30 a thumb needs and exactly the shape
                `npm run audit:phone` fails at 393px. The padding counts toward
                the target, the negative margin gives back the layout. */
-            className="nv-press -my-1 line-clamp-2 py-1 text-left text-[1.375rem] font-extrabold leading-tight text-[var(--n-11)] lg:text-center lg:text-[1.4375rem]"
+            className="nv-press -my-1 line-clamp-2 py-1 text-left text-[1.375rem] font-extrabold leading-tight text-[var(--n-11)] desk:text-center desk:text-[1.4375rem]"
           >
             {run.companyName}
             <span aria-hidden="true" className="ml-1 align-middle text-sm text-[var(--n-6)]">
@@ -331,7 +331,7 @@ export function HomeStage({
             </span>
           </button>
         </h1>
-        <p className="mt-1 text-sm font-semibold text-[var(--n-7)] lg:mt-0.5 lg:text-center lg:text-xs">
+        <p className="mt-1 text-sm font-semibold text-[var(--n-7)] desk:mt-0.5 desk:text-center desk:text-xs">
           {founderName || "Founder"} &nbsp;|&nbsp; {fmtMoney(run.stats.valuation)}{" "}
           &nbsp;|&nbsp; FY {run.year} ·{" "}
           {/* The stage is a way in, not just a label: it opens a plain-English
@@ -368,7 +368,7 @@ export function HomeStage({
           the row; centred on desktop, where they are rings sized to
           themselves. `justify-center` on a full-width flex child is a no-op,
           so one class carries both. */}
-      <div className="mt-3.5 flex justify-center lg:mt-4">
+      <div className="mt-3.5 flex justify-center desk:mt-4">
         <StatRings run={run} />
       </div>
 
