@@ -72,6 +72,25 @@ export function nativeAuthAvailable(): boolean {
 }
 
 /**
+ * ── TEMPORARY: Sign in with Apple is withheld ───────────────────────────────
+ *
+ * The owner's call (2026-08-31): the client half of the 2.1(a) fix shipped,
+ * but the flow's other half lives in the Supabase dashboard — the Apple
+ * provider's Client IDs must carry the bundle id, and the secret should be
+ * the auto-renewing .p8 (docs/APP-STORE.md §6.9) — and none of it has been
+ * verified on a physical device yet. Until it is, an offered Apple button is
+ * a bet that unverified configuration is right, and losing that bet on a
+ * reviewer's iPad is exactly the rejection this file just came back from.
+ * Email sign-in is untouched.
+ *
+ * To re-offer: flip this to false — nothing else. The shell loads the live
+ * site, so the button returns on the next web deploy, no store resubmission.
+ * Flip it only AFTER the §6.9 dashboard checks and an on-device sign-in on
+ * iPhone and iPad have actually passed.
+ */
+const APPLE_SIGN_IN_WITHHELD = true;
+
+/**
  * Which buttons the app may show.
  *
  * Apple on iOS needs no configuration from us — the entitlement on the target
@@ -89,8 +108,24 @@ export function availableProviders(): OAuthProvider[] {
   // id is present — a web client id alone initialises nothing there, and a
   // button whose every tap fails is the defect class this file was rejected
   // for. Offer only what the tap can honour, per platform.
-  if (GOOGLE_WEB_CLIENT_ID && (!isIOS() || GOOGLE_IOS_CLIENT_ID)) providers.push("google");
-  if (isIOS() || (APPLE_SERVICES_ID && APPLE_REDIRECT_URL)) providers.push("apple");
+  //
+  // And while Apple is withheld, iOS gets no Google either: App Review
+  // Guideline 4.8 forbids offering a third-party login on iOS without a
+  // privacy-preserving equivalent beside it (docs/OAUTH-SETUP.md §0 — "Apple
+  // alone, or both; never Google alone"). Android has no such rule and keeps
+  // whatever is configured.
+  if (
+    GOOGLE_WEB_CLIENT_ID &&
+    (!isIOS() || (GOOGLE_IOS_CLIENT_ID && !APPLE_SIGN_IN_WITHHELD))
+  ) {
+    providers.push("google");
+  }
+  if (
+    !APPLE_SIGN_IN_WITHHELD &&
+    (isIOS() || (APPLE_SERVICES_ID && APPLE_REDIRECT_URL))
+  ) {
+    providers.push("apple");
+  }
   return providers;
 }
 

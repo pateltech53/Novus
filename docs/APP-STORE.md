@@ -32,7 +32,12 @@ what answered it:
    if the manifest and package.json ever disagree again. The error surface
    now carries the underlying cause in parentheses, so the next screenshot
    diagnoses itself. Not iPad-specific — it reproduced identically on iPhone.
-   Two dashboard checks remain for a person (§6a).
+   Two dashboard checks remain for a person (§6.9) — and until they and an
+   on-device test pass, **the Apple button is withheld entirely**
+   (`APPLE_SIGN_IN_WITHHELD` in lib/cloud/native-oauth.ts, the owner's call):
+   a sign-in that cannot error because it is not offered cannot re-collect
+   2.1(a). Flipping it back is one constant and a web deploy — no
+   resubmission, thanks to the remote shell.
 
 2. **3.1.1 — "The plans can be purchased in the app using payment mechanisms
    other than In-App Purchase."** The post-injunction GET PRO link-out

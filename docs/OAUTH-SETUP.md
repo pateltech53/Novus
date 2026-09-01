@@ -304,6 +304,15 @@ it is never re-derived from the plugin's source at 2am:
 Android also needs the SHA-1s from §3.3 registered, or the Google sheet closes
 immediately with no error a user can act on.
 
+### 5.0a The temporary withhold
+
+`APPLE_SIGN_IN_WITHHELD` at the top of `lib/cloud/native-oauth.ts` is
+currently **true**: the Apple button is not offered anywhere in the app (and
+Google is withheld on iOS with it — §0's 4.8 rule) until the §4.4 dashboard
+values are verified and a sign-in has succeeded on a physical iPhone and
+iPad. One constant, one web deploy to restore; the constant's own comment is
+the checklist.
+
 ### 5.1 Where a player finds it
 
 Two doors, and the first one is the one that was missing:
