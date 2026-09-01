@@ -314,7 +314,12 @@ history, not as work to finish.
     None); verify the Supabase Apple provider's Client IDs carry the bundle
     id `com.novuspitch.app` and the secret is the auto-renewing .p8 flow;
     test Sign in with Apple on a physical iPhone AND iPad; commit the next
-    build-number bump.
+    build-number bump. **Interim state (owner's call, 2026-08-31): the Apple
+    button is withheld in-app** — `APPLE_SIGN_IN_WITHHELD` in
+    lib/cloud/native-oauth.ts, which also withholds Google on iOS while it
+    is set (Guideline 4.8: never Google alone). Flip it to false after the
+    dashboard checks and device test pass; the change reaches the app on the
+    next web deploy.
 12. Offline play regressed with the remote shell (Era 6). If it ever matters
     again: WKAppBoundDomains + `limitsNavigationsToAppBoundDomains: true` +
     a service worker precaching the app routes — deliberate new work, not a
