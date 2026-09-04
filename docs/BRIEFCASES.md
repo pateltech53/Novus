@@ -67,7 +67,7 @@ running — and `prefers-reduced-motion` gets none of it.
 | `lib/rewards/templates.ts` | The 51 templates, the weekly pool, the lifetime milestones. |
 | `lib/rewards/catalog.ts` | The non-skin reward pool. |
 | `supabase/migrations/0017_rewards.sql` | Tables, RLS, and the RPCs that commit an open. |
-| `supabase/migrations/0018_rewards_seed.sql` | **Generated** — `npm run rewards:seed`. |
+| `supabase/migrations/0018_rewards_seed.sql` | **Generated** — `npm run rewards:seed`. Folded verbatim into `supabase/APPLY-ALL.sql` (its 0018 section): regenerate both together, or the one-paste deploy seeds stale content. |
 | `components/rewards/Ceremony.tsx` | The taps and the reveal. |
 | `components/rewards/CaseCanvas.tsx` | The rotating 3-D case. |
 | `components/rewards/MySkins.tsx` | The collection, including what is not in it. |

@@ -133,9 +133,13 @@ authored library and conversion contract live in `design/`
   route handlers (child-safety rule; Turnstile is the single sanctioned
   third-party script).
 - **`supabase/migrations/0001–0018`** — schema source of truth, applied in
-  filename order (deployment is manual paste into the Supabase SQL editor;
-  `APPLY-ALL.sql` currently covers only 0001→0016). 9 RLS test suites run per
-  PR via `npm run test:db`.
+  filename order. Deployment is a manual paste into the Supabase SQL editor:
+  `supabase/APPLY-ALL.sql` is the whole schema 0001→0018 in one idempotent
+  file, safe on a fresh, half-migrated or complete project and refusing the
+  wrong one — regenerate it in the same PR as any migration (0018's seed is
+  folded in verbatim). `CHECK-SCHEMA.sql` is the read-only "which migrations
+  has this project had" companion. 9 RLS test suites run per PR via
+  `npm run test:db`.
 - **Persistence** — localStorage is the synchronous cache the game reads;
   Supabase is the debounced mirror (`lib/cloud/sync.ts`). Saves: local/newer
   wins. Entitlements: server wins. No account = fully local play, nothing
