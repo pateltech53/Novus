@@ -48,9 +48,27 @@ import {
 } from "@/lib/monetization";
 import { useNavigating } from "@/lib/navigating";
 import { usePrefetch } from "@/lib/prefetch";
-import { useWarm } from "@/lib/warm";
+import { introSeen } from "@/lib/rewards/intro";
+import { useWarm, warm } from "@/lib/warm";
 import { play } from "@/lib/sound";
 import { GameProvider, useGame } from "@/lib/state/GameProvider";
+
+/*
+ * The one-time "Introducing Briefcases" card, split out for the same reason
+ * app/play/page.tsx splits it: most players see it once and new players never
+ * (components/rewards/BriefcaseIntro.tsx). It is mounted here as well as on
+ * the board because a returning player whose last company ended lands on
+ * this screen, not on /play, and would otherwise be introduced only on the
+ * day they founded again.
+ */
+const BriefcaseIntro = warm(() =>
+  import("@/components/rewards/BriefcaseIntro").then((m) => m.BriefcaseIntro),
+);
+
+/** The sea gets its entrance to itself first — the islands stagger in over
+ *  roughly half a second, and the card should arrive after the water has
+ *  settled rather than through it. */
+const BRIEFCASE_INTRO_DELAY_MS = 1100;
 
 export default function IslandsPageWrapper() {
   return (
@@ -173,6 +191,46 @@ function IslandsPage() {
   const [focus, setFocus] = useState<number | null>(null);
   /** Which way the last ‹ › went, so the gallery slides the right way. */
   const [dir, setDir] = useState(1);
+
+  /*
+   * ── The briefcase introduction, on the sea ────────────────────────────────
+   *
+   * The same card and the same rules as app/play/page.tsx, which carries the
+   * long version: an onboarded profile, the seen-flag read in an effect and
+   * never during render, one beat of delay, the module fetched only on the
+   * visit that will show it, and offered at most once per mount so a
+   * dismissal can never bring it straight back. The gallery is left alone —
+   * the sea is the view every arrival opens on, and a card over a single
+   * island's books would be a card over the thing being read.
+   *
+   * `game.profile` is null until the provider's own mount effect reads it, so
+   * the gate simply waits for that to become true.
+   */
+  const [briefcaseIntro, setBriefcaseIntro] = useState(false);
+  const introOffered = useRef(false);
+  // `opening` and `leaving` are both the player already on their way
+  // somewhere else — into a company, or out of the account — and a card that
+  // lands on a screen being left is a card nobody reads.
+  const introEligible =
+    !!game.profile?.onboarded && focus === null && !opening && !leaving;
+
+  useEffect(() => {
+    if (introOffered.current || !introEligible) return;
+    if (introSeen()) {
+      introOffered.current = true;
+      return;
+    }
+    void BriefcaseIntro.preload();
+    const t = window.setTimeout(() => {
+      introOffered.current = true;
+      setBriefcaseIntro(true);
+    }, BRIEFCASE_INTRO_DELAY_MS);
+    return () => window.clearTimeout(t);
+  }, [introEligible]);
+
+  // Stable: the card registers it as its Android back handler, and that
+  // stack keeps the closure it was handed at registration.
+  const closeBriefcaseIntro = useCallback(() => setBriefcaseIntro(false), []);
 
   const islands = game.islands;
   const living = islands.filter((i) => i.alive);
@@ -389,6 +447,11 @@ function IslandsPage() {
        * DOM pill is not rendered at all where UIKit has drawn one.
        */
       if (!account?.email) return null;
+      // Withdrawn while the briefcase card is up, for the reason every DOM
+      // overlay in the app withdraws the chrome: a UIKit button composites
+      // above the webview, and a sign-out floating over an announcement is a
+      // control the card cannot cover and did not ask for.
+      if (briefcaseIntro) return null;
       return {
         mode: "shown",
         theme,
@@ -456,7 +519,7 @@ function IslandsPage() {
         },
       ],
     };
-  }, [focused, theme, many, opening, account?.email, leaving]);
+  }, [focused, theme, many, opening, account?.email, leaving, briefcaseIntro]);
 
   useNativeOverlay(overlay, {
     onAction: (id) => {
@@ -766,6 +829,11 @@ function IslandsPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Once, for a player onboarded before briefcases reached everyone —
+          over the sea only; the gate above never fires in the gallery. The
+          card writes its own seen-flag on every way out. */}
+      {briefcaseIntro && <BriefcaseIntro onClose={closeBriefcaseIntro} />}
     </main>
   );
 }

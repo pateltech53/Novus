@@ -4,6 +4,7 @@ import {
   startTransition,
   useCallback,
   useEffect,
+  useRef,
   useState,
   useMemo,
 } from "react";
@@ -40,6 +41,7 @@ import { useWarm, warm, type Preloadable } from "@/lib/warm";
 import { UPGRADE_WARM } from "@/components/upgrade/UpgradeProvider";
 import { appPath } from "@/lib/native/href";
 import { storefront } from "@/lib/commerce";
+import { introSeen } from "@/lib/rewards/intro";
 
 /*
  * ── Everything below renders behind a flag, so none of it belongs in the
@@ -178,6 +180,30 @@ const LinkedOut = warm(() =>
 const PositioningSheet = warm(() =>
   import("@/components/PositioningSheet").then((m) => m.PositioningSheet),
 );
+/*
+ * The one-time "Introducing Briefcases" card, for players who were already
+ * onboarded when the reward loop reached everyone.
+ *
+ * Split the same way as the overlays above so that a sheet most players see
+ * exactly once — and new players never (components/rewards/BriefcaseIntro.tsx
+ * says why) — is not in the chunk that draws month one; /play carries the
+ * tightest first-load budget in scripts/bundle-report.mjs. Deliberately NOT
+ * in the WARM queue below: that queue runs on every visit, and this module is
+ * preloaded only on the visit that is about to show it (see the effect that
+ * decides that, further down).
+ */
+const BriefcaseIntro = warm(() =>
+  import("@/components/rewards/BriefcaseIntro").then((m) => m.BriefcaseIntro),
+);
+
+/**
+ * How long the board gets to itself before the briefcase card comes up.
+ *
+ * Longer than the `useWarm` settle (700 ms) so the card never lands in the
+ * middle of the page's own entrance, and short enough that it still reads as
+ * part of arriving rather than as an interruption of play.
+ */
+const BRIEFCASE_INTRO_DELAY_MS = 1100;
 /*
  * The height of the fade that sits ON TOP of the flow, immediately above the
  * fixed dock — `h-9` on the gradient below, kept here as a number because the
@@ -352,6 +378,8 @@ function PlayScreen() {
   const [keyTerms, setKeyTerms] = useState(false);
   /** The phone's log sheet. Desktop keeps the log inline and never sets this. */
   const [logOpen, setLogOpen] = useState(false);
+  /** The one-time briefcase introduction — see the gate further down. */
+  const [briefcaseIntro, setBriefcaseIntro] = useState(false);
   const [term, setTerm] = useState<{ term: string; detail?: string } | null>(
     null,
   );
@@ -519,7 +547,61 @@ function PlayScreen() {
     !!yearEnd ||
     !!autopsy ||
     !!game.tierUnlock ||
-    !!perform;
+    !!perform ||
+    // A DOM card over the board, so the native chrome withdraws for it exactly
+    // as it does for the tier unlock — a UIKit view composites above the
+    // webview and would otherwise sit on top of the card.
+    briefcaseIntro;
+
+  /*
+   * ── The briefcase introduction, and when the board is allowed to show it ──
+   *
+   * Players who finished the guided first play before the reward loop reached
+   * everyone have never been told about briefcases. They get one card, once
+   * (components/rewards/BriefcaseIntro.tsx), and only when the board is
+   * genuinely idle: a profile exists and is onboarded, the tutorial is over
+   * (`run.tutorial && run.tutorialStep > 0` is the fact `coaching` above is
+   * derived from — while it holds, the player is still being taught, and the
+   * tutorial's own "briefcases" step is their introduction), and nothing else
+   * is drawn over the board — no decision card, no sheet, no year-end, no
+   * Chapter Seven, no tier unlock. `overlay` is that last question already
+   * asked once, so it is reused rather than re-listed.
+   *
+   * The seen-flag is read inside the effect, never during render: this page
+   * is a client component but it is still prerendered, and localStorage does
+   * not exist on the server. The beat before it comes up keeps it out of the
+   * page's own entrance, and the module is fetched at the start of that beat
+   * rather than in the WARM queue, so the card is in hand when the timer
+   * fires and no visit that will never show it pays for the chunk.
+   *
+   * Offered at most once per mount. Without the ref, dismissing the card
+   * flips `overlay` back to false, the gate re-runs, and on a device that
+   * could not record the dismissal — or a deploy with no accounts, where the
+   * card finds nothing to show and closes itself — it would come straight
+   * back, on a loop, every second.
+   */
+  const tutorialPending = !!run && run.tutorial && run.tutorialStep > 0;
+  const introEligible =
+    !!run && !!profile?.onboarded && !tutorialPending && !overlay;
+  const introOffered = useRef(false);
+
+  useEffect(() => {
+    if (introOffered.current || !introEligible) return;
+    if (introSeen()) {
+      introOffered.current = true;
+      return;
+    }
+    void BriefcaseIntro.preload();
+    const t = window.setTimeout(() => {
+      introOffered.current = true;
+      setBriefcaseIntro(true);
+    }, BRIEFCASE_INTRO_DELAY_MS);
+    return () => window.clearTimeout(t);
+  }, [introEligible]);
+
+  // Stable, because the card registers it as its Android back handler and
+  // that stack keeps whichever closure it was handed at registration.
+  const closeBriefcaseIntro = useCallback(() => setBriefcaseIntro(false), []);
 
   /**
    * Which native surface the current tutorial step is teaching.
@@ -1271,6 +1353,11 @@ function PlayScreen() {
 
       {yearEnd && <YearEndStatement summary={yearEnd} />}
       {autopsy && !run.alive && <ChapterSeven report={autopsy} />}
+
+      {/* Once, for a player onboarded before briefcases reached everyone.
+          The gate above guarantees nothing else is on screen when it comes
+          up; the card writes its own seen-flag on every way out. */}
+      {briefcaseIntro && <BriefcaseIntro onClose={closeBriefcaseIntro} />}
 
       {coaching && (
         <Coachmarks

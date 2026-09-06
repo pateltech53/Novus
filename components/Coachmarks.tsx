@@ -686,6 +686,37 @@ const BASE_STEPS: CoachStep[] = [
     mode: "ack",
     place: "above",
   },
+  /*
+   * The briefcases, taught to every new player as part of the first run.
+   *
+   * The reward loop (docs/BRIEFCASES.md) spent its beta behind a per-account
+   * flag and now reaches every signed-in account, so this is where a player
+   * hears about it first — immediately after the closet, because that is
+   * where the cases live (CLOSET → BRIEFCASES) and the step before this one
+   * has just put the closet on the map. Existing players, who finished this
+   * tutorial before the step existed, are told once by
+   * components/rewards/BriefcaseIntro.tsx instead; app/welcome/page.tsx marks
+   * that introduction seen for anyone who gets this step, so nobody is told
+   * twice.
+   *
+   * It points at the same bar as PRODUCT and CLOSET above, for the same
+   * reason they do: there is nothing else on screen to point at until the tab
+   * is opened. Reusing `native: "tabs"` also means the UIKit chrome already
+   * knows how to light this step — no change to the iOS side.
+   *
+   * The copy carries the three facts that matter most to the audience this
+   * product is sold to: the missions are the same for everyone, the cases are
+   * earned and never bought, and nothing inside one touches the score.
+   */
+  {
+    id: "briefcases",
+    target: "tabs",
+    native: "tabs",
+    title: "Briefcases are earned. Never bought.",
+    body: "Five missions a day, the same five for everyone. Finish one and a sealed briefcase is yours — a skin for your founder, Shark Tokens, or a trial of Pro. The odds are printed on every case, nothing inside one touches your score, and they live in CLOSET → BRIEFCASES.",
+    mode: "ack",
+    place: "above",
+  },
   {
     id: "phone",
     target: "phone",
