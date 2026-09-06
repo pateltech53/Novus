@@ -1,0 +1,224 @@
+{
+  "t1-canvas": {
+    "name": "Canvas Case",
+    "version": 2,
+    "route": "image",
+    "model": "latest",
+    "pbr": true,
+    "tasks": {
+      "imageTo3d": "01a075b3-08ae-7738-b790-3525a04729a5"
+    },
+    "credits": 30,
+    "source": {
+      "image": "art-review/briefcase/cases/t1-canvas-closed.png",
+      "sha256": "163795e16316bad951cbdb2f5bfd6c36ab0983faf09db489986ce21038abb9b1"
+    },
+    "texturePrompt": "worn tan canvas fabric briefcase, brass snap latches, paper luggage tag, soft matte vinyl toy finish",
+    "generatedAt": "2026-09-06T07:54:04.790Z",
+    "originalSha256": "ca23e157eeeaf5def19574f3b9fae6c4c3fed7446bb410e9d88105b2eef1f9df",
+    "originalBytes": 8040804,
+    "thumbnail": "art-review/briefcase/models/t1-canvas.png"
+  },
+  "t2-leather": {
+    "name": "Leather Attaché",
+    "version": 2,
+    "route": "image",
+    "model": "latest",
+    "pbr": true,
+    "tasks": {
+      "imageTo3d": "01a075b3-0839-772a-8914-a75ce1081150"
+    },
+    "credits": 30,
+    "source": {
+      "image": "art-review/briefcase/cases/t2-leather-closed.png",
+      "sha256": "7ed9ddc94e6fa6a09be598c54540cb70956e664aeab8c4346b1ea495025ab53d"
+    },
+    "texturePrompt": "cognac leather briefcase with visible stitching and two gold buckles, soft satin vinyl toy finish",
+    "generatedAt": "2026-09-06T07:53:56.419Z",
+    "originalSha256": "6bd1742672b3e6966c3b972179a0449e903952741b0a353e9df89b33e5a71837",
+    "originalBytes": 8172544,
+    "thumbnail": "art-review/briefcase/models/t2-leather.png"
+  },
+  "t3-titanium": {
+    "name": "Titanium Case",
+    "version": 2,
+    "route": "image",
+    "model": "latest",
+    "pbr": true,
+    "tasks": {
+      "imageTo3d": "01a075b3-08ea-77d9-8214-2a495e6388cc"
+    },
+    "credits": 30,
+    "source": {
+      "image": "art-review/briefcase/cases/t3-titanium-closed.png",
+      "sha256": "c65fbc6e6b11c66977486302b2e9b65db4c6c58834f01f896582f80fab32e3f6"
+    },
+    "texturePrompt": "brushed titanium metal briefcase with a ribbed shell, combination dials and a thin cool-blue LED seam",
+    "generatedAt": "2026-09-06T07:54:13.099Z",
+    "originalSha256": "0ec55dba060ed0deb65e2d235f2bf9f11a740357fdfab2b1569fc4441c6a1f6a",
+    "originalBytes": 7526172,
+    "thumbnail": "art-review/briefcase/models/t3-titanium.png"
+  },
+  "t4-obsidian": {
+    "name": "Obsidian Executive",
+    "version": 2,
+    "route": "text",
+    "model": "latest",
+    "pbr": true,
+    "tasks": {
+      "preview": "01a076c4-4d29-707d-b95c-00f6f7c72fad",
+      "refine": "01a076c5-80ed-732e-b38a-84b6f5ddb385"
+    },
+    "credits": 30,
+    "source": {
+      "prompt": "cute collectible toy briefcase in soft clay/vinyl style: a flat wide rectangular executive attache case standing upright, closed lid, a rounded carrying handle on top, a thin orange pinline along the seam and a single chrome latch, matte black, chunky rounded proportions, single object"
+    },
+    "note": "Text route on purpose. The 2-D master (cases/t4-obsidian-closed.png) draws a squat lidded box with no handle, so the image lift was a faithful lift of the wrong object and broke the tier ladder between T3's case and T5's. Regenerate that 2-D render and this can go back to the image route.",
+    "texturePrompt": "matte black executive briefcase, thin orange #FF6B00 pinline along the seam, holographic chrome latch, soft matte vinyl toy finish",
+    "generatedAt": "2026-09-06T12:51:59.881Z",
+    "originalSha256": "6b6b443840d31bc7dc60f744f8b09579b9b04aa0655a8058786d756ca4a202c3",
+    "originalBytes": 6747272,
+    "thumbnail": "art-review/briefcase/models/t4-obsidian.png"
+  },
+  "t5-gold": {
+    "name": "Gold Briefcase",
+    "version": 2,
+    "route": "image",
+    "model": "latest",
+    "pbr": true,
+    "tasks": {
+      "imageTo3d": "01a075b5-b0bf-7213-9017-573d3a3927e1"
+    },
+    "credits": 30,
+    "source": {
+      "image": "art-review/briefcase/cases/t5-gold-closed.png",
+      "sha256": "4905116b1e096c56697893562459c8d3c68dc0c1c3cabb8e0f91c732b9bae3ba"
+    },
+    "texturePrompt": "mirror-polished gold metal briefcase with an embossed star medallion, high metallic, low roughness",
+    "generatedAt": "2026-09-06T07:56:39.714Z",
+    "originalSha256": "e0ba1627424c52bf817f7702a48d934db0b1b30151123cbe57953ddf626b175c",
+    "originalBytes": 5387996,
+    "thumbnail": "art-review/briefcase/models/t5-gold.png"
+  },
+  "shark-token": {
+    "name": "Shark Token",
+    "version": 2,
+    "route": "image",
+    "model": "latest",
+    "pbr": true,
+    "tasks": {
+      "imageTo3d": "01a075b5-d16a-7459-adf7-6d9939afbadd"
+    },
+    "credits": 30,
+    "source": {
+      "image": "art-review/briefcase/props/shark-token.png",
+      "sha256": "bbb2cd789efc13ecab124dc4b98c527b29e57ba2c86ee4803ea15c7880eef44b"
+    },
+    "texturePrompt": "thick gold metal token with a raised grey-blue cartoon shark-fin emblem on the face, polished rim",
+    "generatedAt": "2026-09-06T07:56:15.152Z",
+    "originalSha256": "fce45d1cbb9a8803afdd844b98dccb2c10abc59294fdb28cca2920d3db716475",
+    "originalBytes": 5675836,
+    "thumbnail": "art-review/briefcase/models/shark-token.png"
+  },
+  "key-t1": {
+    "name": "Canvas Key",
+    "version": 1,
+    "route": "image",
+    "model": "latest",
+    "pbr": true,
+    "tasks": {
+      "imageTo3d": "01a075b5-d2cb-7473-a3f2-fd7527e642a2"
+    },
+    "credits": 30,
+    "source": {
+      "image": "art-review/briefcase/keys/t1.png",
+      "sha256": "6b347aa8a013708e4ec4ebf660a35922a51a5723ed4a192ebec3441cb0b9a340"
+    },
+    "texturePrompt": "chunky toy key in warm brass with a small canvas luggage tag tied to the bow",
+    "generatedAt": "2026-09-06T07:56:07.215Z",
+    "originalSha256": "1ea10b162a1177144c9d7eb7acc565bed3cf26fc3f6ec45fbfba6ec030104c89",
+    "originalBytes": 8722092,
+    "thumbnail": "art-review/briefcase/models/key-t1.png"
+  },
+  "key-t2": {
+    "name": "Leather Key",
+    "version": 1,
+    "route": "image",
+    "model": "latest",
+    "pbr": true,
+    "tasks": {
+      "imageTo3d": "01a075b5-f1d8-7688-b191-3136185b92bf"
+    },
+    "credits": 30,
+    "source": {
+      "image": "art-review/briefcase/keys/t2.png",
+      "sha256": "10a8e8e2eaa48845429865cd84daecd05b87dc894552c716a808c9d30f034b4b"
+    },
+    "texturePrompt": "chunky toy key in ornate polished brass with a gold-buckle motif on the bow",
+    "generatedAt": "2026-09-06T07:56:14.956Z",
+    "originalSha256": "255bf228e41b537d2e0a69cacfbe69045ec59692995b0d47db1e321dfe937f33",
+    "originalBytes": 7162720,
+    "thumbnail": "art-review/briefcase/models/key-t2.png"
+  },
+  "key-t3": {
+    "name": "Titanium Key",
+    "version": 1,
+    "route": "text",
+    "model": "latest",
+    "pbr": true,
+    "tasks": {
+      "preview": "01a076c6-fe2d-77d6-9930-113d61c7faad",
+      "refine": "01a076c7-efe0-74b6-a4fc-335eba77b18b"
+    },
+    "credits": 30,
+    "source": {
+      "prompt": "cute collectible toy key in soft clay/vinyl style, chunky rounded proportions: a single upright key with a wide rounded head with a hole through it, a long straight shaft and square teeth at the bottom, machined brushed titanium with a glowing cool-blue tip, single object"
+    },
+    "note": "Text route on purpose. keys/t3.png draws a flat modern car-key at a steep tilt, and image-to-3D collapsed it into an unreadable lump on two separate attempts — the one silhouette in the key set the image route could not hold. The other four keys are image lifts.",
+    "texturePrompt": "chunky toy key in machined brushed titanium with a glowing cool-blue tip",
+    "generatedAt": "2026-09-06T12:54:31.419Z",
+    "originalSha256": "87cb41febac42a3df7aea0b8a161598f45b5472bf052ff252eca0617c1856f66",
+    "originalBytes": 7571832,
+    "thumbnail": "art-review/briefcase/models/key-t3.png"
+  },
+  "key-t4": {
+    "name": "Obsidian Key",
+    "version": 1,
+    "route": "image",
+    "model": "latest",
+    "pbr": true,
+    "tasks": {
+      "imageTo3d": "01a075b7-cdde-7398-b81b-b0859ab449bd"
+    },
+    "credits": 30,
+    "source": {
+      "image": "art-review/briefcase/keys/t4.png",
+      "sha256": "3287762b45efd2586c2d01ad11bfe241840dd1957ac4a340dd3bbe8d7ac1e7ca"
+    },
+    "texturePrompt": "chunky toy key in matte black with a glowing orange #FF6B00 core line",
+    "generatedAt": "2026-09-06T07:58:25.193Z",
+    "originalSha256": "04b8b7aac2524a4fe77acbf6b074d73f8f97531154a9557d7571a7f978b98afe",
+    "originalBytes": 5924952,
+    "thumbnail": "art-review/briefcase/models/key-t4.png"
+  },
+  "key-t5": {
+    "name": "Gold Key",
+    "version": 1,
+    "route": "image",
+    "model": "latest",
+    "pbr": true,
+    "tasks": {
+      "imageTo3d": "01a075b7-cee0-7075-92f0-78b5422c0329"
+    },
+    "credits": 30,
+    "source": {
+      "image": "art-review/briefcase/keys/t5.png",
+      "sha256": "ecf177eae13c6d215656019d2ffcb0719a895c8877ac330c9f863750efc9e552"
+    },
+    "texturePrompt": "chunky toy key in solid mirror-polished gold with a star-shaped bow, high metallic, low roughness",
+    "generatedAt": "2026-09-06T07:58:41.640Z",
+    "originalSha256": "b6910a452b494d12d7732e49bc8c7dcfe6034fa7f31fbc00911bef7eda6d35b3",
+    "originalBytes": 5415956,
+    "thumbnail": "art-review/briefcase/models/key-t5.png"
+  }
+}

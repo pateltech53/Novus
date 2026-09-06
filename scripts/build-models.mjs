@@ -1,8 +1,15 @@
 #!/usr/bin/env node
 /**
- * Rebuild the two shipped GLBs from source.
+ * Rebuild the shipped GLBs from source: two sharks and eleven briefcase props.
  *
- *   npm run models
+ *   npm run models                       everything
+ *   npm run models -- --only t5-gold     one, by registry slug
+ *
+ * Prefer `--only` when you have regenerated one prop. A full run also
+ * re-encodes the two sharks from sources that have not changed, and
+ * gltf-transform's output is not byte-identical between runs — so a
+ * briefcase-only rebuild leaves 1 MB of visually identical shark in the diff,
+ * which is a megabyte nobody can review and a re-download for every player.
  *
  * ── Why this exists ─────────────────────────────────────────────────────────
  *
@@ -57,13 +64,26 @@
  */
 const CLI = "@gltf-transform/cli@4.4.2";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync, statSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const work = mkdtempSync(join(tmpdir(), "novus-models-"));
+
+/** The briefcase-prop registry; the shark entries below are still inline. */
+const REGISTRY = JSON.parse(readFileSync(join(root, "assets-src/briefcase/models.json"), "utf8"));
+
+/**
+ * `npm run models -- --only t5-gold,key-t1` rebuilds a subset. Matched
+ * against the registry slug for briefcase props and against a slug-ish form
+ * of the name for the two sharks ("pitch-screen-shark", "landing-champion").
+ */
+const onlyFlag = process.argv.indexOf("--only");
+const ONLY = onlyFlag >= 0 && process.argv[onlyFlag + 1]
+  ? new Set(process.argv[onlyFlag + 1].split(",").map((s) => s.trim()).filter(Boolean))
+  : null;
 
 /**
  * The two meshes, and what each is actually looked at through.
@@ -103,27 +123,35 @@ const MODELS = [
     ],
   },
   /*
-   * The five briefcases and the token, from Meshy (text-to-3D, same route as
-   * the shark). These spin in the unlock ceremony at roughly 260-360 px and
-   * are the only mesh on screen while they do it, so they can afford a little
-   * more geometry than the mascot — but only a little: the ceremony is the
-   * moment the game must not stutter, and on a mid-range phone the frame it
-   * drops is the one the player is looking hardest at.
+   * The briefcase-system props — five cases, the Shark Token, five keys —
+   * from Meshy (image-to-3D off the shipped 2-D art; see
+   * scripts/generate-briefcase-models.mjs). The list is READ from the
+   * registry, `assets-src/briefcase/models.json`, so a slug or a version
+   * bumped there is built here without a second edit; scripts/validate-models.mjs
+   * fails the build if lib/rewards/models.ts does not agree.
    *
-   * The Meshy exports arrive around 1 MB each with 1024-2048 maps, which is
-   * film density for a prop the size of a playing card.
+   * These spin in the unlock ceremony at roughly 260-360 px and are the only
+   * mesh on screen while they do it, so they can afford a little more
+   * geometry than the mascot — but only a little: the ceremony is the moment
+   * the game must not stutter, and on a mid-range phone the frame it drops is
+   * the one the player is looking hardest at. The token and keys render
+   * smaller still (a 40-96 px prop beside a number), and share the setting
+   * rather than earning a lower one: at ratio 0.35 of a 30k-triangle Meshy
+   * export the whole set lands under 300 kB a file.
+   *
+   * Meshy exports arrive around 1-3 MB with 2048² maps (base colour plus,
+   * with PBR, metallic-roughness and normal), which is film density for a
+   * prop the size of a playing card.
+   *
+   * An entry whose `.original.glb` has not been generated yet is reported
+   * and skipped rather than failing the run, so a partly regenerated set can
+   * still be built; the validator is what insists on the full set.
    */
-  ...[
-    ["Canvas Case", "t1-canvas"],
-    ["Leather Attache", "t2-leather"],
-    ["Titanium Case", "t3-titanium"],
-    ["Obsidian Executive", "t4-obsidian"],
-    ["Gold Briefcase", "t5-gold"],
-    ["Shark Token", "shark-token"],
-  ].map(([name, slug]) => ({
-    name: `${name} (briefcase)`,
-    from: `assets-src/briefcase/models/${slug}.original.glb`,
-    to: `public/briefcase/models/${slug}-v1.glb`,
+  ...REGISTRY.models.map((m) => ({
+    name: `${m.name} (briefcase ${m.kind})`,
+    slug: m.slug,
+    from: `assets-src/briefcase/models/${m.slug}.original.glb`,
+    to: `public/briefcase/models/${m.slug}-v${m.version}.glb`,
     ratio: 0.35,
     textures: [{ pattern: null, size: 512 }],
   })),
@@ -166,9 +194,17 @@ function boundingBox(file) {
 
 let failed = false;
 
+let built = 0;
 for (const model of MODELS) {
-  console.log(`\n${model.name}`);
+  const slug = model.slug ?? model.name.replace(/\s+/g, "-");
+  if (ONLY && !ONLY.has(slug)) continue;
   const source = join(root, model.from);
+  if (!existsSync(source)) {
+    console.log(`\n${model.name}\n  ${model.from} is not there yet — skipped (generate it first)`);
+    continue;
+  }
+  console.log(`\n${model.name}`);
+  built++;
   const before = statSync(source).size;
 
   let step = join(work, "welded.glb");
@@ -220,5 +256,24 @@ for (const model of MODELS) {
   }
 }
 
+/*
+ * Name what is now stale. A superseded `-v1.glb` is not deleted here — the
+ * header's rule is that replacing a served file is a deliberate act — but
+ * validate-models.mjs will refuse to pass `npm run events` until it is gone,
+ * so say so now, next to the build that made it stale.
+ */
+{
+  const dir = join(root, "public/briefcase/models");
+  const wanted = new Set(REGISTRY.models.map((m) => `${m.slug}-v${m.version}.glb`));
+  const stale = existsSync(dir)
+    ? readdirSync(dir).filter((f) => f.endsWith(".glb") && !wanted.has(f))
+    : [];
+  if (stale.length) {
+    console.log(`\nstale in public/briefcase/models/ (no registry entry at that version — delete before committing):`);
+    for (const f of stale) console.log(`  · ${f}`);
+  }
+}
+
+console.log(`\n${built} model(s) built`);
 rmSync(work, { recursive: true, force: true });
 process.exit(failed ? 1 : 0);

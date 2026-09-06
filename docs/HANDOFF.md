@@ -233,6 +233,55 @@ After the fixes: audit:phone 0 findings at all seven sizes and all three
 store-rule shells; tap, exits, home:fold, islands:layout and notes probes
 all green.
 
+### Era 7 · The props become real 3-D objects (Sep 6)
+
+The briefcase system's meshes were the one part of the art that nobody could
+rebuild. The first six GLBs were made by hand in the Meshy **web app**,
+round-tripped through Blender and committed; no prompt, model or setting was
+recorded, the API account holds no task for any of them, and the Blender
+export had dropped every material — `gltf-transform inspect` reported *"No
+materials found / No textures found"* on all six. The unlock ceremony had
+been spinning an **untextured grey mesh** and calling it the Gold Briefcase
+for the whole of the beta, and it read as fine because three.js substitutes a
+white non-metal for a mesh with no material.
+
+Replaced by a pipeline that anyone with a key can re-run
+(docs/BRIEFCASE-MODELS.md): a checked-in registry
+(`assets-src/briefcase/models.json`), `npm run art:models` driving Meshy's
+API, checked-in provenance (route, model, task ids, credits, the sha256 of
+the source image), and a generated gallery at `docs/asset-review/MODELS.md`.
+Eleven props now: the five cases and the Shark Token **re-made**, and the
+five tier keys **new**. 430 credits including three regenerations.
+
+Route: **image-to-3D from the shipped 2-D masters**, so the meshes inherit
+the art direction the Gemini set already paid for. Nine of eleven took it.
+Two are pinned to the text route with the reason recorded in the registry —
+`t4-obsidian` because its 2-D master draws a squat lidded box with no handle
+(the image lift was faithful to the wrong object and put a lunchbox between
+T3 and T5), and `key-t3` because image-to-3D collapsed its steeply-tilted
+flat car-key into an unreadable lump on two attempts.
+
+**The defect the regeneration exposed:** the new meshes are properly textured
+PBR, and metal has no diffuse response — it shows the room it stands in. The
+ceremony's rig is ambient plus two directional lights and no environment, so
+`metalness: 1` rendered nearly black. Verified in headless Chromium against
+the shipped GLBs: without an environment T5 gold reads as dark bronze and T3
+titanium as near-black. `components/rewards/studio.tsx` fixes it with a PMREM
+cube map built at runtime from three's own `RoomEnvironment` — no HDRI, no
+CDN (CSP pins `connect-src 'self'`), ~4 kB in the lazy 3-D chunk. It also
+holds `fitToBox`, which normalises every prop to 1.9 units: a no-op today
+(Meshy normalises to ±0.95 and the old set happened to match) written down so
+the framing is a property of the code rather than of the last generation.
+
+The coin is now on screen in the three places the token balance is a number —
+the shop's balance, the MY SKINS header, and the ceremony's summary — and a
+`tokens` grant reveals the turning coin on the card back instead of the empty
+gradient it used to turn onto. `scripts/validate-models.mjs` joins
+`npm run events`, so any drift between the registry,
+`lib/rewards/models.ts` and `public/briefcase/models/` (a stale file
+included) fails `check` and CI. The Meshy MCP server is configured in
+`.mcp.json`, reading `${MESHY_API_KEY}` from the environment.
+
 ---
 
 ## 2. Current state (at `main` = 337c7fb, 2026-08-30)
@@ -288,25 +337,31 @@ history, not as work to finish.
    masters live in gitignored `.assets-staging/` on the original machine, so
    `npm run art:briefcase -- status` reports 0 on a fresh clone.
    docs/BRIEFCASE-ART.md has the exact procedure.
-4. Rewards beta: decide when to lift `rewards_beta` to everyone; BRIEFCASES.md
+4. Regenerate the `t4-obsidian` 2-D case art: `cases/t4-obsidian-closed.png`
+   draws a squat lidded box with no handle, which is why the T4 mesh had to
+   take the text route (registry `note` in `assets-src/briefcase/models.json`).
+   Once the 2-D master reads as an executive attaché, drop that route pin and
+   regenerate the mesh from it. Same trip: `keys/t1.png` has the stock-art
+   words "FINANCE & WEALTH" on its tag, and the 3-D lift reproduced them.
+5. Rewards beta: decide when to lift `rewards_beta` to everyone; BRIEFCASES.md
    lists the finish work (4 delivery templates dark, weekly challenge unread,
    bespoke SFX absent).
-5. Split the activity registry off GameProvider — /islands pays ~9 kB of
+6. Split the activity registry off GameProvider — /islands pays ~9 kB of
    /play's Playbook prose for no reason (recorded in the #105 commit).
-6. The §12.3 balance question: the design band wants 30–45% survival; the
+7. The §12.3 balance question: the design band wants 30–45% survival; the
    measured curve sits ~44–50%. An open design decision, not a bug — do not
    resolve it by accident.
-7. Not built yet (per README): tutorial spotlight coaching overlay, the
+8. Not built yet (per README): tutorial spotlight coaching overlay, the
    Closet economy / Practice Gym / Marco's rival sim; the event queue is
    React state so a mid-card reload drops that card (the run survives).
-8. `public/intro.mp4` and `public/onboarding.mp4` do not exist — 
+9. `public/intro.mp4` and `public/onboarding.mp4` do not exist — 
    INTRO-VIDEO-PROMPT.md / ONBOARDING-VIDEO-PROMPT.md are generation briefs.
-9. www-vs-apex: `lib/seo.ts` uses the apex while the native API origin must
-   be `https://www.novuspitch.com` (no-redirect rule) — flagged in lib/seo.ts
-   as unresolved.
-10. `.env.example` lines ~69/77–78 are stale (old chapter prices/ids, old
+10. www-vs-apex: `lib/seo.ts` uses the apex while the native API origin must
+    be `https://www.novuspitch.com` (no-redirect rule) — flagged in lib/seo.ts
+    as unresolved.
+11. `.env.example` lines ~69/77–78 are stale (old chapter prices/ids, old
     `STRIPE_PRICE_EXTRA_RUN_SLOT` name — the legacy name still works).
-11. **Resubmission checklist for App Review round two** (all from the 1.0(3)
+12. **Resubmission checklist for App Review round two** (all from the 1.0(3)
     rejection, Era 6): deploy the web build carrying `public/boot.html` and
     the commerce gates **before** submitting the binary (the shell loads the
     live site — review-day site is review-day app); fix the Age Rating
@@ -364,6 +419,7 @@ replacements for:
 | Resend | chapter invite email (optional) | `RESEND_API_KEY` + `RESEND_FROM`, domain verified |
 | Cloudflare Turnstile | sign-up human check (optional) | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY` |
 | Google Gemini (billed) | briefcase art generation (dev-time only) | `GEMINI_API_KEY` for `scripts/generate-briefcase-art.mjs` |
+| Meshy (credits) | the eleven briefcase 3-D props (dev-time only) | `MESHY_API_KEY` for `npm run art:models` and for the MCP server in `.mcp.json`; ~30 credits per textured model, 1,250 left after Era 7 |
 | Apple Developer | iOS signing, App Group `group.com.novuspitch.app`, widget bundle id, Sign in with Apple | manual, per docs/WIDGETS.md §the-four-steps + docs/APP-STORE.md §6 |
 | Google Play | Android releases | keystore secrets above |
 | Google Cloud Console | OAuth client for the off-by-default Google sign-in | `NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID`, `NEXT_PUBLIC_GOOGLE_IOS_CLIENT_ID` (+ `NEXT_PUBLIC_APPLE_SERVICES_ID`/`OAUTH_REDIRECT_ORIGIN` for Apple-on-web/Android); docs/OAUTH-SETUP.md |
