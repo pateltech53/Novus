@@ -1,5 +1,6 @@
 "use client";
 
+import { useBackHandler } from "@/lib/native/back";
 import { useMemo, useState } from "react";
 
 import { ScreenSheet } from "@/components/screens/ScreenSheet";
@@ -33,6 +34,19 @@ function orderedTerms(): string[] {
 }
 
 export function KeyTermsSheet({ onClose }: { onClose: () => void }) {
+  /*
+   * This sheet opens from three places, and one of them opens it OVER another
+   * sheet: StageGuide renders it above itself, as does PitchNotes. Neither it
+   * nor `ScreenSheet` registered a dismissal, so on Android the only entry on
+   * the stack was the one the screen underneath had pushed — back closed the
+   * stage guide and took the glossary down with it, two layers for one press.
+   * Registered here rather than at each call site (LegalSheet.tsx:36 does the
+   * same), so it is right wherever this sheet is opened from; /play's own
+   * `keyTerms` entry sits below this one and is removed by the same state
+   * change that closes it.
+   */
+  useBackHandler(true, onClose);
+
   const [query, setQuery] = useState("");
   const terms = useMemo(() => orderedTerms(), []);
 

@@ -49,7 +49,18 @@ export function TierUnlock({
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[var(--scrim)] px-6"
+      /*
+       * Above the year-end statement, which is where app/play/page.tsx says
+       * this belongs ("it sits above the year-end statement on purpose: the
+       * wardrobe is the reward for…"). It was z-50 and the statement is
+       * `z-[70]` with an opaque `bg-[var(--bg)]` behind it, so on the one
+       * occasion both are up — a stage promotion at a year close, which is
+       * the ordinary way a tier is earned — the ceremony played underneath a
+       * solid page and the player never saw the thing they had just unlocked.
+       * 72 clears the statement and stays under ImpactLayer's 75 and the
+       * pitch screen's 80.
+       */
+      className="fixed inset-0 z-[72] flex flex-col items-center justify-center bg-[var(--scrim)] px-6"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}

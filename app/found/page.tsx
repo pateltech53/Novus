@@ -174,8 +174,11 @@ function FoundPage() {
     return () => clearTimeout(t);
   }, []);
 
-  // Naming a company is the last thing before the game itself.
-  usePrefetch("/play");
+  // Naming a company is the last thing before the game itself — and the way
+  // back out is the picker, which this screen offers ("BACK TO YOUR ISLANDS",
+  // below) and never warmed, so the one tap that abandons founding paid the
+  // full cost of a cold route.
+  usePrefetch("/play", "/islands");
 
   /*
    * Both routes out of this screen go to /play, which is the heaviest page in

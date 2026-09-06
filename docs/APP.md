@@ -418,7 +418,9 @@ the only thing standing between a typo in `Native/` and finding it in Xcode.
 ### iOS
 
 Open `ios/App/App.xcodeproj`, set the team, archive. The bundle id is
-`com.novuspitch.app`, portrait-only, iPhone-only, iOS 15 and up.
+`com.novuspitch.app`, portrait-only, iPhone-only, iOS 15 and up. The
+step-by-step version, for a machine that has never built this, is
+**[Opening it in Xcode](#opening-it-in-xcode)** below.
 
 Portrait-only is a real decision, not an oversight: the whole layout is a phone
 held upright — masthead, ledger, log, one button — and there is no landscape
@@ -468,6 +470,98 @@ Without them the job still publishes an installable APK, signed with the
 runner's throwaway debug key — playable, but the key changes every build, so
 each one has to be uninstalled before the next goes on. The release notes say
 so rather than leaving someone to find out.
+
+### Opening it in Xcode
+
+Everything native is committed — the two targets, the Swift, the entitlements,
+the widget's embed phase. What follows is the whole of what a fresh Mac has to
+do, and the one thing about this app that surprises people who have built a
+Capacitor app before.
+
+**What you need.** macOS with **Xcode 26 or newer** (older still compiles, but
+selects the pre-Liquid-Glass material — see the note above), Node 22, and an
+Apple Developer account if you want it on a real device or in TestFlight. The
+simulator needs no account.
+
+```bash
+git clone https://github.com/pateltech53/Novus.git
+cd Novus
+npm install
+npm run ios          # export + verify + cap sync, then opens Xcode
+```
+
+`npm run ios` is `npm run build:native` followed by `npx cap open ios`. The
+build takes a few minutes and prints three lines you should read rather than
+scroll past — the API origin it found baked into the artifact, the agreement
+between `capacitor.config.ts`, the offline page and that origin, and the
+plugin count in the SPM manifest. A failure in any of them is a shipped app
+that cannot talk to its own server, and each is there because that shipped
+once.
+
+Then, in Xcode, three things and no more:
+
+1. **App target ▸ Signing & Capabilities ▸ Team** — your team. Signing is
+   automatic; Xcode registers `com.novuspitch.app` itself.
+2. **NovusWidgets target ▸ Signing & Capabilities ▸ Team** — the same team.
+   The extension is `com.novuspitch.app.widgets`, prefixed by the app's id, so
+   automatic signing registers it too.
+3. **Check App Groups reads `group.com.novuspitch.app` on both targets.** Both
+   entitlements files already carry it; if a row is missing, ＋ Capability ▸
+   App Groups and tick it. A group the app writes and the widget cannot read
+   fails silently and looks exactly like a widget nobody published to
+   (docs/WIDGETS.md §1).
+
+Pick a simulator — an iPhone 15 Pro or later if you want the Dynamic Island —
+and ⌘R. To archive: Product ▸ Destination ▸ Any iOS Device, then Product ▸
+Archive.
+
+Sign in with Apple needs nothing in Xcode: `App/App.entitlements` carries
+`com.apple.developer.applesignin` already. It does need the capability on the
+App ID in the developer portal, and two Supabase-dashboard checks
+(docs/OAUTH-SETUP.md §4.1, docs/APP-STORE.md §6.9) — and the button is
+withheld in-app until those pass (`APPLE_SIGN_IN_WITHHELD`).
+
+#### The thing that surprises people: the build is not the app
+
+`server.url` points the webview at **https://www.novuspitch.com**. The binary
+carries one document, the offline notice. So a build straight out of Xcode
+shows you **the deployed site**, not the code in your working copy — change a
+component, rebuild in Xcode, and nothing changes, because nothing about your
+change has been deployed yet. That is the trade this project made deliberately
+(the accounting is at the top of this file): a web deploy IS an app release,
+and it cuts both ways. Deploy first, then build.
+
+What Xcode still decides, and what therefore still needs a rebuild: the Swift
+in `App/Native/` and `App/Outside/`, the widgets, `Info.plist`, the
+entitlements, the icons, the launch screen, and `capacitor.config.ts`.
+
+#### Running the shell against your own machine
+
+Only worth doing when you are changing the web layer AND the native layer
+together — otherwise `npm run dev` in a browser is the faster loop. Three
+temporary edits, none of which may be committed:
+
+1. `capacitor.config.ts` — `server.url: "http://<your Mac's LAN IP>:3100/"`.
+   Keep the trailing slash: iOS prefix-matches navigations against this exact
+   string to decide what stays in the webview.
+2. `ios/App/App/Info.plist` — add `NSAppTransportSecurity` with
+   `NSAllowsLocalNetworking` set to `true`, so ATS permits plain http to a
+   private-range address. Do not reach for `NSAllowsArbitraryLoads`.
+3. Serve on every interface and point the API at the same host:
+
+```bash
+NEXT_PUBLIC_API_ORIGIN=http://<your Mac's LAN IP>:3100 npx next dev -H 0.0.0.0 -p 3100
+npx cap sync ios      # rewrites the generated capacitor.config.json
+```
+
+`NEXT_PUBLIC_API_ORIGIN` matters more than it looks: inside a shell,
+`apiUrl()` (lib/native/origin.ts) makes every API call absolute, and its
+default is production. Without that variable a locally-served app signs into,
+syncs to and buys from the live site.
+
+Put all three back before committing. `npm run build:native` asserts that the
+config, the offline page's retry link and the API origin name one host, so a
+forgotten LAN address fails the build rather than reaching a store.
 
 ### The download page
 

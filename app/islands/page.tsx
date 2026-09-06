@@ -172,6 +172,10 @@ function IslandsPage() {
 
   /** null = the sea. A slot number = that island, alone, in the gallery. */
   const [focus, setFocus] = useState<number | null>(null);
+  /* Read by `step` so its side effects can live outside the state updater
+     without the callback having to be rebuilt on every focus change. */
+  const focusRef = useRef<number | null>(focus);
+  focusRef.current = focus;
   /** Which way the last ‹ › went, so the gallery slides the right way. */
   const [dir, setDir] = useState(1);
 
@@ -263,8 +267,20 @@ function IslandsPage() {
    */
   const seaScrollRef = useRef<HTMLDivElement>(null);
   const [more, setMore] = useState({ left: false, right: false });
+  /*
+   * How far the player had sailed, kept across the gallery.
+   *
+   * The sea and the gallery are the two branches of one `AnimatePresence
+   * mode="wait"`, so opening an island UNMOUNTS the ocean and destroys the
+   * scroller's `scrollLeft` with it. A player who sailed right to island 12,
+   * opened it and pressed BACK was returned to the far left of the water with
+   * their company off screen, and had to sail the whole way again — every
+   * time. The offset is the one thing worth carrying across that unmount.
+   */
+  const seaScrollLeft = useRef(0);
   const onSeaScroll = useCallback(() => {
     const el = seaScrollRef.current;
+    if (el) seaScrollLeft.current = el.scrollLeft;
     /*
      * Gated on the screen count, not on `scrollWidth`.
      *
@@ -311,16 +327,23 @@ function IslandsPage() {
   /* ‹ › walk the islands that exist, in slot order, and wrap. Wrapping because
      the row is short and a disabled arrow at each end is two dead controls on
      a screen that only has four live ones. */
+  /*
+   * The sound and the slide direction are effects, so they happen OUTSIDE the
+   * updater. A state updater must be pure — React calls it twice per dispatch
+   * in StrictMode, which Next enables in development — and these two were
+   * inside it: the pager clicked twice per press and set `dir` twice, which is
+   * a `setState` during render of another component and the kind of warning
+   * that gets read as noise until it is a bug.
+   */
   const step = useCallback(
     (by: number) => {
-      setFocus((at) => {
-        if (at === null || islands.length < 2) return at;
-        const i = islands.findIndex((is) => is.slot === at);
-        if (i < 0) return at;
-        play("click");
-        setDir(by);
-        return islands[(i + by + islands.length) % islands.length].slot;
-      });
+      const at = focusRef.current;
+      if (at === null || islands.length < 2) return;
+      const i = islands.findIndex((is) => is.slot === at);
+      if (i < 0) return;
+      play("click");
+      setDir(by);
+      setFocus(islands[(i + by + islands.length) % islands.length].slot);
     },
     [islands],
   );
@@ -607,7 +630,16 @@ function IslandsPage() {
               ocean it is in, which is the point.
             */}
             <div
-              ref={seaScrollRef}
+              /*
+               * A callback ref rather than the object one, because the restore
+               * has to happen the moment the node exists — an effect would run
+               * after the first paint and the ocean would visibly jump from
+               * the left edge to where the player left it.
+               */
+              ref={(el) => {
+                seaScrollRef.current = el;
+                if (el && seaScrollLeft.current) el.scrollLeft = seaScrollLeft.current;
+              }}
               onScroll={onSeaScroll}
               /* `overscroll-x-contain` so sailing to the end of the archipelago
                  does not hand the gesture to the browser and trigger a back

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useIsPresent } from "framer-motion";
 import { ENTER, EXIT, SCRIM } from "@/components/ui/Motion";
 import { useGame } from "@/lib/state/GameProvider";
 import { MONTH_NAMES } from "@/lib/engine/format";
@@ -240,6 +240,11 @@ export function Phone({
     [run],
   );
 
+  /* False for the length of the exit animation — see the note on `present`
+     in components/screens/ScreenSheet.tsx. Declared above every early return,
+     because a hook that runs conditionally is not a hook. */
+  const present = useIsPresent();
+
   if (!open) return null;
 
   const clock = now
@@ -248,9 +253,14 @@ export function Phone({
   // The founder battery is the phone battery. Same tank, one glyph.
   const battery = run ? Math.max(0, Math.min(100, Math.round(run.stats.energy))) : 100;
 
+
   return (
     <motion.div
-      className="fixed inset-0 z-[60] flex items-center justify-center"
+            /* Non-interactive while it leaves — see the note on `present` in
+         components/screens/ScreenSheet.tsx: for the 180ms of the exit this
+         subtree is still mounted with a full-screen scrim across it, and the
+         next tap a player makes lands on a screen that is going away. */
+      className={`fixed inset-0 z-[60] flex items-center justify-center${present ? "" : " pointer-events-none"}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, transition: EXIT }}

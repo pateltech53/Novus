@@ -2,7 +2,7 @@
 
 import { useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
-import { animate, motion, useMotionValue } from "framer-motion";
+import { animate, motion, useIsPresent, useMotionValue } from "framer-motion";
 import { EASE_IN, ENTER, EXIT, SCRIM, SETTLE_SPRING } from "@/components/ui/Motion";
 
 import { Glass, GlassButton, GlassScrim } from "@/components/ui/Glass";
@@ -173,6 +173,30 @@ export function ScreenSheet({
   const sheetRef = useRef<HTMLElement | null>(null);
   const drag = useRef<{ id: number; from: number; at: number } | null>(null);
 
+  /*
+   * ── An exiting sheet must stop taking taps ─────────────────────────────────
+   *
+   * AnimatePresence keeps this whole subtree mounted and fully interactive for
+   * the 180ms of `EXIT`, and `GlassScrim` lays an `absolute inset-0` button
+   * across the viewport. So for a fifth of a second after CLOSE the screen
+   * looks like it is going away and is in fact still covered by a button whose
+   * only job is to close it again — the tab a player reaches for next is
+   * swallowed, and the one after it works, which reads as the app dropping
+   * taps. `useIsPresent()` is false for exactly that window.
+   */
+  const present = useIsPresent();
+
+  /*
+   * Whether this sheet is leaving because it was FLUNG.
+   *
+   * `onGrabEnd` drives the shared `y` to the sheet's own height in px and then
+   * unmounts, at which point `exit` animates that same value to "8%" — a
+   * sheet already off the bottom of the screen flying back UP through the
+   * frame while it fades. The exit keeps its fade and drops its y whenever the
+   * dismissal was a fling, because the gesture has already done the moving.
+   */
+  const flung = useRef(false);
+
   const onGrab = (e: React.PointerEvent<HTMLElement>) => {
     if (docked) return;
     /*
@@ -220,6 +244,7 @@ export function ScreenSheet({
      * anything a tap or a scroll-attempt produces.
      */
     if (travelled > 56 || travelled / Math.max(1, e.timeStamp - d.at) > 0.35) {
+      flung.current = true;
       void animate(y, sheetRef.current?.offsetHeight ?? 600, {
         duration: 0.2,
         ease: EASE_IN,
@@ -424,7 +449,9 @@ export function ScreenSheet({
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex items-end justify-center"
+      className={`fixed inset-0 z-50 flex items-end justify-center${
+        present ? "" : " pointer-events-none"
+      }`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, transition: EXIT }}
@@ -454,7 +481,11 @@ export function ScreenSheet({
         className="relative flex max-h-[min(88dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] w-full max-w-2xl flex-col overflow-y-auto overscroll-contain rounded-t-[var(--radius-sheet)] bg-[var(--sheet)] pb-[max(1rem,var(--nv-safe-bottom),var(--nv-overlay-bottom))] shadow-[var(--e3)]"
         initial={{ y: "8%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        exit={{ y: "8%", opacity: 0, transition: EXIT }}
+        exit={
+          flung.current
+            ? { opacity: 0, transition: EXIT }
+            : { y: "8%", opacity: 0, transition: EXIT }
+        }
         transition={ENTER}
       >
         {inner}

@@ -125,6 +125,31 @@ export async function ensureSession(): Promise<boolean> {
  * Called by lib/cloud/auth.ts on sign-up and sign-in.
  */
 export function resume(): void {
+  /*
+   * ── The queue belongs to whoever was here before, and they have gone ───────
+   *
+   * `queueRun` writes into `pending` unconditionally; only `schedule()`
+   * consults `disabled`. So on a device with no account — where boot set
+   * `disabled = true` — every commit for the whole page session has been
+   * accumulating in this map with nothing to send it. `wipeDevice()`
+   * (lib/cloud/auth.ts) empties localStorage and drops save.ts's held write
+   * before a sign-in for exactly the reason this matters, and could not reach
+   * this: it is module memory, not storage.
+   *
+   * The result was that the first commit after signing in flushed the PREVIOUS
+   * occupant's companies into the account that had just signed in. On a shared
+   * classroom device — which is a supported way to use this product — that is
+   * one student's work appearing on another's account.
+   *
+   * Clearing here is safe for the other caller too: sign-up carries an
+   * anonymous player's companies up through `pushLocalNow`, which reads
+   * localStorage rather than this map.
+   */
+  pending = {};
+  if (timer) {
+    clearTimeout(timer);
+    timer = null;
+  }
   disabled = false;
   signedIn = false; // re-established on the next ensureSession, as the new user
   setState("idle");

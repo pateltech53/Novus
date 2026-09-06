@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useIsPresent } from "framer-motion";
 import { ENTER, EXIT, SCRIM } from "@/components/ui/Motion";
 import { PickMark } from "@/components/ui/PickMark";
 
@@ -108,6 +108,11 @@ export function ProSheet({ onClose }: { onClose: () => void }) {
     };
   }, []);
 
+  /* False for the length of the exit animation — see the note on `present`
+     in components/screens/ScreenSheet.tsx. Declared above every early return,
+     because a hook that runs conditionally is not a hook. */
+  const present = useIsPresent();
+
   if (!run) return null;
 
   /**
@@ -198,6 +203,7 @@ export function ProSheet({ onClose }: { onClose: () => void }) {
     );
   };
 
+
   return (
     /*
      * ── Why the root is a motion element, and why it carries an exit ────────
@@ -215,7 +221,11 @@ export function ProSheet({ onClose }: { onClose: () => void }) {
      * panel), so the entrance is unchanged and only the way out is new.
      */
     <motion.div
-      className="fixed inset-0 z-[65] flex items-end justify-center sm:items-center sm:p-6"
+            /* Non-interactive while it leaves — see the note on `present` in
+         components/screens/ScreenSheet.tsx: for the 180ms of the exit this
+         subtree is still mounted with a full-screen scrim across it, and the
+         next tap a player makes lands on a screen that is going away. */
+      className={`fixed inset-0 z-[65] flex items-end justify-center sm:items-center sm:p-6${present ? "" : " pointer-events-none"}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, transition: EXIT }}

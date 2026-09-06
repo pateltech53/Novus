@@ -4,6 +4,7 @@ import {
   startTransition,
   useCallback,
   useEffect,
+  useRef,
   useState,
   useMemo,
 } from "react";
@@ -30,6 +31,7 @@ import {
 } from "@/components/native/usePlayChrome";
 import { useNativeSheet } from "@/components/native/useNativeSheet";
 import { useNativeTermCoach } from "@/components/native/useNativeTermCoach";
+import { EXIT } from "@/components/ui/Motion";
 import { useBackHandler } from "@/lib/native/back";
 import { WorkspaceSlot } from "@/components/screens/Workspace";
 import { useNativeCoachRect } from "@/lib/native/chrome";
@@ -659,8 +661,38 @@ function PlayScreen() {
     [nudge],
   );
 
+  /*
+   * ── The native chrome waits for the sheet to finish leaving ───────────────
+   *
+   * `overlay` flips to false in the same commit that clears the flag, and
+   * usePlayChrome turns that straight into `mode: "full"` on the bridge — but
+   * AnimatePresence holds the DOM sheet mounted for the 180ms of `EXIT` while
+   * it fades and slides down. A UIKit view always composites ABOVE the
+   * webview, so for that fifth of a second the tab bar, the ADVANCE capsule
+   * and the masthead cluster were drawn hard on top of a sheet still on
+   * screen, beside that screen's own glass close button. Two screens' chrome
+   * at once, on every single close.
+   *
+   * A timer rather than `onExitComplete`, deliberately: four of the surfaces
+   * counted in `overlay` (the dossier, the year-end statement, Chapter Seven,
+   * the pitch) are not children of that AnimatePresence, so a completion
+   * callback would never fire for them and the chrome would never come back —
+   * a latch is a worse bug than the one being fixed. A timeout cannot latch,
+   * and 180ms is read from the same token the exits animate on.
+   */
+  const [chromeSettling, setChromeSettling] = useState(false);
+  const wasOverlay = useRef(overlay);
+  useEffect(() => {
+    const closed = wasOverlay.current && !overlay;
+    wasOverlay.current = overlay;
+    if (!closed) return;
+    setChromeSettling(true);
+    const t = window.setTimeout(() => setChromeSettling(false), EXIT.duration * 1000);
+    return () => window.clearTimeout(t);
+  }, [overlay]);
+
   const nativeChromeOwned = usePlayChrome({
-    visible: !!run && !overlay,
+    visible: !!run && !overlay && !chromeSettling,
     coach: coachTarget,
     month: run?.month ?? 1,
     year: run?.year ?? 1,

@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { usePathname } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 import { play } from "@/lib/sound";
 import { isPro, loadEntitlements } from "@/lib/monetization";
@@ -111,6 +112,27 @@ const NOTICE_MS = 10_000;
 export function UpgradeProvider({ children }: { children: React.ReactNode }) {
   const [notice, setNotice] = useState<Gate | null>(null);
   const [screen, setScreen] = useState<{ gate: Gate | null } | null>(null);
+
+  /*
+   * ── Neither surface survives a route change ────────────────────────────────
+   *
+   * This provider is mounted in the root layout (app/layout.tsx), which is the
+   * whole point of it — any screen can raise a gate without owning the sheet.
+   * But a layout does not unmount on a client-side navigation, so the sheet
+   * did not either: open the upgrade screen from the islands picker, follow a
+   * link out of it, and the pricing sheet was still there over the new page,
+   * at z-[98], with a close button belonging to a screen nobody was looking at
+   * any more. Same for the banner, which has a 10s timer and no reason to
+   * outlive the page that earned it.
+   *
+   * The pathname is the signal, and it changes on exactly the transitions this
+   * has to answer.
+   */
+  const pathname = usePathname();
+  useEffect(() => {
+    setScreen(null);
+    setNotice(null);
+  }, [pathname]);
 
   /** Gates already announced this session. Not state — nothing renders it. */
   const announced = useRef<Set<GateId>>(new Set());
