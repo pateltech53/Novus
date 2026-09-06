@@ -289,7 +289,16 @@ squares." Triage, in the order the report was made:
   art-compatible (transparent full-body founders in the portrait composition).
 - **Also landed:** `supabase/tests/rewards_test.sql` (open item 2), the RLS
   shape 0017 promises — client never writes, own-rows only, idempotent open,
-  no permanent Pro.
+  no permanent Pro. 54 checks; `npm run test:db` is 10 suites / 320 checks.
+- **The new suite immediately found a live defect, fixed in
+  `0019_spend_tokens_lock.sql`.** `spend_tokens` reached for its lock with
+  `select sum(...) ... for update`, which Postgres refuses outright (0A000,
+  "FOR UPDATE is not allowed with aggregate functions"). The function threw
+  for every caller, so `/api/rewards/shop` answered 503 to every purchase ever
+  attempted — invisible because the system was behind the beta flag and the
+  shop is the last screen a tester reaches. Replaced with a per-player
+  advisory lock, which is the invariant that was actually wanted. **Apply 0019
+  along with 0017/0018.**
 
 Decisions made in-session without the owner, flagged in the PR for reversal:
 rewards require an account (there is no local-only briefcase — the roll is
@@ -300,8 +309,9 @@ three places depending on storefront and none is reachable by a plain href.
 
 **Operator action required before this is live for players:** paste
 `supabase/CHECK-SCHEMA.sql` into the Novus project's SQL editor; apply
-whatever it reports MISSING (at minimum `0017_rewards.sql` then
-`0018_rewards_seed.sql`, or the regenerated `APPLY-ALL.sql`); then flag
+whatever it reports MISSING (at minimum `0017_rewards.sql`,
+`0018_rewards_seed.sql` and `0019_spend_tokens_lock.sql`, or the regenerated
+`APPLY-ALL.sql`); then flag
 tester accounts from `/admin`. Note for anyone with the Supabase MCP
 connector attached: in the session that built this it pointed at a different
 project (a sneaker database), so nothing about the Novus database was

@@ -132,9 +132,9 @@ authored library and conversion contract live in `design/`
   third-party origin directly — everything proxies through this app's own
   route handlers (child-safety rule; Turnstile is the single sanctioned
   third-party script).
-- **`supabase/migrations/0001–0018`** — schema source of truth, applied in
+- **`supabase/migrations/0001–0019`** — schema source of truth, applied in
   filename order (deployment is manual paste into the Supabase SQL editor;
-  `APPLY-ALL.sql` covers 0001→0018 and `CHECK-SCHEMA.sql` reports which of
+  `APPLY-ALL.sql` covers 0001→0019 and `CHECK-SCHEMA.sql` reports which of
   them a project actually has). 10 RLS test suites run per PR via
   `npm run test:db`.
 - **Persistence** — localStorage is the synchronous cache the game reads;

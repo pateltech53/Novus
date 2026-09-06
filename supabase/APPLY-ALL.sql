@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════════════
--- APPLY ALL · the complete Novus schema (0001 → 0016), idempotently
+-- APPLY ALL · the complete Novus schema (0001 → 0019), idempotently
 -- ═══════════════════════════════════════════════════════════════════════════
 --
 -- Paste the whole file into the Supabase SQL editor of the NOVUS project and
@@ -3295,6 +3295,782 @@ grant execute on function public.admin_billing_mismatches(int)      to service_r
 
 
 -- ═══════════════════════════════════════════════════════════════════════════
+-- 0017 · Briefcases — daily missions, cases, skins, tokens
+-- ═══════════════════════════════════════════════════════════════════════════
+-- The retention loop, and the one rule the whole file exists to enforce: THE
+-- CLIENT NEVER ROLLS. Every player table below is read-own and write-nobody —
+-- there is no INSERT or UPDATE policy for `authenticated` anywhere in it —
+-- and every write goes through a security-definer function the service role
+-- alone may execute. The reward pool carries two CHECK constraints that make
+-- permanent Pro unrepresentable, because a TypeScript validator can be
+-- forgotten in a later seed and a constraint cannot.
+--
+-- A project that has never had this migration is a project where every
+-- /api/rewards route fails and the admin console's tester toggle answers
+-- "beta toggle failed". Until 2026-09-06 this file stopped at 0016, so an
+-- operator who deployed from it had exactly that and nothing to diagnose it
+-- with — which is the defect supabase/CHECK-SCHEMA.sql now reports on.
+--
+-- The full reasoning lives in supabase/migrations/0017_rewards.sql.
+-- ════════════════════════════════════════════════════════════════════════════
+-- 0017 · Briefcases — daily challenges, cases, skins, tokens
+--
+-- The retention loop: play → complete a daily → claim → a case whose TIER is
+-- unknown until the ceremony opens it → an item → a wardrobe identity.
+--
+-- ── The one rule this file exists to enforce ────────────────────────────────
+--
+-- THE CLIENT NEVER ROLLS. Not the tier, not the rarity, not the item. Every
+-- table below is either service-role-only or read-own; there is no INSERT or
+-- UPDATE policy for `authenticated` anywhere in this migration, because a
+-- table the browser can write is a table where Legendary is free. The API
+-- routes do the rolling on the server and commit through the functions at the
+-- bottom, which run as the service role.
+--
+-- ── Idempotency is not optional here ───────────────────────────────────────
+--
+-- The audience plays on school wifi. An open that half-committed — inventory
+-- written, tokens not — would be a support ticket nobody can reconstruct, and
+-- a retry that rolled AGAIN would hand out a second Legendary. So `briefcases`
+-- stores the reveal payload the first time it is computed, and
+-- `open_briefcase` returns that stored payload forever after. Re-opening is a
+-- read, not a roll.
+--
+-- ── Brand Law 4 (cosmetics gate nothing) restated in SQL ───────────────────
+--
+-- `inventory` may hold a `trial` row with an `expires_at`, and NOTHING here
+-- may write `entitlements.pro`. A reward can lend a pro feature for an hour;
+-- only Stripe (0003) can grant it. The validator lives in TypeScript, but the
+-- absence of any write path from this file to `entitlements.pro` is what makes
+-- it true.
+-- ════════════════════════════════════════════════════════════════════════════
+
+
+-- ═══ beta access ═══════════════════════════════════════════════════════════
+-- The whole system hides behind this flag until it ships. Granted per account
+-- from the admin console, exactly like comp_pro — same shape, same reasoning:
+-- the player cannot write it, and the flag is evidence of a decision an
+-- operator made, not a derived value.
+alter table public.entitlements
+  add column if not exists rewards_beta boolean not null default false;
+
+
+-- ═══ content ═══════════════════════════════════════════════════════════════
+-- Seeded from JSON, versioned, world-readable. These are the rules of the
+-- game, not player data: publishing them is the point (§14.2 wants the odds
+-- visible in-app anyway).
+
+create table if not exists public.achievement_templates (
+  id            text primary key,
+  category      text not null,
+  text_pattern  text not null,
+  params        jsonb not null default '{}'::jsonb,
+  event         text not null,
+  predicate     text,
+  flags         text[] not null default '{}',
+  cooldown_days int not null default 2,
+  band_easy     boolean not null default false,
+  band_medium   boolean not null default false,
+  band_hard     boolean not null default false
+);
+
+create table if not exists public.skins (
+  id          text primary key,
+  name        text not null,
+  tier        int  not null check (tier between 1 and 5),
+  collection  text not null,
+  outfit_spec text,
+  url_novus   text,
+  url_nova    text,
+  in_pool     boolean not null default true
+);
+
+create table if not exists public.rewards (
+  id      text primary key,
+  kind    text not null check (kind in ('tokens','boost','trial','cosmetic','title','consumable')),
+  rarity  text not null check (rarity in ('common','uncommon','rare','epic','legendary')),
+  name    text not null,
+  payload jsonb not null default '{}'::jsonb,
+  flags   text[] not null default '{}',
+  -- A trial may only ever be 1, 5 or 24 hours. The TypeScript validator says
+  -- so too, but a constraint is the version that survives a careless seed.
+  constraint trial_duration_bounded check (
+    kind <> 'trial'
+    or (payload ? 'duration_h' and (payload->>'duration_h')::int in (1, 5, 24))
+  ),
+  -- Nothing in the reward pool may hand over permanent pro. Belt and braces
+  -- with the validator: this is the line that cannot be forgotten in a later
+  -- seed file.
+  constraint no_permanent_pro check (not (payload ? 'pro'))
+);
+
+alter table public.achievement_templates enable row level security;
+alter table public.skins   enable row level security;
+alter table public.rewards enable row level security;
+
+drop policy if exists "templates: world read" on public.achievement_templates;
+create policy "templates: world read" on public.achievement_templates
+  for select to anon, authenticated using (true);
+drop policy if exists "skins: world read" on public.skins;
+create policy "skins: world read" on public.skins
+  for select to anon, authenticated using (true);
+drop policy if exists "rewards: world read" on public.rewards;
+create policy "rewards: world read" on public.rewards
+  for select to anon, authenticated using (true);
+
+
+-- ═══ per player ════════════════════════════════════════════════════════════
+
+-- Progress toward one of today's five slots. The row is created by the server
+-- when progress first moves; `claimed_at` is the latch that makes a claim
+-- once-per-account-per-day without a separate table.
+create table if not exists public.daily_progress (
+  user_id     uuid not null references public.profiles(id) on delete cascade,
+  date        date not null,
+  slot        int  not null check (slot between 1 and 5),
+  template_id text not null,
+  param       jsonb not null default '{}'::jsonb,
+  progress    numeric not null default 0,
+  target      numeric not null default 1,
+  claimed_at  timestamptz,
+  primary key (user_id, date, slot)
+);
+
+-- An unopened case is a promise the player can see in the Vault. `tier` is
+-- written at CLAIM (the roll happens then, server-side) but the player is not
+-- told it until the ceremony's burst — the API withholds it, which is why
+-- `tier` is not in the read-own policy's way: the Vault endpoint selects
+-- columns explicitly.
+create table if not exists public.briefcases (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references public.profiles(id) on delete cascade,
+  tier        int  not null check (tier between 1 and 5),
+  source      text not null,
+  preset      text not null default 'full' check (preset in ('full','prize','short')),
+  -- The 3-tap upgrade path, pre-rolled at claim. The client animates it; it
+  -- never decides it. [tierAfterTap1, tierAfterTap2, tierAfterTap3].
+  upgrade_path int[] not null default '{}',
+  granted_at  timestamptz not null default now(),
+  opened_at   timestamptz,
+  -- The reveal, computed once on first open and returned verbatim on every
+  -- retry. This column is what makes the open idempotent.
+  reveal      jsonb
+);
+create index if not exists briefcases_user_unopened
+  on public.briefcases (user_id, granted_at desc) where opened_at is null;
+
+create table if not exists public.inventory (
+  user_id     uuid not null references public.profiles(id) on delete cascade,
+  item_id     text not null,
+  kind        text not null,
+  acquired_at timestamptz not null default now(),
+  equipped    boolean not null default false,
+  -- Set only for `trial` items. A NULL here means permanent, which is correct
+  -- for cosmetics and impossible for trials (the validator refuses them).
+  expires_at  timestamptz,
+  primary key (user_id, item_id)
+);
+
+create table if not exists public.grants (
+  grant_id       uuid primary key,
+  user_id        uuid not null references public.profiles(id) on delete cascade,
+  briefcase_id   uuid references public.briefcases(id) on delete set null,
+  item_id        text not null,
+  rarity         text not null,
+  was_dupe       boolean not null default false,
+  tokens_awarded int not null default 0,
+  created_at     timestamptz not null default now()
+);
+create index if not exists grants_user on public.grants (user_id, created_at desc);
+
+create table if not exists public.token_ledger (
+  id      bigserial primary key,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  delta   int  not null,
+  reason  text not null,
+  at      timestamptz not null default now()
+);
+create index if not exists token_ledger_user on public.token_ledger (user_id, at desc);
+
+create table if not exists public.pity_counters (
+  user_id          uuid primary key references public.profiles(id) on delete cascade,
+  since_rare       int not null default 0,
+  since_legendary  int not null default 0
+);
+
+alter table public.daily_progress enable row level security;
+alter table public.briefcases     enable row level security;
+alter table public.inventory      enable row level security;
+alter table public.grants         enable row level security;
+alter table public.token_ledger   enable row level security;
+alter table public.pity_counters  enable row level security;
+
+-- Read-own everywhere, write nowhere. The server writes through the functions
+-- below on the service role; a player reading their own vault is fine, a
+-- player writing it is the whole attack.
+drop policy if exists "daily: read own" on public.daily_progress;
+create policy "daily: read own" on public.daily_progress
+  for select to authenticated using (user_id = auth.uid());
+drop policy if exists "briefcases: read own" on public.briefcases;
+create policy "briefcases: read own" on public.briefcases
+  for select to authenticated using (user_id = auth.uid());
+drop policy if exists "inventory: read own" on public.inventory;
+create policy "inventory: read own" on public.inventory
+  for select to authenticated using (user_id = auth.uid());
+drop policy if exists "grants: read own" on public.grants;
+create policy "grants: read own" on public.grants
+  for select to authenticated using (user_id = auth.uid());
+drop policy if exists "ledger: read own" on public.token_ledger;
+create policy "ledger: read own" on public.token_ledger
+  for select to authenticated using (user_id = auth.uid());
+drop policy if exists "pity: read own" on public.pity_counters;
+create policy "pity: read own" on public.pity_counters
+  for select to authenticated using (user_id = auth.uid());
+
+
+-- ═══ token balance ═════════════════════════════════════════════════════════
+-- Derived from the ledger rather than stored: a balance column and a ledger
+-- disagree eventually, and when they do the ledger is the one that can be
+-- audited. Cheap at this size (one index scan per player).
+create or replace function public.token_balance(p_user uuid)
+returns int
+language sql stable
+set search_path = public, pg_temp
+as $$
+  select coalesce(sum(delta), 0)::int from public.token_ledger where user_id = p_user;
+$$;
+
+
+-- ═══ the open ══════════════════════════════════════════════════════════════
+-- One transaction: grants + inventory + ledger + pity + the stored reveal.
+--
+-- `p_payload` is the roll the API route already computed (server-side, seeded
+-- by the case id). This function does NOT roll — it commits, and it refuses to
+-- commit twice. The first caller to reach the UPDATE wins; every later caller,
+-- including a retry from the same flaky connection, reads the stored reveal
+-- back out and gets a byte-identical answer.
+create or replace function public.open_briefcase(
+  p_case    uuid,
+  p_user    uuid,
+  p_payload jsonb
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_existing jsonb;
+  v_item     jsonb;
+begin
+  -- Lock the row: two taps on a slow connection are the common case, not the
+  -- exotic one.
+  select reveal into v_existing
+    from public.briefcases
+   where id = p_case and user_id = p_user
+   for update;
+
+  if not found then
+    raise exception 'no such briefcase' using errcode = 'no_data_found';
+  end if;
+  if v_existing is not null then
+    return v_existing;                       -- already opened: replay, do not roll
+  end if;
+
+  update public.briefcases
+     set opened_at = now(), reveal = p_payload
+   where id = p_case;
+
+  for v_item in select * from jsonb_array_elements(p_payload->'items') loop
+    insert into public.grants (grant_id, user_id, briefcase_id, item_id, rarity,
+                               was_dupe, tokens_awarded)
+    values ((v_item->>'grantId')::uuid, p_user, p_case, v_item->>'itemId',
+            v_item->>'rarity', coalesce((v_item->>'wasDupe')::boolean, false),
+            coalesce((v_item->>'tokens')::int, 0))
+    on conflict (grant_id) do nothing;
+
+    -- A dupe pays tokens instead of a second copy; a fresh item lands in the
+    -- wardrobe. `do nothing` because the dupe case has already inserted it.
+    if coalesce((v_item->>'wasDupe')::boolean, false) = false then
+      insert into public.inventory (user_id, item_id, kind, expires_at)
+      values (p_user, v_item->>'itemId', v_item->>'kind',
+              case when v_item ? 'expiresAt'
+                   then (v_item->>'expiresAt')::timestamptz end)
+      on conflict (user_id, item_id) do nothing;
+    end if;
+
+    if coalesce((v_item->>'tokens')::int, 0) <> 0 then
+      insert into public.token_ledger (user_id, delta, reason)
+      values (p_user, (v_item->>'tokens')::int,
+              case when coalesce((v_item->>'wasDupe')::boolean, false)
+                   then 'dupe:' || (v_item->>'itemId') else 'drop:' || (v_item->>'itemId') end);
+    end if;
+  end loop;
+
+  insert into public.pity_counters (user_id, since_rare, since_legendary)
+  values (p_user,
+          coalesce((p_payload->'pity'->>'sinceRare')::int, 0),
+          coalesce((p_payload->'pity'->>'sinceLegendary')::int, 0))
+  on conflict (user_id) do update
+    set since_rare      = excluded.since_rare,
+        since_legendary = excluded.since_legendary;
+
+  return p_payload;
+end;
+$$;
+revoke all on function public.open_briefcase(uuid, uuid, jsonb) from public, anon, authenticated;
+
+
+-- ═══ granting a case ═══════════════════════════════════════════════════════
+-- Every source funnels here: a daily claim, a milestone, a leaderboard prize,
+-- a pitch that went well. Rule 5 of the build prompt — no item ever appears in
+-- inventory without a case around it — is enforced by this being the only way
+-- in.
+create or replace function public.grant_briefcase(
+  p_user    uuid,
+  p_tier    int,
+  p_source  text,
+  p_preset  text default 'full',
+  p_path    int[] default '{}'
+)
+returns uuid
+language sql
+security definer
+set search_path = public, pg_temp
+as $$
+  insert into public.briefcases (user_id, tier, source, preset, upgrade_path)
+  values (p_user, p_tier, p_source, p_preset, p_path)
+  returning id;
+$$;
+revoke all on function public.grant_briefcase(uuid, int, text, text, int[]) from public, anon, authenticated;
+
+
+-- ═══ spending tokens ═══════════════════════════════════════════════════════
+-- Refuses to go negative INSIDE the transaction. Checking the balance in the
+-- route and inserting after is a race two taps wide.
+create or replace function public.spend_tokens(
+  p_user   uuid,
+  p_amount int,
+  p_reason text
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare v_balance int;
+begin
+  if p_amount <= 0 then return false; end if;
+  select coalesce(sum(delta), 0)::int into v_balance
+    from public.token_ledger where user_id = p_user for update;
+  if v_balance < p_amount then return false; end if;
+  insert into public.token_ledger (user_id, delta, reason)
+  values (p_user, -p_amount, p_reason);
+  return true;
+end;
+$$;
+revoke all on function public.spend_tokens(uuid, int, text) from public, anon, authenticated;
+
+
+-- ═══ equipping ═════════════════════════════════════════════════════════════
+-- One equipped skin at a time. Done in SQL so the "unequip the old one" half
+-- cannot be skipped by a client that only sends the second call.
+create or replace function public.equip_item(p_user uuid, p_item text)
+returns boolean
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare v_kind text;
+begin
+  select kind into v_kind from public.inventory
+   where user_id = p_user and item_id = p_item;
+  if not found then return false; end if;
+
+  update public.inventory set equipped = false
+   where user_id = p_user and kind = v_kind and equipped;
+  update public.inventory set equipped = true
+   where user_id = p_user and item_id = p_item;
+  return true;
+end;
+$$;
+revoke all on function public.equip_item(uuid, text) from public, anon, authenticated;
+
+
+-- ═══ admin: the beta flag ══════════════════════════════════════════════════
+-- Same shape as admin_set_comp_pro (0009) so the console's grant band can
+-- treat them alike.
+create or replace function public.admin_set_rewards_beta(
+  p_profile uuid,
+  p_active  boolean
+)
+returns void
+language sql
+security definer
+set search_path = public, pg_temp
+as $$
+  insert into public.entitlements (profile_id, rewards_beta)
+  values (p_profile, p_active)
+  on conflict (profile_id) do update set rewards_beta = excluded.rewards_beta;
+$$;
+revoke all on function public.admin_set_rewards_beta(uuid, boolean) from public, anon, authenticated;
+
+
+-- ═══ the event ledger ══════════════════════════════════════════════════════
+-- What a player's day actually looked like, and the thing the per-day caps in
+-- /api/rewards/progress count against. Two jobs in one table: without it the
+-- cap could only be enforced inside a single request, and a script would just
+-- send more requests.
+--
+-- Deliberately thin — a type and a day, no payload. It exists to be COUNTED,
+-- and storing what the client claimed would invite reading it back as if it
+-- were true.
+create table if not exists public.reward_events (
+  id      bigserial primary key,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  date    date not null,
+  type    text not null,
+  at      timestamptz not null default now()
+);
+create index if not exists reward_events_user_day
+  on public.reward_events (user_id, date);
+
+alter table public.reward_events enable row level security;
+drop policy if exists "reward events: read own" on public.reward_events;
+create policy "reward events: read own" on public.reward_events
+  for select to authenticated using (user_id = auth.uid());
+
+
+-- ═══ milestones already paid ═══════════════════════════════════════════════
+-- One row per milestone per player, and the row IS the idempotency: two taps
+-- on /api/rewards/milestones race into one insert and the loser grants
+-- nothing. A timestamp comparison would leave a window two requests wide.
+create table if not exists public.milestones_claimed (
+  user_id      uuid not null references public.profiles(id) on delete cascade,
+  milestone_id text not null,
+  claimed_at   timestamptz not null default now(),
+  primary key (user_id, milestone_id)
+);
+
+alter table public.milestones_claimed enable row level security;
+drop policy if exists "milestones: read own" on public.milestones_claimed;
+create policy "milestones: read own" on public.milestones_claimed
+  for select to authenticated using (user_id = auth.uid());
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 0018 · Briefcase content — 51 templates, 101 skins, 40 rewards
+-- ═══════════════════════════════════════════════════════════════════════════
+-- GENERATED by `npm run rewards:seed` from lib/rewards/templates.ts,
+-- lib/rewards/catalog.ts and assets-src/briefcase/skins.csv, so the rules in
+-- the database and the rules in the code cannot drift apart. Every statement
+-- is an upsert: re-running it updates the CONTENT and touches no player's
+-- inventory, progress or tokens.
+--
+-- The full reasoning lives in supabase/migrations/0018_rewards_seed.sql.
+-- ════════════════════════════════════════════════════════════════════════════
+-- 0018 · Briefcase content — GENERATED, do not edit by hand
+--
+-- Written by `npm run rewards:seed` from lib/rewards/templates.ts,
+-- lib/rewards/catalog.ts and assets-src/briefcase/skins.csv — the same three
+-- sources the generator and the roller read at runtime, so the rules in the
+-- database and the rules in the code cannot drift apart.
+--
+-- Every statement is an upsert: re-running this against a live database
+-- updates the CONTENT and touches no player's inventory, progress or tokens.
+-- ════════════════════════════════════════════════════════════════════════════
+
+-- ── 51 achievement templates ──
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('S1', 'session', 'Play for {n} minutes today', '{"easy":[{"n":10}],"medium":[{"n":20}],"hard":[{"n":35}]}'::jsonb, 'session.heartbeat', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('S2', 'session', 'Complete {n} on-camera pitch performances', '{"easy":[{"n":1}],"medium":[{"n":2}],"hard":[{"n":3}]}'::jsonb, 'pitch.completed', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('S3', 'session', 'Advance {n} fiscal years in one run', '{"easy":[{"n":1}],"medium":[{"n":3}],"hard":[{"n":5}]}'::jsonb, 'year.ended', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('S4', 'session', 'Start a run in the {industry} industry', '{"easy":[{}],"medium":[{}],"hard":[{}]}'::jsonb, 'run.started', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('S5', 'session', 'Finish a session without skipping any event card', '{"easy":[{"n":1}],"medium":[{"n":2}],"hard":[{"n":3}]}'::jsonb, 'event.resolved', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('S6', 'session', 'Reach year {n} in a single run today', '{"easy":[{"n":3}],"medium":[{"n":6}],"hard":[{"n":10}]}'::jsonb, 'year.ended', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('P1', 'pitch', 'Score ≥ {n} overall on a pitch', '{"easy":[{"n":60}],"medium":[{"n":75}],"hard":[{"n":88}]}'::jsonb, 'pitch.scored', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('P2', 'pitch', 'Deliver a pitch with ≤ {n} filler words', '{"easy":[{"n":6}],"medium":[{"n":3}],"hard":[{"n":1}]}'::jsonb, 'pitch.scored', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('P3', 'pitch', 'Hold eye contact ≥ {n}% of your pitch', '{"easy":[{"n":50}],"medium":[{"n":70}],"hard":[{"n":85}]}'::jsonb, 'pitch.scored', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('P4', 'pitch', 'Keep pacing in the green for {n}% of a pitch', '{"easy":[{"n":60}],"medium":[{"n":75}],"hard":[{"n":90}]}'::jsonb, 'pitch.scored', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('P5', 'pitch', 'Answer {n} shark curveball questions in one panel', '{"easy":[{"n":1}],"medium":[{"n":2}],"hard":[{"n":3}]}'::jsonb, 'panel.qna', array['requires:sharks']::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('P6', 'pitch', 'Beat your previous pitch score by {n} points', '{"easy":[{"n":3}],"medium":[{"n":6}],"hard":[{"n":10}]}'::jsonb, 'pitch.scored', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('P7', 'pitch', 'Score ≥ {n} on clarity from the Language Coach', '{"easy":[{"n":65}],"medium":[{"n":80}],"hard":[{"n":90}]}'::jsonb, 'pitch.scored', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('D1', 'deals', 'Receive offers from ≥ {n} sharks in one panel', '{"easy":[{"n":1}],"medium":[{"n":2}],"hard":[{"n":3}]}'::jsonb, 'panel.offers', array['requires:sharks']::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('D2', 'deals', 'Close a deal giving away ≤ {n}% equity', '{"easy":[{"n":35}],"medium":[{"n":30},{"n":25}],"hard":[{"n":20},{"n":15}]}'::jsonb, 'deal.closed', array['requires:sharks']::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('D3', 'deals', 'Close a deal worth ≥ ${n}', '{"easy":[{"n":25000}],"medium":[{"n":50000}],"hard":[{"n":100000}]}'::jsonb, 'deal.closed', array['requires:sharks']::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('D4', 'deals', 'Close a deal with {shark}', '{"easy":[{}],"medium":[{}],"hard":[{}]}'::jsonb, 'deal.closed', array['requires:sharks']::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('D5', 'deals', 'Trigger a bidding war (2+ sharks competing)', '{"medium":[{}],"hard":[{"n":3}]}'::jsonb, 'panel.bidwar', array['requires:sharks']::text[], 2, false, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('D6', 'deals', 'Counter-offer and get it accepted', '{"medium":[{}],"hard":[{}]}'::jsonb, 'deal.countered', array['requires:sharks']::text[], 2, false, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('D7', 'deals', 'Reject every offer, then end the next quarter cash-positive', '{"medium":[{}],"hard":[{}]}'::jsonb, 'quarter.ended', array['requires:sharks']::text[], 2, false, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('D8', 'deals', 'Leave a panel with more respect than you walked in with', '{"easy":[{}],"medium":[{}],"hard":[{}]}'::jsonb, 'shark.respect', array['requires:sharks']::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('C1', 'coldcall', 'Make {n} cold calls', '{"easy":[{"n":2}],"medium":[{"n":3}],"hard":[{"n":5}]}'::jsonb, 'call.completed', array['requires:coldcall']::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('C2', 'coldcall', 'Get {n} cold-call prospects to say yes', '{"easy":[{"n":1}],"medium":[{"n":2}],"hard":[{"n":3}]}'::jsonb, 'call.won', array['requires:coldcall']::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('C3', 'coldcall', 'Convert a "skeptic" persona on a call', '{"medium":[{}],"hard":[{}]}'::jsonb, 'call.won', array['requires:coldcall']::text[], 2, false, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('C4', 'coldcall', 'Complete a call with 0 filler-word flags', '{"medium":[{"n":1}],"hard":[{"n":2}]}'::jsonb, 'call.scored', array['requires:coldcall']::text[], 2, false, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('F1', 'finance', 'End a fiscal year with cash ≥ ${n}', '{"easy":[{"n":20000}],"medium":[{"n":100000}],"hard":[{"n":500000}]}'::jsonb, 'year.ended', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('F2', 'finance', 'Keep burn below revenue for {n} consecutive quarters', '{"easy":[{"n":2}],"medium":[{"n":4}],"hard":[{"n":6}]}'::jsonb, 'quarter.ended', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('F3', 'finance', 'End a year with ≥ {n} months of runway', '{"easy":[{"n":6}],"medium":[{"n":12}],"hard":[{"n":18}]}'::jsonb, 'year.ended', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('F4', 'finance', 'Reach a valuation of ≥ ${n}', '{"easy":[{"n":500000}],"medium":[{"n":2000000}],"hard":[{"n":10000000}]}'::jsonb, 'valuation.updated', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('F5', 'finance', 'Hold gross margin ≥ {n}% for a full year', '{"easy":[{"n":30}],"medium":[{"n":45}],"hard":[{"n":60}]}'::jsonb, 'year.ended', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('F6', 'finance', 'Pay off a loan in full', '{"easy":[{}],"medium":[{}],"hard":[{}]}'::jsonb, 'loan.closed', array['requires:debt']::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('F7', 'finance', 'Sell an investment at ≥ {n}% profit', '{"easy":[{"n":10}],"medium":[{"n":25}],"hard":[{"n":50}]}'::jsonb, 'asset.sold', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('F8', 'finance', 'Survive a down-market event without negative cash flow', '{"easy":[{}],"medium":[{}],"hard":[{"n":2}]}'::jsonb, 'event.market', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('O1', 'ops', 'Hire {n} employees or executives', '{"easy":[{"n":1}],"medium":[{"n":2}],"hard":[{"n":3}]}'::jsonb, 'staff.hired', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('O2', 'ops', 'Launch {n} new products, menu items or drops', '{"easy":[{"n":1}],"medium":[{"n":2}],"hard":[{"n":3}]}'::jsonb, 'product.launched', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('O3', 'ops', 'Run a marketing campaign hitting CTR ≥ {n}%', '{"easy":[{"n":1.5}],"medium":[{"n":3}],"hard":[{"n":5}]}'::jsonb, 'campaign.ended', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('O4', 'ops', 'Complete {n} R&D upgrades', '{"easy":[{"n":1}],"medium":[{"n":2}],"hard":[{"n":3}]}'::jsonb, 'rnd.completed', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('O5', 'ops', 'Open a second location or sign a franchisee', '{"medium":[{}],"hard":[{}]}'::jsonb, 'expansion.opened', array[]::text[], 2, false, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('O6', 'ops', 'Kill your worst seller and end the quarter up', '{"medium":[{}],"hard":[{}]}'::jsonb, 'product.retired', array[]::text[], 2, false, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('O7', 'ops', 'Execute a strategic move (rebrand, logo or price reposition)', '{"easy":[{}],"medium":[{}],"hard":[{}]}'::jsonb, 'strategy.executed', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('O8', 'ops', 'Raise average WTP by {n}% in one year', '{"easy":[{"n":5}],"medium":[{"n":10}],"hard":[{"n":20}]}'::jsonb, 'year.ended', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('O9', 'ops', 'Reach {n} customers in a run', '{"easy":[{"n":100}],"medium":[{"n":1000}],"hard":[{"n":10000}]}'::jsonb, 'customers.updated', array['requires:customers']::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('O10', 'ops', 'Grow revenue {n}% year-over-year', '{"easy":[{"n":10}],"medium":[{"n":25}],"hard":[{"n":50}]}'::jsonb, 'year.ended', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('R1', 'resilience', 'Turn a losing year into a profitable next year', '{"medium":[{}],"hard":[{}]}'::jsonb, 'year.ended', array[]::text[], 2, false, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('R2', 'resilience', 'Start a new company after a bankruptcy', '{"easy":[{}],"medium":[{}],"hard":[{}]}'::jsonb, 'run.started', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('R3', 'resilience', 'Take {n} founder self-care actions', '{"easy":[{"n":1}],"medium":[{"n":2}],"hard":[{"n":3}]}'::jsonb, 'founder.care', array['requires:energy']::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('R4', 'resilience', 'Attend a networking or mentor event and act on it', '{"easy":[{}],"medium":[{}],"hard":[{}]}'::jsonb, 'event.network', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('B1', 'bests', 'Beat your personal-best pitch score', '{"easy":[{}],"medium":[{"n":5}],"hard":[{"n":10}]}'::jsonb, 'pitch.scored', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('B2', 'bests', 'Beat your personal-best net worth', '{"easy":[{}],"medium":[{"n":10}],"hard":[{"n":25}]}'::jsonb, 'networth.updated', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('B3', 'bests', 'Play your least-played industry', '{"easy":[{}],"medium":[{}],"hard":[{}]}'::jsonb, 'run.started', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('B4', 'bests', 'Resolve today''s market event within the game day', '{"easy":[{}],"medium":[{}],"hard":[{}]}'::jsonb, 'event.market', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
+
+-- ── 40 non-skin rewards ──
+-- The `no_permanent_pro` and `trial_duration_bounded` constraints in 0017 are
+-- what stop a careless edit here from handing out the paid product.
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('tokens_25', 'tokens', 'common', '25 Shark Tokens', '{"tokens":25}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('retry_pitch', 'consumable', 'common', '+1 Pitch Retry', '{"retries":1}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('energy_refill', 'consumable', 'common', 'Energy Refill', '{"energy":"full"}'::jsonb, array['requires:energy']::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('confetti_paper_cash', 'cosmetic', 'common', 'Confetti: Paper Cash', '{"slot":"confetti"}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('title_go_getter', 'title', 'common', 'Title: Go-Getter', '{"slot":"title"}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('title_bootstrapper', 'title', 'common', 'Title: Bootstrapper', '{"slot":"title"}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('title_intern', 'title', 'common', 'Title: Intern of the Year', '{"slot":"title"}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('tokens_60', 'tokens', 'uncommon', '60 Shark Tokens', '{"tokens":60}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('boost_cash_2x', 'boost', 'uncommon', '2× Cash Boost', '{"multiplier":2,"scope":"fiscal_year"}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('boost_xp_hour', 'boost', 'uncommon', 'XP Boost — 1 hour', '{"multiplier":2,"minutes":60}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('daily_reroll', 'consumable', 'uncommon', 'Daily Re-roll Token', '{"rerolls":1}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('streak_shield', 'consumable', 'uncommon', 'Streak Shield', '{"shields":1}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('frame_bronze_ledger', 'cosmetic', 'uncommon', 'Frame: Bronze Ledger', '{"slot":"frame"}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('title_closer', 'title', 'uncommon', 'Title: Closer', '{"slot":"title"}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('title_ramen', 'title', 'uncommon', 'Title: Ramen Profitable', '{"slot":"title"}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('title_series_seed', 'title', 'uncommon', 'Title: Series Seed', '{"slot":"title"}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('tokens_150', 'tokens', 'rare', '150 Shark Tokens', '{"tokens":150}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('trial_golden_hour', 'trial', 'rare', 'Golden Hour — 1h industry pack', '{"duration_h":1,"grants":"one_industry_pack"}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('trial_coldcall_day', 'trial', 'rare', 'Cold-Calling Day Pass', '{"duration_h":24,"grants":"coldcall"}'::jsonb, array['requires:coldcall']::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('premium_shark_session', 'consumable', 'rare', 'Premium Shark Session', '{"panels":1,"feedback":"2x"}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('frame_silver_portfolio', 'cosmetic', 'rare', 'Frame: Silver Portfolio', '{"slot":"frame"}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('cursor_orange_spark', 'cosmetic', 'rare', 'Cursor Trail: Orange Spark', '{"slot":"cursor"}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('case_denim_canvas', 'cosmetic', 'rare', 'Case Reskin: Denim Canvas', '{"slot":"case_skin","tier":1}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('confetti_shark_fins', 'cosmetic', 'rare', 'Confetti: Shark Fins', '{"slot":"confetti"}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('title_bulletproof', 'title', 'rare', 'Title: Bulletproof Pitch', '{"slot":"title"}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('title_margin_call', 'title', 'rare', 'Title: Margin Call', '{"slot":"title"}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('tokens_400', 'tokens', 'epic', '400 Shark Tokens', '{"tokens":400}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('boost_bundle', 'boost', 'epic', 'Boost Bundle', '{"cash":2,"xp_minutes":60,"retries":1}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('trial_golden_shift', 'trial', 'epic', 'Golden Shift — 5h industry pack', '{"duration_h":5,"grants":"one_industry_pack"}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('trial_golden_day', 'trial', 'epic', 'Golden Day — 24h all packs', '{"duration_h":24,"grants":"all_industry_packs"}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('frame_gold_boardroom', 'cosmetic', 'epic', 'Frame: Gold Boardroom', '{"slot":"frame"}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('bg_skyline_office', 'cosmetic', 'epic', 'Background: Skyline Corner Office', '{"slot":"background"}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('confetti_gold_trophies', 'cosmetic', 'epic', 'Confetti: Gold Trophies', '{"slot":"confetti"}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('title_shark_bait', 'title', 'epic', 'Title: Shark Bait No More', '{"slot":"title"}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('title_term_sheet', 'title', 'epic', 'Title: Term Sheet Titan', '{"slot":"title"}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('tokens_1200', 'tokens', 'legendary', '1,200 Shark Tokens', '{"tokens":1200}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('frame_molten_gold', 'cosmetic', 'legendary', 'Animated Frame: Molten Gold', '{"slot":"frame","animated":true}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('aura_founders_seal', 'cosmetic', 'legendary', 'Aura: Founder''s Seal', '{"slot":"aura"}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('pose_trophy_lift', 'cosmetic', 'legendary', 'Pose: Trophy Lift', '{"slot":"pose"}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+insert into public.rewards (id, kind, rarity, name, payload, flags) values ('title_apex_founder', 'title', 'legendary', 'Title: Apex Founder', '{"slot":"title","animated":true}'::jsonb, array[]::text[]) on conflict (id) do update set kind=excluded.kind, rarity=excluded.rarity, name=excluded.name, payload=excluded.payload, flags=excluded.flags;
+
+-- ── 101 skins (100 in the RNG pool) ──
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('001', 'Day One Hoodie', 1, 'garage', 'heather-grey pullover hoodie with drawstrings, dark jeans, white low-top sneakers', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('002', 'Ship It Tee', 1, 'garage', 'plain navy t-shirt with tiny orange rocket print, khaki chinos, canvas slip-ons', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('003', 'Garage Flannel', 1, 'garage', 'red-and-black check flannel shirt open over white tee, work jeans, brown boots', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('004', 'Campus Crew', 1, 'garage', 'oversized collegiate crewneck sweatshirt in slate blue, grey joggers, running shoes', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('005', 'Denim Dreamer', 1, 'garage', 'classic denim jacket over cream tee, black jeans, white sneakers', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('006', 'Cap & Grind', 1, 'garage', 'curved-brim navy baseball cap, olive tee, cargo shorts, skate shoes', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('007', 'Cargo Builder', 1, 'garage', 'tan multi-pocket cargo pants, black utility tee, tool lanyard, work sneakers', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('008', 'Trailhead Vest', 1, 'garage', 'puffy navy gilet vest over plaid shirt, hiking pants, trail shoes', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('009', 'Track Startup', 1, 'garage', 'retro track jacket with white side stripes, matching track pants, runners', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('010', 'Crunch Time PJs', 1, 'garage', 'striped pajama set, fuzzy slippers, sleep mask pushed up on forehead, coffee mug in hand', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('011', 'First Desk', 1, 'office', 'light-blue oxford shirt tucked into beige chinos, brown belt, loafers', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('012', 'Quiet Analyst', 1, 'office', 'soft grey knit cardigan over white shirt, navy slacks, round glasses', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('013', 'Casual Friday', 1, 'office', 'forest-green polo shirt, khakis, white leather sneakers', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('014', 'Ivy Intern', 1, 'office', 'cream sweater tied over shoulders, striped shirt, pressed trousers, penny loafers', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('015', 'Client Ready', 1, 'office', 'navy blazer over plain tee, dark jeans, suede loafers', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('016', 'Commuter', 1, 'office', 'belted beige trench coat over office wear, leather messenger bag, umbrella', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('017', 'Soft Launch', 2, 'office', 'unstructured charcoal blazer over turtleneck-lite knit, tapered trousers', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('018', 'Deal Desk', 2, 'office', 'white dress shirt with sleeves rolled, dark suspenders, pinstripe trousers, loose tie', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('019', 'Junior Partner', 2, 'office', 'grey waistcoat over crisp shirt with navy tie, matching trousers', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('020', 'Monochrome Minimal', 2, 'office', 'all-black fine-knit turtleneck and slim trousers, minimalist watch', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('021', 'The Standard', 2, 'corporate', 'classic two-button navy suit, white shirt, slate tie', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('022', 'Boardroom Charcoal', 2, 'corporate', 'charcoal suit with subtle sheen, light-grey shirt, black knit tie', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('023', 'The Closer', 2, 'corporate', 'dark pinstripe three-piece suit and confident grin', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('024', 'Portfolio Check', 2, 'corporate', 'grey windowpane-pattern suit, pale blue shirt, pocket square', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('025', 'Managing Director', 2, 'corporate', 'navy double-breasted suit with peak lapels, gold tie bar', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('026', 'Old Reliable', 2, 'corporate', 'earthy brown suit, cream shirt, knitted burgundy tie', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('027', 'Modern Exec', 2, 'corporate', 'slim black suit, no tie, crisp white shirt open at collar, minimal sneakers', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('028', 'Quarterly Review', 2, 'corporate', 'grey three-piece suit with waistcoat chain detail', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('029', 'Power Move', 3, 'corporate', 'deep burgundy suit with black satin lapels, black shirt', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('030', 'White Collar', 3, 'corporate', 'immaculate all-white suit, pale gold tie, white gloves', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('031', 'Block Founder', 1, 'street', 'olive bomber jacket over white tee, black jeans, chunky sneakers', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('032', 'Drop Day', 1, 'street', 'oversized graphic hoodie in washed black, cargo joggers, hyped sneakers', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('033', 'Bucket List', 1, 'street', 'patterned bucket hat, camp-collar shirt, shorts, slides with socks', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('034', 'Heat Check', 1, 'street', 'varsity-style tee, track pants, glowing limited-edition basketball sneakers, sneaker box under arm', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('035', 'Letterman', 1, 'street', 'wool varsity jacket with leather sleeves and chenille "N" patch, jeans', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('036', 'Deck Check', 1, 'street', 'skater flannel around waist, band tee, ripped jeans, skate shoes, beanie', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('037', 'Ghost Mode', 2, 'street', 'all-black techwear: layered shell jacket, straps, tapered pants, futuristic sneakers', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('038', 'Winter Hustle', 2, 'street', 'glossy long puffer coat in deep navy, orange beanie, gloves', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('039', 'Self Made', 2, 'street', 'crisp white tee with thin gold chain, designer belt, luxe joggers, pristine sneakers', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('040', 'Camo Ops', 2, 'street', 'urban-camo utility jacket, black turtleneck, combat boots', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('041', 'Mad Avenue ''62', 2, 'retro', 'slim 60s grey suit, skinny black tie, tie clip, side-parted hair', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('042', 'Groovy Ledger ''74', 2, 'retro', 'brown corduroy blazer with wide lapels, patterned shirt with huge collar, flared trousers', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('043', 'Fax & Facts ''95', 2, 'retro', 'boxy 90s double-breasted suit in taupe, loud geometric tie, pager on belt', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('044', 'Typewriter Tycoon', 2, 'retro', '1950s style: white short-sleeve dress shirt, thin black tie, high-waist slacks, pencil behind ear', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('045', 'Wall Street ''87', 2, 'retro', 'bold 80s power suit with strong shoulders, contrast-collar striped shirt, red braces', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('046', 'Dot-Com Y2K', 3, 'retro', 'metallic silver zip jacket over graphic tee, translucent visor, chunky white sneakers, CD-shine accents', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('047', 'Gatsby Gains', 3, 'retro', '1920s art-deco tuxedo with gold geometric trim, slicked hair, cane', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('048', 'The Negotiator', 3, 'retro', '1940s noir: long overcoat, fedora, loosened tie, dramatic shadow styling', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('049', 'Profit Fever', 3, 'retro', 'disco-era white three-piece with wide flares, gold shirt, mirrored sunglasses', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('050', 'Steam Baron', 3, 'retro', 'victorian industrialist: brocade waistcoat, pocket-watch chain, top hat, brass goggles', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('051', 'Keynote', 2, 'tech', 'plain black mock-neck, faded blue jeans, grey new-balance-style sneakers, thin-rim glasses', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('052', 'Move Fast', 2, 'tech', 'plain grey tee, black zip hoodie draped, dark jeans, simple sneakers', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('053', 'Server Room', 2, 'tech', 'company-branded fleece vest over checked shirt, lanyard with badge, laptop under arm', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('054', 'Augmented', 2, 'tech', 'smart-casual bomber with subtle circuit pattern, AR glasses with orange lens glint', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('055', 'Prototype', 3, 'tech', 'white lab coat with glowing seam lines over navy jumpsuit, tablet in hand', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('056', 'Orbit', 3, 'tech', 'sleek space-age jacket with high collar, silver accents, magnetic boots', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('057', 'Neon Founder', 3, 'tech', 'dark jacket with animated-look neon-orange piping, glowing shoulder tabs, cyber sneakers', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('058', 'Circuit Blazer', 3, 'tech', 'midnight blazer whose pinstripes are faint glowing circuit traces, dark shirt', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('059', 'Hologram', 4, 'tech', 'translucent iridescent overcoat with light-refraction edges over minimalist black fit', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('060', 'Mech Mode', 4, 'tech', 'lightweight exo-frame shoulder and arm pieces in brushed steel over navy flight suit, orange power core', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('061', 'Milano Sartoria', 3, 'world', 'soft-shouldered italian suit in petrol blue, open collar, loafers no socks, sunglasses in pocket', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('062', 'Ginza Minimal', 3, 'world', 'japanese-minimalist charcoal suit with band collar, asymmetric lapel, clean lines', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('063', 'Seoul Avant', 3, 'world', 'oversized-silhouette black suit with cinched waist, statement brooch, layered shirt', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('064', 'Madison Ave', 3, 'world', 'sharp american power suit in steel grey, bold orange tie, skyscraper confidence', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('065', 'Mumbai Bandhgala', 3, 'world', 'modern bandhgala jacket in deep teal with subtle jacquard, tailored trousers', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('066', 'Savile Row', 4, 'world', 'impeccable british three-piece in birdseye navy, club tie, polished oxfords, furled umbrella', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('067', 'Paris Atelier', 4, 'world', 'haute-couture tuxedo with sculptural lapel, silk scarf, artistic drape', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('068', 'Shanghai Modern', 4, 'world', 'mandarin-collar midnight suit with fine gold frog-button detail, silk pocket square', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('069', 'Lagos Agbada', 4, 'world', 'contemporary agbada-inspired flowing formal robe in royal blue with geometric embroidery over tailored set', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('070', 'Dubai Gold Line', 4, 'world', 'pristine white suit with fine gold pinstripe and gold-trim cuffs, desert-sun sunglasses', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('071', 'Line Cook', 1, 'industry', 'white chef jacket with rolled sleeves, apron, checkered pants, side towel', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('072', 'On Call', 1, 'industry', 'teal medical scrubs, stethoscope, ID badge, comfy clogs', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('073', 'Captain', 1, 'industry', 'airline pilot uniform with epaulettes and cap, aviator sunglasses', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('074', 'Grease & Gears', 1, 'industry', 'navy mechanic coveralls with orange name patch, rag in pocket, wrench', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('075', 'Barista Craft', 1, 'industry', 'denim apron over rolled henley, latte-art cup in hand, canvas sneakers', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('076', 'Last Mile', 1, 'industry', 'courier windbreaker, cap, crossbody delivery bag, cargo shorts, fast shoes', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('077', 'Site Boss', 1, 'industry', 'hi-vis orange vest over flannel, white hard hat, rolled blueprints', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('078', 'Shop Floor', 1, 'industry', 'retail vest with pins over polo, name tag, khakis, handheld scanner', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('079', 'Executive Chef', 3, 'industry', 'black chef jacket with gold buttons and embroidery, tall toque, plated dish in hand', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('080', 'Chief of Surgery', 3, 'industry', 'prestige navy scrubs with gold trim, surgical cap, confident crossed arms', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('081', 'Commencement', 3, 'seasonal', 'graduation gown and cap with orange tassel, diploma scroll', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('082', 'Offsite Linen', 3, 'seasonal', 'breezy cream linen shirt and trousers, straw panama hat, boat shoes', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('083', 'Fortune Founder', 4, 'seasonal', 'lunar-new-year red suit with gold cloud embroidery, gold ingot cufflinks', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('084', 'Snowline Gala', 4, 'seasonal', 'midnight-blue velvet tuxedo with frost-crystal lapel pin, white scarf', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('085', 'Vampire VC', 4, 'seasonal', 'halloween: high-collared black cape with crimson lining over victorian suit, tiny fangs in grin', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('086', 'Confetti Closer', 4, 'seasonal', 'new-year sequined blazer in gunmetal, party horn, "happy new fiscal year" sash', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('087', 'Founding Day', 4, 'seasonal', 'anniversary parade look: navy suit with orange grand-opening ribbon sash and oversized scissors', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('088', 'Midnight NYE', 4, 'seasonal', 'glittering black-and-gold suit, champagne-gold bow tie, sparkler in hand', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('089', 'Lantern Festival', 4, 'seasonal', 'flowing modern hanfu-inspired formal set in ink blue with glowing lantern accessory', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('090', 'Beach Board Meeting', 4, 'seasonal', 'suit jacket, tie and swim shorts combo, flip flops, laptop bag and cocktail umbrella drink', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('091', 'The Gold Standard', 5, 'legendary', 'entire suit in polished liquid gold with mirror sheen, gold tie, gold shoes', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('092', 'Diamond Hands', 5, 'legendary', 'crystalline suit refracting rainbow light, faceted gem-like texture, ice-blue glow', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('093', 'The Apex', 5, 'legendary', 'shark-inspired steel-grey suit with fin-shaped shoulder details, tooth-pattern tie, subtle gill pinstripes', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('094', 'Midas Touch', 5, 'legendary', 'half-transformed look: classic navy suit turning to gold from the fingertips up one arm', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('095', 'Astro Founder', 5, 'legendary', 'white spacesuit tailored like a business suit, gold visor helmet under arm, mission patches shaped like company logos', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('096', 'The Chairman', 5, 'legendary', 'royal deep-purple suit with ermine-trimmed short cape, subtle gold laurel pin', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('097', 'Phoenix Clause', 5, 'legendary', 'charcoal suit with living ember gradients at the hems, faint rising-flame wisps', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('098', 'Ghost Equity', 5, 'legendary', 'spectral translucent suit in pale cyan, softly glowing edges, semi-transparent body', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('099', 'Prism Legacy', 5, 'legendary', 'iridescent color-shifting suit that reads as different hues across the body, holographic tie', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('100', 'The Magnate', 5, 'legendary', 'black suit with gold-thread pinstripes, floor-length black overcoat worn like a cape, gold watch chain, tiny gold trophy in hand', true) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+insert into public.skins (id, name, tier, collection, outfit_spec, in_pool) values ('101', 'Perennial', 4, 'milestone_only', 'evergreen laurel-pattern suit in deep forest green with subtle gold laurel-leaf embroidery, gold laurel lapel pin', false) on conflict (id) do update set name=excluded.name, tier=excluded.tier, collection=excluded.collection, outfit_spec=excluded.outfit_spec, in_pool=excluded.in_pool;
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 0019 · The token shop could never take a payment
+-- ═══════════════════════════════════════════════════════════════════════════
+-- `spend_tokens` reached for its lock with `select sum(...) ... for update`,
+-- which Postgres refuses outright (0A000) — so the function threw for every
+-- caller and the shop answered 503 to every purchase ever attempted. Replaced
+-- with a per-player advisory lock, which is the invariant that was actually
+-- wanted. Found by supabase/tests/rewards_test.sql the first time anything
+-- executed the function rather than reading it.
+--
+-- The full reasoning lives in supabase/migrations/0019_spend_tokens_lock.sql.
+-- ════════════════════════════════════════════════════════════════════════════
+-- 0019 · The token shop could never take a payment
+--
+-- `spend_tokens` (0017) reads the balance under a lock before writing the
+-- debit, which is the right shape — checking the balance in the route and
+-- inserting afterwards is a race two taps wide. It reached for that lock like
+-- this:
+--
+--   select coalesce(sum(delta), 0)::int into v_balance
+--     from public.token_ledger where user_id = p_user for update;
+--
+-- Postgres refuses that statement outright: `FOR UPDATE is not allowed with
+-- aggregate functions` (0A000), raised at execution, every time, for every
+-- caller. So the function did not merely lock the wrong thing — it threw
+-- before it could do anything at all, and `/api/rewards/shop` answered 503 to
+-- every purchase a player has ever attempted. It was never noticed because
+-- the whole reward system spent its life behind a per-account beta flag and
+-- the shop is the one screen a tester reaches last: tokens have to be earned
+-- (or granted from the workbench) before there is anything to spend.
+--
+-- Found by supabase/tests/rewards_test.sql, which is new in the same pull
+-- request that opens briefcases to every signed-in account — the first time
+-- anything executed this function rather than reading it.
+--
+-- ── The fix, and why an advisory lock ──────────────────────────────────────
+--
+-- The invariant is per PLAYER, not per row: two concurrent spends must not
+-- both see the same balance and both succeed. Locking the existing ledger
+-- rows would nearly work and is subtly wrong at the edge that matters — a
+-- player with an empty ledger has no rows to lock, and a debit inserted by a
+-- concurrent transaction is a row neither statement could have locked. A
+-- transaction-scoped advisory lock keyed on the player serialises every spend
+-- for that player and nothing else, is released automatically at commit or
+-- rollback, and costs one hash.
+--
+-- `hashtextextended(uuid::text, seed)` gives the bigint the advisory lock
+-- wants. The seed is a fixed arbitrary constant: it only has to be stable, so
+-- that the same player always maps to the same lock.
+--
+-- Everything else about the function is unchanged: a non-positive amount is
+-- refused, an insufficient balance is refused, and the refusal writes nothing.
+-- The signature is identical, so no caller changes and the `revoke all` from
+-- 0017 still stands (create or replace preserves privileges).
+--
+-- Idempotent, like every migration here: it is one `create or replace`.
+-- ════════════════════════════════════════════════════════════════════════════
+
+create or replace function public.spend_tokens(
+  p_user   uuid,
+  p_amount int,
+  p_reason text
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare v_balance int;
+begin
+  if p_amount <= 0 then return false; end if;
+
+  -- Serialise concurrent spends for this player, and only this player. Held
+  -- until the transaction ends, so the read below and the insert after it are
+  -- one decision.
+  perform pg_advisory_xact_lock(hashtextextended(p_user::text, 0));
+
+  select coalesce(sum(delta), 0)::int into v_balance
+    from public.token_ledger where user_id = p_user;
+  if v_balance < p_amount then return false; end if;
+
+  insert into public.token_ledger (user_id, delta, reason)
+  values (p_user, -p_amount, p_reason);
+  return true;
+end;
+$$;
+revoke all on function public.spend_tokens(uuid, int, text) from public, anon, authenticated;
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
 -- The report — read this before closing the tab
 -- ═══════════════════════════════════════════════════════════════════════════
 
@@ -3391,4 +4167,30 @@ from (
                      and column_name = 'pro_effective')
       and exists (select 1 from pg_trigger g
                    where g.tgname = 'profiles_board_handle_rename' and not g.tgisinternal))
+,
+    ('0017 rewards',
+      to_regclass('public.briefcases') is not null
+      and to_regclass('public.inventory') is not null
+      and to_regclass('public.token_ledger') is not null
+      and to_regclass('public.skins') is not null
+      and exists (select 1 from information_schema.columns
+                   where table_schema = 'public' and table_name = 'entitlements'
+                     and column_name = 'rewards_beta')
+      and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                   where n.nspname = 'public' and p.proname = 'open_briefcase')
+      and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                   where n.nspname = 'public' and p.proname = 'admin_set_rewards_beta')),
+    -- Counted through query_to_xml so the statement PLANS on a database that
+    -- never got 0017: a static `select count(*) from public.skins` fails to
+    -- parse when the table is absent, which is exactly the database this
+    -- report exists to describe.
+    ('0018 rewards seed',
+      coalesce((xpath('/row/c/text()',
+        query_to_xml('select count(*) as c from public.skins', false, true, '')))[1]::text::int, 0) > 0
+      and coalesce((xpath('/row/c/text()',
+        query_to_xml('select count(*) as c from public.rewards', false, true, '')))[1]::text::int, 0) > 0),
+    ('0019 spend tokens lock',
+      exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+               where n.nspname = 'public' and p.proname = 'spend_tokens'
+                 and pg_get_functiondef(p.oid) like '%pg_advisory_xact_lock%'))
 ) as t(migration, present);

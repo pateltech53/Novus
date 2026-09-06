@@ -10,6 +10,12 @@
 -- 0007. Each file is idempotent against a database that has never seen it,
 -- not against a half-applied copy of itself; when in doubt about one, check
 -- its objects here first.
+--
+-- If briefcases are not working for your players, this is the file that
+-- answers why: 0017, 0018 and 0019 are what the reward loop needs, and a copy
+-- of supabase/APPLY-ALL.sql from before 2026-09-06 stopped at 0016 without
+-- saying so. Rows for 0014, 0015 and 0017–0019 were added at the same time —
+-- before that this report was silent about all five.
 
 select
   migration,
@@ -103,6 +109,16 @@ from (
                    where n.nspname = 'public' and p.proname = 'island_allowance')
       and exists (select 1 from pg_trigger g
                    where g.tgname = 'saves_island_cap' and not g.tgisinternal)),
+    ('0014 chapter seats ceiling', '0014_chapter_seats_ceiling.sql',
+      exists (select 1 from pg_constraint c
+               where c.conname = 'chapters_seats_check'
+                 and pg_get_constraintdef(c.oid) like '%10000%')),
+    ('0015 island ceiling', '0015_island_ceiling.sql',
+      exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+               where n.nspname = 'public' and p.proname = 'island_allowance'
+                 and pg_get_functiondef(p.oid) like '%least(50%')
+      and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                   where n.nspname = 'public' and p.proname = 'grant_extra_island')),
     ('0016 admin insight', '0016_admin_insight.sql',
       exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                where n.nspname = 'public' and p.proname = 'admin_access')
@@ -115,4 +131,52 @@ from (
                      and column_name = 'pro_effective')
       and exists (select 1 from pg_trigger g
                    where g.tgname = 'profiles_board_handle_rename' and not g.tgisinternal))
+,
+    ('0017 rewards', '0017_rewards.sql',
+      to_regclass('public.briefcases') is not null
+      and to_regclass('public.inventory') is not null
+      and to_regclass('public.grants') is not null
+      and to_regclass('public.token_ledger') is not null
+      and to_regclass('public.daily_progress') is not null
+      and to_regclass('public.pity_counters') is not null
+      and to_regclass('public.reward_events') is not null
+      and to_regclass('public.milestones_claimed') is not null
+      and to_regclass('public.skins') is not null
+      and to_regclass('public.rewards') is not null
+      and to_regclass('public.achievement_templates') is not null
+      and exists (select 1 from information_schema.columns
+                   where table_schema = 'public' and table_name = 'entitlements'
+                     and column_name = 'rewards_beta')
+      and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                   where n.nspname = 'public' and p.proname = 'open_briefcase')
+      and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                   where n.nspname = 'public' and p.proname = 'grant_briefcase')
+      and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                   where n.nspname = 'public' and p.proname = 'equip_item')
+      and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                   where n.nspname = 'public' and p.proname = 'token_balance')
+      and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                   where n.nspname = 'public' and p.proname = 'admin_set_rewards_beta')),
+    -- The content check is COUNTED THROUGH query_to_xml, and that is not
+    -- decoration: a plain `select count(*) from public.skins` fails to PARSE
+    -- on a database without the table, which is precisely the database this
+    -- file exists to describe — the whole report would error instead of
+    -- printing "MISSING" on one line. query_to_xml takes the query as a
+    -- string, so nothing is resolved until the table is known to be there.
+    ('0018 rewards seed', '0018_rewards_seed.sql',
+      to_regclass('public.skins') is not null
+      and to_regclass('public.rewards') is not null
+      and to_regclass('public.achievement_templates') is not null
+      and coalesce((xpath('/row/c/text()',
+            query_to_xml('select count(*) as c from public.skins', false, true, '')))[1]::text::int, 0) > 0
+      and coalesce((xpath('/row/c/text()',
+            query_to_xml('select count(*) as c from public.rewards', false, true, '')))[1]::text::int, 0) > 0
+      and coalesce((xpath('/row/c/text()',
+            query_to_xml('select count(*) as c from public.achievement_templates', false, true, '')))[1]::text::int, 0) > 0),
+    -- 0019 replaced a function that could never run, so its presence is read
+    -- off the definition rather than the name.
+    ('0019 spend tokens lock', '0019_spend_tokens_lock.sql',
+      exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+               where n.nspname = 'public' and p.proname = 'spend_tokens'
+                 and pg_get_functiondef(p.oid) like '%pg_advisory_xact_lock%'))
 ) as t(migration, file, present);

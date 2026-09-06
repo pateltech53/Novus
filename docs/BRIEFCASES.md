@@ -14,8 +14,11 @@ superseded, and `lib/rewards/gate.ts` carries the before-and-after.)
 ## What the server needs
 
 The loop is server-authoritative, so it exists only on a deployment whose
-database has had `supabase/migrations/0017_rewards.sql` **and**
-`0018_rewards_seed.sql` applied, in that order. `supabase/APPLY-ALL.sql`
+database has had `supabase/migrations/0017_rewards.sql`,
+`0018_rewards_seed.sql` **and** `0019_spend_tokens_lock.sql` applied, in that
+order. 0019 is not optional: without it every token-shop purchase fails,
+because the function that spends tokens could never run at all (see its
+header). `supabase/APPLY-ALL.sql`
 includes both since the launch PR — a copy of APPLY-ALL from before it stops
 at 0016, and pasting that one was the shape of the first "beta mode is not
 working" report. To find out what a project actually has, paste
@@ -111,6 +114,8 @@ running — and `prefers-reduced-motion` gets none of it.
 | `lib/rewards/catalog.ts` | The non-skin reward pool. |
 | `supabase/migrations/0017_rewards.sql` | Tables, RLS, and the RPCs that commit an open. |
 | `supabase/migrations/0018_rewards_seed.sql` | **Generated** — `npm run rewards:seed`. |
+| `supabase/migrations/0019_spend_tokens_lock.sql` | The token shop's fix: `spend_tokens` locked with an aggregate and therefore always threw. |
+| `supabase/tests/rewards_test.sql` | The RLS shape, as 54 runnable checks. |
 | `components/rewards/Ceremony.tsx` | The taps and the reveal. |
 | `components/rewards/CaseCanvas.tsx` | The rotating 3-D case. |
 | `components/rewards/MySkins.tsx` | The collection, including what is not in it. Lives on `/rewards` only — it left the Closet on 2026-09-06 (101 cells of near-black on a phone was the report). |
