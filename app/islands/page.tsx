@@ -30,6 +30,7 @@ import { loadAccount, type Account } from "@/lib/account";
 import { signOut } from "@/lib/cloud/auth";
 import { entryRoute } from "@/lib/entry";
 import { storefront } from "@/lib/commerce";
+import { useBackHandler } from "@/lib/native/back";
 import { appPath } from "@/lib/native/href";
 import type { NativeOverlayState } from "@/lib/native/glass";
 import { useResolvedTheme } from "@/lib/native/theme";
@@ -324,8 +325,20 @@ function IslandsPage() {
     [islands],
   );
 
-  /* The gallery is a view, not a route, so it answers the keyboard the way
-     every other overlay in this app does. */
+  /*
+   * The gallery is a view, not a route, so it answers the keyboard the way
+   * every other overlay in this app does — and, since it is not a route, it
+   * also has to answer Android's back button itself.
+   *
+   * Without the handler below `popBack()` found an empty stack and
+   * lib/native/boot.ts fell through to `history.back()`, which on the picker
+   * is the document BEFORE it: back out of a company's own gallery landed on
+   * /play, or on whatever the player had been reading, rather than on the sea
+   * they opened the gallery from. One gesture, one layer — the rule the stack
+   * exists to keep.
+   */
+  useBackHandler(focus !== null, () => setFocus(null));
+
   useEffect(() => {
     if (focus === null) return;
     const onKey = (e: KeyboardEvent) => {

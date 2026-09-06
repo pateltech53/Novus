@@ -48,8 +48,18 @@ export function PlaySkeleton() {
        * scrolling `min-h-dvh` document — leaving the skeleton mirroring a layout
        * the screen no longer had, which is precisely the layout jump this
        * component exists to prevent.
+       *
+       * It went stale a second time, and further. The desktop workspace grew
+       * its third column — the life log came out of a drawer and became a
+       * 21rem rail — and the container widened with it (`max-w-6xl` → 88rem,
+       * two columns → three, gap-6/px-6/py-6 → 5). This file kept the old
+       * numbers, so on a desktop browser the room came up as two columns in a
+       * 72rem box and then snapped to three in an 88rem one, with a whole rail
+       * appearing from nothing. Neither the phone audit nor CI can see it: the
+       * `desk:` variant is off below 64rem and off inside a shell at any
+       * width, which is every viewport those two exercise.
        */
-      className="min-h-dvh bg-[var(--bg)] desk:mx-auto desk:grid desk:min-h-dvh desk:max-w-6xl desk:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] desk:gap-6 desk:px-6 desk:py-6"
+      className="min-h-dvh bg-[var(--bg)] desk:mx-auto desk:grid desk:min-h-dvh desk:max-w-[88rem] desk:grid-cols-[minmax(0,18rem)_minmax(0,1fr)_minmax(0,21rem)] desk:gap-5 desk:px-5 desk:py-5"
     >
       <p className="sr-only" role="status">
         Opening the books…
@@ -61,12 +71,12 @@ export function PlaySkeleton() {
           already showing. */}
       <div
         aria-hidden="true"
-        className="mx-auto h-[32svh] min-h-[200px] w-full max-w-2xl bg-[var(--n-1)] desk:sticky desk:top-6 desk:h-[26rem] desk:max-w-none desk:self-start desk:overflow-hidden desk:rounded-[var(--radius-card)] desk:shadow-[var(--e2)]"
+        className="mx-auto h-[32svh] min-h-[200px] w-full max-w-2xl bg-[var(--n-1)] desk:sticky desk:top-5 desk:h-[calc(100dvh-2.5rem)] desk:max-w-none desk:self-start desk:overflow-hidden desk:rounded-[var(--radius-card)] desk:bg-[var(--surface)] desk:shadow-[var(--e2)]"
       />
 
       <div
         aria-hidden="true"
-        className="mx-auto flex w-full max-w-2xl min-h-0 flex-col desk:h-[calc(100dvh-3rem)] desk:max-w-none desk:overflow-hidden desk:rounded-[var(--radius-card)] desk:bg-[var(--surface)] desk:shadow-[var(--e2)]"
+        className="mx-auto flex w-full max-w-2xl min-h-0 flex-col desk:h-[calc(100dvh-2.5rem)] desk:max-w-none desk:overflow-hidden desk:rounded-[var(--radius-card)] desk:bg-[var(--surface)] desk:shadow-[var(--e2)]"
       >
         {/* The Books — same grid as TheBooks.tsx:65. */}
         <div className="grid grid-cols-2 gap-2 px-3 pt-3 desk:grid-cols-4 desk:gap-1.5">
@@ -99,6 +109,19 @@ export function PlaySkeleton() {
             ))}
           </div>
         </div>
+      </div>
+
+      {/* The life-log rail — the third column, and only ever a column. It is
+          `hidden` below the seam exactly as the real <aside> is, so on a phone
+          this element occupies nothing and the skeleton is the two-block
+          document it has always been. */}
+      <div
+        aria-hidden="true"
+        className="hidden desk:flex desk:h-[calc(100dvh-2.5rem)] desk:flex-col desk:gap-2 desk:overflow-hidden desk:rounded-[var(--radius-card)] desk:bg-[var(--surface)] desk:p-4 desk:shadow-[var(--e2)]"
+      >
+        {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+          <div key={i} className="h-8 shrink-0 rounded-[var(--radius-card)] bg-[var(--n-1)]" />
+        ))}
       </div>
     </main>
   );

@@ -282,7 +282,15 @@ export function useNativeChrome(state: NativeChromeState | null, handlers: Chrom
     NovusGlass.setChrome(state)
       .then(writeInsets)
       .catch(() => {
-        /* A failed push must never take the screen down with it. */
+        /*
+         * A failed push must never take the screen down with it — and must not
+         * be remembered as sent. `lastSent` is a diff against what UIKit is
+         * actually drawing; a rejected call drew nothing, so latching its key
+         * means the identical state can never be pushed again. The chrome then
+         * stays whatever it last was — no tab bar, or the previous screen's —
+         * until some unrelated field of the state happens to change.
+         */
+        if (lastSent.current === key) lastSent.current = null;
       });
   }, [owns, state]);
 

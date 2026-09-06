@@ -181,7 +181,24 @@ export function Phone({
   const [now, setNow] = useState<Date | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
-  // Every open re-locks. Never resumes wherever it was last left.
+  /*
+   * Every OPEN re-locks. Never resumes wherever it was last left.
+   *
+   * ── Why the dependency is the industry and not the run ──────────────────
+   *
+   * It was `run`, and `run` is a new object on every commit: GameProvider's
+   * `commit()` ends with `setRun({ ...next })`, so every mutation the game
+   * makes — buying or selling in RobinGhood, hiring on LinkedOut, opening a
+   * mail (`markMailRead`) — handed this effect a changed dependency and it
+   * re-locked the phone. The player finished the trade they had opened the
+   * phone to make and watched the device slam back to its lock screen, then
+   * had to swipe in again to see what had happened.
+   *
+   * The only thing read out of the run here is `industry`, and an industry is
+   * chosen at founding and fixed for the life of a company. Depending on that
+   * keeps the deep-link guard exactly as strict while making an ordinary turn
+   * of the game a non-event for this effect.
+   */
   useEffect(() => {
     if (!open) return;
     /* A deep link to an app this company does not have is dropped here rather
@@ -190,7 +207,10 @@ export function Phone({
     const wanted = initialApp ?? null;
     pendingApp.current = wanted && run && !canOpenApp(run.industry, wanted) ? null : wanted;
     setScreen("lock");
-  }, [open, initialApp, run]);
+    // `run` is read but deliberately not depended on — see the note above. Its
+    // one field that matters here cannot change without a new company.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialApp, run?.industry]);
 
   // A real clock, sampled twice a minute — enough for a status bar, cheap
   // enough to leave running while the phone is up.
@@ -294,7 +314,7 @@ export function Phone({
           {/* ── Body ───────────────────────────────────────────────────── */}
           <div
             ref={bodyRef}
-            className={`min-h-0 flex-1 ${screen === "lock" ? "overflow-hidden" : "overflow-y-auto"}`}
+            className={`min-h-0 flex-1 ${screen === "lock" ? "overflow-hidden" : "overflow-y-auto overscroll-contain"}`}
           >
             {screen === "lock" && (
               <LockScreen

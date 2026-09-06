@@ -58,7 +58,7 @@ export function DecisionSheet({
             role="dialog"
             aria-modal="true"
             aria-labelledby="decision-title"
-            className="relative flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-y-auto rounded-t-[var(--radius-sheet)] bg-[var(--sheet)] pb-[max(1rem,var(--nv-safe-bottom))] shadow-[var(--e3)]"
+            className="relative flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-y-auto overscroll-contain rounded-t-[var(--radius-sheet)] bg-[var(--sheet)] pb-[max(1rem,var(--nv-safe-bottom))] shadow-[var(--e3)]"
         initial={{ y: "6%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: "6%", opacity: 0, transition: EXIT }}

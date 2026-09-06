@@ -122,10 +122,21 @@ export function NextStep({
    */
   bottom: string;
 }) {
-  if (!nudge) return null;
-
+  /*
+   * ── The boundary is OUTSIDE the guard, and it has to be ────────────────────
+   *
+   * This read `if (!nudge) return null` before the `<AnimatePresence>`, which
+   * meant the boundary itself unmounted in the same commit as the card. An
+   * exit animation is played by an AnimatePresence that SURVIVES its child
+   * going away; one that leaves with the child has nothing to animate, so the
+   * authored `exit` here could never run and the card vanished between two
+   * frames — on the ✕, and on every nudge that stopped being true because the
+   * player did the thing it suggested. Invisible to `npm run test:exits`,
+   * which asks whether a node leaves, not how.
+   */
   return (
     <AnimatePresence>
+      {nudge ? (
       <motion.div
         key={nudge.id}
         initial={{ opacity: 0, y: 8 }}
@@ -221,6 +232,7 @@ export function NextStep({
           </button>
         </div>
       </motion.div>
+      ) : null}
     </AnimatePresence>
   );
 }
