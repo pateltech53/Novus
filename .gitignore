@@ -34,6 +34,13 @@ next-env.d.ts
 /blob-report/
 /playwright/.cache/
 
+# Agent worktrees. The Workflow tool checks out an isolated copy of the repo
+# under here when several agents edit files at once (isolation: "worktree");
+# each is a full working tree with its own .git file and is auto-removed when
+# it has no changes. Committing one would put a copy of the repository inside
+# the repository.
+.claude/worktrees/
+
 # agent skills — vendored third-party, restored from skills-lock.json.
 # skills-lock.json IS committed (it pins all 7 by content hash); the 5.8 MB of
 # skill bodies are not, same reasoning as package-lock.json vs node_modules.
