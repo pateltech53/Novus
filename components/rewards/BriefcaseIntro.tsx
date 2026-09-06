@@ -20,10 +20,18 @@ import { play } from "@/lib/sound";
  * The briefcase loop (docs/BRIEFCASES.md) spent its beta behind a per-account
  * flag, so a feature that is now on for every signed-in account is a feature
  * most of the existing players have never been told about. This card tells
- * them, once: the next time an onboarded player lands on the board (/play) or
- * the archipelago (/islands) with no tutorial running and nothing else on
- * screen, it comes up over the page, says its three sentences, and offers the
- * missions.
+ * them, once: the next time an onboarded player lands on the archipelago
+ * (/islands) with nothing else on screen, it comes up over the page, says its
+ * three sentences, and offers the missions.
+ *
+ * The archipelago and not the board, for two reasons. lib/entry.ts sends
+ * anybody with a saved company there — it IS the returning player's front
+ * door, and /play is reached by tapping an island from it — so a card there
+ * is part of coming back rather than an interruption of a run in progress.
+ * And /play carries the tightest first-load budget in
+ * scripts/bundle-report.mjs: even lazily split, the gate deciding whether to
+ * show this cost 0.4 kB gzipped and put that route over. A player who
+ * deep-links past the picker still meets briefcases in the Closet's own band.
  *
  * A NEW player never sees it. The guided first play carries a "briefcases"
  * step (components/Coachmarks.tsx) that says the same thing beside the tab
