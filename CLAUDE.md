@@ -134,8 +134,9 @@ authored library and conversion contract live in `design/`
   third-party script).
 - **`supabase/migrations/0001–0018`** — schema source of truth, applied in
   filename order (deployment is manual paste into the Supabase SQL editor;
-  `APPLY-ALL.sql` currently covers only 0001→0016). 9 RLS test suites run per
-  PR via `npm run test:db`.
+  `APPLY-ALL.sql` covers 0001→0018 and `CHECK-SCHEMA.sql` reports which of
+  them a project actually has). 10 RLS test suites run per PR via
+  `npm run test:db`.
 - **Persistence** — localStorage is the synchronous cache the game reads;
   Supabase is the debounced mirror (`lib/cloud/sync.ts`). Saves: local/newer
   wins. Entitlements: server wins. No account = fully local play, nothing
@@ -251,7 +252,7 @@ authored library and conversion contract live in `design/`
 | App Review compliance | docs/APP-STORE.md |
 | iOS widgets / Live Activities | docs/WIDGETS.md |
 | Chapters (classroom licences) | docs/CHAPTERS.md |
-| Briefcase reward loop (beta) | docs/BRIEFCASES.md (+ docs/BRIEFCASE-ART.md) |
+| Briefcase reward loop (launched; tester tools behind a flag) | docs/BRIEFCASES.md (+ docs/BRIEFCASE-ART.md) |
 | SEO / www-vs-apex / structured data | docs/SEO.md |
 | Authored event library + conversion contract | design/NOVUS_EVENT_LIBRARY_B1.md, design/EVENT_SCHEMA.md |
 | Original 7-phase build brief (historical rationale) | docs/BUILD-PROMPT.md |
