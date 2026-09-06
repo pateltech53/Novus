@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { adminClient } from "@/lib/supabase/admin";
 import { generateDaily } from "@/lib/rewards/daily";
-import { badRequest, rewardGate } from "@/lib/rewards/gate";
+import { badRequest, betaGate } from "@/lib/rewards/gate";
 import { rollTier } from "@/lib/rewards/roll";
 import { rewardDate, type Tier } from "@/lib/rewards/tables";
 import { crossSite, withSession } from "@/lib/supabase/route";
@@ -25,12 +25,15 @@ export const dynamic = "force-dynamic";
  * a tester who is not an operator: the worst it can do is fill their own
  * wardrobe. Handing out someone else's inventory stays behind /api/admin/*.
  *
- * ── Why it is still gated ───────────────────────────────────────────────────
+ * ── Why it is still gated when nothing else is ──────────────────────────────
  *
- * `rewardGate` means only accounts an operator has switched into the beta can
- * reach it, and it 404s for everyone else. When the beta flag comes off at
- * full launch this route stops answering with it — which is the intended
- * lifecycle, not an oversight.
+ * The loop launched to every signed-in account (lib/rewards/gate.ts), and
+ * this route is the one thing that did not go with it. `betaGate` means only
+ * accounts an operator has flagged as testers from the admin console can
+ * reach it, and it 404s for everyone else — a player who could grant
+ * themselves a Gold case at will is a player for whom the loop is not a game.
+ * `entitlements.rewards_beta` used to open the whole system; opening this
+ * workbench is now its only job.
  */
 
 type Action =
@@ -41,7 +44,7 @@ type Action =
   | { action: "reset-day" };
 
 export async function POST(req: NextRequest) {
-  const gate = await rewardGate(req);
+  const gate = await betaGate(req);
   if (!gate.ok) return gate.res;
   if (crossSite(req)) {
     return withSession(NextResponse.json({ ok: false }, { status: 403 }), gate.session);
