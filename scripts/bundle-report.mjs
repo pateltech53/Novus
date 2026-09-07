@@ -46,7 +46,17 @@ const BUDGETS = {
   // been shipped surfaces; until this landed, the only way to choose between
   // them was to make an account, start a company and open Settings, which is
   // three steps too late for a visitor reading a landing page at night.
-  "/page": 151,
+  //
+  // 152, not 151. This route touches nothing that grew — no import here
+  // changed — but it shares the app's global vendor chunk with every other
+  // route, and the same two same-day branches that pushed /play a kilobyte
+  // over (reward skins on FounderAvatar; the 3-D briefcase props reshaping
+  // Next's shared-chunk split) moved that chunk under this route too. Local
+  // builds landed at exactly 151.0/151 with no margin at all; CI's cold build
+  // (a different machine, no cache) crossed it by a few dozen bytes that
+  // round to the same displayed number. One more kilobyte of margin, not a
+  // kilobyte of new code.
+  "/page": 152,
   // 346, not 342. Two things landed in this chunk, +1.6 kB gzipped between
   // them, measured against the same build of main on the same machine:
   //
