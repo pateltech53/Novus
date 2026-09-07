@@ -35,11 +35,15 @@ from (
       to_regclass('public.runs') is not null
       and to_regclass('public.leaderboard_entries') is not null
       and to_regclass('public.submission_quota') is not null),
+    -- 0003 wrote `grant_extra_run_slot`; 0013 renamed it `grant_extra_island`.
+    -- Either name proves 0003 ran — a project sitting between the two used to
+    -- be reported as missing 0003 by this row.
     ('0003 billing', '0003_billing.sql',
       to_regclass('public.billing_customers') is not null
       and to_regclass('public.billing_events') is not null
       and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-                   where n.nspname = 'public' and p.proname = 'grant_extra_island')),
+                   where n.nspname = 'public'
+                     and p.proname in ('grant_extra_island', 'grant_extra_run_slot'))),
     ('0004 accounts', '0004_accounts.sql',
       exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                where n.nspname = 'public' and p.proname = 'delete_stale_anonymous_users')),
@@ -114,9 +118,15 @@ from (
                where c.conname = 'chapters_seats_check'
                  and pg_get_constraintdef(c.oid) like '%10000%')),
     ('0015 island ceiling', '0015_island_ceiling.sql',
-      exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-               where n.nspname = 'public' and p.proname = 'island_allowance'
-                 and pg_get_functiondef(p.oid) like '%least(50%')
+      exists (select 1 from pg_constraint c
+               where c.conname = 'saves_slot_check'
+                 and pg_get_constraintdef(c.oid) like '%49%')
+      and exists (select 1 from pg_constraint c
+                   where c.conname = 'entitlements_extra_islands_check'
+                     and pg_get_constraintdef(c.oid) like '%48%')
+      and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                   where n.nspname = 'public' and p.proname = 'island_allowance'
+                     and pg_get_functiondef(p.oid) like '%least(50%')
       and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                    where n.nspname = 'public' and p.proname = 'grant_extra_island')),
     ('0016 admin insight', '0016_admin_insight.sql',
@@ -130,8 +140,7 @@ from (
                    where table_schema = 'public' and table_name = 'admin_daily'
                      and column_name = 'pro_effective')
       and exists (select 1 from pg_trigger g
-                   where g.tgname = 'profiles_board_handle_rename' and not g.tgisinternal))
-,
+                   where g.tgname = 'profiles_board_handle_rename' and not g.tgisinternal)),
     ('0017 rewards', '0017_rewards.sql',
       to_regclass('public.briefcases') is not null
       and to_regclass('public.inventory') is not null
@@ -157,22 +166,25 @@ from (
                    where n.nspname = 'public' and p.proname = 'token_balance')
       and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                    where n.nspname = 'public' and p.proname = 'admin_set_rewards_beta')),
-    -- The content check is COUNTED THROUGH query_to_xml, and that is not
-    -- decoration: a plain `select count(*) from public.skins` fails to PARSE
-    -- on a database without the table, which is precisely the database this
-    -- file exists to describe — the whole report would error instead of
-    -- printing "MISSING" on one line. query_to_xml takes the query as a
-    -- string, so nothing is resolved until the table is known to be there.
+    -- Guarded with `case when to_regclass(...) is null then false else …
+    -- end`, which is the one construct Postgres's own docs guarantee
+    -- short-circuits: a bare `select count(*) from public.skins` fails to
+    -- PARSE on a database without the table, which is precisely the database
+    -- this file exists to describe — the whole report would error instead of
+    -- printing "MISSING" on one line.
     ('0018 rewards seed', '0018_rewards_seed.sql',
-      to_regclass('public.skins') is not null
-      and to_regclass('public.rewards') is not null
-      and to_regclass('public.achievement_templates') is not null
-      and coalesce((xpath('/row/c/text()',
-            query_to_xml('select count(*) as c from public.skins', false, true, '')))[1]::text::int, 0) > 0
-      and coalesce((xpath('/row/c/text()',
-            query_to_xml('select count(*) as c from public.rewards', false, true, '')))[1]::text::int, 0) > 0
-      and coalesce((xpath('/row/c/text()',
-            query_to_xml('select count(*) as c from public.achievement_templates', false, true, '')))[1]::text::int, 0) > 0),
+      case when to_regclass('public.achievement_templates') is null then false
+           else (xpath('/row/c/text()', query_to_xml(
+                   'select count(*) as c from public.achievement_templates',
+                   false, true, '')))[1]::text::int > 0 end
+      and case when to_regclass('public.rewards') is null then false
+           else (xpath('/row/c/text()', query_to_xml(
+                   'select count(*) as c from public.rewards',
+                   false, true, '')))[1]::text::int > 0 end
+      and case when to_regclass('public.skins') is null then false
+           else (xpath('/row/c/text()', query_to_xml(
+                   'select count(*) as c from public.skins',
+                   false, true, '')))[1]::text::int > 0 end),
     -- 0019 replaced a function that could never run, so its presence is read
     -- off the definition rather than the name.
     ('0019 spend tokens lock', '0019_spend_tokens_lock.sql',

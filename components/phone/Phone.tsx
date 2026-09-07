@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useIsPresent } from "framer-motion";
 import { ENTER, EXIT, SCRIM } from "@/components/ui/Motion";
 import { useGame } from "@/lib/state/GameProvider";
 import { MONTH_NAMES } from "@/lib/engine/format";
@@ -181,7 +181,24 @@ export function Phone({
   const [now, setNow] = useState<Date | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
-  // Every open re-locks. Never resumes wherever it was last left.
+  /*
+   * Every OPEN re-locks. Never resumes wherever it was last left.
+   *
+   * ── Why the dependency is the industry and not the run ──────────────────
+   *
+   * It was `run`, and `run` is a new object on every commit: GameProvider's
+   * `commit()` ends with `setRun({ ...next })`, so every mutation the game
+   * makes — buying or selling in RobinGhood, hiring on LinkedOut, opening a
+   * mail (`markMailRead`) — handed this effect a changed dependency and it
+   * re-locked the phone. The player finished the trade they had opened the
+   * phone to make and watched the device slam back to its lock screen, then
+   * had to swipe in again to see what had happened.
+   *
+   * The only thing read out of the run here is `industry`, and an industry is
+   * chosen at founding and fixed for the life of a company. Depending on that
+   * keeps the deep-link guard exactly as strict while making an ordinary turn
+   * of the game a non-event for this effect.
+   */
   useEffect(() => {
     if (!open) return;
     /* A deep link to an app this company does not have is dropped here rather
@@ -190,7 +207,10 @@ export function Phone({
     const wanted = initialApp ?? null;
     pendingApp.current = wanted && run && !canOpenApp(run.industry, wanted) ? null : wanted;
     setScreen("lock");
-  }, [open, initialApp, run]);
+    // `run` is read but deliberately not depended on — see the note above. Its
+    // one field that matters here cannot change without a new company.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialApp, run?.industry]);
 
   // A real clock, sampled twice a minute — enough for a status bar, cheap
   // enough to leave running while the phone is up.
@@ -220,6 +240,11 @@ export function Phone({
     [run],
   );
 
+  /* False for the length of the exit animation — see the note on `present`
+     in components/screens/ScreenSheet.tsx. Declared above every early return,
+     because a hook that runs conditionally is not a hook. */
+  const present = useIsPresent();
+
   if (!open) return null;
 
   const clock = now
@@ -228,9 +253,14 @@ export function Phone({
   // The founder battery is the phone battery. Same tank, one glyph.
   const battery = run ? Math.max(0, Math.min(100, Math.round(run.stats.energy))) : 100;
 
+
   return (
     <motion.div
-      className="fixed inset-0 z-[60] flex items-center justify-center"
+            /* Non-interactive while it leaves — see the note on `present` in
+         components/screens/ScreenSheet.tsx: for the 180ms of the exit this
+         subtree is still mounted with a full-screen scrim across it, and the
+         next tap a player makes lands on a screen that is going away. */
+      className={`fixed inset-0 z-[60] flex items-center justify-center${present ? "" : " pointer-events-none"}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, transition: EXIT }}
@@ -294,7 +324,7 @@ export function Phone({
           {/* ── Body ───────────────────────────────────────────────────── */}
           <div
             ref={bodyRef}
-            className={`min-h-0 flex-1 ${screen === "lock" ? "overflow-hidden" : "overflow-y-auto"}`}
+            className={`min-h-0 flex-1 ${screen === "lock" ? "overflow-hidden" : "overflow-y-auto overscroll-contain"}`}
           >
             {screen === "lock" && (
               <LockScreen

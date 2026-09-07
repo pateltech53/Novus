@@ -24,9 +24,12 @@
 -- Two ways to paste this somewhere it must not run, both refused:
 --   1. Not a Supabase project at all (no auth.users to reference).
 --   2. A project already carrying a DIFFERENT app's `public.profiles` —
---      detected as "profiles exists but has no display_name column". Novus
---      cannot share a project with another app's profiles table, and this
---      script will not try: it stops here having changed nothing.
+--      detected as "profiles exists but lacks display_name or board_handle".
+--      Both columns are born in 0001's one CREATE TABLE, so every Novus
+--      database has both and a stranger's profiles table (which may well
+--      carry a display_name of its own) has at most one. Novus cannot share
+--      a project with another app's profiles table, and this script will not
+--      try: it stops here having changed nothing.
 do $$
 begin
   if to_regclass('auth.users') is null then
@@ -35,11 +38,9 @@ begin
   end if;
 
   if to_regclass('public.profiles') is not null
-     and not exists (
-       select 1 from information_schema.columns
-        where table_schema = 'public' and table_name = 'profiles'
-          and column_name = 'display_name'
-     ) then
+     and (select count(*) from information_schema.columns
+           where table_schema = 'public' and table_name = 'profiles'
+             and column_name in ('display_name', 'board_handle')) < 2 then
     raise exception using message =
       'public.profiles already exists here with a different shape — this looks like ANOTHER app''s database, not Novus''s. Nothing was changed. Run this in the Novus project instead.';
   end if;
@@ -3297,54 +3298,37 @@ grant execute on function public.admin_billing_mismatches(int)      to service_r
 -- ═══════════════════════════════════════════════════════════════════════════
 -- 0017 · Briefcases — daily missions, cases, skins, tokens
 -- ═══════════════════════════════════════════════════════════════════════════
--- The retention loop, and the one rule the whole file exists to enforce: THE
--- CLIENT NEVER ROLLS. Every player table below is read-own and write-nobody —
--- there is no INSERT or UPDATE policy for `authenticated` anywhere in it —
--- and every write goes through a security-definer function the service role
--- alone may execute. The reward pool carries two CHECK constraints that make
--- permanent Pro unrepresentable, because a TypeScript validator can be
--- forgotten in a later seed and a constraint cannot.
---
--- A project that has never had this migration is a project where every
--- /api/rewards route fails and the admin console's tester toggle answers
--- "beta toggle failed". Until 2026-09-06 this file stopped at 0016, so an
--- operator who deployed from it had exactly that and nothing to diagnose it
--- with — which is the defect supabase/CHECK-SCHEMA.sql now reports on.
---
--- The full reasoning lives in supabase/migrations/0017_rewards.sql.
--- ════════════════════════════════════════════════════════════════════════════
--- 0017 · Briefcases — daily challenges, cases, skins, tokens
---
 -- The retention loop: play → complete a daily → claim → a case whose TIER is
--- unknown until the ceremony opens it → an item → a wardrobe identity.
+-- unknown until the ceremony opens it → an item → a wardrobe identity. The
+-- whole system hides behind `entitlements.rewards_beta` — granted per account
+-- from the admin console exactly the way comp_pro is — until launch, when the
+-- flag changes jobs and marks a tester instead (lib/rewards/gate.ts).
 --
--- ── The one rule this file exists to enforce ────────────────────────────────
+-- THE CLIENT NEVER ROLLS. Every table below is service-role-only or read-own;
+-- there is no INSERT or UPDATE policy for `authenticated` anywhere in this
+-- section, and nothing in it can write `entitlements.pro` — a reward may lend
+-- a Pro feature for an hour, only Stripe (0003) grants it (Brand Law 4). The
+-- open is idempotent because the audience plays on school wifi: `briefcases`
+-- stores the reveal the first time it is computed and `open_briefcase`
+-- returns that stored payload forever after, so a retry is a read, not a
+-- second roll. The full reasoning lives in supabase/migrations/0017_rewards.sql.
 --
--- THE CLIENT NEVER ROLLS. Not the tier, not the rarity, not the item. Every
--- table below is either service-role-only or read-own; there is no INSERT or
--- UPDATE policy for `authenticated` anywhere in this migration, because a
--- table the browser can write is a table where Legendary is free. The API
--- routes do the rolling on the server and commit through the functions at the
--- bottom, which run as the service role.
+-- Nothing here needed reshaping to survive a re-run: every table is `if not
+-- exists`, every policy is dropped before it is created, every function is
+-- `create or replace` at a signature nothing earlier defines, and the one
+-- column added to an existing table is `add column if not exists`. The
+-- functions keep the migration's own grant posture — `revoke all` from
+-- public/anon/authenticated, service_role reaching them through Supabase's
+-- default privileges — rather than 0016's explicit grant, so that a database
+-- built from this file and one built from the numbered migrations are the
+-- same database (that equality is what this file was checked against).
 --
--- ── Idempotency is not optional here ───────────────────────────────────────
---
--- The audience plays on school wifi. An open that half-committed — inventory
--- written, tokens not — would be a support ticket nobody can reconstruct, and
--- a retry that rolled AGAIN would hand out a second Legendary. So `briefcases`
--- stores the reveal payload the first time it is computed, and
--- `open_briefcase` returns that stored payload forever after. Re-opening is a
--- read, not a roll.
---
--- ── Brand Law 4 (cosmetics gate nothing) restated in SQL ───────────────────
---
--- `inventory` may hold a `trial` row with an `expires_at`, and NOTHING here
--- may write `entitlements.pro`. A reward can lend a pro feature for an hour;
--- only Stripe (0003) can grant it. The validator lives in TypeScript, but the
--- absence of any write path from this file to `entitlements.pro` is what makes
--- it true.
--- ════════════════════════════════════════════════════════════════════════════
-
+-- A project deployed from a copy of this file that stopped at 0016 is a
+-- project where every /api/rewards route fails and the admin console's
+-- tester toggle answers "beta toggle failed" — the exact symptom that sent
+-- someone looking, and the reason `supabase/CHECK-SCHEMA.sql` now reports on
+-- this migration by name instead of leaving it to be discovered live.
+-- ═══════════════════════════════════════════════════════════════════════════
 
 -- ═══ beta access ═══════════════════════════════════════════════════════════
 -- The whole system hides behind this flag until it ships. Granted per account
@@ -3759,26 +3743,23 @@ create policy "milestones: read own" on public.milestones_claimed
 
 
 -- ═══════════════════════════════════════════════════════════════════════════
--- 0018 · Briefcase content — 51 templates, 101 skins, 40 rewards
--- ═══════════════════════════════════════════════════════════════════════════
--- GENERATED by `npm run rewards:seed` from lib/rewards/templates.ts,
--- lib/rewards/catalog.ts and assets-src/briefcase/skins.csv, so the rules in
--- the database and the rules in the code cannot drift apart. Every statement
--- is an upsert: re-running it updates the CONTENT and touches no player's
--- inventory, progress or tokens.
---
--- The full reasoning lives in supabase/migrations/0018_rewards_seed.sql.
--- ════════════════════════════════════════════════════════════════════════════
 -- 0018 · Briefcase content — GENERATED, do not edit by hand
+-- ═══════════════════════════════════════════════════════════════════════════
+-- A verbatim copy of supabase/migrations/0018_rewards_seed.sql, which `npm run
+-- rewards:seed` writes from lib/rewards/templates.ts, lib/rewards/catalog.ts
+-- and assets-src/briefcase/skins.csv — the same three sources the generator
+-- and the roller read at runtime, so the rules in the database and the rules
+-- in the code cannot drift apart. 51 achievement templates, 40 rewards,
+-- 101 skins.
 --
--- Written by `npm run rewards:seed` from lib/rewards/templates.ts,
--- lib/rewards/catalog.ts and assets-src/briefcase/skins.csv — the same three
--- sources the generator and the roller read at runtime, so the rules in the
--- database and the rules in the code cannot drift apart.
+-- Every statement is an upsert on the row's id: a re-run updates the CONTENT
+-- and touches no player's inventory, progress or tokens. It is also why this
+-- section can sit in a file that promises to be a no-op on a complete
+-- project — the second run writes the same values over themselves.
 --
--- Every statement is an upsert: re-running this against a live database
--- updates the CONTENT and touches no player's inventory, progress or tokens.
--- ════════════════════════════════════════════════════════════════════════════
+-- When 0018 is regenerated, this section has to be refreshed with it; the
+-- report below only counts rows, so a stale copy still says ok.
+-- ═══════════════════════════════════════════════════════════════════════════
 
 -- ── 51 achievement templates ──
 insert into public.achievement_templates (id, category, text_pattern, params, event, flags, cooldown_days, band_easy, band_medium, band_hard) values ('S1', 'session', 'Play for {n} minutes today', '{"easy":[{"n":10}],"medium":[{"n":20}],"hard":[{"n":35}]}'::jsonb, 'session.heartbeat', array[]::text[], 2, true, true, true) on conflict (id) do update set category=excluded.category, text_pattern=excluded.text_pattern, params=excluded.params, event=excluded.event, flags=excluded.flags, cooldown_days=excluded.cooldown_days, band_easy=excluded.band_easy, band_medium=excluded.band_medium, band_hard=excluded.band_hard;
@@ -4073,6 +4054,10 @@ revoke all on function public.spend_tokens(uuid, int, text) from public, anon, a
 -- ═══════════════════════════════════════════════════════════════════════════
 -- The report — read this before closing the tab
 -- ═══════════════════════════════════════════════════════════════════════════
+-- The 0018 row counts the seed through query_to_xml rather than a plain
+-- `select count(*)`: a bare reference to a table that does not exist fails at
+-- parse time, before any `case` or `and` could guard it, and a report that
+-- errors is a report nobody reads. The same idiom is in CHECK-SCHEMA.sql.
 
 select
   migration,
@@ -4166,29 +4151,51 @@ from (
                    where table_schema = 'public' and table_name = 'admin_daily'
                      and column_name = 'pro_effective')
       and exists (select 1 from pg_trigger g
-                   where g.tgname = 'profiles_board_handle_rename' and not g.tgisinternal))
-,
+                   where g.tgname = 'profiles_board_handle_rename' and not g.tgisinternal)),
     ('0017 rewards',
-      to_regclass('public.briefcases') is not null
-      and to_regclass('public.inventory') is not null
-      and to_regclass('public.token_ledger') is not null
+      to_regclass('public.achievement_templates') is not null
       and to_regclass('public.skins') is not null
+      and to_regclass('public.rewards') is not null
+      and to_regclass('public.daily_progress') is not null
+      and to_regclass('public.briefcases') is not null
+      and to_regclass('public.inventory') is not null
+      and to_regclass('public.grants') is not null
+      and to_regclass('public.token_ledger') is not null
+      and to_regclass('public.pity_counters') is not null
+      and to_regclass('public.reward_events') is not null
+      and to_regclass('public.milestones_claimed') is not null
       and exists (select 1 from information_schema.columns
                    where table_schema = 'public' and table_name = 'entitlements'
                      and column_name = 'rewards_beta')
       and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                    where n.nspname = 'public' and p.proname = 'open_briefcase')
       and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                   where n.nspname = 'public' and p.proname = 'grant_briefcase')
+      and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                   where n.nspname = 'public' and p.proname = 'spend_tokens')
+      and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                    where n.nspname = 'public' and p.proname = 'admin_set_rewards_beta')),
-    -- Counted through query_to_xml so the statement PLANS on a database that
-    -- never got 0017: a static `select count(*) from public.skins` fails to
-    -- parse when the table is absent, which is exactly the database this
-    -- report exists to describe.
+    -- Guarded with `case when to_regclass(...) is null then false else …
+    -- end` rather than a bare `query_to_xml` call: CASE/WHEN is the one
+    -- construct Postgres guarantees short-circuits, so the dynamic count
+    -- below never EXECUTES against a table this report has already found
+    -- missing. An unguarded `query_to_xml('select count(*) from public.
+    -- skins', ...)` still throws on an absent table — dynamic SQL text
+    -- avoids a *parse-time* failure, not a runtime one — which is exactly
+    -- the failure mode this report exists to describe rather than suffer.
     ('0018 rewards seed',
-      coalesce((xpath('/row/c/text()',
-        query_to_xml('select count(*) as c from public.skins', false, true, '')))[1]::text::int, 0) > 0
-      and coalesce((xpath('/row/c/text()',
-        query_to_xml('select count(*) as c from public.rewards', false, true, '')))[1]::text::int, 0) > 0),
+      case when to_regclass('public.achievement_templates') is null then false
+           else (xpath('/row/c/text()', query_to_xml(
+                   'select count(*) as c from public.achievement_templates',
+                   false, true, '')))[1]::text::int > 0 end
+      and case when to_regclass('public.rewards') is null then false
+           else (xpath('/row/c/text()', query_to_xml(
+                   'select count(*) as c from public.rewards',
+                   false, true, '')))[1]::text::int > 0 end
+      and case when to_regclass('public.skins') is null then false
+           else (xpath('/row/c/text()', query_to_xml(
+                   'select count(*) as c from public.skins',
+                   false, true, '')))[1]::text::int > 0 end),
     ('0019 spend tokens lock',
       exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                where n.nspname = 'public' and p.proname = 'spend_tokens'

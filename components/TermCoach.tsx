@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { ENTER } from "@/components/ui/Motion";
 import { GLOSSARY } from "@/lib/engine/constants";
@@ -30,12 +30,25 @@ export function TermCoach({
 }) {
   const gloss = term ? GLOSSARY[term.toLowerCase()] : null;
 
-  // It quotes a number, so it has to leave before that number changes.
+  /*
+   * It quotes a number, so it has to leave before that number changes.
+   *
+   * The timer depended on `onDismiss` as well as on `term`, and both call
+   * sites pass a fresh inline arrow every render — so every render of the
+   * parent tore the timeout down and started a new nine seconds. On the play
+   * screen, where the parent re-renders on every commit, on every scroll-driven
+   * state change and on every bridge reply, the note could sit there past the
+   * figure it was explaining and outlive its own truth. The callback is read
+   * at fire time instead, so the nine seconds are nine seconds.
+   */
+  const dismiss = useRef(onDismiss);
+  dismiss.current = onDismiss;
+
   useEffect(() => {
     if (!term) return;
-    const id = setTimeout(onDismiss, 9000);
+    const id = setTimeout(() => dismiss.current(), 9000);
     return () => clearTimeout(id);
-  }, [term, onDismiss]);
+  }, [term]);
 
   if (!term || !gloss) return null;
 

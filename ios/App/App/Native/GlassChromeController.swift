@@ -861,8 +861,34 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
             view.isUserInteractionEnabled = on
         }
 
-        light(deck, spotlight == "advance")
-        if let deckGroup { light(deckGroup, spotlight == "advance") }
+        // ── Exactly one dim per surface ─────────────────────────────────────
+        //
+        // `UIView.alpha` multiplies down the tree, and the previous version of
+        // this dimmed every level of it. `deckGroup.contentView` holds `deck`,
+        // and both were dimmed: 0.22 × 0.22 ≈ 0.05. The masthead was worse —
+        // `leadingGroup.contentView` holds `leadingControls`, which holds the
+        // capsules, and all three were dimmed: 0.22³ ≈ 0.01. On the first
+        // three tutorial steps, which spotlight the tabs, the ADVANCE deck and
+        // the masthead cluster did not dim, they disappeared, and the guided
+        // first play — a new player's whole first session, and the first thing
+        // an App Reviewer sees — read as chrome that vanishes and comes back.
+        //
+        // The comment that used to sit here claimed "a dimmed control in a lit
+        // group lands in the same place as one in a dimmed group". It does
+        // not: 0.22 × 1 is a quarter strength, 0.22 × 0.22 is a twentieth. The
+        // rule below is the one that makes that sentence true — whichever
+        // level carries the dim, only one of them does.
+        let advanceLit = spotlight == "advance"
+        if let deckGroup {
+            // The container is the surface the player sees, so it takes the
+            // dim; the stack inside it only follows for touches.
+            light(deckGroup, advanceLit)
+            deck.alpha = 1
+            deck.isUserInteractionEnabled = advanceLit
+        } else {
+            light(deck, advanceLit)
+        }
+
         light(tabBar, spotlight == "tabs")
         // The nudge is never taught and is therefore never the spotlight: the
         // tutorial is the one moment the game already has the player's whole
@@ -870,16 +896,30 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
         // thing coach mode dims everything else to prevent.
         if let nudgeGlass { light(nudgeGlass, false) }
 
-        // A group is lit only when it holds the spotlight, and its unlit
-        // siblings dim inside it — alpha compounds, so a dimmed control in a
-        // lit group lands in the same place as one in a dimmed group.
-        for (id, view) in controlViews { light(view, spotlight == id) }
         let leadingHasIt = holdsSpotlight(leadingControls, spotlight)
         let trailingHasIt = holdsSpotlight(trailingControls, spotlight)
+
+        // A cluster that does not hold the spotlight dims as one piece of
+        // glass, and its capsules stay at full strength inside it. A cluster
+        // that DOES hold it stays lit, and the capsules beside the taught one
+        // carry the dim instead. Either way the player sees 0.22, once.
+        for (id, view) in controlViews {
+            let clusterLit = leadingControls.arrangedSubviews.contains(view)
+                ? leadingHasIt
+                : trailingHasIt
+            view.alpha = clusterLit && spotlight != id ? Metric.coachDim : 1
+            view.isUserInteractionEnabled = spotlight == id
+        }
         light(leadingGroup ?? leadingControls, leadingHasIt)
         light(trailingGroup ?? trailingControls, trailingHasIt)
-        if leadingGroup != nil { light(leadingControls, leadingHasIt) }
-        if trailingGroup != nil { light(trailingControls, trailingHasIt) }
+        if leadingGroup != nil {
+            leadingControls.alpha = 1
+            leadingControls.isUserInteractionEnabled = leadingHasIt
+        }
+        if trailingGroup != nil {
+            trailingControls.alpha = 1
+            trailingControls.isUserInteractionEnabled = trailingHasIt
+        }
     }
 
     private func holdsSpotlight(_ stack: UIStackView, _ spotlight: String?) -> Bool {

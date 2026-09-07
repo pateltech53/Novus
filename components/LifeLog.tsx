@@ -76,7 +76,15 @@ export function LifeLog({
     <div className="mx-auto w-full max-w-2xl px-3 pt-3">
       <ol className="space-y-2">
         {lines.map((line) => (
-          <li key={line.id}>
+          /*
+           * `nv-logrow` is `content-visibility: auto` with a size hint — see
+           * globals.css. The entries are already memoised so React does not
+           * re-render them, but the browser was still laying out and painting
+           * all ~470 of them (measured median at year 10, max 513) on every
+           * commit, and this list lives inside a sheet on a phone. Skipping the
+           * off-screen ones is the half React cannot do.
+           */
+          <li key={line.id} className="nv-logrow">
             <LogEntry line={line} />
           </li>
         ))}

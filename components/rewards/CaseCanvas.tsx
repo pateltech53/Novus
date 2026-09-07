@@ -2,9 +2,11 @@
 
 import { Canvas, useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Group } from "three";
 
+import { StudioEnvironment, fitToBox } from "./studio";
+import { modelUrl, type ModelSlug } from "@/lib/rewards/models";
 import { TIER_SLUGS, type Tier } from "@/lib/rewards/tables";
 
 /**
@@ -23,6 +25,20 @@ import { TIER_SLUGS, type Tier } from "@/lib/rewards/tables";
  * you. A bounce or a scale-up would read as a button; a lean reads as a thing
  * with weight, which is what makes the tap that follows feel like an act.
  * Touch devices have no hover, so there the idle rotation carries it alone.
+ *
+ * ── Why the model is normalised rather than trusted ─────────────────────────
+ *
+ * Meshy does not promise a scale, and the case is framed by a camera at a
+ * fixed distance. The v1 meshes came back from their Blender round-trip
+ * inside a ±0.95 box and this canvas was tuned to that by accident; the v2
+ * exports measure the same, so the fit below is currently a no-op. It is here
+ * for the export that is not — one at a different unit size would render the
+ * Gold Briefcase at twice the size of the Canvas Case, on the one screen this
+ * system exists for, with nothing in the code to explain it.
+ * `fitToBox` (components/rewards/studio.tsx) scales every case to
+ * MODEL_FIT on its longest axis and centres it, so the ceremony's framing is
+ * a property of this file rather than of whatever the last generation
+ * happened to produce.
  *
  * ── The upgrade shake ───────────────────────────────────────────────────────
  *
@@ -51,7 +67,16 @@ function CaseModel({
   const shake = useRef(0);
   const lastPulse = useRef(pulse);
 
-  const { scene } = useGLTF(`/briefcase/models/${TIER_SLUGS[tier]}-v1.glb`, false);
+  const { scene } = useGLTF(modelUrl(TIER_SLUGS[tier] as ModelSlug), false);
+
+  /*
+   * Cloned because `useGLTF` caches by URL and this component mutates what it
+   * renders — rotation, scale and position all live on the loaded object's
+   * parent, but the fit below writes to the object itself, and a tap that
+   * upgraded T1 → T2 and back would otherwise re-fit an already-fitted scene.
+   */
+  const model = useMemo(() => scene.clone(true), [scene]);
+  useLayoutEffect(() => fitToBox(model), [model]);
 
   useEffect(() => {
     if (pulse === lastPulse.current) return;
@@ -96,7 +121,7 @@ function CaseModel({
 
   return (
     <group ref={group}>
-      <primitive object={scene} />
+      <primitive object={model} />
     </group>
   );
 }
@@ -136,6 +161,10 @@ export default function CaseCanvas({
         // the pitch screen's shark deliberately does not.
         gl={{ antialias: true, alpha: true }}
       >
+        {/* Without this the metallic cases — gold, titanium, the obsidian's
+            chrome latch — render nearly black: metal reflects an environment,
+            and three point lights are not one. See ./studio. */}
+        <StudioEnvironment />
         <ambientLight intensity={1.1} />
         <directionalLight position={[-3, 4, 3]} intensity={2.2} />
         <directionalLight position={[3, 1, -2]} intensity={0.7} />

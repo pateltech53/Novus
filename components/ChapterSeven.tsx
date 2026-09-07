@@ -31,7 +31,7 @@ export function ChapterSeven({ report }: { report: AutopsyReport }) {
   const game = useGame();
 
   return (
-    <div className="fixed inset-0 z-[70] overflow-y-auto bg-[var(--bg)]">
+    <div className="fixed inset-0 z-[70] overflow-y-auto overscroll-contain bg-[var(--bg)]">
       <motion.div
         className="mx-auto w-full max-w-md px-6 pt-[max(2.5rem,var(--nv-safe-top))] pb-[max(2rem,var(--nv-safe-bottom))]"
         initial={{ opacity: 0 }}

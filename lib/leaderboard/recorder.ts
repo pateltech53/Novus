@@ -115,10 +115,10 @@ interface StoredTape {
 
 const canStore = () => typeof window !== "undefined" && !!window.localStorage;
 
-function read(): StoredTape | null {
+function read(slot?: number): StoredTape | null {
   if (!canStore()) return null;
   try {
-    const raw = localStorage.getItem(KEY());
+    const raw = localStorage.getItem(KEY(slot));
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<StoredTape>;
     if (typeof parsed.runId !== "string" || !Array.isArray(parsed.entries)) return null;
@@ -185,13 +185,24 @@ export function clearTape(slot?: number) {
  * the important case, not an edge one: a player who abandons a company and
  * founds another must not carry the old taps into the new tape, and checking
  * here means no caller has to remember to.
+ *
+ * `slot` for the same reason `startTape` takes one, and it is not optional in
+ * practice for one caller. `activeIsland()` only honours the pointer when the
+ * slot it names is OCCUPIED, and a company being founded has had nothing
+ * written to its island yet — so between `startTape(next, target)` and
+ * `commit(next)` an unqualified `record()` reads the island being LEFT. Its
+ * runId does not match, the entry is dropped without a sound, and the one tap
+ * recorded in that window is `{t:"pro", on:true}`. A Pro player founding a
+ * second company therefore submitted a tape that never said they were Pro, and
+ * the verifier replaying it refuses the Pro industry the company was founded
+ * in (lib/leaderboard/replay.ts).
  */
-export function record(run: RunState, entry: TapeEntry) {
-  const tape = read();
+export function record(run: RunState, entry: TapeEntry, slot?: number) {
+  const tape = read(slot);
   if (!tape || tape.runId !== run.id) return;
   if (tape.entries.length >= MAX_TAPE_ENTRIES) return;
   tape.entries.push(entry);
-  write(tape);
+  write(tape, slot);
 }
 
 /** Convenience for the `advance` entry, whose date is always "now". */

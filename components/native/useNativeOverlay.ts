@@ -57,9 +57,33 @@ const stack: Entry[] = [];
  * screen on top declared — a screen with both a dock of its own and a mounted
  * contributor is a screen that has changed its mind about what its primary
  * action is, and the more specific answer wins.
+ *
+ * ── `owner`, and why it is resolved late ────────────────────────────────────
+ *
+ * A contribution belongs to ONE screen, and until this field existed it
+ * belonged to whichever screen happened to be on top. Settings' account dock
+ * is contributed by `AccountSection`, three components down, and Settings
+ * opens a legal document over itself — so tapping Privacy Policy put a glass
+ * dock reading "Sign out" and "Delete account" over a page of legal prose,
+ * live, with the destructive one two taps from done. The dock is not that
+ * screen's and must not be drawn on it.
+ *
+ * It cannot be captured when the contribution registers: React flushes a
+ * child's effects before its parent's, so `AccountSection` registers the dock
+ * BEFORE `SettingsScreen`'s own `useNativeOverlay` has pushed the entry that
+ * owns it — `top()` at that moment is whatever was underneath, or nothing at
+ * all. So the owner is resolved at the first `flush()` that has a shown entry
+ * to name, and then frozen; a contributor that re-registers (its actions
+ * changed) carries its resolved owner forward rather than claiming whatever is
+ * on top by then, which would be the legal sheet in exactly the case above.
  */
-let dock: { key: object; actions: NativeOverlayButton[]; onAction: (id: string) => void } | null =
-  null;
+let dock: {
+  key: object;
+  /** The stack entry this dock belongs to. `undefined` until resolved. */
+  owner?: object;
+  actions: NativeOverlayButton[];
+  onAction: (id: string) => void;
+} | null = null;
 
 /** The last thing pushed, serialised. The play screen's chrome hook diffs the
  *  same way and for the same reason: a screen re-renders far more often than
@@ -102,9 +126,14 @@ function attach(): Promise<void> {
     };
     await add<{ id: string }>("overlayAction", (d) => {
       // The dock's own ids go to whoever contributed them; everything else —
-      // the toolbar's close, a screen's own dock — goes to the screen.
-      if (dock?.actions.some((a) => a.id === d.id)) dock.onAction(d.id);
-      else top()?.handlers.onAction(d.id);
+      // the toolbar's close, a screen's own dock — goes to the screen. Only
+      // while the contribution is the one on screen, though: a dock that is
+      // not drawn cannot have been tapped, and delivering to it anyway is how
+      // a stale native view's ids stay live after the state that hid them.
+      const entry = top();
+      const mine = !!dock && !!entry && dock.owner === entry.key;
+      if (mine && dock!.actions.some((a) => a.id === d.id)) dock!.onAction(d.id);
+      else entry?.handlers.onAction(d.id);
     });
     await add<{ id: string }>("overlaySegment", (d) => top()?.handlers.onSegment?.(d.id));
     await add<OverlayInsets>("overlayInsets", writeOverlayInsets);
@@ -115,16 +144,30 @@ function attach(): Promise<void> {
 }
 
 function flush() {
-  const base = top()?.state ?? HIDDEN;
+  const entry = top();
+  const base = entry?.state ?? HIDDEN;
+  // The first shown entry after a contribution is the screen that contributed
+  // it — see the note on `dock` for why this cannot be answered any earlier.
+  if (dock && dock.owner === undefined && entry && base.mode === "shown") {
+    dock.owner = entry.key;
+  }
+  const mine = !!dock && !!entry && dock.owner === entry.key;
   const state =
-    dock && base.mode === "shown" ? { ...base, actions: dock.actions } : base;
+    dock && mine && base.mode === "shown" ? { ...base, actions: dock.actions } : base;
   const key = JSON.stringify(state);
   if (key === lastSent) return;
   lastSent = key;
   NovusGlass.setOverlay(state)
     .then(writeOverlayInsets)
     .catch(() => {
-      /* A failed push must never take the screen down with it. */
+      /*
+       * A failed push must never take the screen down with it — but it must
+       * not be remembered as sent either. `lastSent` is a diff against what
+       * UIKit is actually drawing, and a rejected call drew nothing: leaving
+       * the key latched means the identical state can never be re-sent, and a
+       * screen whose toolbar never landed keeps no way out of itself.
+       */
+      if (lastSent === key) lastSent = null;
     });
 }
 
@@ -254,7 +297,15 @@ export function useNativeOverlayDock(
     const mine = keyRef.current;
     dock =
       actions && actions.length > 0
-        ? { key: mine, actions, onAction: (id) => handlerRef.current(id) }
+        ? {
+            key: mine,
+            // Carried forward, never re-claimed: a contributor whose actions
+            // change while a screen is open over its own would otherwise adopt
+            // that screen as its owner.
+            owner: dock?.key === mine ? dock.owner : undefined,
+            actions,
+            onAction: (id) => handlerRef.current(id),
+          }
         : dock?.key === mine
           ? null
           : dock;

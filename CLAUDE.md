@@ -66,11 +66,12 @@ npm run sim 50 10 1    # balance regression baseline (30 8 is the check gate)
 npm run test:db        # migrations + RLS suites; needs Postgres (DATABASE_URL)
 npm run build:native   # export (audits) + verify/copy the remote shell, then cap sync
 npm run test:outside   # Swift market fixture --check + pbxproj structural lint
+npm run art:models -- status   # the 11 briefcase GLBs: what is generated, built, provenanced
 npm run audit:phone    # Playwright phone audit at 320/375/393/430 (build:native:only first)
 ```
 
 `npm run check` = events pipeline (parse + validate events/activities/tokens/
-motion) + `tsc --noEmit` + `sim 30 8` + test:ai/board/islands/rules/pricing/
+motion/models) + `tsc --noEmit` + `sim 30 8` + test:ai/board/islands/rules/pricing/
 limits/variety/room/wardrobe/playbook.
 
 **CI ≠ check.** CI (`.github/workflows/ci.yml`) skips test:islands/rules/
@@ -133,10 +134,13 @@ authored library and conversion contract live in `design/`
   route handlers (child-safety rule; Turnstile is the single sanctioned
   third-party script).
 - **`supabase/migrations/0001–0019`** — schema source of truth, applied in
-  filename order (deployment is manual paste into the Supabase SQL editor;
-  `APPLY-ALL.sql` covers 0001→0019 and `CHECK-SCHEMA.sql` reports which of
-  them a project actually has). 10 RLS test suites run per PR via
-  `npm run test:db`.
+  filename order. Deployment is a manual paste into the Supabase SQL editor:
+  `supabase/APPLY-ALL.sql` is the whole schema 0001→0019 in one idempotent
+  file, safe on a fresh, half-migrated or complete project and refusing the
+  wrong one — regenerate it in the same PR as any migration (each
+  migration's seed or fixup is folded in verbatim). `CHECK-SCHEMA.sql` is the
+  read-only "which migrations has this project had" companion. 10 RLS test
+  suites run per PR via `npm run test:db`.
 - **Persistence** — localStorage is the synchronous cache the game reads;
   Supabase is the debounced mirror (`lib/cloud/sync.ts`). Saves: local/newer
   wins. Entitlements: server wins. No account = fully local play, nothing
@@ -204,7 +208,8 @@ authored library and conversion contract live in `design/`
 - Derived artifacts are regenerated, never hand-edited: `data/events.json`
   (`npm run events`), the Swift market fixture (`npm run market:fixture`),
   `supabase/migrations/0018_rewards_seed.sql` (`npm run rewards:seed`), GLBs
-  (`npm run models`), icons, briefcase art.
+  (`npm run models`, from Meshy exports made by `npm run art:models` —
+  docs/BRIEFCASE-MODELS.md), icons, briefcase art.
 
 ## Traps that have already bitten someone
 
@@ -252,7 +257,7 @@ authored library and conversion contract live in `design/`
 | App Review compliance | docs/APP-STORE.md |
 | iOS widgets / Live Activities | docs/WIDGETS.md |
 | Chapters (classroom licences) | docs/CHAPTERS.md |
-| Briefcase reward loop (launched; tester tools behind a flag) | docs/BRIEFCASES.md (+ docs/BRIEFCASE-ART.md) |
+| Briefcase reward loop (launched; tester tools behind a flag) | docs/BRIEFCASES.md (+ docs/BRIEFCASE-ART.md, docs/BRIEFCASE-MODELS.md) |
 | SEO / www-vs-apex / structured data | docs/SEO.md |
 | Authored event library + conversion contract | design/NOVUS_EVENT_LIBRARY_B1.md, design/EVENT_SCHEMA.md |
 | Original 7-phase build brief (historical rationale) | docs/BUILD-PROMPT.md |

@@ -1,9 +1,23 @@
 "use client";
 
+import dynamic from "next/dynamic";
+import { useReducedMotion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 
 import { RARITY_COLORS, TIER_RARITY, type Tier } from "@/lib/rewards/tables";
 import { play } from "@/lib/sound";
+
+/*
+ * three.js and R3F are ~180 kB of the /rewards route that a player reading
+ * the shop's prices does not need in their first paint, so the coin arrives
+ * on its own chunk — the same bargain Ceremony makes for the case. The
+ * fallback is a box of the final size, so the header does not reflow when it
+ * lands.
+ */
+const PropCanvas = dynamic(() => import("./PropCanvas"), {
+  ssr: false,
+  loading: () => <div className="h-9 w-9" />,
+});
 
 /**
  * The token shop — the agency valve.
@@ -20,6 +34,7 @@ import { play } from "@/lib/sound";
 interface ShopSkin { id: string; name: string; tier: number; collection: string; price: number }
 
 export default function TokenShop({ onBought }: { onBought?: (briefcaseId: string) => void }) {
+  const reduced = useReducedMotion() ?? false;
   const [tokens, setTokens] = useState(0);
   const [skins, setSkins] = useState<ShopSkin[]>([]);
   const [query, setQuery] = useState("");
@@ -74,7 +89,12 @@ export default function TokenShop({ onBought }: { onBought?: (briefcaseId: strin
             Buy a skin outright. Earned tokens only — never money.
           </p>
         </div>
-        <span className="tabular-nums text-sm font-bold text-[#F5C518]">{tokens.toLocaleString()}</span>
+        {/* The balance, with the thing it counts. A number in gold text is a
+            number; the coin turning beside it is the currency. */}
+        <div className="flex items-center gap-1.5">
+          <PropCanvas slug="shark-token" spin={!reduced} speed={0.6} className="h-9 w-9 shrink-0" />
+          <span className="tabular-nums text-sm font-bold text-[#F5C518]">{tokens.toLocaleString()}</span>
+        </div>
       </header>
 
       {note && (

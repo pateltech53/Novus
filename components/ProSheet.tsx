@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { ENTER } from "@/components/ui/Motion";
+import { motion, useIsPresent } from "framer-motion";
+import { ENTER, EXIT, SCRIM } from "@/components/ui/Motion";
 import { PickMark } from "@/components/ui/PickMark";
 
 import { useGame } from "@/lib/state/GameProvider";
@@ -108,6 +108,11 @@ export function ProSheet({ onClose }: { onClose: () => void }) {
     };
   }, []);
 
+  /* False for the length of the exit animation — see the note on `present`
+     in components/screens/ScreenSheet.tsx. Declared above every early return,
+     because a hook that runs conditionally is not a hook. */
+  const present = useIsPresent();
+
   if (!run) return null;
 
   /**
@@ -198,8 +203,34 @@ export function ProSheet({ onClose }: { onClose: () => void }) {
     );
   };
 
+
   return (
-    <div className="fixed inset-0 z-[65] flex items-end justify-center sm:items-center sm:p-6">
+    /*
+     * ── Why the root is a motion element, and why it carries an exit ────────
+     *
+     * This sheet is one child of /play's single AnimatePresence, beside the
+     * six activity screens, Settings, the board, the log and the phone. Every
+     * one of those is a motion root with an `exit`; this one was a plain
+     * `<div>` wrapping a `motion.section` that declared `initial` and
+     * `animate` and nothing else. AnimatePresence has no exit to wait for in
+     * that shape, so Novus Pro was the one surface in the app that vanished on
+     * the frame it was closed while everything around it faded — a hard cut
+     * the exit-audit could not see, because its five overlays are the tabs.
+     *
+     * Same tokens as its siblings (SCRIM for the ground, ENTER/EXIT for the
+     * panel), so the entrance is unchanged and only the way out is new.
+     */
+    <motion.div
+            /* Non-interactive while it leaves — see the note on `present` in
+         components/screens/ScreenSheet.tsx: for the 180ms of the exit this
+         subtree is still mounted with a full-screen scrim across it, and the
+         next tap a player makes lands on a screen that is going away. */
+      className={`fixed inset-0 z-[65] flex items-end justify-center sm:items-center sm:p-6${present ? "" : " pointer-events-none"}`}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0, transition: EXIT }}
+      transition={SCRIM}
+    >
       <button
         type="button"
         aria-label="Close"
@@ -210,9 +241,10 @@ export function ProSheet({ onClose }: { onClose: () => void }) {
         role="dialog"
         aria-modal="true"
         aria-label="Novus Pro"
-        className="relative flex max-h-[min(88dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] w-full max-w-2xl flex-col overflow-y-auto rounded-t-[var(--radius-sheet)] bg-[var(--sheet)] pb-[max(1rem,var(--nv-safe-bottom))] shadow-[var(--e3)] sm:max-h-[86dvh] sm:rounded-[var(--radius-sheet)]"
+        className="relative flex max-h-[min(88dvh,calc(100dvh-var(--nv-overlay-top)-0.75rem))] w-full max-w-2xl flex-col overflow-y-auto overscroll-contain rounded-t-[var(--radius-sheet)] bg-[var(--sheet)] pb-[max(1rem,var(--nv-safe-bottom))] shadow-[var(--e3)] sm:max-h-[86dvh] sm:rounded-[var(--radius-sheet)]"
         initial={{ y: "6%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
+        exit={{ y: "6%", opacity: 0, transition: EXIT }}
         transition={{ ...ENTER }}
       >
         <div className="flex items-start justify-between gap-4 px-5 pt-5">
@@ -409,6 +441,6 @@ export function ProSheet({ onClose }: { onClose: () => void }) {
       </motion.section>
 
       {legal && <LegalSheet doc={legal} onClose={() => setLegal(null)} />}
-    </div>
+    </motion.div>
   );
 }

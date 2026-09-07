@@ -23,6 +23,16 @@ const CaseCanvas = dynamic(() => import("./CaseCanvas"), {
   loading: () => <div className="h-full w-full" />,
 });
 
+/*
+ * The Shark Token, on the two beats that hand one over. A separate dynamic
+ * import from the case, but they resolve to the same three.js chunk, so by
+ * the time a reveal shows a coin the library is already in memory.
+ */
+const PropCanvas = dynamic(() => import("./PropCanvas"), {
+  ssr: false,
+  loading: () => <div className="h-full w-full" />,
+});
+
 export interface RevealItem {
   grantId: string;
   itemId: string;
@@ -279,7 +289,7 @@ export default function Ceremony({
         )}
 
         {stage === "summary" && (
-          <SummaryBeat key="summary" payload={payload} onClose={onClose} />
+          <SummaryBeat key="summary" payload={payload} reduced={reduced} onClose={onClose} />
         )}
       </AnimatePresence>
     </motion.div>
@@ -426,6 +436,15 @@ function RevealBeatView({
     : null;
   const showArt = art !== null && !artMissing;
 
+  /*
+   * A token grant has no design to show, so its card used to turn over onto a
+   * gradient and a name — the one reveal in the ceremony where the flip paid
+   * out nothing to look at. The coin itself is the payload, so it turns there
+   * instead. Only for `tokens`: a boost or a title has no object, and a
+   * stand-in prop would be a lie about what was won.
+   */
+  const showCoin = item.kind === "tokens";
+
   // The turn happens once, on the last beat. `reduced` skips it: a card that
   // rotates through 180° is exactly the kind of motion that setting is for.
   const flipped = beat === "card" && !reduced;
@@ -557,6 +576,14 @@ function RevealBeatView({
                 className="absolute inset-0 h-full w-full object-contain"
               />
             )}
+            {showCoin && (
+              <PropCanvas
+                slug="shark-token"
+                spin={!reduced}
+                speed={0.9}
+                className="absolute inset-0 bottom-14 h-auto w-full"
+              />
+            )}
             {/* The rising wave, on the face that receives it. */}
             {beat === "card" && !reduced && (
               <motion.div
@@ -611,7 +638,7 @@ function RevealBeatView({
   );
 }
 
-function SummaryBeat({ payload, onClose }: { payload: RevealPayload; onClose: () => void }) {
+function SummaryBeat({ payload, reduced, onClose }: { payload: RevealPayload; reduced: boolean; onClose: () => void }) {
   const tokens = useMemo(
     () => payload.items.reduce((sum, i) => sum + i.tokens, 0),
     [payload.items],
@@ -635,7 +662,12 @@ function SummaryBeat({ payload, onClose }: { payload: RevealPayload; onClose: ()
           </div>
         ))}
       </div>
-      {tokens > 0 && <p className="text-sm text-white/70">+{tokens} Shark Tokens</p>}
+      {tokens > 0 && (
+        <div className="flex items-center gap-1.5 text-sm text-white/70">
+          <PropCanvas slug="shark-token" spin={!reduced} speed={0.6} className="h-7 w-7 shrink-0" />
+          +{tokens} Shark Tokens
+        </div>
+      )}
       <button
         type="button"
         onClick={onClose}

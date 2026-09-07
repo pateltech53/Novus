@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 import { haptic } from "@/lib/haptics";
 
-import { motion } from "framer-motion";
+import { motion, useIsPresent } from "framer-motion";
 import { ENTER, EXIT, SCRIM } from "@/components/ui/Motion";
 import type { Choice, GameEvent, Industry } from "@/lib/engine/types";
 import { GLOSSARY } from "@/lib/engine/constants";
@@ -43,11 +43,21 @@ export function DecisionSheet({
   const eventId = event?.id;
   useEffect(() => setDecoded(null), [eventId]);
 
+  /* False for the length of the exit animation — see the note on `present`
+     in components/screens/ScreenSheet.tsx. Declared above every early return,
+     because a hook that runs conditionally is not a hook. */
+  const present = useIsPresent();
+
   if (!event) return null;
+
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex items-end justify-center"
+            /* Non-interactive while it leaves — see the note on `present` in
+         components/screens/ScreenSheet.tsx: for the 180ms of the exit this
+         subtree is still mounted with a full-screen scrim across it, and the
+         next tap a player makes lands on a screen that is going away. */
+      className={`fixed inset-0 z-50 flex items-end justify-center${present ? "" : " pointer-events-none"}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, transition: EXIT }}
@@ -58,7 +68,7 @@ export function DecisionSheet({
             role="dialog"
             aria-modal="true"
             aria-labelledby="decision-title"
-            className="relative flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-y-auto rounded-t-[var(--radius-sheet)] bg-[var(--sheet)] pb-[max(1rem,var(--nv-safe-bottom))] shadow-[var(--e3)]"
+            className="relative flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-y-auto overscroll-contain rounded-t-[var(--radius-sheet)] bg-[var(--sheet)] pb-[max(1rem,var(--nv-safe-bottom))] shadow-[var(--e3)]"
         initial={{ y: "6%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: "6%", opacity: 0, transition: EXIT }}

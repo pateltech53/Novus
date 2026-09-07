@@ -113,9 +113,9 @@ running — and `prefers-reduced-motion` gets none of it.
 | `lib/rewards/templates.ts` | The 51 templates, the weekly pool, the lifetime milestones. |
 | `lib/rewards/catalog.ts` | The non-skin reward pool. |
 | `supabase/migrations/0017_rewards.sql` | Tables, RLS, and the RPCs that commit an open. |
-| `supabase/migrations/0018_rewards_seed.sql` | **Generated** — `npm run rewards:seed`. |
+| `supabase/migrations/0018_rewards_seed.sql` | **Generated** — `npm run rewards:seed`. Folded verbatim into `supabase/APPLY-ALL.sql` (its 0018 section): regenerate both together, or the one-paste deploy seeds stale content. |
 | `supabase/migrations/0019_spend_tokens_lock.sql` | The token shop's fix: `spend_tokens` locked with an aggregate and therefore always threw. |
-| `supabase/tests/rewards_test.sql` | The RLS shape, as 54 runnable checks. |
+| `supabase/tests/rewards_test.sql` | The RLS shape, as 55 runnable checks. |
 | `components/rewards/Ceremony.tsx` | The taps and the reveal. |
 | `components/rewards/CaseCanvas.tsx` | The rotating 3-D case. |
 | `components/rewards/MySkins.tsx` | The collection, including what is not in it. Lives on `/rewards` only — it left the Closet on 2026-09-06 (101 cells of near-black on a phone was the report). |
@@ -133,7 +133,9 @@ running — and `prefers-reduced-motion` gets none of it.
 | `lib/rewards/moments.ts` | Which activity counts as which moment. |
 | `lib/rewards/latch.ts` | The two facts that have to survive between moments. |
 | `app/api/rewards/*` | Twelve routes. All need a signed-in account (`rewardGate`); `/sim` also needs the tester flag (`betaGate`); `/odds` and `/time` are public. |
-| `public/briefcase/models/*-v1.glb` | Five cases and the token, from Meshy. |
+| `public/briefcase/models/*-v<n>.glb` | The eleven 3-D props — five cases, the Shark Token, five keys — from Meshy. Regenerated through `npm run art:models`; see [BRIEFCASE-MODELS.md](./BRIEFCASE-MODELS.md). |
+| `components/rewards/PropCanvas.tsx` | The small turning prop (the coin beside a balance), and `fitToBox`. |
+| `assets-src/briefcase/models.json` | The 3-D registry: slug, version, source art, prompts. |
 
 ## How playing moves a mission
 

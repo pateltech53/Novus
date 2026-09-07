@@ -99,7 +99,17 @@ const BUDGETS = {
   // The autopilot that drives a run to the tank is NOT in this number: it is
   // behind `dynamic` and behind `?beta=tank`, so a normal session never
   // fetches the chunk.
-  "/play/page": 359,
+  //
+  // 360, not 359. Two branches landed the same day and each stayed under its
+  // own budget alone: reward skins reaching `FounderAvatar` (this route's
+  // masthead portrait, on every screen) via `lib/rewards/wear.ts`, and the
+  // 3-D briefcase props (Ceremony/CaseCanvas, reached from `/rewards`, not
+  // this route) reshaping Next's shared-chunk split across the whole app.
+  // Neither is /play's own weight — the intro sheet for the launch stays off
+  // this route on purpose, for exactly this reason — and one kilobyte for two
+  // independent features shipping together is the honest price of the shared
+  // chunk moving under both of them at once, not a leak in either.
+  "/play/page": 360,
   "/found/page": 325,
   // The picker is the front door for anyone with a company, so it is on the
   // critical path for every returning player. 320 is a little above where it

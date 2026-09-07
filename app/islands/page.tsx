@@ -30,6 +30,7 @@ import { loadAccount, type Account } from "@/lib/account";
 import { signOut } from "@/lib/cloud/auth";
 import { entryRoute } from "@/lib/entry";
 import { storefront } from "@/lib/commerce";
+import { useBackHandler } from "@/lib/native/back";
 import { appPath } from "@/lib/native/href";
 import type { NativeOverlayState } from "@/lib/native/glass";
 import { useResolvedTheme } from "@/lib/native/theme";
@@ -189,6 +190,10 @@ function IslandsPage() {
 
   /** null = the sea. A slot number = that island, alone, in the gallery. */
   const [focus, setFocus] = useState<number | null>(null);
+  /* Read by `step` so its side effects can live outside the state updater
+     without the callback having to be rebuilt on every focus change. */
+  const focusRef = useRef<number | null>(focus);
+  focusRef.current = focus;
   /** Which way the last ‹ › went, so the gallery slides the right way. */
   const [dir, setDir] = useState(1);
 
@@ -320,8 +325,20 @@ function IslandsPage() {
    */
   const seaScrollRef = useRef<HTMLDivElement>(null);
   const [more, setMore] = useState({ left: false, right: false });
+  /*
+   * How far the player had sailed, kept across the gallery.
+   *
+   * The sea and the gallery are the two branches of one `AnimatePresence
+   * mode="wait"`, so opening an island UNMOUNTS the ocean and destroys the
+   * scroller's `scrollLeft` with it. A player who sailed right to island 12,
+   * opened it and pressed BACK was returned to the far left of the water with
+   * their company off screen, and had to sail the whole way again — every
+   * time. The offset is the one thing worth carrying across that unmount.
+   */
+  const seaScrollLeft = useRef(0);
   const onSeaScroll = useCallback(() => {
     const el = seaScrollRef.current;
+    if (el) seaScrollLeft.current = el.scrollLeft;
     /*
      * Gated on the screen count, not on `scrollWidth`.
      *
@@ -331,15 +348,27 @@ function IslandsPage() {
      * Reading that as "there is more water over there" put the hint on screen
      * for eight islands, pointing at nothing.
      */
+    /*
+     * Bail out when nothing changed.
+     *
+     * This runs on every scroll event of the ocean and always handed React a
+     * brand-new object, which `Object.is` can never match — so sailing the
+     * archipelago committed a render per event, on the one screen that is a
+     * WebGL sea with an island per company drawn over it. The state flips at
+     * most twice per gesture; the renders were continuous. `lib/scroll.ts`
+     * already documents this exact bail-out and why it matters ("a render on
+     * every scroll event would land inside exactly the frames this is
+     * protecting").
+     */
+    const same = (l: boolean, r: boolean) =>
+      setMore((prev) => (prev.left === l && prev.right === r ? prev : { left: l, right: r }));
+
     if (!el || field <= 100) {
-      setMore({ left: false, right: false });
+      same(false, false);
       return;
     }
     const slack = el.scrollWidth - el.clientWidth;
-    setMore({
-      left: el.scrollLeft > 24,
-      right: el.scrollLeft < slack - 24,
-    });
+    same(el.scrollLeft > 24, el.scrollLeft < slack - 24);
   }, [field]);
   /* Once on arrival, and again whenever the archipelago changes size — the
      hint has to be right before the first gesture, not after it. */
@@ -368,22 +397,41 @@ function IslandsPage() {
   /* ‹ › walk the islands that exist, in slot order, and wrap. Wrapping because
      the row is short and a disabled arrow at each end is two dead controls on
      a screen that only has four live ones. */
+  /*
+   * The sound and the slide direction are effects, so they happen OUTSIDE the
+   * updater. A state updater must be pure — React calls it twice per dispatch
+   * in StrictMode, which Next enables in development — and these two were
+   * inside it: the pager clicked twice per press and set `dir` twice, which is
+   * a `setState` during render of another component and the kind of warning
+   * that gets read as noise until it is a bug.
+   */
   const step = useCallback(
     (by: number) => {
-      setFocus((at) => {
-        if (at === null || islands.length < 2) return at;
-        const i = islands.findIndex((is) => is.slot === at);
-        if (i < 0) return at;
-        play("click");
-        setDir(by);
-        return islands[(i + by + islands.length) % islands.length].slot;
-      });
+      const at = focusRef.current;
+      if (at === null || islands.length < 2) return;
+      const i = islands.findIndex((is) => is.slot === at);
+      if (i < 0) return;
+      play("click");
+      setDir(by);
+      setFocus(islands[(i + by + islands.length) % islands.length].slot);
     },
     [islands],
   );
 
-  /* The gallery is a view, not a route, so it answers the keyboard the way
-     every other overlay in this app does. */
+  /*
+   * The gallery is a view, not a route, so it answers the keyboard the way
+   * every other overlay in this app does — and, since it is not a route, it
+   * also has to answer Android's back button itself.
+   *
+   * Without the handler below `popBack()` found an empty stack and
+   * lib/native/boot.ts fell through to `history.back()`, which on the picker
+   * is the document BEFORE it: back out of a company's own gallery landed on
+   * /play, or on whatever the player had been reading, rather than on the sea
+   * they opened the gallery from. One gesture, one layer — the rule the stack
+   * exists to keep.
+   */
+  useBackHandler(focus !== null, () => setFocus(null));
+
   useEffect(() => {
     if (focus === null) return;
     const onKey = (e: KeyboardEvent) => {
@@ -657,7 +705,16 @@ function IslandsPage() {
               ocean it is in, which is the point.
             */}
             <div
-              ref={seaScrollRef}
+              /*
+               * A callback ref rather than the object one, because the restore
+               * has to happen the moment the node exists — an effect would run
+               * after the first paint and the ocean would visibly jump from
+               * the left edge to where the player left it.
+               */
+              ref={(el) => {
+                seaScrollRef.current = el;
+                if (el && seaScrollLeft.current) el.scrollLeft = seaScrollLeft.current;
+              }}
               onScroll={onSeaScroll}
               /* `overscroll-x-contain` so sailing to the end of the archipelago
                  does not hand the gesture to the browser and trigger a back

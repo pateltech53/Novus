@@ -38,14 +38,14 @@ things:
 无需清理任何数据。自己的那一行没有按钮：管理员不能改自己的 `role`（自降会
 把自己关在门外），要么让另一个管理员操作，要么回 Supabase 后台改那一格。
 
-前提：`supabase/APPLY-ALL.sql`（0001 → 0016）已在 Novus 项目跑过，部署配置了
+前提：`supabase/APPLY-ALL.sql`（0001 → 0018）已在 Novus 项目跑过，部署配置了
 `SUPABASE_SERVICE_ROLE_KEY`（计费同款，见 `docs/ACCOUNTS-SETUP.md`）。
 
 ---
 
 ## 1. What to run
 
-**`supabase/APPLY-ALL.sql`** — the whole schema, 0001 → 0016, idempotent.
+**`supabase/APPLY-ALL.sql`** — the whole schema, 0001 → 0018, idempotent.
 Admin specifically is `supabase/migrations/0009_admin.sql`,
 `0010_admin_analytics.sql`, `0012_year_closes.sql` and
 `0016_admin_insight.sql` (§7.1, §7.2), and

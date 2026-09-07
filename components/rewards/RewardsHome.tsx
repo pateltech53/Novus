@@ -200,7 +200,13 @@ export default function RewardsHome() {
       </header>
 
       {access === "ok" && (
-        <nav className="sticky top-0 z-10 flex gap-1 border-b border-[var(--hairline)] bg-[var(--surface)]/95 px-4 py-2 backdrop-blur sm:px-6">
+        /* Solid, not blurred. The CSS material is retired app-wide — the gate
+           in globals.css keys every backdrop-filter off `[data-css-glass]`,
+           which nothing writes — but that gate is written against this app's
+           own class names and cannot see a raw Tailwind `backdrop-blur`. This
+           was the last live one: a per-frame full-surface blur pass, over a
+           scrolling list, on the one screen that also runs a canvas. */
+        <nav className="sticky top-0 z-10 flex gap-1 border-b border-[var(--hairline)] bg-[var(--surface)] px-4 py-2 sm:px-6">
           {tabs.map(([id, label]) => (
             <button
               key={id}
