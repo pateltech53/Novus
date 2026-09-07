@@ -82,7 +82,9 @@ running — and `prefers-reduced-motion` gets none of it.
 | `lib/rewards/moments.ts` | Which activity counts as which moment. |
 | `lib/rewards/latch.ts` | The two facts that have to survive between moments. |
 | `app/api/rewards/*` | Twelve routes, all 404 without the flag. |
-| `public/briefcase/models/*-v1.glb` | Five cases and the token, from Meshy. |
+| `public/briefcase/models/*-v<n>.glb` | The eleven 3-D props — five cases, the Shark Token, five keys — from Meshy. Regenerated through `npm run art:models`; see [BRIEFCASE-MODELS.md](./BRIEFCASE-MODELS.md). |
+| `components/rewards/PropCanvas.tsx` | The small turning prop (the coin beside a balance), and `fitToBox`. |
+| `assets-src/briefcase/models.json` | The 3-D registry: slug, version, source art, prompts. |
 
 ## How playing moves a mission
 

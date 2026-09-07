@@ -1,0 +1,133 @@
+{
+  "_comment": [
+    "The 3-D prop registry for the briefcase system — every GLB the reward loop renders, and how it is made.",
+    "scripts/generate-briefcase-models.mjs reads this to drive Meshy; scripts/build-models.mjs reads it to decimate",
+    "assets-src/briefcase/models/<slug>.original.glb into public/briefcase/models/<slug>-v<version>.glb; and",
+    "scripts/validate-models.mjs checks lib/rewards/models.ts agrees with it. Bump `version` when a model is",
+    "regenerated (the served name changes, the old file goes) and mirror the bump in lib/rewards/models.ts.",
+    "",
+    "`image` is the 2-D render the mesh is lifted from (image-to-3D, Meshy 7) — the same art the review wall",
+    "shows, so the 3-D set inherits the shipped art direction instead of re-rolling it from a sentence. `texture`",
+    "steers the material pass; `prompt` is the text-to-3D fallback for a slug with no usable image (`--route text`).",
+    "`fit` is the largest bounding-box dimension the client scales every model to. Meshy normalises its exports to",
+    "a ±0.95 box and the hand-made v1 set happened to match, so 1.9 is a no-op today — it is declared so that the",
+    "ceremony's framing is a property of the code rather than of whatever the last generation happened to produce."
+  ],
+  "fit": 1.9,
+  "polycount": 30000,
+  "models": [
+    {
+      "slug": "t1-canvas",
+      "name": "Canvas Case",
+      "kind": "case",
+      "tier": 1,
+      "version": 2,
+      "image": "art-review/briefcase/cases/t1-canvas-closed.png",
+      "texture": "worn tan canvas fabric briefcase, brass snap latches, paper luggage tag, soft matte vinyl toy finish",
+      "prompt": "cute collectible toy briefcase in soft clay/vinyl style, chunky rounded proportions, closed: worn tan canvas briefcase with brass snap latches and a paper luggage tag, single object"
+    },
+    {
+      "slug": "t2-leather",
+      "name": "Leather Attaché",
+      "kind": "case",
+      "tier": 2,
+      "version": 2,
+      "image": "art-review/briefcase/cases/t2-leather-closed.png",
+      "texture": "cognac leather briefcase with visible stitching and two gold buckles, soft satin vinyl toy finish",
+      "prompt": "cute collectible toy briefcase in soft clay/vinyl style, chunky rounded proportions, closed: cognac leather briefcase, two gold buckles, visible stitching, single object"
+    },
+    {
+      "slug": "t3-titanium",
+      "name": "Titanium Case",
+      "kind": "case",
+      "tier": 3,
+      "version": 2,
+      "image": "art-review/briefcase/cases/t3-titanium-closed.png",
+      "texture": "brushed titanium metal briefcase with a ribbed shell, combination dials and a thin cool-blue LED seam",
+      "prompt": "cute collectible toy briefcase in soft clay/vinyl style, chunky rounded proportions, closed: brushed titanium briefcase, ribbed shell, combination dials, thin cool-blue LED seam, single object"
+    },
+    {
+      "slug": "t4-obsidian",
+      "name": "Obsidian Executive",
+      "kind": "case",
+      "tier": 4,
+      "version": 2,
+      "route": "text",
+      "note": "Text route on purpose. The 2-D master (cases/t4-obsidian-closed.png) draws a squat lidded box with no handle, so the image lift was a faithful lift of the wrong object and broke the tier ladder between T3's case and T5's. Regenerate that 2-D render and this can go back to the image route.",
+      "image": "art-review/briefcase/cases/t4-obsidian-closed.png",
+      "texture": "matte black executive briefcase, thin orange #FF6B00 pinline along the seam, holographic chrome latch, soft matte vinyl toy finish",
+      "prompt": "cute collectible toy briefcase in soft clay/vinyl style: a flat wide rectangular executive attache case standing upright, closed lid, a rounded carrying handle on top, a thin orange pinline along the seam and a single chrome latch, matte black, chunky rounded proportions, single object"
+    },
+    {
+      "slug": "t5-gold",
+      "name": "Gold Briefcase",
+      "kind": "case",
+      "tier": 5,
+      "version": 2,
+      "image": "art-review/briefcase/cases/t5-gold-closed.png",
+      "texture": "mirror-polished gold metal briefcase with an embossed star medallion, high metallic, low roughness",
+      "prompt": "cute collectible toy briefcase in soft clay/vinyl style, chunky rounded proportions, closed: mirror-polished gold briefcase with an embossed star medallion, single object"
+    },
+    {
+      "slug": "shark-token",
+      "name": "Shark Token",
+      "kind": "token",
+      "version": 2,
+      "image": "art-review/briefcase/props/shark-token.png",
+      "texture": "thick gold metal token with a raised grey-blue cartoon shark-fin emblem on the face, polished rim",
+      "prompt": "cute collectible toy token in soft clay/vinyl style: thick gold disc with a raised cartoon shark-fin emblem on the face, single object"
+    },
+    {
+      "slug": "key-t1",
+      "name": "Canvas Key",
+      "kind": "key",
+      "tier": 1,
+      "version": 1,
+      "image": "art-review/briefcase/keys/t1.png",
+      "texture": "chunky toy key in warm brass with a small canvas luggage tag tied to the bow",
+      "prompt": "cute collectible toy key in soft clay/vinyl style, chunky rounded proportions: warm brass key with a small canvas luggage tag tied to the bow, single object"
+    },
+    {
+      "slug": "key-t2",
+      "name": "Leather Key",
+      "kind": "key",
+      "tier": 2,
+      "version": 1,
+      "image": "art-review/briefcase/keys/t2.png",
+      "texture": "chunky toy key in ornate polished brass with a gold-buckle motif on the bow",
+      "prompt": "cute collectible toy key in soft clay/vinyl style, chunky rounded proportions: ornate polished brass key with a gold-buckle motif on the bow, single object"
+    },
+    {
+      "slug": "key-t3",
+      "name": "Titanium Key",
+      "kind": "key",
+      "tier": 3,
+      "version": 1,
+      "route": "text",
+      "note": "Text route on purpose. keys/t3.png draws a flat modern car-key at a steep tilt, and image-to-3D collapsed it into an unreadable lump on two separate attempts — the one silhouette in the key set the image route could not hold. The other four keys are image lifts.",
+      "image": "art-review/briefcase/keys/t3.png",
+      "texture": "chunky toy key in machined brushed titanium with a glowing cool-blue tip",
+      "prompt": "cute collectible toy key in soft clay/vinyl style, chunky rounded proportions: a single upright key with a wide rounded head with a hole through it, a long straight shaft and square teeth at the bottom, machined brushed titanium with a glowing cool-blue tip, single object"
+    },
+    {
+      "slug": "key-t4",
+      "name": "Obsidian Key",
+      "kind": "key",
+      "tier": 4,
+      "version": 1,
+      "image": "art-review/briefcase/keys/t4.png",
+      "texture": "chunky toy key in matte black with a glowing orange #FF6B00 core line",
+      "prompt": "cute collectible toy key in soft clay/vinyl style, chunky rounded proportions: matte black key with a glowing orange core line, single object"
+    },
+    {
+      "slug": "key-t5",
+      "name": "Gold Key",
+      "kind": "key",
+      "tier": 5,
+      "version": 1,
+      "image": "art-review/briefcase/keys/t5.png",
+      "texture": "chunky toy key in solid mirror-polished gold with a star-shaped bow, high metallic, low roughness",
+      "prompt": "cute collectible toy key in soft clay/vinyl style, chunky rounded proportions: solid mirror-polished gold key with a star-shaped bow, single object"
+    }
+  ]
+}

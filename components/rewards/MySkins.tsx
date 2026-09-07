@@ -1,9 +1,18 @@
 "use client";
 
+import dynamic from "next/dynamic";
+import { useReducedMotion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 
 import { RARITY_COLORS, TIER_RARITY, type Tier } from "@/lib/rewards/tables";
 import { play } from "@/lib/sound";
+
+/* Lazy for the same reason as in TokenShop: three.js is not part of reading
+   a collection, and this component also mounts inside the Closet. */
+const PropCanvas = dynamic(() => import("./PropCanvas"), {
+  ssr: false,
+  loading: () => <span className="inline-block h-5 w-5 align-text-bottom" />,
+});
 
 /**
  * MY SKINS — the collection, including everything not in it.
@@ -74,6 +83,7 @@ export default function MySkins({
    */
   embedded?: boolean;
 }) {
+  const reduced = useReducedMotion() ?? false;
   const [catalog, setCatalog] = useState<CatalogSkin[]>([]);
   const [owned, setOwned] = useState<OwnedRow[]>([]);
   const [tokens, setTokens] = useState(0);
@@ -138,9 +148,13 @@ export default function MySkins({
       <header className="flex flex-wrap items-baseline justify-between gap-3 px-4 pt-4 sm:px-6">
         <div>
           <h2 className="text-base font-bold tracking-tight">My skins</h2>
-          <p className="mt-0.5 text-2xs text-[var(--text-tertiary)]">
-            {ownedCount} of {catalog.length} collected · {tokens} Shark Tokens
-          </p>
+          {/* A div, not a p: PropCanvas renders a div, and the HTML parser
+              auto-closes a <p> at one — a hydration mismatch, not a style nit. */}
+          <div className="mt-0.5 flex items-center gap-1 text-2xs text-[var(--text-tertiary)]">
+            {ownedCount} of {catalog.length} collected ·
+            <PropCanvas slug="shark-token" spin={!reduced} speed={0.6} className="h-5 w-5 shrink-0" />
+            {tokens} Shark Tokens
+          </div>
         </div>
         <div className="flex items-center gap-1.5">
           {(["novus", "nova"] as Base[]).map((b) => (
