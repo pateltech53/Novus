@@ -1557,18 +1557,37 @@ textarea {
   inset: -8px;
 }
 
-/* Press state — touch's primary feedback. Hover is desktop-only, below. */
-.nv-press {
-  transition: transform 120ms var(--ease-out);
-}
-.nv-press:active {
-  transform: scale(0.97);
-}
+/* The press state lives with `.nv-press-row` further down, where the two
+   scales are chosen against each other and the reasoning is written out. A
+   second `.nv-press` pair used to sit here at identical specificity — 120ms
+   and scale(0.97) against the 50ms and scale(0.96) below — and lost every
+   declaration to source order, so it described a press this app has never
+   performed to anyone who read it first. */
 
 @media (hover: hover) {
   .nv-hover:hover {
     background: var(--action-hover);
   }
+}
+
+/*
+ * A life-log row the browser may skip while it is off screen.
+ *
+ * The log is append-only and its entries are memoised, so React stops
+ * re-rendering them — but the engine still has ~470 rows in it by year 10
+ * (measured; max 513), and layout and paint are the browser's own work, not
+ * React's. `content-visibility: auto` lets it skip both for anything outside
+ * the viewport, and the size hint keeps the scrollbar honest while it does:
+ * without one the container's height collapses to the rows it has drawn and
+ * the bar jumps around under the thumb.
+ *
+ * 3.25rem is a one-line entry with its own spacing. Rows that wrap are taller
+ * and correct themselves the moment they are rendered; the hint only has to be
+ * close enough that the scroll length does not lurch.
+ */
+.nv-logrow {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 3.25rem;
 }
 
 /* ── Motion ───────────────────────────────────────────────────────────────── */

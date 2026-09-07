@@ -19,6 +19,18 @@ export interface Impact {
   id: number;
   label: string;
   tone: "up" | "down" | "flat";
+  /**
+   * This chip's own place in the batch it arrived with, in seconds.
+   *
+   * Not derivable at render time, which is what it used to be: the delay read
+   * the index in the FLAT `items` array, so a second decision answered while
+   * the first batch was still on screen gave its chips delays of 0.24s, 0.30s,
+   * 0.36s instead of 0, 0.06, 0.12 — while their removal timer, measured from
+   * their own push and sized to their own batch, expired on the original
+   * schedule. Chips were being unmounted before or during the animation they
+   * were still waiting to start. Carried on the item, the two agree.
+   */
+  delay: number;
 }
 
 interface ImpactContextValue {
@@ -41,7 +53,9 @@ export function ImpactProvider({ children }: { children: React.ReactNode }) {
   const push = useCallback(
     (deltas: { label: string; tone: "up" | "down" | "flat" }[]) => {
       if (deltas.length === 0) return;
-      const batch = deltas.slice(0, 6).map((d) => ({ ...d, id: nextId.current++ }));
+      const batch = deltas
+        .slice(0, 6)
+        .map((d, k) => ({ ...d, id: nextId.current++, delay: k * STAGGER }));
       setItems((prev) => [...prev, ...batch]);
       /*
        * Floaters are transient; drop them once the animation has played out.
@@ -82,7 +96,7 @@ export function ImpactProvider({ children }: { children: React.ReactNode }) {
         aria-live="polite"
         className="pointer-events-none fixed inset-x-0 top-[38%] z-[75] flex flex-col items-center gap-1.5"
       >
-        {items.map((item, i) => (
+        {items.map((item) => (
           <motion.span
             key={item.id}
             className="tnum rounded-full px-3 py-1.5 text-sm font-extrabold shadow-[var(--e2)]"
@@ -98,7 +112,7 @@ export function ImpactProvider({ children }: { children: React.ReactNode }) {
             transition={{
               duration: (IMPACT_MS * 2) / 1000,
               times: [0, 0.15, 0.6, 1],
-              delay: i * STAGGER,
+              delay: item.delay,
             }}
           >
             {item.label}

@@ -149,7 +149,26 @@ export function probeNativeChrome(theme: "light" | "dark", tint: string): Promis
       recordMaterial(caps);
       if (!caps.available) return;
       const next = await NovusGlass.configure({ theme, tint });
-      writeInsets(next);
+      /*
+       * ── The probe's answer is a reset, not a measurement ──────────────────
+       *
+       * `configure()` returns `controller.reset()`, which withdraws the chrome
+       * a previous document left behind and hands back `ChromeInsets()` — zero
+       * by construction, not by measurement. Publishing it wrote three inline
+       * `0px` custom properties, and an inline declaration beats the
+       * stylesheet: the iOS seed in globals.css (`safe-area + 44/49`, which
+       * exists precisely so the first paint reserves a deck-sized space
+       * instead of none) was overwritten by zeros for the frames between the
+       * probe resolving and the first `setChrome` reply. The play screen's
+       * masthead padding and bottom spacer collapsed and then sprang back —
+       * the exact jump the seed was added to prevent, caused by the call that
+       * announces the chrome is there.
+       *
+       * A reset says nothing about geometry, so it publishes nothing. Every
+       * real measurement arrives through `setChrome`'s reply or the
+       * `insetsChanged` event, both of which are untouched.
+       */
+      if (next.top || next.bottom || next.tabBar) writeInsets(next);
       setOwned(true);
     } catch {
       /* No plugin, an old binary, or a native throw. The web chrome stands. */

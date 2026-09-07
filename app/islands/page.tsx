@@ -290,15 +290,27 @@ function IslandsPage() {
      * Reading that as "there is more water over there" put the hint on screen
      * for eight islands, pointing at nothing.
      */
+    /*
+     * Bail out when nothing changed.
+     *
+     * This runs on every scroll event of the ocean and always handed React a
+     * brand-new object, which `Object.is` can never match — so sailing the
+     * archipelago committed a render per event, on the one screen that is a
+     * WebGL sea with an island per company drawn over it. The state flips at
+     * most twice per gesture; the renders were continuous. `lib/scroll.ts`
+     * already documents this exact bail-out and why it matters ("a render on
+     * every scroll event would land inside exactly the frames this is
+     * protecting").
+     */
+    const same = (l: boolean, r: boolean) =>
+      setMore((prev) => (prev.left === l && prev.right === r ? prev : { left: l, right: r }));
+
     if (!el || field <= 100) {
-      setMore({ left: false, right: false });
+      same(false, false);
       return;
     }
     const slack = el.scrollWidth - el.clientWidth;
-    setMore({
-      left: el.scrollLeft > 24,
-      right: el.scrollLeft < slack - 24,
-    });
+    same(el.scrollLeft > 24, el.scrollLeft < slack - 24);
   }, [field]);
   /* Once on arrival, and again whenever the archipelago changes size — the
      hint has to be right before the first gesture, not after it. */

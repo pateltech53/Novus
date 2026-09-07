@@ -298,13 +298,26 @@ function FoundPage() {
         The company you already have, offered back before the form for a new
         one. It is the first thing on the screen because for a returning player
         it is the only thing they came for.
+
+        ── The row's height is reserved whether or not the row is there ──────
+
+        `game.islands` starts empty and is filled in a mount effect, because
+        localStorage is unreachable during render (GameProvider says so where
+        it initialises the field). So the server, the first client paint and
+        the coachmark measurement all saw no row, and then it appeared and
+        shoved the whole founding form — heading, name field, industry grid,
+        FOUND IT — down by its own height. On the screen where a returning
+        player's eye is already on the name field, the field moved out from
+        under it. The wrapper holds the space unconditionally; only its
+        contents are conditional.
       */}
+      <div className="mb-5 min-h-11">
       {game.islands.length > 0 && (
         <button
           type="button"
           onClick={() => resume(() => router.push("/islands"))}
           disabled={resuming}
-          className="mb-5 -ml-1 flex min-h-11 items-center gap-1.5 self-start text-2xs font-bold tracking-[0.08em] text-[var(--text-secondary)] disabled:opacity-60"
+          className="-ml-1 flex min-h-11 items-center gap-1.5 self-start text-2xs font-bold tracking-[0.08em] text-[var(--text-secondary)] disabled:opacity-60"
         >
           <span aria-hidden>◂</span>
           {resuming
@@ -314,6 +327,7 @@ function FoundPage() {
               : `BACK TO YOUR ${game.islands.length} ISLANDS`}
         </button>
       )}
+      </div>
 
       <p className="text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]">
         THE PAPERWORK

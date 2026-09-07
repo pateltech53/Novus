@@ -792,6 +792,23 @@ function PlayScreen() {
   useBackHandler(stageGuide, () => setStageGuide(false));
   useBackHandler(keyTerms, () => setKeyTerms(false));
   useBackHandler(logOpen, () => setLogOpen(false));
+  /*
+   * The four full screens, which had no entry at all.
+   *
+   * They are counted in `overlay` — they hide the native chrome — but none of
+   * them registered a dismissal, so `popBack()` found an empty stack and
+   * lib/native/boot.ts fell through to `history.back()`. Android's back button
+   * during the year-end statement, the autopsy or a pitch therefore left /play
+   * entirely, for whatever document happened to precede it.
+   *
+   * The two that have a dismissal get it. The other two swallow the press
+   * instead: Chapter Seven is the end of a company and is not something to
+   * walk out of by accident, and cancelling a pitch mid-recording on a stray
+   * thumb is worse than a press that does nothing.
+   */
+  useBackHandler(!!game.tierUnlock, game.dismissTierUnlock);
+  useBackHandler(!!yearEnd, game.closeYearEnd);
+  useBackHandler(!!autopsy || !!perform, () => {});
 
   if (!run) return <PlaySkeleton />;
 
@@ -1156,8 +1173,28 @@ function PlayScreen() {
         choices in STANCE_CHOICE_ORDER, so the stance maps straight back to a
         choice index and resolves through the exact same engine path.
       */}
+      {/*
+        ── The month's decision is inside a presence boundary too ────────────
+        │
+        │ It was not, and it is the surface a player sees more than any other.
+        │ Both sheets below have carried authored `exit` props since the motion
+        │ system landed, and neither had ever run one: outside every
+        │ AnimatePresence there is nothing to defer the unmount, so answering a
+        │ card made it vanish between two frames while the six activity screens
+        │ beside it faded. Exactly the "eighteen overlays and ZERO exits" the
+        │ block below this was written to end, on the one overlay that block
+        │ does not contain.
+        │
+        │ The keys are constant rather than per-event, deliberately. Card to
+        │ card inside one month is a content swap in a sheet that stays put —
+        │ keying on the event id would cross-fade two decision cards over each
+        │ other, which is a different and worse thing than the close this is
+        │ here to animate.
+      */}
+      <AnimatePresence>
       {isStanceQuestion ? (
         <PositioningSheet
+          key="stance"
           industry={run.industry}
           event={current}
           positioning={run.positioning ?? null}
@@ -1167,8 +1204,9 @@ function PlayScreen() {
           onDismiss={game.dismissCard}
         />
       ) : (
-        domDecisionSheet && (
+        domDecisionSheet && current && (
           <DecisionSheet
+            key="decision"
             event={current}
             choices={currentChoices}
             industry={run.industry}
@@ -1189,6 +1227,7 @@ function PlayScreen() {
           />
         )
       )}
+      </AnimatePresence>
 
       {/*
         ── Every overlay on this screen, inside one AnimatePresence ──────────
@@ -1292,14 +1331,22 @@ function PlayScreen() {
 
       {/* Fires the moment a stage promotion opens a new tier. It sits above
           the year-end statement on purpose: the wardrobe is the reward for
-          the year you just closed. */}
-      {game.tierUnlock && (
-        <TierUnlock
-          gender={run.avatar.gender}
-          tier={game.tierUnlock}
-          onClose={game.dismissTierUnlock}
-        />
-      )}
+          the year you just closed.
+
+          Its own boundary, for the same reason the decision sheet has one: the
+          component's root is a motion element carrying an `exit` that could
+          never run out here. A ceremony that ends by disappearing is not a
+          ceremony. */}
+      <AnimatePresence>
+        {game.tierUnlock && (
+          <TierUnlock
+            key="tier-unlock"
+            gender={run.avatar.gender}
+            tier={game.tierUnlock}
+            onClose={game.dismissTierUnlock}
+          />
+        )}
+      </AnimatePresence>
 
       {yearEnd && <YearEndStatement summary={yearEnd} />}
       {autopsy && !run.alive && <ChapterSeven report={autopsy} />}

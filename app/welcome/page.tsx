@@ -43,6 +43,7 @@ import {
 import { speak, stopSpeaking } from "@/lib/ai/speech";
 import { saveProfile, loadProfile } from "@/lib/engine/save";
 import { ENTRY_ROUTES, entryRoute } from "@/lib/entry";
+import { useBackHandler } from "@/lib/native/back";
 import {
   MIN_AGE,
   TOO_YOUNG_BODY,
@@ -81,6 +82,11 @@ export default function WelcomePage() {
   const [step, setStep] = useState<Step>("wave");
   /** The account sheet, over the opening screen. */
   const [signingIn, setSigningIn] = useState(false);
+  /* The sheet is React state with no history entry behind it, so Android's
+     back button had nothing to pop and left the app instead of closing it —
+     from the first screen a returning player ever taps. Same registration
+     every other overlay in the app makes (lib/native/back.ts). */
+  useBackHandler(signingIn, () => setSigningIn(false));
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
 
