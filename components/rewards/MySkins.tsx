@@ -189,7 +189,9 @@ export default function MySkins({ base = "novus" }: { base?: Base }) {
         headers: EQUIP_HEADERS,
         body: JSON.stringify({ itemId: null }),
       });
-      if (res.ok) {
+      // See ClosetRewards.tsx's takeOff() for why a 404 clears the record too:
+      // a signed-out device has no server row left to disagree with.
+      if (res.ok || res.status === 404) {
         takeOffRewardSkin();
         void load();
       } else {

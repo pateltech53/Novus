@@ -38,6 +38,17 @@
  *      fit comes off, and the Closet's own equip handler calls
  *      `takeOffRewardSkin()` before putting a fit on.
  *
+ * ── The key is on the shared-device wipe list ───────────────────────────────
+ *
+ * `lib/cloud/auth.ts`'s `DEVICE_KEYS` is what a shared classroom iPad relies
+ * on: everything a player's session touched is emptied on sign-out and
+ * sign-in, so the next student never inherits the last one's company. This
+ * key is on that list beside `novus:wardrobe:v1` — an equipped reward skin is
+ * exactly the kind of leftover that list exists to catch, and the "server
+ * wins on the next sync" rule above is not a substitute for it: that sync
+ * runs only from MY SKINS, which a new sign-in has no reason to visit before
+ * the old skin is already showing on the masthead.
+ *
  * ── Brand Law 4, stated where it would break ─────────────────────────────────
  *
  * COSMETIC ONLY. The only reader of this record is the portrait (and the row

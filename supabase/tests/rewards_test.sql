@@ -316,15 +316,16 @@ $$, 'a trial with no duration at all is refused');
 
 \echo ''
 \echo '=== 9. the tester flag is an operator decision, written by nobody else ==='
+-- The operator creates the row first, false, via the real function (an
+-- upsert) — so the player's write attempt below has an EXISTING row to fail
+-- against. An UPDATE against a row that does not exist yet affects zero rows
+-- whether or not a hole exists in the policy set, which would make this
+-- section's whole reason to exist pass for the wrong reason.
+select public.admin_set_rewards_beta('aaaaaaaa-0000-0000-0000-000000000001', false);
 select test.eq((select count(*)::bigint from public.entitlements
                  where profile_id = 'aaaaaaaa-0000-0000-0000-000000000001'
                    and rewards_beta), 0::bigint,
                'no account is a tester by default');
-select public.admin_set_rewards_beta('aaaaaaaa-0000-0000-0000-000000000001', true);
-select test.eq((select count(*)::bigint from public.entitlements
-                 where profile_id = 'aaaaaaaa-0000-0000-0000-000000000001'
-                   and rewards_beta), 1::bigint,
-               'the console can flag one account as a tester');
 
 set role authenticated;
 set request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-000000000001';
@@ -332,6 +333,16 @@ update public.entitlements set rewards_beta = true
  where profile_id = 'aaaaaaaa-0000-0000-0000-000000000001';
 reset role;
 reset request.jwt.claim.sub;
+select test.eq((select count(*)::bigint from public.entitlements
+                 where profile_id = 'aaaaaaaa-0000-0000-0000-000000000001'
+                   and rewards_beta), 0::bigint,
+               'and a player cannot flag themselves');
+
+select public.admin_set_rewards_beta('aaaaaaaa-0000-0000-0000-000000000001', true);
+select test.eq((select count(*)::bigint from public.entitlements
+                 where profile_id = 'aaaaaaaa-0000-0000-0000-000000000001'
+                   and rewards_beta), 1::bigint,
+               'the console can flag one account as a tester');
 select public.admin_set_rewards_beta('aaaaaaaa-0000-0000-0000-000000000001', false);
 select test.eq((select count(*)::bigint from public.entitlements
                  where profile_id = 'aaaaaaaa-0000-0000-0000-000000000001'

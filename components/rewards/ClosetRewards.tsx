@@ -122,7 +122,13 @@ export default function ClosetRewards({ base = "novus" }: { base?: "novus" | "no
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ itemId: null }),
       });
-      if (res.ok) takeOffRewardSkin();
+      // A signed-out device has no equipped row to stay in step with — its
+      // session died, so a 404 here means "nothing to unequip on the server
+      // any more" rather than "the tap failed." Clearing locally either way
+      // is what stops the button being dead on a device that lost its
+      // session, which is exactly the state DEVICE_KEYS is meant to prevent
+      // reaching this component in the first place (see lib/rewards/wear.ts).
+      if (res.ok || res.status === 404) takeOffRewardSkin();
       else play("error");
     } catch {
       play("error");
