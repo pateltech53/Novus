@@ -115,6 +115,10 @@ final class GlassSheetController: UIViewController, UIScrollViewDelegate {
         /// look wrong rather than look like nothing at all. Nothing should ever
         /// reach it: the smallest real card — eyebrow, title, one line of body,
         /// two choices — is comfortably past it.
+        /// The panel's floor. Coupled by hand to `MIN_PANEL_PX` in
+        /// components/native/useNativeSheet.ts, which treats a reported height
+        /// under its own threshold as a card that never arrived: that
+        /// threshold must stay ABOVE this number or the check can never fire.
         static let minHeight: CGFloat = 160
     }
 

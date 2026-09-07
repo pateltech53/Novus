@@ -649,7 +649,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       // yet at this line, so a tape that asked which island was open would be
       // answered with the one being left and would overwrite ITS tape.
       startTape(next, target);
-      if (next.pro) recordTap(next, { t: "pro", on: true });
+      // `target` again, and for the same reason: the island is still empty at
+      // this line, so `activeIsland()` would answer with the one being left and
+      // this entry would be checked against — and dropped by — that company's
+      // tape. It is the entry that tells the verifier the run is entitled to a
+      // Pro industry, so losing it silently is a second company that can never
+      // reach the board.
+      if (next.pro) recordTap(next, { t: "pro", on: true }, target);
       setQueue([]);
       setYearEnd(null);
       setAutopsy(null);

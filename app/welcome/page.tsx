@@ -42,7 +42,8 @@ import {
 } from "@/lib/media/recorder";
 import { speak, stopSpeaking } from "@/lib/ai/speech";
 import { saveProfile, loadProfile } from "@/lib/engine/save";
-import { entryRoute } from "@/lib/entry";
+import { ENTRY_ROUTES, entryRoute } from "@/lib/entry";
+import { useBackHandler } from "@/lib/native/back";
 import {
   MIN_AGE,
   TOO_YOUNG_BODY,
@@ -81,6 +82,11 @@ export default function WelcomePage() {
   const [step, setStep] = useState<Step>("wave");
   /** The account sheet, over the opening screen. */
   const [signingIn, setSigningIn] = useState(false);
+  /* The sheet is React state with no history entry behind it, so Android's
+     back button had nothing to pop and left the app instead of closing it —
+     from the first screen a returning player ever taps. Same registration
+     every other overlay in the app makes (lib/native/back.ts). */
+  useBackHandler(signingIn, () => setSigningIn(false));
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
 
@@ -99,10 +105,21 @@ export default function WelcomePage() {
 
   useEffect(() => () => stopSpeaking(), []);
 
-  // The paperwork screen is where this leads for the player it is written for.
-  // Someone re-running onboarding with a company still open goes back to it
-  // instead (lib/entry.ts), so both are warmed.
-  usePrefetch("/found", "/play");
+  /*
+   * Everywhere the button at the end of this can actually go.
+   *
+   * It warmed "/found" and "/play", and "/play" is not one of them: this
+   * screen's CONTINUE pushes `entryRoute()`, and `entryRoute()` answers
+   * "/islands" for anyone with a saved run — it stopped answering "/play" when
+   * the picker became the front door (lib/entry.ts carries the reasoning).
+   * So the heavy route a returning player actually lands on was the one route
+   * never warmed, while a route they cannot reach from here was.
+   *
+   * `ENTRY_ROUTES` is that function's own list, exported for exactly this and
+   * described in lib/entry.ts as "prefetch fodder", so the two cannot drift
+   * apart again.
+   */
+  usePrefetch(...ENTRY_ROUTES);
   /*
    * And the sheet this screen can open without leaving it.
    *
@@ -140,7 +157,7 @@ export default function WelcomePage() {
     // Onboarding is not a reason to lose a company. Someone who walks back
     // through these steps with a run in progress is returned to it.
     //
-    // Latched, because `entryRoute()` resolves to /play for anyone with a run —
+    // Latched, because `entryRoute()` resolves to /islands for anyone with a run —
     // the heaviest page in the app — and the last step of onboarding used to
     // end on a sheet that simply sat there through the whole chunk.
     go(() => router.push(entryRoute()));

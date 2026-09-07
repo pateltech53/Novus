@@ -98,8 +98,23 @@ const PRESENT_TIMEOUT_MS = 1200;
  *
  * A binary that predates the measurement sends no height at all. That is
  * treated as unknown and accepted — the watchdog above is what covers those.
+ *
+ * ── It has to clear the NATIVE floor, or it is unreachable ──────────────────
+ *
+ * `GlassSheetController.buildPanel` activates a required
+ * `heightAnchor >= Metric.minHeight`, and `minHeight` is 160. So a panel that
+ * collapses does not settle at 0 any more, it settles at 160 — and 160 is not
+ * below 80, so this check could never fire on the failure it was written for.
+ * What the player would get is a frosted backdrop with an empty 160pt card on
+ * it, accepted as presented, with the watchdog already disarmed and only the
+ * backdrop's dismiss tap answering a finger.
+ *
+ * 200 is above that floor and still far under the shortest real card (an
+ * eyebrow, a title, a line of body and two choices is well past 300), so it
+ * catches a collapse and never a short question. Coupled to
+ * `Metric.minHeight` by hand: raise that and raise this.
  */
-const MIN_PANEL_PX = 80;
+const MIN_PANEL_PX = 200;
 
 /** True when UIKit is presenting the card, so React must not. */
 export function useNativeSheet(options: NativeSheetOptions): boolean {
@@ -130,6 +145,31 @@ export function useNativeSheet(options: NativeSheetOptions): boolean {
    * change what a decision looks like between one month and the next.
    */
   const [refused, setRefused] = useState(false);
+
+  /*
+   * ── An ANSWER re-arms the presentation, not only a change of id ───────────
+   *
+   * The presentation effect keyed on the card's id alone. Two consecutive
+   * cards carrying the SAME id therefore looked like no change at all: the
+   * answer handler cleared `presented.current`, `id` never moved, the effect
+   * did not re-run, and nothing was ever presented for the second card.
+   *
+   * The board then went silent. `overlay` is true while `current` is non-null
+   * so the native chrome is in `hidden` mode; `nativeSheetOwned` is true so
+   * the DOM sheet is not rendered either; and the native sheet has already
+   * dismissed itself. The player is left with the background colour and one
+   * disabled button, on a month that has a decision in it.
+   *
+   * It is reachable: `advanceMonth` surfaces up to two cards per tap, Today's
+   * Market is picked from a pool that overlaps the month's draw
+   * (lib/engine/events.ts — `todaysMarket` and `drawMonthEvents` do not know
+   * about each other), so a turn can legitimately deal the same event twice.
+   * The engine is protected and the cards it deals are the leaderboard's
+   * business, so the fix belongs here: a counter the answer handlers bump,
+   * which makes "the player resolved something" a dependency in its own
+   * right.
+   */
+  const [answered, setAnswered] = useState(0);
 
   const optionsRef = useRef(options);
   optionsRef.current = options;
@@ -205,16 +245,19 @@ export function useNativeSheet(options: NativeSheetOptions): boolean {
       await add<{ id: string; index: number }>("sheetChoice", (d) => {
         if (!answering(d.id)) return;
         presented.current = null;
+        setAnswered((n) => n + 1);
         optionsRef.current.onChoose(d.index);
       });
       await add<{ id: string }>("sheetAction", (d) => {
         if (!answering(d.id)) return;
         presented.current = null;
+        setAnswered((n) => n + 1);
         optionsRef.current.onDismiss();
       });
       await add<{ id: string }>("sheetDismissed", (d) => {
         if (!answering(d.id)) return;
         presented.current = null;
+        setAnswered((n) => n + 1);
         optionsRef.current.onDismiss();
       });
     })().catch(() => {
@@ -268,10 +311,12 @@ export function useNativeSheet(options: NativeSheetOptions): boolean {
      */
     clearWatchdog();
     watchdog.current = window.setTimeout(fallBackToDom, PRESENT_TIMEOUT_MS);
-    // Only the identity of the card matters here. Rebuilding the spec on every
-    // render would re-present the same sheet and cut its own entrance short.
+    // The identity of the card, plus the fact that one was answered — see the
+    // note on `answered` above for the month this otherwise loses. Rebuilding
+    // the spec on every render would re-present the same sheet and cut its own
+    // entrance short, which is why the whole spec is still not a dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [live, id, theme]);
+  }, [live, id, theme, answered]);
 
   // Leaving the screen with a card up must not leave the card up.
   useEffect(() => {

@@ -137,11 +137,33 @@ export function startNativeShell(): () => void {
     document.documentElement.dataset.iosApp = "true";
   }
 
-  void wireBackButton().then((d) => disposers.push(d));
-  void wireKeyboard().then((d) => disposers.push(d));
-  void wireOutsideLinks().then((d) => disposers.push(d));
+  /*
+   * ── The teardown is authoritative, even for listeners still arriving ──────
+   *
+   * `addListener` is async on every Capacitor plugin, so these three resolve
+   * some time after this function returns. The disposers were pushed into the
+   * module-level array unconditionally: a shell that was stopped before a
+   * promise settled pushed its disposer into an array the stop had already
+   * emptied, and the listener stayed attached with nothing tracking it. The
+   * next start then added a SECOND set — Android's back peeling two layers per
+   * press, a widget deep link followed twice. React's StrictMode double effect
+   * produces exactly that sequence in development on every launch.
+   *
+   * `stopped` is captured per start, so a disposer that lands late is simply
+   * run instead of stored.
+   */
+  let stopped = false;
+  const keep = (d: () => void) => {
+    if (stopped) d();
+    else disposers.push(d);
+  };
+
+  void wireBackButton().then(keep);
+  void wireKeyboard().then(keep);
+  void wireOutsideLinks().then(keep);
 
   return () => {
+    stopped = true;
     disposers.forEach((d) => d());
     disposers = [];
     started = false;

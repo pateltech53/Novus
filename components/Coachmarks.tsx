@@ -96,17 +96,41 @@ function coachTarget(targetId: string): HTMLElement | null {
 /**
  * The spotlight anchor is often a wrapper div (so the hole can hug a group of
  * controls). Clicking a div does nothing, so resolve down to the real control.
+ *
+ * ── Why the point matters ───────────────────────────────────────────────────
+ *
+ * Three steps target `tabs`, and `tabs` is the whole bar: "Everything else
+ * lives here", then "PRODUCT is where you launch what you sell. Open it", then
+ * "CLOSET is yours." The hole is therefore six controls wide, and this
+ * function took the FIRST enabled button inside it — COMPANY, every time. A
+ * player told to open PRODUCT tapped PRODUCT inside the lit box and the
+ * Company screen came up, while the tutorial advanced as though it had gone to
+ * plan. (Only on the web and Android: on iOS the tab bar is a UIKit view above
+ * the webview and takes the tap itself.)
+ *
+ * So a tap resolves to the control the finger actually landed on, by
+ * hit-testing the candidates against the point. Without a point — the Enter
+ * key, which has no location — the first control is still the answer, which is
+ * the behaviour every single-control step already had.
  */
-function activate(targetId: string): boolean {
+function activate(targetId: string, at?: { x: number; y: number }): boolean {
   const host = coachTarget(targetId);
   if (!host) return false;
-  const control = host.matches("button, a, input, [role='button']")
-    ? host
-    : host.querySelector<HTMLElement>(
-        "button:not(:disabled), a, [role='button']",
-      );
-  if (!control) return false;
-  control.click();
+  if (host.matches("button, a, input, [role='button']")) {
+    host.click();
+    return true;
+  }
+  const controls = [
+    ...host.querySelectorAll<HTMLElement>("button:not(:disabled), a, [role='button']"),
+  ];
+  if (!controls.length) return false;
+  const hit =
+    at &&
+    controls.find((el) => {
+      const r = el.getBoundingClientRect();
+      return at.x >= r.left && at.x <= r.right && at.y >= r.top && at.y <= r.bottom;
+    });
+  (hit ?? controls[0]).click();
   return true;
 }
 
@@ -303,7 +327,9 @@ export function Coachmarks({
 
       // Let the real control receive the click, then move on. If the control
       // is missing or disabled, the step stays put rather than skipping ahead.
-      if (!activate(step.target)) return;
+      // The point goes with it, so a hole spanning six tabs opens the one the
+      // finger landed on rather than the leftmost — see `activate`.
+      if (!activate(step.target, { x: e.clientX, y: e.clientY })) return;
       if (index >= steps.length - 1) onFinish();
       else onAdvance();
     },

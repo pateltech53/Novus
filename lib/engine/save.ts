@@ -438,7 +438,13 @@ export function loadLegacy(): LegacyState {
 export function saveLegacy(legacy: LegacyState) {
   queueLegacy(legacy);
   if (!canStore()) return;
-  localStorage.setItem(KEYS.legacy, JSON.stringify(legacy));
+  try {
+    localStorage.setItem(KEYS.legacy, JSON.stringify(legacy));
+  } catch {
+    /* Same answer as every other writer here — see saveProfile below. This one
+       runs at a year close and at Chapter 7, which are the two worst moments
+       in the game to throw out of a handler. */
+  }
 }
 
 export function loadProfile(): Profile | null {
@@ -460,7 +466,23 @@ export function saveProfile(profile: Profile) {
     founderName: profile.founderName,
   });
   if (!canStore()) return;
-  localStorage.setItem(KEYS.profile, JSON.stringify(profile));
+  try {
+    localStorage.setItem(KEYS.profile, JSON.stringify(profile));
+  } catch {
+    /*
+     * A full or refused store is the same answer it is everywhere else in this
+     * file — flushRun, saveTable, writeIndex and setActiveIsland all swallow
+     * it, and say so. This one did not, and it is the write the onboarding
+     * flow makes on the way out: `saveProfile` is called from the handler
+     * behind CONTINUE on the welcome screen and behind FOUND IT, so a throw
+     * here took the click handler with it and the button did nothing at all,
+     * every time, with no error a player could act on. Safari's private mode
+     * and a full quota both produce exactly that.
+     *
+     * Losing the profile costs a re-run of onboarding. Losing the handler
+     * costs the app.
+     */
+  }
 }
 
 /**
@@ -513,15 +535,34 @@ export function adoptFromCloud(data: {
       }
     }
   }
-  if (data.legacy) localStorage.setItem(KEYS.legacy, JSON.stringify(data.legacy));
+  /*
+   * Guarded like the run writes above them. This function is the boot
+   * hydration: it runs once, on the path between "the account answered" and
+   * "the game is on screen", and a quota error thrown out of it leaves the
+   * player on a loading state with their local companies intact and
+   * unreachable. Whatever fits is kept; the rest stays on the server.
+   */
+  if (data.legacy) {
+    try {
+      localStorage.setItem(KEYS.legacy, JSON.stringify(data.legacy));
+    } catch {
+      /* The legacy ledger is a summary of finished companies; the live ones
+         above it are the part worth the quota. */
+    }
+  }
   if (data.prefs) {
     // playerAge never left this device, so it is restored from whatever is
     // already here rather than from the server, which has never seen it.
     const local = loadProfile();
-    localStorage.setItem(
-      KEYS.profile,
-      JSON.stringify({ ...data.prefs, playerAge: local?.playerAge ?? null } satisfies Profile),
-    );
+    try {
+      localStorage.setItem(
+        KEYS.profile,
+        JSON.stringify({ ...data.prefs, playerAge: local?.playerAge ?? null } satisfies Profile),
+      );
+    } catch {
+      /* The profile on this device stands. It is four fields and the player
+         can re-state them; the alternative is a boot that throws. */
+    }
   }
   if (data.runs?.length) announceIslands();
 }

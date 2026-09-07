@@ -135,7 +135,7 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
 
   return (
     <motion.div
-      className="fixed inset-0 z-40 overflow-y-auto bg-[var(--bg)]"
+      className="fixed inset-0 z-40 overflow-y-auto overscroll-contain bg-[var(--bg)]"
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 12 }}
