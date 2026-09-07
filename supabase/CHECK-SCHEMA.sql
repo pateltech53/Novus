@@ -29,11 +29,15 @@ from (
       to_regclass('public.runs') is not null
       and to_regclass('public.leaderboard_entries') is not null
       and to_regclass('public.submission_quota') is not null),
+    -- 0003 wrote `grant_extra_run_slot`; 0013 renamed it `grant_extra_island`.
+    -- Either name proves 0003 ran — a project sitting between the two used to
+    -- be reported as missing 0003 by this row.
     ('0003 billing', '0003_billing.sql',
       to_regclass('public.billing_customers') is not null
       and to_regclass('public.billing_events') is not null
       and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-                   where n.nspname = 'public' and p.proname = 'grant_extra_island')),
+                   where n.nspname = 'public'
+                     and p.proname in ('grant_extra_island', 'grant_extra_run_slot'))),
     ('0004 accounts', '0004_accounts.sql',
       exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                where n.nspname = 'public' and p.proname = 'delete_stale_anonymous_users')),
@@ -103,6 +107,17 @@ from (
                    where n.nspname = 'public' and p.proname = 'island_allowance')
       and exists (select 1 from pg_trigger g
                    where g.tgname = 'saves_island_cap' and not g.tgisinternal)),
+    ('0014 chapter seats ceiling', '0014_chapter_seats_ceiling.sql',
+      exists (select 1 from pg_constraint c
+               where c.conname = 'chapters_seats_check'
+                 and pg_get_constraintdef(c.oid) like '%10000%')),
+    ('0015 island ceiling', '0015_island_ceiling.sql',
+      exists (select 1 from pg_constraint c
+               where c.conname = 'saves_slot_check'
+                 and pg_get_constraintdef(c.oid) like '%49%')
+      and exists (select 1 from pg_constraint c
+                   where c.conname = 'entitlements_extra_islands_check'
+                     and pg_get_constraintdef(c.oid) like '%48%')),
     ('0016 admin insight', '0016_admin_insight.sql',
       exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                where n.nspname = 'public' and p.proname = 'admin_access')
@@ -114,5 +129,35 @@ from (
                    where table_schema = 'public' and table_name = 'admin_daily'
                      and column_name = 'pro_effective')
       and exists (select 1 from pg_trigger g
-                   where g.tgname = 'profiles_board_handle_rename' and not g.tgisinternal))
+                   where g.tgname = 'profiles_board_handle_rename' and not g.tgisinternal)),
+    ('0017 rewards', '0017_rewards.sql',
+      to_regclass('public.achievement_templates') is not null
+      and to_regclass('public.skins') is not null
+      and to_regclass('public.rewards') is not null
+      and to_regclass('public.briefcases') is not null
+      and to_regclass('public.inventory') is not null
+      and to_regclass('public.token_ledger') is not null
+      and to_regclass('public.reward_events') is not null
+      and to_regclass('public.milestones_claimed') is not null
+      and exists (select 1 from information_schema.columns
+                   where table_schema = 'public' and table_name = 'entitlements'
+                     and column_name = 'rewards_beta')
+      and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                   where n.nspname = 'public' and p.proname = 'open_briefcase')),
+    -- The seed is counted through query_to_xml: a bare `select count(*)` from
+    -- a table that does not exist fails at parse time, before any `case` could
+    -- guard it, and this file promises to run on a project that has nothing.
+    ('0018 rewards seed', '0018_rewards_seed.sql',
+      case when to_regclass('public.achievement_templates') is null then false
+           else (xpath('/row/c/text()', query_to_xml(
+                   'select count(*) as c from public.achievement_templates',
+                   false, true, '')))[1]::text::int > 0 end
+      and case when to_regclass('public.rewards') is null then false
+           else (xpath('/row/c/text()', query_to_xml(
+                   'select count(*) as c from public.rewards',
+                   false, true, '')))[1]::text::int > 0 end
+      and case when to_regclass('public.skins') is null then false
+           else (xpath('/row/c/text()', query_to_xml(
+                   'select count(*) as c from public.skins',
+                   false, true, '')))[1]::text::int > 0 end)
 ) as t(migration, file, present);

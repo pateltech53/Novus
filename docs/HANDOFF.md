@@ -275,9 +275,17 @@ history, not as work to finish.
 
 ### Known open items (inherited TODO list, roughly prioritized)
 
-1. Regenerate `supabase/APPLY-ALL.sql` for migrations 0017/0018 and add
-   0014/0015/0017/0018 rows to `CHECK-SCHEMA.sql` — a fresh deployment from
-   APPLY-ALL alone currently lacks the whole rewards schema.
+1. ~~Regenerate `supabase/APPLY-ALL.sql` for migrations 0017/0018 and add
+   0014/0015/0017/0018 rows to `CHECK-SCHEMA.sql`~~ — done (branch
+   `claude/sql-script-consolidation-w2v6wa`): APPLY-ALL covers 0001→0018,
+   CHECK-SCHEMA reports all 18 (and its 0003 row no longer misreports a
+   project sitting between 0003 and 0013). What remains of it: the 0018
+   section of APPLY-ALL is a verbatim copy that `npm run rewards:seed` does
+   not refresh — the repo-style fix is a validator script (`scripts/*.mjs`,
+   wired into `npm run check`) asserting the copy equals the migration, or
+   better, one that builds a scratch database from APPLY-ALL and from the
+   numbered migrations and diffs the two `pg_dump`s, which is exactly how
+   this consolidation was verified by hand.
 2. Write an RLS test suite for the rewards tables (0017) and add it to
    SUITES in `scripts/db-test.mjs` — "the client never rolls" is currently
    asserted only by the migration's policy shape.
@@ -419,17 +427,18 @@ several older documents still state things the code has moved past:
   docs/ACCOUNTS-SETUP.md is the authority.
 - **docs/APP.md, last "Known edges" bullet** — "Pro is still simulated":
   SIMULATE PRO was removed; store builds sell nothing, web sells real Stripe.
-- **docs/CHAPTERS.md §1** — "APPLY-ALL is 0001→0012": it now covers
-  0001→0016 (and migrations run to 0018).
 - **`.env.example`** — line ~69 uses the legacy `STRIPE_PRICE_EXTRA_RUN_SLOT`
   name (still honoured); lines ~77–78: the chapter_35 id
   `prod_V0RQl8TDKC3JKu` is **still current** (only its "$299" price comment
   is stale), but the chapter_100 id `prod_V0RRsSw8Z2z0hD` is genuinely
   retired — the current one is `prod_V4J52t9fUOcrVm`.
 - **supabase/RUN-THIS.sql** — the original 0006-era submission-path deploy
-  bundle; superseded by running the numbered migrations (or APPLY-ALL +
-  0017/0018). Its STEP 7 manual checks (the anon board-insert must fail
-  42501; the Brand Law 4 audit query) are still worth running on a fresh
-  deploy.
+  bundle; superseded by `supabase/APPLY-ALL.sql` (or the numbered
+  migrations). Its STEP 5 (the `novus-expire-tapes` pg_cron job) is the one
+  thing APPLY-ALL still does not do, and its STEP 7 manual checks (the anon
+  board-insert must fail 42501; the Brand Law 4 audit query) are still worth
+  running on a fresh deploy.
+- **docs/SUPABASE-SETUP.md §3** — "run 0001 then 0002 by hand": superseded by
+  APPLY-ALL (the section now says so at its top).
 - **docs/BUILD-PROMPT.md Phase 7** — assumes anonymous auth, stub-only AI,
   and a table set that never shipped; historical rationale only.
