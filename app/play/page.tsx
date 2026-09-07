@@ -181,6 +181,22 @@ const PositioningSheet = warm(() =>
   import("@/components/PositioningSheet").then((m) => m.PositioningSheet),
 );
 /*
+ * The one-time "Introducing Briefcases" card is NOT mounted here, and that is
+ * a decision rather than an omission.
+ *
+ * It is mounted on app/islands/page.tsx, which is where a returning player
+ * actually arrives: lib/entry.ts routes anybody with a saved company to the
+ * archipelago, and this board is reached by tapping an island from it. Two
+ * reasons it belongs there and not here. This route carries the tightest
+ * first-load budget in scripts/bundle-report.mjs — even lazily split, the
+ * gate that decides whether to show the card cost 0.4 kB gzipped and put
+ * /play over it, and a sheet seen once in a lifetime is not what that budget
+ * is for. And /play is where the player is playing: a card over the board a
+ * second after arriving interrupts a run, where the same card on the picker
+ * is part of coming back. A player who deep-links straight here still meets
+ * briefcases in the Closet's own band (components/rewards/ClosetRewards.tsx).
+ */
+/*
  * The height of the fade that sits ON TOP of the flow, immediately above the
  * fixed dock — `h-9` on the gradient below, kept here as a number because the
  * spacer at the end of the flow has to out-measure it.

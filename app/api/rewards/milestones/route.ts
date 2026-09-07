@@ -25,9 +25,11 @@ export const dynamic = "force-dynamic";
  * Every milestone below is checked against the player's SYNCED SAVE, not
  * against anything the client asserts. "Survive 10 years" is true when
  * `saves.year >= 10` on this server. That makes the whole family
- * self-healing: a player who earned one while the beta was off, or while
- * offline, collects it the next time this route runs, and there is no event
- * to miss.
+ * self-healing: a player who earned one before briefcases reached them, or
+ * while offline, collects it the next time this route runs, and there is no
+ * event to miss. It is also how every account that existed before the launch
+ * gets its first case: the career it already has is checked on the first
+ * visit to /rewards.
  *
  * Idempotency is the `milestones_claimed` row, not a timestamp comparison —
  * two taps race into one insert and the loser grants nothing.

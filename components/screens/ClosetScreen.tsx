@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { SHEET_SPRING } from "@/components/ui/Motion";
 import { useGame } from "@/lib/state/GameProvider";
-import { FounderPortrait } from "@/components/FounderAvatar";
+import { FounderPortrait, useWornRewardSkin } from "@/components/FounderAvatar";
 import ClosetRewards from "@/components/rewards/ClosetRewards";
+import { takeOffRewardSkin } from "@/lib/rewards/wear";
 import { Glass } from "@/components/ui/Glass";
 import {
   TIERS,
@@ -138,6 +139,13 @@ export function ClosetScreen({
     [],
   );
   const [equipped, setEquipped] = useState<SkinId | null>(() => loadWardrobe().equipped);
+  /*
+   * The briefcase skin underneath, if any. Read through the store's own hook
+   * rather than mirrored into local state, because the ceremony on /rewards
+   * and the WEARING row further down this screen both change it, and the
+   * portrait at the top has to follow either.
+   */
+  const wornReward = useWornRewardSkin();
 
   if (!run) return null;
 
@@ -155,6 +163,11 @@ export function ClosetScreen({
 
   const wear = (id: SkinId) => {
     const next = equipped === id ? null : id; // tap the worn fit to take it off
+    // One outfit at a time: putting a fit ON takes any briefcase skin off
+    // (lib/rewards/wear.ts does the reverse when a reward skin goes on).
+    // Taking a fit OFF leaves the reward record alone, so the founder falls
+    // back to whichever is underneath — the reward skin, else the tier.
+    if (next) takeOffRewardSkin();
     equipSkin(next); // persists + notifies every mounted FounderAvatar
     setEquipped(next);
   };
@@ -197,12 +210,14 @@ export function ClosetScreen({
 
       <div className="mx-auto w-full max-w-md px-5 pt-4 pb-[max(2rem,var(--nv-safe-bottom))]">
 
-        {/* Who you are right now. */}
+        {/* Who you are right now — the fit if one is worn, else the briefcase
+            skin, else the tier: the same precedence FounderAvatar applies on
+            every other screen, so the Closet shows what the masthead shows. */}
         <section className="mt-4 flex flex-col items-center rounded-[var(--radius-card)] bg-[var(--surface)] p-5 shadow-[var(--e2)]">
           <FounderPortrait
             gender={avatar.gender}
             tier={avatar.tier}
-            skin={wornSkin}
+            skin={wornSkin ?? wornReward}
             size={200}
             priority
           />
@@ -523,13 +538,16 @@ export function ClosetScreen({
         </p>
 
         {/*
-         * The briefcase collection — sealed cases, then every skin in the
-         * catalog with the uncollected ones as silhouettes.
+         * The briefcase loop's corner of the Closet — the sealed-cases band
+         * (or, signed out, a line saying briefcases need an account) and the
+         * reward skin currently worn, with its TAKE OFF. The collection grid
+         * itself lives on /rewards now; see the header essay in
+         * components/rewards/ClosetRewards.tsx for why it left this screen.
          *
-         * Renders NOTHING for an account outside the briefcase beta, which is
-         * why it sits inline rather than behind a conditional here: the
-         * component owns the gate, and the Closet does not need to know
-         * whether the flag is on.
+         * Sits inline rather than behind a conditional because the component
+         * owns its own three outcomes: the Closet does not need to know
+         * whether the player is signed in or whether the server has the
+         * rewards schema, and on a deploy without either it renders nothing.
          */}
         <ClosetRewards base={avatar.gender === "female" ? "nova" : "novus"} />
 

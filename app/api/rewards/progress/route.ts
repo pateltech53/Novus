@@ -75,6 +75,9 @@ export async function POST(req: NextRequest) {
 
   const touched: number[] = [];
   const perType = new Map<string, number>();
+  // Only the events that actually consumed budget get an audit row below —
+  // see the note there for why this list, not `events`, is what gets inserted.
+  const charged: PlayEvent[] = [];
 
   for (const event of events) {
     if (budget <= 0) break;
@@ -84,6 +87,7 @@ export async function POST(req: NextRequest) {
     perType.set(event.type, spent);
     if (spent > capFor(event.type)) continue;
     budget--;
+    charged.push(event);
 
     for (const slot of config.slots) {
       const row = rows.get(slot.slot);
@@ -121,14 +125,28 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // The audit trail the cap counts against. Cheap, and it is also the only
-  // record of what a player's day actually looked like when a number is
-  // disputed.
-  await db.from("reward_events").insert(
-    events.slice(0, 40).map((e) => ({
-      user_id: gate.userId, date, type: String(e.type).slice(0, 40),
-    })),
-  );
+  /*
+   * The audit trail the cap counts against — `charged`, never the raw
+   * `events` the client posted.
+   *
+   * This used to insert every posted event regardless of what the loop above
+   * actually did with it, so a request that hit the 600/day ceiling on its
+   * first event still wrote up to 40 rows, and nothing stopped a script from
+   * sending that request as fast as it liked: `reward_events` grew without
+   * bound even though the loop correctly refused to advance anything past the
+   * day's budget. `charged` is exactly the events that decremented `budget`,
+   * so its length can never exceed what `budget` had left for the day —
+   * once 600 rows exist for a reward-day, every further request writes zero
+   * more, which is what "rate-capped per day" (this file's own header, and
+   * docs/BRIEFCASES.md) was always meant to promise.
+   */
+  if (charged.length) {
+    await db.from("reward_events").insert(
+      charged.map((e) => ({
+        user_id: gate.userId, date, type: String(e.type).slice(0, 40),
+      })),
+    );
+  }
 
   return withSession(
     NextResponse.json({

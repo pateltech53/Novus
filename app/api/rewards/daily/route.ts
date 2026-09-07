@@ -18,6 +18,11 @@ export const dynamic = "force-dynamic";
  * for the day it thinks it is on rather than racing the reset seam, but it is
  * clamped to today or yesterday: letting a client name any date would let it
  * farm a fresh set of five by asking for tomorrow.
+ *
+ * `beta` rides along because this is the first thing /rewards fetches: it is
+ * how the screen knows whether to draw the BETA tab (the tester workbench,
+ * components/rewards/BetaPanel.tsx) for this account. The flag is read by the
+ * gate anyway, so telling the client costs nothing.
  */
 export async function GET(req: NextRequest) {
   const gate = await rewardGate(req);
@@ -58,7 +63,7 @@ export async function GET(req: NextRequest) {
   });
 
   return withSession(
-    NextResponse.json({ ok: true, date, slots }),
+    NextResponse.json({ ok: true, date, slots, beta: gate.beta }),
     gate.session,
   );
 }

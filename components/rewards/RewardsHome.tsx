@@ -6,7 +6,10 @@ import Ceremony, { type RevealPayload } from "./Ceremony";
 import MySkins from "./MySkins";
 import BetaPanel from "./BetaPanel";
 import TokenShop from "./TokenShop";
-import { RARITY_COLORS, TIER_ODDS, type Band, type Tier } from "@/lib/rewards/tables";
+import { identity } from "@/lib/cloud/auth";
+import { entryRoute } from "@/lib/entry";
+import { appPath } from "@/lib/native/href";
+import { TIER_ODDS, type Band, type Tier } from "@/lib/rewards/tables";
 import { play } from "@/lib/sound";
 import { startPlayHeartbeat } from "@/lib/rewards/report";
 
@@ -21,9 +24,44 @@ import { startPlayHeartbeat } from "@/lib/rewards/report";
  * The ceremony is mounted over the top rather than navigated to, for the same
  * reason and one more: the grant is already committed server-side when it
  * opens, so an overlay that is dismissed mid-animation loses nothing.
+ *
+ * ── Who sees what, now that the loop is launched ────────────────────────────
+ *
+ * Every /api/rewards route used to 404 for any account without a per-account
+ * beta flag, and this screen answered a 404 with empty lists — "No missions
+ * yet" — which was the correct face for a feature that did not officially
+ * exist. It is the wrong face now that briefcases are for every signed-in
+ * account, because a 404 has exactly two honest meanings and both deserve a
+ * sentence rather than a blank:
+ *
+ *   signed out     — the rolls happen on the server and the inventory lives
+ *                    there; there is nothing to show a device with no session.
+ *                    The screen says so and points at Settings, where sign-in
+ *                    lives inside the game.
+ *   unavailable    — a real account, and the server still refused. That is a
+ *                    deployment whose database never had migration 0017
+ *                    applied (the owner's own first report of "beta mode not
+ *                    working" was this). The words on screen name the check
+ *                    an operator can paste (supabase/CHECK-SCHEMA.sql) because
+ *                    a blank screen was what cost the last person a day.
+ *
+ * Telling the two apart is /api/auth/me's job, not the status code's: the gate
+ * deliberately answers 404 to both (lib/rewards/gate.ts).
+ *
+ * ── The BETA tab ────────────────────────────────────────────────────────────
+ *
+ * The tester workbench (BetaPanel) is the one part of this screen the old flag
+ * still gates. It is drawn only when /api/rewards/daily says `beta: true` for
+ * this account — the tab used to be in the bar for everyone and the panel
+ * behind it simply failed, which is the "secret menu is not showing" report
+ * in another form: a tab you can see and cannot use is a bug, not a secret.
  */
 
 type Tab = "today" | "vault" | "skins" | "shop" | "beta";
+
+/** What this device is allowed to see. Decided once per visit, from the first
+ *  fetch and — only if that refused — one question to /api/auth/me. */
+type Access = "loading" | "ok" | "signed-out" | "unavailable";
 
 interface DailySlotView {
   slot: number;
@@ -49,23 +87,43 @@ export default function RewardsHome() {
   const [reveal, setReveal] = useState<RevealPayload | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [oddsFor, setOddsFor] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [access, setAccess] = useState<Access>("loading");
+  /** This account holds the tester flag: draw the BETA tab. */
+  const [beta, setBeta] = useState(false);
 
   const load = useCallback(async () => {
-    const [daily, vault] = await Promise.all([
-      fetch("/api/rewards/daily", { credentials: "same-origin" }).then((r) => (r.ok ? r.json() : null)),
-      fetch("/api/rewards/vault", { credentials: "same-origin" }).then((r) => (r.ok ? r.json() : null)),
+    const [dailyRes, vault] = await Promise.all([
+      fetch("/api/rewards/daily", { credentials: "same-origin" }).catch(() => null),
+      fetch("/api/rewards/vault", { credentials: "same-origin" })
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null),
     ]);
-    if (daily?.slots) setSlots(daily.slots);
+    const daily = dailyRes?.ok ? await dailyRes.json().catch(() => null) : null;
+    if (daily?.slots) {
+      setSlots(daily.slots);
+      setBeta(Boolean(daily.beta));
+      setAccess("ok");
+    } else {
+      /*
+       * Refused. Signed out, or a server without the schema — the status is
+       * the same for both on purpose, so ask the one route that knows. A
+       * deployment with no Supabase at all (`configured: false`) is the
+       * "unavailable" face too: local-only play is a supported state, and
+       * this screen simply has nothing to offer it.
+       */
+      const who = await identity();
+      setAccess(who.configured && !who.signedIn ? "signed-out" : "unavailable");
+    }
     if (vault?.cases) setCases(vault.cases);
-    setLoading(false);
   }, []);
 
   useEffect(() => { void load(); }, [load]);
   /*
    * Career milestones are derived from the synced save, so they are checked on
    * every visit rather than pushed at the moment they happen. A player who
-   * passed one offline, or before the beta reached them, collects it here.
+   * passed one offline, or before briefcases reached them, collects it here —
+   * which is also how every existing account gets its first case the first
+   * time it opens this screen after the launch.
    */
   useEffect(() => {
     void fetch("/api/rewards/milestones", { method: "POST", credentials: "same-origin" })
@@ -76,6 +134,12 @@ export default function RewardsHome() {
   // "Play for N minutes today" is measured in foreground ticks, so the clock
   // runs while this screen is open too — it is part of the session.
   useEffect(() => startPlayHeartbeat(), []);
+
+  // A tab that is no longer drawn must not stay selected: the flag can be
+  // revoked between visits and the bar would point at nothing.
+  useEffect(() => {
+    if (tab === "beta" && !beta) setTab("today");
+  }, [tab, beta]);
 
   const claim = async (slot: number) => {
     setBusy(`claim-${slot}`);
@@ -113,47 +177,90 @@ export default function RewardsHome() {
   };
 
   const unopened = cases.length;
+  const loading = access === "loading";
+  const tabs = useMemo<[Tab, string][]>(() => {
+    const list: [Tab, string][] = [
+      ["today", "TODAY"],
+      ["vault", unopened ? `VAULT · ${unopened}` : "VAULT"],
+      ["skins", "MY SKINS"],
+      ["shop", "SHOP"],
+    ];
+    if (beta) list.push(["beta", "BETA"]);
+    return list;
+  }, [unopened, beta]);
 
   return (
     <main className="mx-auto min-h-dvh max-w-2xl">
       <header className="flex items-baseline justify-between gap-3 border-b border-[var(--hairline)] px-4 pb-3 pt-5 sm:px-6">
-        <h1 className="text-lg font-bold tracking-tight">Briefcases</h1>
-        <ResetPill />
+        <div className="flex items-baseline gap-3">
+          <BackToGame />
+          <h1 className="text-lg font-bold tracking-tight">Briefcases</h1>
+        </div>
+        {access === "ok" && <ResetPill />}
       </header>
 
-      {/* Solid, not blurred. The CSS material is retired app-wide — the gate in
-          globals.css keys every backdrop-filter off `[data-css-glass]`, which
-          nothing writes — but that gate is written against this app's own class
-          names and cannot see a raw Tailwind `backdrop-blur`. This was the last
-          live one: a per-frame full-surface blur pass, over a scrolling list,
-          on the one screen that also runs a canvas. */}
-      <nav className="sticky top-0 z-10 flex gap-1 border-b border-[var(--hairline)] bg-[var(--surface)] px-4 py-2 sm:px-6">
-        {([
-          ["today", "TODAY"],
-          ["vault", unopened ? `VAULT · ${unopened}` : "VAULT"],
-          ["skins", "MY SKINS"],
-          ["shop", "SHOP"],
-          ["beta", "BETA"],
-        ] as [Tab, string][]).map(([id, label]) => (
-          <button
-            key={id}
-            onClick={() => { setTab(id); play("tab"); }}
-            aria-pressed={tab === id}
-            className={`rounded-[var(--radius-row)] px-3 py-1.5 text-2xs tracking-[0.08em] ${
-              tab === id ? "bg-[var(--surface-elevated)] font-bold" : "text-[var(--text-tertiary)]"
-            }`}
-          >
-            {label}
-            {id === "vault" && unopened > 0 && (
-              <span className="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-[#FF6B00]" aria-hidden />
-            )}
-          </button>
-        ))}
-      </nav>
+      {access === "ok" && (
+        /* Solid, not blurred. The CSS material is retired app-wide — the gate
+           in globals.css keys every backdrop-filter off `[data-css-glass]`,
+           which nothing writes — but that gate is written against this app's
+           own class names and cannot see a raw Tailwind `backdrop-blur`. This
+           was the last live one: a per-frame full-surface blur pass, over a
+           scrolling list, on the one screen that also runs a canvas. */
+        <nav className="sticky top-0 z-10 flex gap-1 border-b border-[var(--hairline)] bg-[var(--surface)] px-4 py-2 sm:px-6">
+          {tabs.map(([id, label]) => (
+            <button
+              key={id}
+              onClick={() => { setTab(id); play("tab"); }}
+              aria-pressed={tab === id}
+              className={`rounded-[var(--radius-row)] px-3 py-1.5 text-2xs tracking-[0.08em] ${
+                tab === id ? "bg-[var(--surface-elevated)] font-bold" : "text-[var(--text-tertiary)]"
+              }`}
+            >
+              {label}
+              {id === "vault" && unopened > 0 && (
+                <span className="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-[var(--color-action)]" aria-hidden />
+              )}
+            </button>
+          ))}
+        </nav>
+      )}
 
       {loading && <p className="p-6 text-2xs tracking-[0.1em] text-[var(--text-tertiary)]">LOADING…</p>}
 
-      {!loading && tab === "today" && (
+      {access === "signed-out" && (
+        <section className="flex flex-col gap-3 p-4 pb-24 sm:p-6">
+          <p className="text-base font-bold tracking-tight">Briefcases need an account.</p>
+          <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
+            Five missions a day, the same five for everyone. Finish one and a
+            sealed briefcase is yours — a skin for your founder, Shark Tokens, or
+            a trial of Pro. The odds are printed on every case, and nothing
+            inside one touches your score.
+          </p>
+          <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
+            The case is rolled on the server and your collection lives there, so
+            it needs somewhere to live. Sign in from Settings inside your
+            company, and today&rsquo;s missions are waiting.
+          </p>
+        </section>
+      )}
+
+      {access === "unavailable" && (
+        <section className="flex flex-col gap-3 p-4 pb-24 sm:p-6">
+          <p className="text-base font-bold tracking-tight">Briefcases aren&rsquo;t switched on here yet.</p>
+          <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
+            Your account is fine — this server has not been set up for them. Nothing
+            you have earned is lost; it will be counted the moment it is.
+          </p>
+          <p className="rounded-[var(--radius-row)] border border-[var(--hairline)] px-3 py-2 text-2xs leading-relaxed text-[var(--text-tertiary)]">
+            Operator: paste <code>supabase/CHECK-SCHEMA.sql</code> into the Supabase
+            SQL editor. It prints one row per migration and names the file to run —
+            briefcases need <code>0017_rewards.sql</code> and <code>0018_rewards_seed.sql</code>,
+            which <code>APPLY-ALL.sql</code> older than this build did not include.
+          </p>
+        </section>
+      )}
+
+      {access === "ok" && tab === "today" && (
         <section className="flex flex-col gap-2 p-4 pb-24 sm:p-6">
           {slots.map((slot) => (
             <article
@@ -180,7 +287,7 @@ export default function RewardsHome() {
                   <button
                     onClick={() => void claim(slot.slot)}
                     disabled={busy !== null}
-                    className="shrink-0 animate-pulse rounded-[var(--radius-row)] bg-[#FF6B00] px-3 py-1.5 text-2xs font-bold text-white"
+                    className="shrink-0 animate-pulse rounded-[var(--radius-row)] bg-[var(--color-action)] px-3 py-1.5 text-2xs font-bold text-white"
                   >
                     UNLOCK REWARD
                   </button>
@@ -189,7 +296,7 @@ export default function RewardsHome() {
 
               <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--surface-elevated)]">
                 <div
-                  className="h-full rounded-full bg-[#FF6B00] transition-[width] duration-500"
+                  className="h-full rounded-full bg-[var(--color-action)] transition-[width] duration-500"
                   style={{ width: `${Math.min(100, (slot.progress / slot.target) * 100)}%` }}
                 />
               </div>
@@ -221,7 +328,7 @@ export default function RewardsHome() {
         </section>
       )}
 
-      {!loading && tab === "vault" && (
+      {access === "ok" && tab === "vault" && (
         <section className="flex flex-col gap-2 p-4 pb-24 sm:p-6">
           {cases.map((item) => (
             <button
@@ -238,7 +345,7 @@ export default function RewardsHome() {
                   {label(item.source)}
                 </span>
               </span>
-              <span className="shrink-0 text-2xs font-bold text-[#FF6B00]">OPEN</span>
+              <span className="shrink-0 text-2xs font-bold text-[var(--color-action)]">OPEN</span>
             </button>
           ))}
           {!cases.length && (
@@ -249,9 +356,9 @@ export default function RewardsHome() {
         </section>
       )}
 
-      {!loading && tab === "skins" && <MySkins />}
-      {!loading && tab === "shop" && <TokenShop onBought={(id) => void open(id)} />}
-      {!loading && tab === "beta" && <BetaPanel onOpenCase={(id) => void open(id)} />}
+      {access === "ok" && tab === "skins" && <MySkins />}
+      {access === "ok" && tab === "shop" && <TokenShop onBought={(id) => void open(id)} />}
+      {access === "ok" && tab === "beta" && beta && <BetaPanel onOpenCase={(id) => void open(id)} />}
 
       {reveal && (
         <Ceremony
@@ -261,6 +368,37 @@ export default function RewardsHome() {
         />
       )}
     </main>
+  );
+}
+
+/**
+ * The way back into the game.
+ *
+ * /rewards is a route of its own (see app/rewards/page.tsx for why), reached
+ * from the Closet band and the introduction sheet — and it had no way out
+ * except the browser's back button, which the iOS shell does not draw. Back
+ * when there is history to go back to (the common case: the Closet), and
+ * otherwise wherever the front door would send this device (lib/entry.ts):
+ * the islands picker for a player with a company, founding for one without.
+ * A document navigation rather than a router push because the destination is
+ * the game's own entry logic, which reads storage synchronously; `appPath`
+ * keeps it working inside an old bundled shell.
+ */
+function BackToGame() {
+  const go = () => {
+    play("tab");
+    if (window.history.length > 1) window.history.back();
+    else window.location.href = appPath(entryRoute());
+  };
+  return (
+    <button
+      type="button"
+      onClick={go}
+      className="text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]"
+      aria-label="Back to the game"
+    >
+      &larr; BACK
+    </button>
   );
 }
 
@@ -319,7 +457,7 @@ function ResetPill() {
   return (
     <span
       className={`tabular-nums text-2xs font-bold tracking-[0.06em] ${pulsing ? "animate-pulse" : ""}`}
-      style={{ color: urgent ? "#FF6B00" : "var(--text-tertiary)" }}
+      style={{ color: urgent ? "var(--color-action)" : "var(--text-tertiary)" }}
       title="Missions and the board reset at 09:00 UTC"
     >
       RESETS IN {String(h).padStart(2, "0")}:{String(m).padStart(2, "0")}:{String(s).padStart(2, "0")}

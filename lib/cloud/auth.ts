@@ -484,6 +484,13 @@ const DEVICE_KEYS = [
   "novus:wardrobe:v1",
   "novus:theme:v1",
   "novus:sound:v1",
+  // The reward skin worn on the founder's back (lib/rewards/wear.ts). Cosmetic
+  // only (Brand Law 4 — no stat or score reads it), but it is exactly the
+  // class of leftover this list exists to catch: without it, the next
+  // student to sign in on a shared device sees the outgoing student's earned
+  // design on their own founder until they happen to open MY SKINS, which is
+  // the only screen that resyncs it from the server.
+  "novus:rewardskin:v1",
 ];
 
 /** Does this key belong to one of the entries above, exactly or per island? */

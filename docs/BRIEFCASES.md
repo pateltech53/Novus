@@ -4,16 +4,62 @@ Daily missions → a case whose tier you do not know → a ceremony → a wardro
 identity. The design lives in the briefcase plan and build prompt; this is
 what was built, where it lives, and what is not finished.
 
-Everything is behind a per-account beta flag. Nothing below is reachable by a
-player an operator has not switched on.
+**Launched.** Every signed-in account earns, claims, opens and wears; a
+signed-out device gets a sign-in prompt instead of a blank. The per-account
+flag that used to hide the whole system (`entitlements.rewards_beta`) still
+exists and now marks a **tester** — see below. (Until 2026-09-06 the sentence
+here read "everything is behind a per-account beta flag"; that state is
+superseded, and `lib/rewards/gate.ts` carries the before-and-after.)
 
-## Turning it on for someone
+## What the server needs
 
-`/admin` → find the account → **BRIEFCASE BETA → TURN BETA ON**. Same band as
-GIFT PRO and the same shape: a cell only an operator can write
-(`entitlements.rewards_beta`), revocable in one tap. Every `/api/rewards/*`
-route 404s for accounts without it — a feature that is off should not
-advertise itself.
+The loop is server-authoritative, so it exists only on a deployment whose
+database has had `supabase/migrations/0017_rewards.sql`,
+`0018_rewards_seed.sql` **and** `0019_spend_tokens_lock.sql` applied, in that
+order. 0019 is not optional: without it every token-shop purchase fails,
+because the function that spends tokens could never run at all (see its
+header). `supabase/APPLY-ALL.sql`
+includes both since the launch PR — a copy of APPLY-ALL from before it stops
+at 0016, and pasting that one was the shape of the first "beta mode is not
+working" report. To find out what a project actually has, paste
+`supabase/CHECK-SCHEMA.sql` into the Supabase SQL editor: it prints one row
+per migration and names the file to run. A signed-in player on a server
+without the schema sees "Briefcases aren't switched on here yet" with the
+same instruction, rather than an empty list.
+
+Supabase is optional for the game and stays optional: with no project
+configured, `/rewards` says nothing is available and the Closet band does not
+render. Local-only play is a supported state.
+
+## How a player finds it
+
+- **The tutorial.** One step after CLOSET in the first-run tour
+  (`components/Coachmarks.tsx`, id `briefcases`): earned never bought, five a
+  day, the odds are printed, nothing inside touches the score.
+- **The introduction.** A player who was already onboarded before the launch
+  gets a one-time sheet the first time they open the game afterwards
+  (`components/rewards/BriefcaseIntro.tsx`, seen-flag in
+  `lib/rewards/intro.ts`). New players never see it — `/welcome` marks it seen
+  when it writes the profile, because the tour covers it.
+- **The Closet.** A BRIEFCASES band (`components/rewards/ClosetRewards.tsx`)
+  says how many sealed cases are waiting, or that today's missions are, and
+  links to `/rewards`. Signed out, it says briefcases need an account.
+- **Career milestones** are checked on every visit to `/rewards`, so an
+  account that existed before the launch collects what its record has already
+  earned on its first visit.
+
+## Tester tools
+
+`/admin` → find the account → **BRIEFCASE TESTER TOOLS → TURN TESTER TOOLS
+ON**. Same band as GIFT PRO and the same shape: a cell only an operator can
+write (`entitlements.rewards_beta`), revocable in one tap. What it opens is
+the **BETA tab** on `/rewards` (`components/rewards/BetaPanel.tsx`) and the
+route behind it, `/api/rewards/sim` — grant a case at any tier, complete a
+mission, unlock any skin, add tokens, reset the day. Everything on it acts on
+the tester's own account only. The tab is drawn only when `/api/rewards/daily`
+answers `beta: true`; the route 404s for everyone else. The route, the RPC
+(`admin_set_rewards_beta`) and the column keep their old names so the console,
+the audit log and 0017 stay in agreement.
 
 ## The loop
 
@@ -22,7 +68,7 @@ advertise itself.
 | **Earn** | Complete one of the day's five missions. Everyone in the world gets the same five, recomputed from the date rather than stored. |
 | **Claim** | The server rolls the tier and commits the case **before any animation plays**, so a browser that dies mid-ceremony has already banked it. |
 | **Open** | Three taps, each of which might upgrade the case, then the reveal. |
-| **Wear** | Skins land in MY SKINS; duplicates pay Shark Tokens instead. |
+| **Wear** | Skins land in MY SKINS and, once worn, on the founder everywhere `FounderAvatar` draws them; duplicates pay Shark Tokens instead. |
 
 Two other things hand out cases. **Career milestones** — first deal, five
 years, fiftieth pitch — are checked against the synced save on every visit, so
@@ -68,20 +114,25 @@ running — and `prefers-reduced-motion` gets none of it.
 | `lib/rewards/catalog.ts` | The non-skin reward pool. |
 | `supabase/migrations/0017_rewards.sql` | Tables, RLS, and the RPCs that commit an open. |
 | `supabase/migrations/0018_rewards_seed.sql` | **Generated** — `npm run rewards:seed`. Folded verbatim into `supabase/APPLY-ALL.sql` (its 0018 section): regenerate both together, or the one-paste deploy seeds stale content. |
+| `supabase/migrations/0019_spend_tokens_lock.sql` | The token shop's fix: `spend_tokens` locked with an aggregate and therefore always threw. |
+| `supabase/tests/rewards_test.sql` | The RLS shape, as 55 runnable checks. |
 | `components/rewards/Ceremony.tsx` | The taps and the reveal. |
 | `components/rewards/CaseCanvas.tsx` | The rotating 3-D case. |
-| `components/rewards/MySkins.tsx` | The collection, including what is not in it. |
+| `components/rewards/MySkins.tsx` | The collection, including what is not in it. Lives on `/rewards` only — it left the Closet on 2026-09-06 (101 cells of near-black on a phone was the report). |
+| `lib/rewards/wear.ts` | Which reward skin is worn, device-local, so `FounderAvatar` can draw it synchronously. One outfit at a time: wearing a reward skin takes the Closet fit off and vice versa. |
+| `lib/rewards/intro.ts` | The seen-flag for the introduction sheet. |
+| `components/rewards/BriefcaseIntro.tsx` | "Introducing Briefcases" — shown once to players who predate the launch. |
 | `components/rewards/BetaPanel.tsx` | The tester's shortcuts. |
 | `components/rewards/TokenShop.tsx` | Spend tokens on a skin you picked. |
 | `components/rewards/RewardsHome.tsx` | `/rewards` — today, vault, skins, shop, beta. |
-| `components/rewards/ClosetRewards.tsx` | The same collection, inside the Closet. |
+| `components/rewards/ClosetRewards.tsx` | The BRIEFCASES band inside the Closet: sealed count, what is worn, a sign-in prompt when signed out. |
 | `components/rewards/Confetti.tsx` | The burst. One canvas, not 240 divs. |
 | `components/rewards/BetaAutopilot.tsx` | `/play?beta=tank` — drive a run to the panel. |
 | `lib/rewards/progress.ts` | What a moment of play is worth, and which half of it is trusted. |
 | `lib/rewards/report.ts` | The client end: batched, fire-and-forget, silent off-beta. |
 | `lib/rewards/moments.ts` | Which activity counts as which moment. |
 | `lib/rewards/latch.ts` | The two facts that have to survive between moments. |
-| `app/api/rewards/*` | Twelve routes, all 404 without the flag. |
+| `app/api/rewards/*` | Twelve routes. All need a signed-in account (`rewardGate`); `/sim` also needs the tester flag (`betaGate`); `/odds` and `/time` are public. |
 | `public/briefcase/models/*-v<n>.glb` | The eleven 3-D props — five cases, the Shark Token, five keys — from Meshy. Regenerated through `npm run art:models`; see [BRIEFCASE-MODELS.md](./BRIEFCASE-MODELS.md). |
 | `components/rewards/PropCanvas.tsx` | The small turning prop (the coin beside a balance), and `fitToBox`. |
 | `assets-src/briefcase/models.json` | The 3-D registry: slug, version, source art, prompts. |
@@ -151,6 +202,7 @@ complete is worse than one fewer too.
 ```sh
 npm run test:rewards     # the acceptance criteria, runnable
 npm run rewards:seed     # regenerate 0018 after editing templates/catalog/skins
+npm run test:db          # includes supabase/tests/rewards_test.sql — the RLS shape 0017 promises
 ```
 
 `test:rewards` proves the parts that are statistical or structural and would
@@ -159,10 +211,10 @@ odds, the floor rule is never violated, 60 days generate identically on
 recompute with no template repeating inside two days, and 08:59 UTC still
 scores yesterday.
 
-For everything else there are the **beta tools** on a beta account — grant a
-case at any tier, mark a mission done (the real claim path then runs), unlock
-any of the 101 skins from a search box or any of the six Closet fits, add
-tokens, reset the day, and autopilot a run to the year-end tank. A Gold case is
+For everything else there are the **tester tools** on a flagged account —
+grant a case at any tier, mark a mission done (the real claim path then runs),
+unlock any of the 101 skins from a search box or any of the six Closet fits,
+add tokens, reset the day, and autopilot a run to the year-end tank. A Gold case is
 a 2.5% roll on the hardest daily; verifying the Legendary reveal by playing
 honestly would take a fortnight and luck.
 

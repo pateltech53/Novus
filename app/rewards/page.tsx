@@ -4,7 +4,8 @@ import RewardsHome from "@/components/rewards/RewardsHome";
 
 export const metadata: Metadata = {
   title: "Briefcases · Novus",
-  // Reached by URL while the beta is on, and linked from nowhere public.
+  // A signed-in screen: nothing on it renders for a crawler, and the odds it
+  // publishes are already on /api/rewards/odds.
   robots: { index: false, follow: false },
 };
 
@@ -15,9 +16,11 @@ export const metadata: Metadata = {
  * BETWEEN sessions as often as during one: a player opening the app to see
  * what today asks for has not started a run yet, and should not have to.
  *
- * Everything under it is gated per account. An account outside the beta gets
- * empty lists rather than an error, because every /api/rewards route answers
- * 404 for them — a feature that is off should not advertise itself.
+ * Everything under it needs a signed-in account — the rolls happen on the
+ * server and the inventory lives there (lib/rewards/gate.ts). A signed-out
+ * visitor gets a sign-in prompt from RewardsHome rather than an error, and a
+ * server that never had migration 0017 applied gets told so in words an
+ * operator can act on (supabase/CHECK-SCHEMA.sql names the file to run).
  */
 export default function RewardsPage() {
   return <RewardsHome />;

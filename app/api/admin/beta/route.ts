@@ -8,16 +8,19 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * POST /api/admin/beta — turn the briefcase system on for one account.
+ * POST /api/admin/beta — flag one account as a briefcase TESTER.
  *
  * `{ profileId, active }` → admin_set_rewards_beta (0017). Deliberately the
- * same shape as /api/admin/comp: the console's grant band treats a beta flag
+ * same shape as /api/admin/comp: the console's grant band treats a tester flag
  * and a gifted Pro as the same kind of operator decision, and an operator who
  * knows one knows the other.
  *
- * The flag is what "ship to staff, then to 10%" actually means here — a cell
- * in the database rather than a redeploy, and revocable in one tap when a
- * tester finds something ugly.
+ * The flag used to switch the whole reward loop on for an account — "ship to
+ * staff, then to 10%", a cell in the database rather than a redeploy. The loop
+ * has launched to every signed-in account since (lib/rewards/gate.ts), and the
+ * cell now opens only the workbench: /api/rewards/sim and the BETA tab on
+ * /rewards. Still revocable in one tap. The route name and the RPC keep their
+ * old names so the console, the audit log and 0017 stay in agreement.
  */
 
 const bad = (status: number, error: string) =>

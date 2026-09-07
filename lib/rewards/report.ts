@@ -17,15 +17,16 @@ import type { PlayEvent } from "./progress";
  * ── Why it never blocks and never throws ────────────────────────────────────
  *
  * The reward loop is a layer ON TOP of the game. If this endpoint is down, or
- * the account is not in the beta, or the network drops, the correct outcome is
- * that the player keeps playing and notices nothing. Every failure here is
- * swallowed on purpose — there is no state in the game that depends on the
- * answer, because progress lives on the server.
+ * nobody is signed in on this device, or the network drops, the correct
+ * outcome is that the player keeps playing and notices nothing. Every failure
+ * here is swallowed on purpose — there is no state in the game that depends on
+ * the answer, because progress lives on the server.
  */
 
 let queue: PlayEvent[] = [];
 let timer: ReturnType<typeof setTimeout> | null = null;
-/** Set once the endpoint 404s — an account outside the beta stops trying. */
+/** Set once the endpoint 404s — a signed-out device stops trying. (The gate
+ *  used to be a per-account beta flag; it is now "is anyone signed in".) */
 let disabled = false;
 
 const FLUSH_MS = 4000;
@@ -44,7 +45,7 @@ async function flush(): Promise<void> {
       body: JSON.stringify({ events }),
       keepalive: true,           // survives the tab closing
     });
-    // 404 is the reward gate saying "not for this account". Stop asking.
+    // 404 is the reward gate saying "nobody is signed in here". Stop asking.
     if (res.status === 404) disabled = true;
   } catch {
     // Offline, or the route is not deployed. The moments are dropped rather

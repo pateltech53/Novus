@@ -568,11 +568,14 @@ export default function AdminPage() {
     );
 
   /*
-   * The briefcase beta, on or off for one account.
+   * The briefcase TESTER flag, on or off for one account.
    *
    * Deliberately the same shape as the gift above: an operator decision
-   * written to a cell nobody else can write, revocable in one tap. That is
-   * what "ship to staff, then to 10%" means in practice — not a redeploy.
+   * written to a cell nobody else can write, revocable in one tap. It used to
+   * switch the whole reward loop on for an account — "ship to staff, then to
+   * 10%" — and the loop has since launched to every signed-in account
+   * (lib/rewards/gate.ts). What the cell opens now is the workbench:
+   * /api/rewards/sim and the BETA tab on /rewards.
    */
   const setBeta = (id: string, active: boolean) =>
     act(
@@ -1772,25 +1775,25 @@ function DetailPanel({
         </div>
       </div>
 
-      {/* Briefcase beta */}
+      {/* Briefcase tester tools */}
       <div>
         <p className="text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]">
-          BRIEFCASE BETA{e?.rewards_beta ? " — on for this account" : ""}
+          BRIEFCASE TESTER TOOLS{e?.rewards_beta ? " — on for this account" : ""}
         </p>
         <p className="mt-1 text-2xs leading-relaxed text-[var(--text-secondary)]">
-          Daily missions, cases, the unlock ceremony and the wardrobe. While it is
-          on, this account also gets the tester shortcuts — grant a case at any
-          tier, complete a mission, unlock any skin — which act only on their own
-          account.
+          Every signed-in account already has briefcases — daily missions, cases,
+          the unlock ceremony and the wardrobe. This flag adds the BETA tab on
+          /rewards: grant a case at any tier, complete a mission, unlock any skin,
+          add tokens, reset the day. Everything on it acts only on this account.
         </p>
         <div className="mt-2 flex flex-wrap gap-2">
           {e?.rewards_beta ? (
             <Chip onClick={() => onSetBeta(false)} disabled={busy !== null} danger>
-              TURN BETA OFF
+              TURN TESTER TOOLS OFF
             </Chip>
           ) : (
             <Chip onClick={() => onSetBeta(true)} disabled={busy !== null}>
-              TURN BETA ON
+              TURN TESTER TOOLS ON
             </Chip>
           )}
         </div>

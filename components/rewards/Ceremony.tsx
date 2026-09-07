@@ -11,6 +11,7 @@ import { play } from "@/lib/sound";
 import {
   RARITY_COLORS, RARITY_TIER, TIER_NAMES, UPGRADE_TAPS, type Rarity, type Tier,
 } from "@/lib/rewards/tables";
+import { wearRewardSkin } from "@/lib/rewards/wear";
 
 /*
  * The 3-D case is the heaviest thing on this screen and it is not needed until
@@ -270,6 +271,18 @@ export default function Ceremony({
             onCollectEquip={async () => {
               setEquipped(item.itemId);
               await onEquip?.(item.itemId);
+              /*
+               * The founder changes clothes here, not on the next inventory
+               * load. The server has the equip; this is the device-local
+               * record every mounted portrait reads (lib/rewards/wear.ts).
+               * Tier from rarity, the same one-to-one map the artwork path
+               * above uses.
+               */
+              wearRewardSkin({
+                id: item.itemId.replace(/^skin_/, ""),
+                tier: RARITY_TIER[item.rarity],
+                name: item.name,
+              });
               nextItem();
             }}
           />

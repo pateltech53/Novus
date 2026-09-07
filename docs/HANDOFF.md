@@ -284,6 +284,88 @@ included) fails `check` and CI. The Meshy MCP server is configured in
 
 ---
 
+### Era 7 · Briefcases for everyone (Sep 6)
+
+The owner's report, verbatim in spirit: "beta mode is not working on any of
+my lives or runs — it is not showing me the secret menu to simulate chests. I
+ran the SQL. Chests should now go to all users, the tutorial should mention
+them, and after the update it should say 'introducing chests'. Also fix the
+skin unlock menu — you can remove it from the Closet, it's like 100 black
+squares." Triage, in the order the report was made:
+
+- **"I ran the SQL" — real, and not the owner's fault.** `supabase/APPLY-ALL.sql`
+  stopped at 0016 (open item 1 below, now closed), so a paste of it never
+  created `entitlements.rewards_beta`, the rewards tables, or the
+  `admin_set_rewards_beta` RPC; the console's TURN BETA ON then failed with
+  "beta toggle failed", and nothing in the repo could tell an operator which
+  migration was missing. APPLY-ALL now carries 0017/0018, `CHECK-SCHEMA.sql`
+  has rows for 0014/0015/0017/0018 (with a plan-safe seed check via
+  `query_to_xml`, because a query that names a missing table fails before it
+  can report the table is missing), and a signed-in player on a server
+  without the schema now reads "Briefcases aren't switched on here yet" with
+  the file to paste, instead of an empty list.
+- **"Not showing the secret menu" — real, two causes.** The BETA tab was drawn
+  for every account and the panel behind it simply failed off-flag; and
+  `/rewards` was linked from nowhere but a Closet band that itself rendered
+  only with the flag, so the only door to the workbench was behind the thing
+  the workbench was for. The tab is now drawn only when `/api/rewards/daily`
+  answers `beta: true`, and the Closet band renders for every signed-in
+  account.
+- **"Chests to all users" — done.** `lib/rewards/gate.ts`: `rewardGate` is
+  "is anyone signed in"; `betaGate` (flag + session) guards only
+  `/api/rewards/sim`. The flag was renamed in the console to BRIEFCASE
+  TESTER TOOLS; the column, route and RPC keep their names. Signed-out
+  devices get a sign-in prompt on `/rewards` and in the Closet. Local-only
+  play (no Supabase) stays supported — nothing renders. Copy says
+  **briefcase**, never chest.
+- **Tutorial + introduction — done.** A `briefcases` coach step after CLOSET
+  (targets the tab bar, so no native chrome change), and a one-time
+  "Introducing Briefcases" sheet (`components/rewards/BriefcaseIntro.tsx`,
+  seen-flag `novus:briefcases:intro:v1`) for players who predate the launch,
+  mounted lazily on /play and /islands; `/welcome` marks it seen for new
+  profiles so the tour is their introduction.
+- **"100 black squares" — real.** `MySkins` embedded in the Closet drew 101
+  cells on a raw `#0B1220` with the locked silhouette at opacity 0.13, and 32
+  renders do not exist on disk (manifest `urls: null`). The grid left the
+  Closet (the band stays); on `/rewards` the cells sit on tokens, locked
+  silhouettes are legible, and a missing render falls back to a placeholder.
+- **Found in passing, closed: reward skins were never drawn on the founder.**
+  `FounderAvatar` read only the Closet's six fits; the inventory's `equipped`
+  flag was read by nothing outside `components/rewards/`. `lib/rewards/wear.ts`
+  keeps the worn reward skin device-local (server wins on inventory sync),
+  `FounderPortrait` draws it, one outfit at a time with the Closet track, and
+  `/api/rewards/equip` accepts `itemId: null` to take it off. The renders are
+  art-compatible (transparent full-body founders in the portrait composition).
+- **Also landed:** `supabase/tests/rewards_test.sql` (open item 2), the RLS
+  shape 0017 promises — client never writes, own-rows only, idempotent open,
+  no permanent Pro. 54 checks; `npm run test:db` is 10 suites / 320 checks.
+- **The new suite immediately found a live defect, fixed in
+  `0019_spend_tokens_lock.sql`.** `spend_tokens` reached for its lock with
+  `select sum(...) ... for update`, which Postgres refuses outright (0A000,
+  "FOR UPDATE is not allowed with aggregate functions"). The function threw
+  for every caller, so `/api/rewards/shop` answered 503 to every purchase ever
+  attempted — invisible because the system was behind the beta flag and the
+  shop is the last screen a tester reaches. Replaced with a per-player
+  advisory lock, which is the invariant that was actually wanted. **Apply 0019
+  along with 0017/0018.**
+
+Decisions made in-session without the owner, flagged in the PR for reversal:
+rewards require an account (there is no local-only briefcase — the roll is
+server-side and that is the anti-cheat); the wear pipeline was added rather
+than shipping skins that could not be worn; the sign-in prompt is text
+("Sign in from Settings") rather than a deep link, because sign-in lives in
+three places depending on storefront and none is reachable by a plain href.
+
+**Operator action required before this is live for players:** paste
+`supabase/CHECK-SCHEMA.sql` into the Novus project's SQL editor; apply
+whatever it reports MISSING (at minimum `0017_rewards.sql`,
+`0018_rewards_seed.sql` and `0019_spend_tokens_lock.sql`, or the regenerated
+`APPLY-ALL.sql`); then flag
+tester accounts from `/admin`. Note for anyone with the Supabase MCP
+connector attached: in the session that built this it pointed at a different
+project (a sneaker database), so nothing about the Novus database was
+verified from inside the session.
+
 ## 2. Current state (at `main` = 337c7fb, 2026-08-30)
 
 A playable, monetized company life-sim on web + iOS + Android. Everything in
@@ -325,19 +407,20 @@ history, not as work to finish.
 ### Known open items (inherited TODO list, roughly prioritized)
 
 1. ~~Regenerate `supabase/APPLY-ALL.sql` for migrations 0017/0018 and add
-   0014/0015/0017/0018 rows to `CHECK-SCHEMA.sql`~~ — done (branch
-   `claude/sql-script-consolidation-w2v6wa`): APPLY-ALL covers 0001→0018,
-   CHECK-SCHEMA reports all 18 (and its 0003 row no longer misreports a
-   project sitting between 0003 and 0013). What remains of it: the 0018
-   section of APPLY-ALL is a verbatim copy that `npm run rewards:seed` does
-   not refresh — the repo-style fix is a validator script (`scripts/*.mjs`,
+   0014/0015/0017/0018 rows to `CHECK-SCHEMA.sql`~~ — done twice, by two
+   sessions working at once: Era 7 below carried it to 0019, and branch
+   `claude/sql-script-consolidation-w2v6wa` did the same work independently
+   for 0001→0018 (and fixed CHECK-SCHEMA's 0003 row, which used to misreport
+   a project sitting between 0003 and 0013 — carried forward here). What
+   remains open from either pass: the 0018 (and now 0019) sections of
+   APPLY-ALL are verbatim copies that `npm run rewards:seed` does not
+   refresh — the repo-style fix is a validator script (`scripts/*.mjs`,
    wired into `npm run check`) asserting the copy equals the migration, or
    better, one that builds a scratch database from APPLY-ALL and from the
    numbered migrations and diffs the two `pg_dump`s, which is exactly how
-   this consolidation was verified by hand.
-2. Write an RLS test suite for the rewards tables (0017) and add it to
-   SUITES in `scripts/db-test.mjs` — "the client never rolls" is currently
-   asserted only by the migration's policy shape.
+   this consolidation was verified by hand both times.
+2. ~~Write an RLS test suite for the rewards tables (0017)~~ — done in Era 7
+   (`supabase/tests/rewards_test.sql`).
 3. Regenerate the 32 missing briefcase renders once Gemini credits/billing
    allow (10 of the 32 are safety-filter refusals on formalwear that need
    reworded prompts). The durable record of what is missing is
@@ -351,9 +434,12 @@ history, not as work to finish.
    Once the 2-D master reads as an executive attaché, drop that route pin and
    regenerate the mesh from it. Same trip: `keys/t1.png` has the stock-art
    words "FINANCE & WEALTH" on its tag, and the 3-D lift reproduced them.
-5. Rewards beta: decide when to lift `rewards_beta` to everyone; BRIEFCASES.md
-   lists the finish work (4 delivery templates dark, weekly challenge unread,
-   bespoke SFX absent).
+5. ~~Rewards beta: decide when to lift `rewards_beta` to everyone~~ — lifted in
+   Era 7; the flag now marks testers. BRIEFCASES.md still lists the finish
+   work (4 delivery templates dark, weekly challenge unread, bespoke SFX
+   absent), plus two launch follow-ups: a real sign-in affordance from
+   `/rewards` and the Closet band (currently "Sign in from Settings" in
+   words), and whether the introduction sheet should also run on `/found`.
 6. Split the activity registry off GameProvider — /islands pays ~9 kB of
    /play's Playbook prose for no reason (recorded in the #105 commit).
 7. The §12.3 balance question: the design band wants 30–45% survival; the

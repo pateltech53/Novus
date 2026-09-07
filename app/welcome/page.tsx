@@ -42,6 +42,7 @@ import {
 } from "@/lib/media/recorder";
 import { speak, stopSpeaking } from "@/lib/ai/speech";
 import { saveProfile, loadProfile } from "@/lib/engine/save";
+import { markIntroSeen } from "@/lib/rewards/intro";
 import { ENTRY_ROUTES, entryRoute } from "@/lib/entry";
 import { useBackHandler } from "@/lib/native/back";
 import {
@@ -154,6 +155,16 @@ export default function WelcomePage() {
       onboarded: true,
       micCalibration: existing?.micCalibration ?? null,
     });
+    /*
+     * A player leaving this screen is taught briefcases by the guided first
+     * play — the "briefcases" step in components/Coachmarks.tsx — so the
+     * one-time "Introducing Briefcases" sheet that existing players get
+     * (components/rewards/BriefcaseIntro.tsx) is recorded as seen here,
+     * before they ever reach a screen that could show it. Without this a new
+     * player would be told twice in their first ten minutes: once beside the
+     * tab bar, then again as a card over the board.
+     */
+    markIntroSeen();
     // Onboarding is not a reason to lose a company. Someone who walks back
     // through these steps with a run in progress is returned to it.
     //

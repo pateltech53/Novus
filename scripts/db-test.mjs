@@ -56,6 +56,7 @@ const SUITES = [
   "chapters_test.sql",
   "admin_test.sql",
   "islands_test.sql",
+  "rewards_test.sql",
 ];
 
 /** Every migration, in the order their filenames give. */

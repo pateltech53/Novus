@@ -133,14 +133,14 @@ authored library and conversion contract live in `design/`
   third-party origin directly — everything proxies through this app's own
   route handlers (child-safety rule; Turnstile is the single sanctioned
   third-party script).
-- **`supabase/migrations/0001–0018`** — schema source of truth, applied in
+- **`supabase/migrations/0001–0019`** — schema source of truth, applied in
   filename order. Deployment is a manual paste into the Supabase SQL editor:
-  `supabase/APPLY-ALL.sql` is the whole schema 0001→0018 in one idempotent
+  `supabase/APPLY-ALL.sql` is the whole schema 0001→0019 in one idempotent
   file, safe on a fresh, half-migrated or complete project and refusing the
-  wrong one — regenerate it in the same PR as any migration (0018's seed is
-  folded in verbatim). `CHECK-SCHEMA.sql` is the read-only "which migrations
-  has this project had" companion. 9 RLS test suites run per PR via
-  `npm run test:db`.
+  wrong one — regenerate it in the same PR as any migration (each
+  migration's seed or fixup is folded in verbatim). `CHECK-SCHEMA.sql` is the
+  read-only "which migrations has this project had" companion. 10 RLS test
+  suites run per PR via `npm run test:db`.
 - **Persistence** — localStorage is the synchronous cache the game reads;
   Supabase is the debounced mirror (`lib/cloud/sync.ts`). Saves: local/newer
   wins. Entitlements: server wins. No account = fully local play, nothing
@@ -257,7 +257,7 @@ authored library and conversion contract live in `design/`
 | App Review compliance | docs/APP-STORE.md |
 | iOS widgets / Live Activities | docs/WIDGETS.md |
 | Chapters (classroom licences) | docs/CHAPTERS.md |
-| Briefcase reward loop (beta) | docs/BRIEFCASES.md (+ docs/BRIEFCASE-ART.md, docs/BRIEFCASE-MODELS.md) |
+| Briefcase reward loop (launched; tester tools behind a flag) | docs/BRIEFCASES.md (+ docs/BRIEFCASE-ART.md, docs/BRIEFCASE-MODELS.md) |
 | SEO / www-vs-apex / structured data | docs/SEO.md |
 | Authored event library + conversion contract | design/NOVUS_EVENT_LIBRARY_B1.md, design/EVENT_SCHEMA.md |
 | Original 7-phase build brief (historical rationale) | docs/BUILD-PROMPT.md |

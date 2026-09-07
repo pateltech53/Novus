@@ -19,9 +19,12 @@ import { play } from "@/lib/sound";
  * panel cannot touch anybody else's wardrobe, which is what makes it safe to
  * put in front of a tester who is not an operator.
  *
- * It only exists for accounts an operator has switched into the beta; the
- * route 404s for everyone else, so there is nothing to hide here beyond not
- * rendering it.
+ * It only exists for accounts an operator has flagged as testers from the
+ * admin console (`entitlements.rewards_beta`). The loop itself is on for every
+ * signed-in account now; this workbench is the one thing that flag still
+ * opens. /api/rewards/sim 404s for everyone else, and RewardsHome draws the
+ * BETA tab only when /api/rewards/daily says `beta: true`, so there is
+ * nothing to hide here beyond not rendering it.
  */
 
 interface Skin { id: string; name: string; tier: number; collection: string }
@@ -98,7 +101,7 @@ export default function BetaPanel({ onOpenCase }: { onOpenCase?: (id: string) =>
         <h2 className="text-base font-bold tracking-tight">Beta tools</h2>
         <p className="mt-0.5 text-2xs leading-relaxed text-[var(--text-tertiary)]">
           Shortcuts for testing the reward loop. Everything here affects only your
-          own account, and none of it is reachable once the beta flag is off.
+          own account, and none of it is reachable once the tester flag is off.
         </p>
       </header>
 
