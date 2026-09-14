@@ -138,6 +138,9 @@ export interface CompanyMetrics {
     ltv: number;
     cac: number;
     ltvCacRatio: number;
+    ruleOf40Pct: number;
+    /** null = not a meaningful figure right now (profitable, or no growth to divide by). */
+    burnMultiple: number | null;
   };
 }
 
@@ -409,6 +412,28 @@ export function companyMetrics(state: RunState): CompanyMetrics {
   const older = q[0] ?? 0;
   const growthYoyPct =
     older > 0 ? Math.round(((recent - older) / older) * 100) : recent > 0 ? 100 : 0;
+  const hasFullYear = older > 0;
+
+  /*
+   * ── Rule of 40 and burn multiple ────────────────────────────────────────
+   *
+   * Neither exists as a sim stat — both are arithmetic over numbers the sim
+   * already tracks, same as the LTV/CAC conversion above. Rule of 40 is a
+   * SaaS-investing rule of thumb (growth % + profit margin % ≥ 40 is
+   * "healthy"); applying it to a food truck is a stretch, and the copy says
+   * so rather than pretending the number means the same thing everywhere.
+   * Burn multiple compares annualized burn to annualized NET NEW revenue —
+   * not total revenue — because a company can burn responsibly against a
+   * business that is actually growing and irresponsibly against one that
+   * isn't, and the two look identical if you only look at burn ÷ revenue.
+   */
+  const ruleOf40Pct = growthYoyPct + s.netMarginPt;
+  const netNewArrAnnualized = (recent - older) * 4;
+  const burnAnnualized = Math.max(0, s.burnMonthly) * 12;
+  const burnMultiple =
+    s.burnMonthly > 0 && netNewArrAnnualized > 0
+      ? Number((burnAnnualized / netNewArrAnnualized).toFixed(2))
+      : null;
 
   // ── Market ─────────────────────────────────────────────────────────────
   // Jittered per run so two FOOD companies do not quote the same TAM.
@@ -549,6 +574,36 @@ export function companyMetrics(state: RunState): CompanyMetrics {
         term: "ltv:cac",
         tone: ltvCacRatio >= 3 ? "good" : ltvCacRatio >= 1.5 ? "flat" : "bad",
       },
+      {
+        label: "Rule of 40",
+        value: hasFullYear ? `${ruleOf40Pct}` : "too early to score",
+        note: hasFullYear
+          ? "growth % + profit margin % — 40 or better is healthy, born in software"
+          : "needs a full year of quarters before growth means anything",
+        term: "rule of 40",
+        tone: !hasFullYear ? "flat" : ruleOf40Pct >= 40 ? "good" : "bad",
+      },
+      {
+        label: "Burn multiple",
+        value:
+          burnMultiple !== null
+            ? `${burnMultiple}×`
+            : s.burnMonthly <= 0
+              ? "profitable"
+              : "burning without growth",
+        note: "burned per $1 of NEW revenue this year — under 1.5× is healthy, over 3× is a real problem",
+        term: "burn multiple",
+        tone:
+          burnMultiple === null
+            ? s.burnMonthly <= 0
+              ? "good"
+              : "bad"
+            : burnMultiple <= 1.5
+              ? "good"
+              : burnMultiple <= 3
+                ? "flat"
+                : "bad",
+      },
     ],
     competitors,
     raw: {
@@ -564,6 +619,8 @@ export function companyMetrics(state: RunState): CompanyMetrics {
       ltv,
       cac,
       ltvCacRatio,
+      ruleOf40Pct,
+      burnMultiple,
     },
   };
 }

@@ -245,6 +245,8 @@ export const GLOSSARY: Record<string, { pro: string; rookie: string }> = {
   "market share": { pro: "Your % of the category", rookie: "your slice of everyone buying this thing." },
   tam: { pro: "Total addressable market — the whole category in dollars", rookie: "if every possible customer bought, that's the pot." },
   sam: { pro: "Serviceable addressable market — the slice you could realistically reach", rookie: "the part of the pot a company like yours can actually go after." },
+  "rule of 40": { pro: "Revenue growth % + profit margin %", rookie: "growing fast and broke, or growing slow and rich — add the two and see if the trade was worth it." },
+  "burn multiple": { pro: "Net burn ÷ net-new revenue", rookie: "how many dollars you're burning to add one new dollar of revenue." },
   franchise: { pro: "Licensing your model", rookie: "letting others open your store and pay you for it." },
   "m&a": { pro: "Mergers & acquisitions", rookie: "companies buying companies." },
   roi: { pro: "Return ÷ investment", rookie: "what you got back for what you put in." },

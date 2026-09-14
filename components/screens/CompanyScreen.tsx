@@ -12,6 +12,7 @@ import {
 } from "@/lib/engine/constants";
 import { fmtMoney, fmtMonths, fmtPct, MONTH_NAMES } from "@/lib/engine/format";
 import { deriveRunwayMonths } from "@/lib/engine/sim";
+import { companyMetrics, type MetricRow } from "@/lib/engine/company-brief";
 import type { RunState } from "@/lib/engine/types";
 import { ScreenSheet } from "@/components/screens/ScreenSheet";
 
@@ -66,6 +67,7 @@ export function CompanyScreen({ onClose }: { onClose: () => void }) {
   const [spent, setSpent] = useState<string[]>([]);
 
   const rows = useMemo(() => (run ? buildRows(run) : []), [run]);
+  const uneconRows = useMemo(() => (run ? buildUnitEconomicsRows(run) : []), [run]);
 
   if (!run) return null;
 
@@ -148,36 +150,37 @@ export function CompanyScreen({ onClose }: { onClose: () => void }) {
         </div>
       </div>
 
+      {/*
+        ── 2.5 · Unit economics ──────────────────────────────────────
+
+        The figures a shark reads off `PitchNotes` ("THE NUMBERS" tab)
+        during a performance, and nowhere else — a founder who wants to
+        check their LTV:CAC ratio while deciding what to spend on had to
+        wait for the one day a year the pitch happens. Same source
+        (`lib/engine/company-brief.ts`'s `companyMetrics`), so nothing
+        shown here can ever disagree with what the sharks are told:
+        this reads the identical derivation, not a second one.
+      */}
+      <SectionLabel>UNIT ECONOMICS</SectionLabel>
+      <div className="px-3">
+        <ul className="space-y-2">
+          {uneconRows.map((row) => (
+            <StatCard key={row.key} row={row} rookie={run.rookieMode} />
+          ))}
+        </ul>
+        <p className="px-1 pt-2 text-2xs leading-snug text-[var(--text-tertiary)]">
+          The same numbers a shark reads off your deck before a pitch —
+          visible year-round now, not just the one day you perform.
+        </p>
+      </div>
+
       {/* ── 3 + 4 · Full stat sheet ───────────────────────────────── */}
       <SectionLabel>THE STAT SHEET</SectionLabel>
       <div className="px-3">
         <ul className="space-y-2">
-          {rows.map((row) => {
-            const tone = row.tone ?? "neutral";
-            return (
-              <li key={row.key} className="nv-card px-4 py-3">
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="min-w-0 truncate text-[0.9375rem] font-semibold">
-                    {row.label}
-                  </span>
-                  <span
-                    className="tnum shrink-0 text-[0.9375rem] font-extrabold"
-                    style={{ color: TONE_TEXT[tone] }}
-                  >
-                    {row.value}
-                  </span>
-                </div>
-                {row.bar !== undefined && (
-                  <Bar value={row.bar} tone={tone} label={`${row.label} out of 100`} />
-                )}
-                {run.rookieMode && (
-                  <p className="mt-1.5 text-xs leading-snug text-[var(--text-tertiary)]">
-                    {plainLine(row)}
-                  </p>
-                )}
-              </li>
-            );
-          })}
+          {rows.map((row) => (
+            <StatCard key={row.key} row={row} rookie={run.rookieMode} />
+          ))}
         </ul>
       </div>
 
@@ -246,6 +249,37 @@ function BookFigure({
         {value}
       </span>
     </span>
+  );
+}
+
+/** One stat card, shared by the unit-economics list and the stat sheet below
+ *  it — they were the same markup twice until the unit-economics section
+ *  needed it too, at which point "twice" became "copy it a third time" and
+ *  it moved out instead. */
+function StatCard({ row, rookie }: { row: StatRow; rookie: boolean }) {
+  const tone = row.tone ?? "neutral";
+  return (
+    <li className="nv-card px-4 py-3">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="min-w-0 truncate text-[0.9375rem] font-semibold">
+          {row.label}
+        </span>
+        <span
+          className="tnum shrink-0 text-[0.9375rem] font-extrabold"
+          style={{ color: TONE_TEXT[tone] }}
+        >
+          {row.value}
+        </span>
+      </div>
+      {row.bar !== undefined && (
+        <Bar value={row.bar} tone={tone} label={`${row.label} out of 100`} />
+      )}
+      {rookie && (
+        <p className="mt-1.5 text-xs leading-snug text-[var(--text-tertiary)]">
+          {plainLine(row)}
+        </p>
+      )}
+    </li>
   );
 }
 
@@ -410,4 +444,38 @@ function buildRows(run: RunState): StatRow[] {
       plain: "what the shark thinks of you before you open your mouth.",
     },
   ];
+}
+
+/**
+ * The traction/benchmark half of `companyMetrics` — MRR, customers, growth,
+ * retention, ARPU, LTV, CAC, LTV:CAC, Rule of 40, burn multiple — narrowed to
+ * what isn't already on the stat sheet above (gross margin lives there once,
+ * not twice) and reshaped into the same `StatRow` the sheet already knows how
+ * to draw, so it costs no new markup and no new width behaviour to show it.
+ */
+function buildUnitEconomicsRows(run: RunState): StatRow[] {
+  const m = companyMetrics(run);
+  const TRACTION_LABELS = [
+    "Monthly recurring revenue",
+    "Paying customers",
+    "Growth",
+    "90-day retention",
+    "Average revenue per customer",
+  ];
+  const picked = [
+    ...m.traction.filter((row) => TRACTION_LABELS.includes(row.label)),
+    ...m.benchmarks.filter((row) => row.label !== "Gross margin"),
+  ];
+  return picked.map((row, i) => metricToStatRow(row, `unecon-${i}`));
+}
+
+function metricToStatRow(row: MetricRow, key: string): StatRow {
+  return {
+    key,
+    label: row.label,
+    value: row.value,
+    tone: row.tone === "good" ? "good" : row.tone === "bad" ? "bad" : "neutral",
+    term: row.term,
+    plain: row.note,
+  };
 }
