@@ -479,6 +479,42 @@ history, not as work to finish.
 14. The wide-viewport audit sizes (ipad-portrait / ipad-wide / mid-band in
     `scripts/audit-phone.mjs`) are manual-only like every Playwright probe —
     run them before any resubmission; nothing in CI exercises iPad widths.
+15. **Shipped (2026-09-14): real financial depth the player can see outside a
+    pitch.** `lib/engine/company-brief.ts`'s `companyMetrics()` — MRR, LTV,
+    CAC, growth, retention — used to be readable only in `PitchNotes` during a
+    performance; it's now also rendered year-round in `CompanyScreen`'s new
+    UNIT ECONOMICS section (same derivation, so nothing shown there can ever
+    disagree with what a shark is told). Two new derived figures joined it:
+    Rule of 40 and burn multiple, both real formulas over fields the sim
+    already tracked, neither previously computed anywhere. Separately,
+    `lib/engine/cap-table.ts` reads `state.log` for every `Dilution N%` delta
+    that has actually fired this run and reconstructs a real "how you got
+    here" timeline in `CompanyDossier` — no fabricated cap-table breakdown;
+    the dossier says plainly that the founder/pool/investor split isn't
+    tracked. Two new FIN events (`data/industry/events-negotiation.json`,
+    unprotected overlay) — an option-pool "shuffle" and a pro-rata insider
+    round — bundle several real term-sheet axes into one choice instead of a
+    single dilution number. Measured against a fresh `sim 30 8` on the
+    untouched tree per Brand Law 4: 40% survival, median death year 4,
+    identical to the pre-change baseline — the two new events are real, at
+    weight 5 each out of 291, but not enough of the pool to move the number
+    at this sample size.
+16. **Paused, needs named sign-off before anyone touches it:** folding the new
+    unit-economics figures into `lib/engine/autopsy.ts`'s death-cause ranking
+    (protected file — additive, but still needs the file-and-change
+    conversation DO-NOT-TOUCH.md requires).
+17. **Paused, same reason:** a new failure mode where dilution past some
+    threshold costs the founder control of the company (board vote / ousted),
+    rather than every ending routing through cash. Would touch
+    `lib/engine/effects.ts`/`sim.ts`/possibly `run.ts` (all protected) and
+    directly interacts with item 7's open survival-rate question above — a
+    new way to lose changes the curve by definition, so it needs a fresh
+    baseline read and reported as a measured shift, not tuned to hit one.
+18. **Paused, same reason:** deepening "Marco's rival sim" (item 8 above) so
+    the rival actually reacts to the player's pricing/marketing choices
+    instead of running a fixed price curve — the natural next step for
+    making the game harder without just raising failure rates, but it likely
+    touches `lib/engine/events.ts`'s weighting (protected).
 
 ### Dead ends — settled decisions, do not redo
 
