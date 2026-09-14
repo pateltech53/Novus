@@ -1,0 +1,112 @@
+[
+  {
+    "id": "E-FIN-101",
+    "title": "The Pool Shuffle",
+    "category": "FIN",
+    "text": "Two term sheets, same cash, same headline valuation. One asks you to top up the option pool before they invest — out of your slice, not theirs. The other doesn't ask.",
+    "stages": [2, 3, 4],
+    "industries": ["FOOD", "ECOM", "TECH", "CONTENT", "FASHION", "GAMING", "FITNESS", "BEAUTY", "EDTECH", "SUSTAIN", "TOYS", "PET"],
+    "weight": 5,
+    "once": true,
+    "rookieTerms": ["dilution", "cap table", "term sheet"],
+    "choices": [
+      {
+        "label": "Take the bigger name's sheet",
+        "known": "Cash +8S · dilution 34%",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": 8 },
+            { "stat": "dilution_pct", "amount": 34 },
+            { "stat": "invsent", "amount": 2 }
+          ],
+          "setFlags": ["pool_shuffle_taken"]
+        }
+      },
+      {
+        "label": "Take the smaller fund's clean sheet",
+        "known": "Cash +6S · dilution 22%",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": 6 },
+            { "stat": "dilution_pct", "amount": 22 },
+            { "stat": "invsent", "amount": 1 }
+          ],
+          "setFlags": ["clean_term_sheet"]
+        }
+      },
+      {
+        "label": "Push back on the pool size before signing",
+        "perform": {
+          "type": "nego",
+          "pass": {
+            "effects": [
+              { "stat": "cash_S", "amount": 8 },
+              { "stat": "dilution_pct", "amount": 26 },
+              { "stat": "invsent", "amount": 2 }
+            ],
+            "narration": "They blink first. Same cash, a smaller bite out of you."
+          },
+          "fail": {
+            "effects": [
+              { "stat": "cash_S", "amount": 5 },
+              { "stat": "dilution_pct", "amount": 22 }
+            ],
+            "narration": "They don't blink. The round closes smaller, and later than it should have."
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-FIN-102",
+    "title": "Somebody Else's Pro Rata",
+    "category": "FIN",
+    "text": "Your seed investor wants to exercise pro-rata: write the whole round themselves and keep their percentage exactly where it is. A name nobody's heard of yet offers to lead instead.",
+    "stages": [2, 3, 4],
+    "industries": ["FOOD", "ECOM", "TECH", "CONTENT", "FASHION", "GAMING", "FITNESS", "BEAUTY", "EDTECH", "SUSTAIN", "TOYS", "PET"],
+    "weight": 5,
+    "once": true,
+    "rookieTerms": ["dilution", "cap table"],
+    "choices": [
+      {
+        "label": "Let the insider fill the round",
+        "known": "Cash +7S · dilution 16%",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": 7 },
+            { "stat": "dilution_pct", "amount": 16 },
+            { "stat": "invsent", "amount": 1 },
+            { "stat": "risk", "amount": 1 }
+          ],
+          "setFlags": ["insider_round"],
+          "narration": "The math looks great. Nobody outside your own cap table said yes to this price."
+        }
+      },
+      {
+        "label": "Bring in the new name instead",
+        "known": "Cash +6S · dilution 20%",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": 6 },
+            { "stat": "dilution_pct", "amount": 20 },
+            { "stat": "invsent", "amount": 2 }
+          ],
+          "setFlags": ["fresh_outside_round"]
+        }
+      },
+      {
+        "label": "Split it between them",
+        "known": "Cash +6.5S · dilution 18% · Energy −3",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": 6.5 },
+            { "stat": "dilution_pct", "amount": 18 },
+            { "stat": "invsent", "amount": 1 },
+            { "stat": "energy", "amount": -3 }
+          ],
+          "narration": "Two term sheets, two sets of lawyers, one of you."
+        }
+      }
+    ]
+  }
+]
