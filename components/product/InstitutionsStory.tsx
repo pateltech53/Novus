@@ -191,7 +191,7 @@ export function InstitutionsStory() {
                 ))}
               </div>
               <p className="mt-3 hidden text-xs leading-relaxed text-[var(--text-secondary)] sm:block">
-                289 authored events push back — drawn toward whatever a student
+                294 authored events push back — drawn toward whatever a student
                 is weakest at.
               </p>
             </div>

@@ -331,7 +331,7 @@ export function YouStory() {
               className="pv-t pv-fx mx-auto mt-3 max-w-[30rem] text-sm leading-relaxed text-[var(--text-secondary)] lg:text-[0.9375rem]"
               style={fx(0.07, 0.14, { dy: 18 })}
             >
-              289 authored events — suppliers squeeze, rivals copy, the tax
+              294 authored events — suppliers squeeze, rivals copy, the tax
               letter arrives. Your industry, your problems.
             </p>
           </div>
@@ -374,7 +374,7 @@ export function YouStory() {
             className="pv-t pv-fx mx-auto mt-5 flex max-w-[34rem] flex-wrap items-center justify-center gap-1.5"
             style={fx(0.62, 0.14, { dy: 16 })}
           >
-            {["BURN RATE", "RUNWAY", "DILUTION", "CHAPTER 7"].map((term) => (
+            {["BURN RATE", "RUNWAY", "DILUTION", "CAP TABLE", "CHAPTER 7"].map((term) => (
               <span
                 key={term}
                 className="tnum rounded-[var(--radius-chip)] bg-[var(--surface)] px-2 py-1 text-2xs font-bold tracking-[0.08em] text-[var(--text-secondary)] ring-1 ring-[var(--hairline)]"
