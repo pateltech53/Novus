@@ -126,7 +126,14 @@ const BUDGETS = {
   // timeline; and a small ousted-ending branch in GameProvider itself.
   // Measured at 361.3 kB, +1.3 kB gzipped over the old budget. Two
   // kilobytes of margin, not two kilobytes of new code.
-  "/play/page": 362,
+  //
+  // 364, not 362. Three new events (data/events.json, merged from the new
+  // data/industry/events-rival-reaction.json) landed the same day as the
+  // above and pushed this 0.2 kB further, to 362.2 — the merged event pool
+  // is part of this route's own First Load JS, so three more authored
+  // events cost bytes here the same way the 48-verb Playbook did above.
+  // Rounding to the next full kilobyte rather than chasing 0.2 kB exactly.
+  "/play/page": 364,
   "/found/page": 325,
   // The picker is the front door for anyone with a company, so it is on the
   // critical path for every returning player. 320 is a little above where it
