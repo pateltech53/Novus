@@ -378,6 +378,44 @@ tree before judging any shift. Note the harness only plays the four free
 industries, so "197/289" has a structural ceiling — the gap is not all
 unreachable content.)
 
+**This section predates a great deal of what has since merged to `main`**
+(briefcases, chapters SQL consolidation, beta-mode fixes, and more) — none of
+that history is reconstructed here; treat the paragraph above as one point in
+time, not the present. Two things from the most recent session are worth
+recording precisely because nothing else did:
+
+- **A Liquid Glass perf/accessibility defect, fixed.** `GlassChromeController
+  .applyControls` and `GlassOverlayController.applyCluster`/`applyDock` used
+  to tear down and rebuild every masthead control and floating cluster on
+  *every* state push — including the ones `cta.badge` alone triggers, i.e.
+  every ADVANCE MONTH tap — even when none of those controls had changed.
+  Now gated the same way `applyTabs`/`applySegments` already were: rebuilt
+  only when the control list's own content differs (`ChromeControl` and
+  `OverlayButton` are now `Equatable`, and each surface keeps a `last…`
+  snapshot to diff against). Fixes needless `UIGlassEffect` churn every tap
+  and a real one: a VoiceOver focus sitting on one of those controls used to
+  drop silently every month, because the control it was tracking was replaced
+  by a new accessibility element out from under it.
+- **The widget bundle grew from nine surfaces to eleven**, all additive, none
+  of it touching `lib/engine/` or the save/index format: `OutsideScore
+  .category` (published since the widgets shipped, never drawn) now reads as
+  a sentence on the fiscal-year Live Activity's Lock Screen card when a stat
+  is under pressure; Still Standing gained two Lock Screen surfaces
+  (`accessoryRectangular`/`accessoryCircular`) it never had; RobinGhood
+  gained an `accessoryCircular` for `dayChange(at:)`, which already existed
+  in `MarketMath.swift` and was only ever drawn on the Home Screen; The Books
+  (small) is now the bundle's first user-configurable widget
+  (`LeadFigureIntent` — cash/valuation/burn in place of the three scores,
+  defaulting to the unedited look); and a new Home Screen widget,
+  "One company, pinned" (`IslandPinWidget` / `PinnedCompanyIntent` /
+  `IslandEntity`), lets a multi-company player fix a widget to one specific
+  company regardless of which is currently open. See docs/WIDGETS.md's
+  "What is drawn, and where" for the full table and what the pin
+  deliberately does not carry (no scores, no burn — those exist only on the
+  open run's live state, and caching them per-island in the save index for
+  every company was judged a bigger and riskier change than a widget option
+  justifies).
+
 ### In-flight work (open PRs — both based on early-August main; GitHub already reports both as conflicting)
 
 One trap before touching them: **head branches here are reused across PRs.**

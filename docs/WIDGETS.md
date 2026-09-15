@@ -175,16 +175,45 @@ every position on every Lock Screen is repriced.
 
 | Surface | Family | Leads with |
 |---|---|---|
-| The Books | `systemSmall` | Brand, Quality, Morale — and cash under them |
+| The Books | `systemSmall` | Brand, Quality, Morale by default — configurable, see below |
 | The Books | `systemMedium` | Cash, burn, valuation, then the same three scores |
 | The Year | `systemSmall` | The month dial. Gold, and a different card, at the gate |
 | Still Standing | `systemMedium` / `Large` | Every company, by peak valuation |
 | RobinGhood | `systemSmall` | Book value, priced on a ticking timeline |
+| One company, pinned | `systemSmall` | Whichever island the player picked, not whichever is open |
 | Weakest | `accessoryCircular` | A system `Gauge` on the lowest score. StandBy gets this for free |
 | The Books | `accessoryRectangular` | Who, what is weakest, what the other two are |
 | Weakest | `accessoryInline` | One clause beside the clock |
+| Still Standing | `accessoryRectangular` | The single best peak valuation on the device |
+| Still Standing | `accessoryCircular` | How many companies are still alive, as a `Gauge` |
+| RobinGhood | `accessoryCircular` | Today's change, as an arrow and a percentage |
 | The fiscal year | Live Activity | The weakest score in the compact slot; the gate in gold |
 | RobinGhood | Live Activity | Day change in the compact slot |
+
+**The Books, small, is the one configurable surface.** Long-press ▸ Edit Widget
+▸ Lead figure offers Cash, Valuation or Burn rate in place of the three scores.
+Unedited it renders exactly as it always has — the default is `.scores` — so
+this is additive for every widget already on a Home Screen. `LeadFigureIntent`
+in `TheBooksWidget.swift` is the whole of it; nothing else in the bundle takes
+a configuration except the pin below, which needs one to say which company.
+
+**"One company, pinned" answers a different question from every other
+surface here.** Everything else follows whichever run is currently open —
+right for "what am I playing", useless to someone who runs two or three
+companies and wants a specific one on their Home Screen regardless of which
+they opened last. Its `PinnedCompanyIntent` reads the same `islands` array
+`StillStandingWidget` sorts by peak, via a `DynamicOptionsProvider`-backed
+`AppEntity` (`IslandEntity` / `IslandEntityQuery` in
+`StillStandingWidget.swift`) that lists whatever is on the device at
+configuration time. It carries less than the open company's own widget does
+— name, stage, cash, valuation, no scores and no burn rate — because
+`IslandSummary` (lib/engine/save.ts) is what every OTHER island on the device
+actually has cached; reaching for the five scores would mean caching a second
+copy of live game state in the save index for every company, which is a
+materially bigger change than a Home Screen option earns. A pin whose slot no
+longer holds the company it was set to (buried, then founded over) falls
+through to whichever island is open, then to the first island there is,
+rather than going blank.
 
 **Small surfaces lead with the scores, not with money**, and that is a
 decision rather than a layout. Brand, Quality and Morale are what

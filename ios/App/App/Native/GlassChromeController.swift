@@ -8,7 +8,7 @@ struct ChromeTab {
     let symbol: String
 }
 
-struct ChromeControl {
+struct ChromeControl: Equatable {
     let id: String
     let symbol: String?
     let text: String?
@@ -184,6 +184,9 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
     /// top edge and must not care which of the two it got.
     private var deckBox: UIView?
     private var tabIds: [String] = []
+    /// What `applyControls` last built the masthead from — see its own
+    /// comment for why this exists.
+    private var lastControls: [ChromeControl] = []
     private var controlIds: [Int: String] = [:]
     /// The other direction of controlIds: id → the capsule, so a coachmark can
     /// name a control and have exactly that one stay lit.
@@ -797,7 +800,22 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
         monthGlass?.isHidden = cta.badge.isEmpty
     }
 
+    /**
+     Rebuilt only when the controls themselves change, the same rule
+     `applyTabs` follows above and for the same reason it is load-bearing
+     there: `apply()` runs on every state push, and `cta.badge` — the "M4 →
+     M5" capsule — changes on every ADVANCE MONTH tap whether or not a single
+     masthead control did. Without this gate the PRO badge, key terms,
+     dossier, board, settings and phone circles were destroyed and rebuilt
+     once a month for the length of a run: wasted `UIGlassEffect` allocation
+     every tap, and a VoiceOver focus silently dropped off whichever of them
+     the player had focus on, because a "new" accessibility element replaced
+     the one screen readers were tracking.
+     */
     private func applyControls(_ controls: [ChromeControl]) {
+        guard controls != lastControls else { return }
+        lastControls = controls
+
         leadingControls.arrangedSubviews.forEach { $0.removeFromSuperview() }
         trailingControls.arrangedSubviews.forEach { $0.removeFromSuperview() }
         controlIds.removeAll()

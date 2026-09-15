@@ -5,7 +5,7 @@ import UIKit
 /// One control in an overlay's chrome. The same shape wherever it appears —
 /// a circle in the top cluster, a capsule in the bottom dock — because the
 /// difference between those is where it was put, not what it is.
-struct OverlayButton {
+struct OverlayButton: Equatable {
     let id: String
     /// Shown when there is room for words. A dock button always has one.
     let title: String?
@@ -117,6 +117,12 @@ final class GlassOverlayController: NSObject {
     /// What the row is currently built out of, so a selection change can
     /// re-light the existing controls instead of replacing them.
     private var segmentIds: [String] = []
+    /// The same rule for the two top clusters and the dock — see
+    /// `applyCluster`'s comment for why `apply()` running on every state push
+    /// made this load-bearing rather than an optimisation.
+    private var lastLeadingButtons: [OverlayButton] = []
+    private var lastTrailingButtons: [OverlayButton] = []
+    private var lastDockActions: [OverlayButton] = []
 
     private enum Metric {
         static let sideMargin: CGFloat = 16
@@ -448,7 +454,27 @@ final class GlassOverlayController: NSObject {
             ])
     }
 
+    /**
+     Rebuilt only when the cluster's own buttons change.
+
+     `apply()` runs on every state push — a segment selection, a dock action
+     mounting or unmounting elsewhere on the same screen, a theme change —
+     and this used to rebuild both clusters every time regardless, tearing
+     down and recreating a `UIGlassEffect` circle a player might have their
+     VoiceOver focus on for no reason at all. `applyTabs` and `applySegments`
+     already gate on their own content for exactly this reason; this brings
+     the two top clusters and (below) the dock in line with them.
+     */
     private func applyCluster(_ buttons: [OverlayButton], into stack: UIStackView) {
+        let leading = stack === leadingStack
+        if leading {
+            guard buttons != lastLeadingButtons else { return }
+            lastLeadingButtons = buttons
+        } else {
+            guard buttons != lastTrailingButtons else { return }
+            lastTrailingButtons = buttons
+        }
+
         stack.arrangedSubviews.forEach { $0.removeFromSuperview() }
 
         for spec in buttons {
@@ -510,7 +536,12 @@ final class GlassOverlayController: NSObject {
         }
     }
 
+    /// Same rule as `applyCluster` above: rebuilt only when the dock's own
+    /// actions change, not on every `apply()`.
     private func applyDock(_ actions: [OverlayButton]) {
+        guard actions != lastDockActions else { return }
+        lastDockActions = actions
+
         dock.arrangedSubviews.forEach { $0.removeFromSuperview() }
 
         for spec in actions {

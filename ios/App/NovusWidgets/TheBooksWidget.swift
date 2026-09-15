@@ -1,3 +1,4 @@
+import AppIntents
 import SwiftUI
 import WidgetKit
 
@@ -27,12 +28,82 @@ import WidgetKit
  and cash and valuation are what it is: three figures across the top, the three
  scores under them, the fiscal year along the bottom.
  */
+/**
+ What the small size leads with, player's choice.
+
+ Every other widget in this bundle draws one fixed layout — this is the one
+ place a player can say "no, show me the money instead", via the system's own
+ "Edit Widget" sheet. `.scores` is the default and, unedited, `BooksSmall`
+ below renders byte-for-byte what it always has: this is additive, not a
+ redesign anyone opted into by installing an update.
+ */
+enum LeadFigureOption: String, AppEnum {
+    case scores, cash, valuation, burn
+
+    static var typeDisplayRepresentation: TypeDisplayRepresentation = "Lead figure"
+    static var caseDisplayRepresentations: [LeadFigureOption: DisplayRepresentation] = [
+        .scores: DisplayRepresentation(title: "Brand, Quality, Morale"),
+        .cash: DisplayRepresentation(title: "Cash"),
+        .valuation: DisplayRepresentation(title: "Valuation"),
+        .burn: DisplayRepresentation(title: "Burn rate"),
+    ]
+}
+
+struct LeadFigureIntent: WidgetConfigurationIntent {
+    static var title: LocalizedStringResource = "Lead figure"
+    static var description = IntentDescription(
+        "Which figure The Books leads with, at the small size. Medium already shows all of them.")
+
+    @Parameter(title: "Show", default: .scores)
+    var figure: LeadFigureOption
+}
+
+struct BooksEntry: TimelineEntry {
+    let date: Date
+    let snapshot: OutsideSnapshot
+    let lead: LeadFigureOption
+}
+
+/**
+ `OutsideProvider`'s twin for the one widget that takes a configuration.
+
+ A separate type rather than a second conformance bolted onto `OutsideProvider`
+ — that struct is shared by three other, unconfigured widgets, and giving it an
+ `AppIntentTimelineProvider` conformance it does not need would be a second
+ reason for any of them to recompile. The body of every method here is
+ otherwise identical to `OutsideProvider`'s.
+ */
+struct BooksProvider: AppIntentTimelineProvider {
+    func placeholder(in context: Context) -> BooksEntry {
+        BooksEntry(date: Date(), snapshot: .placeholder, lead: .scores)
+    }
+
+    func snapshot(for configuration: LeadFigureIntent, in context: Context) async -> BooksEntry {
+        let snapshot: OutsideSnapshot =
+            context.isPreview ? .placeholder : (OutsideStore.read() ?? .placeholder)
+        return BooksEntry(date: Date(), snapshot: snapshot, lead: configuration.figure)
+    }
+
+    func timeline(for configuration: LeadFigureIntent, in context: Context) async -> Timeline<BooksEntry> {
+        let snapshot = OutsideStore.read()
+        let entry = BooksEntry(
+            date: Date(),
+            snapshot: snapshot ?? OutsideSnapshot(
+                v: outsideWireVersion, company: nil, market: nil, islands: [],
+                liveActivities: false, at: 0),
+            lead: configuration.figure)
+        return Timeline(entries: [entry], policy: .after(Date().addingTimeInterval(60 * 60)))
+    }
+}
+
 struct TheBooksWidget: Widget {
     static let kind = "com.novuspitch.widget.books"
 
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: Self.kind, provider: OutsideProvider()) { entry in
-            TheBooksView(snapshot: entry.snapshot)
+        AppIntentConfiguration(
+            kind: Self.kind, intent: LeadFigureIntent.self, provider: BooksProvider()
+        ) { entry in
+            TheBooksView(snapshot: entry.snapshot, lead: entry.lead)
                 .containerBackground(Nv.bg, for: .widget)
         }
         .configurationDisplayName("The Books")
@@ -43,13 +114,16 @@ struct TheBooksWidget: Widget {
 
 struct TheBooksView: View {
     let snapshot: OutsideSnapshot
+    let lead: LeadFigureOption
     @Environment(\.widgetFamily) private var family
 
     var body: some View {
         if let company = snapshot.company {
             switch family {
+            // Medium already shows cash, burn and valuation across the top —
+            // the configuration has nothing left to add to it.
             case .systemMedium: BooksMedium(company: company)
-            default: BooksSmall(company: company)
+            default: BooksSmall(company: company, lead: lead)
             }
         } else {
             NoCompany(compact: family == .systemSmall)
@@ -61,6 +135,7 @@ struct TheBooksView: View {
 
 private struct BooksSmall: View {
     let company: OutsideCompany
+    let lead: LeadFigureOption
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -68,25 +143,38 @@ private struct BooksSmall: View {
 
             Spacer(minLength: 9)
 
+            switch lead {
             // Stacked rather than three columns: at this width three side by
             // side leaves each label about eleven points wide, and "QUALITY"
             // does not fit in eleven points without going under the 12px floor
             // design.md sets for type.
-            VStack(alignment: .leading, spacing: 7) {
-                ForEach(company.headlineScores, id: \.label) { score in
-                    ScoreMeter(score: score)
+            case .scores:
+                VStack(alignment: .leading, spacing: 7) {
+                    ForEach(company.headlineScores, id: \.label) { score in
+                        ScoreMeter(score: score)
+                    }
                 }
+            case .cash:
+                FigureCell(label: "CASH", figure: company.cash, size: 22)
+            case .valuation:
+                FigureCell(label: "VALUATION", figure: company.valuation, size: 22)
+            case .burn:
+                FigureCell(label: "BURN / MO", figure: company.burn, size: 22)
             }
 
             Spacer(minLength: 9)
 
+            // Whatever the card is leading with, the footer says the OTHER
+            // thing worth a glance — cash, unless cash is already the lead, in
+            // which case the weakest score is: a card should never show the
+            // same figure in both places.
             HStack(spacing: 0) {
-                Text("CASH")
+                Text(footerLabel)
                     .font(NvType.label(9, weight: .bold))
                     .tracking(0.6)
                     .foregroundStyle(Nv.tertiary)
                 Spacer(minLength: 6)
-                Text(company.cash.text)
+                Text(footerValue)
                     .font(NvType.figure(13, weight: .bold))
                     .foregroundStyle(Nv.primary)
                     .lineLimit(1)
@@ -97,6 +185,14 @@ private struct BooksSmall: View {
         // The gate is a different destination from the board, even though both
         // land on the same screen: the link says why you were sent there.
         .widgetURL(URL(string: "\(OutsideStore.scheme)://\(company.atGate ? "gate" : "play")"))
+    }
+
+    private var footerLabel: String { lead == .scores ? "CASH" : "WEAKEST" }
+
+    private var footerValue: String {
+        if lead == .scores { return company.cash.text }
+        guard let weakest = company.weakest else { return company.stageName }
+        return "\(weakest.label.capitalized) \(weakest.value)"
     }
 }
 

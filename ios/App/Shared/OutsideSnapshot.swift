@@ -173,6 +173,16 @@ struct OutsideIsland: Codable, Hashable {
     let valuationText: String
     let peak: Double
     let peakText: String
+    /// Read from `IslandSummary` (lib/engine/save.ts), which every island on
+    /// the device has — not only the open one. No scores and no burn rate:
+    /// those live on the open run's live state alone; see the matching
+    /// comment on `OutsideIsland` in lib/outside/snapshot.ts for why pinning a
+    /// widget to a specific company stops short of the full `OutsideCompany`
+    /// shape.
+    let cashText: String
+    let atGate: Bool
+    let month: Int
+    let stageName: String
 }
 
 struct OutsideSnapshot: Codable, Hashable {

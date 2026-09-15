@@ -4,9 +4,11 @@ import WidgetKit
 /**
  Everything Novus draws outside itself.
 
- Seven entries: four Home Screen and Lock Screen widgets, one that ticks on its
- own, and two Live Activities. They all read the same file — see
- `OutsideStore` — which the app writes on every change and nowhere else.
+ Eleven widgets — five on the Home Screen (one, `IslandPinWidget`, of a
+ specific company rather than whichever is open; one, `MarketWidget`, ticks on
+ its own) and six on the Lock Screen and StandBy — plus two Live Activities.
+ They all read the same file — see `OutsideStore` — which the app writes on
+ every change and nowhere else.
 
  ── The floor is iOS 17, and the app's is 15 ─────────────────────────────────
 
@@ -51,11 +53,15 @@ struct NovusWidgetsBundle: WidgetBundle {
         TheYearWidget()
         StillStandingWidget()
         MarketWidget()
+        IslandPinWidget()
 
         // The Lock Screen and StandBy.
         WeakestCircularWidget()
         BooksRectangularWidget()
         WeakestInlineWidget()
+        StillStandingRectangularWidget()
+        StillStandingCircularWidget()
+        MarketCircularWidget()
 
         /*
          The Lock Screen, live, and the Dynamic Island.
