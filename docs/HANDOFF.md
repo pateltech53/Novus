@@ -499,22 +499,67 @@ history, not as work to finish.
     identical to the pre-change baseline — the two new events are real, at
     weight 5 each out of 291, but not enough of the pool to move the number
     at this sample size.
-16. **Paused, needs named sign-off before anyone touches it:** folding the new
-    unit-economics figures into `lib/engine/autopsy.ts`'s death-cause ranking
-    (protected file — additive, but still needs the file-and-change
-    conversation DO-NOT-TOUCH.md requires).
-17. **Paused, same reason:** a new failure mode where dilution past some
-    threshold costs the founder control of the company (board vote / ousted),
-    rather than every ending routing through cash. Would touch
-    `lib/engine/effects.ts`/`sim.ts`/possibly `run.ts` (all protected) and
-    directly interacts with item 7's open survival-rate question above — a
-    new way to lose changes the curve by definition, so it needs a fresh
-    baseline read and reported as a measured shift, not tuned to hit one.
-18. **Paused, same reason:** deepening "Marco's rival sim" (item 8 above) so
-    the rival actually reacts to the player's pricing/marketing choices
-    instead of running a fixed price curve — the natural next step for
-    making the game harder without just raising failure rates, but it likely
-    touches `lib/engine/events.ts`'s weighting (protected).
+16. ~~Fold the new unit-economics figures into `lib/engine/autopsy.ts`'s
+    death-cause ranking~~ — done, same session, after named sign-off.
+    Three new `hiddenTruths` lines (LTV:CAC never clearing 1×, burn multiple
+    over 3×, a negative Rule of 40), gated the same way the existing ones
+    are and framed honestly — the figures were visible on `CompanyScreen`
+    all along, so the copy says "on your own numbers screen," never that the
+    game hid it. Pure addition to `buildAutopsy()`, cannot move
+    `scripts/simulate.mjs`'s numbers (it only calls autopsy as a
+    must-not-throw smoke test): confirmed `sim 30 8` unchanged.
+17. ~~A control-loss ending: dilution past a threshold costs the founder
+    the company~~ — done. `lib/engine/sim.ts`'s `controlLossCheck()`
+    requires BOTH founder equity under 20% and investor sentiment at −3 or
+    worse (`KNOBS.controlLossEquityPct`/`.controlLossInvsent`,
+    constants.ts) — reaching either alone is easy, both together needs a
+    genuinely reckless fundraising streak. Checked in `run.ts`'s `closeYear`
+    right after that year's deal; on trigger the run ends early
+    (`endedBy: "ousted"`, additive to the union in types.ts and independently
+    in `lib/leaderboard/verify.ts` and `app/islands/page.tsx`'s `ENDING`
+    lookup) with no stage-up or year increment, same shape as Chapter 7's
+    early return. `ChapterSeven.tsx` branches its copy on `endedBy` — calling
+    an ousted-but-solvent company "CHAPTER 7 · LIQUIDATION" would be false —
+    and its "cause" section calls `cap-table.ts`'s `equityTimeline()` instead
+    of the cash-damage ranking, since a dilution round rarely costs cash and
+    fatalDecisions would blame the wrong choices. Verified directly against
+    the engine (real `dilution_pct` effects, not hand-set state): a founder
+    diluted to 17.5% with invsent −3 gets ousted, with a correctly
+    reconstructed equity history. `sim 30 8` read unchanged (40%, median
+    death year 4) — the ending never fired in that sample, expected for a
+    threshold built to require a genuinely reckless streak, confirmed
+    reachable by the direct test above. This DOES bear on item 7's open
+    survival-rate question above, in the direction of adding a new way to
+    lose the company — worth factoring in whenever that question is
+    revisited, though it didn't move the measured number at this sample size.
+18. ~~Deepen "Marco's rival sim" (item 8) so rivals react to the player's
+    choices~~ — done, and it turned out not to need `events.ts` touched at
+    all: `effectiveWeight()`/`isEligible()` already support `weightMods`
+    keyed on a flag (used throughout `data/sections/*`) and gating on
+    `requiresFlags`, both fully generic. The positioning system
+    (`data/industry/events-positioning.json`) already sets
+    `stance_imitate`/`stance_balance`/`stance_differentiate` when the player
+    commits to a competitive stance — nothing before this used them for
+    anything beyond that one choice. Three new RIV events
+    (`data/industry/events-rival-reaction.json`), each hard-gated to one
+    stance, give the named rival ("Marco" in existing RIV content too, not
+    only the RobinGhood ticker — the two are unrelated, see the note below)
+    a different, specific response to whichever lane the player picked:
+    a price war for imitators, talent/PR pressure for differentiators, a
+    real cost for staying undecided. Verified directly (`isEligible`
+    returns false with no stance flag or the wrong one, true only with the
+    matching flag) — the reactivity is a hard gate, not a statistical nudge
+    a player would never notice. `sim 30 8`: 40% survival, median death year
+    4, unchanged; 151/294 distinct events now reached (+4), confirming the
+    new content is live, not dead weight. **Note for whoever picks up
+    "Marco's rival sim" next:** `lib/engine/market.ts`'s "Marco Holdings"
+    stock ticker is a *different* Marco — deliberately a pure function of
+    (ticker, wall-clock minute) shared identically by every player, which is
+    the "Today's Market" feature's whole point. Making that stock react to
+    one player's business decisions would break the shared-tape invariant;
+    this item was always about the narrative rival in RIV-category content
+    (already named "Marco" there too, coincidentally or not), not the
+    tradeable stock.
 
 ### Dead ends — settled decisions, do not redo
 
