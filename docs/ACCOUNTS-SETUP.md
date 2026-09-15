@@ -3,9 +3,33 @@
 Email + password accounts, and what has to be true in the Supabase dashboard
 for them to work.
 
-Accounts are optional for the player and optional for the deploy. With no
-Supabase project configured the app still runs — the whole free game, on
-localStorage, exactly as before. What accounts buy is portability (your
+> **Superseded, 2026-09 (two sessions).** Everything below this notice
+> describes the era where an account was optional for the player. It no
+> longer is: playing requires signing up or signing in FIRST, on the web and
+> in the app alike, before onboarding or any saved company is reachable.
+> One session put that gate inside `/welcome`'s own onboarding narrative
+> (`app/welcome/page.tsx`'s `AccountStep`, PR #121 — see docs/HANDOFF.md's
+> "Onboarding now requires an account" note); a second closed the doors that
+> left open — direct/bookmarked access to `/found`, `/islands` and `/play`,
+> and a native cold start with local save data but no account
+> (`lib/auth/require-account.ts`, `public/boot.html`) — and fixed the same
+> email-before-age ordering in `/`'s own `AccountGate` that the first pass
+> had already fixed inside `/welcome` (docs/HANDOFF.md's own 2026-09
+> addendum). The account itself is unchanged — same
+> `auth.users`/`public.profiles` shape, same migrations, same Supabase
+> configuration this whole file still documents accurately — so nothing
+> below is wrong about HOW an account works. What is now wrong is the
+> framing that reaching one is a choice: it is the first thing every player
+> does, not something PLAY FREE or Pro talks someone into later. §8 and §9
+> in particular describe the old, optional-account world and should be read
+> with that in mind.
+
+Accounts were optional for the player and are optional for the deploy — with
+no Supabase project configured the app still runs on localStorage, the same
+way it always has, just without an account to require, so a misconfigured
+deploy fails open into local play rather than locking everyone out (an
+account-free deploy has no gate to hold; see the notice above for what
+changed for a configured one). What accounts buy is portability (your
 companies follow you to a new phone) and, crucially, **a durable thing for a
 purchase to attach to**.
 
@@ -337,13 +361,23 @@ exception, kept as narrow as it can be:
   would thank us for.
 - ~~**Any account requirement for playing.** The free game needs no account,
   and the pricing copy that promises this ("Free is the whole game") stays
-  true.~~ **Superseded 2026-09-15.** `/welcome` now requires signing in or
-  creating an account partway through onboarding — see docs/HANDOFF.md's
-  "Onboarding now requires an account" note for the change, the reasoning,
-  and what it did not update (the pricing/marketing copy this bullet quotes is
-  still unrevised, and still wrong about the door). §9 below, on minors and
-  COPPA, is exactly the reasoning this reverses; read it before deciding
-  whether to keep the reversal.
+  true.~~ **Superseded, 2026-09-15 and 2026-09 (two sessions, same
+  direction).** The first pass put the account step inside `/welcome`'s own
+  onboarding narrative (after the age gate, before the mic step — see
+  docs/HANDOFF.md's "Onboarding now requires an account" note); the second
+  closed what that pass left open — `/found`, `/islands` and `/play` were
+  still reachable directly, by a bookmark or a stale native cold start, with
+  no account at all, and `/`'s own `AccountGate` still asked for an email
+  before checking age. Between the two, playing requires an account
+  everywhere, on both platforms, before onboarding or any saved company is
+  reachable — see the notice at the top of this file, and docs/HANDOFF.md's
+  2026-09 addendum for the second pass's own account of itself. "Free is the
+  whole game" is unaffected: the account costs nothing and is not a
+  purchase, and Pro still adds islands and packs rather than gating the core
+  loop. What changed is that reaching the free game now starts with an
+  account, not that the game stopped being free. §9 below, on minors and
+  COPPA, is exactly the reasoning both passes reverse; read it before
+  deciding whether to keep the reversal.
 
 ---
 
@@ -362,22 +396,44 @@ a checkout button. Those two decisions together have legal weight:
   depending on the country, with the UK's Age Appropriate Design Code applying
   on top for services likely to be accessed by children.
 
-What the code does to limit exposure, all of it deliberate:
+**This section is now stale where it matters most, and the gap is worth
+stating plainly rather than quietly.** It was written when the account-free
+path below was how the app stayed clear of COPPA for anyone who did not
+choose to sign up. As of 2026-09, that path is gone: an account — meaning an
+email and a password, or a Google/Apple identity — is required to reach
+onboarding or any saved company at all, for every player, on both platforms.
+There is no longer a way to play Novus without handing over contact
+information first. For an under-13 who answers the age screen honestly, the
+practical effect is not "plays without an account" any more; it is
+**locked out of the product entirely**, with no account-free fallback left to
+route them to (`lib/auth/age.ts`'s own TOO_YOUNG copy — "we'd rather not sign
+you up at all" — already assumed an account-centric world; it is the rest of
+this section that has not caught up to that assumption).
 
-- The free game needs **no account at all**, and playing without one transmits
-  nothing whatsoever — no email, no identifier, no save. A younger player can
-  use the whole product without us holding a single field about them.
+What is still true, and still limits exposure for the 13+ audience this
+product is actually built for:
+
 - The only fields collected are a display name the player invents, an email,
-  and a password. No age is stored server-side — `RunState.playerAge` is used
-  for local gating and never transmitted (`docs/LEADERBOARD.md` §9.4). No phone,
-  no address, no school, no photo.
-- The privacy policy asks parents of under-13s to create the account themselves
-  with their own address, and `/api/auth/delete` makes deletion real and
-  immediate rather than a support ticket.
+  and a password (or, via a provider, the name and address it already holds).
+  No age is stored server-side — `RunState.playerAge` is used for local
+  gating and never transmitted (`docs/LEADERBOARD.md` §9.4). No phone, no
+  address, no school, no photo.
+- The privacy policy asks parents of under-13s to create the account
+  themselves with their own address, and `/api/auth/delete` makes deletion
+  real and immediate rather than a support ticket.
 - The only identifier Stripe receives is the anonymous profile UUID.
 
-None of that is the same as compliance, and this file is not legal advice. If
-Novus is going to be handed to under-13s in the US, the honest options are a
-real parental-consent flow, an age gate that routes younger players to the
-account-free path, or school-mediated accounts under COPPA's schools exception.
-That is a decision to make knowingly rather than by default.
+None of that is the same as compliance, and this file is not legal advice.
+Before this reaches under-13s in the US in this shape, the honest options are
+the same three they always were, minus the one these two sessions' changes
+just removed between them: a real parental-consent flow, or school-mediated
+accounts under COPPA's schools exception (the account-free path is no longer
+available to route a younger player to, since there is no play without an
+account left to route them away from, on either the `/welcome`-embedded door
+or the direct-navigation and cold-start doors this closed). That is a
+decision to make knowingly rather than by default — and removing the
+account-free option was done across `app/welcome/page.tsx`'s `AccountStep`,
+`lib/auth/require-account.ts` and `public/boot.html` without a parallel
+decision, in either session, about what under-13 players are now supposed to
+do instead. That gap is open, not resolved, and belongs on whoever ships
+this to a school next.

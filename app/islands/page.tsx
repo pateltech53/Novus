@@ -27,6 +27,7 @@ import {
 import { ENTER, SETTLE_SPRING, STAGGER, SWAP } from "@/components/ui/Motion";
 import { UPGRADE_WARM, useUpgrade } from "@/components/upgrade/UpgradeProvider";
 import { loadAccount, type Account } from "@/lib/account";
+import { useRequireAccount } from "@/lib/auth/require-account";
 import { signOut } from "@/lib/cloud/auth";
 import { entryRoute } from "@/lib/entry";
 import { storefront } from "@/lib/commerce";
@@ -72,6 +73,10 @@ const BriefcaseIntro = warm(() =>
 const BRIEFCASE_INTRO_DELAY_MS = 1100;
 
 export default function IslandsPageWrapper() {
+  // No local account, no archipelago — see lib/auth/require-account.ts.
+  const ready = useRequireAccount();
+  if (!ready) return null;
+
   return (
     <GameProvider>
       <IslandsPage />
