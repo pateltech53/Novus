@@ -1,4 +1,5 @@
 import type { DecisionRecord, RunState } from "./types";
+import { companyMetrics } from "./company-brief";
 
 export interface AutopsyReport {
   companyName: string;
@@ -65,6 +66,28 @@ export function buildAutopsy(state: RunState): AutopsyReport {
     hiddenTruths.push("Your suppliers served you last. Every time.");
   if (state.karma <= -2)
     hiddenTruths.push("You made a habit of the cheap option. Habits compound.");
+
+  /*
+   * The unit-economics figures CompanyScreen shows year-round now (LTV, CAC,
+   * Rule of 40, burn multiple — see lib/engine/company-brief.ts) were never
+   * secret the way risk/tdebt/teamloy are, so these aren't reveals — they're
+   * a reminder of a number that was sitting on the player's own screen the
+   * whole time. Same array, honest framing: "hidden" here means "the founder
+   * didn't add it up," not "the game withheld it."
+   */
+  const metrics = companyMetrics(state);
+  if (metrics.raw.ltvCacRatio > 0 && metrics.raw.ltvCacRatio < 1)
+    hiddenTruths.push(
+      `Every customer cost more than they ever paid back — LTV:CAC never cleared ${metrics.raw.ltvCacRatio}×. It was on your own numbers screen the whole time.`,
+    );
+  if (metrics.raw.burnMultiple !== null && metrics.raw.burnMultiple > 3)
+    hiddenTruths.push(
+      `Near the end you were burning ${metrics.raw.burnMultiple}× for every new dollar of revenue. That is not a pace anyone recovers from.`,
+    );
+  if (metrics.raw.ruleOf40Pct < 0)
+    hiddenTruths.push(
+      "Growth and profit were both working against you at once — shrinking and losing money in the same year.",
+    );
 
   return {
     companyName: state.companyName,
