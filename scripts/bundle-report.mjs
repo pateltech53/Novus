@@ -119,7 +119,14 @@ const BUDGETS = {
   // this route on purpose, for exactly this reason — and one kilobyte for two
   // independent features shipping together is the honest price of the shared
   // chunk moving under both of them at once, not a leak in either.
-  "/play/page": 360,
+  // 362, not 360. Three same-day commits: Rule of 40 and burn multiple joined
+  // companyMetrics() (lib/engine/company-brief.ts, already in this bundle via
+  // PitchNotes); the new lib/engine/cap-table.ts, read by GameProvider's
+  // autopsy path (buildAutopsy, called on every death) for the equity
+  // timeline; and a small ousted-ending branch in GameProvider itself.
+  // Measured at 361.3 kB, +1.3 kB gzipped over the old budget. Two
+  // kilobytes of margin, not two kilobytes of new code.
+  "/play/page": 362,
   "/found/page": 325,
   // The picker is the front door for anyone with a company, so it is on the
   // critical path for every returning player. 320 is a little above where it
@@ -139,7 +146,11 @@ const BUDGETS = {
   // GameProvider, so it pays the +1.2 kB of reward reporting described above
   // for a screen that shows islands on water and reports nothing. The same
   // provider split that would recover the nine kilobytes recovers this too.
-  "/islands/page": 333,
+  // 335 for the same reason as /play above: the picker mounts GameProvider,
+  // and GameProvider's autopsy path is what grew (buildAutopsy now reaches
+  // lib/engine/company-brief.ts's companyMetrics() and the new
+  // lib/engine/cap-table.ts). Measured at 333.8 kB, +0.8 kB gzipped.
+  "/islands/page": 335,
   "/welcome/page": 195,
   "/chapter/page": 130,
   "/join/page": 120,
