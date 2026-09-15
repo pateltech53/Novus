@@ -219,3 +219,185 @@ struct WeakestInlineView: View {
         }
     }
 }
+
+// ── Still Standing, on the Lock Screen ──────────────────────────────────────
+
+/**
+ The archipelago's headline, at Lock Screen size.
+
+ `StillStandingWidget` (the Home Screen board) had no Lock Screen presence at
+ all — every other company-level fact in this bundle got one and this one did
+ not, for no reason beyond nobody having added it. Six rows do not fit in
+ eleven points; the one row that does is the best a player has ever built,
+ which is the same "worth it even most runs end in a headstone" reasoning
+ `StillStandingWidget`'s own header comment gives for showing dead companies
+ at all.
+ */
+struct StillStandingRectangularWidget: Widget {
+    static let kind = "com.novuspitch.widget.islands.rect"
+
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: Self.kind, provider: OutsideProvider()) { entry in
+            StillStandingRectangularView(snapshot: entry.snapshot)
+                .containerBackground(Color.clear, for: .widget)
+        }
+        .configurationDisplayName("Still Standing")
+        .description("Your best company's peak valuation.")
+        .supportedFamilies([.accessoryRectangular])
+    }
+}
+
+struct StillStandingRectangularView: View {
+    let snapshot: OutsideSnapshot
+
+    /// Peak, not current valuation — the same column `StillStandingWidget`
+    /// sorts by, for the same reason: a company's worst day should not be
+    /// what the Lock Screen remembers it by.
+    private var best: OutsideIsland? {
+        snapshot.islands.max { $0.peak < $1.peak }
+    }
+
+    var body: some View {
+        if let best {
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(spacing: 3) {
+                    Image(systemName: "trophy")
+                        .font(.system(size: 10, weight: .semibold))
+                    Text("STILL STANDING")
+                        .font(NvType.label(10, weight: .black))
+                        .lineLimit(1)
+                    Spacer(minLength: 4)
+                    Text(counted)
+                        .font(NvType.label(9, weight: .bold))
+                        .opacity(0.7)
+                }
+                .widgetAccentable()
+
+                Text(best.name)
+                    .font(NvType.figure(14, weight: .bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+
+                Text("Peak \(best.peakText)")
+                    .font(NvType.figure(10, weight: .medium))
+                    .opacity(0.75)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+            .widgetURL(URL(string: "\(OutsideStore.scheme)://islands"))
+        } else {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("NOVUS").font(NvType.label(11, weight: .black)).widgetAccentable()
+                Text("No company yet").font(NvType.label(12, weight: .semibold))
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+            .widgetURL(URL(string: "\(OutsideStore.scheme)://islands"))
+        }
+    }
+
+    private var counted: String {
+        let alive = snapshot.islands.filter(\.alive).count
+        return "\(alive)/\(snapshot.islands.count)"
+    }
+}
+
+/// The same board, reduced to one number: how many are still alive.
+struct StillStandingCircularWidget: Widget {
+    static let kind = "com.novuspitch.widget.islands.circle"
+
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: Self.kind, provider: OutsideProvider()) { entry in
+            StillStandingCircularView(snapshot: entry.snapshot)
+                .containerBackground(Color.clear, for: .widget)
+        }
+        .configurationDisplayName("Still Standing, count")
+        .description("How many of your companies are still alive.")
+        .supportedFamilies([.accessoryCircular])
+    }
+}
+
+struct StillStandingCircularView: View {
+    let snapshot: OutsideSnapshot
+
+    var body: some View {
+        let alive = snapshot.islands.filter(\.alive).count
+        let total = snapshot.islands.count
+
+        if total > 0 {
+            Gauge(value: Double(alive), in: 0...Double(total)) {
+                Image(systemName: "trophy")
+            } currentValueLabel: {
+                Text("\(alive)")
+                    .font(NvType.figure(15, weight: .bold))
+                    .minimumScaleFactor(0.6)
+            }
+            .gaugeStyle(.accessoryCircular)
+            .widgetURL(URL(string: "\(OutsideStore.scheme)://islands"))
+        } else {
+            ZStack {
+                AccessoryWidgetBackground()
+                Image(systemName: "trophy")
+                    .font(.system(size: 14, weight: .semibold))
+                    .widgetAccentable()
+            }
+            .widgetURL(URL(string: "\(OutsideStore.scheme)://islands"))
+        }
+    }
+}
+
+// ── RobinGhood, on the Lock Screen ──────────────────────────────────────────
+
+/**
+ The one figure `MarketWidget` already computes that had no Lock Screen slot:
+ `dayChange(at:)`, the same line RobinGhood's Home Screen card draws under the
+ book value. A `Gauge` fill does not mean anything for a number that is
+ signed and unbounded either way, so this follows `WeakestCircularWidget`'s
+ own gate state — an icon and a number, not a ring.
+ */
+struct MarketCircularWidget: Widget {
+    static let kind = "com.novuspitch.widget.market.circle"
+
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: Self.kind, provider: OutsideProvider()) { entry in
+            MarketCircularView(snapshot: entry.snapshot)
+                .containerBackground(Color.clear, for: .widget)
+        }
+        .configurationDisplayName("RobinGhood")
+        .description("Today's change on your positions.")
+        .supportedFamilies([.accessoryCircular])
+    }
+}
+
+struct MarketCircularView: View {
+    let snapshot: OutsideSnapshot
+
+    var body: some View {
+        if let market = snapshot.market, !market.positions.isEmpty {
+            let change = market.dayChange(at: MarketMath.minute())
+            let up = change >= 0
+
+            ZStack {
+                AccessoryWidgetBackground()
+                VStack(spacing: 0) {
+                    Image(systemName: up ? "arrow.up.right" : "arrow.down.right")
+                        .font(.system(size: 13, weight: .bold))
+                    Text(NvFormat.percent(change, signed: true))
+                        .font(NvType.figure(10, weight: .bold))
+                        .minimumScaleFactor(0.6)
+                        .lineLimit(1)
+                }
+                .widgetAccentable()
+            }
+            .widgetURL(URL(string: "\(OutsideStore.scheme)://market"))
+        } else {
+            ZStack {
+                AccessoryWidgetBackground()
+                Image(systemName: "chart.line.uptrend.xyaxis")
+                    .font(.system(size: 14, weight: .semibold))
+                    .widgetAccentable()
+            }
+            .widgetURL(URL(string: "\(OutsideStore.scheme)://market"))
+        }
+    }
+}

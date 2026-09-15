@@ -210,6 +210,28 @@ struct FiscalYearActivity: Widget {
     }
 }
 
+/**
+ What the engine reaches for next, in words.
+
+ `OutsideScore.category` carries one of MKT/PRD/PPL/CUS/LIF — the same
+ vocabulary `weakestCategory()` in lib/engine/events.ts uses to bias the next
+ event draw. `lib/engine/events.ts` (via `components/DecisionSheet.tsx`'s
+ `categoryLabel`) already has a label for these on the card itself
+ ("MARKETING", "YOUR LIFE", …); this is a shorter, lower-case form for a
+ sentence rather than an eyebrow, kept to the five categories a stat can
+ actually be attacked through.
+ */
+private func categoryHint(_ code: String) -> String {
+    switch code {
+    case "MKT": return "marketing"
+    case "PRD": return "product"
+    case "PPL": return "team"
+    case "CUS": return "customer"
+    case "LIF": return "life"
+    default: return "new"
+    }
+}
+
 // ── The Lock Screen card ────────────────────────────────────────────────────
 
 @available(iOS 16.2, *)
@@ -266,6 +288,28 @@ private struct FiscalYearCard: View {
                     FigureCell(
                         label: "VALUATION", figure: company.valuation, size: 16,
                         alignment: .trailing)
+                }
+
+                /*
+                 Which kind of event the engine is about to reach for.
+
+                 `OutsideScore.category` has ridden along in every snapshot
+                 since the widgets shipped and nothing drew it — the wire
+                 format's own comment said so. It is worth a line exactly
+                 here: the Lock Screen banner is the one surface with room for
+                 a sentence, and `underPressure` (weakest score under 45) is
+                 precisely the state where `weakestCategory()` in
+                 lib/engine/events.ts has started biasing the draw toward
+                 this category. Silent otherwise — a founder whose numbers are
+                 all fine has nothing here to read.
+                 */
+                if company.underPressure, let weakest = company.weakest {
+                    Text("Expect \(categoryHint(weakest.category)) events next.")
+                        .font(NvType.label(11, weight: .semibold))
+                        .foregroundStyle(Nv.alert)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                        .padding(.top, 1)
                 }
             }
 

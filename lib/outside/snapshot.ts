@@ -1,4 +1,4 @@
-import type { Industry, RunState } from "@/lib/engine/types";
+import type { Industry, RunState, StageNum } from "@/lib/engine/types";
 import type { IslandSummary } from "@/lib/engine/save";
 import { INDUSTRIES, STAGE_NAME } from "@/lib/engine/constants";
 import { previousValue } from "@/lib/engine/ledger";
@@ -199,6 +199,25 @@ export interface OutsideIsland {
   valuationText: string;
   peak: number;
   peakText: string;
+  /**
+   * The four fields below exist so a widget can be pinned to a SPECIFIC
+   * island rather than always following whichever one is currently open —
+   * `IslandSummary` (lib/engine/save.ts) already carries `cash`, `month` and
+   * `stage` for every island on the device, not only the open one, so this is
+   * a read of data already there rather than a new one. Deliberately NOT
+   * extended with the five scores or burn rate: those live only on the open
+   * run's live `RunState`, and reaching for them here would mean caching a
+   * second copy of live game state inside the save index for every island —
+   * a materially bigger and riskier change than a Home Screen widget option
+   * justifies. `companySnapshot` above is the real thing; this is the summary
+   * every OTHER island gets.
+   */
+  cashText: string;
+  /** Month 12 for THIS island — its own gate, independent of whichever
+   *  island is open right now. */
+  atGate: boolean;
+  month: number;
+  stageName: string;
 }
 
 export interface OutsideSnapshot {
@@ -449,6 +468,15 @@ export function islandSnapshot(island: IslandSummary): OutsideIsland {
     valuationText: fmtMoney(island.valuation),
     peak,
     peakText: fmtMoney(peak),
+    cashText: fmtMoney(island.cash),
+    atGate: island.month >= 12,
+    month: island.month,
+    // `IslandSummary.stage` is a plain `number` (persisted, unlike `RunState`'s
+    // own `StageNum`), so the cast — and, unlike every in-app read of
+    // `STAGE_NAME`, an actual fallback: a summary is data that outlived the
+    // code that wrote it, and a widget is not the place to let an
+    // out-of-range stage throw on an undefined lookup.
+    stageName: STAGE_NAME[island.stage as StageNum] ?? `Stage ${island.stage}`,
   };
 }
 
