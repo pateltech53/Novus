@@ -4,17 +4,20 @@ import { useEffect } from "react";
 import { hideNativeChrome, probeNativeChrome } from "@/lib/native/chrome";
 import { hideNativeOverlay } from "@/components/native/useNativeOverlay";
 import { releaseSplash, startNativeShell } from "@/lib/native/boot";
+import { useNativeUpdateCheck } from "@/lib/native/update";
 import { BRAND_ACTION } from "@/lib/brand";
 
 /**
  * The one place the app talks to its shell.
  *
  * Mounted from the root layout so it runs before any screen does, and so the
- * status bar, the back button and the native chrome probe all happen exactly
- * once per launch rather than once per route. On the web every call inside is
- * a no-op and this component renders nothing.
+ * status bar, the back button, the native chrome probe and the update check
+ * all happen exactly once per launch rather than once per route. On the web
+ * every call inside is a no-op and this component renders nothing.
  */
 export function NativeShell() {
+  useNativeUpdateCheck();
+
   useEffect(() => {
     const stop = startNativeShell();
     const theme = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
