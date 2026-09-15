@@ -416,6 +416,39 @@ recording precisely because nothing else did:
   every company was judged a bigger and riskier change than a widget option
   justifies).
 
+**Onboarding now requires an account (2026-09-15), reversing §8 of
+docs/ACCOUNTS-SETUP.md — read that file's own note before touching this
+again.** The owner's explicit instruction, given knowing the cost: the free
+game used to need nothing from anyone (a legal position as much as a product
+one, given the school/minor audience — see ACCOUNTS-SETUP.md §9). `/welcome`'s
+step order is now wave → age → **account** (mandatory: create or sign in, by
+email or a configured provider) → mic → explain → showme → plans, and the
+separate "what should the shark call you" step is gone — the account's
+display name is the founder name now. `finish()` in `app/welcome/page.tsx`
+re-checks `loadAccount()` the same way it re-checks the age gate, so it cannot
+be reached by walking the steps out of order. `AccountSection` (Settings, and
+formerly `/welcome`'s optional sign-in sheet) is unchanged; the new
+`AccountStep` in `app/welcome/page.tsx` is a separate, callback-based sibling
+of `components/landing/AccountGate.tsx` built for this because AccountGate
+navigates the page itself on success, which is wrong mid-onboarding.
+
+Two things this did NOT do, both worth someone's attention before a real
+release:
+
+- **The marketing copy still says otherwise.** "Free is the whole game" /
+  "no account needed" language is unchanged on the landing page, in
+  `docs/ACCOUNTS-SETUP.md` §8's wording, and possibly elsewhere — it is now
+  true of the *price* only, not the *door*. Not rewritten in this pass; a
+  content sweep is still owed.
+- **`APPLE_SIGN_IN_WITHHELD` in `lib/cloud/native-oauth.ts` was changed from
+  "temporarily true, pending verification" to withheld on purpose,
+  indefinitely, AND `availableProviders()` was changed to stop gating Google
+  on iOS behind it** — also the owner's explicit call, to ship Google alone
+  for now rather than do Apple's setup. Read that constant's header comment
+  before touching it again: offering Google without Apple on iOS is a real
+  App Store Guideline 4.8 rejection risk at submission time, accepted here
+  knowingly for testing/Android, not cleared for a real App Store build.
+
 ### In-flight work (open PRs — both based on early-August main; GitHub already reports both as conflicting)
 
 One trap before touching them: **head branches here are reused across PRs.**

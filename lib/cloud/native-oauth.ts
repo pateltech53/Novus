@@ -72,21 +72,27 @@ export function nativeAuthAvailable(): boolean {
 }
 
 /**
- * ── TEMPORARY: Sign in with Apple is withheld ───────────────────────────────
+ * ── Sign in with Apple is withheld, on purpose, indefinitely for now ────────
  *
- * The owner's call (2026-08-31): the client half of the 2.1(a) fix shipped,
- * but the flow's other half lives in the Supabase dashboard — the Apple
- * provider's Client IDs must carry the bundle id, and the secret should be
- * the auto-renewing .p8 (docs/APP-STORE.md §6.9) — and none of it has been
- * verified on a physical device yet. Until it is, an offered Apple button is
- * a bet that unverified configuration is right, and losing that bet on a
- * reviewer's iPad is exactly the rejection this file just came back from.
- * Email sign-in is untouched.
+ * The owner's call: ship Google only for the time being and skip Apple's
+ * setup (Supabase provider Client IDs, the auto-renewing .p8, an on-device
+ * verification pass — docs/APP-STORE.md §6.9) entirely rather than half-do it.
  *
- * To re-offer: flip this to false — nothing else. The shell loads the live
- * site, so the button returns on the next web deploy, no store resubmission.
- * Flip it only AFTER the §6.9 dashboard checks and an on-device sign-in on
- * iPhone and iPad have actually passed.
+ * ── The known cost, stated plainly ──────────────────────────────────────────
+ *
+ * App Review Guideline 4.8 says an iOS app offering a third-party login must
+ * offer a privacy-preserving equivalent beside it — in practice, Apple beside
+ * Google, never Google alone. Offering Google alone on iOS is therefore a
+ * real rejection risk at submission time; this is accepted here as a
+ * deliberate trade for testing/Android now, NOT a claim that it is safe to
+ * submit to the App Store as-is. Revisit before any App Store submission —
+ * either add Apple (flip nothing here; wire APPLE_SERVICES_ID etc. and the
+ * Supabase side, verify on a physical iPhone and iPad, and this function
+ * already offers it once configured) or drop the iOS Google button.
+ *
+ * Android carries no such rule, and Apple on Android goes through Apple's own
+ * web flow inside the app rather than the system sheet, which is why it needs
+ * a Services ID and a return URL where iOS needs neither.
  */
 const APPLE_SIGN_IN_WITHHELD = true;
 
@@ -96,9 +102,6 @@ const APPLE_SIGN_IN_WITHHELD = true;
  * Apple on iOS needs no configuration from us — the entitlement on the target
  * is the whole of it, and the sheet is part of the OS. Everything else needs a
  * client id, and an unconfigured provider is left out rather than offered.
- *
- * Apple on **Android** goes through Apple's web flow inside the app, which is
- * why it needs a Services ID and a return URL there and not on iOS.
  */
 export function availableProviders(): OAuthProvider[] {
   if (!nativeAuthAvailable()) return [];
@@ -109,15 +112,9 @@ export function availableProviders(): OAuthProvider[] {
   // button whose every tap fails is the defect class this file was rejected
   // for. Offer only what the tap can honour, per platform.
   //
-  // And while Apple is withheld, iOS gets no Google either: App Review
-  // Guideline 4.8 forbids offering a third-party login on iOS without a
-  // privacy-preserving equivalent beside it (docs/OAUTH-SETUP.md §0 — "Apple
-  // alone, or both; never Google alone"). Android has no such rule and keeps
-  // whatever is configured.
-  if (
-    GOOGLE_WEB_CLIENT_ID &&
-    (!isIOS() || (GOOGLE_IOS_CLIENT_ID && !APPLE_SIGN_IN_WITHHELD))
-  ) {
+  // Deliberately NOT gated on APPLE_SIGN_IN_WITHHELD: see the header above
+  // this constant for the App Store risk that decision accepts.
+  if (GOOGLE_WEB_CLIENT_ID && (!isIOS() || GOOGLE_IOS_CLIENT_ID)) {
     providers.push("google");
   }
   if (
