@@ -158,7 +158,13 @@ const BUDGETS = {
   // lib/engine/company-brief.ts's companyMetrics() and the new
   // lib/engine/cap-table.ts). Measured at 333.8 kB, +0.8 kB gzipped.
   "/islands/page": 335,
-  "/welcome/page": 195,
+  // 200 (was 195, measured 196.0), 2026-09-15: onboarding now requires an
+  // account partway through the flow (docs/HANDOFF.md's "Onboarding now
+  // requires an account" note), which pulls the email/password form, the
+  // Turnstile widget and ChooseName into this route's own chunk instead of
+  // behind the old code-split "I already have an account" sheet — a real
+  // cost of the feature, not slack.
+  "/welcome/page": 200,
   "/chapter/page": 130,
   "/join/page": 120,
   "/reset/page": 125,

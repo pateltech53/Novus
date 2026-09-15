@@ -335,8 +335,15 @@ exception, kept as narrow as it can be:
   takes over; the anonymous progress is not merged in. Merging would mean
   choosing which company survives, and there is no answer to that a player
   would thank us for.
-- **Any account requirement for playing.** The free game needs no account, and
-  the pricing copy that promises this ("Free is the whole game") stays true.
+- ~~**Any account requirement for playing.** The free game needs no account,
+  and the pricing copy that promises this ("Free is the whole game") stays
+  true.~~ **Superseded 2026-09-15.** `/welcome` now requires signing in or
+  creating an account partway through onboarding — see docs/HANDOFF.md's
+  "Onboarding now requires an account" note for the change, the reasoning,
+  and what it did not update (the pricing/marketing copy this bullet quotes is
+  still unrevised, and still wrong about the door). §9 below, on minors and
+  COPPA, is exactly the reasoning this reverses; read it before deciding
+  whether to keep the reversal.
 
 ---
 

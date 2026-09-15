@@ -10,10 +10,9 @@ import { play } from "@/lib/sound";
 import { LoopExplainer } from "@/components/LoopExplainer";
 import { PrimaryButton, StepShell } from "@/components/StepShell";
 import { billingStatus, goToCheckout } from "@/lib/cloud/billing";
-import { useSellsHere } from "@/lib/commerce";
+import { storefront, useSellsHere } from "@/lib/commerce";
 import { BuyOnWeb } from "@/components/upgrade/BuyOnWeb";
 import { LegalSheet } from "@/components/LegalSheet";
-import { ScreenSheet } from "@/components/screens/ScreenSheet";
 import { PRIVACY, TERMS, type LegalDocument } from "@/lib/legal/documents";
 import {
   CADENCE_SUFFIX,
@@ -44,7 +43,6 @@ import { speak, stopSpeaking } from "@/lib/ai/speech";
 import { saveProfile, loadProfile } from "@/lib/engine/save";
 import { markIntroSeen } from "@/lib/rewards/intro";
 import { ENTRY_ROUTES, entryRoute } from "@/lib/entry";
-import { useBackHandler } from "@/lib/native/back";
 import {
   MIN_AGE,
   TOO_YOUNG_BODY,
@@ -55,8 +53,20 @@ import {
   recordTooYoung,
 } from "@/lib/auth/age";
 import { usePrefetch } from "@/lib/prefetch";
-import { useWarm, warm, type Preloadable } from "@/lib/warm";
 import { useNavigating } from "@/lib/navigating";
+import { loadAccount, MAX_NAME_LENGTH } from "@/lib/account";
+import { enabledProviders, PROVIDER_LABEL, type OAuthProvider } from "@/lib/auth/providers";
+import { MIN_PASSWORD_LENGTH } from "@/lib/auth/credentials";
+import {
+  signUp,
+  signIn,
+  nativeProviderSignIn,
+  providerStartUrl,
+} from "@/lib/cloud/auth";
+import { restoreForSignIn } from "@/lib/cloud/sync";
+import { appPath } from "@/lib/native/href";
+import { Turnstile, turnstileEnabled } from "@/components/landing/Turnstile";
+import { ChooseName } from "@/components/ChooseName";
 
 /**
  * Onboarding O1–O7. Nine steps total; O8 (found the company) lives at /found
@@ -67,9 +77,9 @@ import { useNavigating } from "@/lib/navigating";
  */
 type Step =
   | "wave"
-  | "name"
   | "age"
   | "too-young"
+  | "account"
   | "mic"
   | "explain"
   | "showme"
@@ -81,14 +91,6 @@ const SHARK_EXPLANATION =
 export default function WelcomePage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>("wave");
-  /** The account sheet, over the opening screen. */
-  const [signingIn, setSigningIn] = useState(false);
-  /* The sheet is React state with no history entry behind it, so Android's
-     back button had nothing to pop and left the app instead of closing it —
-     from the first screen a returning player ever taps. Same registration
-     every other overlay in the app makes (lib/native/back.ts). */
-  useBackHandler(signingIn, () => setSigningIn(false));
-  const [name, setName] = useState("");
   const [age, setAge] = useState("");
 
   /*
@@ -121,15 +123,6 @@ export default function WelcomePage() {
    * apart again.
    */
   usePrefetch(...ENTRY_ROUTES);
-  /*
-   * And the sheet this screen can open without leaving it.
-   *
-   * "I already have an account" is a returning player's first tap in the app,
-   * and `AccountSection` is code-split — so that tap rendered a sheet with an
-   * empty body until its module arrived. The wait was landing on the one
-   * screen where the player has no reason yet to believe the app works.
-   */
-  useWarm(WELCOME_WARM);
 
   const [finishing, go] = useNavigating();
 
@@ -145,9 +138,20 @@ export default function WelcomePage() {
       setStep("too-young");
       return;
     }
+    /*
+     * An account is required to reach this step (the "account" step below
+     * does not call onNext() until one exists), so this is the same kind of
+     * re-check the age gate gets above — reachable from the plans sheet, so
+     * it does not trust that the step machine was walked in order.
+     */
+    const account = loadAccount();
+    if (!account) {
+      setStep("account");
+      return;
+    }
     const existing = loadProfile();
     saveProfile({
-      founderName: name.trim() || "Founder",
+      founderName: account.displayName,
       playerAge: age ? parseInt(age, 10) : null,
       // Under-16s start with the plain-English layer on.
       rookieMode:
@@ -172,7 +176,7 @@ export default function WelcomePage() {
     // the heaviest page in the app — and the last step of onboarding used to
     // end on a sheet that simply sat there through the whole chunk.
     go(() => router.push(entryRoute()));
-  }, [name, age, router, go]);
+  }, [age, router, go]);
 
   // AnimatePresence mode="wait" takes exactly ONE child. Rendering conditional
   // siblings leaves it waiting on an exit that never resolves, and the screen
@@ -180,26 +184,7 @@ export default function WelcomePage() {
   const screen = (() => {
     switch (step) {
       case "wave":
-        return (
-          <Wave
-            key="wave"
-            onNext={() => setStep("name")}
-            onSignIn={() => setSigningIn(true)}
-          />
-        );
-      case "name":
-        return (
-          <FieldStep
-            key="name"
-            label="What should the shark call you? "
-            value={name}
-            onChange={setName}
-            placeholder="Your name"
-            cta="CONTINUE"
-            onNext={() => setStep("age")}
-            valid={name.trim().length > 0}
-          />
-        );
+        return <Wave key="wave" onNext={() => setStep("age")} />;
       case "age":
         /*
          * ── A neutral age screen ──────────────────────────────────────────
@@ -228,13 +213,15 @@ export default function WelcomePage() {
                 setStep("too-young");
                 return;
               }
-              setStep("mic");
+              setStep("account");
             }}
             valid={isPlausibleAge(age)}
           />
         );
       case "too-young":
         return <TooYoung key="too-young" />;
+      case "account":
+        return <AccountStep key="account" onNext={() => setStep("mic")} />;
       case "mic":
         return <MicMoment key="mic" onNext={() => setStep("explain")} />;
       case "explain":
@@ -252,56 +239,7 @@ export default function WelcomePage() {
   return (
     <main className="relative flex min-h-dvh flex-col overflow-hidden">
       {screen}
-      {/*
-        Loaded on the tap, never before it.
-
-        `warm()` puts `AccountSection` and everything under it — the
-        sign-in form, the provider sheet, `restoreForSignIn` and the Supabase
-        client it reaches for — in a chunk of its own. Most players who land
-        here are new and will never open this, and the opening screen is the
-        one place in the app where First Load JS is the whole experience.
-      */}
-      {signingIn && <SignInSheet onClose={() => setSigningIn(false)} />}
     </main>
-  );
-}
-
-/**
- * The account, over the opening screen.
- *
- * No `onSignedIn`, deliberately. `AccountSection` navigates the page itself
- * once a sign-in succeeds, and it has to: signing in EMPTIES this device and
- * pulls the account's own companies down (lib/cloud/auth.ts), so a callback
- * that merely closed the sheet would leave onboarding running on top of
- * somebody else's save.
- */
-const AccountSection = warm(() =>
-  import("@/components/account/AccountSection").then((m) => m.AccountSection),
-);
-
-/** Fetched and parsed while the player reads the first screen, so the sign-in
- *  sheet has a body in it the moment it opens — and, because `warm()` is not a
- *  Suspense boundary, without the ~300ms React charges for replacing a
- *  committed fallback. See lib/warm.tsx. */
-const WELCOME_WARM: Preloadable[] = [AccountSection.preload];
-
-function SignInSheet({ onClose }: { onClose: () => void }) {
-  // The narration is about founding a company; it has no business playing over
-  // a password field.
-  useEffect(() => stopSpeaking(), []);
-
-  return (
-    <ScreenSheet
-      label="Sign in to your account"
-      closeLabel="Close sign in"
-      onClose={onClose}
-      title="Welcome back"
-      blurb="Sign in and your companies come back to this phone — every island, every year, exactly where you left them."
-    >
-      <div className="px-5 pb-6">
-        <AccountSection />
-      </div>
-    </ScreenSheet>
   );
 }
 
@@ -318,13 +256,7 @@ function SignInSheet({ onClose }: { onClose: () => void }) {
  * 5 founder — the tuxedo and the gold watch — because that is the thing being
  * offered, and the first screen should say what the game is for.
  */
-function Wave({
-  onNext,
-  onSignIn,
-}: {
-  onNext: () => void;
-  onSignIn: () => void;
-}) {
+function Wave({ onNext }: { onNext: () => void }) {
   useEffect(() => {
     play("splash");
     void speak("Welcome to Novus.", "narrator");
@@ -371,27 +303,6 @@ function Wave({
         transition={{ ...ENTER, delay: 0.34 }}
       >
         <PrimaryButton onClick={onNext}>START</PrimaryButton>
-
-        {/*
-          ── The door for somebody who already has an account ────────────────
-
-          This screen is where a new phone lands (lib/entry.ts), and until now
-          it had exactly one way forward: make a founder, name a company, and
-          only then — inside Settings, inside that company — discover that
-          signing in was possible all along. A player restoring on a new phone
-          had to create the thing they were trying to get back.
-
-          Under START rather than beside it. Founding is what this screen is
-          for and it keeps the accent and the weight; this is the quiet second
-          answer, which is the shape it has everywhere else in the app.
-        */}
-        <button
-          type="button"
-          onClick={onSignIn}
-          className="mt-3 w-full py-2 text-2xs font-bold tracking-[0.1em] text-[var(--n-7)]"
-        >
-          I ALREADY HAVE AN ACCOUNT
-        </button>
       </motion.div>
     </StepShell>
   );
@@ -473,6 +384,441 @@ function FieldStep({
         </PrimaryButton>
       </div>
     </StepShell>
+  );
+}
+
+/**
+ * O3b · The account gate. Mandatory: nothing past this step runs without a
+ * real account behind it.
+ *
+ * ── Why onboarding has this now, when it did not ───────────────────────────
+ *
+ * The product's own account docs (docs/ACCOUNTS-SETUP.md §8) call an account
+ * requirement something Novus deliberately does NOT build, for a real reason:
+ * the game is sold to schools, played by minors, and the free tier's whole
+ * promise is that it needs nothing from anyone. This step overrides that on
+ * purpose, at the owner's instruction, accepting the trade — a player with no
+ * network cannot found a company any more, and the marketing copy elsewhere
+ * ("Free is the whole game", "no account needed") is now only true of the
+ * price, not the door. If that call is ever revisited, this is the one step
+ * to remove; nothing past it depends on how the account was made.
+ *
+ * ── Why it is not just `AccountGate` reused ────────────────────────────────
+ *
+ * `components/landing/AccountGate.tsx` is the web front door's version of this
+ * same state machine, and it is deliberately not imported here: on success it
+ * navigates the whole page itself (`router.push(destination())`), because on
+ * the landing page an account IS the destination. Here an account is a
+ * checkpoint in the middle of onboarding — mic, the explainer and the plans
+ * sheet still follow — so this step calls `onNext()` instead of leaving.
+ *
+ * ── Sign-up vs sign-in, same split as everywhere else ──────────────────────
+ *
+ * Sign-up KEEPS this device (nothing has been played yet, so there is nothing
+ * to lose) and continues onboarding. Sign-in belongs to a RETURNING player —
+ * this device may hold nobody's save yet, but the account might — so it wipes
+ * the device and leaves onboarding entirely for `entryRoute()`, exactly as
+ * `AccountSection`'s `submitSignIn` and `AccountGate`'s do; see lib/cloud/auth.ts
+ * for why that order (wipe, then pull) is the one that cannot lose a save.
+ *
+ * The age gate above this step in the switch already ran — this step never
+ * asks for an age of its own, and never collects an email before it has.
+ */
+function AccountStep({ onNext }: { onNext: () => void }) {
+  const router = useRouter();
+  /** null while the device is being checked, so nothing flashes a form at a
+   *  player who turns out to already have an account. */
+  const [mode, setMode] = useState<"checking" | "create" | "signIn" | "naming">("checking");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [agreed, setAgreed] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaNonce, setCaptchaNonce] = useState(0);
+  const [suggestedName, setSuggestedName] = useState<string | null>(null);
+
+  /** Seeded synchronously, same reasoning as AccountGate: the web build's
+   *  answer never changes after mount, so there is nothing to wait for there.
+   *  The app narrows it once the bridge confirms what the plugin can honour. */
+  const [providers, setProviders] = useState<readonly OAuthProvider[]>(() => enabledProviders());
+  const [nativeAuth, setNativeAuth] = useState(false);
+  const [legal, setLegal] = useState(false);
+
+  // The narration is about founding a company; it has no business playing
+  // over a password field, same reasoning the old sign-in sheet had.
+  useEffect(() => stopSpeaking(), []);
+
+  // A resumed onboarding, or a sign-in from elsewhere that never finished
+  // founding — skip straight past rather than asking again.
+  useEffect(() => {
+    if (loadAccount()) {
+      onNext();
+      return;
+    }
+    setMode("create");
+    // Runs once, at mount only — onNext is stable from useCallback in the
+    // parent and re-running this on every render would fight the mode it
+    // just set.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    void import("@/lib/cloud/native-oauth").then(({ nativeAuthAvailable, availableProviders }) => {
+      if (!alive || !nativeAuthAvailable()) return;
+      setNativeAuth(true);
+      setProviders(availableProviders());
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const canSignUp =
+    name.trim().length > 0 &&
+    email.trim().length > 0 &&
+    password.length >= MIN_PASSWORD_LENGTH &&
+    agreed &&
+    (!turnstileEnabled() || !!captchaToken);
+  const canSignIn = email.trim().length > 0 && password.length > 0;
+
+  const submitSignUp = async () => {
+    if (!canSignUp || busy) return;
+    setBusy(true);
+    setError(null);
+
+    const result = await signUp(email, password, name, captchaToken);
+    if (!result.ok) {
+      setBusy(false);
+      setError(result.message);
+      if (turnstileEnabled()) {
+        setCaptchaToken(null);
+        setCaptchaNonce((n) => n + 1);
+      }
+      // A taken email is nearly always a returning player.
+      if (result.reason === "taken") setMode("signIn");
+      return;
+    }
+
+    play("success");
+    // Sign-up keeps this device — nothing played yet, nothing to lose — so
+    // onboarding simply continues.
+    onNext();
+  };
+
+  const submitSignIn = async () => {
+    if (!canSignIn || busy) return;
+    setBusy(true);
+    setError(null);
+
+    const result = await signIn(email, password);
+    if (!result.ok) {
+      setBusy(false);
+      setError(result.message);
+      return;
+    }
+
+    play("success");
+    setLeaving(true);
+    // Sign-in wipes this device and pulls the account's own save — leave
+    // onboarding for wherever that account actually belongs, exactly as
+    // AccountSection.submitSignIn does and for the same reason (the comment
+    // there has the long version).
+    await restoreForSignIn();
+    const route = entryRoute();
+    if (storefront() === "web") router.push(route);
+    else window.location.href = appPath(route);
+  };
+
+  const useProvider = async (provider: OAuthProvider) => {
+    if (busy) return;
+    play("click");
+    setBusy(true);
+    setError(null);
+
+    if (!nativeAuth) {
+      // Leaves the page; /auth/callback finishes the round trip and this
+      // component never runs again for it.
+      window.location.href = providerStartUrl(provider);
+      return;
+    }
+
+    const result = await nativeProviderSignIn(provider);
+    if (!result.ok) {
+      setBusy(false);
+      // A closed sheet is a change of mind, not a failure.
+      if (result.reason !== "cancelled") setError(result.message);
+      return;
+    }
+
+    play("success");
+    if (result.state === "new") {
+      setBusy(false);
+      setSuggestedName(
+        result.suggestedName && result.suggestedName !== "Founder" ? result.suggestedName : null,
+      );
+      setMode("naming");
+      return;
+    }
+
+    // A returning player, same as email sign-in above.
+    setLeaving(true);
+    await restoreForSignIn();
+    const route = entryRoute();
+    if (storefront() === "web") router.push(route);
+    else window.location.href = appPath(route);
+  };
+
+  if (mode === "checking") return <StepShell key="account">{null}</StepShell>;
+
+  if (mode === "naming") {
+    return (
+      <StepShell key="account">
+        <div className="flex w-full flex-1 flex-col justify-center">
+          <p className="text-center text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]">
+            ONE LAST THING
+          </p>
+          <h1 className="mt-2 text-center text-[1.75rem] font-extrabold leading-tight tracking-[-0.02em]">
+            What should the shark call you?
+          </h1>
+          <div className="mt-6">
+            <ChooseName suggested={suggestedName} onDone={onNext} />
+          </div>
+        </div>
+      </StepShell>
+    );
+  }
+
+  return (
+    <StepShell key="account">
+      <div className="flex w-full flex-1 flex-col justify-center">
+        <p className="text-center text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]">
+          {mode === "signIn" ? "WELCOME BACK" : "MAKE AN ACCOUNT"}
+        </p>
+        <h1 className="mt-2 text-center text-[1.75rem] font-extrabold leading-tight tracking-[-0.02em]">
+          {mode === "signIn"
+            ? "Sign in and your companies come back."
+            : "One account keeps your companies safe."}
+        </h1>
+        <p className="mt-2 text-center text-sm leading-relaxed text-[var(--n-8)]">
+          {mode === "signIn"
+            ? "Every island, every year, exactly where you left them."
+            : "It survives a new phone, and it's what Novus Pro attaches to. Costs nothing."}
+        </p>
+
+        <form
+          className="mt-6"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void (mode === "signIn" ? submitSignIn() : submitSignUp());
+          }}
+        >
+          {mode !== "signIn" && (
+            <AccountField
+              id="onboard-name"
+              label="YOUR NAME"
+              value={name}
+              onChange={(v) => setName(v.slice(0, MAX_NAME_LENGTH))}
+              placeholder="Your name"
+              autoComplete="nickname"
+              enterKeyHint="next"
+            />
+          )}
+          <AccountField
+            id="onboard-email"
+            label="EMAIL"
+            value={email}
+            onChange={setEmail}
+            placeholder="you@example.com"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            enterKeyHint="next"
+            className={mode !== "signIn" ? "mt-4" : undefined}
+          />
+          <AccountField
+            id="onboard-password"
+            label="PASSWORD"
+            value={password}
+            onChange={setPassword}
+            placeholder={mode === "signIn" ? "Your password" : `${MIN_PASSWORD_LENGTH} characters or more`}
+            type={showPassword ? "text" : "password"}
+            autoComplete={mode === "signIn" ? "current-password" : "new-password"}
+            enterKeyHint={mode === "signIn" ? "go" : "next"}
+            className="mt-4"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            className="mx-auto mt-2 block py-2 text-center text-2xs text-[var(--n-7)] underline underline-offset-4"
+          >
+            {showPassword ? "Hide password" : "Show password"}
+          </button>
+
+          {mode !== "signIn" && (
+            <label
+              style={{ touchAction: "manipulation" }}
+              className="mx-auto mt-4 flex max-w-[21rem] cursor-pointer items-start gap-2.5 py-2 text-left"
+            >
+              <input
+                type="checkbox"
+                checked={agreed}
+                onChange={(e) => setAgreed(e.target.checked)}
+                className="mt-px h-5 w-5 shrink-0 accent-[var(--action)]"
+              />
+              <span className="text-2xs leading-relaxed text-[var(--n-8)]">
+                I&rsquo;ve read the{" "}
+                <button
+                  type="button"
+                  onClick={() => setLegal(true)}
+                  className="inline-block py-1.5 font-bold underline underline-offset-2"
+                >
+                  privacy policy
+                </button>{" "}
+                — your email and progress are stored so you can sign back in.
+              </span>
+            </label>
+          )}
+
+          {mode !== "signIn" && turnstileEnabled() ? (
+            <Turnstile key={captchaNonce} onToken={setCaptchaToken} />
+          ) : null}
+
+          <div className="mt-5">
+            <PrimaryButton
+              onClick={() => void (mode === "signIn" ? submitSignIn() : submitSignUp())}
+              disabled={(mode === "signIn" ? !canSignIn : !canSignUp) || busy || leaving}
+            >
+              {busy || leaving
+                ? mode === "signIn"
+                  ? "SIGNING IN…"
+                  : "CREATING…"
+                : mode === "signIn"
+                  ? "SIGN IN"
+                  : "CREATE ACCOUNT"}
+            </PrimaryButton>
+          </div>
+        </form>
+
+        {providers.length > 0 ? (
+          <div className="mt-4">
+            <div className="flex items-center gap-3" aria-hidden>
+              <span className="h-px flex-1 bg-[var(--hairline)]" />
+              <span className="text-2xs font-bold tracking-[0.18em] text-[var(--n-7)]">OR</span>
+              <span className="h-px flex-1 bg-[var(--hairline)]" />
+            </div>
+            {providers.map((provider) => (
+              <button
+                key={provider}
+                type="button"
+                onClick={() => void useProvider(provider)}
+                disabled={busy || leaving}
+                style={{ touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
+                className="nv-gc mt-3 flex h-14 w-full items-center justify-center gap-3 rounded-[var(--radius-card)] nv-on px-6 text-[0.9375rem] font-extrabold tracking-[0.02em] text-[var(--n-11)] disabled:cursor-not-allowed disabled:opacity-35"
+              >
+                {provider === "google" ? <GoogleMark /> : <AppleMark />}
+                <span className="truncate">Continue with {PROVIDER_LABEL[provider]}</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        {error ? (
+          <p role="alert" className="mx-auto mt-3 max-w-[21rem] text-center text-2xs leading-relaxed text-[var(--color-alert)]">
+            {error}
+          </p>
+        ) : null}
+
+        <button
+          type="button"
+          onClick={() => {
+            setError(null);
+            setMode(mode === "signIn" ? "create" : "signIn");
+          }}
+          className="mx-auto mt-4 block py-2 text-center text-2xs font-bold tracking-[0.06em] text-[var(--n-7)] underline underline-offset-4"
+        >
+          {mode === "signIn" ? "No account yet? Create one" : "Already have an account? Sign in"}
+        </button>
+      </div>
+
+      {legal && <LegalSheet doc={PRIVACY} onClose={() => setLegal(false)} />}
+    </StepShell>
+  );
+}
+
+/** One field, on the account step. Same underline treatment as FieldStep's
+ *  input, a size down — this screen holds three of them, not one. */
+function AccountField({
+  id,
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  autoComplete,
+  inputMode,
+  enterKeyHint,
+  className,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  type?: string;
+  autoComplete?: string;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  enterKeyHint?: React.HTMLAttributes<HTMLInputElement>["enterKeyHint"];
+  className?: string;
+}) {
+  return (
+    <div className={className}>
+      <label
+        htmlFor={id}
+        className="block text-center text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]"
+      >
+        {label}
+      </label>
+      <input
+        id={id}
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        autoComplete={autoComplete}
+        inputMode={inputMode}
+        enterKeyHint={enterKeyHint}
+        autoCapitalize="none"
+        spellCheck={false}
+        className="mx-auto mt-2 block w-full max-w-[18rem] border-0 border-b-2 border-[var(--n-5)] bg-transparent pb-2 text-center text-[1.125rem] font-extrabold leading-tight tracking-[-0.02em] text-[var(--n-11)] transition-colors focus:border-[var(--n-11)] focus-visible:outline-none! placeholder:font-bold placeholder:text-[var(--n-6)]"
+      />
+    </div>
+  );
+}
+
+/** Google's four-colour G, drawn rather than fetched — see AccountGate.tsx's
+ *  GoogleMark for why: no request to a CDN from a page a minor is looking at. */
+function GoogleMark() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden focusable="false">
+      <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62Z" />
+      <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18Z" />
+      <path fill="#FBBC05" d="M3.97 10.72a5.41 5.41 0 0 1 0-3.44V4.95H.96a9 9 0 0 0 0 8.1l3-2.33Z" />
+      <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.59C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58Z" />
+    </svg>
+  );
+}
+
+/** Apple's mark, in the current text colour — see AccountGate.tsx's AppleMark. */
+function AppleMark() {
+  return (
+    <svg width="17" height="20" viewBox="0 0 17 20" aria-hidden focusable="false" fill="currentColor">
+      <path d="M14.03 10.62c-.02-2.2 1.8-3.26 1.88-3.31-1.02-1.5-2.62-1.7-3.18-1.72-1.35-.14-2.64.8-3.33.8-.69 0-1.75-.78-2.88-.76-1.48.02-2.85.86-3.61 2.19-1.54 2.67-.39 6.62 1.11 8.79.73 1.06 1.6 2.25 2.75 2.21 1.1-.05 1.52-.71 2.86-.71 1.33 0 1.71.71 2.88.69 1.19-.02 1.94-1.08 2.67-2.15.84-1.23 1.19-2.42 1.21-2.48-.03-.01-2.32-.89-2.34-3.53M11.85 4.1c.61-.74 1.02-1.77.91-2.79-.88.04-1.94.58-2.57 1.32-.56.65-1.05 1.7-.92 2.7.98.08 1.98-.5 2.58-1.23" />
+    </svg>
   );
 }
 
