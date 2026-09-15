@@ -16,8 +16,18 @@ import { storefront } from "@/lib/commerce";
  * Chapter 7 — the autopsy. A toe-tag document, deliberately narrow and
  * centered: red stamp, three ruled lines naming the decisions that killed the
  * company, quoted from the actual run log. Death is content.
+ *
+ * Two endings share this screen now. `report.endedBy` tells them apart —
+ * every piece of copy below that could be factually wrong for the other
+ * ending is the one thing here that branches on it. A company that got
+ * ousted did not liquidate; calling it "CHAPTER 7" would be a lie the game
+ * tells about its own state, which is the one thing the sim's own rules
+ * (Brand Law 4, "report a regression, never fake one") exist to prevent one
+ * layer up from here.
  */
 export function ChapterSeven({ report }: { report: AutopsyReport }) {
+  const ousted = report.endedBy === "ousted";
+
   /** First tap arms the burial, second commits it. */
   const [burying, setBurying] = useState(false);
 
@@ -46,49 +56,86 @@ export function ChapterSeven({ report }: { report: AutopsyReport }) {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ ...EXIT, delay: 0.35 }}
           >
-            CLOSED
+            {ousted ? "OUSTED" : "CLOSED"}
           </motion.p>
 
           <p className="text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]">
-            CHAPTER 7 · LIQUIDATION
+            {ousted ? "BOARD VOTE · REMOVED" : "CHAPTER 7 · LIQUIDATION"}
           </p>
           <h1 className="mt-2 text-[1.75rem] font-extrabold leading-tight tracking-[-0.02em]">
             {report.companyName}
           </h1>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Survived {report.yearsSurvived}{" "}
-            {report.yearsSurvived === 1 ? "fiscal year" : "fiscal years"}. Final
-            valuation {fmtMoney(report.finalValuation)}.
+            {ousted ? (
+              <>
+                Ran it for {report.yearsSurvived}{" "}
+                {report.yearsSurvived === 1 ? "fiscal year" : "fiscal years"}. The
+                company didn&rsquo;t die — you&rsquo;re just not the one running it.
+                Final valuation {fmtMoney(report.finalValuation)}.
+              </>
+            ) : (
+              <>
+                Survived {report.yearsSurvived}{" "}
+                {report.yearsSurvived === 1 ? "fiscal year" : "fiscal years"}. Final
+                valuation {fmtMoney(report.finalValuation)}.
+              </>
+            )}
           </p>
 
           <h2 className="mt-7 text-2xs font-bold tracking-[0.16em] text-[var(--alert)]">
-            CAUSE OF DEATH
+            {ousted ? "HOW YOUR STAKE GOT HERE" : "CAUSE OF DEATH"}
           </h2>
-          <ol className="mt-2.5">
-            {report.fatalDecisions.map((d, i) => (
-              <li
-                key={`${d.eventTitle}-${i}`}
-                className="border-b border-[var(--hairline)] py-3 first:border-t"
-              >
-                <p className="text-[0.9375rem] font-semibold leading-snug">
-                  &ldquo;{d.choiceLabel}&rdquo;
-                </p>
-                <p className="mt-0.5 text-xs text-[var(--text-tertiary)]">
-                  Year {d.year} · {d.eventTitle}
-                  {d.impact < 0 && (
+          {ousted ? (
+            <ol className="mt-2.5">
+              {(report.equityHistory ?? []).map((e) => (
+                <li
+                  key={e.id}
+                  className="border-b border-[var(--hairline)] py-3 first:border-t"
+                >
+                  <p className="text-[0.9375rem] font-semibold leading-snug">
+                    {e.description}
+                  </p>
+                  <p className="mt-0.5 text-xs text-[var(--text-tertiary)]">
+                    FY{e.year}
                     <span className="tnum ml-2 text-[var(--alert)]">
-                      {fmtMoney(d.impact)}
+                      −{e.amountPct}%
                     </span>
-                  )}
-                </p>
-              </li>
-            ))}
-            {report.fatalDecisions.length === 0 && (
-              <li className="py-3 text-sm text-[var(--text-secondary)]">
-                No single decision did this. The burn did. That is its own lesson.
-              </li>
-            )}
-          </ol>
+                  </p>
+                </li>
+              ))}
+              {(!report.equityHistory || report.equityHistory.length === 0) && (
+                <li className="py-3 text-sm text-[var(--text-secondary)]">
+                  No single round did this. They all added up.
+                </li>
+              )}
+            </ol>
+          ) : (
+            <ol className="mt-2.5">
+              {report.fatalDecisions.map((d, i) => (
+                <li
+                  key={`${d.eventTitle}-${i}`}
+                  className="border-b border-[var(--hairline)] py-3 first:border-t"
+                >
+                  <p className="text-[0.9375rem] font-semibold leading-snug">
+                    &ldquo;{d.choiceLabel}&rdquo;
+                  </p>
+                  <p className="mt-0.5 text-xs text-[var(--text-tertiary)]">
+                    Year {d.year} · {d.eventTitle}
+                    {d.impact < 0 && (
+                      <span className="tnum ml-2 text-[var(--alert)]">
+                        {fmtMoney(d.impact)}
+                      </span>
+                    )}
+                  </p>
+                </li>
+              ))}
+              {report.fatalDecisions.length === 0 && (
+                <li className="py-3 text-sm text-[var(--text-secondary)]">
+                  No single decision did this. The burn did. That is its own lesson.
+                </li>
+              )}
+            </ol>
+          )}
 
           {report.hiddenTruths.length > 0 && (
             <>

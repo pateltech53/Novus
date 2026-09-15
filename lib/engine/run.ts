@@ -10,6 +10,7 @@ import { KNOBS, STARTING_STATS, YEAR_END_MONTH } from "./constants";
 import { applyOutcome, resolveBranches, tickModifiersQuarter, tickPendingMonth } from "./effects";
 import {
   cashTick,
+  controlLossCheck,
   deathCheck,
   deriveValuation,
   quarterTick,
@@ -404,6 +405,42 @@ export function closeYear(
         res.deltas,
       ),
     );
+  }
+
+  /*
+   * The board ouster (sim.ts's controlLossCheck): checked right here, right
+   * after THIS year's deal is what might have pushed founder equity under
+   * the line — not at the top of the function, where it would be checking
+   * last year's number, and not in advanceMonth with Chapter 7, because a
+   * board vote is a board-meeting event and the only board meeting this
+   * engine models is the one that just happened.
+   *
+   * A genuinely different ending from Chapter 7, so it returns here rather
+   * than falling through to the rest of the close: no stage-up, no year
+   * increment, no recurring terms coming due — the founder does not attend
+   * next year's board meeting.
+   */
+  if (controlLossCheck(state)) {
+    state.alive = false;
+    state.endedBy = "ousted";
+    state.log.push(
+      makeLine(
+        state,
+        "milestone",
+        `Turns out ${Math.round(state.founderEquityPct)}% isn't enough to keep your own board from voting. They did. You're out; the company isn't.`,
+      ),
+    );
+    return {
+      year: state.year,
+      revenue,
+      profit,
+      valuation: state.stats.valuation,
+      valuationDelta: state.stats.valuation - valuationBefore,
+      cash: state.stats.cash,
+      score: perform.score,
+      stageUp: null,
+      badge: `Year ${state.year}: Ousted`,
+    };
   }
 
   // Recurring yearly effects come due.

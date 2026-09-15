@@ -190,6 +190,15 @@ export const KNOBS = {
   seedRevenueS: 12,
   /** Months allowed in the red before Chapter 7 (with warnings). DECISION KNOB */
   redMonthsBeforeDeath: 3,
+  /**
+   * Board-ouster thresholds (lib/engine/sim.ts's controlLossCheck). Both
+   * DECISION KNOBS, picked so either alone is easy to stay clear of and both
+   * together require a genuinely reckless fundraising streak: founder equity
+   * under a fifth of the company, AND investor sentiment already at the
+   * bottom third of its [-5, 5] range.
+   */
+  controlLossEquityPct: 20,
+  controlLossInvsent: -3,
   /** Valuation floor for pre-revenue companies, in S. INFERRED */
   preRevValuationFloorS: 20,
   /** PERFORM multiplier (GDD §6 verbatim): M = 0.4 + 0.12 × score. */

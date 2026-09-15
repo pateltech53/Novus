@@ -1,5 +1,6 @@
 import type { DecisionRecord, RunState } from "./types";
 import { companyMetrics } from "./company-brief";
+import { equityTimeline } from "./cap-table";
 
 export interface AutopsyReport {
   companyName: string;
@@ -13,6 +14,22 @@ export interface AutopsyReport {
     impact: number;
   }[];
   hiddenTruths: string[]; // hidden-stat reveals the living never saw
+  /**
+   * How the run ended. Defaults to "chapter7" for the one ending this report
+   * has ever had to describe until now — every existing caller can keep
+   * assuming that without reading this field, and every new one should read
+   * it before choosing what to call the screen.
+   */
+  endedBy: "chapter7" | "ousted";
+  /**
+   * Populated only for "ousted". `fatalDecisions` ranks by realized cash/burn
+   * damage, and a dilution round rarely costs cash — so for a control-loss
+   * ending it would rank the wrong decisions as the cause. This is the real
+   * one: every dilution event on the run, from lib/engine/cap-table.ts,
+   * which already does this exact reconstruction from the log for the
+   * dossier's own "HOW YOU GOT HERE" list.
+   */
+  equityHistory?: { id: string; year: number; description: string; amountPct: number }[];
 }
 
 /**
@@ -89,12 +106,16 @@ export function buildAutopsy(state: RunState): AutopsyReport {
       "Growth and profit were both working against you at once — shrinking and losing money in the same year.",
     );
 
+  const endedBy = state.endedBy === "ousted" ? "ousted" : "chapter7";
+
   return {
     companyName: state.companyName,
     yearsSurvived: state.year,
     finalValuation: state.stats.valuation,
     fatalDecisions: fatal,
     hiddenTruths,
+    endedBy,
+    equityHistory: endedBy === "ousted" ? equityTimeline(state) : undefined,
   };
 }
 

@@ -127,3 +127,31 @@ export function deathCheck(state: RunState): boolean {
   if (state.tutorial && state.year === 1) return false;
   return state.redMonths >= KNOBS.redMonthsBeforeDeath;
 }
+
+/**
+ * Board-ouster trigger: a second way to lose the company that has nothing to
+ * do with cash. Chapter 7 is what happens when the books run out; this is
+ * what happens when the founder has sold too much of the vote to survive one
+ * on it.
+ *
+ * Both conditions are required on purpose. `founderEquityPct` alone would
+ * punish a founder who raised a lot but kept the board happy — real boards
+ * do not remove a founder they still trust just because the cap table got
+ * thin. `invsent` alone already exists as a hidden stat with its own
+ * consequences elsewhere; it has never been able to end a run by itself, and
+ * a bad quarter should not be a death sentence.  It takes both: control thin
+ * enough that a vote could win, AND a board unhappy enough to call one.
+ *
+ * KNOBS.controlLossEquityPct / .controlLossInvsent are the two thresholds —
+ * both DECISION KNOBS, chosen so reaching either one requires several rounds
+ * of real dilution (founderEquityPct compounds down multiplicatively from
+ * 100, so under 20% takes roughly five ~25%-dilution rounds) or a sustained
+ * run of investor-sentiment damage (the stat is clamped to [-5, 5] and moves
+ * in single-digit steps per event) — not a one-time bad choice.
+ */
+export function controlLossCheck(state: RunState): boolean {
+  return (
+    state.founderEquityPct < KNOBS.controlLossEquityPct &&
+    state.stats.invsent <= KNOBS.controlLossInvsent
+  );
+}

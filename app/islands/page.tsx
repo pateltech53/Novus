@@ -1524,6 +1524,7 @@ const ENDING: Record<string, { label: string; tone: string }> = {
   chapter7: { label: "CHAPTER SEVEN", tone: "var(--color-alert)" },
   acquired: { label: "ACQUIRED", tone: "var(--color-prestige)" },
   ipo: { label: "WENT PUBLIC", tone: "var(--color-prestige)" },
+  ousted: { label: "OUSTED", tone: "var(--color-alert)" },
 };
 
 const clampStage = (n: number): StageNum =>
