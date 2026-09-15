@@ -43,7 +43,7 @@ export interface VerifiedRun {
   /** What the SERVER computed. Null when the run was rejected before replay. */
   peakValuation: number | null;
   yearsSurvived: number | null;
-  endedBy: "chapter7" | "acquired" | "ipo" | null;
+  endedBy: "chapter7" | "acquired" | "ipo" | "ousted" | null;
 
   /** How far the claim was from the truth, for the honesty telemetry. */
   drift: { valuationRatio: number | null; yearsDelta: number | null };

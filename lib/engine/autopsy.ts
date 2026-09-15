@@ -1,4 +1,6 @@
 import type { DecisionRecord, RunState } from "./types";
+import { companyMetrics } from "./company-brief";
+import { equityTimeline } from "./cap-table";
 
 export interface AutopsyReport {
   companyName: string;
@@ -12,6 +14,22 @@ export interface AutopsyReport {
     impact: number;
   }[];
   hiddenTruths: string[]; // hidden-stat reveals the living never saw
+  /**
+   * How the run ended. Defaults to "chapter7" for the one ending this report
+   * has ever had to describe until now — every existing caller can keep
+   * assuming that without reading this field, and every new one should read
+   * it before choosing what to call the screen.
+   */
+  endedBy: "chapter7" | "ousted";
+  /**
+   * Populated only for "ousted". `fatalDecisions` ranks by realized cash/burn
+   * damage, and a dilution round rarely costs cash — so for a control-loss
+   * ending it would rank the wrong decisions as the cause. This is the real
+   * one: every dilution event on the run, from lib/engine/cap-table.ts,
+   * which already does this exact reconstruction from the log for the
+   * dossier's own "HOW YOU GOT HERE" list.
+   */
+  equityHistory?: { id: string; year: number; description: string; amountPct: number }[];
 }
 
 /**
@@ -66,12 +84,38 @@ export function buildAutopsy(state: RunState): AutopsyReport {
   if (state.karma <= -2)
     hiddenTruths.push("You made a habit of the cheap option. Habits compound.");
 
+  /*
+   * The unit-economics figures CompanyScreen shows year-round now (LTV, CAC,
+   * Rule of 40, burn multiple — see lib/engine/company-brief.ts) were never
+   * secret the way risk/tdebt/teamloy are, so these aren't reveals — they're
+   * a reminder of a number that was sitting on the player's own screen the
+   * whole time. Same array, honest framing: "hidden" here means "the founder
+   * didn't add it up," not "the game withheld it."
+   */
+  const metrics = companyMetrics(state);
+  if (metrics.raw.ltvCacRatio > 0 && metrics.raw.ltvCacRatio < 1)
+    hiddenTruths.push(
+      `Every customer cost more than they ever paid back — LTV:CAC never cleared ${metrics.raw.ltvCacRatio}×. It was on your own numbers screen the whole time.`,
+    );
+  if (metrics.raw.burnMultiple !== null && metrics.raw.burnMultiple > 3)
+    hiddenTruths.push(
+      `Near the end you were burning ${metrics.raw.burnMultiple}× for every new dollar of revenue. That is not a pace anyone recovers from.`,
+    );
+  if (metrics.raw.ruleOf40Pct < 0)
+    hiddenTruths.push(
+      "Growth and profit were both working against you at once — shrinking and losing money in the same year.",
+    );
+
+  const endedBy = state.endedBy === "ousted" ? "ousted" : "chapter7";
+
   return {
     companyName: state.companyName,
     yearsSurvived: state.year,
     finalValuation: state.stats.valuation,
     fatalDecisions: fatal,
     hiddenTruths,
+    endedBy,
+    equityHistory: endedBy === "ousted" ? equityTimeline(state) : undefined,
   };
 }
 

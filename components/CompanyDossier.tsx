@@ -22,6 +22,7 @@ import {
   portfolioCap,
 } from "@/lib/engine/portfolio";
 import { holdingsValue } from "@/lib/engine/holdings";
+import { equityTimeline } from "@/lib/engine/cap-table";
 
 /**
  * THE DOSSIER — every number the founder is entitled to, on one scroll.
@@ -254,6 +255,7 @@ function Body({ run }: { run: RunState }) {
   const companyAssets = holdingsValue(run, "company");
   const nextFloor =
     run.stage < 5 ? STAGE_REVENUE_FLOOR[(run.stage + 1) as StageNum] : null;
+  const timeline = equityTimeline(run);
 
   return (
     <>
@@ -318,17 +320,30 @@ function Body({ run }: { run: RunState }) {
 
       {/* ── Ownership ──────────────────────────────────────────────────── */}
       <Section title="WHAT YOU OWN">
-        <ul>
-          <Row
-            label="Founder equity"
-            value={fmtPct(run.founderEquityPct)}
-            meter={run.founderEquityPct}
-            tone={run.founderEquityPct < 50 ? "bad" : "flat"}
-          />
-          <Row
-            label="Held by everyone else"
-            value={fmtPct(Math.max(0, 100 - run.founderEquityPct))}
-          />
+        <EquityBar founderPct={run.founderEquityPct} />
+        <p className="mt-2 text-2xs leading-snug text-[var(--text-tertiary)]">
+          A real cap table usually splits "everyone else" between an employee
+          option pool and investors across each round — Novus tracks the
+          total you've given up, not that breakdown, yet.
+        </p>
+        {timeline.length > 0 && (
+          <div className="mt-3">
+            <p className="text-2xs font-bold tracking-[0.12em] text-[var(--text-tertiary)]">
+              HOW YOU GOT HERE
+            </p>
+            <ul className="mt-1">
+              {timeline.map((e) => (
+                <Row
+                  key={e.id}
+                  label={`FY${e.year} — ${e.description}`}
+                  value={`−${fmtPct(e.amountPct)}`}
+                  tone="bad"
+                />
+              ))}
+            </ul>
+          </div>
+        )}
+        <ul className="mt-3">
           <Row label="Stage" value={STAGE_NAME[run.stage]} plain />
           {nextFloor !== null && (
             <Row
@@ -528,6 +543,38 @@ function Row({
       </div>
       {meter !== undefined && <Meter value={meter} tone={tone} label={label} />}
     </li>
+  );
+}
+
+/**
+ * Founder vs. everyone else, as two segments instead of one filled meter and
+ * an implied remainder. The number was always derivable from the single
+ * "Founder equity" row above it; this just stops making the reader do that
+ * subtraction themselves before they can see the shape of it.
+ */
+function EquityBar({ founderPct }: { founderPct: number }) {
+  const founder = Math.max(0, Math.min(100, founderPct));
+  const rest = 100 - founder;
+  const tone: Tone = founder < 50 ? "bad" : "flat";
+  return (
+    <div>
+      <div
+        role="img"
+        aria-label={`You hold ${fmtPct(founder)}. Everyone else holds ${fmtPct(rest)}.`}
+        className="flex h-2.5 w-full overflow-hidden rounded-full bg-[var(--chip)]"
+      >
+        <div className="h-full" style={{ width: `${founder}%`, background: TONE_TEXT[tone] }} />
+        <div className="h-full" style={{ width: `${rest}%`, background: "var(--hairline)" }} />
+      </div>
+      <div className="mt-1.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+        <span className="tnum text-2xs font-bold" style={{ color: TONE_TEXT[tone] }}>
+          You · {fmtPct(founder)}
+        </span>
+        <span className="tnum text-2xs font-bold text-[var(--text-tertiary)]">
+          Everyone else · {fmtPct(rest)}
+        </span>
+      </div>
+    </div>
   );
 }
 

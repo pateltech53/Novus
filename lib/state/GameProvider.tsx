@@ -1052,7 +1052,18 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
          * and D4 needs the shark's name.)
          */
         if (working.stats.respect > respectBefore) reportPlay("shark.respect", {});
-        setYearEnd(summary);
+        /*
+         * `closeFiscalYear` can now end the run instead of closing it — the
+         * board-ouster ending (lib/engine/sim.ts's controlLossCheck, checked
+         * inside lib/engine/run.ts's closeYear). Same branch `advance`
+         * already takes for a Chapter 7 death: show the autopsy instead of
+         * the year-end statement, never both.
+         */
+        if (!working.alive) {
+          setAutopsy(buildAutopsy(working));
+        } else {
+          setYearEnd(summary);
+        }
         setAtGate(false);
         // Another year survived is a different result for the same run, and
         // `record_board_entry` (0006) upserts on the run — so this replaces

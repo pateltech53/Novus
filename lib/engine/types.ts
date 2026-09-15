@@ -464,7 +464,7 @@ export interface RunState {
   tutorialStep: number; // T1..T8 progression pointer (0 = done/skipped)
   seenTerms: string[]; // term-on-first-use bookkeeping
   alive: boolean;
-  endedBy?: "chapter7" | "acquired" | "ipo";
+  endedBy?: "chapter7" | "acquired" | "ipo" | "ousted";
 }
 
 export interface LegacyState {
@@ -492,7 +492,7 @@ export interface LegacyState {
      * milestones ("go bankrupt once", "sell a company", "play 12 industries")
      * are graded off this list and had nothing to read.
      */
-    endedBy?: "chapter7" | "acquired" | "ipo";
+    endedBy?: "chapter7" | "acquired" | "ipo" | "ousted";
     industry?: Industry;
     companyName: string;
     years: number;

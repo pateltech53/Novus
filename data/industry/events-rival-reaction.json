@@ -1,0 +1,140 @@
+[
+  {
+    "id": "E-RIV-101",
+    "title": "The Empty Lane",
+    "category": "RIV",
+    "text": "You never picked a side. {rival} noticed the gap between \"proven\" and \"different\" was still open — and moved into it.",
+    "stages": [2, 3, 4, 5],
+    "industries": ["FOOD", "ECOM", "TECH", "CONTENT", "FASHION", "GAMING", "FITNESS", "BEAUTY", "EDTECH", "SUSTAIN", "TOYS", "PET"],
+    "weight": 6,
+    "once": true,
+    "requiresFlags": ["stance_balance"],
+    "choices": [
+      {
+        "label": "Commit to catching up on execution",
+        "known": "Brand −3 · Share +1",
+        "outcome": {
+          "effects": [
+            { "stat": "brand", "amount": -3 },
+            { "stat": "share_pt", "amount": 1 }
+          ],
+          "setFlags": ["stance_imitate"],
+          "narration": "Late to the lane, but in it. Nobody remembers who arrived first, only who's still there."
+        }
+      },
+      {
+        "label": "Commit to the different angle, late",
+        "known": "Cash −2S · Qual +3",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -2 },
+            { "stat": "qual", "amount": 3 }
+          ],
+          "setFlags": ["stance_differentiate"],
+          "narration": "Late to different is still different. It just cost more to get there."
+        }
+      },
+      {
+        "label": "Stay undecided",
+        "known": "Share −2 · CSAT −3",
+        "outcome": {
+          "effects": [
+            { "stat": "share_pt", "amount": -2 },
+            { "stat": "csat", "amount": -3 }
+          ],
+          "narration": "The lane fills in without you. Customers can tell when nobody's driving."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-RIV-102",
+    "title": "They Can't Copy This, So They're Copying Your People",
+    "category": "RIV",
+    "text": "{rival} can't reproduce what makes {company} different — so they're going after your people and your press instead.",
+    "stages": [2, 3, 4, 5],
+    "industries": ["FOOD", "ECOM", "TECH", "CONTENT", "FASHION", "GAMING", "FITNESS", "BEAUTY", "EDTECH", "SUSTAIN", "TOYS", "PET"],
+    "weight": 6,
+    "once": true,
+    "requiresFlags": ["stance_differentiate"],
+    "choices": [
+      {
+        "label": "Lock in your best people with real money",
+        "known": "Cash −3S",
+        "outcome": {
+          "effects": [
+            { "stat": "cash_S", "amount": -3 },
+            { "stat": "teamloy", "amount": 1 }
+          ]
+        }
+      },
+      {
+        "label": "Go public with the contrast",
+        "known": "Brand +4 · Resp −1",
+        "outcome": {
+          "effects": [
+            { "stat": "brand", "amount": 4 },
+            { "stat": "respect", "amount": -1 }
+          ],
+          "narration": "Punching a named rival in public reads as confidence to customers and as something else to the shark."
+        }
+      },
+      {
+        "label": "Ignore it, keep building",
+        "known": "Qual +2",
+        "outcome": {
+          "effects": [
+            { "stat": "qual", "amount": 2 },
+            { "stat": "risk", "amount": 1 }
+          ],
+          "narration": "Heads down. You don't see who they hired away. You will, eventually."
+        }
+      }
+    ]
+  },
+  {
+    "id": "E-RIV-103",
+    "title": "The Race to the Bottom Has a Bell",
+    "category": "RIV",
+    "text": "You proved the demand was real. {rival} is racing you to the bottom on price, and racing is what imitating signed you up for.",
+    "stages": [2, 3, 4],
+    "industries": ["FOOD", "ECOM", "TECH", "CONTENT", "FASHION", "GAMING", "FITNESS", "BEAUTY", "EDTECH", "SUSTAIN", "TOYS", "PET"],
+    "weight": 7,
+    "once": true,
+    "requiresFlags": ["stance_imitate"],
+    "choices": [
+      {
+        "label": "Cut price again",
+        "known": "Rev +6% (2Q) · GM −4",
+        "outcome": {
+          "effects": [
+            { "stat": "rev_pct", "amount": 6, "durationQ": 2 },
+            { "stat": "gm_pt", "amount": -4 }
+          ]
+        }
+      },
+      {
+        "label": "Cut costs instead, hold price",
+        "known": "GM +3",
+        "outcome": {
+          "effects": [
+            { "stat": "gm_pt", "amount": 3 },
+            { "stat": "tdebt", "amount": 1 }
+          ],
+          "narration": "The savings are real. So is what got skipped to find them."
+        }
+      },
+      {
+        "label": "Refuse to chase, tell a different story",
+        "known": "Share −2 · Brand +2",
+        "outcome": {
+          "effects": [
+            { "stat": "share_pt", "amount": -2 },
+            { "stat": "brand", "amount": 2 }
+          ],
+          "narration": "You lose the customers who were only ever choosing on price. You were never going to keep them anyway."
+        }
+      }
+    ]
+  }
+]
