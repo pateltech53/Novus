@@ -54,6 +54,30 @@
       routes, so the targets are the routes themselves. A browser that
       stumbles in here is redirected the same way lib/entry.ts would have
       sent it.
+
+      ── The account check ──────────────────────────────────────────────────
+
+      /welcome itself now requires an account partway through its own step
+      order (wave → age → account → mic → …, app/welcome/page.tsx's
+      AccountStep) — so a genuinely new device, no save and no account, still
+      belongs here exactly as before; that screen is where the account gets
+      made. What this file used to get wrong is the OTHER device: one with
+      local save data — a run, or an onboarded profile — from before the
+      account requirement existed at all (every device that ever played, on
+      either side of this reversal, until now). It read novus:run:v1 and
+      novus:profile:v1 alone and picked /islands or /found with no idea
+      whether an account existed, so that save kept playing forever with
+      nothing to attach an account to and no gate that would ever ask.
+      novus:account:v1 is checked now, and its absence overrides the save
+      data specifically for THAT case: a device with progress but no account
+      goes to "/" instead — AccountGate creates or restores one with no
+      onboarding narrative attached, which is the right amount of friction
+      for a device that has already been playing. lib/auth/require-account.ts
+      is the same rule applied to /found, /islands and /play directly (a
+      bookmark, a shared link, a deep link) once this file has already let
+      someone past. This is the same cache lib/account.ts's loadAccount()
+      reads, kept in sync so this synchronous script and the framework agree
+      on what "signed in" means without either one importing the other.
     -->
     <script>
       (function () {
@@ -63,6 +87,7 @@
           if (theme === "dark" || theme === "light") {
             document.documentElement.setAttribute("data-theme", theme);
           }
+
           /*
             Any island at all sends the player to the picker, which is what
             lib/entry.ts answers on the web. Two shapes are checked because a
@@ -82,14 +107,44 @@
           for (var i = 0; !anyIsland && i < 50; i++) {
             if (localStorage.getItem("novus:run:v1:" + i) !== null) anyIsland = true;
           }
+          var hasSave = anyIsland;
           if (anyIsland) {
             target = "/islands";
           } else {
             var raw = localStorage.getItem("novus:profile:v1");
-            if (raw && JSON.parse(raw).onboarded) target = "/found";
+            if (raw && JSON.parse(raw).onboarded) {
+              target = "/found";
+              hasSave = true;
+            }
+          }
+
+          if (hasSave) {
+            // Its own try: a corrupt novus:account:v1 must not fall through to
+            // the outer catch below and leave `target` at the picker or the
+            // founding screen it had already been set to above — corrupt or
+            // missing both mean "no account" here, the same as each other.
+            var hasAccount = false;
+            try {
+              var rawAccount = localStorage.getItem("novus:account:v1");
+              if (rawAccount) {
+                var account = JSON.parse(rawAccount);
+                hasAccount = !!(
+                  account &&
+                  typeof account.displayName === "string" &&
+                  account.displayName.trim()
+                );
+              }
+            } catch (accountError) {
+              hasAccount = false;
+            }
+            // Progress with nothing to attach an account to yet — send it to
+            // the front door instead of the picker or the founding screen,
+            // neither of which this device may reach without one.
+            if (!hasAccount) target = "/";
           }
         } catch (e) {
-          /* First launch, or storage denied. Onboarding is the right answer. */
+          /* First launch, or storage denied. Onboarding is the right answer —
+             it is where an account gets made too. */
         }
         location.replace(target);
       })();

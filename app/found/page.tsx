@@ -22,8 +22,14 @@ import { usePrefetch } from "@/lib/prefetch";
 import { useNavigating } from "@/lib/navigating";
 import { EMPTY_BRIEF, sanitizeBrief, type CompanyBrief } from "@/lib/engine/company-brief";
 import { writeBrief } from "@/lib/ai/brief";
+import { useRequireAccount } from "@/lib/auth/require-account";
 
 export default function FoundPageWrapper() {
+  // No local account, no company — see lib/auth/require-account.ts. Renders
+  // nothing while a visitor with none is on their way to the front door.
+  const ready = useRequireAccount();
+  if (!ready) return null;
+
   return (
     <GameProvider>
       {/* useSearchParams needs one — this page is statically exported

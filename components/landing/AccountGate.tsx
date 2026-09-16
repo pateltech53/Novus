@@ -11,6 +11,7 @@ import {
   TOO_YOUNG_TITLE,
   isAgeBlocked,
   isOldEnough,
+  isPlausibleAge,
   recordTooYoung,
 } from "@/lib/auth/age";
 import { loadProfile } from "@/lib/engine/save";
@@ -106,7 +107,7 @@ const RETRY_AFTER_MS = 6000;
  * without sending an app that is already open somewhere else and back.
  */
 
-type Mode = "create" | "signUp" | "signIn" | "signedIn" | "naming";
+type Mode = "create" | "age" | "signUp" | "signIn" | "signedIn" | "naming";
 
 export function AccountGate() {
   const router = useRouter();
@@ -117,6 +118,9 @@ export function AccountGate() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [agreed, setAgreed] = useState(false);
+  /** The `age` step's own field. Neither this nor the age it holds is ever
+   *  sent anywhere — see startSignUp() below for what it gates. */
+  const [age, setAge] = useState("");
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -231,7 +235,7 @@ export function AccountGate() {
   }, []);
 
   useEffect(() => {
-    if (mode !== "signUp" && mode !== "signIn") return;
+    if (mode !== "signUp" && mode !== "signIn" && mode !== "age") return;
 
     /*
      * Bring the form to the player.
@@ -336,6 +340,63 @@ export function AccountGate() {
     (!turnstileEnabled() || !!captchaToken);
 
   const canSignIn = email.trim().length > 0 && password.length > 0;
+
+  /**
+   * CREATE ACCOUNT, before there is a form to fill in.
+   *
+   * This used to go straight to `signUp` — the email field was the first
+   * thing this gate ever asked a stranger for. That was fine while sign-up
+   * was optional and onboarding's own age step (app/welcome/page.tsx) ran
+   * first for everyone who actually reached it; it stopped being fine once
+   * this gate became the FIRST screen for every player, on both platforms
+   * (lib/auth/require-account.ts, public/boot.html) — an email address is
+   * personal information, and asking for one before asking "how old are
+   * you" is the wrong order for a product whose whole COPPA posture rests
+   * on asking first. `submitSignUp()` below still refuses on the same
+   * checks as a backstop; this is what stops the email field from ever
+   * being the first thing on screen.
+   *
+   * A device that already answered is not asked twice: `isAgeBlocked()`
+   * refuses immediately, in the same words `submitSignUp()` already used
+   * for it, and a profile already carrying a plausible age (onboarding ran
+   * at some point on this device) skips straight past the question rather
+   * than repeating it.
+   */
+  const startSignUp = () => {
+    play("click");
+    if (isAgeBlocked()) {
+      setError(`${TOO_YOUNG_TITLE} ${TOO_YOUNG_BODY}`);
+      return;
+    }
+    const profileAge = loadProfile()?.playerAge ?? null;
+    if (profileAge !== null) {
+      if (!isOldEnough(profileAge)) {
+        recordTooYoung();
+        setError(`${TOO_YOUNG_TITLE} ${TOO_YOUNG_BODY}`);
+        return;
+      }
+      go("signUp");
+      return;
+    }
+    go("age");
+  };
+
+  /**
+   * The age step's own CONTINUE. Same neutral shape as onboarding's —
+   * see app/welcome/page.tsx's "age" case for why the label never mentions
+   * 13 and the field does not refuse until this is pressed.
+   */
+  const submitAge = () => {
+    if (!isPlausibleAge(age)) return;
+    play("click");
+    if (!isOldEnough(age)) {
+      recordTooYoung();
+      setError(`${TOO_YOUNG_TITLE} ${TOO_YOUNG_BODY}`);
+      setMode("create");
+      return;
+    }
+    go("signUp");
+  };
 
   const submitSignUp = async () => {
     if (!canSignUp || busy) return;
@@ -738,6 +799,39 @@ export function AccountGate() {
         </form>
       )}
 
+      {mode === "age" && (
+        <form
+          ref={formRef}
+          className="mb-1"
+          onSubmit={(e) => {
+            e.preventDefault();
+            submitAge();
+          }}
+        >
+          {/* Neutral on purpose, same shape as onboarding's own age step
+              (app/welcome/page.tsx) — the label never says 13, and nothing
+              refuses until CONTINUE is pressed. Every regulator's guidance on
+              age screens says not to tell a child the number they need to
+              clear. */}
+          <Field
+            id={fieldId("age")}
+            inputRef={firstFieldRef}
+            label="HOW OLD ARE YOU?"
+            value={age}
+            onChange={(v) => setAge(v.replace(/\D/g, "").slice(0, 2))}
+            placeholder="Age"
+            inputMode="numeric"
+            enterKeyHint="done"
+            hero
+          />
+          <div className="mt-6">
+            <GateButton type="submit" disabled={!isPlausibleAge(age)}>
+              CONTINUE
+            </GateButton>
+          </div>
+        </form>
+      )}
+
       {mode === "signedIn" ? (
         <>
           <GateButton onClick={() => void enter()} disabled={entering}>
@@ -746,14 +840,19 @@ export function AccountGate() {
           <PlanStanding />
         </>
       ) : mode === "create" ? (
-        <GateButton onClick={() => go("signUp")}>CREATE ACCOUNT</GateButton>
+        <GateButton onClick={startSignUp}>CREATE ACCOUNT</GateButton>
       ) : null}
 
-      {/* One button per provider, in every state except signedIn — where the
-          player already is who they are and a second way in is noise. Renders
+      {/* One button per provider — in every state except signedIn (where the
+          player already is who they are and a second way in is noise),
+          create and age. A brand-new account is what a provider button
+          makes here just as much as CREATE ACCOUNT is (see startSignUp()'s
+          own header for why an email is not asked before an age is), so it
+          cannot be reachable from either of the two modes that sit before
+          that question is settled. Renders
           nothing at all on a deploy that has not switched them on, which is
           the default (enabledProviders). */}
-      {mode !== "signedIn" && providers.length > 0 ? (
+      {mode !== "signedIn" && mode !== "create" && mode !== "age" && providers.length > 0 ? (
         <div className="mt-4">
           <div className="flex items-center gap-3" aria-hidden>
             <span className="h-px flex-1 bg-[var(--hairline)]" />

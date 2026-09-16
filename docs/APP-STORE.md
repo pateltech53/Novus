@@ -142,14 +142,32 @@ the same `/api/auth/delete` route: the email, the progress and every company go,
 on the server and on the device, immediately and for real.
 
 The same section carries **sign in**, **sign out**, and the signed-in address.
-Sign-*up* is deliberately not there. The original reason — Turnstile is not
-loadable from the `capacitor://` origin — dissolved when the shell went
-remote (the app's pages are served from `https://www.novuspitch.com` now, an
-origin Turnstile is happy on), but the line stays drawn for the moment as a
-product decision: the free game needs no account at all, and in-app account
-creation for a product whose accounts belong to minors deserves its own
-deliberate pass, not a side effect of a shell change. It is now an unlocked
-follow-up rather than a technical impossibility.
+Sign-*up* is deliberately not there — reaching Settings at all now requires
+an account already (see the note below), so nobody arrives here without one
+to sign in with in the first place. That was not always the reason: the
+original one was that Turnstile could not load from the `capacitor://`
+origin, which dissolved when the shell went remote (the app's pages are
+served from `https://www.novuspitch.com` now, an origin Turnstile is happy
+on). Sign-up itself now exists in the app regardless — see the note below —
+just not a second time, redundantly, inside Settings.
+
+**2026-09 update (two sessions).** "The free game needs no account at all,"
+above and throughout this document's older sections, describes a decision
+that has been reversed: an account is now required to play at all, in the
+app and on the web, enforced before onboarding or any saved company is
+reachable. In-app account creation is real now, and it did get its own
+deliberate pass rather than arriving as a side effect — just not on the
+marketing page. A brand-new device (no save, no account) makes or restores
+one partway through `/welcome`'s own onboarding steps, in a purpose-built
+`AccountStep` (wave → age → **account** → mic → …), because `AccountGate`
+navigates the whole page on success, which is wrong mid-onboarding. A device
+with EXISTING local save data but no account — every device that ever
+played on either side of this reversal, until now — is instead sent to `/`
+(`lib/auth/require-account.ts`, `public/boot.html`), where `AccountGate`
+attaches an account to a company that already exists with no onboarding
+narrative repeated on top of it; `/`'s pricing section stays correctly
+hidden from a store build either way (`sells !== true`, Guideline 3.1.1).
+`docs/HANDOFF.md`'s two dated addenda have the full account of why.
 
 ---
 
@@ -283,15 +301,27 @@ These cannot be done from the repository. Fill them in before submitting.
    > Novus is free. Nothing is sold inside the app — the optional Pro
    > subscription is bought on the web and attaches to a Novus account, so it
    > appears in the app when that account signs in (Settings › Account › Sign
-   > in, then Novus Pro › Restore purchases). The whole game is playable
-   > without an account. The year-end pitch uses the camera, the microphone
-   > and speech recognition to transcribe what is said; all three are optional
-   > and the pitch can be typed instead. Video never leaves the device.
-   > The app loads its interface from our own site (novuspitch.com); the tab
-   > bar, advance control, decision sheets, widgets and Live Activities are
-   > native UIKit/SwiftUI.
-7. **A demo account** with Pro on it, in the review notes, if you want the Pro
-   surfaces exercised.
+   > in, then Novus Pro › Restore purchases). **Playing requires a free Novus
+   > account** — tap START, then after the age question the app asks you to
+   > make one or sign in (there is an "Already have an account? Sign in"
+   > link on that screen) — **please sign in with the demo account below
+   > rather than creating a new one**, since a new sign-up needs to confirm
+   > its email address before it can play, and this account skips that. The
+   > year-end pitch uses the camera,
+   > the microphone and speech recognition to transcribe what is said; all
+   > three are optional and the pitch can be typed instead. Video never
+   > leaves the device. The app loads its interface from our own site
+   > (novuspitch.com); the tab bar, advance control, decision sheets, widgets
+   > and Live Activities are native UIKit/SwiftUI.
+7. **A demo account, email-confirmed and with Pro already on it, in the
+   review notes.** This stopped being optional the day playing started
+   requiring an account (docs/HANDOFF.md's 2026-09 addendum): a reviewer who
+   hits the age screen honestly, or whose sign-up sits waiting on an email
+   confirmation nobody is going to open, now sees nothing past the front
+   door — which is exactly the shape of a 2.1(a) rejection (item 9 below).
+   Create the account through the real flow ahead of time, confirm its
+   email, grant Pro from `/admin`, and paste its email and password into the
+   notes above the four-sentence paragraph.
 8. **Version.** `MARKETING_VERSION` in the Xcode project, `versionName` in
    `android/app/build.gradle` and `APP_VERSION` in `lib/app-info.ts` all say
    1.0. Move all three together — Settings prints the third one. (The bumps

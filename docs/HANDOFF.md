@@ -416,6 +416,16 @@ recording precisely because nothing else did:
   every company was judged a bigger and riskier change than a widget option
   justifies).
 
+That same session also shipped a third thing this file never recorded:
+`/api/version` (reads `VERCEL_GIT_COMMIT_SHA`, no-store) and
+`useNativeUpdateCheck()` (`lib/native/update.ts`), polled on launch, on
+foreground, and every 10 minutes. A deploy landing while the app is open now
+surfaces a native Liquid Glass toast and reloads a few seconds later, rather
+than leaving a player on a stale bundle until they relaunch. Gated on
+`safeToReload()` — no open dialog, not backgrounded — so it never yanks the
+page out from under someone mid-sheet. Filed here late because the PR that
+built it never wrote it down; the gap is closed, not the pattern condoned.
+
 **Onboarding now requires an account (2026-09-15), reversing §8 of
 docs/ACCOUNTS-SETUP.md — read that file's own note before touching this
 again.** The owner's explicit instruction, given knowing the cost: the free
@@ -448,6 +458,80 @@ release:
   before touching it again: offering Google without Apple on iOS is a real
   App Store Guideline 4.8 rejection risk at submission time, accepted here
   knowingly for testing/Android, not cleared for a real App Store build.
+
+**A later session closed the doors the pass above left open, same
+direction, same day.** It found out about the pass above the hard way —
+mid-implementation, from a stale local checkout, having built a parallel and
+initially conflicting version of the same feature before discovering this
+file's own history. Reconciled rather than shipped twice. What the first
+pass left open, and what this one did about it:
+
+- **Direct or bookmarked access to `/found`, `/islands` and `/play`.** None
+  of the three sit behind `/welcome`'s new `AccountStep`, so a signed-out
+  visitor who never passed through it — a saved bookmark, a shared link, the
+  back button, or (on the app) a stale cold start — reached them anyway.
+  `lib/auth/require-account.ts` is a small hook all three now call: no local
+  account (`loadAccount()`) sends the visitor away — `router.replace("/")`
+  on the web, `window.location.href` + `appPath("/")` in the app, the same
+  mechanism `AccountGate`'s own `enter()` already used. `/welcome` itself is
+  deliberately NOT wrapped in this hook — it already has its own gate
+  (`AccountStep`), and redirecting away from it before that gate ever
+  rendered would have made the first pass's work unreachable.
+- **Why `/` and not `/welcome`.** `/found`, `/islands` and `/play` are
+  reached only by a device that already has local save data — a run or an
+  onboarded profile. Sending such a visitor through `/welcome`'s onboarding
+  narrative (wave → age → account → mic → …) to attach an account would
+  re-run onboarding on top of a company that already exists. `/` — the
+  marketing page's own `AccountGate` — creates or restores an account with
+  no narrative attached, exactly as it already does for a first-time web
+  visitor pressing PLAY FREE. It is safe for a store build to land on even
+  though it carries `PricingSection`: that section already self-removes on
+  `sells !== true` (Guideline 3.1.1), and does so in the direction that
+  matters — never painting on native, not merely correcting after — see
+  `Landing.tsx`'s own "not decoration" comment. Verified by reading it, not
+  assumed to still hold from before the remote-shell architecture.
+- **`public/boot.html`'s cold start, for the same reason.** It used to read
+  local save data alone and pick `/welcome`, `/found` or `/islands` with no
+  idea whether an account existed — the exact shape of gap this pass is
+  about. It now checks `novus:account:v1` first: a device with NO account
+  and NO local save still lands on `/welcome`, unchanged, so the first
+  pass's wave → age → account narrative still runs for a genuinely new
+  device exactly as designed. A device with local save data but no
+  account — every device that ever played before either pass, since the
+  account requirement postdates all of them — now lands on `/` instead of
+  `/found` or `/islands`, so that save gets an account attached to it
+  rather than reaching a screen that can no longer legitimately show it.
+- **`/`'s own `AccountGate` had the first pass's email-before-age problem
+  too, unfixed, because the first pass never touched this file.** Its
+  CREATE ACCOUNT asked for an email before checking age — fine while sign-up
+  there was optional, wrong once `/found`/`/islands`/`/play` (and PLAY FREE,
+  already) route signed-out visitors here as a mandatory first stop.
+  `AccountGate.tsx` gained an `age` mode: `startSignUp()` refuses to open
+  the sign-up form, or offer the Google/Apple buttons (the OR divider now
+  hides in `create` and `age` modes too), until age is answered — reusing
+  `lib/auth/age.ts` exactly as `/welcome`'s own age step already does:
+  neutral wording, no mention of 13, `recordTooYoung()` remembered so a
+  device that already said no is never asked twice.
+- Docs updated in place rather than rewritten: `docs/ACCOUNTS-SETUP.md`
+  §8/§9 and `docs/APP-STORE.md` (including the literal App Review notes
+  text, and a new note that self-serve sign-up can now dead-end on email
+  confirmation — ship a pre-confirmed demo account) now carry superseding
+  notices covering both sessions, rather than silently disagreeing with the
+  code or with each other.
+
+**What neither pass resolved, flagged rather than fixed:** an under-13 who
+answers the age screen honestly is now locked out of Novus entirely — there
+is no account-free fallback left to route them to, on any door, in either
+pass. That fallback was the product's actual COPPA mitigation for as long as
+it existed. The owner made this call knowingly, twice, after it was raised
+each time; docs/ACCOUNTS-SETUP.md §9 has the full argument. Before this
+reaches under-13s at a school in this shape, someone has to pick a real
+answer (parental consent, or COPPA's schools exception) — that decision was
+not made in either session and does not get to be inferred from silence.
+The first pass's own two flagged gaps — the unrevised marketing copy, and
+`APPLE_SIGN_IN_WITHHELD`'s Guideline 4.8 exposure — are also both still
+open; this pass did not touch `lib/cloud/native-oauth.ts` or the landing
+page's hero copy.
 
 ### In-flight work (open PRs — both based on early-August main; GitHub already reports both as conflicting)
 
@@ -710,7 +794,11 @@ several older documents still state things the code has moved past:
   current; "test:db applies every migration … all five" (there are 18); the
   stub-only framing of the AI tier predates the live TTS/STT/panel routes.
   The Scripts table there is also missing the newer suites — CLAUDE.md's
-  command list wins.
+  command list wins. Its "Persistence, accounts and money" section also
+  says "a player without an account sends nothing at all … which is a
+  supported way to run Novus" — true of the sync call, false of reaching
+  the game at all: playing now requires an account first (§2's 2026-09
+  addendum above, docs/ACCOUNTS-SETUP.md's superseding notice).
 - **docs/DO-NOT-TOUCH.md §2.2** — the balance target is recorded (by the doc
   itself) as not reproducing; measure against a fresh HEAD baseline.
 - **docs/BASELINE.md** — every balance table predates the 289-event pool.

@@ -12,6 +12,7 @@ import dynamic from "next/dynamic";
 import { AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useGame } from "@/lib/state/GameProvider";
+import { useRequireAccount } from "@/lib/auth/require-account";
 import { HomeStage } from "@/components/HomeStage";
 import { PlaySkeleton } from "@/components/PlaySkeleton";
 import { TheBooks } from "@/components/TheBooks";
@@ -276,6 +277,10 @@ const WARM: Preloadable[] = [
 ];
 
 export default function PlayPage() {
+  // No local account, no company — see lib/auth/require-account.ts.
+  const ready = useRequireAccount();
+  if (!ready) return null;
+
   return (
     <ImpactProvider>
       <PlayScreen />
