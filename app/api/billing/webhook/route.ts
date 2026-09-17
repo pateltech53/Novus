@@ -151,7 +151,7 @@ async function onCheckoutCompleted(
     // price are the fallback, same as onSubscriptionChanged.
     const chapter = await chapterFromSubscription(sub, cs.metadata);
     if (chapter) {
-      await syncChapter(db, profileId, sub, chapter);
+      await syncChapter(db, profileId, sub, chapter, cs.metadata);
       return;
     }
 

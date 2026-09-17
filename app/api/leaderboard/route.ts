@@ -51,6 +51,17 @@ export async function GET(req: NextRequest) {
   const scope = params.get("scope") === "chapter" ? "chapter" : "global";
 
   const session = await sessionFromRequest(req);
+  // Identity belongs to the profile, not to a published score. Reading it
+  // before either scope keeps a new member's chosen handle visible even when
+  // they have not earned a listed row. The summary RPC reveals only the
+  // caller's own enterprise; it never grants access to the owner's roster.
+  const [{ data: profile }, chapter] = session
+    ? await Promise.all([
+        session.supabase.from("profiles").select("board_handle").eq("id", session.userId).maybeSingle(),
+        chapterSummary(session),
+      ])
+    : [{ data: null }, null];
+  const mine: string | null = profile?.board_handle ?? null;
 
   if (scope === "chapter") {
     if (!session) {
@@ -78,10 +89,11 @@ export async function GET(req: NextRequest) {
         season,
         scope,
         rows: rows.map(({ is_me: _isMe, ...row }) => row),
-        myHandle: (mineRow?.founder_display_name as string | undefined) ?? null,
+        myHandle: mine,
         myRank: mineRow ? { rank: Number(mineRow.rank), total: rows.length } : null,
         myRow: mineRow ? (({ is_me: _m, ...row }) => row)(mineRow) : null,
-        chapterAvailable: rows.length > 0 || (await inChapter(session)),
+        chapterAvailable: rows.length > 0 || chapter !== null,
+        chapterName: chapter?.name ?? null,
       }),
       session,
     );
@@ -135,18 +147,9 @@ export async function GET(req: NextRequest) {
    * the top 100 slice still learns "#147 of 2,431" — their own row, their own
    * rank, and nothing about anyone that the board does not already show.
    */
-  let mine: string | null = null;
   let myRank: { rank: number; total: number } | null = null;
   let myRow: Record<string, unknown> | null = null;
-  let chapterAvailable = false;
   if (session) {
-    const { data: profile } = await session.supabase
-      .from("profiles")
-      .select("board_handle")
-      .eq("id", session.userId)
-      .maybeSingle();
-    mine = profile?.board_handle ?? null;
-
     const { data: ranked } = await session.supabase.rpc("my_board_rank", {
       p_board: board,
       p_season: season,
@@ -157,8 +160,6 @@ export async function GET(req: NextRequest) {
       const { rank: _r, total: _t, ...rest } = own;
       myRow = { rank: Number(own.rank), ...rest };
     }
-
-    chapterAvailable = await inChapter(session);
   }
 
   return withSession(
@@ -171,20 +172,26 @@ export async function GET(req: NextRequest) {
       myHandle: mine,
       myRank,
       myRow,
-      chapterAvailable,
+      chapterAvailable: chapter !== null,
+      chapterName: chapter?.name ?? null,
     }),
     session,
   );
 }
 
-/** Whether the caller belongs to (or owns) a chapter — decides if the board
- *  screen offers the MY CHAPTER scope at all. Swallows errors as "no": a
- *  project without 0007/0008 applied simply keeps the global-only screen. */
-async function inChapter(session: NonNullable<Awaited<ReturnType<typeof sessionFromRequest>>>): Promise<boolean> {
+/** The caller's own enterprise label. The old id RPC is a rollout fallback:
+ *  an app deployed just before its migration keeps the existing chapter tab
+ *  while names become available, instead of making the board disappear. */
+async function chapterSummary(session: NonNullable<Awaited<ReturnType<typeof sessionFromRequest>>>): Promise<{ id: string; name: string | null } | null> {
   try {
-    const { data } = await session.supabase.rpc("my_chapter_id");
-    return typeof data === "string" && data.length > 0;
+    const { data, error } = await session.supabase.rpc("my_chapter_summary");
+    if (!error) {
+      const own = Array.isArray(data) ? data[0] : null;
+      return own?.id ? { id: own.id, name: own.name ?? null } : null;
+    }
+    const { data: id } = await session.supabase.rpc("my_chapter_id");
+    return typeof id === "string" && id.length > 0 ? { id, name: null } : null;
   } catch {
-    return false;
+    return null;
   }
 }

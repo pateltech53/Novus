@@ -228,14 +228,14 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
                 out.peakValuation !== null && out.yearsSurvived !== null
                   ? `${fmtMoney(out.peakValuation)} peak · ${out.yearsSurvived} ${
                       out.yearsSurvived === 1 ? "year" : "years"
-                    }${out.listed ? "" : " — a person reads the name before it lists"}`
+                    }${out.listed ? "" : ` — ${out.message ?? "not listed"}`}`
                   : "The server replayed your run and the numbers stand.",
               tone: "good" as const,
             }
           : out.status === "duplicate"
             ? { text: "That run is already on the board.", tone: "neutral" as const }
             : out.status === "flagged"
-              ? { text: "Submitted — a person will look at it before it lists.", tone: "neutral" as const }
+              ? { text: out.message ?? "This run did not pass the automatic replay checks.", tone: "neutral" as const }
               : {
                   title: "Not verified",
                   text: out.message ?? "That run could not be verified against the engine.",
@@ -343,7 +343,7 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
   /** The only state that still needs a person: the board could not be reached
    *  or refused the run, and pressing again is a move worth offering. */
   const retryable =
-    !submitting && (result?.status === "error" || result?.status === "rejected");
+    !submitting && (result?.status === "error" || result?.status === "rejected" || result?.status === "flagged");
   useNativeOverlay(
     useMemo(
       () => ({
@@ -539,6 +539,12 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
               MY CHAPTER ONLY
             </p>
           )}
+          {hasChapter && page?.chapterName && (
+            <p className="mt-2 break-words text-xs font-semibold leading-snug text-[var(--text-secondary)]">
+              <span className="text-[var(--text-tertiary)]">Enterprise · </span>
+              {page.chapterName}
+            </p>
+          )}
         </Glass>
 
         {/* ── Rows. Solid ground, every one. And behind the native dock the
@@ -562,8 +568,8 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
           {!loading && page?.configured && page.rows.length === 0 && (
             <Note>
               {scope === "chapter"
-                ? "Nobody from your chapter is on this board yet. A run has to be submitted — and read by a person — before it lists."
-                : "Nobody is on this board yet. Every name here waits on a person reading it first, which is slow on purpose."}
+                ? "Nobody from your chapter is on this board yet. Verified runs with an eligible company name appear automatically."
+                : "Nobody is on this board yet. Verified runs with an eligible company name appear automatically."}
             </Note>
           )}
 
@@ -616,8 +622,8 @@ export function StillStandingScreen({ onClose }: { onClose: () => void }) {
           {!loading && page?.configured && !page.myRank && page.myHandle && (
             <p className="px-2 pt-3 text-2xs leading-relaxed text-[var(--text-tertiary)]">
               {scope === "chapter"
-                ? "You are not on this board yet. Your runs are sent automatically — this fills in once a person has read the name."
-                : "You are not on this board yet. Your runs are sent automatically; keep a company alive through a fiscal year and it appears here."}
+                ? "You are not on your chapter's board yet. Your runs are sent automatically; check the result below if a score is missing."
+                : "You are not on this board yet. Your runs are sent automatically; check the result below if a score is missing."}
             </p>
           )}
 
@@ -859,7 +865,7 @@ function BoardStatusPanel({
    *  a tap on iOS. */
   dockOwned?: boolean;
 }) {
-  const failed = result?.status === "error" || result?.status === "rejected";
+  const failed = result?.status === "error" || result?.status === "rejected" || result?.status === "flagged";
 
   return (
     <div className="nv-card px-4 py-4">
@@ -885,7 +891,7 @@ function BoardStatusPanel({
         >
           {result.peakValuation !== null && (
             <p className="tnum text-xs font-bold">
-              Verified: {fmtMoney(result.peakValuation)} peak ·{" "}
+              {result.status === "verified" ? "Verified" : "Replayed"}: {fmtMoney(result.peakValuation)} peak ·{" "}
               {result.yearsSurvived}{" "}
               {result.yearsSurvived === 1 ? "year" : "years"}
             </p>
@@ -907,7 +913,8 @@ function BoardStatusPanel({
           panel looking like it is waiting for a tap that is not coming. */}
       {!result && !submitting && canSubmit && submitted && (
         <p className="mt-2 text-2xs leading-snug text-[var(--text-tertiary)]">
-          Already sent. It appears above once a person has read the name.
+          Already sent. Eligible verified scores appear automatically; only your
+          best score for each board is kept.
         </p>
       )}
 

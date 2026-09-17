@@ -53,7 +53,7 @@ const { advanceTurn, closeFiscalYear, dealFor, buyStockAt, replayTape, runFromTa
   await import(join(root, "lib/leaderboard/replay.ts"));
 const { canonicalJson } = await import(join(root, "lib/leaderboard/tape.ts"));
 const { checkBounds } = await import(join(root, "lib/leaderboard/bounds.ts"));
-const { moderateCompanyName } = await import(join(root, "lib/leaderboard/moderation.ts"));
+const { moderateCompanyName, mayAutoList } = await import(join(root, "lib/leaderboard/moderation.ts"));
 const { handleShuffle, isPoolHandle, HANDLE_PATTERN } = await import(
   join(root, "lib/leaderboard/handles.ts")
 );
@@ -537,7 +537,7 @@ console.log("\n=== 5 · plausibility bounds ===");
 
 // ── 6 · Moderation ──────────────────────────────────────────────────────────
 
-console.log("\n=== 6 · nothing a child typed reaches a board unread ===");
+console.log("\n=== 6 · clean names list automatically; blocked names can be changed ===");
 
 {
   eq(moderateCompanyName("Sharkfin").verdict, "clean", "an ordinary name is clean");
@@ -546,9 +546,12 @@ console.log("\n=== 6 · nothing a child typed reaches a board unread ===");
   eq(moderateCompanyName("me@school.edu").verdict, "reject", "an email is refused");
   eq(moderateCompanyName("visit www.example.com").verdict, "reject", "a URL is refused");
   eq(moderateCompanyName("@myhandle").verdict, "reject", "a social handle is refused");
-  eq(moderateCompanyName("F.U.C.K Ltd").verdict, "review", "obfuscated profanity is caught");
-  eq(moderateCompanyName("Sarah Mitchell").verdict, "review", "a personal name waits for a human");
-  eq(moderateCompanyName("Marco Holdings").verdict, "review", "…and so does anything shaped like one");
+  eq(moderateCompanyName("F.U.C.K Ltd").verdict, "reject", "obfuscated profanity requires a different name");
+  eq(moderateCompanyName("Sarah Mitchell").verdict, "reject", "a personal name cannot enter an approval queue");
+  eq(moderateCompanyName("Marco Holdings").verdict, "reject", "a name shaped like a full name must change too");
+  ok(moderateCompanyName("Sarah Mitchell").message.includes("Choose"), "a refused name tells the player how to proceed");
+  ok(mayAutoList(moderateCompanyName("Sharkfin")), "a clean name is eligible without a deployment opt-in");
+  ok(!mayAutoList(moderateCompanyName("F.U.C.K Ltd")), "blocked names never auto-list");
   eq(moderateCompanyName("A").verdict, "reject", "one character is not a name");
   eq(moderateCompanyName("x".repeat(41)).verdict, "reject", "an over-long name is refused");
   eq(moderateCompanyName("​Hidden").verdict, "reject", "zero-width characters are refused");
@@ -590,6 +593,152 @@ console.log("\n=== 8 · the same tape hashes the same way ===");
 }
 
 // ── Result ──────────────────────────────────────────────────────────────────
+
+console.log("\n=== 9 · existing submitted tapes catch up to automatic listing once ===");
+{
+  const memory = new Map();
+  const storage = {
+    getItem: (key) => memory.get(key) ?? null,
+    setItem: (key, value) => memory.set(key, String(value)),
+    removeItem: (key) => memory.delete(key),
+  };
+  globalThis.localStorage = storage;
+  globalThis.window = {
+    localStorage: storage, sessionStorage: storage,
+    addEventListener() {}, removeEventListener() {},
+    location: { pathname: "/play" },
+  };
+  globalThis.document = { addEventListener() {}, removeEventListener() {} };
+  const recorder = await import(join(root, "lib/leaderboard/recorder.ts"));
+  const run = playAndRecord(CASES[0]).state;
+  storage.setItem("novus:run:v1:0", JSON.stringify(run));
+  storage.setItem("novus:tape:v1:0", JSON.stringify({
+    runId: run.id, seed: run.seed, industry: run.industry, tutorial: false,
+    entries: [{ t: "advance", atISO: SIM_DATE }],
+    submittedAt: new Date().toISOString(), submittedYear: run.year, submittedAlive: run.alive,
+  }));
+  ok(recorder.tapeStatus(run).stale, "an old pending submission gets one catch-up attempt");
+  recorder.markSubmitted(run);
+  ok(!recorder.tapeStatus(run).stale, "the catch-up receipt prevents repeated automatic requests");
+  ok(recorder.tapeStatus({ ...run, year: run.year + 1 }).stale, "later years still send their improved result");
+  ok(!recorder.tapeStatus({ ...run, id: "other-company" }).stale, "another company's tape never inherits the catch-up");
+  delete globalThis.window;
+  delete globalThis.localStorage;
+  delete globalThis.document;
+}
+
+console.log("\n=== 10 · real routes: new members, automatic listing, retry and takedowns ===");
+{
+  // The real route handlers, real verifier and real Supabase SDK run here.
+  // Only the HTTP boundary is replaced. An unexpected request throws, so this
+  // test cannot send a mail, publish a score or contact any live project.
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://board-test.invalid";
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "test-anon-key";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-key";
+  process.env.NOVUS_BOARD_AUTOLIST = "review";
+  register("./route-loader.mjs", import.meta.url);
+  const { NextRequest } = await import("next/server");
+  const { GET } = await import(join(root, "app/api/leaderboard/route.ts"));
+  const { POST } = await import(join(root, "app/api/leaderboard/submit/route.ts"));
+  const { ENGINE_VERSION, EVENTS_HASH } = await import(join(root, "lib/leaderboard/season.ts"));
+  const userId = "11111111-1111-4111-8111-111111111111";
+  const runId = "22222222-2222-4222-8222-222222222222";
+  const handle = handleShuffle(42, 1)[0];
+  const user = { id: userId, email: "player@example.test", is_anonymous: false, aud: "authenticated", app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() };
+  const tokenPart = (value) => Buffer.from(JSON.stringify(value)).toString("base64url");
+  const token = `${tokenPart({ alg: "HS256", typ: "JWT" })}.${tokenPart({ sub: userId, exp: Math.floor(Date.now() / 1000) + 3600 })}.test`;
+  const originalFetch = globalThis.fetch;
+  let mode = "fresh";
+  let requests = [];
+  let boardWrites = 0;
+  const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+  globalThis.fetch = async (input, init) => {
+    const request = new Request(input, init);
+    const url = new URL(request.url);
+    if (url.origin !== "https://board-test.invalid") throw new Error(`Unexpected test request: ${url.origin}`);
+    const body = request.method === "GET" ? null : await request.json().catch(() => null);
+    requests.push({ method: request.method, url, body });
+    if (url.pathname === "/auth/v1/token") return json({ access_token: token, refresh_token: "rotated-refresh", expires_in: 3600, token_type: "bearer", user });
+    if (url.pathname === "/auth/v1/user") return json(user);
+    if (url.pathname === "/rest/v1/profiles") return json([{ board_handle: handle }]);
+    if (url.pathname === "/rest/v1/rpc/my_chapter_summary") return json([{ id: "chapter-a", name: "Novus Academy" }]);
+    if (url.pathname === "/rest/v1/rpc/chapter_board") return json([]);
+    if (url.pathname === "/rest/v1/rpc/claim_submission_slot") return json(true);
+    if (url.pathname === "/rest/v1/runs") {
+      if (request.method === "POST") return mode === "duplicate"
+        ? json({ code: "23505", message: "duplicate tape" }, 409)
+        : json({ id: runId }, 201);
+      return json([{ id: runId, engine_version: ENGINE_VERSION, events_hash: EVENTS_HASH }]);
+    }
+    if (url.pathname === "/rest/v1/rpc/record_board_entry") {
+      boardWrites++;
+      if (mode === "write-failed" && boardWrites === 2) return json({ code: "XX000", message: "storage unavailable" }, 503);
+      return json(mode !== "removed");
+    }
+    if (url.pathname === "/rest/v1/leaderboard_entries") {
+      if (request.method === "PATCH") return json([]);
+      if (url.searchParams.get("select")?.includes("runs!inner")) return json(mode === "duplicate"
+        ? [{ id: "entry-a", run_id: runId, company_name: "Sharkfin", runs: { status: "verified" } }]
+        : []);
+      return json([{ run_id: runId, listed: mode !== "removed" }]);
+    }
+    throw new Error(`Unhandled test request: ${request.method} ${url.pathname}`);
+  };
+  const request = (path, payload) => new NextRequest(`https://novus.test${path}`, {
+    method: payload ? "POST" : "GET",
+    headers: { cookie: "novus_sb=test-refresh", origin: "https://novus.test", "content-type": "application/json" },
+    ...(payload ? { body: JSON.stringify(payload) } : {}),
+  });
+  const played = playAndRecord(CASES[0]);
+  const payload = { tape: played.tape, claimedPeakValuation: played.peak, claimedYearsSurvived: Math.max(1, played.yearsClosed), proAtSubmit: false };
+  try {
+    const boardResponse = await GET(request("/api/leaderboard?scope=chapter"));
+    const emptyBoard = await boardResponse.json();
+    eq(boardResponse.status, 200, "a new chapter member can read an empty board");
+    eq(emptyBoard.myHandle, handle, "an unranked member keeps the handle on their profile");
+    eq(emptyBoard.chapterName, "Novus Academy", "the player's own enterprise name reaches the board");
+    ok(emptyBoard.chapterAvailable, "an empty chapter still has a scope control");
+    eq(emptyBoard.myRank, null, "membership alone does not fabricate a rank");
+
+    for (const nextMode of ["fresh", "duplicate", "removed", "write-failed"]) {
+      mode = nextMode;
+      requests = [];
+      boardWrites = 0;
+      const response = await POST(request("/api/leaderboard/submit", payload));
+      const body = await response.json();
+      if (mode === "write-failed") {
+        eq(response.status, 503, "a failed second board write is retryable, not false success");
+        eq(body.ok, false, "the client cannot mark a partial write as submitted");
+        continue;
+      }
+      eq(response.status, 200, `${mode}: the server accepts a real verified tape`);
+      eq(body.status, "verified", `${mode}: replay verification remains required`);
+      eq(boardWrites, 2, `${mode}: both boards are written, including a duplicate retry`);
+      eq(body.listed, mode !== "removed", `${mode}: visibility reflects the stored rows`);
+      ok(requests.filter((r) => r.url.pathname.endsWith("record_board_entry")).every((r) => r.body.p_listed === true), `${mode}: an old review env cannot put a clean score back in a queue`);
+      if (mode === "duplicate") {
+        const recovery = requests.find((r) => r.method === "PATCH");
+        ok(!!recovery, "a legacy clean verified score is eligible for catch-up");
+        for (const [key, value] of Object.entries({ profile_id: `eq.${userId}`, run_id: `eq.${runId}`, listed: "eq.false", reports: "eq.0", unlisted_at: "is.null", moderation_note: "is.null" })) {
+          eq(recovery?.url.searchParams.get(key), value, `catch-up repeats the ${key} race guard`);
+        }
+      }
+      if (mode === "removed") {
+        ok(!requests.some((r) => r.method === "PATCH"), "a removed entry is never blindly promoted");
+        ok(body.message.includes("hidden"), "a removed score is described as hidden rather than awaiting approval");
+      }
+    }
+    mode = "fresh";
+    requests = [];
+    const refused = await POST(request("/api/leaderboard/submit", { ...payload, tape: { ...payload.tape, companyName: "Sarah Mitchell" } }));
+    const reason = await refused.json();
+    eq(refused.status, 422, "a formerly reviewed name is refused before storage");
+    ok(reason.message.includes("Settings"), "the player gets a concrete rename-and-retry path");
+    ok(!requests.some((r) => r.url.pathname === "/rest/v1/runs"), "a blocked name never enters an approval queue");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+}
 
 function structuredCloneCompat(value) {
   return JSON.parse(JSON.stringify(value));

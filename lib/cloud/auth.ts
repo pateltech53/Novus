@@ -1,5 +1,8 @@
 import { createAccount, loadAccount, signOut as forgetLocalAccount } from "@/lib/account";
 import { PROVIDER_LABEL, type OAuthProvider, type OAuthState } from "@/lib/auth/providers";
+import { forgetInviteName } from "@/lib/auth/invite";
+import { forgetInviteSetup } from "@/lib/auth/invite-cleanup";
+import type { InviteSetupTokens } from "@/lib/auth/invite-setup";
 import { RESTORED_FLAG } from "@/lib/cloud/keys";
 import { dropPendingRun } from "@/lib/engine/save";
 import { API_CREDENTIALS, apiUrl } from "@/lib/native/origin";
@@ -23,7 +26,7 @@ import { API_CREDENTIALS, apiUrl } from "@/lib/native/origin";
 
 export type AuthOutcome =
   | { ok: true; email: string | null; displayName?: string | null }
-  | { ok: false; reason: AuthFailReason; message: string };
+  | { ok: false; reason: AuthFailReason; message: string; retryTokens?: InviteSetupTokens };
 
 export type AuthFailReason =
   | "not-configured"
@@ -58,6 +61,7 @@ interface AuthBody {
   email?: string | null;
   displayName?: string | null;
   error?: string;
+  retryTokens?: InviteSetupTokens;
   reason?: string;
   captcha?: string;
   /** Provider sign-in only: which of the two doors this turned out to be. */
@@ -523,6 +527,10 @@ function wipeDevice(): void {
    * and nothing on it reaches back to this file.
    */
   dropPendingRun();
+  // A tab can be handed to another student during an unfinished invitation.
+  // Never carry its temporary credentials across an account change.
+  forgetInviteName();
+  forgetInviteSetup();
   /*
    * Collected first, then removed. Iterating localStorage while deleting from
    * it re-indexes the collection underneath the loop and silently skips keys —
@@ -634,6 +642,10 @@ export async function signOut(): Promise<void> {
   forgetLocalAccount();
   forgetIdentity();
 
+  // Signing out also clears an unfinished invite when an offline save means
+  // the rest of the device deliberately cannot be wiped yet.
+  forgetInviteName();
+  forgetInviteSetup();
   if (syncedOk) wipeDevice();
 }
 
@@ -766,7 +778,17 @@ export async function confirmPasswordReset(
   });
   if (!out) return fail("offline", "Could not reach the server. Check your connection.");
   const { res, body } = out;
-  if (!res.ok) return fail("error", body.error ?? "Could not set that password.");
+  if (body.configured === false) return fail("not-configured", "Accounts are not switched on for this build.");
+  if (!res.ok || !body.signedIn) {
+    // The route leaves the previous browser identity untouched on failure.
+    // Carry a refreshed link session back only to the form retrying it;
+    // never adopt it, clear saves, or enable cloud sync until setup succeeds.
+    const refusal = fail("error", body.error ?? "Could not set that password.");
+    const retry = body.retryTokens;
+    return retry && typeof retry.access === "string" && typeof retry.refresh === "string"
+      ? { ...refusal, retryTokens: retry }
+      : refusal;
+  }
 
   // Empty the device before the caller writes the new account cache, so a
   // stranger's saves cannot be routed into the account that just signed in.

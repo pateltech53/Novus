@@ -49,26 +49,9 @@ export function sha256(text: string): string {
   return createHash("sha256").update(text).digest("hex");
 }
 
-/**
- * How a clean company name reaches the public board.
- *
- * `review` — the default, and what §9.3 asks for: every entry lands unlisted
- * and waits for a human. Nothing a child typed appears in public because a
- * regular expression approved of it.
- *
- * `clean` — an entry whose name passes every check in `moderation.ts` lists
- * immediately. Faster, and strictly worse: a blocklist catches what it knows
- * about. Opt in deliberately, per deployment, and only with the report route
- * and someone reading it.
- *
- * There is no third mode. "List everything" is not a setting, because a board
- * that publishes free text the instant it arrives is a liability a parent will
- * find before an engineer does.
- */
-export type ListingPolicy = "review" | "clean";
-
-export const LISTING_POLICY: ListingPolicy =
-  process.env.NOVUS_BOARD_AUTOLIST === "clean" ? "clean" : "review";
+// Listing is automatic after replay and name checks. The former
+// NOVUS_BOARD_AUTOLIST switch is intentionally retired: an old `review`
+// deployment value must not silently restore a mandatory approval queue.
 
 /**
  * The shared secret that gates the moderation queue.

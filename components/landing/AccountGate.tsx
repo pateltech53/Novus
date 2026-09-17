@@ -35,6 +35,7 @@ import {
 } from "@/lib/cloud/auth";
 import { MIN_PASSWORD_LENGTH } from "@/lib/auth/credentials";
 import { resumePendingPro } from "@/lib/cloud/pending-pro";
+import { resumePendingChapter } from "@/lib/cloud/pending-chapter";
 import { whenRestored } from "@/lib/cloud/sync";
 import { ENTRY_ROUTES, entryRoute } from "@/lib/entry";
 import { play } from "@/lib/sound";
@@ -312,6 +313,7 @@ export function AccountGate() {
     window.setTimeout(() => setEntering(false), RETRY_AFTER_MS);
     await whenRestored();
 
+    if (resumePendingChapter()) return;
     const route = destination();
     if (storefront() === "web") router.push(route);
     else window.location.href = appPath(route);
@@ -451,6 +453,7 @@ export function AccountGate() {
     // pressed — the pricing section records the plan when checkout refuses a
     // signed-out buyer, and this is the moment that refusal stops being true.
     // Answering true means the browser is already leaving for Stripe.
+    if (resumePendingChapter()) return;
     if (await resumePendingPro()) return;
 
     // Unlike sign-in, sign-up KEEPS this device's progress — signUp() has just
@@ -485,6 +488,7 @@ export function AccountGate() {
      * Nothing is skipped by leaving early — the account's save is pulled by
      * restoreOnBoot on whichever page Stripe returns them to.
      */
+    if (resumePendingChapter()) return;
     if (await resumePendingPro()) return;
 
     /*
@@ -552,6 +556,7 @@ export function AccountGate() {
       return;
     }
 
+    if (resumePendingChapter()) return;
     // A returning player. nativeProviderSignIn has emptied this device, and the
     // account's own saves are pulled by restoreOnBoot when CloudSync remounts —
     // which a client-side navigation never triggers. Same reload signIn does.
@@ -671,6 +676,7 @@ export function AccountGate() {
         <ChooseName
           suggested={suggestedName}
           onDone={() => {
+            if (resumePendingChapter()) return;
             const route = destination();
             if (storefront() === "web") router.push(route);
             else window.location.href = appPath(route);

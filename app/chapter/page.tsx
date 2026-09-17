@@ -9,6 +9,7 @@ import { openBillingPortal } from "@/lib/cloud/billing";
 import { useSellsHere } from "@/lib/commerce";
 import { CHAPTER_LICENCES, formatPrice, perSeatCents } from "@/lib/monetization";
 import { play } from "@/lib/sound";
+import { ChapterDetails, type ChapterDetailsInfo } from "@/components/chapter/ChapterDetails";
 
 /**
  * /chapter — the seat console. Where a licence becomes a classroom.
@@ -34,7 +35,7 @@ import { play } from "@/lib/sound";
  * backoff thinking as lib/cloud/billing.ts's awaitPurchase.
  */
 
-interface ChapterInfo {
+interface ChapterInfo extends ChapterDetailsInfo {
   id: string;
   licence: "chapter_35" | "chapter_100" | "chapter_custom";
   seats: number;
@@ -66,7 +67,9 @@ type Phase =
   | "signed-out"
   | "no-chapter"
   | "waiting" // just paid; webhook not landed yet
-  | "ready";
+  | "ready"
+  | "error"
+  | "deleted";
 
 const POLL_MS = [800, 1200, 2000, 3000, 4000, 6000] as const;
 
@@ -85,9 +88,9 @@ function parseLines(text: string): string[][] {
 }
 
 const RESULT_LINE: Record<NonNullable<RowResult["action"]>, string> = {
-  invited: "invited — the invite email is on its way",
+  invited: "seat added — invite email accepted for sending",
   granted: "already had an account — seat granted, no email needed",
-  resent: "email sent again",
+  resent: "email accepted for sending again",
 };
 
 /** Which mailer the server said it used. "supabase" means the deploy has no
@@ -112,6 +115,7 @@ export default function ChapterPage() {
   const load = useCallback(async (): Promise<"ready" | "no-chapter" | Phase> => {
     try {
       const res = await fetch(apiUrl("/api/chapter"), { credentials: API_CREDENTIALS });
+      if (!res.ok) return "error";
       const body = (await res.json()) as {
         configured?: boolean;
         signedIn?: boolean;
@@ -125,7 +129,7 @@ export default function ChapterPage() {
       setMembers(body.members ?? []);
       return "ready";
     } catch {
-      return "unconfigured";
+      return "error";
     }
   }, []);
 
@@ -189,8 +193,9 @@ export default function ChapterPage() {
         setInviteResults(body.results);
         if (body.mailer) setMailer(body.mailer);
         if (body.results.some((r) => r.ok)) {
-          play("success");
-          setInviteText("");
+          if (body.results.some((r) => r.ok && !r.warning)) play("success");
+          const retryEmails = new Set(body.results.filter((r) => !r.ok || r.warning).map((r) => r.email.toLowerCase()));
+          setInviteText(parseLines(inviteText).filter(([email]) => retryEmails.has(email.toLowerCase())).map((row) => row.join("\t")).join("\n"));
         }
         await refresh();
       }
@@ -220,7 +225,8 @@ export default function ChapterPage() {
         setRegisterResults(body.results);
         if (body.results.some((r) => r.ok)) {
           play("success");
-          setRegisterText("");
+          const retryEmails = new Set(body.results.filter((r) => !r.ok || r.warning).map((r) => r.email.toLowerCase()));
+          setRegisterText(parseLines(registerText).filter(([email]) => retryEmails.has(email.toLowerCase())).map((row) => row.join("\t")).join("\n"));
         }
         await refresh();
       }
@@ -251,7 +257,7 @@ export default function ChapterPage() {
       setRowNote({
         email,
         note: row?.ok
-          ? "Set-password email sent."
+          ? (row.warning ?? (row.action ? RESULT_LINE[row.action] : "Email accepted for sending."))
           : (row?.error ?? body.error ?? "Could not send it. Try again in a minute."),
       });
       await refresh();
@@ -372,6 +378,14 @@ export default function ChapterPage() {
           NOVUS CHAPTER
         </p>
         {phase === "loading" && <Blurb title="One moment.">Reading your chapter…</Blurb>}
+        {phase === "error" && <>
+          <Blurb title="Could not load your enterprise.">Check your connection and try again.</Blurb>
+          <button type="button" onClick={() => void refresh()} className="nv-gc mt-5 min-h-12 rounded-[var(--radius-card)] nv-t-action px-5 font-bold">TRY AGAIN</button>
+        </>}
+        {phase === "deleted" && <>
+          <Blurb title="Enterprise deleted.">Its membership and enterprise Pro seats have ended. Personal accounts and game progress are preserved.</Blurb>
+          <a href="/" className="nv-gc mt-5 flex min-h-12 items-center justify-center rounded-[var(--radius-card)] px-5 font-bold">BACK TO NOVUS</a>
+        </>}
         {phase === "waiting" && (
           <Blurb title="Setting up your chapter.">
             The payment went through and the seats are being switched on — this
@@ -445,12 +459,12 @@ export default function ChapterPage() {
     <main className="mx-auto w-full max-w-3xl px-6 pb-[max(6rem,calc(var(--nv-overlay-bottom)+2rem))] pt-[max(2.5rem,var(--nv-safe-top),calc(var(--nv-overlay-top)+0.75rem))]">
       {/* ── Masthead ────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
+        <div className="min-w-0 max-w-full">
           <p className="text-2xs font-bold tracking-[0.18em] text-[var(--color-prestige)]">
             NOVUS CHAPTER
           </p>
-          <h1 className="mt-1.5 text-[1.75rem] font-extrabold leading-tight tracking-[-0.02em]">
-            {chapter?.seats}-seat licence
+          <h1 className="mt-1.5 break-words text-[1.75rem] font-extrabold leading-tight tracking-[-0.02em]">
+            {chapter?.name || `${chapter?.seats}-seat enterprise`}
           </h1>
           <p className="tnum mt-1 text-sm text-[var(--text-secondary)]">
             {chapter?.seatsUsed} of {chapter?.seats} seats filled
@@ -462,7 +476,7 @@ export default function ChapterPage() {
             back is the leading chevron) — the DOM chips are not rendered at
             all rather than hidden, so no invisible control can take a tap. */}
         {native ? null : (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <a
               href="/"
               className="nv-gc rounded-full px-4 py-2 text-2xs font-bold tracking-[0.1em] text-[var(--text-secondary)]"
@@ -496,8 +510,17 @@ export default function ChapterPage() {
         </p>
       )}
 
+      {chapter && <ChapterDetails
+        key={chapter.id}
+        chapter={chapter}
+        busy={busy !== null}
+        setBusy={setBusy}
+        onSaved={refresh}
+        onDeleted={() => { setChapter(null); setMembers([]); setPhase("deleted"); }}
+      />}
+
       {/* ── The two ways in ─────────────────────────────────────────────── */}
-      <div className="mt-8 grid gap-4 lg:grid-cols-2">
+      {chapter?.profileComplete && <div className="mt-8 grid gap-4 lg:grid-cols-2">
         {/* Invite by email */}
         <section className="rounded-[var(--radius-card)] bg-[var(--n-3)] p-5 shadow-[var(--e1)] ring-1 ring-[var(--hairline)]">
           <h2 className="text-sm font-extrabold tracking-[0.08em]">INVITE BY EMAIL</h2>
@@ -527,12 +550,8 @@ export default function ChapterPage() {
           <Results rows={inviteResults} />
           {mailer === "supabase" && (
             <p className="mt-3 rounded-[var(--radius-row)] bg-[var(--n-2)] px-3 py-2.5 text-2xs leading-relaxed text-[var(--text-secondary)]">
-              These emails went out through Supabase&rsquo;s built-in mailer —
-              its own invite email, throttled at a handful per hour — because
-              this deploy has no <span className="tnum">RESEND_API_KEY</span> /{" "}
-              <span className="tnum">RESEND_FROM</span> set. Fine for a few
-              seats; set both (docs/CHAPTERS.md §2) for the branded invite,
-              the claim page, and classroom volume.
+              The current email service sends only a limited number of invitations at a time.
+              If an address is refused, keep it in the list and try again later, or contact team@novuspitch.com for help.
             </p>
           )}
         </section>
@@ -584,7 +603,7 @@ export default function ChapterPage() {
           </div>
           <Results rows={registerResults} />
         </section>
-      </div>
+      </div>}
 
       {/* ── The roster ──────────────────────────────────────────────────── */}
       <section className="mt-8">
@@ -613,11 +632,11 @@ export default function ChapterPage() {
                     {m.name ? `${m.name} · ` : ""}
                     {m.origin === "invited"
                       ? m.claimedAt
-                        ? "invited · claimed"
-                        : "invited · not claimed yet"
+                        ? "invited · setup completed"
+                        : "invited · setup not completed"
                       : "registered"}
                     {m.inviteSentAt
-                      ? ` · email sent ${new Date(m.inviteSentAt).toLocaleDateString()}`
+                      ? ` · email accepted ${new Date(m.inviteSentAt).toLocaleDateString()}`
                       : ""}
                   </p>
                   {rowNote?.email === m.email && (
@@ -630,7 +649,7 @@ export default function ChapterPage() {
                   <button
                     type="button"
                     onClick={() => void resend(m.email)}
-                    disabled={busy !== null}
+                    disabled={busy !== null || !chapter?.profileComplete}
                     className="nv-gc rounded-full px-3 py-1.5 text-2xs font-bold tracking-[0.08em] text-[var(--text-secondary)] disabled:opacity-35"
                   >
                     {busy === `resend:${m.email}` ? "SENDING…" : "RESEND LINK"}
@@ -665,7 +684,7 @@ export default function ChapterPage() {
 function Blurb({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <>
-      <h1 className="mt-1.5 text-[1.75rem] font-extrabold leading-tight tracking-[-0.02em]">
+      <h1 className="mt-1.5 break-words text-[1.75rem] font-extrabold leading-tight tracking-[-0.02em]">
         {title}
       </h1>
       <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)]">{children}</p>
@@ -676,19 +695,20 @@ function Blurb({ title, children }: { title: string; children: React.ReactNode }
 /** Per-row outcomes, in the order the rows went in. */
 function Results({ rows }: { rows: RowResult[] | null }) {
   if (!rows || rows.length === 0) return null;
-  const granted = rows.filter((r) => r.ok).length;
+  const granted = rows.filter((r) => r.ok && !r.warning).length;
+  const warnings = rows.filter((r) => r.warning).length;
   return (
     <div className="mt-3 rounded-[var(--radius-row)] bg-[var(--n-2)] px-3 py-2.5">
       <p className="text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]">
-        {granted} OF {rows.length} LANDED
+        {granted} OF {rows.length} COMPLETED{warnings ? ` · ${warnings} NEED ATTENTION` : ""}
       </p>
       <ul className="mt-1 space-y-1">
         {rows.map((r, i) => (
-          <li key={`${r.email}-${i}`} className="text-2xs leading-relaxed">
+          <li key={`${r.email}-${i}`} className="break-words text-2xs leading-relaxed">
             <span className="tnum font-bold">{r.email}</span>{" "}
             <span
-              className={r.ok ? "text-[var(--text-secondary)]" : "text-[var(--alert)]"}
-              role={r.ok ? undefined : "alert"}
+              className={r.ok && !r.warning ? "text-[var(--text-secondary)]" : "text-[var(--alert)]"}
+              role={r.ok && !r.warning ? undefined : "alert"}
             >
               {r.ok
                 ? (r.warning ?? (r.action ? RESULT_LINE[r.action] : "done"))

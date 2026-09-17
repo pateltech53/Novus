@@ -306,9 +306,12 @@ them belongs to the screens, and the realistic options are:
    the relevant consumer-protection rules for your markets. It is not the
    default this file recommends.
 
-What the code guarantees regardless: the only Novus identifier that reaches
-Stripe is the anonymous profile UUID, in checkout metadata. No display name, no
-board handle, no founder name, and never `playerAge`.
+For personal plans, checkout metadata identifies the account by its profile
+UUID and purchase SKU, without its board handle, founder name or `playerAge`.
+Enterprise registration additionally sends the buyer-entered institution name,
+organisation type, contact name and contact email to Stripe as metadata. These
+fields create the enterprise profile when the webhook arrives; they are not
+student roster data. Migration 0020 must be applied before this release.
 
 ---
 

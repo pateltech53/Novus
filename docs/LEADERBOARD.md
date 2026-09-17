@@ -23,7 +23,7 @@ protected, and none of the work below opened it.
 | Submission path, moderation queue, report | `supabase/migrations/0006_leaderboard_submit.sql` |
 | The tests | `scripts/leaderboard-test.mjs`, `supabase/tests/submit_test.sql` |
 
-### Four places the build deviates from this document, and why
+### Where the build deviates from the original design
 
 1. **The verifier does not just call `lib/engine`; it shares the ORCHESTRATION with the game.**
    §1.1 argues for one copy of the engine. That argument is only true if the sequence around the
@@ -57,6 +57,19 @@ protected, and none of the work below opened it.
    rows the player already holds — `leaderboard_entries.founder_display_name` is a copy, so 0016
    adds the trigger that keeps the copy true. Nothing about what the board TRUSTS moved: the tape is
    still the player's own taps, the server still replays them, and §8's line holds unchanged.
+
+6. **Publication no longer requires human approval.** A verified replay with a clean company name
+   lists immediately. The former `NOVUS_BOARD_AUTOLIST` setting is ignored even when an existing
+   deployment still sets it to `review`. Names previously sent to review now receive an actionable
+   refusal: change Company name in Settings and retry. Flagged or rejected replay results are not
+   published; the UI explains that automatic verification failed instead of promising a reviewer.
+   Reports and operator takedowns remain available and are not erased by retrying a removed entry.
+
+7. **The enterprise board has context before a player earns a score.** `my_chapter_summary()` returns
+   only the signed-in player's own enterprise id/name. The board displays that name beside its
+   scope controls on web and native; the chosen board handle comes from the player's profile in
+   both scopes. A chapter with no listed scores remains an empty board, not a missing identity.
+   Chapter rows remain a filter of public scores, not a roster or a separate scoring system.
 
 ---
 
@@ -318,7 +331,7 @@ create table public.leaderboard_entries (
   -- is coarse location data about a child. §9.
   achieved_on   date not null,
 
-  -- Entries land unlisted. A human or a blocklist clears company_name first.
+  -- Fail-closed default; the verified submit route explicitly lists eligible names.
   listed        boolean not null default false,
 
   created_at    timestamptz not null default now(),
@@ -620,8 +633,8 @@ Replay costs CPU. Reject the absurd first.
 - `peak_valuation` above the ceiling for the industry and year count — reject. Derive the ceiling
   from `scripts/simulate.mjs`, which reports a median valuation of $28.3M at 8 years on seed 1. Set
   the hard ceiling at roughly 100× the observed p99 so it only ever catches nonsense, and **flag**
-  rather than reject anything above p99 so a genuinely exceptional run gets a human look instead of a
-  door in the face.
+  rather than discard the evidence for anything above p99. Flagged results remain private and are
+  not automatically published; the app does not promise a manual approval step.
 - Tape length inconsistent with the claim — a 40-year run needs at least 480 `advance` entries.
   Reject a 40-year claim carried by 12.
 - Timestamps: every `atISO` monotonically non-decreasing, none in the future, none before the app
@@ -639,6 +652,8 @@ you shipped, and you want to know which within the hour.
 - `claim_submission_slot()` (§6.5): ten submissions per profile per UTC day. A legitimate player
   finishes a run in far more time than that.
 - `unique (profile_id, tape_hash)`: resubmitting the same tape is a `23505`, not a second entry.
+  The submit route reuses that evidence row and retries both board upserts, so a partial write
+  failure can recover. A matching engine version and event hash are required.
 - `unique (board, season, profile_id)`: one row per player per board. Upsert only when the new run
   beats the old. One player cannot own the top ten no matter how many runs they finish.
 - Cap anonymous sign-ins per IP in the Supabase dashboard (§3.1), because an unlimited identity
@@ -818,24 +833,30 @@ constraints still hold the shape, and a rename propagates to the rows already ca
 Show the real founder name locally, in the player's own run, on their own device, wherever the app
 already shows it. That is theirs. The global board is not the place for it.
 
-### 9.3 Company name: moderate before you list
+### 9.3 Company name: automatic checks, with reports and takedowns
 
-`companyName` is free text a child typed. Across enough players it will contain real names, school
-names, phone numbers, and slurs. A board that publishes it the instant it is submitted is a liability
-you will find out about from a parent.
+**Supersedes the original mandatory human queue.** Publication now requires a verified server replay
+and a `clean` result from `moderateCompanyName()`. Contact details, slurs, profanity, unsupported
+characters, invalid lengths, and names shaped like a person's full name are refused before replay.
+The response points the player to Company name in Settings so they can rename and retry. The
+name-shape heuristic is conservative and can refuse ordinary two-word company names too; it is
+not a guarantee that all identifying text is detected.
 
-Entries land with `listed = false` (§4), which the read policy in §6.3 makes invisible to everyone.
-Promotion to `listed` requires:
+`listed = false` remains the database default and the visibility boundary. The submit route explicitly
+requests publication only after both gates pass. There is no deployment opt-in or mandatory
+moderator approval. Every visible row still has a report control; reporting unlists immediately,
+and operators can remove or restore entries through the existing moderation tools.
 
-1. A blocklist pass at submit — profanity, and anything matching a phone number, an email, a URL, or a
-   long digit run.
-2. A length and character-class check. Nothing outside the printable range you actually render.
-3. A human queue for everything that survives, until volume forces something smarter.
-4. A report control on every board row, and a path that unlists in one click and asks questions after.
+Existing clients get one catch-up submission through `submittedListingVersion` in their local tape
+receipt. That submission can release only their own current-season, previously verified, clean
+entries with zero reports, no `unlisted_at`, and no moderation note. Conditional updates repeat
+the entry id, owner, run id and removal guards so a concurrent report or replacement is not undone.
+There is no blanket migration that lists old pending rows. A report or explicit removal stays in
+force for the same company when it submits a better result.
 
-If moderation is more than you want to own, offer a curated company-name builder instead — the same
-shape as the logo builder already proposed in `docs/BUILD-PROMPT.md`. Free text is a permanent
-operational cost; a word list is not.
+The response reads actual stored visibility. A verified run that did not beat an older best says so;
+an entry held down after a report is not announced as public. Database write failures return a
+retryable error instead of marking an unrecorded score as submitted.
 
 ### 9.4 Player age: collected locally, never transmitted
 
@@ -888,7 +909,7 @@ Making deletion easy is only possible because you collected almost nothing. That
 4. `lib/leaderboard/verify.ts`. Test it against `scripts/simulate.mjs` output: a tape produced by the
    sim must verify, and the same tape with one number edited must not.
 5. Session and submit routes (§5). Rate limits on from day one, not day thirty.
-6. Moderation queue (§9.3) before a single entry is `listed`.
+6. Automatic name checks plus reporting and takedowns (§9.3) before entries are `listed`.
 7. The board screen.
 8. The CI assertions in §8.3 and the retention job in §9.5.
 

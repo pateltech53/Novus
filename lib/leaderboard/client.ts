@@ -50,6 +50,8 @@ export interface BoardPage {
   /** Whether this account belongs to a chapter, so the screen knows to offer
    *  the MY CHAPTER scope at all. */
   chapterAvailable?: boolean;
+  /** The enterprise this account belongs to, never another player's label. */
+  chapterName?: string | null;
 }
 
 const EMPTY: BoardPage = {
@@ -61,6 +63,7 @@ const EMPTY: BoardPage = {
   myRank: null,
   myRow: null,
   chapterAvailable: false,
+  chapterName: null,
 };
 
 export async function fetchBoard(

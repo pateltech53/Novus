@@ -36,6 +36,7 @@ import { PickMark } from "@/components/ui/PickMark";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { OneTimeShelf } from "@/components/upgrade/OneTimeShelf";
 import { rememberPendingPro } from "@/lib/cloud/pending-pro";
+import { clearPendingChapter } from "@/lib/cloud/pending-chapter";
 import { whenRestored } from "@/lib/cloud/sync";
 import { useSellsHere } from "@/lib/commerce";
 import { entryRoute } from "@/lib/entry";
@@ -493,9 +494,6 @@ function PricingSection() {
    * Separate from `busy` above, which tracks which PLAN is mid-checkout.
    */
   const [entering, goEnter, releaseEnter] = useNavigating();
-  /** The chapter column's own error line — a teacher refused at 35 SEATS
-   *  should not read the message inside the Pro card two columns away. */
-  const [chapterError, setChapterError] = useState<string | null>(null);
 
   const enter = async () => {
     // Settled state first, exactly as AccountGate's CONTINUE does and for the
@@ -588,6 +586,7 @@ function PricingSection() {
    */
   const choosePro = async (plan: SubscriptionPlan) => {
     if (busy) return;
+    clearPendingChapter();
     // A subscriber pressing a cadence is asking to move, not to buy again.
     if (subscribed) return manage(plan.id);
 
@@ -647,61 +646,10 @@ function PricingSection() {
     );
   };
 
-  /**
-   * A licence checkout, from the chapters column. One of the two authored
-   * sizes — a chapter that is neither is a conversation, not a form; see
-   * `TalkFirstRow`.
-   *
-   * Same shape as choosePro with two differences that matter: there is no
-   * device-local fallback (a classroom licence on one browser's localStorage
-   * would be a licence for nobody), and success lands on /chapter — the
-   * console the purchase just opened — rather than back in the game.
-   */
-  const chooseChapter = async (sku: ChapterLicence["id"]) => {
+  /** Enterprise identity is collected before opening any paid checkout. */
+  const chooseChapter = (sku: ChapterLicence["id"]) => {
     if (busy) return;
-    setBusy(sku);
-    setChapterError(null);
-
-    const result = await goToCheckout(sku);
-    if (result.ok) return; // leaving for Stripe
-
-    // The operator's fork: a skipped licence is a live chapter, and success
-    // lands on the console it just opened — the same place a paid one lands.
-    if (result.reason === "admin-skip") {
-      window.location.assign("/chapter");
-      return;
-    }
-
-    setBusy(null);
-
-    if (result.reason === "admin-cancel") return;
-
-    if (result.reason === "signed-out" || result.reason === "needs-account") {
-      setChapterError(
-        "A chapter attaches to the account that runs it. Create one or sign in below, then choose the licence again.",
-      );
-      document
-        .getElementById(ACCOUNT_ANCHOR)
-        ?.scrollIntoView({ block: "center", behavior: "smooth" });
-      return;
-    }
-    if (result.reason === "owned") {
-      setChapterError("This account already runs a chapter — open its console below.");
-      return;
-    }
-    if (result.reason === "not-configured") {
-      // No local-grant fallback for a licence. The mail address is the honest
-      // door on a deploy that cannot take the money.
-      setChapterError(
-        "This build cannot take payments. Email team@novuspitch.com and a person will set the chapter up.",
-      );
-      return;
-    }
-    setChapterError(
-      result.message
-        ? `Checkout could not be opened. Nothing was charged. (${result.message})`
-        : "Checkout could not be opened. Nothing was charged.",
-    );
+    router.push(`/chapter/new?sku=${sku}`);
   };
 
   /*
@@ -975,14 +923,7 @@ function PricingSection() {
               </a>{" "}
               — invite by email, or register a whole class from a list.
             </p>
-            {chapterError ? (
-              <p
-                role="alert"
-                className="mt-2 text-xs leading-relaxed text-[var(--color-alert)]"
-              >
-                {chapterError}
-              </p>
-            ) : null}
+
             <a
               href="/chapter"
               className="mt-3 text-2xs font-bold tracking-[0.08em] text-[var(--text-tertiary)] underline underline-offset-4"

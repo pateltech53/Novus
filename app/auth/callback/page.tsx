@@ -7,6 +7,7 @@ import { isOAuthState } from "@/lib/auth/providers";
 import { ChooseName } from "@/components/ChooseName";
 import { completeProviderSignIn } from "@/lib/cloud/auth";
 import { resumePendingPro } from "@/lib/cloud/pending-pro";
+import { resumePendingChapter } from "@/lib/cloud/pending-chapter";
 import { storefront } from "@/lib/commerce";
 import { entryRoute } from "@/lib/entry";
 import { appPath } from "@/lib/native/href";
@@ -149,6 +150,7 @@ function Callback() {
     // The pricing section records the plan when checkout refuses a signed-out
     // buyer, and this is the moment that refusal stops being true. Answering
     // true means the browser is already leaving for Stripe.
+    if (resumePendingChapter()) return;
     if (await resumePendingPro()) return;
 
     const route = state === "new" ? entryRoute() : "/";

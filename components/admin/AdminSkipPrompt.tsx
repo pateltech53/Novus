@@ -115,7 +115,7 @@ export function AdminSkipPrompt() {
 
   const doSkip = async () => {
     setOpen((o) => (o ? { ...o, phase: "working", error: null } : o));
-    const result = await skipPurchase(req.sku, req.industry, req.seats);
+    const result = await skipPurchase(req.sku, req.industry, req.seats, req.chapterProfile);
     if (!result.ok) {
       setOpen((o) => (o ? { ...o, phase: "error", error: result.error } : o));
       return;

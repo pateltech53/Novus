@@ -10,18 +10,14 @@
  *
  * ── What this file is, and is not ───────────────────────────────────────────
  *
- * It is the CHEAP pass: it catches contact details, obvious profanity, and text
- * that cannot render. It is not a judgement about whether a name is safe. That
- * is what `listed = false` and the human queue are for — the read policy in
- * 0002 makes an unlisted entry invisible to everyone including its own author,
- * so nothing here has to be right for the board to be safe. It only has to be
- * right for the queue to be short.
- *
- * Getting that order backwards is the mistake this comment exists to prevent.
- * A blocklist is a filter in front of a human, never a substitute for one.
+ * A clean name now lists automatically after the server verifies the run.
+ * Contact details, profanity and names shaped like a person's full name are
+ * refused with a rename instruction instead of being left in an approval
+ * queue. This filter is finite: reports and operator takedowns remain the
+ * recovery path for anything it misses (docs/LEADERBOARD.md §9.3).
  */
 
-export type ModerationVerdict = "clean" | "review" | "reject";
+export type ModerationVerdict = "clean" | "reject";
 
 export interface ModerationResult {
   verdict: ModerationVerdict;
@@ -55,9 +51,8 @@ const INVISIBLE = /[​-‏‪-‮⁠-⁯﻿]/;
 /**
  * Contact details, in the shapes a child actually types them.
  *
- * Each of these is a reject rather than a review: there is no company name that
- * needs to contain a phone number, and putting one in front of a human just
- * costs the human a click.
+ * Contact details are refused before replay; they have no place in a public
+ * company name, whether the entry is global or filtered to a chapter.
  */
 const CONTACT_PATTERNS: { id: string; re: RegExp }[] = [
   { id: "email", re: /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i },
@@ -77,9 +72,8 @@ const CONTACT_PATTERNS: { id: string; re: RegExp }[] = [
  * leetspeak folded and separators removed, so `f.u.c.k` and `fu(k` land on the
  * same entry as the plain spelling.
  *
- * Slurs are rejected outright; general profanity goes to review, because
- * "Damn Good Coffee" is a real company name and a nine-year-old naming a
- * company after a rude word is a conversation, not a ban.
+ * Both groups require a different company name. The run and account stay
+ * intact; refusing a public label is not a ban from the game.
  */
 const SLURS = [
   "nigg", "fagg", "kike", "spic", "chink", "tranny", "retard", "raped", "rapist",
@@ -95,8 +89,8 @@ const PROFANITY = [
  * Folds the tricks people use to slip a word past a substring match.
  *
  * Not a security boundary — a determined adult defeats this in a minute. It
- * exists so the human queue is not full of `f_u_c_k Industries`, which is the
- * actual failure mode of a naive blocklist on a product for children.
+ * catches `f_u_c_k Industries` as well as plain spelling. Reports still cover
+ * forms this finite list does not recognise.
  */
 function normalise(name: string): string {
   return name
@@ -119,10 +113,9 @@ function normalise(name: string): string {
  * Does this name look like a person's full name?
  *
  * Two capitalised words and nothing else — `Sarah Mitchell` — is the shape a
- * child types when they name the company after themselves or a classmate. It is
- * NOT a reject: `Marco Holdings` is two capitalised words and so is half the
- * FTSE. It is the single most useful thing to put in front of a human, which is
- * exactly what `review` means.
+ * child types when they name the company after themselves or a classmate.
+ * This deliberately conservative heuristic also catches `Marco Holdings`.
+ * The player can choose a brand-style name; neither case waits for approval.
  */
 function looksLikePersonalName(name: string): boolean {
   return /^[A-Z][a-z]{1,14} [A-Z][a-z]{1,14}$/.test(name.trim());
@@ -185,10 +178,12 @@ export function moderateCompanyName(raw: string): ModerationResult {
 
   if (reasons.length > 0) {
     return {
-      verdict: "review",
+      verdict: "reject",
       reasons,
       message:
-        "Your run is in. The name is waiting on a human before it shows publicly — that is how every name gets there.",
+        reasons.includes("looks-personal")
+          ? "That looks like a person's full name. Choose a company or brand name without anyone's real name."
+          : "Choose a company name without profanity or explicit language.",
     };
   }
 
@@ -196,15 +191,9 @@ export function moderateCompanyName(raw: string): ModerationResult {
 }
 
 /**
- * Whether an entry may be listed without a human looking at it.
- *
- * Two arguments, not one: the verdict AND the deployment's policy. A clean
- * verdict under `review` still waits, because "the regex liked it" is not the
- * same claim as "somebody read it".
+ * Name eligibility only. The caller must also require a verified replay;
+ * reporting and explicit takedowns can still keep an eligible name unlisted.
  */
-export function mayAutoList(
-  result: ModerationResult,
-  policy: "review" | "clean",
-): boolean {
-  return policy === "clean" && result.verdict === "clean";
+export function mayAutoList(result: ModerationResult): boolean {
+  return result.verdict === "clean";
 }

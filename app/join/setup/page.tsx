@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { MIN_PASSWORD_LENGTH } from "@/lib/auth/credentials";
 import { forgetInviteName, readInviteName } from "@/lib/auth/invite";
+import { forgetInviteSetup, readInviteSetup, rememberInviteSetup, replaceInviteSetup } from "@/lib/auth/invite-setup";
 import { confirmPasswordReset } from "@/lib/cloud/auth";
 import { MAX_NAME_LENGTH, createAccount } from "@/lib/account";
 
@@ -34,7 +35,8 @@ import { MAX_NAME_LENGTH, createAccount } from "@/lib/account";
  * in. Same endpoint /reset uses, because it is the same operation; only the
  * page around it differs. The hash is cleared from the address bar as soon as
  * it is read, so the tokens do not sit in history or get shoulder-read off a
- * classroom projector.
+ * classroom projector. A short, tab-scoped handover in sessionStorage lets
+ * a refresh recover this page; lib/auth/invite-setup.ts bounds its lifetime.
  *
  * Two kinds of link arrive here, and both work:
  *
@@ -87,13 +89,22 @@ export default function SeatSetupPage() {
 
     if (access && refresh) {
       setTokens({ access, refresh });
+      rememberInviteSetup({ access, refresh });
       setPhase("ready");
       // replaceState keeps the history entry rather than adding one, so Back
       // still leaves the page.
       window.history.replaceState(null, "", window.location.pathname);
     } else {
-      if (described) setError(described);
-      setPhase("no-token");
+      // A failed NEW link must never pick up another account's old handover.
+      if (described || hash) {
+        forgetInviteSetup();
+        if (described) setError(described);
+        setPhase("no-token");
+      } else {
+        const pending = readInviteSetup();
+        setTokens(pending);
+        setPhase(pending ? "ready" : "no-token");
+      }
     }
   }, []);
 
@@ -115,6 +126,10 @@ export default function SeatSetupPage() {
       known ? undefined : chosenName,
     );
     if (!result.ok) {
+      if (result.retryTokens) {
+        setTokens(result.retryTokens);
+        replaceInviteSetup(result.retryTokens);
+      }
       setBusy(false);
       setError(result.message);
       return;
@@ -130,6 +145,7 @@ export default function SeatSetupPage() {
     }
 
     forgetInviteName();
+    forgetInviteSetup();
     setPhase("done");
 
     // Straight into onboarding rather than the marketing front door: this

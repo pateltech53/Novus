@@ -1,5 +1,50 @@
 # HANDOFF — project history, current state, and open work
 
+## 2026-09-17 · Enterprise registration, deletion and automatic boards
+
+The owner requested enterprise basic information, deletion, removal of the
+leaderboard's manual approval prerequisite, and repairs to invitation states.
+`/chapter/new` now collects organisation name/type and contact name/email before
+checkout; existing licences complete the same form on `/chapter`. Owners can
+edit details and delete their enterprise with a typed confirmation. Stripe
+cancellation precedes atomic roster/access removal, while a cleared tombstone
+blocks delayed webhooks from resurrecting a deleted licence. Personal accounts,
+saves and separate purchases survive. Members see the name beside MY CHAPTER.
+
+Migration **0020_enterprise_lifecycle.sql must run before the web deploy**.
+APPLY-ALL and CHECK-SCHEMA include it. The SQL also makes individual member
+removal atomic against renewal and protects reported board rows from relisting
+on a higher score under the same company name. Fixed-tier portal changes now
+read current Stripe prices rather than stale SKU metadata.
+
+Verified scores with acceptable names list automatically; the old
+NOVUS_BOARD_AUTOLIST setting is ignored. Name rejection, replay verification,
+reports and operator takedown remain. Old untouched pending scores may recover
+on the player's next submission, with explicit takedowns preserved. The board
+returns a member's actual nickname even before they have a listed score.
+
+Invitation send timestamps follow mail-provider acceptance, and claiming is
+recorded only after password setup on both mailer paths. Completion clears the
+original token. Password setup survives refresh through a bounded tab-scoped
+handover; account switching clears it. Failed setup keeps the browser's existing
+account and local data intact while refreshed credentials allow a bounded retry.
+New route regressions run as
+`test:chapter` and `test:chapter-invites` in check/CI; `enterprise_test.sql`
+joins the database suite. This session used mocked external services, not live
+email delivery or Stripe cancellations. Verification details accompany the PR.
+
+Validation: `npm run check` and the budgeted `npm run build` passed, including
+24 enterprise lifecycle, 20 invitation and 110 leaderboard checks. All 11 SQL
+suites passed 363 assertions under PGlite PostgreSQL; native `psql` was unavailable
+locally, so the PostgreSQL 16 CI job remains the real-server gate. Ordered
+migrations and fresh/repeated APPLY-ALL passed all 20 schema checks, with matching
+function privileges and unchanged fixture data after reapplication. Chromium
+crashed at startup in this container, so visual browser QA remains unverified.
+Invitation cleanup stays synchronous in a small shared module, keeping the full
+handover implementation off ordinary pages without raising bundle budgets.
+
+---
+
 Written 2026-08-31 so that a session on a fresh account can continue this
 project with zero ramp-up. Companion to the root **CLAUDE.md** (the rules and
 the map); this file is the memory. History below is compiled from all 230

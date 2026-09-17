@@ -9,6 +9,7 @@ import {
 } from "@/lib/monetization";
 import { adminClient } from "@/lib/supabase/admin";
 import { crossSite, withSession } from "@/lib/supabase/route";
+import { validateChapterProfile, type ChapterProfile } from "@/lib/chapter/profile";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
     return withSession(bad(403, "cross-site request refused"), gate.session);
   }
 
-  let body: { ownerProfileId?: unknown; licence?: unknown; until?: unknown; seats?: unknown };
+  let body: { ownerProfileId?: unknown; licence?: unknown; until?: unknown; seats?: unknown; chapterProfile?: unknown };
   try {
     body = (await req.json()) as typeof body;
   } catch {
@@ -72,6 +73,12 @@ export async function POST(req: NextRequest) {
   }
 
   let until: string | null = null;
+  let chapterProfile: ChapterProfile | null = null;
+  if (body.chapterProfile !== undefined) {
+    const checked = validateChapterProfile(body.chapterProfile);
+    if (!checked.ok) return withSession(bad(400, checked.error), gate.session);
+    chapterProfile = checked.profile;
+  }
   if (body.until != null && body.until !== "") {
     if (typeof body.until !== "string" || Number.isNaN(Date.parse(body.until))) {
       return withSession(bad(400, "until is not a date"), gate.session);
@@ -88,11 +95,18 @@ export async function POST(req: NextRequest) {
     return withSession(bad(404, "no such account"), gate.session);
   }
 
-  const { data, error } = await db.rpc("admin_create_comp_chapter", {
+  const { data, error } = await db.rpc(chapterProfile ? "admin_create_comp_chapter_with_profile" : "admin_create_comp_chapter", {
     p_owner: body.ownerProfileId,
     p_licence: body.licence,
     p_until: until,
     ...(body.licence === "chapter_custom" ? { p_seats: body.seats as number } : {}),
+    ...(chapterProfile ? {
+      p_seats: body.licence === "chapter_custom" ? body.seats as number : null,
+      p_name: chapterProfile.name,
+      p_organization_type: chapterProfile.organizationType,
+      p_contact_name: chapterProfile.contactName,
+      p_contact_email: chapterProfile.contactEmail,
+    } : {}),
   });
   if (error) {
     // The function's own refusals, translated to the console's vocabulary.

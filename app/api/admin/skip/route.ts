@@ -9,6 +9,7 @@ import {
 } from "@/lib/monetization";
 import { adminClient } from "@/lib/supabase/admin";
 import { crossSite, withSession } from "@/lib/supabase/route";
+import { validateChapterProfile } from "@/lib/chapter/profile";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
     return withSession(bad(403, "cross-site request refused"), gate.session);
   }
 
-  let body: { sku?: unknown; industry?: unknown; seats?: unknown };
+  let body: { sku?: unknown; industry?: unknown; seats?: unknown; chapterProfile?: unknown };
   try {
     body = (await req.json()) as typeof body;
   } catch {
@@ -77,6 +78,9 @@ export async function POST(req: NextRequest) {
   } else if (sku === "extra_island") {
     ({ error } = await db.rpc("grant_extra_island", { p_profile: self }));
   } else if ((CHAPTER_SKUS as readonly string[]).includes(sku)) {
+    const checked = validateChapterProfile(body.chapterProfile);
+    if (!checked.ok) return withSession(bad(400, checked.error), gate.session);
+    const { profile } = checked;
     if (sku === "chapter_custom" && !isCustomSeatCount(body.seats)) {
       return withSession(
         bad(
@@ -86,11 +90,15 @@ export async function POST(req: NextRequest) {
         gate.session,
       );
     }
-    ({ error } = await db.rpc("admin_create_comp_chapter", {
+    ({ error } = await db.rpc("admin_create_comp_chapter_with_profile", {
       p_owner: self,
       p_licence: sku,
       p_until: null,
-      ...(sku === "chapter_custom" ? { p_seats: body.seats as number } : {}),
+      p_seats: sku === "chapter_custom" ? body.seats as number : null,
+      p_name: profile.name,
+      p_organization_type: profile.organizationType,
+      p_contact_name: profile.contactName,
+      p_contact_email: profile.contactEmail,
     }));
     if (error?.message.includes("already owns an active chapter")) {
       return withSession(
