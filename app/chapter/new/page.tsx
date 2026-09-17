@@ -10,6 +10,7 @@ import { forgetPendingPro } from "@/lib/cloud/pending-pro";
 import { useSellsHere } from "@/lib/commerce";
 import { CHAPTER_LICENCES, formatPrice, type ChapterLicence } from "@/lib/monetization";
 import { API_CREDENTIALS, apiUrl } from "@/lib/native/origin";
+import { appPath } from "@/lib/native/href";
 
 /**
  * Enterprise registration happens before any payment: first authenticate the
@@ -124,13 +125,16 @@ export default function NewChapterPage() {
   const licence = CHAPTER_LICENCES.find((option) => option.id === sku)!;
   return (
     <main className="mx-auto min-h-dvh w-full max-w-lg px-6 pb-16 pt-[max(3rem,var(--nv-safe-top),calc(var(--nv-overlay-top)+1rem))]">
-      <a href="/" onClick={clearPendingChapter} className="inline-flex min-h-11 items-center text-xs font-bold text-[var(--text-secondary)]">BACK TO NOVUS</a>
+      <a href={sells === true ? "/" : appPath("/home")} onClick={clearPendingChapter} className="inline-flex min-h-11 items-center text-xs font-bold text-[var(--text-secondary)]">BACK TO NOVUS</a>
       <p className="mt-5 text-2xs font-bold tracking-[0.18em] text-[var(--color-prestige)]">NOVUS ENTERPRISE · CHAPTERS</p>
       <h1 className="mt-2 text-[1.75rem] font-extrabold leading-tight">Set up your enterprise.</h1>
       {sells === null || phase === "loading" ? (
         <p role="status" className="mt-4 text-sm text-[var(--text-secondary)]">Loading your account…</p>
       ) : sells === false ? (
-        <p className="mt-4 text-sm leading-relaxed text-[var(--text-secondary)]">Enterprise registration is managed on the web. Existing owners can manage their members in the chapter console.</p>
+        <div className="mt-4">
+          <p className="text-sm leading-relaxed text-[var(--text-secondary)]">Enterprise plans are managed on the web. Existing owners can manage their enterprise and members here.</p>
+          <a href={appPath("/chapter")} className={`${PRIMARY} mt-5`}>OPEN ENTERPRISE</a>
+        </div>
       ) : (
         <>
           {phase === "signed-out" && <div className="mt-6">

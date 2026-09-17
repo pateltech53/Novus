@@ -4,47 +4,16 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { MIN_PASSWORD_LENGTH } from "@/lib/auth/credentials";
-import { forgetInviteName, readInviteName } from "@/lib/auth/invite";
 import { forgetInviteSetup, readInviteSetup, rememberInviteSetup, replaceInviteSetup } from "@/lib/auth/invite-setup";
 import { confirmPasswordReset } from "@/lib/cloud/auth";
 import { MAX_NAME_LENGTH, createAccount } from "@/lib/account";
 
 /**
- * Where a chapter invite finishes: the welcome, and the password.
- *
- * ── Why this page exists at all ────────────────────────────────────────────
- *
- * Both invite paths used to land on /reset. A student who had never had an
- * account, who opened an email headed "A seat is waiting for you", arrived at
- * a page that said **"Choose a new password."** — new to what? The account was
- * ninety seconds old and had never had one. That page is written for someone
- * who forgot a password they chose themselves, and every word of it is wrong
- * for someone being handed a seat. It reads as a mix-up at best and as a phish
- * at worst, which is exactly the reaction the invite email is careful to avoid
- * and then handed straight to /reset.
- *
- * So the invite ends here instead. Same mechanism, entirely different sentence:
- * this is the first screen of an account, not the repair of one.
- *
- * ── The mechanism ─────────────────────────────────────────────────────────
- *
- * Supabase puts its tokens in the URL **fragment** (`#access_token=…`), and a
- * fragment never reaches a server — the browser keeps it. So this page reads
- * its own hash and posts the values to /api/auth/reset/confirm, which does the
- * work: adopts the session, sets the password, and leaves the student signed
- * in. Same endpoint /reset uses, because it is the same operation; only the
- * page around it differs. The hash is cleared from the address bar as soon as
- * it is read, so the tokens do not sit in history or get shoulder-read off a
- * classroom projector. A short, tab-scoped handover in sessionStorage lets
- * a refresh recover this page; lib/auth/invite-setup.ts bounds its lifetime.
- *
- * Two kinds of link arrive here, and both work:
- *
- *   · the one /join mints (Resend path) — the name was typed a screen ago and
- *     is already on the account, so this page greets them by it and asks only
- *     for the password;
- *   · Supabase's own "You have been invited" mail (no Resend configured) —
- *     which never had a claim screen, so the name is asked for here.
+ * Both mailers link directly to this welcome page. The mailbox proves the
+ * account, and this form asks for its name and first password. Credentials
+ * leave the URL immediately and have a bounded, tab-only refresh handover.
+ * Legacy /join links now request this same email rather than returning a
+ * recovery credential to a caller holding a reusable invitation token.
  */
 
 type Phase = "reading" | "ready" | "no-token" | "done";
@@ -53,8 +22,6 @@ export default function SeatSetupPage() {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("reading");
   const [tokens, setTokens] = useState<{ access: string; refresh: string } | null>(null);
-  /** The name typed at /join, when this browser is the one that typed it. */
-  const [known, setKnown] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -71,8 +38,6 @@ export default function SeatSetupPage() {
   useEffect(() => {
     if (read.current) return;
     read.current = true;
-
-    setKnown(readInviteName());
 
     const hash = window.location.hash.startsWith("#")
       ? window.location.hash.slice(1)
@@ -108,7 +73,7 @@ export default function SeatSetupPage() {
     }
   }, []);
 
-  const chosenName = (known ?? name).trim();
+  const chosenName = name.trim();
   const ready = password.length >= MIN_PASSWORD_LENGTH && chosenName.length > 0;
 
   const submit = async () => {
@@ -116,14 +81,11 @@ export default function SeatSetupPage() {
     setBusy(true);
     setError(null);
 
-    // The name only travels when this page is the one that asked for it. On
-    // the /join path it is already on the account (the claim endpoint wrote
-    // it), and re-sending it would be a second write of the same string.
     const result = await confirmPasswordReset(
       tokens.access,
       tokens.refresh,
       password,
-      known ? undefined : chosenName,
+      chosenName,
     );
     if (!result.ok) {
       if (result.retryTokens) {
@@ -144,7 +106,6 @@ export default function SeatSetupPage() {
       createAccount(result.displayName ?? chosenName ?? "Founder", result.email);
     }
 
-    forgetInviteName();
     forgetInviteSetup();
     setPhase("done");
 
@@ -167,9 +128,7 @@ export default function SeatSetupPage() {
       <h1 className="mt-1.5 text-[1.75rem] font-extrabold leading-tight tracking-[-0.02em] [overflow-wrap:anywhere]">
         {phase === "done"
           ? "You're in."
-          : known
-            ? `Welcome, ${known}.`
-            : "Welcome to Novus."}
+          : "Welcome to Novus."}
       </h1>
 
       {phase === "reading" && (
@@ -207,31 +166,23 @@ export default function SeatSetupPage() {
               void submit();
             }}
           >
-            {/* Only asked when nothing asked already. The Resend invite takes
-                the name at /join; Supabase's own invite mail has no claim
-                screen at all, and without this the account would keep the
-                "Founder" placeholder forever. */}
-            {!known && (
-              <>
-                <label
-                  htmlFor="seat-name"
-                  className="block text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]"
-                >
-                  YOUR NAME
-                </label>
-                <input
-                  id="seat-name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="What the shark should call you"
-                  autoComplete="name"
-                  maxLength={MAX_NAME_LENGTH}
-                  autoFocus
-                  className="mt-3 mb-6 block w-full border-0 border-b-2 border-[var(--hairline)] bg-transparent pb-2 text-[1.125rem] font-extrabold leading-tight tracking-[-0.02em] text-[var(--n-11)] transition-colors focus:border-[var(--n-11)] focus-visible:outline-none! placeholder:font-bold placeholder:text-[var(--n-6)]"
-                />
-              </>
-            )}
+            <label
+              htmlFor="seat-name"
+              className="block text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]"
+            >
+              YOUR NAME
+            </label>
+            <input
+              id="seat-name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="What the shark should call you"
+              autoComplete="name"
+              maxLength={MAX_NAME_LENGTH}
+              autoFocus
+              className="mt-3 mb-6 block w-full border-0 border-b-2 border-[var(--hairline)] bg-transparent pb-2 text-[1.125rem] font-extrabold leading-tight tracking-[-0.02em] text-[var(--n-11)] transition-colors focus:border-[var(--n-11)] focus-visible:outline-none! placeholder:font-bold placeholder:text-[var(--n-6)]"
+            />
 
             <label
               htmlFor="seat-password"
@@ -246,7 +197,6 @@ export default function SeatSetupPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder={`${MIN_PASSWORD_LENGTH} characters or more`}
               autoComplete="new-password"
-              autoFocus={!!known}
               className="mt-3 block w-full border-0 border-b-2 border-[var(--hairline)] bg-transparent pb-2 text-[1.125rem] font-extrabold leading-tight tracking-[-0.02em] text-[var(--n-11)] transition-colors focus:border-[var(--n-11)] focus-visible:outline-none! placeholder:font-bold placeholder:text-[var(--n-6)]"
             />
 

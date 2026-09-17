@@ -6,7 +6,8 @@ import { API_CREDENTIALS, apiUrl } from "@/lib/native/origin";
 import { useNativeOverlay, useNativeOverlayOwned } from "@/components/native/useNativeOverlay";
 import { useResolvedTheme } from "@/lib/native/theme";
 import { openBillingPortal } from "@/lib/cloud/billing";
-import { useSellsHere } from "@/lib/commerce";
+import { storefront, useSellsHere } from "@/lib/commerce";
+import { appPath } from "@/lib/native/href";
 import { CHAPTER_LICENCES, formatPrice, perSeatCents } from "@/lib/monetization";
 import { play } from "@/lib/sound";
 import { ChapterDetails, type ChapterDetailsInfo } from "@/components/chapter/ChapterDetails";
@@ -316,6 +317,7 @@ export default function ChapterPage() {
    * and the money stays where it is taken, in a browser.
    */
   const sells = useSellsHere();
+  const homeHref = sells === true ? "/" : appPath("/home");
   useNativeOverlay(
     useMemo(
       () => ({
@@ -361,7 +363,8 @@ export default function ChapterPage() {
     {
       onAction: (id) => {
         if (id === "back") {
-          if (window.history.length > 1) window.history.back();
+          if (storefront() !== "web") window.location.assign(appPath("/home"));
+          else if (window.history.length > 1) window.history.back();
           else window.location.assign("/");
         } else if (id === "billing") void openBillingPortal();
         else if (id === "refresh") void refresh();
@@ -384,7 +387,7 @@ export default function ChapterPage() {
         </>}
         {phase === "deleted" && <>
           <Blurb title="Enterprise deleted.">Its membership and enterprise Pro seats have ended. Personal accounts and game progress are preserved.</Blurb>
-          <a href="/" className="nv-gc mt-5 flex min-h-12 items-center justify-center rounded-[var(--radius-card)] px-5 font-bold">BACK TO NOVUS</a>
+          <a href={homeHref} className="nv-gc mt-5 flex min-h-12 items-center justify-center rounded-[var(--radius-card)] px-5 font-bold">BACK TO NOVUS</a>
         </>}
         {phase === "waiting" && (
           <Blurb title="Setting up your chapter.">
@@ -406,7 +409,7 @@ export default function ChapterPage() {
               licence. Sign in on the front page, then come back here.
             </Blurb>
             <a
-              href="/"
+              href={`${appPath("/")}#account`}
               className="nv-gc mt-6 flex h-14 w-full items-center justify-center rounded-[var(--radius-card)] nv-t-action px-6 text-[1.0625rem] font-extrabold tracking-[0.04em] shadow-[var(--e3)]"
             >
               GO TO SIGN IN
@@ -442,6 +445,7 @@ export default function ChapterPage() {
               the adult who runs it. Questions go to team@novuspitch.com.
             </Blurb>
           ))}
+        {!native && phase !== "deleted" && <a href={homeHref} className="mt-6 inline-flex min-h-11 items-center text-xs font-bold underline underline-offset-4">BACK TO NOVUS</a>}
       </main>
     );
   }
@@ -478,7 +482,7 @@ export default function ChapterPage() {
         {native ? null : (
           <div className="flex flex-wrap gap-2">
             <a
-              href="/"
+              href={homeHref}
               className="nv-gc rounded-full px-4 py-2 text-2xs font-bold tracking-[0.1em] text-[var(--text-secondary)]"
             >
               BACK TO NOVUS
@@ -626,7 +630,7 @@ export default function ChapterPage() {
                 key={m.email}
                 className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-[var(--hairline)] py-3"
               >
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 basis-full sm:flex-1">
                   <p className="tnum truncate text-sm font-extrabold">{m.email}</p>
                   <p className="text-2xs text-[var(--text-tertiary)]">
                     {m.name ? `${m.name} · ` : ""}
@@ -650,7 +654,7 @@ export default function ChapterPage() {
                     type="button"
                     onClick={() => void resend(m.email)}
                     disabled={busy !== null || !chapter?.profileComplete}
-                    className="nv-gc rounded-full px-3 py-1.5 text-2xs font-bold tracking-[0.08em] text-[var(--text-secondary)] disabled:opacity-35"
+                    className="nv-gc min-h-11 rounded-full px-3 py-1.5 text-2xs font-bold tracking-[0.08em] text-[var(--text-secondary)] disabled:opacity-35"
                   >
                     {busy === `resend:${m.email}` ? "SENDING…" : "RESEND LINK"}
                   </button>
@@ -658,7 +662,7 @@ export default function ChapterPage() {
                     type="button"
                     onClick={() => void remove(m.email)}
                     disabled={busy !== null}
-                    className="rounded-full border border-[var(--hairline)] px-3 py-1.5 text-2xs font-bold tracking-[0.08em] text-[var(--alert)] disabled:opacity-35"
+                    className="min-h-11 rounded-full border border-[var(--hairline)] px-3 py-1.5 text-2xs font-bold tracking-[0.08em] text-[var(--alert)] disabled:opacity-35"
                   >
                     {busy === `remove:${m.email}` ? "REMOVING…" : "REMOVE"}
                   </button>

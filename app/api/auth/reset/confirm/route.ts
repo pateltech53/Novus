@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (
-    typeof body.accessToken !== "string" ||
+    !body || typeof body.accessToken !== "string" ||
     typeof body.refreshToken !== "string" ||
     typeof body.password !== "string"
   ) {
@@ -153,6 +153,16 @@ export async function POST(req: NextRequest) {
     invitation = seat;
   }
 
+  // Independent of the roster: removal must not turn an unfinished invited
+  // account into a supposedly established account on its next invitation.
+  let pendingSetup = false;
+  if (db) {
+    const { data: setup, error: setupError } = await db.from("chapter_account_setup")
+      .select("completed_at").eq("profile_id", session.userId).maybeSingle();
+    if (setupError) return incomplete("Could not check account setup. Try again.", 503);
+    pendingSetup = !!setup && !setup.completed_at;
+  }
+
   const { error: updateError } = await supabase.auth.updateUser({ password: body.password });
   const samePassword = updateError?.code === "same_password" ||
     updateError?.message.toLowerCase().includes("different") === true;
@@ -160,7 +170,7 @@ export async function POST(req: NextRequest) {
   // password landed but the final seat write failed, the same password must
   // be accepted on retry for THAT pending invite. Other resets keep their
   // existing rule, and all other password errors remain failures.
-  if (updateError && !(invitation && !invitation.claimed_at && samePassword)) {
+  if (updateError && !((pendingSetup || (invitation && !invitation.claimed_at)) && samePassword)) {
     return incomplete(
       samePassword
         ? "Choose a password you have not used here before."
@@ -189,6 +199,13 @@ export async function POST(req: NextRequest) {
     if (claimError) {
       return incomplete("Your password was saved, but invitation setup could not finish. Press the button again with the same password.", 503);
     }
+  }
+
+  if (db && pendingSetup) {
+    const { error: setupError } = await db.from("chapter_account_setup")
+      .update({ completed_at: new Date().toISOString() })
+      .eq("profile_id", session.userId).is("completed_at", null);
+    if (setupError) return incomplete("Your password was saved, but account setup could not finish. Retry with the same password.", 503);
   }
 
   // A name, when the caller had one to give and nothing else asked for it.

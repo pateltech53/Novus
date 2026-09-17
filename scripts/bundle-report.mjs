@@ -56,7 +56,9 @@ const BUDGETS = {
   // (a different machine, no cache) crossed it by a few dozen bytes that
   // round to the same displayed number. One more kilobyte of margin, not a
   // kilobyte of new code.
-  "/page": 152,
+  // Native workspace entry adds a shared role-read/return path and reshapes
+  // common chunks. Node 22 measures 152.3 kB; allow one additional kilobyte.
+  "/page": 153,
   // 346, not 342. Two things landed in this chunk, +1.6 kB gzipped between
   // them, measured against the same build of main on the same machine:
   //
@@ -157,7 +159,9 @@ const BUDGETS = {
   // and GameProvider's autopsy path is what grew (buildAutopsy now reaches
   // lib/engine/company-brief.ts's companyMetrics() and the new
   // lib/engine/cap-table.ts). Measured at 333.8 kB, +0.8 kB gzipped.
-  "/islands/page": 335,
+  // The native picker gains an owner/admin-only Home control and a fresh
+  // workspace read. Node 22 measures 335.6 kB; allow one additional kilobyte.
+  "/islands/page": 336,
   // 200 (was 195, measured 196.0), 2026-09-15: onboarding now requires an
   // account partway through the flow (docs/HANDOFF.md's "Onboarding now
   // requires an account" note), which pulls the email/password form, the

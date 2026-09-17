@@ -347,6 +347,14 @@ final class GlassControl: UIView {
     /// and a web one do not feel like they came from different apps.
     @objc private func pressDown() {
         feedback.prepare()
+        // Keep the system material, but do not add our custom zoom when the
+        // player has asked iOS to reduce motion. Read at touch time so changing
+        // the setting while the app is open takes effect immediately.
+        guard !UIAccessibility.isReduceMotionEnabled else {
+            layer.removeAllAnimations()
+            transform = .identity
+            return
+        }
         UIView.animate(withDuration: 0.12, delay: 0, options: [.curveEaseOut, .allowUserInteraction])
         {
             self.transform = CGAffineTransform(scaleX: 0.96, y: 0.96)
@@ -355,6 +363,11 @@ final class GlassControl: UIView {
 
     @objc private func pressUp() {
         feedback.impactOccurred()
+        guard !UIAccessibility.isReduceMotionEnabled else {
+            layer.removeAllAnimations()
+            transform = .identity
+            return
+        }
         UIView.animate(withDuration: 0.16, delay: 0, options: [.curveEaseOut, .allowUserInteraction])
         {
             self.transform = .identity

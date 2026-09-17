@@ -13,12 +13,14 @@
  */
 import assert from "node:assert/strict";
 import { register } from "node:module";
+import { execFileSync } from "node:child_process";
+const fallback = process.argv.includes("--fallback");
 
 process.env.NEXT_PUBLIC_SUPABASE_URL = "https://novus-invite-test.invalid";
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "test-anon-key";
 process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-key";
 process.env.NEXT_PUBLIC_SITE_URL = "https://novus-test.invalid";
-process.env.RESEND_API_KEY = "test-mail-key";
+process.env.RESEND_API_KEY = fallback ? "" : "test-mail-key";
 process.env.RESEND_FROM = "Novus <test@novus-test.invalid>";
 
 register("./ts-loader.mjs", import.meta.url);
@@ -41,6 +43,10 @@ let state;
 const reset = (overrides = {}) => {
   state = {
     seat: null,
+    setup: null,
+    mailThrottled: false,
+    setupReadFails: false,
+    setupWriteFails: false,
     profileName: "Founder",
     existingAccount: false,
     mailFails: false,
@@ -106,10 +112,13 @@ globalThis.fetch = async (input, init = {}) => {
     }
     return json(user);
   }
-  if (url.pathname === "/auth/v1/admin/users") return json({ user });
+  if (url.pathname === "/auth/v1/admin/users") { state.existingAccount = true; return json({ user }); }
+  if (url.pathname === "/auth/v1/invite") { state.existingAccount = true; return json(user); }
+  if (url.pathname === "/auth/v1/recover") return json({});
   if (url.pathname === `/auth/v1/admin/users/${USER_ID}` && method === "DELETE") {
     state.deletedUsers++;
     state.seat = null;
+    state.setup = null;
     state.entitlement = false;
     return json({ user });
   }
@@ -121,6 +130,7 @@ globalThis.fetch = async (input, init = {}) => {
       email_otp: "123456", hashed_token: "test-hash", redirect_to: "https://novus-test.invalid/join/setup", verification_type: "recovery",
     });
   }
+  if (url.pathname === "/rest/v1/rpc/claim_auth_attempt") return json(!state.mailThrottled);
   if (url.pathname === "/rest/v1/chapters") return json([{
     id: CHAPTER_ID, owner_profile_id: USER_ID, licence: "chapter_35", seats: 35,
     status: "active", source: "comp", current_period_end: null, created_at: "2026-01-01T00:00:00Z",
@@ -150,12 +160,19 @@ globalThis.fetch = async (input, init = {}) => {
     if (body?.display_name) state.profileName = body.display_name;
     return json(null);
   }
+  if (url.pathname === "/rest/v1/chapter_account_setup") {
+    if (method === "GET") return state.setupReadFails ? json({ message: "setup unavailable" }, 500) : json(state.setup ? [state.setup] : []);
+    if (state.setupWriteFails) return json({ message: "setup write failed" }, 500);
+    if (method === "POST") state.setup = { profile_id: body.profile_id, completed_at: null };
+    if (method === "PATCH" && state.setup) Object.assign(state.setup, body);
+    return json(null);
+  }
   if (url.pathname === "/rest/v1/chapter_seats") {
     if (method === "GET") {
       if (state.lookupFails) return json({ message: "test lookup failed", code: "XX000" }, 500);
       return json(matchesSeat(url.searchParams) ? [state.seat] : []);
     }
-    if (method === "POST") { state.seat = { ...pendingSeat(), ...body }; return json(null, 201); }
+    if (method === "POST") { state.seat = { ...pendingSeat(), invite_token: null, ...body }; return json(null, 201); }
     if (method === "PATCH") {
       if (body.claimed_at && state.completionFails) return json({ message: "test completion failed", code: "XX000" }, 500);
       if (matchesSeat(url.searchParams)) Object.assign(state.seat, body);
@@ -184,6 +201,26 @@ const removeRequest = () => new NextRequest("https://novus-test.invalid/api/chap
 });
 let checks = 0;
 const check = async (name, run) => { await run(); checks++; console.log(`  ✓ ${name}`); };
+
+if (fallback) {
+  await check("Supabase fallback creates pending setup and delivers fresh invitation to setup", async () => {
+    reset();
+    assert.equal((await (await invite(inviteRequest())).json()).results[0].action, "invited");
+    assert.equal(state.setup.completed_at, null);
+    assert.equal(state.seat.claimed_at, null);
+    assert.equal(state.requests.find(r => r.path === "/auth/v1/invite").query.get("redirect_to"), "https://novus-test.invalid/join/setup");
+  });
+  await check("Supabase fallback restores removed unfinished accounts through mailbox recovery", async () => {
+    await removeSeat(removeRequest());
+    assert.equal((await (await invite(inviteRequest())).json()).results[0].action, "invited");
+    assert.equal(state.requests.find(r => r.path === "/auth/v1/recover").query.get("redirect_to"), "https://novus-test.invalid/join/setup");
+    assert.equal(state.seat.claimed_at, null);
+    assert.equal((await confirm(confirmRequest("Fallback Student"))).status, 200);
+    assert.ok(state.setup.completed_at);
+    assert.ok(state.seat.claimed_at);
+  });
+  process.exit(0);
+}
 
 await check("failed mail keeps the seat but never records a send", async () => {
   reset({ mailFails: true });
@@ -241,7 +278,7 @@ await check("opening an invitation does not claim it before password setup", asy
 });
 await check("a failed handover remains retryable through its original invitation", async () => {
   reset({ seat: pendingSeat(), linkFails: true });
-  assert.equal((await claim(claimRequest())).status, 500);
+  assert.equal((await claim(claimRequest())).status, 503);
   assert.equal(state.seat.claimed_at, null);
   state.linkFails = false;
   assert.equal((await claim(claimRequest())).status, 200);
@@ -343,6 +380,116 @@ await check("failed atomic removal reports the error without changing the roster
   assert.match((await response.json()).error, /remove: test removal failed/);
   assert.match(response.headers.get("set-cookie"), /novus_sb=/);
   assert.ok(state.seat);
+});
+
+await check("fresh invitations send setup directly to the mailbox without a reusable token", async () => {
+  reset();
+  await invite(inviteRequest());
+  assert.equal(state.seat.invite_token, null);
+  assert.equal(state.setup.completed_at, null);
+  const link = state.requests.find(r => r.path.endsWith("/generate_link"));
+  assert.equal(link.query.get("redirect_to"), "https://novus-test.invalid/join/setup");
+  const mail = state.requests.find(r => r.path === "/emails");
+  assert.deepEqual(mail.body.to, [EMAIL]);
+  assert.match(mail.body.text, /verify\?token=test/);
+});
+await check("removing and re-inviting an unfinished account sends setup and stays pending", async () => {
+  reset();
+  await invite(inviteRequest());
+  await removeSeat(removeRequest());
+  assert.ok(state.setup);
+  const before = state.sent;
+  const result = await (await invite(inviteRequest())).json();
+  assert.equal(result.results[0].action, "invited");
+  assert.equal(state.sent, before + 1);
+  assert.equal(state.passwordWrites, 0);
+  assert.equal(state.seat.created_by_invite, true);
+  assert.equal(state.seat.claimed_at, null);
+});
+await check("completed setup survives removal without another setup email", async () => {
+  reset();
+  await invite(inviteRequest());
+  await confirm(confirmRequest());
+  assert.ok(state.setup.completed_at);
+  await removeSeat(removeRequest());
+  const before = state.sent;
+  const result = await (await invite(inviteRequest())).json();
+  assert.equal(result.results[0].action, "granted");
+  assert.equal(state.sent, before);
+});
+await check("setup completion works after the pending seat has been removed", async () => {
+  reset({ setup: { completed_at: null } });
+  assert.equal((await confirm(confirmRequest())).status, 200);
+  assert.ok(state.setup.completed_at);
+});
+await check("a failed account-setup write retries even after the seat was claimed", async () => {
+  reset({ seat: pendingSeat(), setup: { completed_at: null }, setupWriteFails: true });
+  assert.equal((await confirm(confirmRequest())).status, 503);
+  assert.ok(state.seat.claimed_at);
+  state.setupWriteFails = false;
+  state.samePassword = true;
+  assert.equal((await confirm(confirmRequest())).status, 200);
+  assert.ok(state.setup.completed_at);
+});
+await check("unknown account setup fails closed before granting or changing passwords", async () => {
+  reset({ existingAccount: true, setupReadFails: true });
+  assert.equal((await (await invite(inviteRequest())).json()).results[0].ok, false);
+  assert.equal(state.grants, 0);
+  assert.equal((await confirm(confirmRequest())).status, 503);
+  assert.equal(state.passwordWrites, 0);
+});
+await check("a failed re-invitation mail retains honest pending status for resend", async () => {
+  reset({ existingAccount: true, setup: { completed_at: null }, mailFails: true });
+  const result = await (await invite(inviteRequest())).json();
+  assert.match(result.results[0].warning, /email failed/);
+  assert.equal(state.seat.claimed_at, null);
+  assert.equal(state.seat.invite_sent_at, null);
+  state.mailFails = false;
+  assert.equal((await (await invite(inviteRequest())).json()).results[0].action, "resent");
+  assert.ok(state.seat.invite_sent_at);
+});
+await check("a concurrent legacy claim never returns credentials or overwrites a completed name", async () => {
+  reset({ seat: pendingSeat(), setup: { completed_at: null } });
+  const baseFetch = globalThis.fetch;
+  let release, arrived;
+  const reached = new Promise(resolve => { arrived = resolve; });
+  const gate = new Promise(resolve => { release = resolve; });
+  globalThis.fetch = async (input, init = {}) => {
+    const url = new URL(typeof input === "string" ? input : input.url ?? String(input));
+    if (url.pathname.endsWith("/generate_link")) { arrived(); await gate; }
+    return baseFetch(input, init);
+  };
+  try {
+    const pending = claim(claimRequest());
+    await reached;
+    assert.equal((await confirm(confirmRequest("Account Owner"))).status, 200);
+    release();
+    const response = await pending;
+    assert.deepEqual(await response.json(), { ok: true, sent: true });
+    assert.equal(response.headers.get("set-cookie"), null);
+    assert.equal(state.profileName, "Account Owner");
+    const mail = state.requests.find(r => r.path === "/emails");
+    assert.deepEqual(mail.body.to, [EMAIL]);
+    assert.equal(state.seat.invite_token, null);
+  } finally { release(); globalThis.fetch = baseFetch; }
+});
+await check("legacy setup mail failure stays retryable without leaking the recovery link", async () => {
+  reset({ seat: pendingSeat(), mailFails: true });
+  const response = await claim(claimRequest());
+  assert.equal(response.status, 503);
+  assert.equal((await response.json()).url, undefined);
+  state.mailFails = false;
+  assert.deepEqual(await (await claim(claimRequest())).json(), { ok: true, sent: true });
+});
+
+await check("legacy setup mail is rate-limited before minting another credential", async () => {
+  reset({ seat: pendingSeat(), mailThrottled: true });
+  assert.equal((await claim(claimRequest())).status, 429);
+  assert.equal(state.generated, 0);
+  assert.equal(state.sent, 0);
+});
+await check("the no-Resend mailer completes both initial and restored invitation setup", async () => {
+  execFileSync(process.execPath, [new URL(import.meta.url).pathname, "--fallback"], { stdio: "inherit" });
 });
 
 const storage = new Map();

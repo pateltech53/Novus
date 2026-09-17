@@ -1,5 +1,7 @@
 "use client";
 
+import { accountEntryRoute } from "@/lib/entry";
+
 import { useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -39,7 +41,6 @@ import { rememberPendingPro } from "@/lib/cloud/pending-pro";
 import { clearPendingChapter } from "@/lib/cloud/pending-chapter";
 import { whenRestored } from "@/lib/cloud/sync";
 import { useSellsHere } from "@/lib/commerce";
-import { entryRoute } from "@/lib/entry";
 import { loadAccount } from "@/lib/account";
 import { useNavigating } from "@/lib/navigating";
 
@@ -535,7 +536,7 @@ function PricingSection() {
     // `entryRoute()` rather than a third copy of the ladder. This block and
     // public/boot.html and lib/entry.ts were three transcriptions of one rule,
     // and they had already drifted once — the whole reason lib/entry.ts exists.
-    router.push(entryRoute());
+    router.push(accountEntryRoute());
   };
 
   /**

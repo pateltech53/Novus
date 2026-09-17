@@ -1,3 +1,4 @@
+import { isNative } from "@/lib/native/platform";
 import { hasAnySavedRun, loadProfile } from "@/lib/engine/save";
 
 /**
@@ -45,4 +46,9 @@ export function entryRoute(): EntryRoute {
    */
   if (hasAnySavedRun()) return "/islands";
   return loadProfile()?.onboarded ? "/found" : "/welcome";
+}
+
+/** Native account entry resolves current console ownership before game entry. */
+export function accountEntryRoute(): string {
+  return isNative() ? "/home" : entryRoute();
 }

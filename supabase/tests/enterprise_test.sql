@@ -31,6 +31,20 @@ select test.eq((select seats from public.chapters where stripe_subscription_id='
 insert into public.chapter_seats(chapter_id,profile_id,email,origin,invite_token,created_by_invite)
  select id,'10000000-0000-0000-0000-000000000002','member@example.com','invited',gen_random_uuid(),true
  from public.chapters where stripe_subscription_id='sub_enterprise';
+-- Upgrade existing pending invites and prove repeated deployment preserves completion.
+reset role;
+\ir ../migrations/20260917054417_chapter_account_setup.sql
+select test.ok((select completed_at is null from public.chapter_account_setup
+ where profile_id='10000000-0000-0000-0000-000000000002'), 'legacy pending invitation is backfilled');
+set role authenticated;
+select test.throws('42501',$$select * from public.chapter_account_setup$$,
+ 'members cannot read setup records');
+select test.throws('42501',$$update public.chapter_account_setup set completed_at=now()$$,
+ 'members cannot forge setup completion');
+set role anon;
+select test.throws('42501',$$select * from public.chapter_account_setup$$,
+ 'anonymous readers cannot inspect setup records');
+set role service_role;
 select public.grant_chapter_seat('10000000-0000-0000-0000-000000000002','chapter_100');
 update public.entitlements set pro=true,extra_islands=2 where profile_id='10000000-0000-0000-0000-000000000002';
 insert into public.saves(profile_id,slot,run_id,seed,state,company_name,industry,year,month,stage)
@@ -187,5 +201,19 @@ select test.ok(public.record_board_entry('survival','2026-Q4',(select id from pu
 select test.ok((select listed and company_name='Keep My Company' and achieved_on='2026-01-01'
  from public.leaderboard_entries where season='2026-Q4'),
  'renaming a queued score preserves its achievement date');
+
+set role service_role;
+select test.ok((select completed_at is null from public.chapter_account_setup
+ where profile_id='10000000-0000-0000-0000-000000000002'), 'pending setup survives seat and enterprise removal');
+update public.chapter_account_setup set completed_at='2026-09-17T00:00:00Z'
+ where profile_id='10000000-0000-0000-0000-000000000002';
+reset role;
+\ir ../migrations/20260917054417_chapter_account_setup.sql
+select test.ok((select completed_at from public.chapter_account_setup
+ where profile_id='10000000-0000-0000-0000-000000000002') =
+ '2026-09-17T00:00:00Z'::timestamptz, 'reapplying the migration preserves completed setup');
+delete from auth.users where id='10000000-0000-0000-0000-000000000002';
+select test.eq((select count(*) from public.chapter_account_setup),0::bigint,
+ 'account deletion cascades setup state');
 
 \echo '=== enterprise_test: all checks passed ==='

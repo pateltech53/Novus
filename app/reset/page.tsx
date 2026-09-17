@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { storefront } from "@/lib/commerce";
+import { appPath } from "@/lib/native/href";
+
 import { MIN_PASSWORD_LENGTH } from "@/lib/auth/credentials";
 import { confirmPasswordReset } from "@/lib/cloud/auth";
 import { createAccount } from "@/lib/account";
@@ -99,7 +102,7 @@ export default function ResetPage() {
     // which a client-side navigation never triggers. Same reason AccountGate
     // reloads after signIn.
     setTimeout(() => {
-      window.location.href = "/";
+      window.location.href = appPath(storefront() === "web" ? "/" : "/home");
     }, 1200);
   };
 

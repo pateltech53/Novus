@@ -42,7 +42,7 @@ import {
 import { speak, stopSpeaking } from "@/lib/ai/speech";
 import { saveProfile, loadProfile } from "@/lib/engine/save";
 import { markIntroSeen } from "@/lib/rewards/intro";
-import { ENTRY_ROUTES, entryRoute } from "@/lib/entry";
+import { accountEntryRoute, ENTRY_ROUTES, entryRoute } from "@/lib/entry";
 import {
   MIN_AGE,
   TOO_YOUNG_BODY,
@@ -529,7 +529,7 @@ function AccountStep({ onNext }: { onNext: () => void }) {
     // AccountSection.submitSignIn does and for the same reason (the comment
     // there has the long version).
     await restoreForSignIn();
-    const route = entryRoute();
+    const route = accountEntryRoute();
     if (storefront() === "web") router.push(route);
     else window.location.href = appPath(route);
   };
@@ -568,7 +568,7 @@ function AccountStep({ onNext }: { onNext: () => void }) {
     // A returning player, same as email sign-in above.
     setLeaving(true);
     await restoreForSignIn();
-    const route = entryRoute();
+    const route = accountEntryRoute();
     if (storefront() === "web") router.push(route);
     else window.location.href = appPath(route);
   };

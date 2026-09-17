@@ -6,7 +6,6 @@ import { API_CREDENTIALS, apiUrl } from "@/lib/native/origin";
 import { useNativeOverlay, useNativeOverlayOwned } from "@/components/native/useNativeOverlay";
 import { useResolvedTheme } from "@/lib/native/theme";
 import { appPath } from "@/lib/native/href";
-import { entryRoute } from "@/lib/entry";
 import { storefront } from "@/lib/commerce";
 import {
   ChartShell,
@@ -350,7 +349,7 @@ const compare = (a: UserRow, b: UserRow, sort: Sort): number => {
  * filename.
  */
 const homeHref = (): string =>
-  storefront() === "web" ? "/" : appPath(entryRoute());
+  storefront() === "web" ? "/" : appPath("/home");
 
 async function call<T>(path: string, init?: RequestInit): Promise<T | null> {
   try {
@@ -795,7 +794,8 @@ export default function AdminPage() {
     {
       onAction: (id) => {
         if (id === "back") {
-          if (window.history.length > 1) window.history.back();
+          if (storefront() !== "web") window.location.assign(homeHref());
+          else if (window.history.length > 1) window.history.back();
           else window.location.assign(homeHref());
         } else if (id === "refresh") void refreshAll();
       },

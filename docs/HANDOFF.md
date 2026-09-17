@@ -1,5 +1,110 @@
 # HANDOFF — project history, current state, and open work
 
+## 2026-09-17 · Native administrators choose a workspace before playing
+
+Owner-approved scope: web-only enterprise purchasing; Console / Island entry
+for platform admins and enterprise owners; real UIKit controls on that entry,
+explicit console/home return paths, and Reduce Motion for custom native press
+scaling. Forms, roster and data stay solid. No store purchase flow was added.
+
+`/home` and the read-only `/api/home` now resolve fresh role/ownership rather
+than trusting a cached role. Native sign-in, OAuth completion, password reset
+and `boot.html` route here; ordinary members continue via the existing
+restored-game entry. Owner-only RLS queries exclude deleted chapters and prefer
+active licences; lapsed ownership still exposes management. Dual-role admins
+can also open their own enterprise. Failed reads are retryable, every response
+preserves session rotation, and background/bfcache return rechecks access.
+Consoles and the native island picker have a route back to the chooser. The
+owner roster now keeps email and controls on separate lines on narrow phones
+and gives resend/remove controls a 44-point minimum hit area.
+
+`test:home` covers 12 role, failure, token, own-filter, cold-start and storage
+contracts and is included in check and CI. Existing console server gates,
+web purchases, scoring and authored content are unchanged. The remote-shell
+architecture still means the web portion appears in the installed app only
+after the PR's web deployment; the Reduce Motion change needs a rebuilt binary.
+
+Validation: Node 22 `npm run check`, the budgeted web build, `test:home`
+(12 checks), and `test:outside` pass. Xcode 27 compiled the unsigned simulator
+app and widget. Chrome phone probes at 320/390/430 px passed owner/admin/dual
+role/lapsed access, retry, member/sign-out routing, console returns, and the
+native no-purchase surface, without overflow or page errors. These probes use
+mocked APIs/native lifecycle and verify DOM fallback, not UIKit rendering.
+The home and island budget ceilings each increase by 1 kB for the new native
+entry/control and its shared chunk impact (measured 152.3 and 335.6 kB).
+After Device Hub accessibility timed out, the owner explicitly authorized
+Xcode simulator commands. An isolated `com.novuspitch.enterpriseqa` binary
+loaded loopback-only synthetic owner/admin fixtures; the user's normal app,
+authentication and saves were preserved. XCUITest tapped the actual UIKit
+Console and Island controls and returned from both owner and operator consoles.
+Both journeys passed in light mode and again in dark mode with Reduce Motion
+asserted enabled (four runs, zero failures). Native screenshots were inspected
+for safe-area overlap, readable content and solid forms. The simulator's
+original light/Reduce-Motion-off settings were restored after verification.
+
+`/Users/zzzz/Novus`, the owner's actual Xcode checkout, is on this PR branch.
+Its original project/Info.plist signing and version edits remain byte-for-byte
+identical as a git diff; the nested `Novus/` folder was left alone. The updated
+checkout also passed its own unsigned Xcode 27 simulator build. CI at code
+commit `077b9cb` passed web, PostgreSQL 16/RLS, Android, iOS and Vercel preview.
+The final adversarial pass found no further confirmed functional defect.
+
+---
+
+## 2026-09-17 · Invitation credentials stay in the mailbox; deletion fails closed
+
+Follow-up to the enterprise review: new invites email one-time setup links
+straight to `/join/setup`. Legacy `/join` accepts the old token only to request
+an email (bounded per address), never to return credentials or write a name.
+This closes the in-flight claim versus password-completion race without relying
+on another racy read. Setup asks for the name under the proven mailbox session.
+
+Migration `20260917054417_chapter_account_setup.sql` must run after 0020 and before the web deploy. Service-only
+`chapter_account_setup` follows the profile across seat removal and is backfilled
+from existing invite seats. An unfinished account receives setup mail on
+re-invitation; completed accounts keep their ordinary no-mail seat grant.
+Password/setup-write interruptions support bounded same-password retries.
+
+Account deletion now reads every owned enterprise, confirms cancellation against
+live Stripe state even for lapsed records, then calls atomic `delete_chapter`
+for each. Query, cancellation and cleanup errors block both self-service and
+operator account deletion with the refreshed session preserved. Tombstones
+serialize with renewal and seat grants before account cascade.
+
+Regression coverage includes the exact interleaved claim, removed/re-invited
+accounts, both mailers, setup write failures, lapsed subscriptions, cancellation
+ordering, cleanup failures, both delete routes, and SQL RLS/backfill/cascade.
+Validation: `npm run check` passed; `npm run build` passed with Node 22
+(the CI runtime). The enterprise/invite suites report 28/31 checks, with two
+additional fallback-mailer child cases; the board retains 110 passing checks.
+All 11 SQL suites passed under PGlite, including the new migration's RLS,
+backfill and cascade assertions. Fresh/repeated APPLY-ALL and CHECK-SCHEMA each
+reported 21 migrations; effective setup-table grants were checked directly.
+PGlite used built-in UUID generation in place of the unused pgcrypto extension
+and a local adapter for psql commands; PostgreSQL 16 CI remains the server gate.
+Headless Chrome at 390×844 passed legacy email request, setup, failure/reload/
+rotated-token retry and completion, with screenshots inspected and no page
+errors. No live mail or billing was changed.
+
+The owner requested live migration execution. On 2026-09-17, applied the setup
+migration to `novuspitch` (`qeqvhwkprkiqyvuilzbv`); Supabase recorded version
+`20260917060217`. Its one existing pending invitation was backfilled with zero
+missing accounts. RLS is enabled, anonymous/authenticated table access is
+revoked, service-role CRUD is granted, and the profile foreign key cascades.
+The full schema check exposed the pre-existing, missing 0019 token-spend fix:
+the live function still used the invalid aggregate `FOR UPDATE`. Applied the
+repository's unchanged 0019 as `20260917060415_spend_tokens_lock`; all 21 live
+schema checks now pass. Security advisor warnings were unchanged; the new
+service-only table adds the expected informational "RLS enabled, no policy"
+entry. This does not claim that unrelated pre-existing warnings are resolved.
+
+PR CI passed the web build and PostgreSQL 16 suites. Android setup stopped
+before application compilation because the action's default requests the
+unavailable legacy `tools` package. CI and the release workflow now request
+`platform-tools` explicitly; Gradle still installs its required platform SDK.
+
+---
+
 ## 2026-09-17 · Enterprise registration, deletion and automatic boards
 
 The owner requested enterprise basic information, deletion, removal of the
