@@ -127,15 +127,13 @@ export async function POST(req: NextRequest) {
    * cancelled, refuse for the same reason personal Pro does — a deleted owner
    * with a still-billing school licence is the worst outcome of "delete me".
    */
-  const { failedCancellations } = await windDownOwnedChapters(db, session.userId, {
-    cancelSubscriptions: true,
-  });
-  if (failedCancellations.length > 0) {
+  const chapters = await windDownOwnedChapters(db, session.userId);
+  if (!chapters.ok) {
     return withSession(
       NextResponse.json(
         {
           error:
-            "A classroom licence on this account could not be cancelled just now, so nothing was deleted — please try again in a minute.",
+            "Your enterprise billing or member cleanup could not finish. Your account has been kept so you can retry safely.",
           activeSubscription: true,
         },
         { status: 409 },

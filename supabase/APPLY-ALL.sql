@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════════════
--- APPLY ALL · the complete Novus schema (0001 → 0020), idempotently
+-- APPLY ALL · the complete Novus schema (0001 → 0020 + account setup), idempotently
 -- ═══════════════════════════════════════════════════════════════════════════
 --
 -- Paste the whole file into the Supabase SQL editor of the NOVUS project and
@@ -4316,6 +4316,25 @@ grant execute on function public.record_board_entry(text,text,uuid,uuid,text,tex
 commit;
 
 
+-- Invitation setup belongs to an account, not to its current enterprise seat.
+-- Removing a seat must not forget that its randomly generated password has
+-- never been replaced. Service-only state; no email or credential is copied.
+begin;
+create table if not exists public.chapter_account_setup (
+  profile_id uuid primary key references public.profiles(id) on delete cascade,
+  completed_at timestamptz
+);
+alter table public.chapter_account_setup enable row level security;
+revoke all on public.chapter_account_setup from public, anon, authenticated;
+grant select, insert, update, delete on public.chapter_account_setup to service_role;
+
+-- Existing pending invites retain their first-setup state. Reapplication
+-- cannot undo a completion recorded after the first deployment.
+insert into public.chapter_account_setup (profile_id, completed_at)
+select profile_id, claimed_at from public.chapter_seats where created_by_invite
+on conflict (profile_id) do nothing;
+commit;
+
 -- ═══════════════════════════════════════════════════════════════════════════
 -- The report — read this before closing the tab
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -4475,4 +4494,6 @@ from (
       and to_regprocedure('public.delete_chapter(uuid)') is not null
       and to_regprocedure('public.remove_chapter_seat(uuid,uuid)') is not null
       and to_regprocedure('public.sync_chapter_subscription(uuid,text,text,integer,boolean,timestamptz,text,text,text,text)') is not null)
+,
+    ('chapter account setup', to_regclass('public.chapter_account_setup') is not null)
 ) as t(migration, present);

@@ -246,8 +246,8 @@ export function inviteEmail(joinUrl: string): {
 ${button(joinUrl, "CLAIM YOUR SEAT")}
 ${rule("30px 0")}
 ${steps([
-  "Confirm your email and name",
-  "Choose a password",
+  "Open your setup link",
+  "Choose your name and password",
   "Found your company",
 ])}
 ${rule("30px 0 24px")}
@@ -257,7 +257,7 @@ ${fallback(joinUrl)}`,
       "A Novus seat is waiting for you.",
       "",
       "Your classroom or club runs Novus. A seat has been set aside for this",
-      "address. Open the link, confirm your email and name, and choose your",
+      "address. Open the link and choose your name and",
       "password:",
       "",
       joinUrl,

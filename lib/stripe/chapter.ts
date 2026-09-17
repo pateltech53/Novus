@@ -152,63 +152,37 @@ export async function cancelChapterSubscription(subscriptionId: string | null): 
 }
 
 /**
- * Wind down every chapter a profile owns, before that profile is deleted.
- *
- * Deleting the owner's `auth.users` row cascades away the `chapters` row and its
- * `chapter_seats` — but each seated member's `entitlements.chapter` lives on the
- * member's OWN profile, and the only thing that clears it is `set_chapter_access`
- * off the chapter row. Once the cascade removes that row there is nothing left to
- * revoke with, so a whole class would keep Pro-equivalent access forever. And the
- * Stripe subscription behind a licence lives on `chapters.stripe_subscription_id`,
- * not on `billing_customers`, so the personal-Pro cancellation the delete routes
- * already do never touches it — the school's card keeps being billed for a
- * licence whose account no longer exists.
- *
- * So this runs FIRST, while the rows still exist: it lapses every member seat and
- * cancels every live licence subscription. Returns the subscription ids it could
- * not cancel, so a self-serve caller can refuse the deletion (better "try again"
- * than an account gone with the card still billable) while a support tool can
- * proceed and clean up the stranded subscription by hand.
+ * Account deletion uses the same cancellation and atomic tombstone operation
+ * as enterprise deletion. A lapsed access flag is not proof billing ended.
+ * Cancel every subscription before touching rosters; read/cancellation/cleanup
+ * failures keep the account available for retry. The tombstone also serializes
+ * against in-flight seat grants and subscription webhooks before the cascade.
  */
 export async function windDownOwnedChapters(
   db: SupabaseClient,
   ownerProfileId: string,
-  opts: { cancelSubscriptions: boolean } = { cancelSubscriptions: true },
-): Promise<{ failedCancellations: string[] }> {
-  const { data: chapters } = await db
+): Promise<{ ok: boolean; failedCancellations: string[] }> {
+  const { data: chapters, error } = await db
     .from("chapters")
-    .select("id, stripe_subscription_id, source, status")
+    .select("id, stripe_subscription_id")
     .eq("owner_profile_id", ownerProfileId);
+  if (error) return { ok: false, failedCancellations: [] };
 
   const failedCancellations: string[] = [];
-  if (!chapters?.length) return { failedCancellations };
-
-  const { stripe } = await import("./client");
-  const { billingConfigured } = await import("./config");
-
-  for (const chapter of chapters) {
-    // Clear the roster's entitlements while the chapter row is still here. This
-    // is idempotent and must not be skipped even for a lapsed chapter — a
-    // never-revoked comp or a stale grant would otherwise survive the cascade.
-    await db.rpc("set_chapter_access", { p_chapter: chapter.id, p_active: false });
-
+  for (const chapter of chapters ?? []) {
     const subId = chapter.stripe_subscription_id as string | null;
-    if (
-      opts.cancelSubscriptions &&
-      subId &&
-      chapter.source === "stripe" &&
-      chapter.status === "active" &&
-      billingConfigured()
-    ) {
-      try {
-        await stripe().subscriptions.cancel(subId, { invoice_now: false, prorate: false });
-      } catch {
-        // Already cancelled is fine; anything else is a subscription we could
-        // not stop, and the caller decides what that means.
-        failedCancellations.push(subId);
-      }
+    try {
+      await cancelChapterSubscription(subId);
+    } catch {
+      if (subId) failedCancellations.push(subId);
+      else return { ok: false, failedCancellations };
     }
   }
+  if (failedCancellations.length) return { ok: false, failedCancellations };
 
-  return { failedCancellations };
+  for (const chapter of chapters ?? []) {
+    const { data: deleted, error: cleanupError } = await db.rpc("delete_chapter", { p_chapter: chapter.id });
+    if (cleanupError || deleted !== true) return { ok: false, failedCancellations };
+  }
+  return { ok: true, failedCancellations };
 }

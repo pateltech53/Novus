@@ -1,5 +1,3 @@
-import { randomUUID } from "node:crypto";
-
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
@@ -12,8 +10,9 @@ import {
   seatMessage,
   type OwnedChapter,
 } from "@/lib/chapter/admin";
-import { inviteEmail, passwordEmail } from "@/lib/chapter/emails";
+import { passwordEmail } from "@/lib/chapter/emails";
 import { resendConfigured, sendEmail } from "@/lib/email/resend";
+import { sendSetupEmail } from "@/lib/chapter/setup-email";
 import { adminClient } from "@/lib/supabase/admin";
 import { SITE_URL, SUPABASE_SERVICE_ROLE_KEY } from "@/lib/stripe/config";
 import { SUPABASE_ANON_KEY, SUPABASE_URL, configured } from "@/lib/supabase/config";
@@ -23,53 +22,16 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * POST /api/chapter/invites — hand out seats by email.
- * Body: `{ invites: [{email, name?}] }` — one address or two hundred, same shape.
+ * Hand out seats, reporting each row separately. New accounts receive a
+ * mailbox-only, one-time setup link; an unfinished account receives another
+ * even after its old seat was removed. Established accounts keep their
+ * password and need no mail. Re-pasting a roster row resends setup while it
+ * is pending, or a password reset after completion. Mail acceptance alone
+ * stamps invite_sent_at; only password completion stamps claimed_at.
  *
- * The admin types nothing but an address (and, if they like, a name). What
- * happens per address depends on what already exists, and every outcome is
- * reported per row:
- *
- *   · **New address** → the account is created with no usable password, the
- *     seat and its entitlement are granted, and the address gets an invite
- *     email — through Resend, a link to `/join?code=<token>`, where the
- *     invitee confirms their email and name and is handed to the welcome
- *     screen at `/join/setup` to choose a password; through the fallback,
- *     Supabase's own invite mail, whose link lands on `/join/setup` directly.
- *     → `action: "invited"`
- *
- *   · **Existing account** → the seat and entitlement are granted and NO
- *     email is sent — they have a password that works, and no invite token
- *     is minted for an account somebody already owns (the token is a
- *     credential, and it must never open a door into a pre-existing
- *     account). → `action: "granted"`
- *
- *   · **Already on this roster** → the right email goes out again: the
- *     invite link while the seat is unclaimed, a choose-your-password link
- *     once it has been. Re-pasting a list is therefore exactly the RESEND
- *     button, one address or the whole class at a time. → `action: "resent"`
- *
- * ── Why Resend, and what happens without it ────────────────────────────────
- *
- * Invites are the app's own mail — our subject line, our copy, classroom
- * volume — which is precisely what Supabase's built-in auth mailer is not
- * for (it throttles at a handful per hour). So invites go through Resend
- * (lib/email/resend.ts). With RESEND_API_KEY unset the route falls back to
- * Supabase's own INVITE email (`auth.admin.inviteUserByEmail`): no claim
- * page, smaller volume, zero extra setup. What the fallback must never send
- * a fresh invitee is the RECOVERY template — "we received a request to
- * reset your password" to someone who never asked reads as either a mistake
- * or a phish, and it is how this route's first fallback actually landed in
- * inboxes. Recovery remains only where it is the true sentence: a RESEND to
- * a seat whose account is already claimed (see resendForSeat).
- *
- * ── Why this may send mail at all ──────────────────────────────────────────
- *
- * /api/auth/reset throttles hard and never varies its answer because it is
- * reachable by ANYONE about ANY address. This route is neither: it sits
- * behind a session that provably owns a paid chapter, it can only mail
- * addresses that hold (or are being handed) a seat on that licence, and the
- * seat cap bounds the total.
+ * The durable setup record is service-only and follows the profile rather
+ * than the enterprise. A missing migration fails admission safely instead of
+ * guessing that an account with a random password has finished registration.
  */
 
 interface InviteRow {
@@ -90,7 +52,7 @@ const refuse = (session: Session | null, error: string, status = 400) =>
   withSession(NextResponse.json({ error }, { status }), session);
 
 /** One condition, asked in three places: can the branded invite go out at
- *  all? Resend needs its key AND the absolute URL the claim link is built on. */
+ *  all? Resend needs its key AND the absolute URL the setup redirect is built on. */
 const invitesViaResend = (): boolean => resendConfigured() && !!SITE_URL;
 
 export async function POST(req: NextRequest) {
@@ -124,7 +86,7 @@ export async function POST(req: NextRequest) {
   } catch {
     return refuse(session, "bad json");
   }
-  if (!Array.isArray(body.invites) || body.invites.length === 0) {
+  if (!body || !Array.isArray(body.invites) || body.invites.length === 0) {
     return refuse(session, "invites is required — [{email, name?}]");
   }
   if (body.invites.length > MAX_BATCH) {
@@ -136,8 +98,8 @@ export async function POST(req: NextRequest) {
   const seen = new Set<string>();
 
   for (const raw of body.invites as InviteRow[]) {
-    const email = typeof raw.email === "string" ? normaliseEmail(raw.email) : "";
-    const name = cleanSeatName(raw.name);
+    const email = typeof raw?.email === "string" ? normaliseEmail(raw.email) : "";
+    const name = cleanSeatName(raw?.name);
 
     const problem = email ? checkEmail(email) : "email-missing";
     if (problem) {
@@ -176,7 +138,7 @@ async function inviteSeat(
   // Already seated here? Then this is a resend, not a second seat.
   const { data: existingSeat } = await db
     .from("chapter_seats")
-    .select("id, invite_token, created_by_invite, claimed_at")
+    .select("id, created_by_invite, claimed_at")
     .eq("chapter_id", chapter.id)
     .eq("email", email)
     .maybeSingle();
@@ -184,7 +146,6 @@ async function inviteSeat(
     const sendError = await resendForSeat(db, {
       id: existingSeat.id as string,
       email,
-      inviteToken: (existingSeat.invite_token as string | null) ?? null,
       createdByInvite: existingSeat.created_by_invite === true,
       claimedAt: (existingSeat.claimed_at as string | null) ?? null,
     });
@@ -208,17 +169,23 @@ async function inviteSeat(
       .upsert({ id: userId, display_name: name ?? "Founder" }, { onConflict: "id", ignoreDuplicates: true });
     if (profileError) return { email, ok: false, error: `profile: ${profileError.message}` };
 
-    // No invite token, claimed from birth: there is nothing for the claim
-    // page to do for an account whose owner already holds its password —
-    // and no credential is minted that could reach into it.
+    // Setup belongs to the account, not its current seat. An unfinished
+    // invite survives removal/re-enrolment and must receive setup mail again.
+    const { data: setup, error: setupError } = await db.from("chapter_account_setup")
+      .select("completed_at").eq("profile_id", userId).maybeSingle();
+    if (setupError) return { email, ok: false, error: "Could not check account setup. Try again." };
+    const pending = !!setup && !setup.completed_at;
+
+    // Established accounts are already claimed. Pending accounts retain
+    // first-setup semantics without minting a reusable claim token.
     const { error: seatError } = await db.from("chapter_seats").insert({
       chapter_id: chapter.id,
       profile_id: userId,
       email,
       seat_name: name,
       origin: "invited",
-      created_by_invite: false,
-      claimed_at: new Date().toISOString(),
+      created_by_invite: pending,
+      claimed_at: pending ? null : new Date().toISOString(),
     });
     if (seatError) return { email, ok: false, error: seatMessage(seatError.message) };
 
@@ -235,6 +202,13 @@ async function inviteSeat(
         p_profile: userId,
       });
       return { email, ok: false, error: `grant: ${grantError.message}${cleanupError ? `; cleanup: ${cleanupError.message}` : ""}` };
+    }
+    if (pending) {
+      const sendError = await sendSetupEmail(db, email);
+      if (sendError) return { email, ok: true, action: "invited", warning: `seat granted, but the email failed: ${sendError}` };
+      const { error: sentError } = await db.from("chapter_seats")
+        .update({ invite_sent_at: new Date().toISOString() }).eq("chapter_id", chapter.id).eq("email", email);
+      return { email, ok: true, action: "invited", ...(sentError ? { warning: "email sent, but its send time could not be saved" } : {}) };
     }
     return { email, ok: true, action: "granted" };
   }
@@ -278,7 +252,6 @@ async function inviteSeat(
     }
     userId = created.user.id;
   }
-  const token = randomUUID();
 
   const undo = async () => {
     await db.auth.admin.deleteUser(userId).catch(() => {
@@ -294,13 +267,18 @@ async function inviteSeat(
     return { email, ok: false, error: `profile: ${profileError.message}` };
   }
 
+  const { error: setupError } = await db.from("chapter_account_setup").insert({ profile_id: userId });
+  if (setupError) {
+    await undo();
+    return { email, ok: false, error: "Could not record account setup. Try again." };
+  }
+
   const { error: seatError } = await db.from("chapter_seats").insert({
     chapter_id: chapter.id,
     profile_id: userId,
     email,
     seat_name: name,
     origin: "invited",
-    invite_token: token,
     created_by_invite: true,
     // Supabase already accepted its invite above; Resend has not been called
     // yet. A failed send must leave an honest, empty timestamp on the roster.
@@ -327,7 +305,7 @@ async function inviteSeat(
   // In fallback mode the invite email already went out with the account
   // creation above — sending again here would double it.
   if (invitesViaResend()) {
-    const sendError = await sendInvite(db, email, token);
+    const sendError = await sendSetupEmail(db, email);
     if (sendError) {
       // The seat is real and lit; only the mail is missing. Said plainly so
       // the admin resends rather than re-inviting into "already on this
@@ -349,7 +327,7 @@ async function inviteSeat(
 
 /**
  * RESEND for a seat that already exists, choosing the email its state calls
- * for: the claim link while there is still a claim to make, otherwise a
+ * for: setup mail while first-time setup is still pending, otherwise a
  * choose-your-password link — which is also what a REGISTERED seat gets,
  * and is safe for any seat because the link only ever travels to the
  * account's own address.
@@ -359,15 +337,14 @@ async function resendForSeat(
   seat: {
     id: string;
     email: string;
-    inviteToken: string | null;
     createdByInvite: boolean;
     claimedAt: string | null;
   },
 ): Promise<string | null> {
   let sendError: string | null;
 
-  if (seat.createdByInvite && !seat.claimedAt && seat.inviteToken) {
-    sendError = await sendInvite(db, seat.email, seat.inviteToken);
+  if (seat.createdByInvite && !seat.claimedAt) {
+    sendError = await sendSetupEmail(db, seat.email);
   } else {
     sendError = await sendPasswordLink(db, seat.email);
   }
@@ -378,40 +355,6 @@ async function resendForSeat(
     .update({ invite_sent_at: new Date().toISOString() })
     .eq("id", seat.id);
   return sentError ? "email sent, but its send time could not be saved" : null;
-}
-
-/** The invite email, via Resend; Supabase's own invite mail when Resend (or
- *  the absolute join URL it needs) is not configured. */
-async function sendInvite(
-  db: ReturnType<typeof adminClient>,
-  email: string,
-  token: string,
-): Promise<string | null> {
-  if (invitesViaResend()) {
-    const message = inviteEmail(`${SITE_URL}/join?code=${token}`);
-    return sendEmail({ to: email, ...message });
-  }
-  return supabaseInviteEmail(db, email);
-}
-
-/**
- * The no-Resend invite: Supabase's "you have been invited" email — the
- * template written for exactly this moment — re-sent to an account that has
- * not yet accepted. GoTrue refuses to re-invite an account that is past
- * inviting (its owner confirmed the address by claiming it), and for that
- * account the recovery email takes over: "choose a new password" is the true
- * sentence to someone who holds the account, where to a fresh invitee it
- * read as a phish about a request they never made.
- */
-async function supabaseInviteEmail(
-  db: ReturnType<typeof adminClient>,
-  email: string,
-): Promise<string | null> {
-  const { error } = await db.auth.admin.inviteUserByEmail(email, {
-    ...(SITE_URL ? { redirectTo: `${SITE_URL}/join/setup` } : {}),
-  });
-  if (!error) return null;
-  return supabaseRecoveryEmail(email);
 }
 
 /**

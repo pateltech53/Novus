@@ -143,12 +143,13 @@ export async function DELETE(
    * is gone, so a whole class would keep Pro-equivalent access forever. And a
    * licence's Stripe subscription lives on the chapter, not billing_customers,
    * so it would keep charging the school. This lapses every seat and cancels
-   * every live licence; any subscription it could not stop is surfaced to the
-   * operator to cancel in Stripe rather than silently stranded.
+   * every subscription. A failed cancellation or cleanup keeps the account
+   * intact for retry, just like the self-service enterprise boundary.
    */
-  const { failedCancellations } = await windDownOwnedChapters(db, id, {
-    cancelSubscriptions: true,
-  });
+  const chapters = await windDownOwnedChapters(db, id);
+  if (!chapters.ok) {
+    return withSession(bad(503, "Enterprise billing or member cleanup could not finish. The account was kept; retry deletion."), gate.session);
+  }
 
   // The personal Pro subscription lives on billing_customers, not chapters, so
   // the wind-down above never touches it. Cancel it too, or a deleted
@@ -158,7 +159,6 @@ export async function DELETE(
   // told to finish the cancellation by hand.
   const pro = await cancelActivePersonalPro(db, id);
   const uncancelled = [
-    ...failedCancellations,
     ...(pro.ok ? [] : pro.subscriptionId ? [pro.subscriptionId] : []),
   ];
 

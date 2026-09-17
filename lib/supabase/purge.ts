@@ -44,6 +44,7 @@ export async function purgeAccountRows(
   }
 
   const targets: { table: string; column: string }[] = [
+    { table: "chapter_account_setup", column: "profile_id" },
     { table: "chapter_seats", column: "profile_id" },
     { table: "chapters", column: "owner_profile_id" },
     { table: "leaderboard_entries", column: "profile_id" },

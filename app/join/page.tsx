@@ -4,25 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { checkEmail, normaliseEmail } from "@/lib/auth/credentials";
-import { rememberInviteName } from "@/lib/auth/invite";
 import { API_CREDENTIALS, apiUrl } from "@/lib/native/origin";
 
-/**
- * Where the chapter invite email lands: /join?code=<token>.
- *
- * The page asks for exactly two things — the email the invite was sent to,
- * and a name — and hands the browser into the second half of the invite: the
- * claim endpoint answers with a one-time link that ends on /join/setup, the
- * welcome screen where the student chooses a password and is signed in.
- * Filling in email and name really is the whole job.
- *
- * The code is read from the query string with `window.location` in an effect
- * rather than `useSearchParams`, the same way returningFromCheckout() reads
- * `?purchase=` — this page is in the native export too, and a suspense
- * boundary for a parameter the first paint does not need is machinery with
- * no job.
- */
-
+/** Older invitation links request a fresh email. Setup credentials are never
+ * returned to a browser holding a reusable legacy token. New invitations
+ * already go directly from the mailbox to /join/setup. */
 type Phase = "reading" | "ready" | "no-code" | "leaving";
 
 export default function JoinPage() {
@@ -30,7 +16,6 @@ export default function JoinPage() {
   const [phase, setPhase] = useState<Phase>("reading");
   const [code, setCode] = useState<string | null>(null);
   const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -64,23 +49,15 @@ export default function JoinPage() {
         method: "POST",
         credentials: API_CREDENTIALS,
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ token: code, email: cleaned, name }),
+        body: JSON.stringify({ token: code, email: cleaned }),
       });
-      const body = (await res.json()) as { ok?: boolean; url?: string; error?: string };
-      if (!res.ok || !body.ok || !body.url) {
+      const body = (await res.json()) as { ok?: boolean; sent?: boolean; error?: string };
+      if (!res.ok || !body.ok || !body.sent) {
         setBusy(false);
         setError(body.error ?? "That did not work. Try the link from the email again.");
         return;
       }
-      // The name survives the round trip through Supabase, so the welcome
-      // screen can greet them by it instead of asking twice. It is a display
-      // name and nothing else — see lib/auth/invite.ts.
-      rememberInviteName(name);
-
-      // Off to choose a password: the link verifies, signs them in, and lands
-      // on /join/setup. Keep the button busy — this page is done.
       setPhase("leaving");
-      window.location.href = body.url;
     } catch {
       setBusy(false);
       setError("Could not reach the server. Check your connection and try again.");
@@ -93,7 +70,7 @@ export default function JoinPage() {
         NOVUS
       </p>
       <h1 className="mt-1.5 text-[1.75rem] font-extrabold leading-tight tracking-[-0.02em]">
-        {phase === "leaving" ? "Seat claimed." : "Claim your seat."}
+        {phase === "leaving" ? "Check your inbox." : "Claim your seat."}
       </h1>
 
       {phase === "reading" && (
@@ -123,8 +100,8 @@ export default function JoinPage() {
         <>
           <p className="mt-3 text-xs leading-relaxed text-[var(--text-secondary)]">
             A seat in a Novus chapter is set aside for you. Confirm the email
-            the invite was sent to and tell us what to call you — then you
-            choose your password and you are in.
+            the invite was sent to. We will email a fresh link to choose your
+            name and password.
           </p>
           <form
             className="mt-6"
@@ -150,29 +127,12 @@ export default function JoinPage() {
               className="mt-3 block w-full border-0 border-b-2 border-[var(--hairline)] bg-transparent pb-2 text-[1.125rem] font-extrabold leading-tight tracking-[-0.02em] text-[var(--n-11)] transition-colors focus:border-[var(--n-11)] focus-visible:outline-none! placeholder:font-bold placeholder:text-[var(--n-6)]"
             />
 
-            <label
-              htmlFor="join-name"
-              className="mt-6 block text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]"
-            >
-              YOUR NAME
-            </label>
-            <input
-              id="join-name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="What the shark should call you"
-              autoComplete="name"
-              maxLength={24}
-              className="mt-3 block w-full border-0 border-b-2 border-[var(--hairline)] bg-transparent pb-2 text-[1.125rem] font-extrabold leading-tight tracking-[-0.02em] text-[var(--n-11)] transition-colors focus:border-[var(--n-11)] focus-visible:outline-none! placeholder:font-bold placeholder:text-[var(--n-6)]"
-            />
-
             <button
               type="submit"
-              disabled={busy || !email.trim() || !name.trim()}
+              disabled={busy || !email.trim()}
               className="nv-gc mt-6 block h-14 w-full rounded-[var(--radius-card)] nv-t-action px-6 text-[1.0625rem] font-extrabold tracking-[0.04em] shadow-[var(--e3)] disabled:cursor-not-allowed disabled:opacity-35"
             >
-              {busy ? "CLAIMING…" : "CLAIM SEAT"}
+              {busy ? "SENDING…" : "SEND SETUP EMAIL"}
             </button>
 
             {error ? (
@@ -182,7 +142,7 @@ export default function JoinPage() {
             ) : null}
           </form>
           <p className="mt-4 text-2xs leading-relaxed text-[var(--text-tertiary)]">
-            Next step: choose your password. The seat is Novus Pro for the
+            Next step: open the setup email and choose your password. The seat is Novus Pro for the
             licence year — it never buys a score, a survival, or a place on
             the board.
           </p>
@@ -191,7 +151,7 @@ export default function JoinPage() {
 
       {phase === "leaving" && (
         <p className="mt-3 text-xs leading-relaxed text-[var(--text-secondary)]">
-          Taking you to choose your password…
+          We sent a setup link to {email}. Open it to choose your name and password. Your seat is claimed after setup finishes.
         </p>
       )}
     </main>

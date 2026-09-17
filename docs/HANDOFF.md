@@ -1,5 +1,42 @@
 # HANDOFF — project history, current state, and open work
 
+## 2026-09-17 · Invitation credentials stay in the mailbox; deletion fails closed
+
+Follow-up to the enterprise review: new invites email one-time setup links
+straight to `/join/setup`. Legacy `/join` accepts the old token only to request
+an email (bounded per address), never to return credentials or write a name.
+This closes the in-flight claim versus password-completion race without relying
+on another racy read. Setup asks for the name under the proven mailbox session.
+
+Migration `20260917054417_chapter_account_setup.sql` must run after 0020 and before the web deploy. Service-only
+`chapter_account_setup` follows the profile across seat removal and is backfilled
+from existing invite seats. An unfinished account receives setup mail on
+re-invitation; completed accounts keep their ordinary no-mail seat grant.
+Password/setup-write interruptions support bounded same-password retries.
+
+Account deletion now reads every owned enterprise, confirms cancellation against
+live Stripe state even for lapsed records, then calls atomic `delete_chapter`
+for each. Query, cancellation and cleanup errors block both self-service and
+operator account deletion with the refreshed session preserved. Tombstones
+serialize with renewal and seat grants before account cascade.
+
+Regression coverage includes the exact interleaved claim, removed/re-invited
+accounts, both mailers, setup write failures, lapsed subscriptions, cancellation
+ordering, cleanup failures, both delete routes, and SQL RLS/backfill/cascade.
+Validation: `npm run check` passed; `npm run build` passed with Node 22
+(the CI runtime). The enterprise/invite suites report 28/31 checks, with two
+additional fallback-mailer child cases; the board retains 110 passing checks.
+All 11 SQL suites passed under PGlite, including the new migration's RLS,
+backfill and cascade assertions. Fresh/repeated APPLY-ALL and CHECK-SCHEMA each
+reported 21 migrations; effective setup-table grants were checked directly.
+PGlite used built-in UUID generation in place of the unused pgcrypto extension
+and a local adapter for psql commands; PostgreSQL 16 CI remains the server gate.
+Headless Chrome at 390×844 passed legacy email request, setup, failure/reload/
+rotated-token retry and completion, with screenshots inspected and no page
+errors. No live mail or billing was changed.
+
+---
+
 ## 2026-09-17 · Enterprise registration, deletion and automatic boards
 
 The owner requested enterprise basic information, deletion, removal of the

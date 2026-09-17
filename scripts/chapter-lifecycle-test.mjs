@@ -291,4 +291,77 @@ await check("blocked browser storage leaves ordinary sign-in available", () => {
   unavailable.clearPendingChapter();
   assert.equal(unavailable.resumePendingChapter(), false);
 });
+// Actual account-deletion helper: processor and database failures must never
+// become permission to cascade away the roster needed for cleanup.
+let shutdown;
+function shutdownDb({ readError = false, cleanupError = false, cleanupFalse = false } = {}) {
+  shutdown = { calls: [], deletedUsers: 0 };
+  const rows = [
+    { id: "paid", stripe_subscription_id: "sub_paused", status: "lapsed" },
+    { id: "comp", stripe_subscription_id: null, status: "active" },
+  ];
+  const q = { select: () => q, eq: async () => ({ data: rows, error: readError ? { message: "offline" } : null }) };
+  return {
+    from: () => q,
+    rpc: async (name, args) => {
+      shutdown.calls.push([name, args]);
+      return { data: !cleanupFalse, error: cleanupError ? { message: "cleanup failed" } : null };
+    },
+    auth: { admin: { deleteUser: async () => { shutdown.deletedUsers++; return { error: null }; } } },
+  };
+}
+await check("account deletion cancels lapsed subscriptions before atomically deleting every enterprise", async () => {
+  const db = shutdownDb();
+  processor = { subscriptions: {
+    retrieve: async id => { shutdown.calls.push(["retrieve", id]); return { status: "paused" }; },
+    cancel: async id => { shutdown.calls.push(["cancel", id]); },
+  } };
+  assert.equal((await chapterModule.windDownOwnedChapters(db, "owner")).ok, true);
+  assert.deepEqual(plain(shutdown.calls), [["retrieve", "sub_paused"], ["cancel", "sub_paused"],
+    ["delete_chapter", { p_chapter: "paid" }], ["delete_chapter", { p_chapter: "comp" }]]);
+});
+await check("unknown rosters, absent processors, failed cancellation and failed cleanup all refuse deletion", async () => {
+  for (const fault of ["read", "config", "cancel", "cleanup", "missing"]) {
+    const db = shutdownDb({ readError: fault === "read", cleanupError: fault === "cleanup", cleanupFalse: fault === "missing" });
+    processor = fault === "config" ? null : { subscriptions: {
+      retrieve: async () => ({ status: "active" }),
+      cancel: async () => { if (fault === "cancel") throw new Error("offline"); },
+    } };
+    assert.equal((await chapterModule.windDownOwnedChapters(db, "owner")).ok, false, fault);
+    if (["read", "config", "cancel"].includes(fault)) assert.equal(shutdown.calls.length, 0, fault);
+  }
+});
+await check("cleanup can retry after billing has already been cancelled", async () => {
+  processor = { subscriptions: { retrieve: async () => ({ status: "canceled" }),
+    cancel: async () => assert.fail("already cancelled") } };
+  assert.equal((await chapterModule.windDownOwnedChapters(shutdownDb({ cleanupError: true }), "owner")).ok, false);
+  assert.equal((await chapterModule.windDownOwnedChapters(shutdownDb(), "owner")).ok, true);
+});
+await check("self-service and operator routes preserve the account and rotated session on enterprise failure", async () => {
+  for (const file of ["app/api/auth/delete/route.ts", "app/api/admin/users/[id]/route.ts"]) {
+    let deletes = 0;
+    const q = { select: () => q, eq: () => q, maybeSingle: async () => ({ data: { role: "player" } }) };
+    const db = { from: () => q, auth: { admin: {
+      getUserById: async () => ({ data: { user: { email: "owner@example.com" } } }),
+      deleteUser: async () => { deletes++; return { error: null }; },
+    } } };
+    const route = load(file, {
+      "next/server": next,
+      "@/lib/admin/guard": { adminGate: async () => ({ ok: true, session }), isUuid: () => true },
+      "@/lib/stripe/config": { SUPABASE_SERVICE_ROLE_KEY: "test" },
+      "@/lib/stripe/chapter": { windDownOwnedChapters: async () => ({ ok: false, failedCancellations: [] }) },
+      "@/lib/stripe/subscription": { cancelActivePersonalPro: async () => ({ ok: true }) },
+      "@/lib/supabase/admin": { adminClient: () => db },
+      "@/lib/supabase/config": { configured: () => true },
+      "@/lib/supabase/purge": {},
+      "@/lib/supabase/route": { crossSite: () => false, sessionFromRequest: async () => session,
+        withSession: (response, current) => ({ ...response, session: current.userId }) },
+    });
+    const result = file.includes("/admin/")
+      ? await route.DELETE({}, { params: Promise.resolve({ id: "someone-else" }) }) : await route.POST({});
+    assert.ok(result.status >= 400);
+    assert.equal(result.session, "owner");
+    assert.equal(deletes, 0);
+  }
+});
 console.log(`\n${passed} enterprise lifecycle checks passed.`);

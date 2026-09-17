@@ -201,4 +201,6 @@ from (
       and to_regprocedure('public.delete_chapter(uuid)') is not null
       and to_regprocedure('public.remove_chapter_seat(uuid,uuid)') is not null
       and to_regprocedure('public.sync_chapter_subscription(uuid,text,text,integer,boolean,timestamptz,text,text,text,text)') is not null)
+,
+    ('chapter account setup', '20260917054417_chapter_account_setup.sql', to_regclass('public.chapter_account_setup') is not null)
 ) as t(migration, file, present);
