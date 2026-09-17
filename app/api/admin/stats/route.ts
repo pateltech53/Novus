@@ -14,20 +14,20 @@ export const dynamic = "force-dynamic";
  * things (0009/0010): admin_lapse_expired_comp_chapters flips overdue comped
  * licences, and admin_capture_daily writes today's row of counts — the
  * series the actives/runs chart builds itself from, one console visit at a
- * time. Then the reads: the stats blob, the per-day series (?days=, 14–180),
+ * time. Then the reads: the stats blob, the per-day series (?days=, 7–180),
  * the weekly cohorts, the audit tail, and 0016's two lists — the billing
  * records that disagree with each other, and the companies worth looking at.
  *
  * The two 0016 reads are `error ? [] : data`, like the series and cohorts
- * already were: a console that shows nothing because one optional band's
- * function is not deployed yet is worse than a console with one empty band.
+ * already were, and `unavailable` identifies each failed optional reader so
+ * the UI never mistakes missing data for an empty healthy result.
  * `stats` is the exception and stays fatal — it IS the page.
  */
 export async function GET(req: NextRequest) {
   const gate = await adminGate(req);
   if (!gate.ok) return gate.res;
 
-  const days = Math.min(180, Math.max(14, Number(req.nextUrl.searchParams.get("days") ?? 60) || 60));
+  const days = Math.min(180, Math.max(7, Number(req.nextUrl.searchParams.get("days") ?? 60) || 60));
 
   const db = adminClient();
 
@@ -59,6 +59,7 @@ export async function GET(req: NextRequest) {
   return withSession(
     NextResponse.json({
       ok: true,
+      unavailable: [series.error && "series", cohorts.error && "cohorts", mismatches.error && "billing", companies.error && "companies", log.error && "audit"].filter(Boolean),
       stats: stats.data ?? {},
       series: series.error ? [] : (series.data ?? []),
       cohorts: cohorts.error ? [] : (cohorts.data ?? []),

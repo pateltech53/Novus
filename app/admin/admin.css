@@ -1,0 +1,250 @@
+/* Operator-only styles. Existing Novus ink, surfaces and chart hues stay the
+   authority; larger targets and a single responsive ledger serve every tab. */
+.admin-console {
+  overflow-wrap: anywhere;
+}
+.admin-console button,
+.admin-console summary,
+.admin-console input,
+.admin-console select,
+.admin-console a {
+  min-height: 44px;
+}
+.admin-console button,
+.admin-console a {
+  touch-action: manipulation;
+}
+.admin-console summary {
+  align-content: center;
+}
+.admin-console :is(button, a, summary, select):focus-visible,
+.admin-table-wrap:focus-visible {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 3px;
+}
+.admin-console > section[hidden] {
+  display: none;
+}
+.admin-nav {
+  position: sticky;
+  top: max(0px, var(--nv-overlay-top, 0px));
+  z-index: 20;
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding: 8px 0;
+  margin-top: 24px;
+  border-block: 1px solid var(--hairline);
+  background: var(--bg);
+}
+.admin-nav button {
+  flex-shrink: 0;
+  padding: 10px 16px;
+  border-radius: var(--radius-row);
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 700;
+}
+.admin-nav button[aria-pressed="true"] {
+  background: var(--text-primary);
+  color: var(--n-1);
+}
+.admin-nav-count {
+  margin-left: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.admin-table-wrap {
+  margin-top: 16px;
+  max-height: 70vh;
+  overflow: auto;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  background: var(--n-2);
+}
+.admin-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 14px;
+  text-align: left;
+}
+.admin-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 14px 16px;
+  background: var(--n-3);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--hairline);
+}
+.admin-table td {
+  padding: 14px 16px;
+  vertical-align: top;
+  border-bottom: 1px solid var(--hairline);
+}
+.admin-table tr:last-child td {
+  border-bottom: 0;
+}
+.admin-table tbody tr:nth-child(even) {
+  background: var(--n-3);
+}
+.admin-table tbody tr:hover {
+  background: var(--n-4);
+}
+.admin-cell-number {
+  text-align: right;
+}
+.admin-cell-label {
+  display: none;
+}
+.admin-cell-primary {
+  min-width: 220px;
+  max-width: 350px;
+}
+.admin-account-button {
+  text-align: left;
+  width: 100%;
+  font-weight: 800;
+}
+.admin-account-button:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.admin-table .admin-detail-row > td {
+  padding: 20px;
+  background: var(--n-2);
+}
+.admin-chart-table {
+  max-height: 280px;
+  overflow: auto;
+}
+.admin-chart-table .admin-table-wrap {
+  margin-top: 0;
+  max-height: none;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+}
+.admin-chart-table td:not(:first-child),
+.admin-chart-table th:not(:first-child) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.admin-chart-toggle {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-row);
+}
+.admin-chart-toggle button {
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 800;
+  border-radius: var(--radius-chip);
+}
+.admin-chart-toggle button[aria-pressed="true"] {
+  background: var(--text-primary);
+  color: var(--n-1);
+}
+.admin-chart {
+  padding: 20px;
+}
+.admin-chart-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.admin-chart-title {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.admin-stat {
+  min-width: 0;
+}
+.admin-stat-value {
+  font-size: clamp(22px, 2.8vw, 32px);
+  line-height: 1.25;
+}
+@media (max-width: 639px) {
+  .admin-console input,
+  .admin-console select {
+    font-size: 16px;
+  }
+  .admin-nav {
+    margin-inline: -16px;
+    padding-inline: 16px;
+  }
+  .admin-nav button {
+    padding-inline: 12px;
+  }
+  .admin-table-wrap:not(.admin-table-compact) {
+    max-height: none;
+    overflow: visible;
+    background: transparent;
+    border: 0;
+  }
+  .admin-table-wrap:not(.admin-table-compact) :is(table, tbody) {
+    display: block;
+  }
+  .admin-table-wrap:not(.admin-table-compact) thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .admin-table-wrap:not(.admin-table-compact) tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 16px;
+    margin-top: 12px;
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-card);
+    background: var(--n-2);
+  }
+  .admin-table-wrap:not(.admin-table-compact) td {
+    display: block;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+    max-width: none;
+    text-align: left;
+  }
+  .admin-table-wrap:not(.admin-table-compact) .admin-cell-primary {
+    grid-column: 1 / -1;
+  }
+  .admin-table-wrap:not(.admin-table-compact) .admin-cell-label {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .admin-table-wrap:not(.admin-table-compact) .admin-detail-row {
+    display: block;
+    padding: 12px;
+  }
+  .admin-table .admin-detail-row > td {
+    padding: 0;
+  }
+  .admin-chart {
+    padding: 16px;
+  }
+  .admin-chart-table th,
+  .admin-chart-table td {
+    padding: 12px 8px;
+  }
+}
+
+.admin-console button.admin-filter[aria-pressed="true"] {
+  background: var(--text-primary);
+  color: var(--n-1);
+}

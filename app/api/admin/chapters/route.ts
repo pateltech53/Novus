@@ -7,6 +7,7 @@ import {
   CHAPTER_LICENCES,
   isCustomSeatCount,
 } from "@/lib/monetization";
+import { boundedInt, searchPattern } from "@/lib/admin/directory";
 import { adminClient } from "@/lib/supabase/admin";
 import { crossSite, withSession } from "@/lib/supabase/route";
 import { validateChapterProfile, type ChapterProfile } from "@/lib/chapter/profile";
@@ -167,4 +168,34 @@ export async function DELETE(req: NextRequest) {
   });
 
   return withSession(NextResponse.json({ ok: true }), gate.session);
+}
+
+/** Cross-enterprise overview, filtered before pagination; deleted licences
+ * are absent from the service-only view. Pending seats are setup-pending,
+ * not an assumption based on whether the account has ever signed in. */
+export async function GET(req: NextRequest) {
+  const gate = await adminGate(req);
+  if (!gate.ok) return gate.res;
+  try {
+    const p = req.nextUrl.searchParams;
+    const offset = boundedInt(p.get("offset"), 0, 10000000);
+    let q = adminClient().from("admin_enterprises").select("*", { count: "exact" });
+    const needle = p.get("q")?.trim().slice(0, 200);
+    if (needle) {
+      const pattern = searchPattern(needle);
+      q = q.or(`name.ilike.${pattern},owner_email.ilike.${pattern},contact_email.ilike.${pattern}`);
+    }
+    const status = p.get("status");
+    if (status && !["active", "lapsed", "expiring"].includes(status)) throw new Error("Unknown enterprise status.");
+    if (status === "expiring") q = q.eq("status", "active").gte("current_period_end", new Date().toISOString()).lte("current_period_end", new Date(Date.now() + 30 * 86400000).toISOString());
+    else if (status) q = q.eq("status", status);
+    const source = p.get("source");
+    if (source && !["stripe", "comp"].includes(source)) throw new Error("Unknown licence source.");
+    if (source) q = q.eq("source", source);
+    const { data, count, error } = await q.order("created_at", { ascending: false }).order("id", { ascending: true }).range(offset, offset + 49);
+    if (error) return withSession(bad(503, "Enterprise directory unavailable. Check the console migration and retry."), gate.session);
+    return withSession(NextResponse.json({ rows: data ?? [], total: count ?? 0 }, { headers: { "Cache-Control": "no-store" } }), gate.session);
+  } catch (e) {
+    return withSession(bad(400, (e as Error).message), gate.session);
+  }
 }

@@ -38,14 +38,15 @@ things:
 无需清理任何数据。自己的那一行没有按钮：管理员不能改自己的 `role`（自降会
 把自己关在门外），要么让另一个管理员操作，要么回 Supabase 后台改那一格。
 
-前提：`supabase/APPLY-ALL.sql`（0001 → 0018）已在 Novus 项目跑过，部署配置了
+前提：`supabase/APPLY-ALL.sql`（包含最新管理工作区迁移）已在 Novus 项目跑过，部署配置了
 `SUPABASE_SERVICE_ROLE_KEY`（计费同款，见 `docs/ACCOUNTS-SETUP.md`）。
 
 ---
 
 ## 1. What to run
 
-**`supabase/APPLY-ALL.sql`** — the whole schema, 0001 → 0018, idempotent.
+**`supabase/APPLY-ALL.sql`** — the whole schema, including the timestamped
+enterprise setup and admin workspace migrations, idempotent.
 Admin specifically is `supabase/migrations/0009_admin.sql`,
 `0010_admin_analytics.sql`, `0012_year_closes.sql` and
 `0016_admin_insight.sql` (§7.1, §7.2), and
@@ -61,6 +62,46 @@ carries across the rows already holding it).
 
 No new environment variables. The routes run on `SUPABASE_SERVICE_ROLE_KEY`,
 which billing already requires.
+
+## Current workspaces (September 2026)
+
+Apply **`supabase/migrations/20260917084120_admin_console_workspaces.sql` before
+this web deployment**, after the enterprise account-setup migration. The
+new `admin_directory` and `admin_enterprises` views use `security_invoker` and
+are readable only by `service_role`; the latter receives only the auth metadata
+columns needed by those joins. Ordinary clients cannot query either view.
+No new environment variable, Stripe price or production schedule is needed.
+
+| Workspace | What the operator can do |
+|---|---|
+| Overview | Read account, activity, access and company totals, estimated MRR and the recent audit tail. Refresh shows a timestamp; unavailable data has a retry state. |
+| Analytics | Switch daily charts between 7 / 30 / 60 days; inspect subscription-plan mix, activity recency, company leaders, 12 signup cohorts and exact chart tables. |
+| Accounts | Combine filters across the full directory, sort, page, export all matches, and open the existing access, role and account-management tools. |
+| Enterprises | Search enterprise/owner/contact email, filter licence state and source, inspect occupied/available seats, pending setup and period end, page through a roster, open owners/members and revoke an active gifted licence. |
+| Billing | Inspect mismatches, cancelling and past-due accounts, reconcile through the existing Stripe route and search reconciliation history. |
+| Moderation | Review reported board entries and keep the existing list/hide decisions. |
+| Audit | Page and filter recorded actions by operator, target, action and UTC dates; expand the recorded details. |
+| Tools | Switch only the operator's own test tier. |
+
+Wide screens use aligned, striped tables with sticky headers and bounded
+scroll regions. On phones, administrative rows become labelled cards with
+wrapping actions, while compact numeric chart tables retain their columns.
+Controls have a 44px minimum height and phone inputs use 16px type. Charts use
+12px labels, separate line styles and explicit Chart / Table controls.
+
+Daily activity still depends on the existing console-visit snapshots; absent
+days are unknown. Retention waits until the entire signup week has lived
+through the observation window, then shows a percentage and count; immature
+cohorts say **Not yet eligible**. Estimated MRR uses configured prices and is
+not payment, invoice or recognised-revenue data. The Billing overview lists up
+to 50 mismatches and states that limit; its investigation shortcuts search the
+complete directory. Due-within-30-days means a renewal date for paid licences
+and expiry for gifted licences. It does not schedule a notification.
+
+Route contracts run under `npm run test:admin`, included in `check` and CI.
+`supabase/tests/admin_workspace_test.sql` runs in `test:db` and checks view
+privileges, filters beyond 200 records, expired gifts, pending setup and
+deleted enterprises. See HANDOFF for the release-specific validation evidence.
 
 ## 2. Why the role is a table cell, and who may write it
 
@@ -228,13 +269,20 @@ in THE NUMBERS (runs completed, runs started today, companies, players
 playing, the live value of every company added up, the biggest books anyone has
 ever had), and the per-company lines on an account's own panel.
 
-The directory also gained a lens — filter chips (PAYING, GIFTED, CHAPTER,
-PLAYING, BILLING ⚠, ADMINS, ANONYMOUS) with live counts, four sorts, and
-**EXPORT CSV**, which is the same query behind the same gate returned as a
-download, so a question the console does not answer in a band can be answered
-in a spreadsheet without anyone opening the Supabase dashboard. Filtering
-happens on the page over the rows the search returned (up to the function's
-200), which is why the heading says how many of how many are shown.
+The directory combines PAYING, GIFTED, CHAPTER, PLAYING, BILLING ⚠, ADMINS,
+ANONYMOUS, CANCELLING and PAST DUE filters with AND, alongside search and four
+sorts. Since `20260917084120_admin_console_workspaces.sql`, filtering, sorting
+and exact counts run on the server **before** a 50-row page is selected.
+The heading reports all matching accounts, with Previous / Next controls
+above and below the table. Search accepts email, display name, board handle or
+an exact profile UUID. Links from another workspace select the exact UUID.
+
+**Export all matches** runs the same committed search, filters and stable sort
+across every matching page, independently of the displayed page. Exports above
+10,000 matches return an actionable error asking for narrower filters. A failed
+page returns an error instead of a partial file. CSV fields are quoted,
+UTF-8/BOM encoded and spreadsheet-formula escaped. This is a current directory
+export, not a transactional snapshot while accounts are being changed.
 
 ## 7.2 PRO · PAID, and why it used to read zero (0016)
 
@@ -256,7 +304,7 @@ listed rather than hidden:
 | `PRO · PAID` | `entitlements.pro` **OR** a Stripe status of active/trialing/past_due |
 | `PRO · GIFTED` | an unexpired `comp_pro` |
 | `PRO · IN TOTAL` | paid, gifted, chapter seats and admins — everyone with Pro access |
-| `REVENUE / MONTH` | subscriptions by plan × the prices in `lib/monetization.ts`, yearly ÷ 12 |
+| `ESTIMATED MRR` | subscriptions by plan × the prices in `lib/monetization.ts`, yearly ÷ 12 |
 | `PAYING & NOT PRO` | Stripe is charging and the entitlement is off — **a player paying for nothing** |
 | `PRO & NOT PAYING` | the entitlement is on and Stripe has nothing live |
 
@@ -296,7 +344,7 @@ Two honesty rules baked in:
 Charts follow the dataviz method: the two series hues and the recency ramp
 are validated for color-blind separation and contrast against both themes'
 card surfaces (see `--viz-*` in globals.css), every chart has hover
-tooltips and an AS-A-TABLE view, and none of the brand-law colors (CTA
+tooltips on time series and an explicit Chart / Table switch, and none of the brand-law colors (CTA
 orange, solvency green, prestige gold) appear in a chart.
 
 ## 9. The audit log
@@ -304,9 +352,11 @@ orange, solvency green, prestige gold) appear in a chart.
 Every grant, revoke, promotion, demotion, view switch, board decision and
 deletion writes a row
 to `admin_audit` — who, what, whom, when, with emails denormalised so the
-log still reads after the account it is about is gone. No RLS policy and no
-grants: PostgREST cannot expose it to anyone. The console's overview shows
-the recent tail.
+log still reads after the account it is about is gone. There is no anonymous or authenticated direct table access; the server reads
+with its service role after `adminGate`. The overview shows the recent tail.
+The Audit workspace adds paginated search by administrator email, target email,
+action and inclusive calendar-date range (UTC). Billing shows the same reader
+restricted to reconciliation actions.
 
 ## 10. Moderation, without the token
 

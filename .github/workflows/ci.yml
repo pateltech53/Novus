@@ -28,6 +28,10 @@ jobs:
       - name: Content pipeline
         run: npm run events
 
+      # Operator queries, full-filter exports, invitation state and UTC windows.
+      - name: Admin console contracts
+        run: npm run test:admin
+
       - name: Typecheck
         run: npx tsc --noEmit
 
