@@ -39,7 +39,7 @@ the portal's plan switcher, which only knows the two fixed prices.
 
 ## 1. What to run
 
-One file: **`supabase/APPLY-ALL.sql`** — the whole schema, 0001 → 0018, safe
+One file: **`supabase/APPLY-ALL.sql`** — the whole schema, 0001 → 0020, safe
 on any starting state. Paste it into the Supabase SQL editor of the NOVUS
 project and run it once: it creates whatever is missing, changes nothing
 that already exists, refuses outright if pasted into the wrong project, and
@@ -50,6 +50,10 @@ which migrations a project has. The numbered files in `supabase/migrations/`
 remain the per-change source of truth; chapters specifically are 0007, 0008
 and 0011 (custom sizes — without it, a custom purchase's webhook write is
 refused by the licence check constraint and Stripe retries until it lands).
+Migration **0020 must be deployed before this web release**: it adds enterprise
+profiles, the member-safe name read, atomic subscription sync/removal, and the
+deletion tombstone. An existing project through 0019 can run just
+`0020_enterprise_lifecycle.sql`; APPLY-ALL also supports a fresh project.
 
 `supabase/tests/chapters_test.sql` checks the schema against a local Postgres
 the same way `billing_test.sql` does (`npm run test:db`).
@@ -95,9 +99,10 @@ its copy matches your voice.
 
 ## 3. How a chapter comes to exist
 
-1. A signed-in buyer presses START 35/100 SEATS — or types a size into the
-   CUSTOM row and starts that — in the pricing section. Checkout refuses
-   anonymous identities, exactly as it does for Pro.
+1. START 35/100 SEATS opens `/chapter/new`. After signing in, the buyer enters
+   enterprise name, organisation type, contact name and contact email, then
+   continues to Stripe. These fields are validated again on the server and
+   carried in checkout/subscription metadata. Other sizes remain contact-led.
 2. Stripe's webhook (`checkout.session.completed`) creates the `chapters`
    row. The buyer's own entitlements are untouched — a teacher does not
    become Pro by buying seats for students. The success redirect lands on
@@ -106,6 +111,13 @@ its copy matches your voice.
    `customer.subscription.*` events. A lapse turns every seat off in one
    statement and keeps the roster; renewal turns the same seats back on.
    `past_due` keeps access, same as Pro (`lib/stripe/subscription.ts`).
+   Current Stripe prices determine fixed-tier changes, even if old SKU
+   metadata remains on the subscription. Renewals preserve profile edits.
+
+The owner can edit details on `/chapter`. Legacy or operator-created chapters
+without details must finish that form before inviting or registering members.
+Only the enterprise name is visible to members; contact details remain
+owner-only. Operator checkout skips use the same registration fields.
 
 ## 4. Handing out seats — /chapter
 
@@ -131,8 +143,21 @@ Two paths, both per-row (one typo fails one row, never the paste):
   registering must never overwrite an existing password — and the row says
   to invite instead.
 
-REMOVE frees the seat and clears the entitlement. The player's account,
+REMOVE atomically frees the seat and clears the entitlement. The player's account,
 saves and board entries survive; free Novus is still the whole game.
+
+An invitation's `invite_sent_at` records acceptance by the mail API, only after
+success; it does not assert inbox delivery. Failed sends keep their row and
+explicit retry warning. `claimed_at` now means password setup completed, on
+both mailer paths. Merely opening `/join` does not claim anything. Completing
+setup retires the original invite token immediately. The old one-hour
+post-claim reopening window is removed. A password-write/DB-write interruption
+returns a retryable error without changing the browser's existing account.
+Rotated handover credentials stay with the form for retry, under the original
+expiry; only complete success adopts the invited account and clears local data.
+
+The password-page handover survives refresh in tab-scoped sessionStorage for
+at most 15 minutes; success, expiry, sign-out and account switches clear it.
 
 The seat cap is enforced in the database (`enforce_chapter_seat_cap`), so a
 licence downgraded below its roster keeps every existing seat and refuses
@@ -148,14 +173,32 @@ The board gains one thing: members (and the owner) see a **MY CHAPTER**
 toggle on Still Standing that re-ranks the same public rows within the
 chapter. Nothing unlisted becomes visible, and nothing about a player is
 shown there that the global board does not already show.
+The actual enterprise name appears beside that scope. Scores with acceptable
+names publish after server verification, without pre-publication human
+approval; `NOVUS_BOARD_AUTOLIST` is retired. Missing scores/nicknames and failed
+verification still prevent listing. Reports and operator takedowns remain.
 
-## 6. Privacy notes, because a classroom is the audience
+## 6. Deleting an enterprise
+
+The owner opens the deletion section on `/chapter`, types `DELETE`, and confirms.
+The server proves ownership of that exact enterprise again. A paid subscription
+is cancelled first, without automatic proration/refund. If Stripe cannot confirm
+cancellation, nothing is deleted. A failure after cancellation can be retried.
+
+The database then removes all member seats and their enterprise-only access in
+one transaction. Personal accounts, saves, public scores and separately bought
+Pro/packs remain. Basic information is cleared. A minimal deleted licence row
+retains its subscription reference so delayed/retried webhooks cannot recreate
+the enterprise; it is excluded from ownership and membership views. Seat grants,
+member removal, enterprise deletion and subscription updates share a row lock.
+
+## 7. Privacy notes, because a classroom is the audience
 
 - `chapter_seats.email` is the address **the admin typed**, readable only by
   that chapter's owner (RLS) and deleted with the seat. It is not a copy of
   `auth.users` — 0004's position stands.
-- Students never see each other's emails; a member's only view of the
-  chapter is their own entitlement and the board toggle.
+- Students never see each other's emails or enterprise contact details; a
+  member sees their own entitlement, the enterprise name and the board toggle.
 - The invite email is the app's own (lib/chapter/emails.ts) — plain HTML,
   no images, no tracking pixel, nothing that phones home. In fallback mode
   it is Supabase's standard invite mail instead; customising that copy

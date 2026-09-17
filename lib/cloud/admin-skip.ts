@@ -1,5 +1,6 @@
 import { API_CREDENTIALS, apiUrl } from "@/lib/native/origin";
 import type { CheckoutSku } from "@/lib/cloud/billing";
+import type { ChapterProfile } from "@/lib/chapter/profile";
 
 /**
  * The admin's fork in the checkout road.
@@ -26,6 +27,7 @@ export interface AdminSkipRequest {
   industry?: string;
   /** chapter_custom only: the seat count the operator typed. */
   seats?: number;
+  chapterProfile?: ChapterProfile;
 }
 
 // ── Am I an operator? ───────────────────────────────────────────────────────
@@ -72,10 +74,11 @@ export async function adminCheckoutChoice(
   sku: CheckoutSku,
   industry?: string,
   seats?: number,
+  chapterProfile?: ChapterProfile,
 ): Promise<AdminChoice | null> {
   if (!prompt) return null;
   if (!(await isAdminAccount())) return null;
-  return prompt({ sku, industry, seats });
+  return prompt({ sku, industry, seats, chapterProfile });
 }
 
 // ── The skip itself ─────────────────────────────────────────────────────────
@@ -90,6 +93,7 @@ export async function skipPurchase(
   sku: CheckoutSku,
   industry?: string,
   seats?: number,
+  chapterProfile?: ChapterProfile,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
     const res = await fetch(apiUrl("/api/admin/skip"), {
@@ -100,6 +104,7 @@ export async function skipPurchase(
         sku,
         ...(industry ? { industry } : {}),
         ...(seats !== undefined ? { seats } : {}),
+        ...(chapterProfile ? { chapterProfile } : {}),
       }),
     });
     const body = (await res.json().catch(() => ({}))) as { error?: string };

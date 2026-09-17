@@ -55,21 +55,6 @@ const CLAIMED =
 
 const UUID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/**
- * How long after the FIRST claim the invite link keeps working.
- *
- * The token is minted once, into the invite email, and used to mint a sign-in
- * link. Without a limit it stayed a working credential for the life of the seat:
- * long after the student claimed the account and chose a password, anyone who
- * later saw that email — forwarded, a shared inbox, the teacher's Sent folder —
- * could re-post the token and be handed a fresh sign-in link into the account,
- * bypassing the password the student set. So the link keeps working only
- * briefly after the first claim, which is all the legitimate "clicked it twice /
- * the page refreshed" retry ever needs; after that the account is the student's
- * and the door is a password reset, not this.
- */
-const CLAIM_GRACE_MS = 60 * 60 * 1000;
-
 export async function POST(req: NextRequest) {
   if (crossSite(req)) {
     return NextResponse.json({ error: "cross-site request refused" }, { status: 403 });
@@ -123,12 +108,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: REFUSED }, { status: 404 });
   }
 
-  // Claimed, and past the retry window: the student has had the account long
-  // enough to have set their own password, so this link stops being a way in.
-  // A distinct message (the token+email already matched, so this discloses
-  // nothing an unknown-token refusal would hide) points them at password reset.
-  const claimedAt = seat.claimed_at as string | null;
-  if (claimedAt && Date.now() - new Date(claimedAt).getTime() > CLAIM_GRACE_MS) {
+  // A claim now means a password was saved, not that this page was visited.
+  // reset/confirm retires the token at that point on BOTH invitation paths.
+  // Keep this check for old rows too: even a recently claimed account must
+  // never be opened again by a forwarded copy of its original invite.
+  if (seat.claimed_at) {
     return NextResponse.json({ error: CLAIMED }, { status: 403 });
   }
 
@@ -149,9 +133,8 @@ export async function POST(req: NextRequest) {
     .from("chapter_seats")
     .update({
       seat_name: name ?? (seat.seat_name as string | null),
-      // First claim wins the timestamp; a re-run of the same link is not a
-      // second claim, it is the same student finishing what they started.
-      claimed_at: (seat.claimed_at as string | null) ?? new Date().toISOString(),
+      // Finishing setup, not reaching this step, is what claims the seat.
+      // An interrupted handover may safely retry its original invitation.
     })
     .eq("id", seat.id as string);
   if (seatError) {

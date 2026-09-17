@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto";
 
 import type { Session } from "@/lib/supabase/route";
 import type { ChapterId } from "@/lib/monetization";
+import { validateChapterProfile, type ChapterProfile } from "@/lib/chapter/profile";
 
 /**
  * Shared plumbing for the chapter admin routes (app/api/chapter/*).
@@ -28,6 +29,12 @@ export interface OwnedChapter {
   seats: number;
   status: "active" | "lapsed";
   currentPeriodEnd: string | null;
+  source: "stripe" | "comp";
+  name: string | null;
+  organizationType: ChapterProfile["organizationType"] | null;
+  contactName: string | null;
+  contactEmail: string | null;
+  profileComplete: boolean;
 }
 
 /**
@@ -42,18 +49,28 @@ export interface OwnedChapter {
 export async function ownedChapter(session: Session): Promise<OwnedChapter | null> {
   const { data } = await session.supabase
     .from("chapters")
-    .select("id, licence, seats, status, current_period_end, created_at")
+    .select("id, licence, seats, status, current_period_end, created_at, source, name, organization_type, contact_name, contact_email")
     .eq("owner_profile_id", session.userId)
+    .is("deleted_at", null)
     .order("created_at", { ascending: false });
   if (!data || data.length === 0) return null;
 
   const row = data.find((c) => c.status === "active") ?? data[0];
+  const profile = {
+    name: (row.name as string | null) ?? null,
+    organizationType: (row.organization_type as ChapterProfile["organizationType"] | null) ?? null,
+    contactName: (row.contact_name as string | null) ?? null,
+    contactEmail: (row.contact_email as string | null) ?? null,
+  };
   return {
     id: row.id as string,
     licence: row.licence as ChapterId,
     seats: row.seats as number,
     status: row.status as OwnedChapter["status"],
     currentPeriodEnd: (row.current_period_end as string | null) ?? null,
+    source: row.source as OwnedChapter["source"],
+    ...profile,
+    profileComplete: validateChapterProfile(profile).ok,
   };
 }
 
@@ -64,8 +81,8 @@ export interface SeatRow {
   name: string | null;
   origin: "registered" | "invited";
   inviteSentAt: string | null;
-  /** When the invitee finished the claim page. Null while the invite email is
-   *  still the outstanding step (or for registered seats, always claimed). */
+  /** When password setup completed through either mailer. Registered seats
+   *  and existing accounts do not require an invitation claim. */
   claimedAt: string | null;
   createdAt: string;
 }

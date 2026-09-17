@@ -77,6 +77,7 @@ export default function ResetPage() {
 
     const result = await confirmPasswordReset(tokens.access, tokens.refresh, password);
     if (!result.ok) {
+      if (result.retryTokens) setTokens(result.retryTokens);
       setBusy(false);
       setError(result.message);
       return;

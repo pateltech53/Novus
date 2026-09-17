@@ -6,6 +6,7 @@ import { CATALOGUE, isChapterSku, isSellableIndustry, isSkuId, priceIdFor, type 
 import { stripe } from "@/lib/stripe/client";
 import { resolvePrice } from "@/lib/stripe/prices";
 import { SITE_URL, billingConfigured } from "@/lib/stripe/config";
+import { chapterProfileMetadata, validateChapterProfile, type ChapterProfile } from "@/lib/chapter/profile";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -49,6 +50,7 @@ export const dynamic = "force-dynamic";
 interface Body {
   sku?: unknown;
   industry?: unknown;
+  chapterProfile?: unknown;
 }
 
 const bad = (error: string, status = 400) => NextResponse.json({ error }, { status });
@@ -84,6 +86,7 @@ export async function POST(req: NextRequest) {
   } catch {
     return bad("bad json");
   }
+  if (!body || typeof body !== "object" || Array.isArray(body)) return bad("bad json");
 
   // A buyer-sized chapter is no longer sold by this route.
   //
@@ -109,6 +112,13 @@ export async function POST(req: NextRequest) {
 
   if (!isSkuId(body.sku)) return bad("unknown sku");
   const sku = CATALOGUE[body.sku as Sku["id"]];
+  const chapterPurchase = isChapterSku(sku.id);
+  let chapterProfile: ChapterProfile | null = null;
+  if (chapterPurchase) {
+    const checked = validateChapterProfile(body.chapterProfile);
+    if (!checked.ok) return bad(checked.error);
+    chapterProfile = checked.profile;
+  }
 
   if (!priceIdFor(sku)) return bad(`${sku.envVar} is not set`, 501);
 
@@ -167,8 +177,6 @@ export async function POST(req: NextRequest) {
 
   const db = adminClient();
 
-  const chapterPurchase = isChapterSku(sku.id);
-
   const owned = await alreadyOwns(db, session.userId, chapterPurchase, sku, industry);
   if (owned) return refuse(session, owned, 409);
 
@@ -204,6 +212,7 @@ export async function POST(req: NextRequest) {
           profile_id: session.userId,
           sku: skuId,
           ...(industry ? { industry } : {}),
+          ...(chapterProfile ? chapterProfileMetadata(chapterProfile) : {}),
         },
 
         // Copied onto the subscription itself, so the three
@@ -213,7 +222,8 @@ export async function POST(req: NextRequest) {
         ...(sku.kind === "subscription"
           ? {
               subscription_data: {
-                metadata: { profile_id: session.userId, sku: skuId },
+                metadata: { profile_id: session.userId, sku: skuId,
+                  ...(chapterProfile ? chapterProfileMetadata(chapterProfile) : {}) },
               },
             }
           : {}),
@@ -224,7 +234,7 @@ export async function POST(req: NextRequest) {
           ? `${SITE_URL}/chapter?purchase=ok`
           : `${SITE_URL}/found?purchase=ok`,
         cancel_url: chapterPurchase
-          ? `${SITE_URL}/chapter?purchase=cancelled`
+          ? `${SITE_URL}/chapter/new?sku=${skuId}&purchase=cancelled`
           : `${SITE_URL}/found?purchase=cancelled`,
 
         // A checkout left open on a school iPad should not still be a live
@@ -262,6 +272,7 @@ async function alreadyOwns(
       .select("id")
       .eq("owner_profile_id", profileId)
       .eq("status", "active")
+      .is("deleted_at", null)
       .limit(1)
       .maybeSingle();
     return data

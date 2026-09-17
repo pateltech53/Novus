@@ -9,7 +9,6 @@ import {
   DAILY_SUBMISSION_LIMIT,
   ENGINE_VERSION,
   EVENTS_HASH,
-  LISTING_POLICY,
   SEASON,
 } from "@/lib/leaderboard/season";
 import { canonicalJson } from "@/lib/leaderboard/tape";
@@ -153,7 +152,11 @@ export async function POST(req: NextRequest) {
   if (moderation.verdict === "reject") {
     return withSession(
       NextResponse.json(
-        { ok: false, reason: "name-refused", message: moderation.message },
+        {
+          ok: false,
+          reason: "name-refused",
+          message: `${moderation.message} Change Company name in Settings, then try again.`,
+        },
         { status: 422 },
       ),
       session,
@@ -201,18 +204,29 @@ export async function POST(req: NextRequest) {
     .select("id")
     .single();
 
-  if (runError) {
-    // 23505 on (profile_id, tape_hash): the same tape twice is the same run
-    // twice. Not an error the player did anything wrong to cause — they tapped
-    // submit again — so it reads as "already in" rather than as a failure.
-    if (runError.code === "23505") {
-      return withSession(
-        NextResponse.json({ ok: true, status: "duplicate", listed: false }),
-        session,
-      );
+  let runId = runRow?.id as string | undefined;
+  if (runError?.code === "23505") {
+    // A saved tape is not proof that both board writes succeeded. Retry their
+    // idempotent upserts, also allowing a clean score from the former approval
+    // queue to become visible. Never attach a current-season score to an
+    // evidence row verified against a different engine or event library.
+    const { data: existing, error: readError } = await admin
+      .from("runs")
+      .select("id, engine_version, events_hash")
+      .eq("profile_id", session.userId)
+      .eq("tape_hash", verdict.tapeHash)
+      .maybeSingle();
+    if (!readError && existing?.engine_version === ENGINE_VERSION && existing.events_hash === EVENTS_HASH) {
+      runId = existing.id;
     }
+  }
+  if (!runId) {
     return withSession(
-      NextResponse.json({ ok: false, reason: "write-failed" }, { status: 500 }),
+      NextResponse.json({
+        ok: false,
+        reason: "write-failed",
+        message: "Your score could not be saved. Your company is safe; try again.",
+      }, { status: 503 }),
       session,
     );
   }
@@ -238,19 +252,51 @@ export async function POST(req: NextRequest) {
   // ── Onto the boards ──────────────────────────────────────────────────────
   /*
    * A flagged run is stored and NOT published. It is a run that looked
-   * extraordinary or replayed with too many desynchronised taps, and the
-   * honest answer to both is a human, not a door in the face (§7.4).
+   * extraordinary or replayed with too many desynchronised taps. Automatic
+   * listing does not weaken that replay gate or promise a manual approval.
    */
-  const listed =
-    verdict.status === "verified" && mayAutoList(moderation, LISTING_POLICY);
+  const eligible =
+    verdict.status === "verified" && mayAutoList(moderation);
 
   const boards: { board: "survival" | "valuation"; wrote: boolean }[] = [];
   if (verdict.status === "verified") {
+    // Release only this player's clean, verified scores left in the retired
+    // approval queue. Each UPDATE repeats the read's guards and run id: a
+    // report or a replacement arriving between the two cannot be undone.
+    const { data: pending, error: pendingError } = await admin
+      .from("leaderboard_entries")
+      .select("id, run_id, company_name, runs!inner(status)")
+      .eq("profile_id", session.userId)
+      .eq("season", SEASON)
+      .eq("listed", false)
+      .eq("reports", 0)
+      .is("unlisted_at", null)
+      .is("moderation_note", null)
+      .eq("runs.status", "verified");
+    if (pendingError) {
+      return withSession(NextResponse.json({ ok: false, reason: "board-read-failed" }, { status: 503 }), session);
+    }
+    for (const entry of pending ?? []) {
+      if (!mayAutoList(moderateCompanyName(entry.company_name))) continue;
+      const { error: recoveryError } = await admin
+        .from("leaderboard_entries")
+        .update({ listed: true })
+        .eq("id", entry.id)
+        .eq("profile_id", session.userId)
+        .eq("run_id", entry.run_id)
+        .eq("listed", false)
+        .eq("reports", 0)
+        .is("unlisted_at", null)
+        .is("moderation_note", null);
+      if (recoveryError) {
+        return withSession(NextResponse.json({ ok: false, reason: "board-write-failed" }, { status: 503 }), session);
+      }
+    }
     for (const board of ["survival", "valuation"] as const) {
-      const { data: wrote } = await admin.rpc("record_board_entry", {
+      const { data: wrote, error: boardError } = await admin.rpc("record_board_entry", {
         p_board: board,
         p_season: SEASON,
-        p_run: runRow.id,
+        p_run: runId,
         p_profile: session.userId,
         p_handle: handle,
         p_company: tape.companyName,
@@ -258,10 +304,38 @@ export async function POST(req: NextRequest) {
         p_peak: verdict.peakValuation,
         p_years: verdict.yearsSurvived,
         p_ended_by: verdict.endedBy,
-        p_listed: listed,
+        p_listed: eligible,
       });
+      if (boardError) {
+        return withSession(
+          NextResponse.json({
+            ok: false,
+            reason: "board-write-failed",
+            message: "Your run was verified, but the board could not save it. Try again.",
+          }, { status: 503 }),
+          session,
+        );
+      }
       boards.push({ board, wrote: wrote === true });
     }
+  }
+
+  // Eligibility and visibility are different after a report or operator
+  // takedown. Read the actual result instead of claiming every verified tape
+  // is public; a lower score can also leave a previous best in place.
+  let listed = false;
+  let previousBestListed = false;
+  if (eligible) {
+    const { data: entries, error: visibilityError } = await admin
+      .from("leaderboard_entries")
+      .select("run_id, listed")
+      .eq("profile_id", session.userId)
+      .eq("season", SEASON);
+    if (visibilityError) {
+      return withSession(NextResponse.json({ ok: false, reason: "board-read-failed" }, { status: 503 }), session);
+    }
+    listed = (entries ?? []).some((entry) => entry.run_id === runId && entry.listed);
+    previousBestListed = (entries ?? []).some((entry) => entry.run_id !== runId && entry.listed);
   }
 
   return withSession(
@@ -276,15 +350,16 @@ export async function POST(req: NextRequest) {
       yearsSurvived: verdict.yearsSurvived,
       boards,
       listed,
-      // Null when the name is clean and the policy lists it. Otherwise this is
-      // the sentence that explains why the row is not visible yet.
+      // No approval promise: this describes the rows that actually exist.
       message:
         moderation.message ??
         (verdict.status === "flagged"
-          ? "That run is exceptional enough that a human is going to look at it first."
+          ? "This run could not pass the automatic replay checks, so it is not on the board. Your company is safe; you can keep playing and submit its next result."
           : listed
             ? null
-            : "Your run is in. The name is waiting on a human before it shows publicly — that is how every name gets there."),
+            : previousBestListed
+              ? "Your previous best score remains on the board."
+              : "Your score was verified, but this entry remains hidden after a report or removal."),
       // Bytes hashed, for the client's own duplicate check. Cheap, and it makes
       // "already submitted" answerable without a round trip.
       tapeHash: verdict.tapeHash,

@@ -3,7 +3,8 @@ import "server-only";
 import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { CHAPTER_LICENCES, type ChapterId } from "@/lib/monetization";
+import { CHAPTER_CUSTOM_MAX_SEATS, CHAPTER_LICENCES, type ChapterId } from "@/lib/monetization";
+import { chapterProfileFromMetadata } from "@/lib/chapter/profile";
 import { CATALOGUE, isChapterSku, isSkuId } from "./catalogue";
 import { resolvePrice } from "./prices";
 import { grantsAccess, periodEnd } from "./subscription";
@@ -38,14 +39,12 @@ export interface ChapterSpec {
 /**
  * Which chapter a subscription buys, or null when it is not a chapter at all.
  *
- * Metadata first: checkout writes `sku` (and, for custom sizes, `seats`) onto
- * the subscription itself, so every later `customer.subscription.*` event
- * carries the answer with no lookup; `checkoutMetadata` lets the checkout
- * handler offer the session's copy of the same fields first. The price match
- * is the fallback for tier subscriptions the dashboard created — and it
- * resolves each configured id through the same cache checkout uses, because
- * the env vars may hold product ids while the subscription's items only ever
- * name prices. A custom subscription can never match a configured price (its
+ * Current item prices identify fixed tiers before metadata: a portal plan
+ * switch updates the price, but leaves the checkout's original SKU untouched.
+ * Resolving each configured id through checkout's cache supports both product
+ * and price env vars. Metadata is the fallback for manually created prices,
+ * and the subscription's current metadata wins over the checkout's snapshot.
+ * A custom subscription can never match a configured price (its
  * price is minted per checkout), so for it the metadata is the only truth —
  * and a custom sku whose seats are unreadable is thrown rather than guessed,
  * because writing a chapter row with an invented size is the one thing worse
@@ -56,17 +55,16 @@ export async function chapterFromSubscription(
   checkoutMetadata?: Stripe.Metadata | null,
 ): Promise<ChapterSpec | null> {
   const fromMeta = (meta: Stripe.Metadata | null | undefined): ChapterSpec | null => {
-    const sku = meta?.sku;
+    const sku = meta?.sku ?? meta?.novus_sku;
     if (isSkuId(sku) && isChapterSku(sku)) {
       const licence = CHAPTER_LICENCES.find((l) => l.id === sku);
       if (licence) return { licence: licence.id, seats: licence.seats };
     }
     if (sku === "chapter_custom") {
       const seats = Number(meta?.seats);
-      // 1–500 is the database's own bound on chapters.seats (0007), wider
-      // than the 10–500 the pricing page offers on purpose: syncing what was
-      // genuinely sold beats refusing a row the schema would accept.
-      if (!Number.isInteger(seats) || seats < 1 || seats > 500) {
+      // Existing invoices may predate the 10-seat sales floor. The upper
+      // bound follows migration 0014, rather than the retired 500-seat cap.
+      if (!Number.isInteger(seats) || seats < 1 || seats > CHAPTER_CUSTOM_MAX_SEATS) {
         throw new Error(
           `subscription ${sub.id} is chapter_custom with unusable seats metadata ` +
             `(${meta?.seats ?? "unset"}) — cannot record the licence size`,
@@ -77,10 +75,8 @@ export async function chapterFromSubscription(
     return null;
   };
 
-  const fromCheckout = fromMeta(checkoutMetadata);
-  if (fromCheckout) return fromCheckout;
-  const fromSub = fromMeta(sub.metadata);
-  if (fromSub) return fromSub;
+  const metadataSpec = fromMeta(sub.metadata) ?? fromMeta(checkoutMetadata);
+  if (metadataSpec?.licence === "chapter_custom") return metadataSpec;
 
   const priceIds = new Set(
     sub.items.data.map((item) => item.price?.id).filter((id): id is string => !!id),
@@ -91,16 +87,17 @@ export async function chapterFromSubscription(
       return { licence: licence.id, seats: licence.seats };
     }
   }
-  return null;
+  return metadataSpec;
 }
 
 /**
  * Writes a chapter subscription's state to the chapter and to every seat.
  *
- * Order matters, same argument as syncSubscription: the chapter row first
- * because `set_chapter_access` reads the licence off it, then the roster's
- * entitlements in one statement. Both are idempotent, so a Stripe retry
- * re-running this is harmless.
+ * Migration 0020 performs the row write and entitlement sync under one lock.
+ * A deleted enterprise retains a tombstone against its subscription id, so
+ * even an already-in-flight webhook cannot reactivate it. Initial metadata
+ * fills the organisation profile only on INSERT: renewals must never undo an
+ * owner's later edits to their contact details.
  *
  * A lapse does not touch the roster rows themselves — the teacher's list
  * survives a failed card, and renewal lights every seat back up without
@@ -111,36 +108,46 @@ export async function syncChapter(
   ownerProfileId: string,
   sub: Stripe.Subscription,
   spec: ChapterSpec,
+  checkoutMetadata?: Stripe.Metadata | null,
 ): Promise<void> {
   const active = grantsAccess(sub.status);
-
-  const { data: chapter, error: upsertError } = await db
-    .from("chapters")
-    .upsert(
-      {
-        owner_profile_id: ownerProfileId,
-        licence: spec.licence,
-        seats: spec.seats,
-        stripe_subscription_id: sub.id,
-        status: active ? "active" : "lapsed",
-        current_period_end: periodEnd(sub),
-      },
-      { onConflict: "stripe_subscription_id" },
-    )
-    .select("id")
-    .single();
-  if (upsertError || !chapter) {
-    // Thrown so the webhook 500s and Stripe retries — a licence that was paid
-    // for and never recorded is the purchase-lost failure mode.
-    throw new Error(`chapters upsert failed: ${upsertError?.message ?? "no row"}`);
-  }
-
-  const { error: accessError } = await db.rpc("set_chapter_access", {
-    p_chapter: chapter.id,
+  const profile = chapterProfileFromMetadata(checkoutMetadata) ?? chapterProfileFromMetadata(sub.metadata);
+  const { error } = await db.rpc("sync_chapter_subscription", {
+    p_owner: ownerProfileId,
+    p_subscription: sub.id,
+    p_licence: spec.licence,
+    p_seats: spec.seats,
     p_active: active,
+    p_period_end: periodEnd(sub),
+    p_name: profile?.name ?? null,
+    p_organization_type: profile?.organizationType ?? null,
+    p_contact_name: profile?.contactName ?? null,
+    p_contact_email: profile?.contactEmail ?? null,
   });
-  if (accessError) {
-    throw new Error(`set_chapter_access failed: ${accessError.message}`);
+  if (error) {
+    throw new Error(`sync_chapter_subscription failed: ${error.message}`);
+  }
+}
+
+/**
+ * Cancel precisely the subscription proven to belong to the selected owned
+ * enterprise. Read Stripe's live state, not our active/lapsed flag: paused
+ * and unpaid subscriptions can still resume billing. A retry after a lost
+ * response is successful only when Stripe confirms it is already cancelled.
+ * Missing configuration is an error, never permission to delete a billable
+ * enterprise while leaving its payment obligation running.
+ */
+export async function cancelChapterSubscription(subscriptionId: string | null): Promise<void> {
+  if (!subscriptionId) return;
+  const { stripe } = await import("./client");
+  const processor = stripe();
+  const subscription = await processor.subscriptions.retrieve(subscriptionId);
+  if (subscription.status === "canceled" || subscription.status === "incomplete_expired") return;
+  try {
+    await processor.subscriptions.cancel(subscriptionId, { invoice_now: false, prorate: false });
+  } catch (error) {
+    const latest = await processor.subscriptions.retrieve(subscriptionId);
+    if (latest.status !== "canceled" && latest.status !== "incomplete_expired") throw error;
   }
 }
 

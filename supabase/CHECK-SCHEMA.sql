@@ -191,4 +191,14 @@ from (
       exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                where n.nspname = 'public' and p.proname = 'spend_tokens'
                  and pg_get_functiondef(p.oid) like '%pg_advisory_xact_lock%'))
+,
+    ('0020 enterprise lifecycle', '0020_enterprise_lifecycle.sql',
+      exists (select 1 from information_schema.columns
+               where table_schema = 'public' and table_name = 'chapters' and column_name = 'deleted_at')
+      and exists (select 1 from information_schema.columns
+                   where table_schema = 'public' and table_name = 'chapters' and column_name = 'contact_email')
+      and to_regprocedure('public.my_chapter_summary()') is not null
+      and to_regprocedure('public.delete_chapter(uuid)') is not null
+      and to_regprocedure('public.remove_chapter_seat(uuid,uuid)') is not null
+      and to_regprocedure('public.sync_chapter_subscription(uuid,text,text,integer,boolean,timestamptz,text,text,text,text)') is not null)
 ) as t(migration, file, present);

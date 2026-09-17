@@ -54,6 +54,10 @@ import { MAX_TAPE_ENTRIES, type RunTape, type TapeEntry } from "./tape";
  */
 const KEY_BASE = "novus:tape:v1";
 const keyFor = (slot: number) => `${KEY_BASE}:${slot}`;
+// One catch-up submission after automatic listing replaces the approval
+// queue. The engine tape is unchanged; this is only the local receipt for
+// having tried the current board policy, not a new replay/season version.
+const LISTING_VERSION = 1;
 
 let legacyAdopted = false;
 function adoptLegacyTape(): void {
@@ -111,6 +115,7 @@ interface StoredTape {
    */
   submittedYear?: number;
   submittedAlive?: boolean;
+  submittedListingVersion?: number;
 }
 
 const canStore = () => typeof window !== "undefined" && !!window.localStorage;
@@ -131,6 +136,7 @@ function read(slot?: number): StoredTape | null {
       submittedAt: parsed.submittedAt,
       submittedYear: typeof parsed.submittedYear === "number" ? parsed.submittedYear : undefined,
       submittedAlive: parsed.submittedAlive,
+      submittedListingVersion: parsed.submittedListingVersion,
     };
   } catch {
     return null;
@@ -220,7 +226,8 @@ export interface TapeStatus {
   /**
    * True when this run has something the board has not been told yet — never
    * submitted, or submitted at an earlier year, or submitted while it was
-   * still alive and it has since ended. This is the whole condition the
+   * still alive and it has since ended, or sent before automatic listing
+   * replaced the approval queue. This is the whole condition the
    * automatic submitter runs on (lib/leaderboard/auto.ts).
    */
   stale: boolean;
@@ -251,6 +258,7 @@ export function tapeStatus(run: RunState | null): TapeStatus {
       matchesRun &&
       present &&
       (!submitted ||
+        tape.submittedListingVersion !== LISTING_VERSION ||
         run.year > (tape.submittedYear ?? 0) ||
         (tape.submittedAlive === true && !run.alive)),
   };
@@ -294,5 +302,6 @@ export function markSubmitted(run: RunState) {
   tape.submittedAt = new Date().toISOString();
   tape.submittedYear = run.year;
   tape.submittedAlive = run.alive;
+  tape.submittedListingVersion = LISTING_VERSION;
   write(tape);
 }

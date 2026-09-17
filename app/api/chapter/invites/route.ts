@@ -114,6 +114,9 @@ export async function POST(req: NextRequest) {
   if (chapter.status !== "active") {
     return refuse(session, "this chapter's licence has lapsed — renew it before adding seats", 409);
   }
+  if (!chapter.profileComplete) {
+    return refuse(session, "Complete your enterprise details before adding members.", 409);
+  }
 
   let body: { invites?: unknown };
   try {
@@ -224,8 +227,14 @@ async function inviteSeat(
       p_licence: chapter.licence,
     });
     if (grantError) {
-      await db.from("chapter_seats").delete().eq("chapter_id", chapter.id).eq("email", email);
-      return { email, ok: false, error: `grant: ${grantError.message}` };
+      // A plan-change webhook may have granted the new tier while this
+      // request still held the old licence. Roll back both the seat and that
+      // entitlement under the chapter lock, never by deleting the row alone.
+      const { error: cleanupError } = await db.rpc("remove_chapter_seat", {
+        p_chapter: chapter.id,
+        p_profile: userId,
+      });
+      return { email, ok: false, error: `grant: ${grantError.message}${cleanupError ? `; cleanup: ${cleanupError.message}` : ""}` };
     }
     return { email, ok: true, action: "granted" };
   }
@@ -293,7 +302,9 @@ async function inviteSeat(
     origin: "invited",
     invite_token: token,
     created_by_invite: true,
-    invite_sent_at: new Date().toISOString(),
+    // Supabase already accepted its invite above; Resend has not been called
+    // yet. A failed send must leave an honest, empty timestamp on the roster.
+    invite_sent_at: invitesViaResend() ? null : new Date().toISOString(),
   });
   if (seatError) {
     await undo();
@@ -305,9 +316,12 @@ async function inviteSeat(
     p_licence: chapter.licence,
   });
   if (grantError) {
-    await db.from("chapter_seats").delete().eq("chapter_id", chapter.id).eq("email", email);
+    const { error: cleanupError } = await db.rpc("remove_chapter_seat", {
+      p_chapter: chapter.id,
+      p_profile: userId,
+    });
     await undo();
-    return { email, ok: false, error: `grant: ${grantError.message}` };
+    return { email, ok: false, error: `grant: ${grantError.message}${cleanupError ? `; cleanup: ${cleanupError.message}` : ""}` };
   }
 
   // In fallback mode the invite email already went out with the account
@@ -319,6 +333,14 @@ async function inviteSeat(
       // the admin resends rather than re-inviting into "already on this
       // roster".
       return { email, ok: true, action: "invited", warning: `seat granted, but the email failed: ${sendError}` };
+    }
+    const { error: sentError } = await db
+      .from("chapter_seats")
+      .update({ invite_sent_at: new Date().toISOString() })
+      .eq("chapter_id", chapter.id)
+      .eq("email", email);
+    if (sentError) {
+      return { email, ok: true, action: "invited", warning: "email sent, but its send time could not be saved — refresh the roster before retrying" };
     }
   }
 
@@ -351,11 +373,11 @@ async function resendForSeat(
   }
   if (sendError) return sendError;
 
-  await db
+  const { error: sentError } = await db
     .from("chapter_seats")
     .update({ invite_sent_at: new Date().toISOString() })
     .eq("id", seat.id);
-  return null;
+  return sentError ? "email sent, but its send time could not be saved" : null;
 }
 
 /** The invite email, via Resend; Supabase's own invite mail when Resend (or

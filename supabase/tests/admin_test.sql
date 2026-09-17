@@ -273,11 +273,16 @@ select test.eq((select c.seats from public.chapters c
 
 -- …and the licence value survives the whole grant path: entitlements'
 -- own check constraint admits it, exactly as chapters' does.
+insert into public.chapter_seats (chapter_id, profile_id, email, origin)
+select c.id, '90000000-0000-0000-0000-000000000005', 'custom-seat@example.com', 'invited'
+  from public.chapters c
+ where c.owner_profile_id = '90000000-0000-0000-0000-000000000001';
 select public.grant_chapter_seat('90000000-0000-0000-0000-000000000005', 'chapter_custom');
 select test.eq((select chapter from public.entitlements
                 where profile_id = '90000000-0000-0000-0000-000000000005'), 'chapter_custom',
                'entitlements.chapter accepts the custom licence');
 select public.revoke_chapter_seat('90000000-0000-0000-0000-000000000005');
+delete from public.chapter_seats where profile_id = '90000000-0000-0000-0000-000000000005';
 
 select test.ok(
   (select public.admin_create_comp_chapter('90000000-0000-0000-0000-000000000004', 'chapter_35')

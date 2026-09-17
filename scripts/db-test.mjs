@@ -54,6 +54,7 @@ const SUITES = [
   "throttle_test.sql",
   "submit_test.sql",
   "chapters_test.sql",
+  "enterprise_test.sql",
   "admin_test.sql",
   "islands_test.sql",
   "rewards_test.sql",

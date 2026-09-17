@@ -103,6 +103,9 @@ export async function POST(req: NextRequest) {
     // cap enforces for a shrunk licence: keep what you have, add nothing.
     return refuse(session, "this chapter's licence has lapsed — renew it before adding seats", 409);
   }
+  if (!chapter.profileComplete) {
+    return refuse(session, "Complete your enterprise details before adding members.", 409);
+  }
 
   let body: { rows?: unknown };
   try {
@@ -218,9 +221,14 @@ async function registerSeat(
     p_licence: chapter.licence,
   });
   if (grantError) {
-    await db.from("chapter_seats").delete().eq("chapter_id", chapter.id).eq("email", email);
+    // Renewal may already have granted a newer tier. The same transaction
+    // used by REMOVE retires both writes before deleting the new account.
+    const { error: cleanupError } = await db.rpc("remove_chapter_seat", {
+      p_chapter: chapter.id,
+      p_profile: userId,
+    });
     await undo();
-    return { email, ok: false, error: `grant: ${grantError.message}` };
+    return { email, ok: false, error: `grant: ${grantError.message}${cleanupError ? `; cleanup: ${cleanupError.message}` : ""}` };
   }
 
   return { email, ok: true };
@@ -243,37 +251,35 @@ export async function DELETE(req: NextRequest) {
   const email = normaliseEmail(body.email);
 
   const db = adminClient();
-  const { data: seat } = await db
+  const { data: seat, error: seatError } = await db
     .from("chapter_seats")
     .select("profile_id")
     .eq("chapter_id", chapter.id)
     .eq("email", email)
     .maybeSingle();
+  if (seatError) {
+    return refuse(session, `roster: ${seatError.message}`, 500);
+  }
   if (!seat) {
-    return refuse(session, "that address is not on the roster", 404);
+    // A double tap or a repeated request already achieved its purpose.
+    return withSession(NextResponse.json({ ok: true, email, removed: false }), session);
   }
 
-  // Entitlement first, row second. If the delete then fails, the member has
-  // lost the seat's Pro but still shows on the roster — visible, harmless,
-  // and fixed by pressing REMOVE again. The other order can leak a free seat.
-  const { error: revokeError } = await db.rpc("revoke_chapter_seat", {
+  // One transaction, under the same chapter lock as renewal and grants. Two
+  // separate writes let a webhook re-grant Pro after revocation but before
+  // the seat disappeared, leaving an entitlement with no roster row behind it.
+  // The SQL function also scopes the profile to this owned chapter; a row
+  // removed while the request was in flight is a successful no-op.
+  const { data: removed, error: removeError } = await db.rpc("remove_chapter_seat", {
+    p_chapter: chapter.id,
     p_profile: seat.profile_id,
   });
-  if (revokeError) {
-    return refuse(session, `revoke: ${revokeError.message}`, 500);
-  }
-
-  const { error: deleteError } = await db
-    .from("chapter_seats")
-    .delete()
-    .eq("chapter_id", chapter.id)
-    .eq("email", email);
-  if (deleteError) {
-    return refuse(session, `remove: ${deleteError.message}`, 500);
+  if (removeError) {
+    return refuse(session, `remove: ${removeError.message}`, 500);
   }
 
   // The account itself survives. The seat was the chapter's; the account —
   // its saves, its handle, its history — is the player's, and free Novus is
   // still the whole game.
-  return withSession(NextResponse.json({ ok: true, email }), session);
+  return withSession(NextResponse.json({ ok: true, email, removed: removed === true }), session);
 }
