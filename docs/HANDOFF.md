@@ -32,8 +32,22 @@ native no-purchase surface, without overflow or page errors. These probes use
 mocked APIs/native lifecycle and verify DOM fallback, not UIKit rendering.
 The home and island budget ceilings each increase by 1 kB for the new native
 entry/control and its shared chunk impact (measured 152.3 and 335.6 kB).
-Device Hub's desktop accessibility read currently times out; native visual
-verification and final synchronization to the owner's Xcode checkout continue.
+After Device Hub accessibility timed out, the owner explicitly authorized
+Xcode simulator commands. An isolated `com.novuspitch.enterpriseqa` binary
+loaded loopback-only synthetic owner/admin fixtures; the user's normal app,
+authentication and saves were preserved. XCUITest tapped the actual UIKit
+Console and Island controls and returned from both owner and operator consoles.
+Both journeys passed in light mode and again in dark mode with Reduce Motion
+asserted enabled (four runs, zero failures). Native screenshots were inspected
+for safe-area overlap, readable content and solid forms. The simulator's
+original light/Reduce-Motion-off settings were restored after verification.
+
+`/Users/zzzz/Novus`, the owner's actual Xcode checkout, is on this PR branch.
+Its original project/Info.plist signing and version edits remain byte-for-byte
+identical as a git diff; the nested `Novus/` folder was left alone. The updated
+checkout also passed its own unsigned Xcode 27 simulator build. CI at code
+commit `077b9cb` passed web, PostgreSQL 16/RLS, Android, iOS and Vercel preview.
+The final adversarial pass found no further confirmed functional defect.
 
 ---
 
