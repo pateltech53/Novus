@@ -35,6 +35,23 @@ Headless Chrome at 390×844 passed legacy email request, setup, failure/reload/
 rotated-token retry and completion, with screenshots inspected and no page
 errors. No live mail or billing was changed.
 
+The owner requested live migration execution. On 2026-09-17, applied the setup
+migration to `novuspitch` (`qeqvhwkprkiqyvuilzbv`); Supabase recorded version
+`20260917060217`. Its one existing pending invitation was backfilled with zero
+missing accounts. RLS is enabled, anonymous/authenticated table access is
+revoked, service-role CRUD is granted, and the profile foreign key cascades.
+The full schema check exposed the pre-existing, missing 0019 token-spend fix:
+the live function still used the invalid aggregate `FOR UPDATE`. Applied the
+repository's unchanged 0019 as `20260917060415_spend_tokens_lock`; all 21 live
+schema checks now pass. Security advisor warnings were unchanged; the new
+service-only table adds the expected informational "RLS enabled, no policy"
+entry. This does not claim that unrelated pre-existing warnings are resolved.
+
+PR CI passed the web build and PostgreSQL 16 suites. Android setup stopped
+before application compilation because the action's default requests the
+unavailable legacy `tools` package. CI and the release workflow now request
+`platform-tools` explicitly; Gradle still installs its required platform SDK.
+
 ---
 
 ## 2026-09-17 · Enterprise registration, deletion and automatic boards

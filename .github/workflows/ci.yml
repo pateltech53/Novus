@@ -178,6 +178,10 @@ jobs:
       # ones drift. This installs whatever compileSdk asks for and accepts the
       # licences, so the job fails on the code rather than on the image.
       - uses: android-actions/setup-android@v3
+        with:
+          # The removed legacy `tools` package makes the action's default fail
+          # before it reaches the export. Gradle installs the required SDK.
+          packages: platform-tools
 
       - run: npm ci
 
