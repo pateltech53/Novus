@@ -153,7 +153,7 @@ function Callback() {
     if (resumePendingChapter()) return;
     if (await resumePendingPro()) return;
 
-    const route = state === "new" ? entryRoute() : "/";
+    const route = storefront() !== "web" ? "/home" : state === "new" ? entryRoute() : "/";
     window.location.href = storefront() === "web" ? route : appPath(route);
   };
 

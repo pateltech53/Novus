@@ -37,7 +37,7 @@ import { MIN_PASSWORD_LENGTH } from "@/lib/auth/credentials";
 import { resumePendingPro } from "@/lib/cloud/pending-pro";
 import { resumePendingChapter } from "@/lib/cloud/pending-chapter";
 import { whenRestored } from "@/lib/cloud/sync";
-import { ENTRY_ROUTES, entryRoute } from "@/lib/entry";
+import { accountEntryRoute, ENTRY_ROUTES } from "@/lib/entry";
 import { play } from "@/lib/sound";
 import { Turnstile, turnstileEnabled } from "@/components/landing/Turnstile";
 import { usePrefetch } from "@/lib/prefetch";
@@ -258,7 +258,7 @@ export function AccountGate() {
   /** Where a signed-in player goes: back into the company they have open, or
    *  onboarding once, then founding. See lib/entry.ts — CONTINUE has to mean
    *  continue, and it used to land a returning player on the found screen. */
-  const destination = () => entryRoute();
+  const destination = accountEntryRoute;
 
   // All three, because which one it is depends on storage this component reads
   // lazily — and warming the wrong one costs nothing next to a cold push.

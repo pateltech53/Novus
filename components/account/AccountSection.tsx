@@ -14,7 +14,7 @@ import {
   signOut,
 } from "@/lib/cloud/auth";
 import { restoreForSignIn } from "@/lib/cloud/sync";
-import { entryRoute } from "@/lib/entry";
+import { accountEntryRoute, entryRoute } from "@/lib/entry";
 import { storefront } from "@/lib/commerce";
 import { appPath } from "@/lib/native/href";
 import { Field, Section } from "@/components/screens/SettingsBits";
@@ -156,7 +156,7 @@ export function AccountSection() {
      * inside the app and made every way out of it lead back to it.
      */
     await restoreForSignIn();
-    const route = entryRoute();
+    const route = accountEntryRoute();
     window.location.href = storefront() === "web" ? route : appPath(route);
   };
 
@@ -205,7 +205,7 @@ export function AccountSection() {
     }
 
     await restoreForSignIn();
-    const route = entryRoute();
+    const route = accountEntryRoute();
     window.location.href = storefront() === "web" ? route : appPath(route);
   };
 
@@ -535,4 +535,3 @@ export function AccountSection() {
     </Section>
   );
 }
-

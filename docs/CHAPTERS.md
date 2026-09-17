@@ -37,6 +37,18 @@ the portal's plan switcher, which only knows the two fixed prices.
 
 ---
 
+## Native access
+
+The iOS/Android app manages an existing enterprise; enterprise registration
+and payment remain on the web. Owners and platform administrators enter a
+Console / Island chooser after native sign-in or cold start. Owners open
+`/chapter`; platform administrators open `/admin`, with MY ENTERPRISE when
+both roles apply. Ordinary members continue into their game. The chooser uses
+live ownership, includes lapsed licences, excludes deleted ones, and does not
+replace either console's authorization. Details, member invitation/resend and
+removal remain available in the owner console. `/chapter/new` in the app only
+explains the account arrangement and links to the existing enterprise console.
+
 ## 1. What to run
 
 Before this release, apply **`20260917054417_chapter_account_setup.sql`** after 0020. It creates service-only account setup state and backfills existing invitations. Deploy the migration before the web app; without it invitation and password setup fail closed.

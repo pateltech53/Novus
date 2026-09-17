@@ -30,6 +30,7 @@ import { loadAccount, type Account } from "@/lib/account";
 import { useRequireAccount } from "@/lib/auth/require-account";
 import { signOut } from "@/lib/cloud/auth";
 import { entryRoute } from "@/lib/entry";
+import { readHomeAccess } from "@/lib/home";
 import { storefront } from "@/lib/commerce";
 import { useBackHandler } from "@/lib/native/back";
 import { appPath } from "@/lib/native/href";
@@ -175,7 +176,16 @@ function IslandsPage() {
    */
   const [account, setAccount] = useState<Account | null>(null);
   const [leaving, setLeaving] = useState(false);
+  const [hasWorkspace, setHasWorkspace] = useState(false);
   useEffect(() => setAccount(loadAccount()), []);
+  useEffect(() => {
+    if (storefront() === "web") return;
+    const controller = new AbortController();
+    void readHomeAccess(controller.signal).then((access) => {
+      if (!controller.signal.aborted) setHasWorkspace(access.signedIn && (access.admin || !!access.chapter));
+    }).catch(() => { /* The game remains available when the workspace read fails. */ });
+    return () => controller.abort();
+  }, []);
 
   /** Where signing out lands. Same reasoning as SettingsScreen's `leave`: the
    *  device is emptied, so it is a navigation and not a router push, and the
@@ -511,7 +521,7 @@ function IslandsPage() {
         // No title plate: "YOUR ISLANDS" is already set on the water 40pt
         // below this, and a second copy would be the same words twice.
         title: null,
-        leading: [],
+        leading: hasWorkspace ? [{ id: "home", symbol: "house", label: "Console or island", style: "plain" }] : [],
         trailing: [
           {
             id: "signout",
@@ -572,11 +582,12 @@ function IslandsPage() {
         },
       ],
     };
-  }, [focused, theme, many, opening, account?.email, leaving, briefcaseIntro]);
+  }, [focused, theme, many, opening, account?.email, leaving, briefcaseIntro, hasWorkspace]);
 
   useNativeOverlay(overlay, {
     onAction: (id) => {
       if (id === "back") setFocus(null);
+      else if (id === "home") window.location.assign(appPath("/home"));
       else if (id === "prev") step(-1);
       else if (id === "next") step(1);
       else if (id === "signout") void leaveAccount();
@@ -638,6 +649,7 @@ function IslandsPage() {
               className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start gap-3 px-6 pt-[max(2.5rem,calc(var(--nv-safe-top)+1rem),calc(var(--nv-overlay-top)+0.75rem))] pb-3"
             >
               <div className="min-w-0 flex-1">
+                {!nativeChrome && hasWorkspace && <a href={appPath("/home")} className="pointer-events-auto mb-2 inline-flex min-h-11 items-center text-xs font-bold underline underline-offset-4">HOME</a>}
                 <p className="text-2xs font-bold tracking-[0.18em] text-[var(--text-tertiary)]">
                   YOUR ISLANDS
                 </p>

@@ -92,13 +92,34 @@ resolution of its page aliases, so the directory moves and moves back in a
 **`public/boot.html` is the app's entry point** — `server.appStartPath`
 points every launch at it. A Next.js route cannot answer "which screen does
 this player belong on" until the framework, the router and the page chunk
-have all parsed. That document reads two keys out of `localStorage` and
+have all parsed. That document reads account and progress keys from `localStorage` and
 redirects, in one parse. `/` — the marketing landing, with a WebGL scene on
 it — is never the first thing a cold start pays for. (Its bundled ancestor,
 `native/boot.html`, needed `index.html`-suffixed targets for the local file
 server's routing rule; the remote one navigates real routes, and
 `lib/native/href.ts` applies the suffix only when a document really is served
 by the bundled router.)
+
+**Workspace entry (2026-09-17):** a cached account routes cold starts to
+`/home`, as do native password/social sign-in and password-reset completion.
+`GET /api/home` reads the current account's role and non-deleted owned chapters
+under one refreshed session; responses are uncached, and read failures offer
+retry rather than silently routing an administrator into play. Platform admins
+choose Console (`/admin`) or Island; enterprise owners choose their console
+(`/chapter`) or Island. An admin who also owns a chapter has a separate
+MY ENTERPRISE link. Lapsed owners can still manage their licence. Members use
+the existing restored-game/onboarding entry, with no chooser. Web entry is
+unchanged. Returning from background or a cached navigation refreshes the role.
+
+The chooser uses the existing UIKit overlay for its Console/Island actions and
+sign-out; the explanatory content stays solid. Both consoles return to `/home`
+in native shells, and the native island picker offers a Home control only to
+accounts with a workspace. DOM controls remain when the plugin is unavailable.
+GlassControl and the game advance control skip their custom scale animation
+when iOS Reduce Motion is enabled, read at touch time. Forms and roster data
+retain the existing solid treatment; member actions have 44-point minimum
+height and sit below the email on narrow screens. No new purchase link or
+in-app checkout was added: enterprise purchase remains on the web.
 
 **It verifies the native projects hold this build's shell** — the offline
 document byte-for-byte, and a generated `capacitor.config.json` carrying

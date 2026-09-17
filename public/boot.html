@@ -43,8 +43,9 @@
       router and the page chunk have all parsed — a couple of hundred
       milliseconds of nothing on a cold start, spent to read two keys out of
       localStorage. This document does it in one parse and hands the webview
-      straight to the right route, so the launch screen is followed by the
-      game rather than by a loading state.
+      straight to the right route. Signed-in accounts now visit /home, whose
+      fresh role/ownership read lets administrators choose Console or Island.
+      Members continue to their saved game; first-time devices still onboard.
 
       It lives in public/ because the shell loads it from the live origin now
       (capacitor.config.ts documents that decision). Its bundled ancestor,
@@ -111,14 +112,18 @@
           if (anyIsland) {
             target = "/islands";
           } else {
-            var raw = localStorage.getItem("novus:profile:v1");
-            if (raw && JSON.parse(raw).onboarded) {
-              target = "/found";
-              hasSave = true;
+            try {
+              var raw = localStorage.getItem("novus:profile:v1");
+              if (raw && JSON.parse(raw).onboarded) {
+                target = "/found";
+                hasSave = true;
+              }
+            } catch (profileError) {
+              // A damaged game cache must not hide a valid admin account.
             }
           }
 
-          if (hasSave) {
+          {
             // Its own try: a corrupt novus:account:v1 must not fall through to
             // the outer catch below and leave `target` at the picker or the
             // founding screen it had already been set to above — corrupt or
@@ -137,10 +142,10 @@
             } catch (accountError) {
               hasAccount = false;
             }
-            // Progress with nothing to attach an account to yet — send it to
-            // the front door instead of the picker or the founding screen,
-            // neither of which this device may reach without one.
-            if (!hasAccount) target = "/";
+            // Account presence routes to the workspace resolver, never a
+            // cached role. Progress without an account still needs sign-in.
+            if (hasAccount) target = "/home";
+            else if (hasSave) target = "/";
           }
         } catch (e) {
           /* First launch, or storage denied. Onboarding is the right answer —

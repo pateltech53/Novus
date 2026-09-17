@@ -1,5 +1,42 @@
 # HANDOFF — project history, current state, and open work
 
+## 2026-09-17 · Native administrators choose a workspace before playing
+
+Owner-approved scope: web-only enterprise purchasing; Console / Island entry
+for platform admins and enterprise owners; real UIKit controls on that entry,
+explicit console/home return paths, and Reduce Motion for custom native press
+scaling. Forms, roster and data stay solid. No store purchase flow was added.
+
+`/home` and the read-only `/api/home` now resolve fresh role/ownership rather
+than trusting a cached role. Native sign-in, OAuth completion, password reset
+and `boot.html` route here; ordinary members continue via the existing
+restored-game entry. Owner-only RLS queries exclude deleted chapters and prefer
+active licences; lapsed ownership still exposes management. Dual-role admins
+can also open their own enterprise. Failed reads are retryable, every response
+preserves session rotation, and background/bfcache return rechecks access.
+Consoles and the native island picker have a route back to the chooser. The
+owner roster now keeps email and controls on separate lines on narrow phones
+and gives resend/remove controls a 44-point minimum hit area.
+
+`test:home` covers 12 role, failure, token, own-filter, cold-start and storage
+contracts and is included in check and CI. Existing console server gates,
+web purchases, scoring and authored content are unchanged. The remote-shell
+architecture still means the web portion appears in the installed app only
+after the PR's web deployment; the Reduce Motion change needs a rebuilt binary.
+
+Validation: Node 22 `npm run check`, the budgeted web build, `test:home`
+(12 checks), and `test:outside` pass. Xcode 27 compiled the unsigned simulator
+app and widget. Chrome phone probes at 320/390/430 px passed owner/admin/dual
+role/lapsed access, retry, member/sign-out routing, console returns, and the
+native no-purchase surface, without overflow or page errors. These probes use
+mocked APIs/native lifecycle and verify DOM fallback, not UIKit rendering.
+The home and island budget ceilings each increase by 1 kB for the new native
+entry/control and its shared chunk impact (measured 152.3 and 335.6 kB).
+Device Hub's desktop accessibility read currently times out; native visual
+verification and final synchronization to the owner's Xcode checkout continue.
+
+---
+
 ## 2026-09-17 · Invitation credentials stay in the mailbox; deletion fails closed
 
 Follow-up to the enterprise review: new invites email one-time setup links

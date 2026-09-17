@@ -1319,6 +1319,11 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
     /// layers do not feel like they came from different apps.
     @objc private func pressDown() {
         tapFeedback.prepare()
+        guard !UIAccessibility.isReduceMotionEnabled else {
+            ctaGlass?.layer.removeAllAnimations()
+            ctaGlass?.transform = .identity
+            return
+        }
         UIView.animate(withDuration: 0.12, delay: 0, options: [.curveEaseOut, .allowUserInteraction])
         {
             self.ctaGlass?.transform = CGAffineTransform(scaleX: 0.97, y: 0.97)
@@ -1326,6 +1331,11 @@ final class GlassChromeController: NSObject, UITabBarDelegate {
     }
 
     @objc private func pressUp() {
+        guard !UIAccessibility.isReduceMotionEnabled else {
+            ctaGlass?.layer.removeAllAnimations()
+            ctaGlass?.transform = .identity
+            return
+        }
         UIView.animate(withDuration: 0.16, delay: 0, options: [.curveEaseOut, .allowUserInteraction])
         {
             self.ctaGlass?.transform = .identity
