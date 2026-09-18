@@ -1,9 +1,29 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
+import "./admin.css";
+import { AdminCell, AdminTable } from "@/components/admin/table";
+import {
+  AuditWorkspace,
+  EnterpriseWorkspace,
+  PageControls,
+  adminButton,
+  adminField,
+} from "@/components/admin/workspaces";
+import { cohortRate } from "@/lib/admin/analytics";
 import { API_CREDENTIALS, apiUrl } from "@/lib/native/origin";
-import { useNativeOverlay, useNativeOverlayOwned } from "@/components/native/useNativeOverlay";
+import {
+  useNativeOverlay,
+  useNativeOverlayOwned,
+} from "@/components/native/useNativeOverlay";
 import { useResolvedTheme } from "@/lib/native/theme";
 import { appPath } from "@/lib/native/href";
 import { storefront } from "@/lib/commerce";
@@ -43,9 +63,9 @@ import { ThemeToggle } from "@/components/ui/ThemeToggle";
  * with. Everything on it talks to app/api/admin/*; the page itself holds no
  * privilege beyond the operator's own session cookie, exactly like /chapter.
  *
- * One page, four bands: the numbers, the accounts (search → detail → grants),
- * the moderation queue, and the view switch in the masthead that makes the
- * admin's OWN account play as free / pro / all for testing paywalls.
+ * Eight workspaces share the operator session: overview, analytics, accounts,
+ * enterprises, billing, moderation, audit and tools. Grants and the testing
+ * tier switch continue through the existing gated, audited mutation routes.
  */
 
 // ── Wire shapes (app/api/admin/*) ───────────────────────────────────────────
@@ -82,7 +102,12 @@ interface UserRow {
   plan: string | null;
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
-  ownsChapter: { id: string; status: string | null; source: string | null; licence: string | null } | null;
+  ownsChapter: {
+    id: string;
+    status: string | null;
+    source: string | null;
+    licence: string | null;
+  } | null;
   seatChapterId: string | null;
   // ── What the account has actually done (0016) ────────────────────────────
   runsCompleted: number;
@@ -180,7 +205,12 @@ interface Detail {
     employees: number | null;
     updated_at: string;
   }>;
-  legacy: { best_year: number; runs_completed: number; shark_respect: number; badges: string[] } | null;
+  legacy: {
+    best_year: number;
+    runs_completed: number;
+    shark_respect: number;
+    badges: string[];
+  } | null;
   board: Array<{
     id: string;
     board: string;
@@ -190,7 +220,12 @@ interface Detail {
     years_survived: number;
     listed: boolean;
   }>;
-  audit: Array<{ action: string; actor_email: string | null; detail: Record<string, unknown>; created_at: string }>;
+  audit: Array<{
+    action: string;
+    actor_email: string | null;
+    detail: Record<string, unknown>;
+    created_at: string;
+  }>;
 }
 
 interface QueueRow {
@@ -215,7 +250,13 @@ interface Stats {
   activeWeek?: number;
   activeMonth?: number;
   /** The last-seen histogram: within 1d / 1–7d / 7–30d / 30–90d / older. */
-  activity?: { d1: number; d7: number; d30: number; d90: number; older: number };
+  activity?: {
+    d1: number;
+    d7: number;
+    d30: number;
+    d90: number;
+    older: number;
+  };
   // ── Paid, and the evidence on both sides of it (0016) ────────────────────
   /** Entitlement flag OR a live Stripe subscription. The honest total. */
   proPaid?: number;
@@ -290,7 +331,11 @@ type Filter =
   | "playing"
   | "mismatch"
   | "admins"
-  | "anonymous";
+  | "anonymous"
+  | "not-granted"
+  | "not-billed"
+  | "cancelling"
+  | "past-due";
 
 type Sort = "joined" | "seen" | "runs" | "value";
 
@@ -303,6 +348,8 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: "mismatch", label: "BILLING ⚠" },
   { id: "admins", label: "ADMINS" },
   { id: "anonymous", label: "ANONYMOUS" },
+  { id: "cancelling", label: "CANCELLING" },
+  { id: "past-due", label: "PAST DUE" },
 ];
 
 const SORTS: { id: Sort; label: string }[] = [
@@ -311,32 +358,6 @@ const SORTS: { id: Sort; label: string }[] = [
   { id: "runs", label: "MOST RUNS" },
   { id: "value", label: "BIGGEST CO." },
 ];
-
-const matchesFilter = (u: UserRow, filter: Filter): boolean => {
-  switch (filter) {
-    case "paid":      return u.paid;
-    case "gifted":    return u.compPro;
-    case "chapter":   return !!u.chapter || u.ownsChapter?.status === "active";
-    case "playing":   return u.companiesAlive > 0;
-    case "mismatch":  return !!u.billingMismatch;
-    case "admins":    return u.role === "admin";
-    case "anonymous": return u.anonymous;
-    default:          return true;
-  }
-};
-
-const compare = (a: UserRow, b: UserRow, sort: Sort): number => {
-  switch (sort) {
-    case "seen":
-      return Date.parse(b.lastSeen ?? b.createdAt) - Date.parse(a.lastSeen ?? a.createdAt);
-    case "runs":
-      return b.runsCompleted - a.runsCompleted || b.companies - a.companies;
-    case "value":
-      return b.topValuation - a.topValuation;
-    default:
-      return Date.parse(b.createdAt) - Date.parse(a.createdAt);
-  }
-};
 
 // ── Plumbing ────────────────────────────────────────────────────────────────
 
@@ -356,10 +377,14 @@ async function call<T>(path: string, init?: RequestInit): Promise<T | null> {
     const res = await fetch(apiUrl(path), {
       credentials: API_CREDENTIALS,
       ...init,
-      headers: init?.body ? { "content-type": "application/json", ...init.headers } : init?.headers,
+      headers: init?.body
+        ? { "content-type": "application/json", ...init.headers }
+        : init?.headers,
     });
     if (!res.ok) {
-      const body = (await res.json().catch(() => null)) as { error?: string } | null;
+      const body = (await res.json().catch(() => null)) as {
+        error?: string;
+      } | null;
       throw new Error(body?.error ?? `HTTP ${res.status}`);
     }
     return (await res.json()) as T;
@@ -369,10 +394,17 @@ async function call<T>(path: string, init?: RequestInit): Promise<T | null> {
 }
 
 const day = (iso: string | null | undefined): string =>
-  iso ? new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "—";
+  iso
+    ? new Date(iso).toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      })
+    : "—";
 
 /** ISO for "now plus n days", for the gift chips. */
-const inDays = (n: number): string => new Date(Date.now() + n * 86400000).toISOString();
+const inDays = (n: number): string =>
+  new Date(Date.now() + n * 86400000).toISOString();
 
 /** A company's worth, in the game's own shorthand — "$1.4M", "$860K". The
  *  console reads the same figures the year-end statement does, so it should
@@ -410,13 +442,27 @@ export default function AdminPage() {
   const [q, setQ] = useState("");
   const [users, setUsers] = useState<UserRow[]>([]);
   const [total, setTotal] = useState(0);
-  /* The directory's own lens. Filtering and sorting happen on the page rather
-     than in the query: the list is at most 200 rows, and a round trip to
-     re-sort a list already in memory is a spinner nobody needed to see. */
-  const [filter, setFilter] = useState<Filter>("all");
+  /* Search, combined filters and sorting run on the server before the
+     50-row page is selected. Exports use the same committed query. */
+  const [filters, setFilters] = useState<Filter[]>([]);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
+  const [usersLoading, setUsersLoading] = useState(true);
+  const [usersError, setUsersError] = useState<string | null>(null);
+  const usersRequest = useRef(0);
+  const detailRequest = useRef(0);
+  const [workspace, setWorkspace] = useState("overview");
+  const [range, setRange] = useState(30);
+  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
+  const [unavailable, setUnavailable] = useState<string[]>([]);
+  const [statsError, setStatsError] = useState<string | null>(null);
+  const [queueError, setQueueError] = useState<string | null>(null);
+  const [queueLoading, setQueueLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [sort, setSort] = useState<Sort>("joined");
   const [openId, setOpenId] = useState<string | null>(null);
   const [detail, setDetail] = useState<Detail | null>(null);
+  const [detailError, setDetailError] = useState<string | null>(null);
 
   const [queue, setQueue] = useState<QueueRow[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
@@ -425,60 +471,108 @@ export default function AdminPage() {
   // ── Loads ─────────────────────────────────────────────────────────────────
 
   const loadStats = useCallback(async () => {
-    const body = await call<{
-      stats: Stats;
-      series: SeriesRow[];
-      cohorts: CohortRow[];
-      mismatches: Mismatch[];
-      topCompanies: TopCompany[];
-      audit: AuditRow[];
-    }>("/api/admin/stats");
-    if (body) {
-      setStats(body.stats);
-      setSeries(body.series ?? []);
-      setCohorts(body.cohorts ?? []);
-      setMismatches(body.mismatches ?? []);
-      setTopCompanies(body.topCompanies ?? []);
-      setAuditTail(body.audit);
+    setStatsError(null);
+    try {
+      const body = await call<{
+        unavailable?: string[];
+        stats: Stats;
+        series: SeriesRow[];
+        cohorts: CohortRow[];
+        mismatches: Mismatch[];
+        topCompanies: TopCompany[];
+        audit: AuditRow[];
+      }>("/api/admin/stats");
+      if (body) {
+        setStats(body.stats);
+        setSeries(body.series ?? []);
+        setCohorts(body.cohorts ?? []);
+        setMismatches(body.mismatches ?? []);
+        setTopCompanies(body.topCompanies ?? []);
+        setAuditTail(body.audit ?? []);
+        setUnavailable(body.unavailable ?? []);
+        setUpdatedAt(new Date().toISOString());
+      }
+    } catch (e) {
+      setStatsError((e as Error).message);
     }
   }, []);
 
-  const loadUsers = useCallback(async (needle: string) => {
-    /*
-     * 200, the function's own ceiling, rather than 50.
-     *
-     * The filter chips below cut the list down on this page, and a chip that
-     * says PAID while the server only sent the fifty newest accounts is a
-     * filter that lies by omission — it would show "3 paid" out of a database
-     * with thirty. The count under the heading still says how many the search
-     * actually matched, so a search wider than one page announces itself.
-     */
-    const body = await call<{ users: UserRow[]; total: number }>(
-      `/api/admin/users?q=${encodeURIComponent(needle)}&limit=200`,
-    );
-    if (body) {
-      setUsers(body.users);
-      setTotal(body.total);
-    }
-  }, []);
+  const loadUsers = useCallback(
+    async (
+      needle: string,
+      activeFilters: Filter[] = [],
+      order: Sort = "joined",
+      pageIndex = 0,
+    ) => {
+      const request = ++usersRequest.current;
+      setUsersLoading(true);
+      setUsersError(null);
+      try {
+        const params = new URLSearchParams({
+          q: needle,
+          filters: activeFilters.join(","),
+          sort: order,
+          limit: "50",
+          offset: String(pageIndex * 50),
+        });
+        const body = await call<{ users: UserRow[]; total: number }>(
+          `/api/admin/users?${params}`,
+        );
+        if (body && request === usersRequest.current) {
+          setUsers(body.users);
+          setTotal(body.total);
+          if (pageIndex > 0 && pageIndex * 50 >= body.total)
+            setPage(Math.max(0, Math.ceil(body.total / 50) - 1));
+        }
+      } catch (e) {
+        if (request === usersRequest.current)
+          setUsersError((e as Error).message);
+      } finally {
+        if (request === usersRequest.current) setUsersLoading(false);
+      }
+    },
+    [],
+  );
 
   const loadQueue = useCallback(async () => {
-    const body = await call<{ queue: QueueRow[] }>("/api/admin/moderation");
-    if (body) setQueue(body.queue);
+    setQueueLoading(true);
+    setQueueError(null);
+    try {
+      const body = await call<{ queue: QueueRow[] }>(
+        "/api/admin/moderation?limit=100",
+      );
+      if (body) setQueue(body.queue);
+    } catch (e) {
+      setQueueError((e as Error).message);
+    } finally {
+      setQueueLoading(false);
+    }
   }, []);
 
   const loadDetail = useCallback(async (id: string) => {
-    const body = await call<Detail & { ok: boolean }>(`/api/admin/users/${id}`);
-    if (body) setDetail(body);
+    const request = ++detailRequest.current;
+    setDetailError(null);
+    try {
+      const body = await call<Detail & { ok: boolean }>(
+        `/api/admin/users/${id}`,
+      );
+      if (body && request === detailRequest.current) setDetail(body);
+    } catch (e) {
+      if (request === detailRequest.current)
+        setDetailError((e as Error).message);
+    }
   }, []);
 
   useEffect(() => {
     let alive = true;
     void (async () => {
       try {
-        const me = await call<{ ok: boolean; id: string; view: View; email: string | null }>(
-          "/api/admin/me",
-        );
+        const me = await call<{
+          ok: boolean;
+          id: string;
+          view: View;
+          email: string | null;
+        }>("/api/admin/me");
         if (!alive) return;
         if (!me?.ok) {
           setPhase("denied");
@@ -488,7 +582,7 @@ export default function AdminPage() {
         setEmail(me.email);
         setSelfId(me.id);
         setPhase("ready");
-        await Promise.all([loadStats(), loadUsers(""), loadQueue()]);
+        await Promise.all([loadStats(), loadQueue()]);
       } catch {
         if (alive) setPhase("denied");
       }
@@ -498,11 +592,23 @@ export default function AdminPage() {
     };
   }, [loadStats, loadUsers, loadQueue]);
 
+  useEffect(() => {
+    if (phase === "ready") void loadUsers(search, filters, sort, page);
+  }, [phase, search, filters, sort, page, loadUsers]);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [workspace]);
+
   // ── Actions ───────────────────────────────────────────────────────────────
 
   /** Runs one console action: busy state, error note, then refresh. */
   const act = useCallback(
-    async (key: string, work: () => Promise<unknown>, refresh: Array<() => Promise<void>>) => {
+    async (
+      key: string,
+      work: () => Promise<unknown>,
+      refresh: Array<() => Promise<void>>,
+    ) => {
       if (busy) return;
       setBusy(key);
       setNote(null);
@@ -510,6 +616,7 @@ export default function AdminPage() {
         await work();
         play("success");
         await Promise.all(refresh.map((fn) => fn()));
+        setRefreshKey((n) => n + 1);
       } catch (e) {
         setNote((e as Error).message);
       }
@@ -526,27 +633,32 @@ export default function AdminPage() {
    * draw a detail panel attached to nothing.
    */
   const openAccount = useCallback(
-    (id: string, needle: string | null) => {
-      const search = needle ?? id;
-      setQ(search);
+    (id: string, _email: string | null) => {
+      setQ(id);
+      setSearch(id);
+      setFilters([]);
+      setPage(0);
+      setWorkspace("accounts");
       setOpenId(id);
       setDetail(null);
-      void loadUsers(search);
       void loadDetail(id);
     },
-    [loadUsers, loadDetail],
+    [loadDetail],
   );
 
   const refreshOpen = useCallback(async () => {
     if (openId) await loadDetail(openId);
-    await loadUsers(q);
-  }, [openId, q, loadDetail, loadUsers]);
+    await loadUsers(search, filters, sort, page);
+  }, [openId, search, filters, sort, page, loadDetail, loadUsers]);
 
   const switchView = (next: View) =>
     act(
       `view:${next}`,
       async () => {
-        await call("/api/admin/view", { method: "POST", body: JSON.stringify({ view: next }) });
+        await call("/api/admin/view", {
+          method: "POST",
+          body: JSON.stringify({ view: next }),
+        });
         setView(next);
         // The game reads entitlements from its local cache; pull the fresh
         // overlay down now so the switch is visible without a reload.
@@ -561,7 +673,12 @@ export default function AdminPage() {
       () =>
         call("/api/admin/comp", {
           method: "POST",
-          body: JSON.stringify({ profileId: id, active: true, until, note: "console gift" }),
+          body: JSON.stringify({
+            profileId: id,
+            active: true,
+            until,
+            note: "console gift",
+          }),
         }),
       [refreshOpen],
     );
@@ -673,18 +790,14 @@ export default function AdminPage() {
     );
 
   const deleteAccount = (id: string) =>
-    act(
-      "delete",
-      () => call(`/api/admin/users/${id}`, { method: "DELETE" }),
-      [
-        async () => {
-          setOpenId(null);
-          setDetail(null);
-        },
-        () => loadUsers(q),
-        loadStats,
-      ],
-    );
+    act("delete", () => call(`/api/admin/users/${id}`, { method: "DELETE" }), [
+      async () => {
+        setOpenId(null);
+        setDetail(null);
+      },
+      () => loadUsers(search, filters, sort, page),
+      loadStats,
+    ]);
 
   /*
    * Ask Stripe what is true and write it down.
@@ -699,10 +812,13 @@ export default function AdminPage() {
     act(
       `reconcile:${id}`,
       async () => {
-        const out = await call<{ ok: boolean; message?: string }>("/api/admin/reconcile", {
-          method: "POST",
-          body: JSON.stringify({ profileId: id }),
-        });
+        const out = await call<{ ok: boolean; message?: string }>(
+          "/api/admin/reconcile",
+          {
+            method: "POST",
+            body: JSON.stringify({ profileId: id }),
+          },
+        );
         if (out?.message) setNote(out.message);
       },
       [refreshOpen, loadStats],
@@ -721,10 +837,15 @@ export default function AdminPage() {
       "export",
       async () => {
         const res = await fetch(
-          apiUrl(`/api/admin/users?q=${encodeURIComponent(q)}&format=csv&limit=200`),
+          apiUrl(
+            `/api/admin/users?${new URLSearchParams({ q: search, filters: filters.join(","), sort, format: "csv" })}`,
+          ),
           { credentials: API_CREDENTIALS },
         );
-        if (!res.ok) throw new Error(`Export failed (HTTP ${res.status}).`);
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.error ?? `Export failed (HTTP ${res.status}).`);
+        }
         const url = URL.createObjectURL(await res.blob());
         const a = document.createElement("a");
         a.href = url;
@@ -749,8 +870,13 @@ export default function AdminPage() {
     );
 
   const refreshAll = useCallback(async () => {
-    await Promise.all([loadStats(), loadUsers(q), loadQueue()]);
-  }, [loadStats, loadUsers, loadQueue, q]);
+    setRefreshKey((n) => n + 1);
+    await Promise.all([
+      loadStats(),
+      loadUsers(search, filters, sort, page),
+      loadQueue(),
+    ]);
+  }, [loadStats, loadUsers, loadQueue, search, filters, sort, page]);
 
   /*
    * The console's chrome, drawn by UIKit — the same Liquid Glass treatment
@@ -804,17 +930,23 @@ export default function AdminPage() {
 
   // ── Chart data, derived ───────────────────────────────────────────────────
 
+  const visibleSeries = useMemo(() => series.slice(-range), [series, range]);
   const signupBars = useMemo(
-    () => series.map((r) => ({ day: r.day, value: r.signups })),
-    [series],
+    () => visibleSeries.map((r) => ({ day: r.day, value: r.signups })),
+    [visibleSeries],
   );
   const submissionBars = useMemo(
-    () => series.map((r) => ({ day: r.day, value: r.submissions })),
-    [series],
+    () => visibleSeries.map((r) => ({ day: r.day, value: r.submissions })),
+    [visibleSeries],
   );
   const trackedLines = useMemo(
-    () => series.map((r) => ({ day: r.day, a: r.actives, b: r.runs_started })),
-    [series],
+    () =>
+      visibleSeries.map((r) => ({
+        day: r.day,
+        a: r.actives,
+        b: r.runs_started,
+      })),
+    [visibleSeries],
   );
 
   /*
@@ -826,34 +958,26 @@ export default function AdminPage() {
    */
   const { retentionBars, bounceBars } = useMemo(() => {
     const now = Date.now();
-    const DAY = 86400000;
-    const pct = (part: number, whole: number) => Math.round((part / whole) * 100);
     const retention: WeeklyBar[] = [];
     const bounce: WeeklyBar[] = [];
     for (const c of cohorts) {
-      const weekEnd = new Date(`${c.week}T00:00:00`).getTime() + 7 * DAY;
-      const empty = c.cohort === 0;
       retention.push({
         week: c.week,
-        a: !empty && now >= weekEnd + 7 * DAY ? pct(c.retained_7, c.cohort) : null,
-        b: !empty && now >= weekEnd + 30 * DAY ? pct(c.retained_30, c.cohort) : null,
+        a: cohortRate(c.week, c.cohort, c.retained_7, 7, now),
+        b: cohortRate(c.week, c.cohort, c.retained_30, 30, now),
         aDetail: `${c.retained_7} of ${c.cohort}`,
         bDetail: `${c.retained_30} of ${c.cohort}`,
       });
       bounce.push({
         week: c.week,
-        a: !empty && now >= weekEnd + 1 * DAY ? pct(c.bounced, c.cohort) : null,
+        a: cohortRate(c.week, c.cohort, c.bounced, 1, now),
         aDetail: `${c.bounced} of ${c.cohort}`,
       });
     }
     return { retentionBars: retention, bounceBars: bounce };
   }, [cohorts]);
 
-  /** The list as it is actually shown: the lens applied, in memory. */
-  const shown = useMemo(
-    () => users.filter((u) => matchesFilter(u, filter)).sort((a, b) => compare(a, b, sort)),
-    [users, filter, sort],
-  );
+  const shown = users;
 
   const mrr = useMemo(() => monthlyRevenueCents(stats), [stats]);
 
@@ -874,13 +998,17 @@ export default function AdminPage() {
   if (phase !== "ready") {
     return (
       <main className="mx-auto flex min-h-dvh w-full max-w-[26rem] flex-col justify-center px-6 pb-16 pt-[max(4rem,var(--nv-safe-top),calc(var(--nv-overlay-top)+1rem))]">
-        <p className="text-2xs font-bold tracking-[0.18em] text-[var(--color-prestige)]">NOVUS</p>
+        <p className="text-2xs font-bold tracking-[0.18em] text-[var(--color-prestige)]">
+          NOVUS
+        </p>
         {phase === "loading" ? (
           <>
             <h1 className="mt-1.5 text-[1.75rem] font-extrabold leading-tight tracking-[-0.02em]">
               One moment.
             </h1>
-            <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)]">Checking…</p>
+            <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)]">
+              Checking…
+            </p>
           </>
         ) : (
           <>
@@ -905,7 +1033,7 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-6 pb-[max(6rem,calc(var(--nv-overlay-bottom)+2rem))] pt-[max(2.5rem,var(--nv-safe-top),calc(var(--nv-overlay-top)+0.75rem))]">
+    <main className="admin-console mx-auto w-full max-w-7xl px-4 sm:px-6 pb-[max(6rem,calc(var(--nv-overlay-bottom)+2rem))] pt-[max(2.5rem,var(--nv-safe-top),calc(var(--nv-overlay-top)+0.75rem))]">
       {/* ── Masthead ────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
@@ -915,12 +1043,22 @@ export default function AdminPage() {
           <h1 className="mt-1.5 text-[1.75rem] font-extrabold leading-tight tracking-[-0.02em]">
             The console
           </h1>
-          <p className="tnum mt-1 text-sm text-[var(--text-secondary)]">{email}</p>
+          <p className="tnum mt-1 text-sm text-[var(--text-secondary)]">
+            {email}
+          </p>
         </div>
         {/* On iOS the way back is the toolbar's leading chevron and refresh
             its trailing circle — the DOM chip is not rendered at all rather
             than hidden, so no invisible control can take a tap. */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            className={adminButton}
+            disabled={busy !== null}
+            onClick={() => void refreshAll()}
+          >
+            Refresh
+          </button>
           {/* The console is a working surface, read for long stretches and
               often beside a Supabase tab. Which theme it is read in belongs to
               the operator, here, rather than three taps away inside the game's
@@ -937,15 +1075,76 @@ export default function AdminPage() {
         </div>
       </div>
 
+      <p className="mt-3 text-xs text-[var(--text-secondary)]" role="status">
+        {updatedAt
+          ? `Updated ${new Date(updatedAt).toLocaleTimeString()} · overview figures are current totals`
+          : "Loading overview…"}
+      </p>
+      <nav className="admin-nav" aria-label="Console workspaces">
+        {[
+          ["overview", "Overview"],
+          ["analytics", "Analytics"],
+          ["accounts", "Accounts"],
+          ["enterprises", "Enterprises"],
+          ["billing", "Billing"],
+          ["moderation", "Moderation"],
+          ["audit", "Audit"],
+          ["tools", "Tools"],
+        ].map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            aria-pressed={workspace === id}
+            onClick={() => setWorkspace(id)}
+          >
+            {label}
+            {id === "billing" && !!stats.billingMismatch && (
+              <span className="admin-nav-count">{stats.billingMismatch}</span>
+            )}
+            {id === "moderation" && !!stats.boardQueue && (
+              <span className="admin-nav-count">{stats.boardQueue}</span>
+            )}
+          </button>
+        ))}
+      </nav>
+      {statsError && (
+        <div
+          role="alert"
+          className="mt-4 rounded-[var(--radius-row)] border border-[var(--alert)] p-4"
+        >
+          Overview could not refresh: {statsError}.{" "}
+          {updatedAt
+            ? "Previous figures are still shown."
+            : "Figures are unavailable."}
+          <button
+            className={`${adminButton} ml-3`}
+            onClick={() => void loadStats()}
+          >
+            Retry overview
+          </button>
+        </div>
+      )}
+      {unavailable.length > 0 && (
+        <p role="alert" className="mt-4 text-sm">
+          Some data is unavailable: {unavailable.join(", ")}. Refresh to retry;
+          an empty panel is not proof that there are no records.
+        </p>
+      )}
+
       {/* ── The view switch ─────────────────────────────────────────────── */}
-      <section className="mt-6 rounded-[var(--radius-card)] bg-[var(--n-3)] p-5 shadow-[var(--e1)] ring-1 ring-[var(--hairline)]">
+      <section
+        hidden={workspace !== "tools"}
+        className="mt-6 rounded-[var(--radius-card)] bg-[var(--n-3)] p-5 shadow-[var(--e1)] ring-1 ring-[var(--hairline)]"
+      >
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-sm font-extrabold tracking-[0.08em]">PLAY THIS ACCOUNT AS</h2>
+            <h2 className="text-sm font-extrabold tracking-[0.08em]">
+              PLAY THIS ACCOUNT AS
+            </h2>
             <p className="mt-1 text-xs leading-relaxed text-[var(--text-secondary)]">
-              Your own game follows this switch — FREE and PRO behave exactly like
-              those tiers, locked doors included, so paywalls can be tested for real.
-              ALL is everything, no card.
+              Your own game follows this switch — FREE and PRO behave exactly
+              like those tiers, locked doors included, so paywalls can be tested
+              for real. ALL is everything, no card.
             </p>
           </div>
           <div className="flex gap-2">
@@ -969,14 +1168,19 @@ export default function AdminPage() {
       </section>
 
       {note && (
-        <p role="alert" className="mt-4 rounded-[var(--radius-card)] bg-[var(--alert)]/10 px-4 py-3 text-sm text-[var(--text-primary)]">
+        <p
+          role="alert"
+          className="mt-4 rounded-[var(--radius-card)] bg-[var(--alert)]/10 px-4 py-3 text-sm text-[var(--text-primary)]"
+        >
           {note}
         </p>
       )}
 
       {/* ── The numbers ─────────────────────────────────────────────────── */}
-      <section className="mt-8">
-        <h2 className="text-sm font-extrabold tracking-[0.08em]">THE NUMBERS</h2>
+      <section hidden={workspace !== "overview"} className="mt-8">
+        <h2 className="text-sm font-extrabold tracking-[0.08em]">
+          THE NUMBERS
+        </h2>
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Stat label="ACCOUNTS" value={stats.accounts} />
           <Stat label="NEW · 7 DAYS" value={stats.newWeek} />
@@ -1005,14 +1209,22 @@ export default function AdminPage() {
             sub="paid, gifted, seats and admins"
           />
           <Stat
-            label="REVENUE / MONTH"
+            label="ESTIMATED MRR"
             value={stats.proPaid === undefined ? undefined : mrr}
             display={stats.proPaid === undefined ? undefined : formatPrice(mrr)}
             sub={`${stats.proMonthly ?? 0} monthly · ${stats.proYearly ?? 0} yearly${
-              stats.proUnknownPlan ? ` · ${stats.proUnknownPlan} unknown plan` : ""
+              stats.proUnknownPlan
+                ? ` · ${stats.proUnknownPlan} unknown plan`
+                : ""
             }`}
           />
-          <Stat label="CHAPTERS" value={stats.chaptersActive} sub={stats.chaptersComp ? `${stats.chaptersComp} comped` : undefined} />
+          <Stat
+            label="CHAPTERS"
+            value={stats.chaptersActive}
+            sub={
+              stats.chaptersComp ? `${stats.chaptersComp} comped` : undefined
+            }
+          />
           <Stat label="SEATS FILLED" value={stats.chapterSeats} />
           <Stat label="ADMINS" value={stats.admins} />
         </div>
@@ -1031,7 +1243,11 @@ export default function AdminPage() {
           <Stat
             label="COMPANIES"
             value={stats.companies}
-            sub={stats.savesAlive !== undefined ? `${stats.savesAlive} still alive` : undefined}
+            sub={
+              stats.savesAlive !== undefined
+                ? `${stats.savesAlive} still alive`
+                : undefined
+            }
           />
           <Stat
             label="PLAYERS PLAYING"
@@ -1053,7 +1269,11 @@ export default function AdminPage() {
           <Stat
             label="BOARD ENTRIES"
             value={stats.boardEntries}
-            sub={stats.boardListed !== undefined ? `${stats.boardListed} listed` : undefined}
+            sub={
+              stats.boardListed !== undefined
+                ? `${stats.boardListed} listed`
+                : undefined
+            }
           />
           <Stat label="BOARD · QUEUE" value={stats.boardQueue} />
         </div>
@@ -1064,9 +1284,14 @@ export default function AdminPage() {
             </summary>
             <ul className="mt-2">
               {auditTail.map((a, i) => (
-                <li key={i} className="border-t border-[var(--hairline)] py-2 text-2xs leading-relaxed text-[var(--text-secondary)]">
-                  <span className="tnum">{day(a.created_at)}</span> · <span className="font-bold">{a.action}</span>
-                  {a.target_email ? ` → ${a.target_email}` : ""} · by {a.actor_email ?? "?"}
+                <li
+                  key={i}
+                  className="border-t border-[var(--hairline)] py-2 text-2xs leading-relaxed text-[var(--text-secondary)]"
+                >
+                  <span className="tnum">{day(a.created_at)}</span> ·{" "}
+                  <span className="font-bold">{a.action}</span>
+                  {a.target_email ? ` → ${a.target_email}` : ""} · by{" "}
+                  {a.actor_email ?? "?"}
                 </li>
               ))}
             </ul>
@@ -1075,15 +1300,103 @@ export default function AdminPage() {
       </section>
 
       {/* ── The charts ──────────────────────────────────────────────────── */}
-      <section className="mt-8">
-        <h2 className="text-sm font-extrabold tracking-[0.08em]">THE CHARTS</h2>
+      <section hidden={workspace !== "analytics"} className="mt-8">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-xl font-extrabold">Analytics</h2>
+          <div
+            role="group"
+            aria-label="Daily chart range"
+            className="admin-chart-toggle"
+          >
+            {[7, 30, 60].map((days) => (
+              <button
+                key={days}
+                aria-pressed={range === days}
+                onClick={() => setRange(days)}
+              >
+                {days} days
+              </button>
+            ))}
+          </div>
+        </div>
+        <p className="mt-2 text-sm text-[var(--text-secondary)]">
+          Daily charts follow the selected range. Cohorts cover 12 signup weeks;
+          activity and subscription breakdowns show the current position.
+        </p>
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Stat
+            label="SIGNUPS IN WINDOW"
+            value={
+              updatedAt && !unavailable.includes("series")
+                ? signupBars.reduce((n, d) => n + d.value, 0)
+                : undefined
+            }
+          />
+          <Stat
+            label="BOARD ENTRIES IN WINDOW"
+            value={
+              updatedAt && !unavailable.includes("series")
+                ? submissionBars.reduce((n, d) => n + d.value, 0)
+                : undefined
+            }
+          />
+          <Stat
+            label="DAYS WITH SNAPSHOTS"
+            value={
+              updatedAt && !unavailable.includes("series")
+                ? trackedLines.filter((d) => d.a != null || d.b != null).length
+                : undefined
+            }
+            sub={`of ${visibleSeries.length} days; missing days stay unknown`}
+          />
+          <Stat
+            label="SUBSCRIBERS"
+            value={stats.proPaid}
+            sub="current access and billing records"
+          />
+        </div>
         <div className="mt-3 grid grid-cols-1 gap-4 lg:grid-cols-2">
           <ChartShell
+            title="SUBSCRIPTION MIX"
+            unavailable={!updatedAt}
+            note="Current paid-access accounts by plan. Unknown plans are separate; this is not a revenue ledger."
+            table={{
+              head: ["Plan", "Accounts"],
+              rows: [
+                ["Monthly", stats.proMonthly ?? "—"],
+                ["Yearly", stats.proYearly ?? "—"],
+                ["Unknown", stats.proUnknownPlan ?? "—"],
+              ],
+            }}
+          >
+            <RecencyBars
+              label="Paid-access accounts by plan"
+              buckets={[
+                {
+                  label: "Monthly",
+                  value: stats.proMonthly ?? 0,
+                  color: "var(--viz-1)",
+                },
+                {
+                  label: "Yearly",
+                  value: stats.proYearly ?? 0,
+                  color: "var(--viz-2)",
+                },
+                {
+                  label: "Unknown",
+                  value: stats.proUnknownPlan ?? 0,
+                  color: "var(--viz-r3)",
+                },
+              ]}
+            />
+          </ChartShell>
+          <ChartShell
             title="SIGNUPS / DAY"
-            note="Accounts created, last 60 days."
+            unavailable={!updatedAt || unavailable.includes("series")}
+            note={`Accounts created, last ${range} days (UTC).`}
             table={{
               head: ["day", "signups"],
-              rows: signupBars.filter((d) => d.value > 0).map((d) => [d.day, d.value]).reverse(),
+              rows: signupBars.map((d) => [d.day, d.value]).reverse(),
             }}
           >
             <DailyBars data={signupBars} />
@@ -1091,6 +1404,7 @@ export default function AdminPage() {
 
           <ChartShell
             title="ACTIVE PLAYERS & RUNS / DAY"
+            unavailable={!updatedAt || unavailable.includes("series")}
             note="Counted on each console visit — days nobody opened the console show as gaps, not zeros."
             legend={[
               { swatch: "var(--viz-1)", label: "active players" },
@@ -1109,27 +1423,50 @@ export default function AdminPage() {
 
           <ChartShell
             title="RETENTION BY SIGNUP WEEK"
+            unavailable={!updatedAt || unavailable.includes("cohorts")}
             note="Of each week's signups, the share seen again at least 7 and 30 days later. A dot means the cohort is too young to answer."
             legend={[
               { swatch: "var(--viz-1)", label: "back after 7d" },
               { swatch: "var(--viz-2)", label: "back after 30d" },
             ]}
             table={{
-              head: ["week", "cohort", "7d", "30d"],
+              head: ["Week", "Signups", "7d retained", "30d retained"],
               rows: cohorts
-                .map((c) => [c.week, c.cohort, `${c.retained_7}`, `${c.retained_30}`])
+                .map((c, i) => [
+                  c.week,
+                  c.cohort,
+                  retentionBars[i].a == null
+                    ? "Not yet eligible"
+                    : `${retentionBars[i].a}% (${c.retained_7})`,
+                  retentionBars[i].b == null
+                    ? "Not yet eligible"
+                    : `${retentionBars[i].b}% (${c.retained_30})`,
+                ])
                 .reverse(),
             }}
           >
-            <WeeklyPercentBars data={retentionBars} aLabel="back after 7d" bLabel="back after 30d" />
+            <WeeklyPercentBars
+              data={retentionBars}
+              aLabel="back after 7d"
+              bLabel="back after 30d"
+            />
           </ChartShell>
 
           <ChartShell
             title="BOUNCE RATE BY SIGNUP WEEK"
+            unavailable={!updatedAt || unavailable.includes("cohorts")}
             note="Signed up and never seen again after their first day. Lower is better."
             table={{
               head: ["week", "cohort", "bounced"],
-              rows: cohorts.map((c) => [c.week, c.cohort, c.bounced]).reverse(),
+              rows: cohorts
+                .map((c, i) => [
+                  c.week,
+                  c.cohort,
+                  bounceBars[i].a == null
+                    ? "Not yet eligible"
+                    : `${bounceBars[i].a}% (${c.bounced})`,
+                ])
+                .reverse(),
             }}
           >
             <WeeklyPercentBars data={bounceBars} aLabel="bounced" />
@@ -1137,21 +1474,26 @@ export default function AdminPage() {
 
           <ChartShell
             title="WHEN PLAYERS WERE LAST SEEN"
+            unavailable={!updatedAt}
             note="Every account, by how recently it was seen — sign-ins, saves, and settings all count as seen."
             table={{
               head: ["bucket", "accounts"],
               rows: recencyBuckets.map((b) => [b.label, b.value]),
             }}
           >
-            <RecencyBars buckets={recencyBuckets} />
+            <RecencyBars
+              label="Accounts by last activity"
+              buckets={recencyBuckets}
+            />
           </ChartShell>
 
           <ChartShell
             title="BOARD ENTRIES / DAY"
-            note="Leaderboard submissions, last 60 days."
+            unavailable={!updatedAt || unavailable.includes("series")}
+            note={`Leaderboard submissions, last ${range} days (UTC).`}
             table={{
               head: ["day", "entries"],
-              rows: submissionBars.filter((d) => d.value > 0).map((d) => [d.day, d.value]).reverse(),
+              rows: submissionBars.map((d) => [d.day, d.value]).reverse(),
             }}
           >
             <DailyBars data={submissionBars} />
@@ -1160,11 +1502,15 @@ export default function AdminPage() {
       </section>
 
       {/* ── Billing, and where its two records disagree ─────────────────── */}
-      <section className="mt-8">
+      <section hidden={workspace !== "billing"} className="mt-8">
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="text-sm font-extrabold tracking-[0.08em]">BILLING</h2>
           <p className="tnum text-2xs font-bold text-[var(--text-tertiary)]">
-            {mismatches.length === 0 ? "NOTHING TO FIX" : `${mismatches.length} TO CHECK`}
+            {!updatedAt || statsError || unavailable.includes("billing")
+              ? "NOT LOADED"
+              : mismatches.length === 0
+                ? "NO MISMATCHES"
+                : `${mismatches.length} LOADED / ${stats.billingMismatch ?? mismatches.length} TO CHECK`}
           </p>
         </div>
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -1179,204 +1525,308 @@ export default function AdminPage() {
             value={stats.notBilled}
             sub="access is on; Stripe has nothing live"
           />
-          <Stat label="CANCELLING" value={stats.cancelling} sub="Pro until the period ends" />
-          <Stat label="PAST DUE" value={stats.pastDue} tone="alert" sub="a card Stripe is retrying" />
+          <Stat
+            label="CANCELLING"
+            value={stats.cancelling}
+            sub="Pro until the period ends"
+          />
+          <Stat
+            label="PAST DUE"
+            value={stats.pastDue}
+            tone="alert"
+            sub="a card Stripe is retrying"
+          />
         </div>
 
-        {mismatches.length === 0 ? (
+        {!updatedAt || statsError || unavailable.includes("billing") ? (
+          <p className="mt-4 text-sm">
+            Billing checks are unavailable. Refresh before drawing conclusions.
+          </p>
+        ) : mismatches.length === 0 ? (
           <p className="mt-3 rounded-[var(--radius-card)] bg-[var(--n-2)] px-4 py-6 text-sm leading-relaxed text-[var(--text-secondary)]">
-            Every account&rsquo;s entitlement agrees with its Stripe subscription.
-            Nothing to reconcile.
+            Every account&rsquo;s entitlement agrees with its Stripe
+            subscription. Nothing to reconcile.
           </p>
         ) : (
           <>
             <p className="mt-3 text-2xs leading-relaxed text-[var(--text-tertiary)]">
-              <b>PAYING &amp; NOT PRO</b> is the one that costs a player money for
-              nothing: Stripe is charging the card and the entitlement never
+              <b>PAYING &amp; NOT PRO</b> is the one that costs a player money
+              for nothing: Stripe is charging the card and the entitlement never
               landed, which is what a missed webhook looks like from this side.
               RECONCILE asks Stripe what is true and writes it down — it grants
               nothing Stripe is not already charging for, and it will take Pro
               back if the subscription has ended.
             </p>
-            <ul className="mt-2">
+            <AdminTable
+              label="Billing mismatches"
+              columns={[
+                "Account",
+                "Issue",
+                "Subscription",
+                "Period end",
+                "Manage",
+              ]}
+            >
               {mismatches.map((m) => (
-                <li
-                  key={m.id}
-                  className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[var(--hairline)] py-3"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="tnum truncate text-sm font-extrabold">
-                      {m.email ?? "(no email)"}
-                    </p>
-                    <p className="tnum text-2xs text-[var(--text-tertiary)]">
+                <tr key={m.id}>
+                  <AdminCell label="Account" primary>
+                    <b>{m.email ?? "No email"}</b>
+                  </AdminCell>
+                  <AdminCell label="Issue">
+                    <Badge tone="alert">
                       {m.kind === "stripe-not-granted"
-                        ? `Stripe says ${m.subscription_status ?? "?"} · entitlement says no Pro`
-                        : `Entitlement says Pro · Stripe says ${m.subscription_status ?? "nothing live"}`}
-                      {m.plan ? ` · ${m.plan}` : ""}
-                      {m.current_period_end ? ` · until ${day(m.current_period_end)}` : ""}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    {m.kind === "stripe-not-granted" && <Badge tone="alert">PAYING, NO PRO</Badge>}
-                    <button
-                      type="button"
-                      onClick={() => openAccount(m.id, m.email)}
-                      className="rounded-full border border-[var(--hairline)] px-3 py-1.5 text-2xs font-bold tracking-[0.08em] text-[var(--text-secondary)]"
-                    >
-                      OPEN
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void reconcile(m.id)}
-                      disabled={busy !== null}
-                      className="nv-gc rounded-full px-3 py-1.5 text-2xs font-bold tracking-[0.08em] text-[var(--text-secondary)] disabled:opacity-35"
-                    >
-                      {busy === `reconcile:${m.id}` ? "…" : "RECONCILE"}
-                    </button>
-                  </div>
-                </li>
+                        ? "PAYING, NO PRO"
+                        : "PRO, NOT BILLED"}
+                    </Badge>
+                  </AdminCell>
+                  <AdminCell label="Subscription">
+                    {m.subscription_status ?? "No live subscription"}
+                    <p className="text-xs">{m.plan ?? "Unknown plan"}</p>
+                  </AdminCell>
+                  <AdminCell label="Period end">
+                    {day(m.current_period_end)}
+                  </AdminCell>
+                  <AdminCell label="Manage">
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        className={adminButton}
+                        onClick={() => openAccount(m.id, m.email)}
+                      >
+                        Open account
+                      </button>
+                      <button
+                        className={adminButton}
+                        disabled={busy !== null}
+                        onClick={() => void reconcile(m.id)}
+                      >
+                        {busy === `reconcile:${m.id}`
+                          ? "Reconciling…"
+                          : "Reconcile"}
+                      </button>
+                    </div>
+                  </AdminCell>
+                </tr>
               ))}
-            </ul>
+            </AdminTable>
           </>
         )}
       </section>
 
+      <section hidden={workspace !== "billing"} className="mt-6">
+        <h3 className="font-bold">Investigate accounts</h3>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {(
+            [
+              ["not-granted", "Paying, no Pro"],
+              ["not-billed", "Pro, no billing"],
+              ["cancelling", "Cancelling"],
+              ["past-due", "Past due"],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              className={adminButton}
+              onClick={() => {
+                setFilters([id]);
+                setQ("");
+                setSearch("");
+                setPage(0);
+                setWorkspace("accounts");
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="mt-8">
+          {workspace === "billing" && (
+            <AuditWorkspace refreshKey={refreshKey} billingOnly />
+          )}
+        </div>
+      </section>
+      <section hidden={workspace !== "enterprises"} className="mt-6">
+        {workspace === "enterprises" && (
+          <EnterpriseWorkspace
+            onAccount={openAccount}
+            onRevoke={(id) => void revokeChapter(id)}
+            busy={busy !== null}
+            refreshKey={refreshKey}
+          />
+        )}
+      </section>
+      <section hidden={workspace !== "audit"} className="mt-6">
+        {workspace === "audit" && <AuditWorkspace refreshKey={refreshKey} />}
+      </section>
+
       {/* ── The companies ───────────────────────────────────────────────── */}
       {topCompanies.length > 0 && (
-        <section className="mt-8">
+        <section hidden={workspace !== "analytics"} className="mt-8">
           <div className="flex items-baseline justify-between gap-3">
-            <h2 className="text-sm font-extrabold tracking-[0.08em]">THE BIGGEST COMPANIES</h2>
+            <h2 className="text-sm font-extrabold tracking-[0.08em]">
+              THE BIGGEST COMPANIES
+            </h2>
             <p className="tnum text-2xs font-bold text-[var(--text-tertiary)]">
               BY PEAK VALUATION
             </p>
           </div>
-          <ul className="mt-3">
+          <AdminTable
+            label="Biggest companies"
+            numericColumns={["Current value", "Peak value"]}
+            columns={[
+              "Company / owner",
+              "Industry",
+              "Progress",
+              "Current value",
+              "Peak value",
+              "Manage",
+            ]}
+          >
             {topCompanies.map((c, i) => (
-              <li
-                key={`${c.profile_id}-${c.company_name}-${i}`}
-                className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-[var(--hairline)] py-2.5"
-              >
-                <p className="tnum w-6 shrink-0 text-2xs font-bold text-[var(--text-tertiary)]">
-                  {i + 1}
-                </p>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-extrabold">
-                    {c.company_name}{" "}
-                    <span className="font-normal text-[var(--text-secondary)]">
-                      {c.board_handle ?? c.email ?? "—"}
-                    </span>
-                  </p>
-                  <p className="tnum text-2xs text-[var(--text-tertiary)]">
-                    {c.industry} · year {c.year} · stage {c.stage} ·{" "}
-                    {c.alive ? "alive" : "ended"} · saved {day(c.updated_at)}
-                  </p>
-                </div>
-                <div className="shrink-0 text-right">
-                  <p className="tnum text-sm font-extrabold">{money(c.peak_valuation)}</p>
-                  <p className="tnum text-2xs text-[var(--text-tertiary)]">
-                    {c.alive ? `${money(c.valuation)} now` : "peak"}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => openAccount(c.profile_id, c.email)}
-                  className="shrink-0 rounded-full border border-[var(--hairline)] px-3 py-1.5 text-2xs font-bold tracking-[0.08em] text-[var(--text-secondary)]"
-                >
-                  OWNER
-                </button>
-              </li>
+              <tr key={`${c.profile_id}-${i}`}>
+                <AdminCell label="Company / owner" primary>
+                  <b>
+                    {i + 1}. {c.company_name}
+                  </b>
+                  <p className="text-xs">{c.board_handle ?? c.email ?? "—"}</p>
+                </AdminCell>
+                <AdminCell label="Industry">{c.industry}</AdminCell>
+                <AdminCell label="Progress">
+                  Year {c.year} · stage {c.stage}
+                  <p className="text-xs">{c.alive ? "Active" : "Ended"}</p>
+                </AdminCell>
+                <AdminCell label="Current value" numeric>
+                  {money(c.valuation)}
+                </AdminCell>
+                <AdminCell label="Peak value" numeric>
+                  <b>{money(c.peak_valuation)}</b>
+                </AdminCell>
+                <AdminCell label="Manage">
+                  <button
+                    className={adminButton}
+                    onClick={() => openAccount(c.profile_id, c.email)}
+                  >
+                    Owner
+                  </button>
+                </AdminCell>
+              </tr>
             ))}
-          </ul>
+          </AdminTable>
         </section>
       )}
 
       {/* ── Accounts ────────────────────────────────────────────────────── */}
-      <section className="mt-8">
+      <section hidden={workspace !== "accounts"} className="mt-8">
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="text-sm font-extrabold tracking-[0.08em]">ACCOUNTS</h2>
           <p className="tnum text-2xs font-bold text-[var(--text-tertiary)]">
-            {shown.length < users.length
-              ? `${shown.length} OF ${users.length} SHOWN`
-              : users.length < total
-                ? `SHOWING ${users.length} OF ${total}`
-                : `${total} FOUND`}
+            {usersLoading
+              ? "LOADING…"
+              : usersError
+                ? "UNAVAILABLE"
+                : `${total.toLocaleString()} MATCHING ACCOUNTS`}
           </p>
         </div>
         <form
-          className="mt-3 grid grid-cols-[1fr_auto] gap-2"
+          className="mt-4 flex gap-2"
           onSubmit={(e) => {
             e.preventDefault();
-            void loadUsers(q);
+            setSearch(q);
+            setPage(0);
+            if (q === search) void loadUsers(search, filters, sort, 0);
           }}
         >
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="email, name, or profile id"
-            spellCheck={false}
-            className="tnum block w-full rounded-[var(--radius-row)] border border-[var(--hairline)] bg-transparent px-3 py-2.5 text-sm placeholder:text-[var(--n-6)] focus:border-[var(--n-11)] focus-visible:outline-none!"
-          />
-          <button
-            type="submit"
-            disabled={busy !== null}
-            className="nv-gc h-11 rounded-[var(--radius-pill)] px-5 text-2xs font-bold tracking-[0.1em] text-[var(--text-secondary)] disabled:opacity-35"
-          >
-            SEARCH
+          <label className="min-w-0 flex-1">
+            <span className="sr-only">Search accounts</span>
+            <input
+              aria-label="Search accounts"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Email, name, board handle or profile ID"
+              spellCheck={false}
+              className={adminField}
+            />
+          </label>
+          <button className={adminButton} disabled={busy !== null}>
+            Search
           </button>
         </form>
-
-        {/* ── The lens ───────────────────────────────────────────────────
-            Applied here rather than in the query: the search already brought
-            back everything it matched, and a round trip to re-sort a list
-            that is already in memory is a spinner nobody needed to see. */}
-        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+        <div
+          className="mt-3 flex flex-wrap gap-2"
+          role="group"
+          aria-label="Account filters, combined with AND"
+        >
           {FILTERS.map((f) => (
             <button
               key={f.id}
               type="button"
-              onClick={() => setFilter(f.id)}
-              className={`rounded-full px-3 py-1.5 text-2xs font-bold tracking-[0.08em] ${
-                filter === f.id
-                  ? "bg-[var(--text-primary)] text-[var(--n-1)]"
-                  : "nv-gc text-[var(--text-secondary)]"
-              }`}
+              aria-pressed={
+                f.id === "all" ? filters.length === 0 : filters.includes(f.id)
+              }
+              onClick={() => {
+                setFilters(
+                  f.id === "all"
+                    ? []
+                    : filters.includes(f.id)
+                      ? filters.filter((id) => id !== f.id)
+                      : [...filters, f.id],
+                );
+                setPage(0);
+              }}
+              className={`admin-filter ${adminButton} ${(f.id === "all" ? !filters.length : filters.includes(f.id)) ? "ring-2 ring-[var(--text-primary)]" : ""}`}
             >
               {f.label}
-              {f.id !== "all" && (
-                <span className="tnum ml-1.5 opacity-60">
-                  {users.filter((u) => matchesFilter(u, f.id)).length}
-                </span>
-              )}
             </button>
           ))}
         </div>
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          <p className="text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]">SORT</p>
-          {SORTS.map((o) => (
-            <button
-              key={o.id}
-              type="button"
-              onClick={() => setSort(o.id)}
-              className={`rounded-full px-3 py-1.5 text-2xs font-bold tracking-[0.08em] ${
-                sort === o.id
-                  ? "bg-[var(--text-primary)] text-[var(--n-1)]"
-                  : "nv-gc text-[var(--text-secondary)]"
-              }`}
+        <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
+          <label className="text-xs font-bold">
+            Sort by
+            <select
+              aria-label="Sort accounts"
+              className={`${adminField} mt-1`}
+              value={sort}
+              onChange={(e) => {
+                setSort(e.target.value as Sort);
+                setPage(0);
+              }}
             >
-              {o.label}
-            </button>
-          ))}
+              {SORTS.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
           <button
-            type="button"
+            className={adminButton}
+            disabled={busy !== null || usersLoading || !!usersError}
             onClick={() => void exportCsv()}
-            disabled={busy !== null}
-            className="ml-auto rounded-full border border-[var(--hairline)] px-3 py-1.5 text-2xs font-bold tracking-[0.08em] text-[var(--text-secondary)] disabled:opacity-35"
           >
-            {busy === "export" ? "…" : "EXPORT CSV"}
+            {busy === "export" ? "Exporting…" : "Export all matches"}
           </button>
         </div>
-
-        {shown.length === 0 && (
+        <p className="mt-3 text-xs text-[var(--text-secondary)]">
+          Filters match all selected conditions across all accounts.{" "}
+          {filters.length ? `Active: ${filters.join(", ")}.` : "All accounts."}{" "}
+          Exports include every matching page, up to 10,000 accounts.
+        </p>
+        {usersLoading && (
+          <p className="py-6 text-sm" role="status">
+            Loading accounts…
+          </p>
+        )}
+        {usersError && (
+          <div className="mt-4" role="alert">
+            {usersError}
+            <button
+              className={`${adminButton} ml-2`}
+              onClick={() => void loadUsers(search, filters, sort, page)}
+            >
+              Retry
+            </button>
+          </div>
+        )}
+        {!usersLoading && !usersError && shown.length === 0 && (
           <p className="mt-3 rounded-[var(--radius-card)] bg-[var(--n-2)] px-4 py-6 text-sm leading-relaxed text-[var(--text-secondary)]">
             {users.length === 0
               ? "No account matches that search."
@@ -1384,151 +1834,262 @@ export default function AdminPage() {
           </p>
         )}
 
-        <ul className="mt-3">
-          {shown.map((u) => (
-            <li key={u.id} className="border-t border-[var(--hairline)]">
-              <button
-                type="button"
-                className="flex w-full flex-wrap items-center gap-x-4 gap-y-1 py-3 text-left"
-                onClick={() => {
-                  if (openId === u.id) {
-                    setOpenId(null);
-                    setDetail(null);
-                  } else {
-                    setOpenId(u.id);
-                    setDetail(null);
-                    void loadDetail(u.id);
-                  }
-                }}
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="tnum truncate text-sm font-extrabold">
-                    {u.email ?? (u.anonymous ? "(anonymous)" : "(no email)")}
-                  </p>
-                  <p className="text-2xs text-[var(--text-tertiary)]">
-                    {u.displayName ? `${u.displayName} · ` : ""}
-                    {u.boardHandle ? `${u.boardHandle} · ` : ""}
-                    joined {day(u.createdAt)} · seen {day(u.lastSeen ?? u.lastSignInAt)}
-                  </p>
-                  {/*
-                    What the account has DONE, on the row rather than three
-                    taps into a panel. The directory used to say only who
-                    somebody had paid to be.
-                  */}
-                  <p className="tnum text-2xs text-[var(--text-secondary)]">
-                    {u.runsCompleted} {u.runsCompleted === 1 ? "run" : "runs"} ·{" "}
-                    {u.companies} {u.companies === 1 ? "company" : "companies"}
-                    {u.companiesAlive > 0 ? ` (${u.companiesAlive} alive)` : ""}
-                    {u.topCompany ? ` · ${u.topCompany} ${money(u.topValuation)}` : ""}
-                    {u.boardEntries > 0 ? ` · ${u.boardEntries} on the board` : ""}
-                  </p>
-                </div>
-                <div className="flex shrink-0 flex-wrap gap-1.5">
-                  {u.role === "admin" && <Badge tone="prestige">ADMIN</Badge>}
-                  {/* PAID, not `pro`: the badge follows the same union the
+        {!usersLoading && !usersError && (
+          <>
+            <PageControls
+              page={page}
+              total={total}
+              loading={usersLoading}
+              onPage={setPage}
+            />
+            <AdminTable
+              label="Account directory"
+              numericColumns={["Peak valuation"]}
+              columns={[
+                "Account",
+                "Access",
+                "Activity",
+                "Peak valuation",
+                "Last seen",
+              ]}
+            >
+              {shown.map((u) => (
+                <Fragment key={u.id}>
+                  <tr>
+                    <AdminCell label="Account" primary>
+                      <button
+                        className="admin-account-button"
+                        aria-expanded={openId === u.id}
+                        onClick={() => {
+                          if (openId === u.id) {
+                            setOpenId(null);
+                            setDetail(null);
+                            detailRequest.current++;
+                          } else {
+                            setOpenId(u.id);
+                            setDetail(null);
+                            void loadDetail(u.id);
+                          }
+                        }}
+                      >
+                        {u.email ??
+                          (u.anonymous ? "Anonymous account" : "No email")}{" "}
+                        <span aria-hidden="true">
+                          {openId === u.id ? "−" : "+"}
+                        </span>
+                      </button>
+                      <p className="text-xs text-[var(--text-secondary)]">
+                        {u.displayName}
+                        {u.boardHandle ? ` · ${u.boardHandle}` : ""}
+                      </p>
+                      <p className="text-xs text-[var(--text-secondary)]">
+                        Joined {day(u.createdAt)}
+                      </p>
+                    </AdminCell>
+                    <AdminCell label="Access">
+                      <div className="flex flex-wrap gap-1.5">
+                        {" "}
+                        {u.role === "admin" && (
+                          <Badge tone="prestige">ADMIN</Badge>
+                        )}
+                        {/* PAID, not `pro`: the badge follows the same union the
                       tile does, so an account Stripe is charging reads as
                       paying even while its entitlement flag lags. */}
-                  {u.paid && <Badge tone="good">PAID</Badge>}
-                  {u.billingMismatch === "stripe-not-granted" && (
-                    <Badge tone="alert">PAYING, NO PRO</Badge>
+                        {u.paid && <Badge tone="good">PAID</Badge>}
+                        {u.billingMismatch === "stripe-not-granted" && (
+                          <Badge tone="alert">PAYING, NO PRO</Badge>
+                        )}
+                        {u.billingMismatch === "granted-not-billed" && (
+                          <Badge tone="alert">UNBILLED</Badge>
+                        )}
+                        {u.cancelAtPeriodEnd && <Badge>CANCELLING</Badge>}
+                        {u.compPro && <Badge tone="good">GIFTED</Badge>}
+                        {u.chapter && <Badge>SEAT</Badge>}
+                        {u.ownsChapter?.status === "active" && (
+                          <Badge
+                            tone={
+                              u.ownsChapter.source === "comp"
+                                ? "good"
+                                : undefined
+                            }
+                          >
+                            {u.ownsChapter.source === "comp"
+                              ? "COMP CHAPTER"
+                              : "CHAPTER"}
+                          </Badge>
+                        )}
+                        {u.industryPacks.length > 0 && (
+                          <Badge>{u.industryPacks.length} PACKS</Badge>
+                        )}
+                        {!u.effectivePro && <Badge>FREE</Badge>}
+                      </div>
+                    </AdminCell>
+                    <AdminCell label="Activity">
+                      <b className="tnum">{u.runsCompleted} runs</b>
+                      <p className="text-xs">
+                        {u.companiesAlive} live / {u.companies} companies
+                      </p>
+                      <p className="text-xs">{u.boardEntries} board entries</p>
+                    </AdminCell>
+                    <AdminCell label="Peak valuation" numeric>
+                      <b>{money(u.topValuation)}</b>
+                      <p className="text-xs">{u.topCompany ?? "No company"}</p>
+                    </AdminCell>
+                    <AdminCell label="Last seen">
+                      {day(u.lastSeen ?? u.lastSignInAt)}
+                      {u.cancelAtPeriodEnd && (
+                        <p className="mt-1 text-xs">
+                          Period ends {day(u.currentPeriodEnd)}
+                        </p>
+                      )}
+                    </AdminCell>
+                  </tr>
+                  {openId === u.id && (
+                    <tr className="admin-detail-row">
+                      <td colSpan={5}>
+                        {!detail ? (
+                          <div>
+                            <p
+                              className="text-sm"
+                              role={detailError ? "alert" : "status"}
+                            >
+                              {detailError ?? "Reading account…"}
+                            </p>
+                            <button
+                              className={adminButton}
+                              onClick={() => void loadDetail(u.id)}
+                            >
+                              Retry account
+                            </button>
+                          </div>
+                        ) : (
+                          <DetailPanel
+                            detail={detail}
+                            busy={busy}
+                            self={u.id === selfId}
+                            onSetRole={(role) => void setRole(u.id, role)}
+                            onGiftPro={(until) => void giftPro(u.id, until)}
+                            onSetBeta={(active) => void setBeta(u.id, active)}
+                            onRevokePro={() => void revokePro(u.id)}
+                            onTogglePack={(code, grant) =>
+                              void togglePack(u.id, code, grant)
+                            }
+                            onSetIslands={(n) => void setIslands(u.id, n)}
+                            onSetYearCloses={(n) => void setYearCloses(u.id, n)}
+                            onGrantChapter={(licence, seats) =>
+                              void grantChapter(u.id, licence, seats)
+                            }
+                            onRevokeChapter={(cid) => void revokeChapter(cid)}
+                            onReconcile={() => void reconcile(u.id)}
+                            onDelete={() => void deleteAccount(u.id)}
+                          />
+                        )}
+                      </td>
+                    </tr>
                   )}
-                  {u.billingMismatch === "granted-not-billed" && <Badge tone="alert">UNBILLED</Badge>}
-                  {u.cancelAtPeriodEnd && <Badge>CANCELLING</Badge>}
-                  {u.compPro && <Badge tone="good">GIFTED</Badge>}
-                  {u.chapter && <Badge>SEAT</Badge>}
-                  {u.ownsChapter?.status === "active" && (
-                    <Badge tone={u.ownsChapter.source === "comp" ? "good" : undefined}>
-                      {u.ownsChapter.source === "comp" ? "COMP CHAPTER" : "CHAPTER"}
-                    </Badge>
-                  )}
-                  {u.industryPacks.length > 0 && <Badge>{u.industryPacks.length} PACKS</Badge>}
-                </div>
-              </button>
-
-              {openId === u.id && (
-                <div className="mb-4 rounded-[var(--radius-card)] bg-[var(--n-2)] p-4">
-                  {!detail ? (
-                    <p className="text-sm text-[var(--text-secondary)]">Reading…</p>
-                  ) : (
-                    <DetailPanel
-                      detail={detail}
-                      busy={busy}
-                      self={u.id === selfId}
-                      onSetRole={(role) => void setRole(u.id, role)}
-                      onGiftPro={(until) => void giftPro(u.id, until)}
-                      onSetBeta={(active) => void setBeta(u.id, active)}
-                      onRevokePro={() => void revokePro(u.id)}
-                      onTogglePack={(code, grant) => void togglePack(u.id, code, grant)}
-                      onSetIslands={(n) => void setIslands(u.id, n)}
-                      onSetYearCloses={(n) => void setYearCloses(u.id, n)}
-                      onGrantChapter={(licence, seats) => void grantChapter(u.id, licence, seats)}
-                      onRevokeChapter={(cid) => void revokeChapter(cid)}
-                      onReconcile={() => void reconcile(u.id)}
-                      onDelete={() => void deleteAccount(u.id)}
-                    />
-                  )}
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
+                </Fragment>
+              ))}
+            </AdminTable>
+            <PageControls
+              page={page}
+              total={total}
+              loading={usersLoading}
+              onPage={setPage}
+            />
+          </>
+        )}
       </section>
 
       {/* ── Moderation ──────────────────────────────────────────────────── */}
-      <section className="mt-8">
+      <section hidden={workspace !== "moderation"} className="mt-8">
         <div className="flex items-baseline justify-between gap-3">
-          <h2 className="text-sm font-extrabold tracking-[0.08em]">BOARD QUEUE</h2>
+          <h2 className="text-sm font-extrabold tracking-[0.08em]">
+            BOARD QUEUE
+          </h2>
           <p className="tnum text-2xs font-bold text-[var(--text-tertiary)]">
-            {queue.length} WAITING
+            {queueLoading ? "…" : queue.length} LOADED
+            {stats.boardQueue !== undefined
+              ? ` / ${stats.boardQueue} waiting`
+              : ""}
           </p>
         </div>
-        {queue.length === 0 ? (
+        {queueLoading ? (
+          <p className="mt-4 text-sm" role="status">
+            Loading moderation queue…
+          </p>
+        ) : queueError ? (
+          <p role="alert" className="mt-4">
+            {queueError}
+            <button className={adminButton} onClick={() => void loadQueue()}>
+              Retry
+            </button>
+          </p>
+        ) : queue.length === 0 ? (
           <p className="mt-3 rounded-[var(--radius-card)] bg-[var(--n-2)] px-4 py-6 text-sm leading-relaxed text-[var(--text-secondary)]">
             Nothing waiting. New leaderboard names land here before anyone else
             sees them.
           </p>
         ) : (
-          <ul className="mt-3">
+          <AdminTable
+            label="Moderation queue"
+            numericColumns={["Reports"]}
+            columns={[
+              "Company / founder",
+              "Board",
+              "Performance",
+              "Reports",
+              "Decision",
+            ]}
+          >
             {queue.map((r) => (
-              <li key={r.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[var(--hairline)] py-3">
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-extrabold">
-                    {r.company_name} <span className="font-normal text-[var(--text-secondary)]">by {r.founder_display_name}</span>
+              <tr key={r.id}>
+                <AdminCell label="Company / founder" primary>
+                  <b>{r.company_name}</b>
+                  <p className="text-xs">{r.founder_display_name}</p>
+                  <p className="text-xs">Submitted {day(r.created_at)}</p>
+                </AdminCell>
+                <AdminCell label="Board">
+                  {r.board}
+                  <p className="text-xs">
+                    {r.season} · {r.industry}
                   </p>
-                  <p className="tnum text-2xs text-[var(--text-tertiary)]">
-                    {r.board} · {r.season} · {r.industry} · {r.years_survived} yrs
-                    {r.reports > 0 ? ` · ${r.reports} reports` : ""} · {day(r.created_at)}
-                  </p>
-                </div>
-                <div className="flex shrink-0 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => void decide(r.id, true)}
-                    disabled={busy !== null}
-                    className="nv-gc rounded-full px-3 py-1.5 text-2xs font-bold tracking-[0.08em] text-[var(--text-secondary)] disabled:opacity-35"
-                  >
-                    {busy === `mod:${r.id}` ? "…" : "LIST IT"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void decide(r.id, false)}
-                    disabled={busy !== null}
-                    className="rounded-full border border-[var(--hairline)] px-3 py-1.5 text-2xs font-bold tracking-[0.08em] text-[var(--alert)] disabled:opacity-35"
-                  >
-                    KEEP HIDDEN
-                  </button>
-                </div>
-              </li>
+                </AdminCell>
+                <AdminCell label="Performance">
+                  {r.years_survived} years
+                  <p className="tnum text-xs">{money(r.peak_valuation)} peak</p>
+                </AdminCell>
+                <AdminCell label="Reports" numeric>
+                  {r.reports}
+                </AdminCell>
+                <AdminCell label="Decision">
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      className={adminButton}
+                      disabled={busy !== null}
+                      onClick={() => void decide(r.id, true)}
+                    >
+                      List it
+                    </button>
+                    <button
+                      className={adminButton}
+                      disabled={busy !== null}
+                      onClick={() => void decide(r.id, false)}
+                    >
+                      Keep hidden
+                    </button>
+                  </div>
+                </AdminCell>
+              </tr>
             ))}
-          </ul>
+          </AdminTable>
         )}
       </section>
 
       <p className="mt-8 text-2xs leading-relaxed text-[var(--text-tertiary)]">
         Every grant, revoke and deletion here is written to the audit log. Gifts
-        never touch the paid flag, and nothing on this page can put a score,
-        a survival, a revive or a board place on any account — those are earned
-        or they are nothing.
+        never touch the paid flag, and nothing on this page can put a score, a
+        survival, a revive or a board place on any account — those are earned or
+        they are nothing.
       </p>
     </main>
   );
@@ -1553,14 +2114,16 @@ function Stat({
   tone?: "alert";
 }) {
   return (
-    <div className="rounded-[var(--radius-card)] bg-[var(--n-3)] px-4 py-3 shadow-[var(--e1)] ring-1 ring-[var(--hairline)]">
-      <p className="text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]">{label}</p>
+    <div className="admin-stat rounded-[var(--radius-card)] bg-[var(--n-3)] px-4 py-4 shadow-[var(--e1)] ring-1 ring-[var(--hairline)]">
+      <p className="text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]">
+        {label}
+      </p>
       <p
-        className={`tnum mt-1 text-xl font-extrabold ${
+        className={`admin-stat-value tnum mt-2 font-extrabold ${
           tone === "alert" && value ? "text-[var(--alert)]" : ""
         }`}
       >
-        {value === undefined ? "—" : (display ?? value)}
+        {value === undefined ? "—" : (display ?? value.toLocaleString())}
       </p>
       {sub && <p className="text-2xs text-[var(--text-tertiary)]">{sub}</p>}
     </div>
@@ -1583,7 +2146,9 @@ function Badge({
           ? "text-[var(--alert)]"
           : "text-[var(--text-tertiary)]";
   return (
-    <span className={`rounded-full border border-[var(--hairline)] px-2 py-0.5 text-2xs font-bold tracking-[0.08em] ${colour}`}>
+    <span
+      className={`rounded-full border border-[var(--hairline)] px-2 py-0.5 text-2xs font-bold tracking-[0.08em] ${colour}`}
+    >
       {children}
     </span>
   );
@@ -1620,8 +2185,12 @@ function DetailPanel({
   onReconcile: () => void;
   onDelete: () => void;
 }) {
-  const [islandsText, setIslandsText] = useState(String(detail.entitlements?.extra_islands ?? 0));
-  const [yearsText, setYearsText] = useState(String(detail.entitlements?.extra_year_closes ?? 0));
+  const [islandsText, setIslandsText] = useState(
+    String(detail.entitlements?.extra_islands ?? 0),
+  );
+  const [yearsText, setYearsText] = useState(
+    String(detail.entitlements?.extra_year_closes ?? 0),
+  );
   const [chapterSeatsText, setChapterSeatsText] = useState("");
   const [confirmText, setConfirmText] = useState("");
   // Promotion is armed by the same typed email the deletion is, and for the
@@ -1630,7 +2199,8 @@ function DetailPanel({
   const [promoteText, setPromoteText] = useState("");
 
   const e = detail.entitlements;
-  const compActive = !!e?.comp_pro && (!e.comp_until || new Date(e.comp_until) > new Date());
+  const compActive =
+    !!e?.comp_pro && (!e.comp_until || new Date(e.comp_until) > new Date());
   /*
    * The same union 0016's admin_access() computes, recomputed here from what
    * this panel already holds. The two records are shown SEPARATELY on the Pro
@@ -1640,13 +2210,14 @@ function DetailPanel({
   const stripeLive = ["active", "trialing", "past_due"].includes(
     detail.billing?.subscription_status ?? "",
   );
-  const mismatch: "stripe-not-granted" | "granted-not-billed" | null = stripeLive
-    ? e?.pro
-      ? null
-      : "stripe-not-granted"
-    : e?.pro
-      ? "granted-not-billed"
-      : null;
+  const mismatch: "stripe-not-granted" | "granted-not-billed" | null =
+    stripeLive
+      ? e?.pro
+        ? null
+        : "stripe-not-granted"
+      : e?.pro
+        ? "granted-not-billed"
+        : null;
   const companiesLiveValue = detail.saves.reduce(
     (sum, s) => sum + (s.alive ? s.valuation : 0),
     0,
@@ -1658,17 +2229,24 @@ function DetailPanel({
       ? PRO_LIMITS.yearClosesPerDay
       : FREE_LIMITS.yearClosesPerDay;
   const paceGranted = e?.extra_year_closes ?? 0;
-  const activeChapter = detail.ownedChapters.find((c) => c.status === "active") ?? null;
+  const activeChapter =
+    detail.ownedChapters.find((c) => c.status === "active") ?? null;
   const confirmNeeded = detail.user.email ?? "delete";
   const isAdmin = detail.user.role === "admin";
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 break-words">
       {/* The record */}
       <div className="grid gap-x-6 gap-y-1 text-2xs leading-relaxed text-[var(--text-secondary)] sm:grid-cols-2">
-        <p><b>Profile</b> · <span className="tnum">{detail.user.id}</span></p>
-        <p><b>Board handle</b> · {detail.user.boardHandle ?? "none"}</p>
-        <p><b>Privacy accepted</b> · {day(detail.user.acceptedPrivacyAt)}</p>
+        <p>
+          <b>Profile</b> · <span className="tnum">{detail.user.id}</span>
+        </p>
+        <p>
+          <b>Board handle</b> · {detail.user.boardHandle ?? "none"}
+        </p>
+        <p>
+          <b>Privacy accepted</b> · {day(detail.user.acceptedPrivacyAt)}
+        </p>
         <p>
           <b>Billing</b> ·{" "}
           {detail.billing
@@ -1679,20 +2257,23 @@ function DetailPanel({
             : ""}
         </p>
         <p>
-          <b>Pro</b> ·{" "}
-          {e?.pro ? "entitlement granted" : "entitlement off"}
+          <b>Pro</b> · {e?.pro ? "entitlement granted" : "entitlement off"}
           {stripeLive ? ", Stripe live" : ", Stripe not live"}
           {compActive ? ", gifted" : ""}
           {e?.chapter ? ", chapter seat" : ""}
         </p>
         {detail.legacy && (
           <p>
-            <b>Legacy</b> · best year {detail.legacy.best_year}, {detail.legacy.runs_completed} runs,
-            respect {detail.legacy.shark_respect}
+            <b>Legacy</b> · best year {detail.legacy.best_year},{" "}
+            {detail.legacy.runs_completed} runs, respect{" "}
+            {detail.legacy.shark_respect}
           </p>
         )}
         {detail.seat && (
-          <p><b>Seat</b> · in a chapter as {detail.seat.email}{detail.seat.claimed_at ? "" : " (unclaimed)"}</p>
+          <p>
+            <b>Seat</b> · in a chapter as {detail.seat.email}
+            {detail.seat.claimed_at ? "" : " (unclaimed)"}
+          </p>
         )}
       </div>
 
@@ -1728,11 +2309,15 @@ function DetailPanel({
           <ul className="mt-1 text-2xs leading-relaxed text-[var(--text-secondary)]">
             {detail.saves.map((s) => (
               <li key={s.slot} className="tnum">
-                <b>{s.company_name}</b> · {s.industry} · year {s.year}, stage {s.stage} ·{" "}
-                {s.alive ? "alive" : (s.ended_by ?? "ended")} ·{" "}
-                {s.alive ? `worth ${money(s.valuation)}` : `peaked at ${money(s.peak_valuation)}`}
-                {s.alive ? ` (peak ${money(s.peak_valuation)})` : ""} · cash {money(s.cash)}
-                {s.employees ? ` · ${s.employees} staff` : ""} · saved {day(s.updated_at)}
+                <b>{s.company_name}</b> · {s.industry} · year {s.year}, stage{" "}
+                {s.stage} · {s.alive ? "alive" : (s.ended_by ?? "ended")} ·{" "}
+                {s.alive
+                  ? `worth ${money(s.valuation)}`
+                  : `peaked at ${money(s.peak_valuation)}`}
+                {s.alive ? ` (peak ${money(s.peak_valuation)})` : ""} · cash{" "}
+                {money(s.cash)}
+                {s.employees ? ` · ${s.employees} staff` : ""} · saved{" "}
+                {day(s.updated_at)}
               </li>
             ))}
           </ul>
@@ -1741,12 +2326,14 @@ function DetailPanel({
 
       {detail.board.length > 0 && (
         <div>
-          <p className="text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]">BOARD ENTRIES</p>
+          <p className="text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]">
+            BOARD ENTRIES
+          </p>
           <ul className="mt-1 text-2xs leading-relaxed text-[var(--text-secondary)]">
             {detail.board.map((b) => (
               <li key={b.id} className="tnum">
-                {b.board} · {b.season} · {b.company_name} · {b.years_survived} yrs ·{" "}
-                {b.listed ? "listed" : "hidden"}
+                {b.board} · {b.season} · {b.company_name} · {b.years_survived}{" "}
+                yrs · {b.listed ? "listed" : "hidden"}
               </li>
             ))}
           </ul>
@@ -1764,9 +2351,15 @@ function DetailPanel({
               : ""}
         </p>
         <div className="mt-2 flex flex-wrap gap-2">
-          <Chip onClick={() => onGiftPro(inDays(30))} disabled={busy !== null}>30 DAYS</Chip>
-          <Chip onClick={() => onGiftPro(inDays(365))} disabled={busy !== null}>1 YEAR</Chip>
-          <Chip onClick={() => onGiftPro(null)} disabled={busy !== null}>FOREVER</Chip>
+          <Chip onClick={() => onGiftPro(inDays(30))} disabled={busy !== null}>
+            30 DAYS
+          </Chip>
+          <Chip onClick={() => onGiftPro(inDays(365))} disabled={busy !== null}>
+            1 YEAR
+          </Chip>
+          <Chip onClick={() => onGiftPro(null)} disabled={busy !== null}>
+            FOREVER
+          </Chip>
           {compActive && (
             <Chip onClick={onRevokePro} disabled={busy !== null} danger>
               REVOKE GIFT
@@ -1778,17 +2371,23 @@ function DetailPanel({
       {/* Briefcase tester tools */}
       <div>
         <p className="text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]">
-          BRIEFCASE TESTER TOOLS{e?.rewards_beta ? " — on for this account" : ""}
+          BRIEFCASE TESTER TOOLS
+          {e?.rewards_beta ? " — on for this account" : ""}
         </p>
         <p className="mt-1 text-2xs leading-relaxed text-[var(--text-secondary)]">
-          Every signed-in account already has briefcases — daily missions, cases,
-          the unlock ceremony and the wardrobe. This flag adds the BETA tab on
-          /rewards: grant a case at any tier, complete a mission, unlock any skin,
-          add tokens, reset the day. Everything on it acts only on this account.
+          Every signed-in account already has briefcases — daily missions,
+          cases, the unlock ceremony and the wardrobe. This flag adds the BETA
+          tab on /rewards: grant a case at any tier, complete a mission, unlock
+          any skin, add tokens, reset the day. Everything on it acts only on
+          this account.
         </p>
         <div className="mt-2 flex flex-wrap gap-2">
           {e?.rewards_beta ? (
-            <Chip onClick={() => onSetBeta(false)} disabled={busy !== null} danger>
+            <Chip
+              onClick={() => onSetBeta(false)}
+              disabled={busy !== null}
+              danger
+            >
               TURN TESTER TOOLS OFF
             </Chip>
           ) : (
@@ -1823,10 +2422,14 @@ function DetailPanel({
 
       {/* Islands */}
       <div className="flex flex-wrap items-center gap-2">
-        <p className="text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]">EXTRA ISLANDS</p>
+        <p className="text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]">
+          EXTRA ISLANDS
+        </p>
         <input
           value={islandsText}
-          onChange={(ev) => setIslandsText(ev.target.value.replace(/[^0-9]/g, "").slice(0, 2))}
+          onChange={(ev) =>
+            setIslandsText(ev.target.value.replace(/[^0-9]/g, "").slice(0, 2))
+          }
           inputMode="numeric"
           className="tnum w-16 rounded-[var(--radius-row)] border border-[var(--hairline)] bg-transparent px-2 py-1.5 text-center text-sm focus:border-[var(--n-11)] focus-visible:outline-none!"
         />
@@ -1849,7 +2452,9 @@ function DetailPanel({
         </p>
         <input
           value={yearsText}
-          onChange={(ev) => setYearsText(ev.target.value.replace(/[^0-9]/g, "").slice(0, 2))}
+          onChange={(ev) =>
+            setYearsText(ev.target.value.replace(/[^0-9]/g, "").slice(0, 2))
+          }
           inputMode="numeric"
           aria-label="Extra fiscal-year closes a day"
           className="tnum w-16 rounded-[var(--radius-row)] border border-[var(--hairline)] bg-transparent px-2 py-1.5 text-center text-sm focus:border-[var(--n-11)] focus-visible:outline-none!"
@@ -1861,7 +2466,8 @@ function DetailPanel({
           SET
         </Chip>
         <span className="tnum text-2xs text-[var(--text-tertiary)]">
-          0–20, on top of the tier&rsquo;s {paceBase} — closes {paceBase + paceGranted} a day
+          0–20, on top of the tier&rsquo;s {paceBase} — closes{" "}
+          {paceBase + paceGranted} a day
         </span>
       </div>
 
@@ -1876,7 +2482,11 @@ function DetailPanel({
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {!activeChapter &&
             CHAPTER_LICENCES.map((l) => (
-              <Chip key={l.id} onClick={() => onGrantChapter(l.id)} disabled={busy !== null}>
+              <Chip
+                key={l.id}
+                onClick={() => onGrantChapter(l.id)}
+                disabled={busy !== null}
+              >
                 GRANT {l.seats} SEATS
               </Chip>
             ))}
@@ -1902,15 +2512,23 @@ function DetailPanel({
                 className="tnum w-28 rounded-[var(--radius-row)] border border-[var(--hairline)] bg-transparent px-2 py-1.5 text-center text-sm placeholder:text-[var(--n-6)] focus:border-[var(--n-11)] focus-visible:outline-none!"
               />
               <Chip
-                onClick={() => onGrantChapter("chapter_custom", Number(chapterSeatsText))}
-                disabled={busy !== null || !isCustomSeatCount(Number(chapterSeatsText))}
+                onClick={() =>
+                  onGrantChapter("chapter_custom", Number(chapterSeatsText))
+                }
+                disabled={
+                  busy !== null || !isCustomSeatCount(Number(chapterSeatsText))
+                }
               >
                 GRANT CUSTOM
               </Chip>
             </>
           )}
           {activeChapter && activeChapter.source === "comp" && (
-            <Chip onClick={() => onRevokeChapter(activeChapter.id)} disabled={busy !== null} danger>
+            <Chip
+              onClick={() => onRevokeChapter(activeChapter.id)}
+              disabled={busy !== null}
+              danger
+            >
               REVOKE CHAPTER
             </Chip>
           )}
@@ -1922,8 +2540,8 @@ function DetailPanel({
         </div>
         {!activeChapter && (
           <p className="mt-1.5 text-2xs leading-relaxed text-[var(--text-tertiary)]">
-            A granted chapter puts the seat console at /chapter on THEIR account —
-            they invite or register students exactly as a paying school would.
+            A granted chapter puts the seat console at /chapter on THEIR account
+            — they invite or register students exactly as a paying school would.
           </p>
         )}
       </div>
@@ -1935,8 +2553,8 @@ function DetailPanel({
         </p>
         {self ? (
           <p className="mt-1 text-2xs leading-relaxed text-[var(--text-secondary)]">
-            Your own account. An admin cannot change their own role here &mdash; a
-            self-demotion would close this door from the inside, and the way
+            Your own account. An admin cannot change their own role here &mdash;
+            a self-demotion would close this door from the inside, and the way
             back in is the Supabase dashboard. Ask another admin, or use the
             dashboard.
           </p>
@@ -1949,7 +2567,11 @@ function DetailPanel({
               left behind to chase down.
             </p>
             <div className="mt-2">
-              <Chip onClick={() => onSetRole("player")} disabled={busy !== null} danger>
+              <Chip
+                onClick={() => onSetRole("player")}
+                disabled={busy !== null}
+                danger
+              >
                 {busy === "role" ? "DEMOTING…" : "DEMOTE TO PLAYER"}
               </Chip>
             </div>
@@ -1994,10 +2616,14 @@ function DetailPanel({
       {/* Danger */}
       {!isAdmin ? (
         <div className="rounded-[var(--radius-row)] border border-[var(--alert)]/40 p-3">
-          <p className="text-2xs font-bold tracking-[0.1em] text-[var(--alert)]">DELETE THIS ACCOUNT</p>
+          <p className="text-2xs font-bold tracking-[0.1em] text-[var(--alert)]">
+            DELETE THIS ACCOUNT
+          </p>
           <p className="mt-1 text-2xs leading-relaxed text-[var(--text-secondary)]">
-            Gone means gone: saves, entitlements, seats, board entries — the lot,
-            by cascade. Type <span className="tnum font-bold">{confirmNeeded}</span> to arm the button.
+            Gone means gone: saves, entitlements, seats, board entries — the
+            lot, by cascade. Type{" "}
+            <span className="tnum font-bold">{confirmNeeded}</span> to arm the
+            button.
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
             <input

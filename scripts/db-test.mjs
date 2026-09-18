@@ -56,6 +56,7 @@ const SUITES = [
   "chapters_test.sql",
   "enterprise_test.sql",
   "admin_test.sql",
+  "admin_workspace_test.sql",
   "islands_test.sql",
   "rewards_test.sql",
 ];

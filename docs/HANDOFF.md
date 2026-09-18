@@ -1,5 +1,67 @@
 # HANDOFF — project history, current state, and open work
 
+
+## 2026-09-17 · Operator workspaces, readable data and phone layouts
+
+The owner selected all five admin upgrades: analytics, enterprise oversight,
+billing health, audit search and a complete account directory. The console now
+has eight workspaces with a sticky navigation row. Shared striped tables use
+aligned numbers and sticky headers on wide screens, then labelled cards on
+phones; controls are at least 44px high and mobile inputs use 16px type.
+Charts have explicit Chart / Table switches, larger labels, distinguishable
+line styles, a 7/30/60-day selector and current subscription-plan mix. Immature
+cohorts remain ineligible, snapshot gaps stay unknown, and unavailable readers
+have error/retry states instead of healthy-looking empty results.
+
+Account filtering and sorting now happen before 50-row pagination through a
+service-only `admin_directory` view. Filters combine with AND; exact UUID links
+open the intended account from billing or enterprise rosters. CSV uses every
+matching page, safely quotes and neutralises formula text, handles smaller
+server row caps, and rejects over 10,000 matches or interrupted reads rather
+than returning a partial file. Directory requests and account details reject
+stale responses after another account/filter is selected.
+
+The new enterprise reader searches owner/contact email or name, filters status
+and source, reports seats and setup-pending invitations, and pages through
+rosters using the account-level setup ledger. Deleted enterprises are excluded;
+no invite credential is selected. Owners/members open in Accounts, and gifted
+licences use the existing confirmed revoke route. Billing adds full-directory
+investigation shortcuts and reconciliation history. Audit supports operator,
+target, action and inclusive UTC date filters. Existing grant, role, moderation,
+reconciliation and deletion routes retain their established permissions.
+
+**Release prerequisite:** apply
+`20260917084120_admin_console_workspaces.sql` after the enterprise setup
+migration and before deploying the web change. APPLY-ALL and CHECK-SCHEMA include
+it. Both new views use invoker security, deny anonymous/authenticated roles and
+grant only service-role reads. Their auth join receives only the five metadata
+columns it needs. No new environment setting or dependency was added.
+
+Validation: Node 22.23.2 `npm run check` and the budgeted `npm run build` pass;
+admin contracts include 13 checks and run in CI. All 12 database suites passed
+on isolated PostgreSQL 18.4 (382 assertions), including 12 new view/access and
+pagination assertions, plus fresh/repeated APPLY-ALL. The local machine lacked
+psql, so a temporary pg-driver adapter interpreted the test files' psql echo,
+include and variable commands; the actual schema/assertions ran on PostgreSQL.
+PostgreSQL 16 with psql remains the authoritative CI gate.
+
+Browser checks used a loopback-only, read-only synthetic API preview: all eight
+workspaces at 320, 390 and 1440px had no page overflow and no visible control
+under 44px high. Inspected light/dark screenshots and verified Chart / Table,
+7/60-day row counts, paging, combined filters, member-to-account navigation,
+billing investigation and audit filtering; no browser warnings/errors were
+recorded. These checks do not assert native UIKit rendering or production-data
+end-to-end mutation success. Live access was used to inspect the old console;
+no account, billing or moderation action was issued. No production migration
+or web deployment was performed.
+
+Work was isolated from the owner's existing `/Users/zzzz/Novus` checkout, whose
+signing/version edits and nested folder were preserved. Protected engine and
+authored content files were not changed. The implementation and operator guide
+are in this PR; deployment and live smoke verification remain release steps.
+
+---
+
 ## 2026-09-17 · Native administrators choose a workspace before playing
 
 Owner-approved scope: web-only enterprise purchasing; Console / Island entry

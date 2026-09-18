@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useId, useRef, useState } from "react";
+import { AdminTable } from "./table";
 
 /**
  * The admin console's charts. Hand-rolled SVG — no chart library, because the
@@ -9,7 +10,7 @@ import { useCallback, useRef, useState } from "react";
  * The rules these follow (the dataviz method, applied):
  *   · colors come from --viz-* in globals.css, validated per theme against
  *     the card surface each mode renders on; series identity never rides on
- *     color alone — every multi-series chart has a legend AND end labels,
+ *     color alone — multi-series charts use legends and distinct line styles,
  *     every chart has an AS-A-TABLE view (which is also the relief for the
  *     light magenta's sub-3:1 contrast);
  *   · thin marks, value-end-only 2px rounding anchored to the baseline, 2px
@@ -78,7 +79,7 @@ interface Tip {
 /** The one tooltip, positioned inside the chart's relative wrapper and
  *  clamped so it never leaves it. */
 function TipBox({ tip, width }: { tip: Tip; width: number }) {
-  const boxW = 148;
+  const boxW = Math.min(220, Math.max(148, width - 8));
   const left = Math.max(4, Math.min(tip.x + 10, width - boxW - 4));
   return (
     <div
@@ -86,9 +87,14 @@ function TipBox({ tip, width }: { tip: Tip; width: number }) {
       className="pointer-events-none absolute z-10 rounded-[var(--radius-row)] bg-[var(--n-3)] px-2.5 py-1.5 shadow-[var(--e2)] ring-1 ring-[var(--hairline)]"
       style={{ left, top: Math.max(2, tip.y - 8), width: boxW }}
     >
-      <p className="text-2xs font-bold text-[var(--text-primary)]">{tip.title}</p>
+      <p className="text-xs font-bold text-[var(--text-primary)]">
+        {tip.title}
+      </p>
       {tip.lines.map((l, i) => (
-        <p key={i} className="tnum flex items-center gap-1.5 text-2xs text-[var(--text-secondary)]">
+        <p
+          key={i}
+          className="tnum flex items-center gap-1.5 text-xs text-[var(--text-secondary)]"
+        >
           {l.swatch && (
             <span
               aria-hidden
@@ -107,70 +113,107 @@ function TipBox({ tip, width }: { tip: Tip; width: number }) {
 
 export function ChartShell({
   title,
+  unavailable = false,
   note,
   legend,
   table,
   children,
 }: {
   title: string;
+  unavailable?: boolean;
   note?: string;
   legend?: Array<{ swatch: string; label: string }>;
   table: { head: string[]; rows: Array<Array<string | number>> };
   children: React.ReactNode;
 }) {
+  const [tableView, setTableView] = useState(false);
+  const panelId = useId();
   return (
-    <section className="min-w-0 rounded-[var(--radius-card)] bg-[var(--n-3)] p-4 shadow-[var(--e1)] ring-1 ring-[var(--hairline)]">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <h3 className="text-2xs font-extrabold tracking-[0.1em]">{title}</h3>
-        {legend && legend.length > 1 && (
-          <div className="flex flex-wrap gap-x-3 gap-y-0.5">
-            {legend.map((l) => (
-              <span key={l.label} className="flex items-center gap-1.5 text-2xs text-[var(--text-secondary)]">
-                <span aria-hidden className="inline-block h-2 w-2 rounded-[2px]" style={{ background: l.swatch }} />
-                {l.label}
-              </span>
-            ))}
+    <section
+      className="admin-chart min-w-0 rounded-[var(--radius-card)] bg-[var(--n-3)] shadow-[var(--e1)] ring-1 ring-[var(--hairline)]"
+      aria-label={title}
+    >
+      <div className="admin-chart-heading">
+        <h3 className="admin-chart-title">{title}</h3>
+        <div
+          className="admin-chart-toggle"
+          role="group"
+          aria-label={`${title} display`}
+        >
+          <button
+            type="button"
+            aria-pressed={!tableView}
+            aria-controls={panelId}
+            onClick={() => setTableView(false)}
+          >
+            Chart
+          </button>
+          <button
+            type="button"
+            aria-pressed={tableView}
+            aria-controls={panelId}
+            onClick={() => setTableView(true)}
+          >
+            Table
+          </button>
+        </div>
+      </div>
+      {note && (
+        <p className="mt-2 text-xs leading-relaxed text-[var(--text-secondary)]">
+          {note}
+        </p>
+      )}
+      {legend && legend.length > 1 && (
+        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
+          {legend.map((l, i) => (
+            <span
+              key={l.label}
+              className="flex items-center gap-2 text-xs text-[var(--text-secondary)]"
+            >
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 16,
+                  borderTop: `3px ${i === 1 ? "dashed" : "solid"} ${l.swatch}`,
+                }}
+              />
+              {l.label}
+            </span>
+          ))}
+        </div>
+      )}
+      <div id={panelId} className="mt-4">
+        {unavailable ? (
+          <Empty>Data unavailable. Refresh the overview to retry.</Empty>
+        ) : tableView ? (
+          <div className="admin-chart-table">
+            <AdminTable label={title} columns={table.head} compact>
+              {table.rows.length === 0 ? (
+                <tr>
+                  <td colSpan={table.head.length}>No data in this window.</td>
+                </tr>
+              ) : (
+                table.rows.map((r, i) => (
+                  <tr key={i}>
+                    {r.map((c, j) => (
+                      <td key={j}>{c}</td>
+                    ))}
+                  </tr>
+                ))
+              )}
+            </AdminTable>
           </div>
+        ) : (
+          children
         )}
       </div>
-      {note && <p className="mt-1 text-2xs leading-relaxed text-[var(--text-tertiary)]">{note}</p>}
-      <div className="mt-2">{children}</div>
-      <details className="mt-2">
-        <summary className="cursor-pointer text-2xs font-bold tracking-[0.1em] text-[var(--text-tertiary)]">
-          AS A TABLE
-        </summary>
-        <div className="mt-1 max-h-48 overflow-y-auto overflow-x-auto">
-          <table className="w-full text-left text-2xs">
-            <thead>
-              <tr>
-                {table.head.map((h) => (
-                  <th key={h} className="border-b border-[var(--hairline)] py-1 pr-3 font-bold text-[var(--text-tertiary)]">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {table.rows.map((r, i) => (
-                <tr key={i}>
-                  {r.map((c, j) => (
-                    <td key={j} className="tnum border-b border-[var(--hairline)] py-1 pr-3 text-[var(--text-secondary)]">
-                      {c}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </details>
     </section>
   );
 }
 
 function Empty({ children }: { children: React.ReactNode }) {
   return (
-    <p className="flex h-[168px] items-center justify-center px-4 text-center text-2xs leading-relaxed text-[var(--text-tertiary)]">
+    <p className="flex h-[216px] items-center justify-center px-4 text-center text-xs leading-relaxed text-[var(--text-tertiary)]">
       {children}
     </p>
   );
@@ -178,8 +221,8 @@ function Empty({ children }: { children: React.ReactNode }) {
 
 // ── Daily bars — one series over days ───────────────────────────────────────
 
-const M = { top: 14, right: 8, bottom: 18, left: 30 };
-const PLOT_H = 168;
+const M = { top: 24, right: 28, bottom: 28, left: 44 };
+const PLOT_H = 216;
 
 export function DailyBars({
   data,
@@ -193,7 +236,7 @@ export function DailyBars({
   const [ref, width] = useMeasuredWidth();
   const [tip, setTip] = useState<Tip | null>(null);
 
-  const max = niceMax(Math.max(0, ...data.map((d) => d.value)));
+  const max = Math.max(2, niceMax(Math.max(0, ...data.map((d) => d.value))));
   const innerW = Math.max(0, width - M.left - M.right);
   const innerH = PLOT_H - M.top - M.bottom;
   const n = data.length;
@@ -202,14 +245,23 @@ export function DailyBars({
   const barW = Math.max(1, slot - gap);
   const y = (v: number) => M.top + innerH - (v / max) * innerH;
 
-  const everyNth = Math.max(1, Math.ceil(n / Math.max(2, Math.floor(innerW / 72))));
-  const maxIdx = data.reduce((best, d, i) => (d.value > data[best].value ? i : best), 0);
+  const everyNth = Math.max(
+    1,
+    Math.ceil(n / Math.max(2, Math.floor(innerW / 72))),
+  );
+  const maxIdx = data.reduce(
+    (best, d, i) => (d.value > data[best].value ? i : best),
+    0,
+  );
   const total = data.reduce((s, d) => s + d.value, 0);
 
   const hover = useCallback(
     (clientX: number, rect: DOMRect) => {
       if (n === 0) return;
-      const i = Math.min(n - 1, Math.max(0, Math.floor((clientX - rect.left - M.left) / slot)));
+      const i = Math.min(
+        n - 1,
+        Math.max(0, Math.floor((clientX - rect.left - M.left) / slot)),
+      );
       const d = data[i];
       setTip({
         x: M.left + i * slot + slot / 2,
@@ -231,18 +283,42 @@ export function DailyBars({
         width={width}
         height={PLOT_H}
         role="img"
-        onPointerMove={(e) => hover(e.clientX, e.currentTarget.getBoundingClientRect())}
+        aria-label="Time series. Exact values are available using the Table button."
+        onPointerMove={(e) =>
+          hover(e.clientX, e.currentTarget.getBoundingClientRect())
+        }
         onPointerLeave={() => setTip(null)}
       >
         {[0.5, 1].map((f) => (
           <g key={f}>
-            <line x1={M.left} x2={width - M.right} y1={y(max * f)} y2={y(max * f)} stroke="var(--viz-grid)" strokeWidth={1} />
-            <text x={M.left - 5} y={y(max * f) + 3} textAnchor="end" className="tnum" fontSize={10} fill="var(--viz-muted)">
-              {max * f}
+            <line
+              x1={M.left}
+              x2={width - M.right}
+              y1={y(Math.ceil(max * f))}
+              y2={y(Math.ceil(max * f))}
+              stroke="var(--viz-grid)"
+              strokeWidth={1}
+            />
+            <text
+              x={M.left - 5}
+              y={y(Math.ceil(max * f)) + 3}
+              textAnchor="end"
+              className="tnum"
+              fontSize={12}
+              fill="var(--viz-muted)"
+            >
+              {Math.ceil(max * f)}
             </text>
           </g>
         ))}
-        <line x1={M.left} x2={width - M.right} y1={M.top + innerH} y2={M.top + innerH} stroke="var(--viz-grid)" strokeWidth={1} />
+        <line
+          x1={M.left}
+          x2={width - M.right}
+          y1={M.top + innerH}
+          y2={M.top + innerH}
+          stroke="var(--viz-grid)"
+          strokeWidth={1}
+        />
 
         {data.map((d, i) => {
           if (d.value <= 0) return null;
@@ -256,11 +332,14 @@ export function DailyBars({
         {/* The one direct label: the window's peak. */}
         {data[maxIdx].value > 0 && (
           <text
-            x={Math.min(width - M.right - 8, Math.max(M.left + 8, M.left + maxIdx * slot + slot / 2))}
+            x={Math.min(
+              width - M.right - 8,
+              Math.max(M.left + 8, M.left + maxIdx * slot + slot / 2),
+            )}
             y={y(data[maxIdx].value) - 4}
             textAnchor="middle"
             className="tnum"
-            fontSize={10}
+            fontSize={12}
             fontWeight={700}
             fill="var(--text-secondary)"
           >
@@ -275,7 +354,7 @@ export function DailyBars({
               x={M.left + i * slot + slot / 2}
               y={PLOT_H - 4}
               textAnchor="middle"
-              fontSize={10}
+              fontSize={12}
               fill="var(--viz-muted)"
             >
               {shortDay(d.day)}
@@ -302,14 +381,19 @@ export function DualLines({
   const [tip, setTip] = useState<Tip | null>(null);
 
   const tracked = data.filter((d) => d.a != null || d.b != null);
-  const max = niceMax(Math.max(1, ...data.map((d) => Math.max(d.a ?? 0, d.b ?? 0))));
+  const max = niceMax(
+    Math.max(2, ...data.map((d) => Math.max(d.a ?? 0, d.b ?? 0))),
+  );
   const innerW = Math.max(0, width - M.left - M.right);
   const innerH = PLOT_H - M.top - M.bottom;
   const n = data.length;
-  const x = (i: number) => M.left + (n <= 1 ? innerW / 2 : (i / (n - 1)) * innerW);
+  const x = (i: number) =>
+    M.left + (n <= 1 ? innerW / 2 : (i / (n - 1)) * innerW);
   const y = (v: number) => M.top + innerH - (v / max) * innerH;
 
-  const segments = (pick: (d: (typeof data)[number]) => number | null): string[] => {
+  const segments = (
+    pick: (d: (typeof data)[number]) => number | null,
+  ): string[] => {
     const out: string[] = [];
     let seg = "";
     data.forEach((d, i) => {
@@ -326,13 +410,19 @@ export function DualLines({
   };
 
   const [hoverI, setHoverI] = useState<number | null>(null);
-  const everyNth = Math.max(1, Math.ceil(n / Math.max(2, Math.floor(innerW / 72))));
+  const everyNth = Math.max(
+    1,
+    Math.ceil(n / Math.max(2, Math.floor(innerW / 72))),
+  );
 
   const hover = useCallback(
     (clientX: number, rect: DOMRect) => {
       if (n === 0) return;
       const rel = clientX - rect.left - M.left;
-      const i = Math.min(n - 1, Math.max(0, Math.round((rel / Math.max(1, innerW)) * (n - 1))));
+      const i = Math.min(
+        n - 1,
+        Math.max(0, Math.round((rel / Math.max(1, innerW)) * (n - 1))),
+      );
       const d = data[i];
       setHoverI(i);
       setTip({
@@ -340,8 +430,14 @@ export function DualLines({
         y: Math.min(y(d.a ?? 0), y(d.b ?? 0)) - 12,
         title: shortDay(d.day),
         lines: [
-          { swatch: "var(--viz-1)", text: `${aLabel}: ${d.a ?? "not tracked"}` },
-          { swatch: "var(--viz-2)", text: `${bLabel}: ${d.b ?? "not tracked"}` },
+          {
+            swatch: "var(--viz-1)",
+            text: `${aLabel}: ${d.a ?? "not tracked"}`,
+          },
+          {
+            swatch: "var(--viz-2)",
+            text: `${bLabel}: ${d.b ?? "not tracked"}`,
+          },
         ],
       });
     },
@@ -358,9 +454,6 @@ export function DualLines({
     );
   }
 
-  const lastA = [...data].reverse().find((d) => d.a != null);
-  const lastB = [...data].reverse().find((d) => d.b != null);
-
   return (
     <div ref={ref} className="relative">
       {tip && <TipBox tip={tip} width={width} />}
@@ -368,7 +461,10 @@ export function DualLines({
         width={width}
         height={PLOT_H}
         role="img"
-        onPointerMove={(e) => hover(e.clientX, e.currentTarget.getBoundingClientRect())}
+        aria-label="Time series. Exact values are available using the Table button."
+        onPointerMove={(e) =>
+          hover(e.clientX, e.currentTarget.getBoundingClientRect())
+        }
         onPointerLeave={() => {
           setTip(null);
           setHoverI(null);
@@ -376,47 +472,117 @@ export function DualLines({
       >
         {[0.5, 1].map((f) => (
           <g key={f}>
-            <line x1={M.left} x2={width - M.right} y1={y(max * f)} y2={y(max * f)} stroke="var(--viz-grid)" strokeWidth={1} />
-            <text x={M.left - 5} y={y(max * f) + 3} textAnchor="end" className="tnum" fontSize={10} fill="var(--viz-muted)">
-              {max * f}
+            <line
+              x1={M.left}
+              x2={width - M.right}
+              y1={y(Math.ceil(max * f))}
+              y2={y(Math.ceil(max * f))}
+              stroke="var(--viz-grid)"
+              strokeWidth={1}
+            />
+            <text
+              x={M.left - 5}
+              y={y(Math.ceil(max * f)) + 3}
+              textAnchor="end"
+              className="tnum"
+              fontSize={12}
+              fill="var(--viz-muted)"
+            >
+              {Math.ceil(max * f)}
             </text>
           </g>
         ))}
-        <line x1={M.left} x2={width - M.right} y1={M.top + innerH} y2={M.top + innerH} stroke="var(--viz-grid)" strokeWidth={1} />
+        <line
+          x1={M.left}
+          x2={width - M.right}
+          y1={M.top + innerH}
+          y2={M.top + innerH}
+          stroke="var(--viz-grid)"
+          strokeWidth={1}
+        />
 
         {hoverI != null && (
-          <line x1={x(hoverI)} x2={x(hoverI)} y1={M.top} y2={M.top + innerH} stroke="var(--viz-grid)" strokeWidth={1} />
+          <line
+            x1={x(hoverI)}
+            x2={x(hoverI)}
+            y1={M.top}
+            y2={M.top + innerH}
+            stroke="var(--viz-grid)"
+            strokeWidth={1}
+          />
         )}
 
         {segments((d) => d.a).map((p, i) => (
-          <path key={`a${i}`} d={p} fill="none" stroke="var(--viz-1)" strokeWidth={2} strokeLinecap="round" />
+          <path
+            key={`a${i}`}
+            d={p}
+            fill="none"
+            stroke="var(--viz-1)"
+            strokeWidth={2}
+            strokeLinecap="round"
+          />
         ))}
         {segments((d) => d.b).map((p, i) => (
-          <path key={`b${i}`} d={p} fill="none" stroke="var(--viz-2)" strokeWidth={2} strokeLinecap="round" />
+          <path
+            key={`b${i}`}
+            d={p}
+            fill="none"
+            stroke="var(--viz-2)"
+            strokeWidth={2}
+            strokeDasharray="5 4"
+            strokeLinecap="round"
+          />
         ))}
 
         {hoverI != null && data[hoverI].a != null && (
-          <circle cx={x(hoverI)} cy={y(data[hoverI].a!)} r={4} fill="var(--viz-1)" stroke="var(--n-3)" strokeWidth={2} />
+          <circle
+            cx={x(hoverI)}
+            cy={y(data[hoverI].a!)}
+            r={4}
+            fill="var(--viz-1)"
+            stroke="var(--n-3)"
+            strokeWidth={2}
+          />
         )}
         {hoverI != null && data[hoverI].b != null && (
-          <circle cx={x(hoverI)} cy={y(data[hoverI].b!)} r={4} fill="var(--viz-2)" stroke="var(--n-3)" strokeWidth={2} />
+          <circle
+            cx={x(hoverI)}
+            cy={y(data[hoverI].b!)}
+            r={4}
+            fill="var(--viz-2)"
+            stroke="var(--n-3)"
+            strokeWidth={2}
+          />
         )}
 
-        {/* Direct labels at each line's last tracked point. */}
-        {lastA && (
-          <text x={Math.min(x(data.indexOf(lastA)), width - M.right - 2)} y={y(lastA.a!) - 6} textAnchor="end" fontSize={10} fontWeight={700} fill="var(--text-secondary)">
-            {aLabel}
-          </text>
-        )}
-        {lastB && (
-          <text x={Math.min(x(data.indexOf(lastB)), width - M.right - 2)} y={y(lastB.b!) + 12} textAnchor="end" fontSize={10} fontWeight={700} fill="var(--text-secondary)">
-            {bLabel}
-          </text>
-        )}
+        {/* A tracked day between gaps is a point, not an invisible path. */}
+        {data.map((d, i) => (
+          <g key={`points-${d.day}`}>
+            {d.a != null && (
+              <circle cx={x(i)} cy={y(d.a)} r={3} fill="var(--viz-1)" />
+            )}
+            {d.b != null && (
+              <rect
+                x={x(i) - 3}
+                y={y(d.b) - 3}
+                width={6}
+                height={6}
+                fill="var(--viz-2)"
+              />
+            )}
+          </g>
+        ))}
 
         {data.map((d, i) =>
           i % everyNth === 0 ? (
-            <text key={`t${d.day}`} x={x(i)} y={PLOT_H - 4} textAnchor="middle" fontSize={10} fill="var(--viz-muted)">
+            <text
+              key={`t${d.day}`}
+              x={x(i)}
+              y={PLOT_H - 4}
+              textAnchor="middle"
+              fontSize={12}
+              fill="var(--viz-muted)"
+            >
               {shortDay(d.day)}
             </text>
           ) : null,
@@ -460,20 +626,36 @@ export function WeeklyPercentBars({
   const hover = useCallback(
     (clientX: number, rect: DOMRect) => {
       if (n === 0) return;
-      const i = Math.min(n - 1, Math.max(0, Math.floor((clientX - rect.left - M.left) / slot)));
+      const i = Math.min(
+        n - 1,
+        Math.max(0, Math.floor((clientX - rect.left - M.left) / slot)),
+      );
       const d = data[i];
       const fmt = (v: number | null, detail?: string) =>
-        v == null ? "too young for this window" : `${v}%${detail ? ` (${detail})` : ""}`;
+        v == null
+          ? "too young for this window"
+          : `${v}%${detail ? ` (${detail})` : ""}`;
       setTip({
         x: M.left + i * slot + slot / 2,
         y: y(Math.max(d.a ?? 0, d.b ?? 0)) - 10,
         title: `week of ${shortDay(d.week)}`,
         lines: two
           ? [
-              { swatch: "var(--viz-1)", text: `${aLabel}: ${fmt(d.a, d.aDetail)}` },
-              { swatch: "var(--viz-2)", text: `${bLabel!}: ${fmt(d.b ?? null, d.bDetail)}` },
+              {
+                swatch: "var(--viz-1)",
+                text: `${aLabel}: ${fmt(d.a, d.aDetail)}`,
+              },
+              {
+                swatch: "var(--viz-2)",
+                text: `${bLabel!}: ${fmt(d.b ?? null, d.bDetail)}`,
+              },
             ]
-          : [{ swatch: "var(--viz-1)", text: `${aLabel}: ${fmt(d.a, d.aDetail)}` }],
+          : [
+              {
+                swatch: "var(--viz-1)",
+                text: `${aLabel}: ${fmt(d.a, d.aDetail)}`,
+              },
+            ],
       });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -486,7 +668,10 @@ export function WeeklyPercentBars({
 
   const groupW = Math.max(2, slot - (slot > 8 ? 4 : 2));
   const barW = two ? Math.max(1, (groupW - 2) / 2) : groupW;
-  const everyNth = Math.max(1, Math.ceil(n / Math.max(2, Math.floor(innerW / 76))));
+  const everyNth = Math.max(
+    1,
+    Math.ceil(n / Math.max(2, Math.floor(innerW / 76))),
+  );
 
   const bar = (cx: number, v: number, color: string, key: string) => {
     const by = y(v);
@@ -495,7 +680,16 @@ export function WeeklyPercentBars({
     if (h <= 0) {
       // A true zero still deserves a mark — a 2px stub, so "0%" and "no
       // data" never look alike.
-      return <rect key={key} x={cx} y={M.top + innerH - 2} width={barW} height={2} fill={color} />;
+      return (
+        <rect
+          key={key}
+          x={cx}
+          y={M.top + innerH - 2}
+          width={barW}
+          height={2}
+          fill={color}
+        />
+      );
     }
     return (
       <path
@@ -513,13 +707,30 @@ export function WeeklyPercentBars({
         width={width}
         height={PLOT_H}
         role="img"
-        onPointerMove={(e) => hover(e.clientX, e.currentTarget.getBoundingClientRect())}
+        aria-label="Time series. Exact values are available using the Table button."
+        onPointerMove={(e) =>
+          hover(e.clientX, e.currentTarget.getBoundingClientRect())
+        }
         onPointerLeave={() => setTip(null)}
       >
         {[0, 50, 100].map((v) => (
           <g key={v}>
-            <line x1={M.left} x2={width - M.right} y1={y(v)} y2={y(v)} stroke="var(--viz-grid)" strokeWidth={1} />
-            <text x={M.left - 5} y={y(v) + 3} textAnchor="end" className="tnum" fontSize={10} fill="var(--viz-muted)">
+            <line
+              x1={M.left}
+              x2={width - M.right}
+              y1={y(v)}
+              y2={y(v)}
+              stroke="var(--viz-grid)"
+              strokeWidth={1}
+            />
+            <text
+              x={M.left - 5}
+              y={y(v) + 3}
+              textAnchor="end"
+              className="tnum"
+              fontSize={12}
+              fill="var(--viz-muted)"
+            >
               {v}%
             </text>
           </g>
@@ -530,9 +741,17 @@ export function WeeklyPercentBars({
           return (
             <g key={d.week}>
               {d.a != null && bar(gx, d.a, "var(--viz-1)", `a${d.week}`)}
-              {two && d.b != null && bar(gx + barW + 2, d.b, "var(--viz-2)", `b${d.week}`)}
+              {two &&
+                d.b != null &&
+                bar(gx + barW + 2, d.b, "var(--viz-2)", `b${d.week}`)}
               {d.a == null && (d.b ?? null) == null && (
-                <text x={gx + groupW / 2} y={M.top + innerH - 4} textAnchor="middle" fontSize={10} fill="var(--viz-muted)">
+                <text
+                  x={gx + groupW / 2}
+                  y={M.top + innerH - 4}
+                  textAnchor="middle"
+                  fontSize={12}
+                  fill="var(--viz-muted)"
+                >
                   ·
                 </text>
               )}
@@ -547,7 +766,7 @@ export function WeeklyPercentBars({
               x={M.left + i * slot + slot / 2}
               y={PLOT_H - 4}
               textAnchor="middle"
-              fontSize={10}
+              fontSize={12}
               fill="var(--viz-muted)"
             >
               {shortDay(d.week)}
@@ -563,29 +782,42 @@ export function WeeklyPercentBars({
 
 export function RecencyBars({
   buckets,
+  label = "Accounts by category",
 }: {
+  label?: string;
   buckets: Array<{ label: string; value: number; color: string }>;
 }) {
   const [ref, width] = useMeasuredWidth();
   const total = buckets.reduce((s, b) => s + b.value, 0);
   const max = Math.max(1, ...buckets.map((b) => b.value));
-  const labelW = 88;
+  const labelW = 90;
   const valueW = 76;
   const barMax = Math.max(0, width - labelW - valueW);
-  const rowH = 26;
+  const rowH = 36;
 
-  if (total === 0) return <Empty>No accounts yet.</Empty>;
+  if (total === 0) return <Empty>No accounts in this breakdown.</Empty>;
 
   return (
     <div ref={ref}>
-      <svg width={width} height={buckets.length * rowH + 4} role="img">
+      <svg
+        width={width}
+        height={buckets.length * rowH + 4}
+        role="img"
+        aria-label={`${label}. Exact values are available using the Table button.`}
+      >
         {buckets.map((b, i) => {
           const w = Math.max(b.value > 0 ? 3 : 0, (b.value / max) * barMax);
           const cy = i * rowH + rowH / 2 + 2;
           const r = 2;
           return (
             <g key={b.label}>
-              <text x={0} y={cy + 3} fontSize={10} fontWeight={700} fill="var(--text-secondary)">
+              <text
+                x={0}
+                y={cy + 3}
+                fontSize={12}
+                fontWeight={700}
+                fill="var(--text-secondary)"
+              >
                 {b.label}
               </text>
               {b.value > 0 && (
@@ -596,7 +828,13 @@ export function RecencyBars({
               )}
               {/* Direct labels on every row — this chart's identity channel
                   is position, and its values are the point. */}
-              <text x={labelW + w + 6} y={cy + 3} className="tnum" fontSize={10} fill="var(--text-secondary)">
+              <text
+                x={labelW + w + 6}
+                y={cy + 3}
+                className="tnum"
+                fontSize={12}
+                fill="var(--text-secondary)"
+              >
                 {b.value} · {Math.round((b.value / total) * 100)}%
               </text>
             </g>
