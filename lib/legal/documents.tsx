@@ -34,6 +34,8 @@ import { SUPPORT_EMAIL } from "@/lib/app-info";
 export interface LegalSection {
   heading: string;
   body: React.ReactNode;
+  iosHeading?: string;
+  iosBody?: React.ReactNode;
 }
 
 export interface LegalDocument {
@@ -73,7 +75,7 @@ export const PRIVACY: LegalDocument = {
   id: "privacy",
   title: "Privacy",
   path: "/privacy",
-  lastUpdated: "August 1, 2026",
+  lastUpdated: "September 19, 2026",
   sections: [
     {
       heading: "The short version",
@@ -211,6 +213,7 @@ export const PRIVACY: LegalDocument = {
     },
     {
       heading: "Payments",
+      iosBody: <>Purchases are not available inside the iOS app. Existing account entitlements and saved companies are available when you sign in. For existing subscriptions we retain subscription status, renewal date and payment-provider customer identifiers to support your account. We never receive or store your card number. Installing this app does not change or cancel a subscription. Contact <Mail /> for subscription or cancellation help.</>,
       body: (
         <>
           Nothing is sold inside the iPhone or Android app. Pro is bought on the
@@ -290,7 +293,7 @@ export const TERMS: LegalDocument = {
   id: "terms",
   title: "Terms of Use",
   path: "/terms",
-  lastUpdated: "August 1, 2026",
+  lastUpdated: "September 19, 2026",
   sections: [
     {
       heading: "The short version",
@@ -375,6 +378,8 @@ export const TERMS: LegalDocument = {
     },
     {
       heading: "Novus Pro, and what it costs",
+      iosHeading: "Pro access in the iOS app",
+      iosBody: <>The iOS app does not offer purchases. If your Novus account already has Pro or other purchased entitlements, signing in makes those benefits and saved companies available in the app. Free accounts keep their existing free allowances. Installing the app does not change or cancel an existing subscription. Contact <Mail /> for subscription, cancellation or refund assistance.</>,
       body: (
         <>
           <strong>The free game is the whole game.</strong> Twelve months a year,
@@ -404,8 +409,10 @@ export const TERMS: LegalDocument = {
           <br />
           <br />
           <strong>Nothing is sold inside the iPhone or Android app.</strong> Pro
-          attaches to your Novus account rather than to a device, so it appears
-          in the app when that account signs in, on every device you use.
+          and other purchased benefits attach to your Novus account and are
+          available when you sign in, together with your saved companies.
+          Installing the app does not change or cancel a subscription. Contact
+          us for subscription, cancellation or refund help.
         </>
       ),
     },

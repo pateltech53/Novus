@@ -247,7 +247,7 @@ await check("profile edits are normalized and constrained to a live owned chapte
 // or a user-provided return URL, and are consumed before they navigate.
 const handoffStorage = new Map();
 const navigations = [];
-const handoff = load("lib/cloud/pending-chapter.ts", {}, {
+const handoff = load("lib/cloud/pending-chapter.ts", { "@/lib/native/platform": { isNative: () => false } }, {
   sessionStorage: { setItem: (key, value) => handoffStorage.set(key, value),
     getItem: (key) => handoffStorage.get(key) ?? null, removeItem: (key) => handoffStorage.delete(key) },
   window: { location: { assign: (url) => navigations.push(url) } },
@@ -284,7 +284,7 @@ await check("a cancelled registration clears the pending sign-in handoff", () =>
 });
 await check("blocked browser storage leaves ordinary sign-in available", () => {
   const blocked = () => { throw new Error("storage blocked"); };
-  const unavailable = load("lib/cloud/pending-chapter.ts", {}, {
+  const unavailable = load("lib/cloud/pending-chapter.ts", { "@/lib/native/platform": { isNative: () => false } }, {
     sessionStorage: { setItem: blocked, getItem: blocked, removeItem: blocked },
   });
   unavailable.rememberPendingChapter("chapter_35");

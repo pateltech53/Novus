@@ -13,6 +13,7 @@ import { usePathname } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 import { play } from "@/lib/sound";
 import { isPro, loadEntitlements } from "@/lib/monetization";
+import { isIOS } from "@/lib/native/platform";
 import { gateFor, type Gate, type GateId } from "@/lib/upgrade";
 import { warm, type Preloadable } from "@/lib/warm";
 
@@ -149,6 +150,7 @@ export function UpgradeProvider({ children }: { children: React.ReactNode }) {
 
   const notify = useCallback(
     (id: GateId) => {
+      if (isIOS()) return;
       if (isPro(loadEntitlements())) return;
       if (announced.current.has(id)) return;
       announced.current.add(id);

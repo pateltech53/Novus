@@ -10,7 +10,8 @@ import { play } from "@/lib/sound";
 import { LoopExplainer } from "@/components/LoopExplainer";
 import { PrimaryButton, StepShell } from "@/components/StepShell";
 import { billingStatus, goToCheckout } from "@/lib/cloud/billing";
-import { storefront, useSellsHere } from "@/lib/commerce";
+import { storefront, useSellsHere, useStorefront } from "@/lib/commerce";
+import { AppPurchasesDetails } from "@/components/AppPurchases";
 import { BuyOnWeb } from "@/components/upgrade/BuyOnWeb";
 import { LegalSheet } from "@/components/LegalSheet";
 import { PRIVACY, TERMS, type LegalDocument } from "@/lib/legal/documents";
@@ -607,7 +608,7 @@ function AccountStep({ onNext }: { onNext: () => void }) {
         <p className="mt-2 text-center text-sm leading-relaxed text-[var(--n-8)]">
           {mode === "signIn"
             ? "Every island, every year, exactly where you left them."
-            : "It survives a new phone, and it's what Novus Pro attaches to. Costs nothing."}
+          : "Your free account keeps your companies and progress together, even on a new phone."}
         </p>
 
         <form
@@ -988,7 +989,24 @@ function Explanation({ onNext }: { onNext: () => void }) {
  * Prices, seat counts and every entitlement come from lib/monetization.ts so
  * Settings and the eventual paywall read the same numbers as this screen.
  */
-function PlansSheet({
+function PlansSheet(props: { onDone: () => void; leaving: boolean }) {
+  const where = useStorefront();
+  if (where === null) return null;
+  if (where !== "app-store") return <PaidPlansSheet {...props} />;
+  return (
+    <StepShell>
+      <div className="w-full flex-1">
+        <h1 className="mb-5 text-[1.75rem] font-extrabold">Your company starts here.</h1>
+        <AppPurchasesDetails />
+      </div>
+      <div className="mt-6 w-full">
+        <PrimaryButton onClick={props.onDone} disabled={props.leaving}>START PLAYING</PrimaryButton>
+      </div>
+    </StepShell>
+  );
+}
+
+function PaidPlansSheet({
   onDone,
   leaving,
 }: {

@@ -1,3 +1,4 @@
+import { isNative } from "@/lib/native/platform";
 import { INDUSTRIES } from "@/lib/engine/constants";
 import type { Industry } from "@/lib/engine/types";
 
@@ -730,6 +731,7 @@ function announce(): void {
  * player discovers at the first locked industry.
  */
 export function recordPlanIntent(plan: PlanId): void {
+  if (isNative()) return;
   saveEntitlements({ ...loadEntitlements(), intent: plan });
 }
 
@@ -745,6 +747,7 @@ export function recordPlanIntent(plan: PlanId): void {
  * post-payment success path instead of the button handler.
  */
 export function grantProLocally(plan: PlanId): void {
+  if (isNative()) return;
   saveEntitlements({ ...loadEntitlements(), intent: plan, pro: true });
 }
 

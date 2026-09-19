@@ -2,34 +2,8 @@
 
 import { PRO_ON_ACCOUNT_NOTE } from "@/lib/commerce";
 
-/**
- * What a store build offers where a checkout button would be: a statement of
- * fact, and nothing else.
- *
- * ── One component, four surfaces ────────────────────────────────────────────
- *
- * The onboarding plans step, the Pro sheet, Settings and the upgrade paywall
- * all reach the same wall — nothing can be sold inside a store build (see
- * lib/commerce.ts) — and they answer it identically, from here, because four
- * pricing surfaces that word the same fact four ways is how one of them ends
- * up saying too much.
- *
- * ── What used to be here, and why it is gone ────────────────────────────────
- *
- * A GET PRO button that opened the website's pricing section, with both plan
- * prices under it. That was built on the April 2025 *Epic v. Apple* carve-out
- * and on the belief that `Browser.open` "genuinely leaves" the app — and App
- * Review rejected build 1.0(3) over it (Guideline 3.1.1: "the plans can be
- * purchased in the app using payment mechanisms other than In-App Purchase"),
- * because on iOS `Browser.open` is SFSafariViewController: a sheet presented
- * INSIDE the app, with a Done button returning to it, showing a page where
- * both plans and the chapter licences were purchasable through Stripe. The
- * full account is in lib/commerce.ts's header; the short version is that a
- * store build is back to selling nothing, pricing nothing and linking to
- * nothing, which is the shape that predates the experiment.
- *
- * Restore stays, at the size Restore deserves — it is the one path by which
- * Pro reaches a store build at all.
+/** Account-entitlement note for the existing Android presentation.
+ * iOS uses AppPurchasesDetails to show account access and a refresh action.
  */
 export function BuyOnWeb({ className = "" }: { className?: string }) {
   return (

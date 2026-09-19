@@ -132,7 +132,7 @@ export default function NewChapterPage() {
         <p role="status" className="mt-4 text-sm text-[var(--text-secondary)]">Loading your account…</p>
       ) : sells === false ? (
         <div className="mt-4">
-          <p className="text-sm leading-relaxed text-[var(--text-secondary)]">Enterprise plans are managed on the web. Existing owners can manage their enterprise and members here.</p>
+          <p className="text-sm leading-relaxed text-[var(--text-secondary)]">Enterprise purchases are not available in this app. Existing owners can manage their enterprise and members here.</p>
           <a href={appPath("/chapter")} className={`${PRIMARY} mt-5`}>OPEN ENTERPRISE</a>
         </div>
       ) : (

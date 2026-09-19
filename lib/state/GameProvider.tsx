@@ -649,8 +649,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (brief && (brief.whatItDoes || brief.usp || brief.companyType)) {
         next.brief = brief;
       }
-      // Device-level Pro (chosen on the plans screen) reaches the run itself,
-      // so The Room and the Pro industries do not read as broken after buying.
+      // Keep founding registration authoritative for Pro, including competition
+      // runs; its offline path already uses the cached account entitlements.
       next.pro = registered.pro;
       // A fresh company gets a fresh tape. Before any state is set, so a throw
       // in the storage layer cannot leave a run running against another run's

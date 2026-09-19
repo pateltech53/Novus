@@ -1,41 +1,9 @@
 import { goToCheckout } from "@/lib/cloud/billing";
+import { isNative } from "@/lib/native/platform";
 import type { ProPlanId } from "@/lib/monetization";
 
-/**
- * The plan a player chose before they had an account to attach it to.
- *
- * ── The dead end this exists to remove ──────────────────────────────────────
- *
- * `/api/billing/checkout` refuses to sell to a request with no session, and it
- * is right to: a subscription has to hang off an account or the player has no
- * way on earth to prove they paid. But the pricing section on the front page is
- * reachable — and is *arrived at* — by people who are not signed in. The App
- * Store build cannot sell anything itself, so its GET PRO link opens
- * `/#pro` in the player's own browser (lib/commerce.ts), and that browser is a
- * different cookie jar from the app's webview. Everyone taking that route lands
- * on the plans signed out, presses MONTHLY or YEARLY, and gets refused.
- *
- * Telling them to sign in is necessary and not sufficient: signing in reloads
- * the page (AccountGate's submitSignIn — the cloud restore has to run), and
- * signing up walks into onboarding. Either way the intent they expressed by
- * pressing a plan is gone, and they have to find the pricing section again and
- * remember which one they picked.
- *
- * So the intent outlives the identity step. Pressing a plan while signed out
- * records it here; finishing sign-up or sign-in reads it back and opens the
- * checkout the player already asked for.
- *
- * ── Why sessionStorage, and why it expires ──────────────────────────────────
- *
- * sessionStorage rather than localStorage because this belongs to one attempt
- * in one tab, not to the device — a plan chosen last week must not open a
- * payment page today. `wipeDevice()` in lib/cloud/auth.ts clears localStorage
- * on sign-in, which is another reason not to keep it there.
- *
- * The timestamp is the second half of that. Redirecting to a payment page is a
- * strong thing to do on someone's behalf, so it only happens while the tap that
- * asked for it is still recent. Past the window the record is dropped and the
- * player lands where they normally would.
+/** Browser checkout intent survives authentication for up to 30 minutes.
+ * Native shells discard it instead of resuming an external payment flow.
  */
 
 const KEY = "novus:pending-pro";
@@ -109,6 +77,10 @@ export function forgetPendingPro(): void {
  * step: the worst case is landing in the game with the purchase not made.
  */
 export async function resumePendingPro(): Promise<boolean> {
+  if (isNative()) {
+    forgetPendingPro();
+    return false;
+  }
   const plan = takePendingPro();
   if (!plan) return false;
   const result = await goToCheckout(plan);

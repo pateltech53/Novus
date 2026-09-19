@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { play } from "@/lib/sound";
 import { billingStatus, goToCheckout, restorePurchases } from "@/lib/cloud/billing";
-import { useSellsHere } from "@/lib/commerce";
+import { useSellsHere, useStorefront } from "@/lib/commerce";
+import { AppPurchasesSheet } from "@/components/AppPurchases";
 import { BuyOnWeb, RestoreButton } from "@/components/upgrade/BuyOnWeb";
 import { OneTimeShelf } from "@/components/upgrade/OneTimeShelf";
 import { EXIT, SHEET_SPRING } from "@/components/ui/Motion";
@@ -60,20 +61,18 @@ import { useNativeGlassClose } from "@/components/native/useNativeOverlay";
  * never falls back to the local grant — on a deploy that can take money, that
  * would make Pro free to anyone who can drop a request.
  *
- * ── …and where it does not exist at all ─────────────────────────────────────
- *
- * In a store build there is no in-app checkout. Six gates open this screen,
- * which makes it the most reachable pricing surface in the app and therefore
- * the one that would collect App Store Guideline 3.1.1 first: digital content
- * used inside the app is sold with the store's billing or not at all. So the
- * price block is replaced by a link that leaves for the browser, which is
- * where the sale is allowed to happen — see lib/commerce.ts.
- *
- * The gate's own argument stays. Telling a player what they hit and what tier
- * contains it is a description of the product; it is the price and the way to
- * pay it that may not be here.
+ * iOS renders account access and purchase-unavailability information instead
+ * of this paid offer. Browser and Android presentation remain separate below.
  */
-export function UpgradeScreen({
+export function UpgradeScreen(props: { gate: Gate | null; onClose: () => void }) {
+  const where = useStorefront();
+  if (where === null) return null;
+  return where === "app-store"
+    ? <AppPurchasesSheet onClose={props.onClose} />
+    : <PaidUpgradeScreen {...props} />;
+}
+
+function PaidUpgradeScreen({
   gate,
   onClose,
 }: {

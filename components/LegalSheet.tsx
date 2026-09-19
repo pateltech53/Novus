@@ -1,5 +1,6 @@
 "use client";
 
+import { useStorefront } from "@/lib/commerce";
 import { motion } from "framer-motion";
 import { ENTER } from "@/components/ui/Motion";
 
@@ -32,6 +33,8 @@ export function LegalSheet({
 }) {
   // `chevron.backward`: this opens FROM another screen and dismissing
   // returns you to it, which is a different gesture from closing.
+  const where = useStorefront();
+  const ios = where === null || where === "app-store";
   const native = useNativeGlassClose("Back", onClose, "chevron.backward");
   useBackHandler(true, onClose);
 
@@ -82,10 +85,10 @@ export function LegalSheet({
           {doc.sections.map((s) => (
             <section key={s.heading} className="mb-6 last:mb-0">
               <h3 className="text-sm font-extrabold tracking-[-0.01em]">
-                {s.heading}
+                {ios ? s.iosHeading ?? s.heading : s.heading}
               </h3>
               <p className="mt-1.5 text-xs leading-relaxed text-[var(--text-secondary)]">
-                {s.body}
+                {ios ? s.iosBody ?? s.body : s.body}
               </p>
             </section>
           ))}

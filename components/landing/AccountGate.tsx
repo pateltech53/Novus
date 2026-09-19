@@ -958,9 +958,8 @@ export function AccountGate() {
             Already have an account? Sign in
           </FootLink>
           <p className="mx-auto mt-3 max-w-[21rem] text-center text-2xs leading-relaxed text-[var(--text-tertiary)]">
-            An account keeps your companies when you switch device, and is what
-            a Pro subscription attaches to. It costs nothing — the free game
-            stays the whole game.
+            An account keeps your saved companies when you switch devices.
+            Creating an account and playing the basic game are free.
           </p>
         </>
       )}

@@ -439,7 +439,8 @@ const SHELLS = [
  */
 const walkToPlans = async (page) => {
   for (let i = 0; i < 20; i++) {
-    if (await page.getByText("Free is the whole game").count()) return true;
+    if (await page.getByText("Free is the whole game").count() ||
+        await page.getByText("Your company starts here.", { exact: true }).count()) return true;
 
     const input = page.locator("input:visible").first();
     if ((await input.count()) && !(await input.inputValue())) {
@@ -540,11 +541,11 @@ for (const [shell, inject] of SHELLS) {
       : `CHOOSE PRO is in the ${shell} build`);
     want(text.includes("TERMS OF USE") && text.includes("PRIVACY"),
       "the plans step is missing its terms/privacy links");
-    want(text.includes("CONTINUE FREE"), "no way past the plans step");
+    want(text.includes(shell === "ios" ? "START PLAYING" : "CONTINUE FREE"), "no way past the plans step");
     if (!sells) {
       want(!text.includes("GET PRO"),
         `a purchase link is on the plans step in the ${shell} build`);
-      want(text.includes("attaches to a Novus account"),
+      want(text.includes("Purchases are not available in this app"),
         `the ${shell} build does not say where Pro lives`);
     }
   }
@@ -578,12 +579,12 @@ for (const [shell, inject] of SHELLS) {
   if (!sells) {
     want(!sheet.includes("GET PRO"),
       `a purchase link is in the Pro sheet in the ${shell} build`);
-    want(sheet.includes("attaches to a Novus account"),
+    want(sheet.includes("Purchases are not available in this app"),
       `the Pro sheet does not say where Pro lives in the ${shell} build`);
   }
   // Required on every platform. It is how a purchase made anywhere — and in a
   // store build every purchase is made somewhere else — reaches this device.
-  want(RESTORE.test(sheet), "the Pro sheet has no Restore");
+  want(shell === "ios" ? sheet.includes("REFRESH ACCOUNT ACCESS") : RESTORE.test(sheet), "account refresh is missing");
   want(sheet.includes("TERMS OF USE") && sheet.includes("PRIVACY"),
     "the Pro sheet is missing its terms/privacy links");
 
@@ -613,7 +614,7 @@ for (const [shell, inject] of SHELLS) {
       });
       await page.screenshot({ path: join(SHOTS, `shell-${shell}-upgrade.png`) });
 
-      want(upgrade.includes("KEEP PLAYING FREE"), "the upgrade screen did not open");
+      want(upgrade.includes(shell === "ios" ? "CONTINUE PLAYING" : "KEEP PLAYING FREE"), "the upgrade screen did not open");
       want(PRICE.test(upgrade) === sells, sells
         ? "no price on the upgrade screen in a browser"
         : `a price is on the upgrade screen in the ${shell} build`);
@@ -626,10 +627,10 @@ for (const [shell, inject] of SHELLS) {
         ? "no plan picker on the upgrade screen in a browser"
         : `a plan picker is on the upgrade screen in the ${shell} build`);
       if (!sells) {
-        want(upgrade.includes("attaches to a Novus account"),
+        want(upgrade.includes("Purchases are not available in this app"),
           `the upgrade screen does not say where Pro lives in the ${shell} build`);
       }
-      want(RESTORE.test(upgrade), "the upgrade screen has no Restore");
+      want(shell === "ios" ? upgrade.includes("REFRESH ACCOUNT ACCESS") : RESTORE.test(upgrade), "account refresh is missing");
       want(upgrade.includes("TERMS OF USE") && upgrade.includes("PRIVACY"),
         "the upgrade screen is missing its terms/privacy links");
     } else {

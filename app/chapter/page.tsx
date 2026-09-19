@@ -452,8 +452,8 @@ export default function ChapterPage() {
             </>
           ) : (
             <Blurb title="No chapter on this account.">
-              A chapter is seats for a classroom or club, set up on the web by
-              the adult who runs it. Questions go to team@novuspitch.com.
+              No enterprise is linked to this account. Existing members can ask
+              their administrator for an invitation. Account questions go to team@novuspitch.com.
             </Blurb>
           ))}
         {!native && phase !== "deleted" && <a href={homeHref} className="mt-6 inline-flex min-h-11 items-center text-xs font-bold underline underline-offset-4">BACK TO NOVUS</a>}

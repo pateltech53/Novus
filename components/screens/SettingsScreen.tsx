@@ -37,7 +37,8 @@ import {
   standingNote,
   useEntitlements,
 } from "@/lib/plan";
-import { MANAGE_SUBSCRIPTION_NOTE, storefront, useSellsHere } from "@/lib/commerce";
+import { MANAGE_SUBSCRIPTION_NOTE, storefront, useSellsHere, useStorefront } from "@/lib/commerce";
+import { AppPurchasesDetails } from "@/components/AppPurchases";
 import { BuyOnWeb, RestoreButton } from "@/components/upgrade/BuyOnWeb";
 import { appPath } from "@/lib/native/href";
 
@@ -429,6 +430,14 @@ function AdminSection() {
  * front door and the price list read, so the three cannot word it differently.
  */
 function ProSection() {
+  const where = useStorefront();
+  if (where === null) return null;
+  return where === "app-store"
+    ? <Section label="ACCOUNT ACCESS"><AppPurchasesDetails /></Section>
+    : <PaidProSection />;
+}
+
+function PaidProSection() {
   const game = useGame();
   const sellsHere = useSellsHere();
 
@@ -656,5 +665,4 @@ function IslandsSection({ onClose }: { onClose: () => void }) {
     </Section>
   );
 }
-
 

@@ -1,3 +1,4 @@
+import { isNative } from "@/lib/native/platform";
 import type { ChapterLicence } from "@/lib/monetization";
 
 /**
@@ -18,6 +19,7 @@ export function clearPendingChapter(): void {
 }
 
 export function resumePendingChapter(): boolean {
+  if (isNative()) { clearPendingChapter(); return false; }
   try {
     const raw = sessionStorage.getItem(KEY);
     if (!raw) return false;
