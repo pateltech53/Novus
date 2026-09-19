@@ -9,7 +9,7 @@ import {
 import {
   MAX_BATCH,
   cleanSeatName,
-  ownedChapter,
+  managedChapter,
   seatMessage,
   type OwnedChapter,
 } from "@/lib/chapter/admin";
@@ -86,7 +86,7 @@ async function authorise(
     return refuse(session, "chapter admin needs the account that bought the licence", 403);
   }
 
-  const chapter = await ownedChapter(session);
+  const chapter = await managedChapter(session, req.nextUrl.searchParams.get("chapterId"));
   if (!chapter) {
     return refuse(session, "no chapter on this account", 404);
   }

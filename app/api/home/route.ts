@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     session.supabase.from("profiles").select("role, display_name")
       .eq("id", session.userId).maybeSingle(),
     session.supabase.from("chapters").select("name, status")
-      .eq("owner_profile_id", session.userId).is("deleted_at", null)
+      .is("deleted_at", null)
       .order("created_at", { ascending: false }),
   ]);
   if (profile.error || chapters.error) {

@@ -33,6 +33,7 @@ create table auth.users (
   email            text unique,
   is_anonymous     boolean not null default false,
   created_at       timestamptz not null default now(),
+  email_confirmed_at timestamptz,
   last_sign_in_at  timestamptz
 );
 

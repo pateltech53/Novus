@@ -161,7 +161,9 @@ const BUDGETS = {
   // lib/engine/cap-table.ts). Measured at 333.8 kB, +0.8 kB gzipped.
   // The native picker gains an owner/admin-only Home control and a fresh
   // workspace read. Node 22 measures 335.6 kB; allow one additional kilobyte.
-  "/islands/page": 336,
+  // Enterprise founding registration and consumable tickets add 1.6 kB to
+  // the shared provider/allowance path; measured 337.2 kB after lazy splits.
+  "/islands/page": 338,
   // 200 (was 195, measured 196.0), 2026-09-15: onboarding now requires an
   // account partway through the flow (docs/HANDOFF.md's "Onboarding now
   // requires an account" note), which pulls the email/password form, the
