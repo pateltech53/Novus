@@ -273,8 +273,8 @@ export function tapeStatus(run: RunState | null): TapeStatus {
  * way: §9.2 is not a policy this function chooses to follow, it is a shape it
  * cannot express otherwise.
  */
-export function buildTape(run: RunState): RunTape | null {
-  const tape = read();
+export function buildTape(run: RunState, slot?: number): RunTape | null {
+  const tape = read(slot);
   if (!tape || tape.runId !== run.id || tape.entries.length === 0) return null;
   return {
     seed: tape.seed,

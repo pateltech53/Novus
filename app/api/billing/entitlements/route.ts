@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
     session.supabase
       .from("entitlements")
       .select(
-        "pro, extra_islands, extra_year_closes, industry_packs, cosmetic_bundles, chapter, intent, comp_pro, comp_until",
+        "pro, extra_islands, extra_year_closes, run_tickets, industry_packs, cosmetic_bundles, chapter, intent, comp_pro, comp_until",
       )
       .eq("profile_id", session.userId)
       .maybeSingle(),

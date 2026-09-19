@@ -44,6 +44,8 @@ import { UPGRADE_WARM } from "@/components/upgrade/UpgradeProvider";
 import { appPath } from "@/lib/native/href";
 import { storefront } from "@/lib/commerce";
 
+const CompetitionBanner = dynamic(() => import("@/components/competitions/CompetitionBanner").then(m => m.CompetitionBanner), { ssr: false });
+
 /*
  * ── Everything below renders behind a flag, so none of it belongs in the
  *    chunk that draws month one ──────────────────────────────────────────────
@@ -918,6 +920,7 @@ function PlayScreen() {
       {/* Left column on desktop; masthead on phone — capped and centred
           whenever the phone composition is what a wide window gets. */}
       <div className="mx-auto w-full max-w-2xl desk:sticky desk:top-5 desk:flex desk:h-[calc(100dvh-2.5rem)] desk:max-w-none desk:flex-col desk:self-start desk:overflow-hidden desk:rounded-[var(--radius-card)] desk:bg-[var(--surface)] desk:shadow-[var(--e2)]">
+        <CompetitionBanner />
         <HomeStage
           run={run}
           founderName={profile?.founderName ?? run.founderName}

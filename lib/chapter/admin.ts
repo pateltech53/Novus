@@ -24,6 +24,7 @@ import { validateChapterProfile, type ChapterProfile } from "@/lib/chapter/profi
  */
 
 export interface OwnedChapter {
+  role: "owner" | "admin";
   id: string;
   licence: ChapterId;
   seats: number;
@@ -47,12 +48,23 @@ export interface OwnedChapter {
  * never existed.
  */
 export async function ownedChapter(session: Session): Promise<OwnedChapter | null> {
-  const { data } = await session.supabase
+  return findChapter(session, null, true);
+}
+
+export async function managedChapter(session: Session, id?: string | null): Promise<OwnedChapter | null> {
+  return findChapter(session, id, false);
+}
+
+async function findChapter(session: Session, id: string | null | undefined, ownerOnly: boolean): Promise<OwnedChapter | null> {
+  let query = session.supabase
     .from("chapters")
-    .select("id, licence, seats, status, current_period_end, created_at, source, name, organization_type, contact_name, contact_email")
-    .eq("owner_profile_id", session.userId)
+    .select("id, owner_profile_id, licence, seats, status, current_period_end, created_at, source, name, organization_type, contact_name, contact_email")
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
+  if (ownerOnly) query = query.eq("owner_profile_id", session.userId);
+  if (id) query = query.eq("id", id);
+  const { data, error } = await query;
+  if (error) throw new Error("Could not load enterprise access.");
   if (!data || data.length === 0) return null;
 
   const row = data.find((c) => c.status === "active") ?? data[0];
@@ -63,6 +75,7 @@ export async function ownedChapter(session: Session): Promise<OwnedChapter | nul
     contactEmail: (row.contact_email as string | null) ?? null,
   };
   return {
+    role: row.owner_profile_id === session.userId ? "owner" : "admin",
     id: row.id as string,
     licence: row.licence as ChapterId,
     seats: row.seats as number,
