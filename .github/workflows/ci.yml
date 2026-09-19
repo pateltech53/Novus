@@ -70,10 +70,10 @@ jobs:
 
       # Enterprise ownership, billing cancellation, invite handover and mail
       # failure states are tested with intercepted HTTP; no live account is used.
-      - name: Enterprise lifecycle and invitation contracts
-        run: npm run test:chapter && npm run test:chapter-invites
+      - name: Enterprise lifecycle, invitations and competitions
+        run: npm run test:chapter && npm run test:chapter-invites && npm run test:competitions
 
-      # Cold-start roles are fresh, owner-only reads and preserve token rotation.
+      # Cold-start roles use fresh, scoped reads and preserve token rotation.
       - name: Native workspace entry contracts
         run: npm run test:home
 
