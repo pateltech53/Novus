@@ -1,7 +1,5 @@
 "use client";
 
-import { usePaidContent } from "@/lib/commerce";
-
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGame } from "@/lib/state/GameProvider";
@@ -145,9 +143,7 @@ export function ColdCall({ onIndex }: { onIndex: () => void }) {
  * right and it stays; what it was missing was a door.
  */
 function ProGate() {
-  const paidContent = usePaidContent();
   const upgrade = useUpgrade();
-  if (!paidContent) return <p className="px-5 py-10 text-sm">Cold calling is not available in this edition.</p>;
 
   return (
     <div className="px-5 py-10 text-center">

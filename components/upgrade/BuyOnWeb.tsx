@@ -3,7 +3,7 @@
 import { PRO_ON_ACCOUNT_NOTE } from "@/lib/commerce";
 
 /** Account-entitlement note for the existing Android presentation.
- * iOS does not mount this component: it ships the basic edition without restore.
+ * iOS uses AppPurchasesDetails to show account access and a refresh action.
  */
 export function BuyOnWeb({ className = "" }: { className?: string }) {
   return (

@@ -10,7 +10,7 @@ import { LegalSheet } from "@/components/LegalSheet";
 import { PRIVACY, TERMS, type LegalDocument } from "@/lib/legal/documents";
 import { billingStatus, goToCheckout, restorePurchases } from "@/lib/cloud/billing";
 import { useSellsHere, useStorefront } from "@/lib/commerce";
-import { FreeEditionSheet } from "@/components/FreeEdition";
+import { AppPurchasesSheet } from "@/components/AppPurchases";
 import { BuyOnWeb, RestoreButton } from "@/components/upgrade/BuyOnWeb";
 import { OneTimeShelf } from "@/components/upgrade/OneTimeShelf";
 import { useNativeGlassClose } from "@/components/native/useNativeOverlay";
@@ -51,10 +51,9 @@ import { ownedLine, planStanding, standingNote, useEntitlements } from "@/lib/pl
  *   disclosures a subscription has to carry beside them (Guideline 3.1.2:
  *   length, price per period, that it renews, and links to the terms and the
  *   privacy policy — reachable, in the app, without leaving it).
- * · **In the iPhone or Android app**, no in-app checkout, because a store build
- *   cannot take the money (lib/commerce.ts). What it offers instead is a link
- *   that leaves for the browser, and Restore under it — the path by which a
- *   purchase made anywhere actually arrives on this phone.
+ * · **On iOS**, account benefits, a refresh action and an explanation that
+ *   purchases are unavailable. Existing Pro content remains playable.
+ * · **On Android**, the existing account presentation without checkout.
  *
  * Brand Law 4 is the design, not a disclaimer: Pro adds CONTENT (industries,
  * cosmetics, candidates, asset classes). It never adds outcomes — no better
@@ -75,7 +74,7 @@ const ROWS: { label: string; free: string; pro: string }[] = [
 export function ProSheet({ onClose }: { onClose: () => void }) {
   const where = useStorefront();
   if (where === null) return null;
-  return where === "app-store" ? <FreeEditionSheet onClose={onClose} /> : <PaidProSheet onClose={onClose} />;
+  return where === "app-store" ? <AppPurchasesSheet onClose={onClose} /> : <PaidProSheet onClose={onClose} />;
 }
 
 function PaidProSheet({ onClose }: { onClose: () => void }) {

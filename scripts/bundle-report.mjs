@@ -58,9 +58,8 @@ const BUDGETS = {
   // kilobyte of new code.
   // Native workspace entry adds a shared role-read/return path and reshapes
   // common chunks. Node 22 measures 152.3 kB; allow one additional kilobyte.
-  // iOS basic-edition introduction, subscription notice, and saved-content guards.
-  // Measured 158.6 kB on the release branch; retain a small build-variance margin.
-  "/page": 160,
+  // Native account-access and refresh UI: 155.9 kB measured locally.
+  "/page": 157,
   // 346, not 342. Two things landed in this chunk, +1.6 kB gzipped between
   // them, measured against the same build of main on the same machine:
   //
@@ -163,16 +162,15 @@ const BUDGETS = {
   // lib/engine/cap-table.ts). Measured at 333.8 kB, +0.8 kB gzipped.
   // The native picker gains an owner/admin-only Home control and a fresh
   // workspace read. Node 22 measures 335.6 kB; allow one additional kilobyte.
-  // Protected paid saves gain an edition-details sheet (339.7 kB measured).
-  "/islands/page": 341,
+  // Shared native account-access UI: 336.6 kB measured locally.
+  "/islands/page": 338,
   // 200 (was 195, measured 196.0), 2026-09-15: onboarding now requires an
   // account partway through the flow (docs/HANDOFF.md's "Onboarding now
   // requires an account" note), which pulls the email/password form, the
   // Turnstile widget and ChooseName into this route's own chunk instead of
   // behind the old code-split "I already have an account" sheet — a real
   // cost of the feature, not slack.
-  // Basic-edition terms and account-preservation copy (202.6 kB measured).
-  "/welcome/page": 204,
+  "/welcome/page": 200,
   "/chapter/page": 130,
   "/join/page": 120,
   "/reset/page": 125,

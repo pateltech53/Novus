@@ -1,7 +1,5 @@
 "use client";
 
-import { usePaidContent } from "@/lib/commerce";
-
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { GameProvider, useGame } from "@/lib/state/GameProvider";
@@ -70,7 +68,6 @@ export default function FoundPageWrapper() {
  */
 function FoundPage() {
   const router = useRouter();
-  const paidContent = usePaidContent();
   const game = useGame();
   const upgrade = useUpgrade();
   const params = useSearchParams();
@@ -411,7 +408,7 @@ function FoundPage() {
         WHAT BUSINESS ARE YOU IN
       </h2>
       <ul className="mt-3 grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
-        {INDUSTRIES.filter((ind) => paidContent || ind.free).map((ind) => {
+        {INDUSTRIES.map((ind) => {
           const selected = industry === ind.code;
           return (
             <li key={ind.code}>
@@ -623,10 +620,7 @@ function FoundPage() {
           old screen had one message for both, which is how a player ends up
           buying something that does not unblock them.
         */}
-        {!paidContent ? (
-          noRoom ? <p className="mt-3 text-center text-sm text-[var(--text-secondary)]">This edition supports two active companies. Existing companies also count toward this limit, and their saves are kept unchanged. Contact support if you need help with your account.</p>
-          : slotsLeft === 0 ? <p className="mt-3 text-center text-sm text-[var(--text-secondary)]">You can start one company per day. Continue a saved company, or start another tomorrow.</p> : null
-        ) : noRoom ? (
+        {noRoom ? (
           <button
             type="button"
             onClick={() => upgrade.open("islands")}

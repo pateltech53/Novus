@@ -123,7 +123,7 @@ jobs:
       # script and failed on a per-route weight budget nothing in this workflow
       # had looked at. A budget the deploy enforces and CI does not is a budget
       # that is always found the expensive way.
-      - name: iOS edition — entitlements, saves, and payment boundaries
+      - name: Native Pro access and payment boundaries
         run: npm run test:ios-edition
 
       - name: Web build + per-route weight budget

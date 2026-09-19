@@ -1,7 +1,5 @@
 "use client";
 
-import { isIOSFreeEdition } from "@/lib/native/edition";
-
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useGame } from "@/lib/state/GameProvider";
@@ -77,7 +75,7 @@ export function CompanyScreen({ onClose }: { onClose: () => void }) {
   const runway = deriveRunwayMonths(run);
   const burn = run.stats.burnMonthly;
   const profitable = burn <= 0;
-  const actions = activitiesFor("company", run).filter((a) => !isIOSFreeEdition() || !a.pro);
+  const actions = activitiesFor("company", run);
 
   return (
     <ScreenSheet

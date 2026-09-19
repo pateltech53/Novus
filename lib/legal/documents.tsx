@@ -213,7 +213,7 @@ export const PRIVACY: LegalDocument = {
     },
     {
       heading: "Payments",
-      iosBody: <>This iOS edition does not offer purchases or paid content. If you have an existing subscription, we retain its status, renewal date and payment-provider customer identifier to support your account. We never receive or store your card number. Installing this edition does not cancel an existing subscription. Contact <Mail /> for subscription or cancellation help.</>,
+      iosBody: <>Purchases are not available inside the iOS app. Existing account entitlements and saved companies are available when you sign in. For existing subscriptions we retain subscription status, renewal date and payment-provider customer identifiers to support your account. We never receive or store your card number. Installing this app does not change or cancel a subscription. Contact <Mail /> for subscription or cancellation help.</>,
       body: (
         <>
           Nothing is sold inside the iPhone or Android app. Pro is bought on the
@@ -378,8 +378,8 @@ export const TERMS: LegalDocument = {
     },
     {
       heading: "Novus Pro, and what it costs",
-      iosHeading: "The iOS basic edition",
-      iosBody: <>This iOS edition includes the basic game, with four industries, two active companies, one new company per day and one fiscal-year close per day. The year-end pitch and leaderboard are included. Purchases, paid content and additional company slots are not available in this edition. Existing subscription records and saved companies are retained; companies that require unavailable content or slots cannot be played here. Installing this edition does not cancel an existing subscription. Contact <Mail /> for subscription, cancellation or refund assistance.</>,
+      iosHeading: "Pro access in the iOS app",
+      iosBody: <>The iOS app does not offer purchases. If your Novus account already has Pro or other purchased entitlements, signing in makes those benefits and saved companies available in the app. Free accounts keep their existing free allowances. Installing the app does not change or cancel an existing subscription. Contact <Mail /> for subscription, cancellation or refund assistance.</>,
       body: (
         <>
           <strong>The free game is the whole game.</strong> Twelve months a year,
@@ -408,12 +408,11 @@ export const TERMS: LegalDocument = {
           writing to us.
           <br />
           <br />
-          <strong>The iPhone app is a separate basic edition.</strong> It does not
-          offer purchases or paid content, including content attached to an existing
-          subscription. Your subscription and saved companies are retained; saves
-          that require unavailable content or slots cannot be played in this edition.
-          Installing it does not cancel an existing subscription. Contact us for
-          subscription, cancellation or refund help. The Android app offers no purchases.
+          <strong>Nothing is sold inside the iPhone or Android app.</strong> Pro
+          and other purchased benefits attach to your Novus account and are
+          available when you sign in, together with your saved companies.
+          Installing the app does not change or cancel a subscription. Contact
+          us for subscription, cancellation or refund help.
         </>
       ),
     },

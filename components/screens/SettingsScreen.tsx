@@ -38,7 +38,7 @@ import {
   useEntitlements,
 } from "@/lib/plan";
 import { MANAGE_SUBSCRIPTION_NOTE, storefront, useSellsHere, useStorefront } from "@/lib/commerce";
-import { FreeEditionDetails } from "@/components/FreeEdition";
+import { AppPurchasesDetails } from "@/components/AppPurchases";
 import { BuyOnWeb, RestoreButton } from "@/components/upgrade/BuyOnWeb";
 import { appPath } from "@/lib/native/href";
 
@@ -431,7 +431,7 @@ function ProSection() {
   const where = useStorefront();
   if (where === null) return null;
   return where === "app-store"
-    ? <Section label="BASIC EDITION"><FreeEditionDetails /></Section>
+    ? <Section label="ACCOUNT ACCESS"><AppPurchasesDetails /></Section>
     : <PaidProSection />;
 }
 

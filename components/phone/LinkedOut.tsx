@@ -1,7 +1,5 @@
 "use client";
 
-import { usePaidContent } from "@/lib/commerce";
-
 import { play } from "@/lib/sound";
 
 import { useMemo } from "react";
@@ -50,13 +48,12 @@ function monogram(name: string): string {
 }
 
 export function LinkedOut({ onHire }: { onHire: (candidateId: string) => void }) {
-  const paidContent = usePaidContent();
   const { run } = useGame();
 
   // candidatePool is seeded by run id + year + month, so it returns the identical
   // six people all month and a fresh board on the first of the next one. The memo
   // is only for referential stability across unrelated commits.
-  const pool = useMemo(() => (run ? candidatePool(run, 6).filter((c) => paidContent || !c.pro) : []), [run, paidContent]);
+  const pool = useMemo(() => (run ? candidatePool(run, 6) : []), [run]);
 
   if (!run) return null;
 
@@ -127,7 +124,7 @@ export function LinkedOut({ onHire }: { onHire: (candidateId: string) => void })
 
       {/* ── Why the board looks different next time ────────────────────── */}
       <p className="px-2 pt-4 text-xs leading-relaxed text-[var(--text-tertiary)]">
-        This board is Year {run.year}, {MONTH_NAMES[run.month - 1]}. New
+        This board is Year {run.year}, {MONTH_NAMES[run.month - 1]}. Six new
         names post every fiscal month. The ones you scroll past do not wait
         around for you.
       </p>

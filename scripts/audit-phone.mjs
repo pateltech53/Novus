@@ -545,7 +545,7 @@ for (const [shell, inject] of SHELLS) {
     if (!sells) {
       want(!text.includes("GET PRO"),
         `a purchase link is on the plans step in the ${shell} build`);
-      want(text.includes(shell === "ios" ? "basic game" : "attaches to a Novus account"),
+      want(text.includes("Purchases are not available in this app"),
         `the ${shell} build does not say where Pro lives`);
     }
   }
@@ -579,12 +579,12 @@ for (const [shell, inject] of SHELLS) {
   if (!sells) {
     want(!sheet.includes("GET PRO"),
       `a purchase link is in the Pro sheet in the ${shell} build`);
-    want(sheet.includes(shell === "ios" ? "basic game" : "attaches to a Novus account"),
+    want(sheet.includes("Purchases are not available in this app"),
       `the Pro sheet does not say where Pro lives in the ${shell} build`);
   }
   // Required on every platform. It is how a purchase made anywhere — and in a
   // store build every purchase is made somewhere else — reaches this device.
-  want(RESTORE.test(sheet) === (shell !== "ios"), "Restore does not match the edition");
+  want(shell === "ios" ? sheet.includes("REFRESH ACCOUNT ACCESS") : RESTORE.test(sheet), "account refresh is missing");
   want(sheet.includes("TERMS OF USE") && sheet.includes("PRIVACY"),
     "the Pro sheet is missing its terms/privacy links");
 
@@ -604,9 +604,7 @@ for (const [shell, inject] of SHELLS) {
       .locator("button")
       .filter({ hasText: "More candidates in the pool" })
       .first();
-    if (shell === "ios") {
-      want((await gate.count()) === 0, "iOS basic edition still advertises paid hiring");
-    } else if (await gate.count()) {
+    if (await gate.count()) {
       await gate.click();
       await page.waitForTimeout(700);
 
@@ -616,7 +614,7 @@ for (const [shell, inject] of SHELLS) {
       });
       await page.screenshot({ path: join(SHOTS, `shell-${shell}-upgrade.png`) });
 
-      want(upgrade.includes("KEEP PLAYING FREE"), "the upgrade screen did not open");
+      want(upgrade.includes(shell === "ios" ? "CONTINUE PLAYING" : "KEEP PLAYING FREE"), "the upgrade screen did not open");
       want(PRICE.test(upgrade) === sells, sells
         ? "no price on the upgrade screen in a browser"
         : `a price is on the upgrade screen in the ${shell} build`);
@@ -629,10 +627,10 @@ for (const [shell, inject] of SHELLS) {
         ? "no plan picker on the upgrade screen in a browser"
         : `a plan picker is on the upgrade screen in the ${shell} build`);
       if (!sells) {
-        want(upgrade.includes("attaches to a Novus account"),
+        want(upgrade.includes("Purchases are not available in this app"),
           `the upgrade screen does not say where Pro lives in the ${shell} build`);
       }
-      want(RESTORE.test(upgrade), "the upgrade screen has no Restore");
+      want(shell === "ios" ? upgrade.includes("REFRESH ACCOUNT ACCESS") : RESTORE.test(upgrade), "account refresh is missing");
       want(upgrade.includes("TERMS OF USE") && upgrade.includes("PRIVACY"),
         "the upgrade screen is missing its terms/privacy links");
     } else {

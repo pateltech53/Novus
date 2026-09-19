@@ -2,7 +2,7 @@ import { adminCheckoutChoice } from "@/lib/cloud/admin-skip";
 import { RESTORED_FLAG } from "@/lib/cloud/keys";
 import { API_CREDENTIALS, apiUrl } from "@/lib/native/origin";
 import { isNative } from "@/lib/native/platform";
-import { isIOSFreeEdition, IOS_EDITION_NOTE } from "@/lib/native/edition";
+import { APP_PURCHASE_NOTE } from "@/lib/native/purchases";
 import type { ChapterProfile } from "@/lib/chapter/profile";
 import {
   loadEntitlements,
@@ -108,7 +108,7 @@ export async function startCheckout(
   seats?: number,
   chapterProfile?: ChapterProfile,
 ): Promise<CheckoutResult> {
-  if (isNative()) return { ok: false, reason: "not-supported", message: isIOSFreeEdition() ? IOS_EDITION_NOTE : "Purchases are not available in this app." };
+  if (isNative()) return { ok: false, reason: "not-supported", message: APP_PURCHASE_NOTE };
   try {
     const res = await fetch(apiUrl("/api/billing/checkout"), {
       method: "POST",
@@ -156,7 +156,7 @@ export async function goToCheckout(
   chapterProfile?: ChapterProfile,
 ): Promise<CheckoutResult> {
   // Enforce at the action as well as the UI, including stale sign-in handoffs.
-  if (isNative()) return { ok: false, reason: "not-supported", message: isIOSFreeEdition() ? IOS_EDITION_NOTE : "Purchases are not available in this app." };
+  if (isNative()) return { ok: false, reason: "not-supported", message: APP_PURCHASE_NOTE };
   // The operator's fork, and nobody else's: for an admin session this asks
   // "test the real checkout, or skip payment?" through the globally mounted
   // prompt. A skip has already granted and adopted the entitlements by the
@@ -231,7 +231,7 @@ export function adoptEntitlements(server: Entitlements | null | undefined): bool
 
 export type RestoreResult =
   | { ok: true; changed: boolean; pro: boolean }
-  | { ok: false; reason: "signed-out" | "not-configured" | "offline" | "not-supported" };
+  | { ok: false; reason: "signed-out" | "not-configured" | "offline" };
 
 /**
  * "Restore purchases" — ask the server what this account owns and adopt it.
@@ -249,7 +249,6 @@ export type RestoreResult =
  * not a failure.
  */
 export async function restorePurchases(): Promise<RestoreResult> {
-  if (isIOSFreeEdition()) return { ok: false, reason: "not-supported" };
   let body: {
     configured?: boolean;
     signedIn?: boolean;

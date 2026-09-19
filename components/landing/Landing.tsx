@@ -40,7 +40,7 @@ import { OneTimeShelf } from "@/components/upgrade/OneTimeShelf";
 import { rememberPendingPro } from "@/lib/cloud/pending-pro";
 import { clearPendingChapter } from "@/lib/cloud/pending-chapter";
 import { whenRestored } from "@/lib/cloud/sync";
-import { BasicEditionLanding } from "@/components/BasicEditionLanding";
+import { NativeLanding } from "@/components/NativeLanding";
 import { useStorefront, useSellsHere } from "@/lib/commerce";
 import { loadAccount } from "@/lib/account";
 import { useNavigating } from "@/lib/navigating";
@@ -75,7 +75,7 @@ const ACCOUNT_ANCHOR = "account";
 export function Landing() {
   const where = useStorefront();
   if (where === null) return null;
-  return where === "app-store" ? <BasicEditionLanding /> : <MarketingLanding />;
+  return where === "app-store" ? <NativeLanding /> : <MarketingLanding />;
 }
 
 function MarketingLanding() {

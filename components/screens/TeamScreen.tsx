@@ -1,7 +1,5 @@
 "use client";
 
-import { usePaidContent } from "@/lib/commerce";
-
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useGame } from "@/lib/state/GameProvider";
@@ -79,7 +77,6 @@ export interface TeamScreenProps {
 
 export function TeamScreen({ onClose, onFire, onOpenPhone }: TeamScreenProps) {
   const native = useNativeOverlayOwned();
-  const paidContent = usePaidContent();
   const { run } = useGame();
   const upgrade = useUpgrade();
   /** Firing is two taps: the first one only admits you are thinking about it. */
@@ -225,7 +222,7 @@ export function TeamScreen({ onClose, onFire, onOpenPhone }: TeamScreenProps) {
             Hiring happens on LinkedOut. Open the phone.
           </button>
         )}
-        {paidContent && !run.pro && (
+        {!run.pro && (
           // Content only, never outcomes: Pro widens the list, not the odds.
           // Tappable because it was already making the offer — it just had no
           // way to accept it, which is a sentence about a product rather than

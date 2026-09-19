@@ -1,7 +1,5 @@
 "use client";
 
-import { usePaidContent } from "@/lib/commerce";
-
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useIsPresent } from "framer-motion";
 import { ENTER, EXIT, SCRIM } from "@/components/ui/Motion";
@@ -437,8 +435,7 @@ function HomeScreen({
    * `lib/engine/constants.ts` holds the answer per industry, with the reasoning
    * for all twelve written down beside it.
    */
-  const paidContent = usePaidContent();
-  const shown = (run ? phoneAppsFor(run.industry, APPS) : APPS).filter((a) => paidContent || a.id !== "coldcall");
+  const shown = run ? phoneAppsFor(run.industry, APPS) : APPS;
   const dock = shown.filter((a) => a.id === "beemail" || a.id === "coldcall");
   const grid = shown.filter((a) => !dock.includes(a));
 

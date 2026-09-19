@@ -98,7 +98,7 @@ export function usePlayChrome(options: PlayChromeOptions): boolean {
       {
         id: "pro",
         text: pro ? "PRO" : "FREE",
-        label: pro ? "Pro account" : "Basic edition details",
+        label: pro ? "Pro account" : "Account access and purchases",
         style: pro ? "prestige" : "plain",
         leading: true,
       },

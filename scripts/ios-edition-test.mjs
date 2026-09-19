@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Exercise account entitlement projection, protected saves, and billing entry points.
+// Existing Pro access must work in native apps; only payment actions are blocked.
 import assert from "node:assert/strict";
 import { register } from "node:module";
 register("./ts-loader.mjs", import.meta.url);
@@ -18,9 +18,8 @@ globalThis.window = {
   dispatchEvent() {}, setTimeout, clearTimeout,
   location: { pathname: "/play", href: "/play", assign(url) { this.href = url; } },
 };
-
 const { Capacitor } = await import("@capacitor/core");
-let shell = "web";
+let shell = "ios";
 Capacitor.getPlatform = () => shell;
 Capacitor.isNativePlatform = () => shell !== "web";
 const m = await import("../lib/monetization.ts");
@@ -28,57 +27,48 @@ const save = await import("../lib/engine/save.ts");
 const billing = await import("../lib/cloud/billing.ts");
 const pending = await import("../lib/cloud/pending-pro.ts");
 const chapters = await import("../lib/cloud/pending-chapter.ts");
-const { ASSET_CATALOG } = await import("../lib/engine/holdings.ts");
 const { INDUSTRIES } = await import("../lib/engine/constants.ts");
-const premiumIndustry = INDUSTRIES.find((i) => !i.free).code;
+const paidIndustry = INDUSTRIES.find((i) => !i.free).code;
 const account = { ...m.NO_ENTITLEMENTS, pro: true, extraIslands: 3,
-  extraYearCloses: 4, industryPacks: [premiumIndustry], intent: "pro_yearly", admin: true };
+  extraYearCloses: 4, industryPacks: [paidIndustry], intent: "pro_yearly" };
 billing.adoptEntitlements(account);
 const originalAccount = JSON.stringify(m.loadEntitlements());
+assert.equal(m.isPro(account), true, "existing Pro works on iOS");
+assert.deepEqual(m.limitsFor(account), m.PRO_LIMITS);
+assert.equal(m.islandCapFor(account), m.PRO_LIMITS.islands + 3);
+assert.equal(m.yearClosesFor(account), m.PRO_LIMITS.yearClosesPerDay + 4);
+assert.equal(m.industryUnlocked(paidIndustry, account), true);
+assert.equal(m.industryUnlocked(paidIndustry, { ...m.NO_ENTITLEMENTS, industryPacks: [paidIndustry] }), true);
+assert.equal(m.isPro({ ...m.NO_ENTITLEMENTS, chapter: "existing-chapter" }), true);
+assert.deepEqual(m.limitsFor({ ...m.NO_ENTITLEMENTS, admin: true }), m.ADMIN_LIMITS);
+
 const company = (id, fields = {}) => ({
-  id, seed: 7, companyName: id, founderName: "Test", industry: "FOOD", pro: false,
+  id, seed: 7, companyName: id, founderName: "Test", industry: paidIndustry, pro: true,
   year: 1, month: 1, stage: 1, alive: true, flags: {}, log: [],
   stats: { valuation: 1000, cash: 1000, revenueAnnual: 0, employees: 0 }, ...fields,
 });
-for (const [slot, run] of [
-  [0, company("Paid", { pro: true })], [1, company("Basic one")],
-  [2, company("Basic two")], [3, company("Extra slot")],
-  [4, company("Paid industry", { industry: premiumIndustry })],
-  [5, company("Past purchase", { holdings: [{ defId: ASSET_CATALOG.find((a) => a.pro).id }] })],
-  [6, company("Past hire", { roster: [{ id: "emp-0-cand-1-1-4" }] })],
-]) { save.saveRun(run, slot); save.flushRun(); }
-localStorage.setItem("novus:table:v1:0", JSON.stringify({ cards: ["pending"] }));
-const protectedRun = localStorage.getItem("novus:run:v1:0");
-const protectedTable = localStorage.getItem("novus:table:v1:0");
-
-shell = "ios";
-assert.equal(m.isPro(account), false);
-assert.deepEqual(m.limitsFor(account), m.FREE_LIMITS);
-assert.equal(m.islandCapFor(account), 2);
-assert.equal(m.yearClosesFor(account), 1);
-assert.equal(m.industryUnlocked(premiumIndustry, account), false);
-assert.equal(m.industryUnlocked("FOOD", account), true);
-for (const slot of [0, 3, 4, 5, 6]) assert.equal(save.islandAvailableHere(slot), false, `protected slot ${slot}`);
-for (const slot of [1, 2]) assert.equal(save.islandAvailableHere(slot), true, `basic slot ${slot}`);
-assert.equal(save.listIslands().length, 7, "all saves remain in the library");
-assert.equal(save.slotForNewCompany(2), null, "existing companies count without deletion");
-save.saveRun(company("Paid", { month: 9 }), 0);
-save.saveTable(null, 0);
+for (let slot = 0; slot < 3; slot++) { save.saveRun(company(`Paid ${slot}`), slot); save.flushRun(); }
+assert.equal(save.listIslands().length, 3, "more than two paid companies remain available");
+assert.equal(save.slotForNewCompany(m.islandCapFor(account)), 3, "Pro can found beyond the free cap");
+const state = save.loadRun(2);
+save.saveRun({ ...state, month: 7 }, 2);
 save.flushRun();
-assert.equal(localStorage.getItem("novus:run:v1:0"), protectedRun);
-assert.equal(localStorage.getItem("novus:table:v1:0"), protectedTable);
-const basic = save.loadRun(1);
-save.saveRun({ ...basic, month: 2 }, 1);
-save.flushRun();
-assert.equal(save.loadRun(1).month, 2, "basic gameplay can still save");
-m.recordPlanIntent("pro_monthly");
-m.grantProLocally("pro_monthly");
-assert.equal(JSON.stringify(m.loadEntitlements()), originalAccount, "purchased account data is unchanged");
+assert.equal(save.loadRun(2).month, 7, "paid gameplay can save");
+assert.equal(save.loadRun(2).pro, true);
+assert.equal(save.loadRun(2).industry, paidIndustry);
+save.saveTable({ runId: state.id, year: 1, month: 7, cards: [], marketId: null, yearEnd: null }, 2);
+assert.ok(localStorage.getItem("novus:table:v1:2"), "paid decision tables can persist");
+save.saveTable(null, 2);
+assert.equal(localStorage.getItem("novus:table:v1:2"), null, "completed decisions can clear");
+m.recordPlanIntent("free");
+assert.equal(JSON.stringify(m.loadEntitlements()), originalAccount, "onboarding cannot replace a subscriber's plan");
 
-let requests = [];
+const requests = [];
 globalThis.fetch = async (url, options) => {
   requests.push({ url, options });
-  return { ok: true, json: async () => ({ url: "https://checkout.stripe.test/session" }) };
+  return { ok: true, json: async () => url.endsWith("/entitlements")
+    ? { configured: true, signedIn: true, entitlements: account }
+    : { url: "https://checkout.stripe.test/session" } };
 };
 for (const platform of ["ios", "android"]) {
   shell = platform;
@@ -92,21 +82,25 @@ for (const platform of ["ios", "android"]) {
   chapters.rememberPendingChapter("chapter_35");
   assert.equal(chapters.resumePendingChapter(), false);
 }
-shell = "ios";
-assert.equal((await billing.restorePurchases()).reason, "not-supported");
-assert.equal(requests.length, 0, "native entry points make no billing request");
+assert.equal(requests.length, 0, "native payments make no request");
 assert.equal(window.location.href, "/play");
 assert.equal(sessionStorage.getItem("novus:pending-pro"), null);
 assert.equal(sessionStorage.getItem("novus.pending-chapter"), null);
 
-shell = "web";
-assert.equal(m.isPro(m.loadEntitlements()), true);
-assert.equal(save.islandAvailableHere(0), true);
-assert.equal(save.islandAvailableHere(3), true);
-assert.equal(m.industryUnlocked(premiumIndustry, m.loadEntitlements()), true);
+shell = "ios";
+billing.adoptEntitlements(m.NO_ENTITLEMENTS);
+m.grantProLocally("pro_yearly");
+assert.equal(m.isPro(m.loadEntitlements()), false, "blocked native checkout cannot grant Pro for free");
+assert.deepEqual(m.limitsFor(m.loadEntitlements()), m.FREE_LIMITS);
+assert.equal(m.industryUnlocked(paidIndustry, m.loadEntitlements()), false);
+assert.equal((await billing.restorePurchases()).ok, true, "account refresh still works on iOS");
+assert.equal(requests.at(-1).options.method ?? "GET", "GET");
+assert.ok(requests.at(-1).url.endsWith("/api/billing/entitlements"));
 assert.equal(JSON.stringify(m.loadEntitlements()), originalAccount);
+assert.equal(m.isPro(m.loadEntitlements()), true);
+
+shell = "web";
 assert.equal((await billing.goToCheckout("pro_monthly")).ok, true);
-assert.equal(requests.length, 1);
-assert.equal(requests[0].url, "/api/billing/checkout");
+assert.equal(requests.at(-1).url, "/api/billing/checkout");
 assert.equal(window.location.href, "https://checkout.stripe.test/session");
-console.log("✓ iOS basic access, protected saves, native payment refusal, and web checkout");
+console.log("✓ Native Pro/paid saves/extra slots, account refresh, payment refusal, and web checkout");

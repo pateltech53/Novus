@@ -1,7 +1,5 @@
 "use client";
 
-import { usePaidContent } from "@/lib/commerce";
-
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useGame } from "@/lib/state/GameProvider";
@@ -66,7 +64,6 @@ export function AssetsScreen({
   onBuy: (defId: string) => void;
   onSell: (holdingId: string) => void;
 }) {
-  const paidContent = usePaidContent();
   const { run } = useGame();
   const [kind, setKind] = useState<AssetKind>("company");
   /** Selling is irreversible, so it takes two taps. Holding id mid-confirm. */
@@ -103,8 +100,8 @@ export function AssetsScreen({
     if (!run) return [];
     // One of each: a second identical warehouse is bookkeeping, not a decision.
     const ownedIds = new Set(run.holdings.map((h) => h.defId));
-    return availableAssets(run, kind).filter((def) => !ownedIds.has(def.id) && (paidContent || !def.pro));
-  }, [run, kind, paidContent]);
+    return availableAssets(run, kind).filter((def) => !ownedIds.has(def.id));
+  }, [run, kind]);
 
   // The Closet's aspiration pattern: the next few stage-locked assets render
   // quiet but whole, so a Stage-1 player can see the flagship from the garage.
@@ -113,11 +110,11 @@ export function AssetsScreen({
   const horizon = useMemo<AssetDef[]>(() => {
     if (!run) return [];
     return ASSET_CATALOG.filter(
-      (def) => def.kind === kind && def.minStage > run.stage && (paidContent || !def.pro),
+      (def) => def.kind === kind && def.minStage > run.stage,
     )
       .sort((a, b) => a.minStage - b.minStage || a.priceS - b.priceS)
       .slice(0, 3);
-  }, [run, kind, paidContent]);
+  }, [run, kind]);
 
   const sell = useCallback(
     (holdingId: string) => {

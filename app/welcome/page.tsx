@@ -11,7 +11,7 @@ import { LoopExplainer } from "@/components/LoopExplainer";
 import { PrimaryButton, StepShell } from "@/components/StepShell";
 import { billingStatus, goToCheckout } from "@/lib/cloud/billing";
 import { storefront, useSellsHere, useStorefront } from "@/lib/commerce";
-import { FreeEditionDetails } from "@/components/FreeEdition";
+import { AppPurchasesDetails } from "@/components/AppPurchases";
 import { BuyOnWeb } from "@/components/upgrade/BuyOnWeb";
 import { LegalSheet } from "@/components/LegalSheet";
 import { PRIVACY, TERMS, type LegalDocument } from "@/lib/legal/documents";
@@ -997,7 +997,7 @@ function PlansSheet(props: { onDone: () => void; leaving: boolean }) {
     <StepShell>
       <div className="w-full flex-1">
         <h1 className="mb-5 text-[1.75rem] font-extrabold">Your company starts here.</h1>
-        <FreeEditionDetails />
+        <AppPurchasesDetails />
       </div>
       <div className="mt-6 w-full">
         <PrimaryButton onClick={props.onDone} disabled={props.leaving}>START PLAYING</PrimaryButton>

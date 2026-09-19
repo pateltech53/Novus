@@ -5,7 +5,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { play } from "@/lib/sound";
 import { billingStatus, goToCheckout, restorePurchases } from "@/lib/cloud/billing";
 import { useSellsHere, useStorefront } from "@/lib/commerce";
-import { FreeEditionSheet } from "@/components/FreeEdition";
+import { AppPurchasesSheet } from "@/components/AppPurchases";
 import { BuyOnWeb, RestoreButton } from "@/components/upgrade/BuyOnWeb";
 import { OneTimeShelf } from "@/components/upgrade/OneTimeShelf";
 import { EXIT, SHEET_SPRING } from "@/components/ui/Motion";
@@ -61,14 +61,14 @@ import { useNativeGlassClose } from "@/components/native/useNativeOverlay";
  * never falls back to the local grant — on a deploy that can take money, that
  * would make Pro free to anyone who can drop a request.
  *
- * iOS renders basic-edition limits and account-support information instead
+ * iOS renders account access and purchase-unavailability information instead
  * of this paid offer. Browser and Android presentation remain separate below.
  */
 export function UpgradeScreen(props: { gate: Gate | null; onClose: () => void }) {
   const where = useStorefront();
   if (where === null) return null;
   return where === "app-store"
-    ? <FreeEditionSheet gate={props.gate?.id} onClose={props.onClose} />
+    ? <AppPurchasesSheet onClose={props.onClose} />
     : <PaidUpgradeScreen {...props} />;
 }
 

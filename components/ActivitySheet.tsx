@@ -1,7 +1,5 @@
 "use client";
 
-import { isIOSFreeEdition } from "@/lib/native/edition";
-
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { ENTER, EXIT, SCRIM } from "@/components/ui/Motion";
@@ -49,7 +47,7 @@ export function ActivitySheet({
   const [done, setDone] = useState<string[]>([]);
 
   if (!run || !tab) return null;
-  const list = activitiesFor(tab, run).filter((a) => !isIOSFreeEdition() || !a.pro);
+  const list = activitiesFor(tab, run);
 
   return (
     <motion.div
