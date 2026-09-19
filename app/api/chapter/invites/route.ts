@@ -5,7 +5,7 @@ import { CREDENTIAL_MESSAGE, checkEmail, normaliseEmail } from "@/lib/auth/crede
 import {
   MAX_BATCH,
   cleanSeatName,
-  ownedChapter,
+  managedChapter,
   randomPassword,
   seatMessage,
   type OwnedChapter,
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
     return refuse(session, "chapter admin needs the account that bought the licence", 403);
   }
 
-  const chapter = await ownedChapter(session);
+  const chapter = await managedChapter(session, req.nextUrl.searchParams.get("chapterId"));
   if (!chapter) return refuse(session, "no chapter on this account", 404);
   if (chapter.status !== "active") {
     return refuse(session, "this chapter's licence has lapsed — renew it before adding seats", 409);

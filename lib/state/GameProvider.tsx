@@ -259,7 +259,7 @@ interface GameContextValue {
      * one plays identically, it just has less on the notes card in The Tank.
      */
     brief?: CompanyBrief;
-  }): void;
+  }): Promise<boolean>;
   advance(): void;
   choose(index: number): void;
   dismissCard(): void;
@@ -559,15 +559,21 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     );
   }, [hydrated, run, queue, marketId, yearEnd, island]);
 
+  const startingRef = useRef(false);
+  useEffect(() => { if (run) void import("@/lib/competitions/client").then(m => m.queueCompetitionScore(run)); }, [run]);
+
   const startRun: GameContextValue["startRun"] = useCallback(
-    (opts) => {
+    async (opts) => {
+      if (startingRef.current) return false;
+      startingRef.current = true;
+      try {
       /*
        * The run-a-day gate. Free is one life per day and it cannot be redone;
        * Pro and purchased slots lift the count (lib/monetization.ts). Checked
        * here rather than in the UI so no screen can start a run the pricing
        * page says you do not have.
        */
-      if (runsRemainingToday() <= 0) return;
+      if (runsRemainingToday() <= 0) return false;
       /*
        * The industry gate, for exactly the reason stated above it.
        *
@@ -581,7 +587,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
        * `industryUnlocked` rather than `isPro`, because there are three ways
        * to own an industry and a one-time pack is one of them.
        */
-      if (!industryUnlocked(opts.industry, loadEntitlements())) return;
+      if (!industryUnlocked(opts.industry, loadEntitlements())) return false;
       /*
        * Which island this company goes on, decided BEFORE anything is written.
        *
@@ -613,8 +619,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         opts.slot !== undefined && !islandOccupied(opts.slot) && liveIslandCount() < cap
           ? opts.slot
           : slotForNewCompany(cap);
-      if (target === null) return;
-      recordRunStart();
+      if (target === null) return false;
+      const { registerStart, completeStart } = await import("@/lib/competitions/client");
+      const registered = await registerStart(opts.industry, opts.tutorial);
+      recordRunStart(registered.ticket_used);
       islandRef.current = target;
       setIsland(target);
       setActiveIsland(target);
@@ -634,12 +642,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
        * construction is the additive path the rules ask for. Nothing in the
        * engine reads it, so a run without one behaves identically.
        */
+      if (registered.seed !== null) {
+        next.seed = registered.seed;
+        next.id = `run-${registered.seed.toString(36)}`;
+      }
       if (brief && (brief.whatItDoes || brief.usp || brief.companyType)) {
         next.brief = brief;
       }
-      // Device-level Pro (chosen on the plans screen) reaches the run itself,
-      // so The Room and the Pro industries do not read as broken after buying.
-      next.pro = isPro(loadEntitlements());
+      // Keep founding registration authoritative for Pro, including competition
+      // runs; its offline path already uses the cached account entitlements.
+      next.pro = registered.pro;
       // A fresh company gets a fresh tape. Before any state is set, so a throw
       // in the storage layer cannot leave a run running against another run's
       // tape — `record` refuses a mismatched runId, so the failure mode is a
@@ -678,6 +690,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         micCalibration: loadProfile()?.micCalibration ?? null,
       });
       setProfile(loadProfile());
+      completeStart();
+      return true;
+      } finally { startingRef.current = false; }
     },
     [commit],
   );

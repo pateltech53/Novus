@@ -15,19 +15,31 @@ const run = createRun({ founderName: "Test", playerAge: 20, companyName: "Pro Co
 run.pro = true;
 const entitlements = { ...NO_ENTITLEMENTS, pro: true, intent: "pro_yearly", extraIslands: 3 };
 const browser = await chromium.launch({ headless: true, ...(process.env.EDITION_TEST_CHANNEL ? { channel: process.env.EDITION_TEST_CHANNEL } : {}) });
-const context = await browser.newContext({ viewport: { width: 430, height: 932 }, reducedMotion: "reduce" });
+// Native uses the production API origin. Localhost emulation needs mocked CORS
+// and a CSP bypass; production serves the shell and these APIs on the same origin.
+const context = await browser.newContext({ viewport: { width: 430, height: 932 }, reducedMotion: "reduce", bypassCSP: true });
+const apiHeaders = {
+  "access-control-allow-origin": origin,
+  "access-control-allow-credentials": "true",
+  "access-control-allow-methods": "GET, POST, OPTIONS",
+  "access-control-allow-headers": "content-type",
+};
 const errors = [];
 const billingRequests = [];
 let refreshes = 0;
 await context.route("**/*", async (route) => {
   const url = new URL(route.request().url());
   if (url.pathname.startsWith("/api/")) {
+    if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: apiHeaders });
     if (/\/billing\/(checkout|portal)/.test(url.pathname)) billingRequests.push(url.pathname);
     if (url.pathname === "/api/billing/entitlements") {
       refreshes++;
-      return route.fulfill({ json: { configured: true, signedIn: true, entitlements } });
+      return route.fulfill({ headers: apiHeaders, json: { configured: true, signedIn: true, entitlements } });
     }
-    return route.fulfill({ json: { configured: false, signedIn: false, entitlements: null, admin: false, isAdmin: false } });
+    if (url.pathname === "/api/company/start") {
+      return route.fulfill({ headers: apiHeaders, json: { start: { seed: 74291, pro: true, ticket_used: false, tickets: 0, tutorial: false } } });
+    }
+    return route.fulfill({ headers: apiHeaders, json: { configured: false, signedIn: false, entitlements: null, admin: false, isAdmin: false } });
   }
   if (url.origin !== origin) return route.abort();
   return route.continue();
@@ -90,15 +102,29 @@ try {
   await page.getByText("Pro Company 3", { exact: true }).first().click();
   await page.getByRole("button", { name: /CONTINUE/ }).last().click();
   await page.waitForURL("**/play*");
-  await page.getByText("Pro Company 3", { exact: true }).first().waitFor();
+  await page.getByText(/Pro Company 3/).first().waitFor();
   assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("novus:run:v1:2")).pro), true);
   const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("novus:entitlements:v1")));
   assert.equal(stored.pro, true);
   assert.equal(stored.intent, "pro_yearly");
+  // Exercise the merge with founding registration: server Pro must reach the
+  // new run without overwriting any existing paid company.
+  await visit("/found");
+  const paidIndustry = INDUSTRIES.find((industry) => !industry.free);
+  await page.getByPlaceholder("Company name", { exact: true }).fill("Fourth Pro Company");
+  await page.getByRole("button", { name: new RegExp(paidIndustry.name, "i") }).click();
+  await page.getByRole("checkbox", { name: /Skip the guided year/ }).check();
+  await page.getByRole("button", { name: "FOUND IT ▸", exact: true }).click();
+  await page.waitForURL("**/play*");
+  await page.getByText(/Fourth Pro Company/).first().waitFor();
+  const founded = await page.evaluate(() => JSON.parse(localStorage.getItem("novus:run:v1:3")));
+  assert.equal(founded.pro, true);
+  assert.equal(founded.industry, paidIndustry.code);
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("novus:run:v1:2")).companyName), "Pro Company 3");
   assert.equal(billingRequests.length, 0);
   // Chromium emulates the platform, not the App/Keyboard native plugins.
   assert.deepEqual(errors.filter((e) => !/^"(App|Keyboard)" plugin is not implemented on ios$/.test(e)), []);
-  console.log("✓ iOS Pro industries/third company, account refresh, settings, and no purchase actions");
+  console.log("✓ iOS Pro industries/third company/new founding, account refresh, settings, and no purchase actions");
 } catch (error) {
   console.error("Page:", page.url(), "\n", (await page.locator("body").innerText()).slice(0, 2500));
   throw error;

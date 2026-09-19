@@ -526,6 +526,8 @@ export interface Entitlements {
    * buys nothing money cannot; a score or a survival stays ungiftable.
    */
   extraYearCloses: number;
+  /** Consumable competition prizes; only the server spends these. */
+  runTickets?: number;
   industryPacks: Industry[];
   cosmeticBundles: string[];
   /** A chapter licence covering this seat, if a teacher enrolled it. */
@@ -548,6 +550,7 @@ export const NO_ENTITLEMENTS: Entitlements = {
   pro: false,
   extraIslands: 0,
   extraYearCloses: 0,
+  runTickets: 0,
   industryPacks: [],
   cosmeticBundles: [],
   chapter: null,
@@ -807,11 +810,14 @@ function loadRunLedger(): RunLedger {
 
 /** Runs still startable today, given the player's entitlements. */
 export function runsRemainingToday(e: Entitlements = loadEntitlements()): number {
-  return Math.max(0, runsPerDayFor(e) - loadRunLedger().started);
+  return Math.max(0, runsPerDayFor(e) - loadRunLedger().started) + Math.max(0, e.runTickets ?? 0);
 }
 
 /** Consume one slot. Call from startRun, nowhere else. */
-export function recordRunStart(): void {
+export const runStartLedger = () => loadRunLedger();
+
+export function recordRunStart(ticketUsed = false): void {
+  if (ticketUsed) return;
   if (typeof window === "undefined") return;
   const ledger = loadRunLedger();
   try {

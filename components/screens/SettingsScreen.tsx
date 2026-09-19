@@ -268,6 +268,8 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
         {/* ── Pro: status, restore, and where it is managed ──────────────── */}
         <ProSection />
 
+        <a href={appPath("/chapter")} className="block min-h-11 py-3 text-sm font-bold">Enterprise management</a>
+        <a href={appPath("/competitions")} className="block min-h-11 py-3 text-sm font-bold">Enterprise competitions</a>
         {/* ── The operator's door — exists only for an admin account ──────── */}
         <AdminSection />
 

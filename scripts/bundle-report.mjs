@@ -136,7 +136,8 @@ const BUDGETS = {
   // is part of this route's own First Load JS, so three more authored
   // events cost bytes here the same way the 48-verb Playbook did above.
   // Rounding to the next full kilobyte rather than chasing 0.2 kB exactly.
-  "/play/page": 364,
+  // Native account-status and refresh sheet; combined build measures 364.2 kB.
+  "/play/page": 365,
   "/found/page": 325,
   // The picker is the front door for anyone with a company, so it is on the
   // critical path for every returning player. 320 is a little above where it
@@ -163,6 +164,8 @@ const BUDGETS = {
   // The native picker gains an owner/admin-only Home control and a fresh
   // workspace read. Node 22 measures 335.6 kB; allow one additional kilobyte.
   // Shared native account-access UI: 336.6 kB measured locally.
+  // Enterprise founding registration and consumable tickets add 1.6 kB to
+  // the shared provider/allowance path; measured 337.2 kB after lazy splits.
   "/islands/page": 338,
   // 200 (was 195, measured 196.0), 2026-09-15: onboarding now requires an
   // account partway through the flow (docs/HANDOFF.md's "Onboarding now

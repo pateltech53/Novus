@@ -72,3 +72,6 @@ android/app/release/
 !android/app/debug.keystore
 .vercel
 panel.tmp.mjs
+
+# Supabase CLI runtime metadata
+/supabase/.temp/

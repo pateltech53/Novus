@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { configured } from "@/lib/supabase/config";
 import { crossSite, sessionFromRequest, withSession } from "@/lib/supabase/route";
-import { ownedChapter, type SeatRow } from "@/lib/chapter/admin";
+import { managedChapter, type SeatRow } from "@/lib/chapter/admin";
 import { validateChapterProfile } from "@/lib/chapter/profile";
 import { isUuid } from "@/lib/admin/guard";
 import { adminClient } from "@/lib/supabase/admin";
@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const chapter = await ownedChapter(session);
+  const chapter = await managedChapter(session, req.nextUrl.searchParams.get("chapterId"));
   if (!chapter) {
     return withSession(
       NextResponse.json({ configured: true, signedIn: true, chapter: null, members: [] }),
@@ -49,17 +49,20 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const { data: seatRows, error } = await session.supabase
+  const memberOffset = Math.max(0, Math.trunc(Number(req.nextUrl.searchParams.get("memberOffset")) || 0));
+  const { data: seatRows, error, count } = await session.supabase
     .from("chapter_seats")
-    .select("email, seat_name, origin, invite_sent_at, claimed_at, created_at")
+    .select("email, seat_name, origin, invite_sent_at, claimed_at, created_at", { count: "exact" })
     .eq("chapter_id", chapter.id)
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: true }).order("id").range(memberOffset, memberOffset + 99);
   if (error) {
     return withSession(
       NextResponse.json({ error: `roster: ${error.message}` }, { status: 500 }),
       session,
     );
   }
+
+  const { data: chapters } = await session.supabase.from("chapters").select("id,name").is("deleted_at",null).order("created_at",{ascending:false});
 
   const members: SeatRow[] = (seatRows ?? []).map((s) => ({
     email: s.email as string,
@@ -74,7 +77,8 @@ export async function GET(req: NextRequest) {
     NextResponse.json({
       configured: true,
       signedIn: true,
-      chapter: { ...chapter, seatsUsed: members.length },
+      chapter: { ...chapter, seatsUsed: count ?? members.length },
+      chapters: chapters ?? [],
       members,
     }),
     session,

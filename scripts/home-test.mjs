@@ -73,7 +73,7 @@ await check('ordinary members get no administrative entry and only own-account r
   assert.equal(r.headers['Cache-Control'], 'no-store');
   assert.deepEqual(plain(state.queries), [
     ['profiles', ['select', 'role, display_name'], ['eq', 'id', 'own-account']],
-    ['chapters', ['select', 'name, status'], ['eq', 'owner_profile_id', 'own-account'],
+    ['chapters', ['select', 'name, status'],
       ['is', 'deleted_at', null], ['order', 'created_at', { ascending: false }]],
   ]);
 });

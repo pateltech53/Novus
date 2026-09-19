@@ -214,6 +214,7 @@ export function adoptEntitlements(server: Entitlements | null | undefined): bool
     local.pro === server.pro &&
     local.extraIslands === server.extraIslands &&
     local.extraYearCloses === server.extraYearCloses &&
+    (local.runTickets ?? 0) === (server.runTickets ?? 0) &&
     local.chapter === server.chapter &&
     local.intent === server.intent &&
     // The admin overlay travels in the same object; a view switch in the

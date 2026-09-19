@@ -10,6 +10,7 @@ import { storefront, useSellsHere } from "@/lib/commerce";
 import { appPath } from "@/lib/native/href";
 import { CHAPTER_LICENCES, formatPrice, perSeatCents } from "@/lib/monetization";
 import { play } from "@/lib/sound";
+import dynamic from "next/dynamic";
 import { ChapterDetails, type ChapterDetailsInfo } from "@/components/chapter/ChapterDetails";
 
 /**
@@ -36,7 +37,11 @@ import { ChapterDetails, type ChapterDetailsInfo } from "@/components/chapter/Ch
  * backoff thinking as lib/cloud/billing.ts's awaitPurchase.
  */
 
+const EnterpriseWorkspace = dynamic(() => import("@/components/chapter/EnterpriseWorkspace").then(m => m.EnterpriseWorkspace), { loading: () => <p className="mt-6" role="status">Loading enterprise workspace…</p> });
+const AdministratorInvitations = dynamic(() => import("@/components/chapter/EnterpriseWorkspace").then(m => m.AdministratorInvitations));
+
 interface ChapterInfo extends ChapterDetailsInfo {
+  role: "owner" | "admin";
   id: string;
   licence: "chapter_35" | "chapter_100" | "chapter_custom";
   seats: number;
@@ -101,6 +106,9 @@ type Mailer = "resend" | "supabase";
 export default function ChapterPage() {
   const [phase, setPhase] = useState<Phase>("loading");
   const [chapter, setChapter] = useState<ChapterInfo | null>(null);
+  const [memberOffset, setMemberOffset] = useState(0);
+  const [chapters, setChapters] = useState<Array<{id:string;name:string|null}>>([]);
+  const chapterQuery = chapter ? `?chapterId=${chapter.id}` : "";
   const [members, setMembers] = useState<Member[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -115,24 +123,26 @@ export default function ChapterPage() {
 
   const load = useCallback(async (): Promise<"ready" | "no-chapter" | Phase> => {
     try {
-      const res = await fetch(apiUrl("/api/chapter"), { credentials: API_CREDENTIALS });
+      const res = await fetch(apiUrl(`/api/chapter?memberOffset=${memberOffset}&chapterId=${new URLSearchParams(window.location.search).get("chapterId") ?? ""}`), { credentials: API_CREDENTIALS });
       if (!res.ok) return "error";
       const body = (await res.json()) as {
         configured?: boolean;
         signedIn?: boolean;
         chapter?: ChapterInfo | null;
+        chapters?: Array<{id:string;name:string|null}>;
         members?: Member[];
       };
       if (body.configured === false) return "unconfigured";
       if (body.signedIn === false) return "signed-out";
       if (!body.chapter) return "no-chapter";
       setChapter(body.chapter);
+      setChapters(body.chapters ?? []);
       setMembers(body.members ?? []);
       return "ready";
     } catch {
       return "error";
     }
-  }, []);
+  }, [memberOffset]);
 
   // First load. `?purchase=ok` turns "no chapter" into a poll against the
   // webhook race; anything else shows what it finds.
@@ -177,7 +187,7 @@ export default function ChapterPage() {
     setBusy("invite");
     setInviteResults(null);
     try {
-      const res = await fetch(apiUrl("/api/chapter/invites"), {
+      const res = await fetch(apiUrl("/api/chapter/invites" + chapterQuery), {
         method: "POST",
         credentials: API_CREDENTIALS,
         headers: { "content-type": "application/json" },
@@ -213,7 +223,7 @@ export default function ChapterPage() {
     setBusy("register");
     setRegisterResults(null);
     try {
-      const res = await fetch(apiUrl("/api/chapter/members"), {
+      const res = await fetch(apiUrl("/api/chapter/members" + chapterQuery), {
         method: "POST",
         credentials: API_CREDENTIALS,
         headers: { "content-type": "application/json" },
@@ -242,7 +252,7 @@ export default function ChapterPage() {
     setBusy(`resend:${email}`);
     setRowNote(null);
     try {
-      const res = await fetch(apiUrl("/api/chapter/invites"), {
+      const res = await fetch(apiUrl("/api/chapter/invites" + chapterQuery), {
         method: "POST",
         credentials: API_CREDENTIALS,
         headers: { "content-type": "application/json" },
@@ -273,7 +283,7 @@ export default function ChapterPage() {
     setBusy(`remove:${email}`);
     setRowNote(null);
     try {
-      const res = await fetch(apiUrl("/api/chapter/members"), {
+      const res = await fetch(apiUrl("/api/chapter/members" + chapterQuery), {
         method: "DELETE",
         credentials: API_CREDENTIALS,
         headers: { "content-type": "application/json" },
@@ -345,7 +355,7 @@ export default function ChapterPage() {
                 // The billing circle opens Stripe's portal, which is a
                 // purchase mechanism — web only, same rule as every other
                 // money door.
-                ...(sells === true
+                ...(sells === true && chapter?.role === "owner"
                   ? [
                       {
                         id: "billing",
@@ -358,7 +368,7 @@ export default function ChapterPage() {
               ]
             : [],
       }),
-      [resolvedTheme, phase, busy, sells],
+      [resolvedTheme, phase, busy, sells, chapter?.role],
     ),
     {
       onAction: (id) => {
@@ -380,6 +390,7 @@ export default function ChapterPage() {
         <p className="text-2xs font-bold tracking-[0.18em] text-[var(--color-prestige)]">
           NOVUS CHAPTER
         </p>
+        <AdministratorInvitations />
         {phase === "loading" && <Blurb title="One moment.">Reading your chapter…</Blurb>}
         {phase === "error" && <>
           <Blurb title="Could not load your enterprise.">Check your connection and try again.</Blurb>
@@ -460,7 +471,7 @@ export default function ChapterPage() {
     : null;
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-6 pb-[max(6rem,calc(var(--nv-overlay-bottom)+2rem))] pt-[max(2.5rem,var(--nv-safe-top),calc(var(--nv-overlay-top)+0.75rem))]">
+    <main className="mx-auto w-full max-w-6xl px-5 pb-[max(6rem,calc(var(--nv-overlay-bottom)+2rem))] pt-[max(2.5rem,var(--nv-safe-top),calc(var(--nv-overlay-top)+0.75rem))]">
       {/* ── Masthead ────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0 max-w-full">
@@ -487,7 +498,7 @@ export default function ChapterPage() {
             >
               BACK TO NOVUS
             </a>
-            {sells === true && (
+            {sells === true && chapter?.role === "owner" && (
             <button
               type="button"
               onClick={() => void openBillingPortal()}
@@ -500,6 +511,8 @@ export default function ChapterPage() {
         )}
       </div>
 
+      <AdministratorInvitations />
+      {chapters.length > 1 && <label className="mt-5 block text-sm font-bold">Enterprise<select className="ml-3 min-h-11 rounded border border-[var(--hairline)] bg-[var(--n-2)] px-3" value={chapter?.id} onChange={e=>window.location.assign(appPath('/chapter')+'?chapterId='+e.target.value)}>{chapters.map(c=><option key={c.id} value={c.id}>{c.name||'Enterprise'}</option>)}</select></label>}
       {chapter?.status === "lapsed" && (
         <p
           role="alert"
@@ -514,7 +527,8 @@ export default function ChapterPage() {
         </p>
       )}
 
-      {chapter && <ChapterDetails
+      {chapter && <EnterpriseWorkspace chapterId={chapter.id} role={chapter.role} active={chapter.status === "active"}>
+      {chapter?.role === "owner" && <ChapterDetails
         key={chapter.id}
         chapter={chapter}
         busy={busy !== null}
@@ -672,6 +686,11 @@ export default function ChapterPage() {
           </ul>
         )}
 
+        <div className="mt-4 flex items-center justify-between gap-3 text-sm">
+          <button className="min-h-11 rounded border border-[var(--hairline)] px-4 disabled:opacity-40" disabled={!memberOffset || busy !== null} onClick={() => setMemberOffset(Math.max(0, memberOffset - 100))}>Previous members</button>
+          <span>{memberOffset + (members.length ? 1 : 0)}–{memberOffset + members.length} of {chapter?.seatsUsed ?? 0}</span>
+          <button className="min-h-11 rounded border border-[var(--hairline)] px-4 disabled:opacity-40" disabled={memberOffset + 100 >= (chapter?.seatsUsed ?? 0) || busy !== null} onClick={() => setMemberOffset(memberOffset + 100)}>Next members</button>
+        </div>
         <p className="mt-4 text-2xs leading-relaxed text-[var(--text-tertiary)]">
           A seat is Pro for the licence year — industries, The Room, three runs
           a day. It never buys a score, a survival, a revive, or a place on
@@ -679,6 +698,7 @@ export default function ChapterPage() {
           their saves; only the seat comes back.
         </p>
       </section>
+      </EnterpriseWorkspace>}
     </main>
   );
 }

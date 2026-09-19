@@ -63,8 +63,9 @@ EDITION_TEST_CHANNEL=chrome node scripts/ios-edition-ui.mjs
 ```
 
 Omit the channel variable if Playwright Chromium is installed. APIs are mocked;
-the test emulates iOS and verifies Pro industries, a third paid company, extra
-slots, account refresh, subscription settings and no checkout/portal requests.
+the test emulates iOS and verifies Pro industries, a third paid company, new
+Pro-company registration, extra slots, account refresh, subscription settings
+and no checkout/portal requests.
 It does not validate a real iPhone or live-account cloud sync.
 
 The Capacitor shell loads `https://www.novuspitch.com/`, so deployment changes

@@ -149,6 +149,7 @@ function FoundPage() {
     const sync = () => {
       const e = loadEntitlements();
       setSlotsLeft(runsRemainingToday(e));
+      setTickets(e.runTickets ?? 0);
       setCap(islandCapFor(e));
       setLiving(liveIslandCount());
     };
@@ -191,7 +192,9 @@ function FoundPage() {
    * the app. Until this, neither of them acknowledged the tap at all — the
    * button stayed lit and the screen stayed put for the length of the chunk.
    */
-  const [going, go] = useNavigating();
+  const [going, go, releaseStart] = useNavigating();
+  const [tickets, setTickets] = useState(0);
+  const [startError, setStartError] = useState<string | null>(null);
   const [resuming, resume] = useNavigating();
 
   const start = () => {
@@ -244,8 +247,10 @@ function FoundPage() {
     setLiving(room);
     if (room >= cap) return;
 
-    go(() => {
-      game.startRun({
+    go(async () => {
+      setStartError(null);
+      try {
+      const started = await game.startRun({
         slot: targetSlot,
         founderName: profile?.founderName ?? "Founder",
         playerAge: profile?.playerAge ?? null,
@@ -256,7 +261,9 @@ function FoundPage() {
         gender,
         brief: sanitizeBrief(brief),
       });
-      router.push("/play");
+      if (started) router.push("/play");
+      else releaseStart();
+      } catch (error) { setStartError(error instanceof Error ? error.message : "Connect to the internet and try again."); releaseStart(); }
     });
   };
 
@@ -300,6 +307,8 @@ function FoundPage() {
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-6 pt-[max(1.5rem,var(--nv-safe-top))] pb-[max(2rem,var(--nv-safe-bottom))]">
+      {startError && <p role="alert" className="my-4 text-sm text-[var(--alert)]">{startError}</p>}
+      <p className="mb-3 text-xs text-[var(--text-secondary)]">Create online to enter eligible enterprise competitions. {tickets} run tickets available; used after today’s ordinary starts.</p>
       {/*
         The company you already have, offered back before the form for a new
         one. It is the first thing on the screen because for a returning player
