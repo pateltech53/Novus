@@ -72,3 +72,4 @@ select set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222'
 select test.eq((select count(*)::integer from public.chapters),0,'removal revokes administrator access immediately');
 reset role;
 rollback;
+\echo '=== competitions_test: all checks passed ==='
