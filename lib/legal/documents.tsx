@@ -34,6 +34,8 @@ import { SUPPORT_EMAIL } from "@/lib/app-info";
 export interface LegalSection {
   heading: string;
   body: React.ReactNode;
+  iosHeading?: string;
+  iosBody?: React.ReactNode;
 }
 
 export interface LegalDocument {
@@ -73,7 +75,7 @@ export const PRIVACY: LegalDocument = {
   id: "privacy",
   title: "Privacy",
   path: "/privacy",
-  lastUpdated: "August 1, 2026",
+  lastUpdated: "September 19, 2026",
   sections: [
     {
       heading: "The short version",
@@ -211,6 +213,7 @@ export const PRIVACY: LegalDocument = {
     },
     {
       heading: "Payments",
+      iosBody: <>This iOS edition does not offer purchases or paid content. If you have an existing subscription, we retain its status, renewal date and payment-provider customer identifier to support your account. We never receive or store your card number. Installing this edition does not cancel an existing subscription. Contact <Mail /> for subscription or cancellation help.</>,
       body: (
         <>
           Nothing is sold inside the iPhone or Android app. Pro is bought on the
@@ -290,7 +293,7 @@ export const TERMS: LegalDocument = {
   id: "terms",
   title: "Terms of Use",
   path: "/terms",
-  lastUpdated: "August 1, 2026",
+  lastUpdated: "September 19, 2026",
   sections: [
     {
       heading: "The short version",
@@ -375,6 +378,8 @@ export const TERMS: LegalDocument = {
     },
     {
       heading: "Novus Pro, and what it costs",
+      iosHeading: "The iOS basic edition",
+      iosBody: <>This iOS edition includes the basic game, with four industries, two active companies, one new company per day and one fiscal-year close per day. The year-end pitch and leaderboard are included. Purchases, paid content and additional company slots are not available in this edition. Existing subscription records and saved companies are retained; companies that require unavailable content or slots cannot be played here. Installing this edition does not cancel an existing subscription. Contact <Mail /> for subscription, cancellation or refund assistance.</>,
       body: (
         <>
           <strong>The free game is the whole game.</strong> Twelve months a year,
@@ -403,9 +408,12 @@ export const TERMS: LegalDocument = {
           writing to us.
           <br />
           <br />
-          <strong>Nothing is sold inside the iPhone or Android app.</strong> Pro
-          attaches to your Novus account rather than to a device, so it appears
-          in the app when that account signs in, on every device you use.
+          <strong>The iPhone app is a separate basic edition.</strong> It does not
+          offer purchases or paid content, including content attached to an existing
+          subscription. Your subscription and saved companies are retained; saves
+          that require unavailable content or slots cannot be played in this edition.
+          Installing it does not cancel an existing subscription. Contact us for
+          subscription, cancellation or refund help. The Android app offers no purchases.
         </>
       ),
     },

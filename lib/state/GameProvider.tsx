@@ -1,5 +1,6 @@
 "use client";
 
+import { isIOSFreeEdition } from "@/lib/native/edition";
 import {
   createContext,
   useCallback,
@@ -107,6 +108,7 @@ import {
   clearRun,
   flushRun,
   islandOccupied,
+  islandAvailableHere,
   listIslands,
   liveIslandCount,
   loadLegacy,
@@ -428,7 +430,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setIsland(at);
     setIslands(listIslands());
     const saved = loadRun(at);
-    if (saved) {
+    if (saved && islandAvailableHere(at)) {
       // Saves written against the old skin/suit/shirt/accessory avatar have no
       // gender or tier; normalize rather than letting a portrait lookup 404.
       saved.avatar = normalizeAvatar(saved.avatar);
@@ -494,6 +496,20 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const at = open ? islandRef.current : activeIsland();
       const stored = loadRun(at);
       if (!stored) return;
+      if (!islandAvailableHere(at)) {
+        runRef.current = null;
+        setRun(null);
+        setQueue([]);
+        setMarketId(null);
+        setPortfolioYear(null);
+        setAutopsy(null);
+        setTierUnlock(null);
+        setLastDeltas([]);
+        setYearEnd(null);
+        setPerform(null);
+        setAtGate(false);
+        return;
+      }
       if (open && !isLaterCopy(open, stored)) return;
 
       stored.avatar = normalizeAvatar(stored.avatar);
@@ -532,7 +548,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
    */
   const tableKey = useRef<string | null>(null);
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || !islandAvailableHere(island)) return;
     const open = !!run && (queue.length > 0 || !!yearEnd);
     // The island is part of the identity: two companies can be at the same
     // year and month with the same cards drawn, and a key that could not tell
@@ -639,7 +655,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       }
       // Device-level Pro (chosen on the plans screen) reaches the run itself,
       // so The Room and the Pro industries do not read as broken after buying.
-      if (loadEntitlements().pro) next.pro = true;
+      next.pro = isPro(loadEntitlements());
       // A fresh company gets a fresh tape. Before any state is set, so a throw
       // in the storage layer cannot leave a run running against another run's
       // tape — `record` refuses a mismatched runId, so the failure mode is a
@@ -1443,6 +1459,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
    *     island 0's card with island 2's company.
    */
   const switchIsland = useCallback((slot: number) => {
+    if (!islandAvailableHere(slot)) return;
     if (slot === islandRef.current && runRef.current) return;
     flushRun();
 
@@ -1729,6 +1746,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const setPro = useCallback(
     (on: boolean) => {
+      if (on && isIOSFreeEdition()) return;
       const state = runRef.current;
       if (!state) return;
       const working: RunState = structuredClone(state);

@@ -1,5 +1,10 @@
 "use client";
 
+import { usePaidContent } from "@/lib/commerce";
+import { islandAvailableHere } from "@/lib/engine/save";
+import { IOS_SAVED_COMPANY_NOTE } from "@/lib/native/edition";
+import { FreeEditionSheet } from "@/components/FreeEdition";
+
 import {
   useCallback,
   useEffect,
@@ -131,6 +136,8 @@ export default function IslandsPageWrapper() {
  */
 function IslandsPage() {
   const router = useRouter();
+  const paidContent = usePaidContent();
+  const [savedNotice, setSavedNotice] = useState(false);
   const game = useGame();
   const upgrade = useUpgrade();
 
@@ -276,7 +283,7 @@ function IslandsPage() {
   const bySlot = new Map(islands.map((i) => [i.slot, i]));
   const occupiedThrough = islands.reduce((n, i) => Math.max(n, i.slot + 1), 0);
   const floor = Math.max(occupiedThrough, canFound ? 2 : 0);
-  const extra = canFound ? (floor === occupiedThrough ? 1 : 0) : pro ? 0 : 1;
+  const extra = canFound ? (floor === occupiedThrough ? 1 : 0) : pro || !paidContent ? 0 : 1;
   const places = Math.min(ISLAND_CAP, floor + extra);
 
   /*
@@ -393,6 +400,7 @@ function IslandsPage() {
 
   const enter = useCallback(
     (slot: number) => {
+      if (!islandAvailableHere(slot)) { setSavedNotice(true); return; }
       play("click");
       open(() => {
         game.switchIsland(slot);
@@ -571,7 +579,7 @@ function IslandsPage() {
           id: "enter",
           title: opening
             ? "OPENING…"
-            : focused.alive
+            : !islandAvailableHere(focused.slot) ? "EDITION DETAILS" : focused.alive
               ? "CONTINUE"
               : "READ THE BOOKS",
           label: focused.alive
@@ -603,6 +611,7 @@ function IslandsPage() {
      * door is the least forgivable place to have one.
      */
     <main className="relative min-h-dvh w-full overflow-hidden">
+      {savedNotice && <FreeEditionSheet notice={IOS_SAVED_COMPANY_NOTE} onClose={() => setSavedNotice(false)} />}
       <Sea className="pointer-events-none absolute inset-0 h-full w-full" />
 
       <AnimatePresence mode="wait" initial={false}>
@@ -881,13 +890,14 @@ function IslandsPage() {
                   {cap} at once{pro ? "" : " on free"}. Each island keeps its
                   own year and its own books.
                 </p>
+                {!paidContent && living.some((i) => !islandAvailableHere(i.slot)) && <p className="mt-2 text-2xs leading-relaxed">Some saved companies are unavailable in this edition. Their progress is kept unchanged, and existing companies still count toward the two-company limit.</p>}
                 {canFound && foundingsLeft === 0 && (
                   <p className="mt-1 text-2xs leading-snug text-[var(--text-tertiary)]">
                     Room for another, but that is one founding a day on free and
                     today&rsquo;s is spent.
                   </p>
                 )}
-                {!canFound && !pro && (
+                {!canFound && !pro && paidContent && (
                   <button
                     type="button"
                     onClick={() => upgrade.open("islands")}
@@ -1443,7 +1453,7 @@ function Gallery({
           >
             {busy
               ? "OPENING…"
-              : island.alive
+              : !islandAvailableHere(island.slot) ? "EDITION DETAILS" : island.alive
                 ? "CONTINUE ▸"
                 : "READ THE BOOKS ▸"}
           </GlassButton>

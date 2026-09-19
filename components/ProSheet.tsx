@@ -9,7 +9,8 @@ import { useGame } from "@/lib/state/GameProvider";
 import { LegalSheet } from "@/components/LegalSheet";
 import { PRIVACY, TERMS, type LegalDocument } from "@/lib/legal/documents";
 import { billingStatus, goToCheckout, restorePurchases } from "@/lib/cloud/billing";
-import { useSellsHere } from "@/lib/commerce";
+import { useSellsHere, useStorefront } from "@/lib/commerce";
+import { FreeEditionSheet } from "@/components/FreeEdition";
 import { BuyOnWeb, RestoreButton } from "@/components/upgrade/BuyOnWeb";
 import { OneTimeShelf } from "@/components/upgrade/OneTimeShelf";
 import { useNativeGlassClose } from "@/components/native/useNativeOverlay";
@@ -72,6 +73,12 @@ const ROWS: { label: string; free: string; pro: string }[] = [
 ];
 
 export function ProSheet({ onClose }: { onClose: () => void }) {
+  const where = useStorefront();
+  if (where === null) return null;
+  return where === "app-store" ? <FreeEditionSheet onClose={onClose} /> : <PaidProSheet onClose={onClose} />;
+}
+
+function PaidProSheet({ onClose }: { onClose: () => void }) {
   const native = useNativeGlassClose("Close Novus Pro", onClose);
   const game = useGame();
   const { run } = game;

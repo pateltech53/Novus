@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { INDUSTRIES } from "@/lib/engine/constants";
 import type { Industry } from "@/lib/engine/types";
+import { isIOSFreeEdition } from "@/lib/native/edition";
 import {
   PRO_MONTHLY,
   PRO_YEARLY,
@@ -103,6 +104,7 @@ export function subscriptionPlan(e: Entitlements): ProPlanId | null {
  * bought would be a dead end.
  */
 export function planStanding(e: Entitlements): Standing {
+  if (isIOSFreeEdition()) return { pro: false, via: "free", plan: null, badge: "BASIC EDITION" };
   if (e.admin) return { pro: true, via: "operator", plan: null, badge: "NOVUS PRO · OPERATOR" };
   if (e.pro) {
     const plan = subscriptionPlan(e);
@@ -171,6 +173,7 @@ const industryName = (code: Industry): string =>
  * subscription takes back nothing on this line.
  */
 export function ownedLine(e: Entitlements): string | null {
+  if (isIOSFreeEdition()) return null;
   const islands = Math.max(0, e.extraIslands);
   const parts: string[] = [];
 

@@ -1,6 +1,8 @@
 import { adminCheckoutChoice } from "@/lib/cloud/admin-skip";
 import { RESTORED_FLAG } from "@/lib/cloud/keys";
 import { API_CREDENTIALS, apiUrl } from "@/lib/native/origin";
+import { isNative } from "@/lib/native/platform";
+import { isIOSFreeEdition, IOS_EDITION_NOTE } from "@/lib/native/edition";
 import type { ChapterProfile } from "@/lib/chapter/profile";
 import {
   loadEntitlements,
@@ -84,6 +86,7 @@ export type CheckoutResult =
        * which every surface treats as "nothing happened".
        */
       reason:
+        | "not-supported"
         | "not-configured"
         | "signed-out"
         | "needs-account"
@@ -105,6 +108,7 @@ export async function startCheckout(
   seats?: number,
   chapterProfile?: ChapterProfile,
 ): Promise<CheckoutResult> {
+  if (isNative()) return { ok: false, reason: "not-supported", message: isIOSFreeEdition() ? IOS_EDITION_NOTE : "Purchases are not available in this app." };
   try {
     const res = await fetch(apiUrl("/api/billing/checkout"), {
       method: "POST",
@@ -151,6 +155,8 @@ export async function goToCheckout(
   seats?: number,
   chapterProfile?: ChapterProfile,
 ): Promise<CheckoutResult> {
+  // Enforce at the action as well as the UI, including stale sign-in handoffs.
+  if (isNative()) return { ok: false, reason: "not-supported", message: isIOSFreeEdition() ? IOS_EDITION_NOTE : "Purchases are not available in this app." };
   // The operator's fork, and nobody else's: for an admin session this asks
   // "test the real checkout, or skip payment?" through the globally mounted
   // prompt. A skip has already granted and adopted the entitlements by the
@@ -172,6 +178,7 @@ export async function goToCheckout(
  * button that opens an error.
  */
 export async function openBillingPortal(): Promise<boolean> {
+  if (isNative()) return false;
   try {
     const res = await fetch(apiUrl("/api/billing/portal"), {
       method: "POST",
@@ -224,7 +231,7 @@ export function adoptEntitlements(server: Entitlements | null | undefined): bool
 
 export type RestoreResult =
   | { ok: true; changed: boolean; pro: boolean }
-  | { ok: false; reason: "signed-out" | "not-configured" | "offline" };
+  | { ok: false; reason: "signed-out" | "not-configured" | "offline" | "not-supported" };
 
 /**
  * "Restore purchases" — ask the server what this account owns and adopt it.
@@ -242,6 +249,7 @@ export type RestoreResult =
  * not a failure.
  */
 export async function restorePurchases(): Promise<RestoreResult> {
+  if (isIOSFreeEdition()) return { ok: false, reason: "not-supported" };
   let body: {
     configured?: boolean;
     signedIn?: boolean;

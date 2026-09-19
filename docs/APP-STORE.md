@@ -1,5 +1,10 @@
 # Shipping Novus to the App Store
 
+> **Current iOS release: September 19, 2026.** Follow
+> [IOS-BASIC-RELEASE.md](IOS-BASIC-RELEASE.md) for the new basic edition.
+> The historical iOS Pro/Restore flow and review-note draft below are superseded:
+> existing web purchases no longer unlock paid content in iOS, and Restore is absent.
+
 What the code now does about App Review, what is still a form somebody has to
 fill in, and the rejections this app has actually collected.
 
@@ -83,7 +88,7 @@ obvious escape hatch: the app may not carry buttons, links or calls to action
 pointing at any purchase mechanism outside the app either, so "buy it on our
 website" is not the fix.
 
-**What it does now.** `lib/commerce.ts` holds one rule — *a store build sells
+**Historical behavior before the September 19 basic edition.** `lib/commerce.ts` holds one rule — *a store build sells
 nothing* — and every pricing surface is gated on it:
 
 | Surface | Browser | iPhone / Android app |

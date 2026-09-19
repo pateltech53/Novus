@@ -4,57 +4,9 @@ import { useEffect, useState } from "react";
 
 import { platform, type NativePlatform } from "@/lib/native/platform";
 
-/**
- * Where money is allowed to change hands: a browser, and only a browser.
- *
- * ── The rule ────────────────────────────────────────────────────────────────
- *
- * App Store Review Guideline 3.1.1: digital content used inside an iOS app is
- * sold with In-App Purchase. Nothing in a store build opens Stripe Checkout,
- * names a price, or links toward either — `sellsHere()` is false on both
- * shells and every pricing surface is gated on it. Google Play's Payments
- * policy says the same about Play Billing, so Android is gated with iOS.
- *
- * ── The experiment this file used to carry, and how it ended ────────────────
- *
- * For one submission this file offered a store build a purchase link out to
- * the website's pricing section, with both plan prices beside it, on the
- * strength of the April 2025 US *Epic v. Apple* injunction and a premise
- * stated here as "it genuinely leaves — `Browser.open` is a Safari view, not
- * an embedded webview." App Review rejected build 1.0(3) over it, and the
- * premise was the flaw: on iOS `Browser.open` presents SFSafariViewController
- * — a sheet inside the app, dismissed by a Done button back into it — showing
- * a page where the plans were purchasable through Stripe. "The plans can be
- * purchased in the app using payment mechanisms other than In-App Purchase"
- * is the rejection, and it is a fair description of what the reviewer saw.
- * The app also carries no `com.apple.developer.storekit.external-purchase-link`
- * entitlement, so there was no grant to argue under either.
- *
- * So the experiment is over, deliberately, and this build is the
- * sells-nothing build again: no checkout, no price, no link. Pro attaches to
- * a Novus account rather than a device, a subscription bought in any browser
- * reaches the app the moment that account signs in, and **Restore stays** —
- * it is the only way Pro appears in a store build, and App Review looks for
- * it. If a way to sell inside the app is ever wanted, it is StoreKit 2 and
- * real products (docs/APP-STORE.md §7), not a link wearing a costume.
- *
- * One accepted exception to "no price": the Terms of Use sheet
- * (lib/legal/documents.tsx) states what Pro costs and that it is billed by
- * Stripe, and is reachable in-app beside every offer. That is EULA
- * disclosure — subscription terms are precisely what 3.1.2 wants stated
- * with the offer — and it is legal copy, which no session edits without the
- * owner signing off the wording. Recorded here so the next sells-nothing
- * audit does not report it as a leak.
- *
- * ── Why a hook and not a plain call ─────────────────────────────────────────
- *
- * The native build is a static export: its HTML is prerendered on a machine
- * where `Capacitor.getPlatform()` is "web", and the answer only becomes true
- * on the device at hydration. Reading it during render would either desync
- * hydration or paint one frame of a checkout button inside the App Store
- * build. So the hook starts at `null` — "not known yet" — and every pricing
- * surface renders nothing rather than the wrong thing for one frame. That is
- * the same shape app/welcome already used for `billingStatus()`.
+/** Store checkout remains browser-only. iOS ships the basic game until StoreKit
+ * is implemented: raw account purchases stay stored but do not unlock iOS content.
+ * Hooks start unknown to keep purchase controls out of prerendered native pages.
  */
 
 export type Storefront = "web" | "app-store" | "play-store";
@@ -91,6 +43,12 @@ export function useStorefront(): Storefront | null {
 export function useSellsHere(): boolean | null {
   const where = useStorefront();
   return where === null ? null : where === "web";
+}
+
+/** Paid-content UI is absent from the basic iOS edition, including on first paint. */
+export function usePaidContent(): boolean {
+  const where = useStorefront();
+  return where !== null && where !== "app-store";
 }
 
 /**

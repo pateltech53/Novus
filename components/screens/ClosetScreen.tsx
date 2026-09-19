@@ -1,5 +1,7 @@
 "use client";
 
+import { usePaidContent } from "@/lib/commerce";
+
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { SHEET_SPRING } from "@/components/ui/Motion";
@@ -102,6 +104,7 @@ export function ClosetScreen({
   /** Fires on every edit so the parent can persist immediately. */
   onChange: (next: AvatarConfig) => void;
 }) {
+  const paidContent = usePaidContent();
   const { run } = useGame();
   const upgrade = useUpgrade();
   const [name, setName] = useState(run?.avatar.name ?? "");
@@ -380,7 +383,8 @@ export function ClosetScreen({
           })}
         </ul>
 
-        {/* The wardrobe track — Pro's long cosmetic ladder, earned by years played. */}
+        {/* Purchased cosmetics remain saved but are unavailable in the basic iOS edition. */}
+        {paidContent && <>
         <div className="mt-7 flex items-baseline justify-between gap-3">
           <h2 className="text-2xs font-bold tracking-[0.16em] text-[var(--text-tertiary)]">
             THE WARDROBE TRACK
@@ -536,6 +540,7 @@ export function ClosetScreen({
         <p className="mt-1 text-2xs leading-snug text-[var(--text-tertiary)]">
           Tap EQUIPPED to take a fit off and wear your tier again.
         </p>
+        </>}
 
         {/*
          * The briefcase loop's corner of the Closet — the sealed-cases band

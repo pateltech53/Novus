@@ -1,5 +1,7 @@
 import { INDUSTRIES } from "@/lib/engine/constants";
 import type { Industry } from "@/lib/engine/types";
+import { isIOSFreeEdition } from "@/lib/native/edition";
+import { isNative } from "@/lib/native/platform";
 
 /**
  * What Novus sells, in one place.
@@ -555,10 +557,11 @@ export const NO_ENTITLEMENTS: Entitlements = {
 };
 
 /** A chapter seat is Pro for the year — same content, bought by the school. */
-export const isPro = (e: Entitlements): boolean => e.pro || e.chapter !== null;
+export const isPro = (e: Entitlements): boolean =>
+  !isIOSFreeEdition() && (e.pro || e.chapter !== null);
 
 export const limitsFor = (e: Entitlements): Limits =>
-  e.admin ? ADMIN_LIMITS : isPro(e) ? PRO_LIMITS : FREE_LIMITS;
+  isIOSFreeEdition() ? FREE_LIMITS : e.admin ? ADMIN_LIMITS : isPro(e) ? PRO_LIMITS : FREE_LIMITS;
 
 /**
  * Foundings allowed per real day. Tier alone — nothing is sold that raises it.
@@ -575,7 +578,7 @@ export const runsPerDayFor = (e: Entitlements): number => limitsFor(e).runsPerDa
  * ceiling, which wins over both.
  */
 export const islandCapFor = (e: Entitlements): number =>
-  Math.min(ISLAND_CAP, limitsFor(e).islands + Math.max(0, e.extraIslands));
+  Math.min(ISLAND_CAP, limitsFor(e).islands + (isIOSFreeEdition() ? 0 : Math.max(0, e.extraIslands)));
 
 /**
  * Fiscal years this account may close today, tier plus operator grant. The
@@ -583,12 +586,12 @@ export const islandCapFor = (e: Entitlements): number =>
  * refusal copy and the ledger cannot each derive it differently.
  */
 export const yearClosesFor = (e: Entitlements): number =>
-  limitsFor(e).yearClosesPerDay + e.extraYearCloses;
+  limitsFor(e).yearClosesPerDay + (isIOSFreeEdition() ? 0 : e.extraYearCloses);
 
 export const industryUnlocked = (code: Industry, e: Entitlements): boolean =>
   FREE_INDUSTRY_CODES.includes(code) ||
   isPro(e) ||
-  e.industryPacks.includes(code);
+  (!isIOSFreeEdition() && e.industryPacks.includes(code));
 
 // ── Persistence ──────────────────────────────────────────────────────────────
 
@@ -727,6 +730,7 @@ function announce(): void {
  * player discovers at the first locked industry.
  */
 export function recordPlanIntent(plan: PlanId): void {
+  if (isIOSFreeEdition()) return;
   saveEntitlements({ ...loadEntitlements(), intent: plan });
 }
 
@@ -742,6 +746,7 @@ export function recordPlanIntent(plan: PlanId): void {
  * post-payment success path instead of the button handler.
  */
 export function grantProLocally(plan: PlanId): void {
+  if (isNative()) return;
   saveEntitlements({ ...loadEntitlements(), intent: plan, pro: true });
 }
 

@@ -1,8 +1,11 @@
+import { assetById } from "@/lib/engine/holdings";
+import type { Industry } from "@/lib/engine/types";
 import type { GameEvent, LegacyState, RunState } from "./types";
 import type { YearEndSummary } from "./run";
 import { DEFAULT_AVATAR } from "./avatar";
 import { queueLegacy, queuePrefs, queueRun } from "@/lib/cloud/sync";
-import { ISLAND_CAP } from "@/lib/monetization";
+import { FREE_LIMITS, FREE_INDUSTRY_CODES, ISLAND_CAP } from "@/lib/monetization";
+import { isIOSFreeEdition } from "@/lib/native/edition";
 
 /**
  * Persistence adapter. localStorage AND Supabase, in that order.
@@ -280,6 +283,9 @@ function installFlushHooks(): void {
 
 export function saveRun(state: RunState, slot: number = activeIsland()) {
   const at = safeSlot(slot);
+  // Preserve unsupported saves even if an old callback still holds a working copy.
+  if (isIOSFreeEdition() && (!runContentAvailable(state) ||
+      (loadRun(at) && !islandAvailableHere(at)))) return;
   /*
    * The high-water mark is maintained HERE, and this is the only place it is
    * written.
@@ -398,6 +404,7 @@ export function loadTable(run: RunState, slot: number = activeIsland()): OpenTab
 
 export function saveTable(table: OpenTable | null, slot: number = activeIsland()) {
   if (!canStore()) return;
+  if (isIOSFreeEdition() && loadRun(slot) && !islandAvailableHere(slot)) return;
   adoptLegacyKeys();
   const key = tableKey(safeSlot(slot));
   try {
@@ -802,6 +809,34 @@ export function listIslands(): IslandSummary[] {
   return rebuilt;
 }
 
+export const runContentAvailable = (run: {
+  pro: boolean;
+  industry: Industry;
+  holdings?: { defId: string }[];
+  roster?: { id: string }[];
+}): boolean => !isIOSFreeEdition() || (
+  !run.pro && FREE_INDUSTRY_CODES.includes(run.industry) &&
+  !run.holdings?.some((h) => assetById(h.defId)?.pro) &&
+  // The six-person hiring pool persists candidate indices 4 and 5 in employee IDs.
+  !run.roster?.some((e) => /-cand-\d+-\d+-[45]$/.test(e.id))
+);
+
+/** Keep the complete library intact. Only supported basic companies may play
+ * on iOS, and extra purchased slots do not expand this edition's allowance.
+ */
+export function islandAvailableHere(slot: number): boolean {
+  if (!isIOSFreeEdition()) return true;
+  const saved = loadRun(slot);
+  if (!saved || !runContentAvailable(saved)) return false;
+  if (!saved.alive) return true;
+  const basic = listIslands().filter((i) => {
+    if (!i.alive) return false;
+    const run = loadRun(i.slot);
+    return !!run && runContentAvailable(run);
+  });
+  return basic.slice(0, FREE_LIMITS.islands).some((i) => i.slot === slot);
+}
+
 /**
  * Which island the player is on.
  *
@@ -888,7 +923,7 @@ export function slotForNewCompany(cap: number): number | null {
   const free = firstFreeIsland();
   if (free !== null) return free;
 
-  const headstones = islands.filter((i) => !i.alive);
+  const headstones = islands.filter((i) => !i.alive && islandAvailableHere(i.slot));
   if (headstones.length === 0) return null;
   return headstones.reduce((oldest, i) => (i.savedAt < oldest.savedAt ? i : oldest)).slot;
 }

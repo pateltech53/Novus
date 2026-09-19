@@ -1,3 +1,6 @@
+"use client";
+
+import { useStorefront } from "@/lib/commerce";
 import Link from "next/link";
 
 import { SUPPORT_EMAIL } from "@/lib/app-info";
@@ -18,6 +21,8 @@ import type { LegalDocument } from "@/lib/legal/documents";
  * components/LegalSheet.tsx.
  */
 export function LegalPage({ doc }: { doc: LegalDocument }) {
+  const where = useStorefront();
+  const ios = where === null || where === "app-store";
   return (
     <main className="mx-auto w-full max-w-2xl px-6 pt-[max(2.5rem,var(--nv-safe-top))] pb-[max(3rem,var(--nv-safe-bottom))]">
       <Link
@@ -36,10 +41,10 @@ export function LegalPage({ doc }: { doc: LegalDocument }) {
       {doc.sections.map((s) => (
         <section key={s.heading} className="mt-8">
           <h2 className="text-base font-extrabold tracking-[-0.01em]">
-            {s.heading}
+            {ios ? s.iosHeading ?? s.heading : s.heading}
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">
-            {s.body}
+            {ios ? s.iosBody ?? s.body : s.body}
           </p>
         </section>
       ))}
@@ -56,9 +61,9 @@ export function LegalPage({ doc }: { doc: LegalDocument }) {
             PRIVACY
           </Link>
         )}
-        <Link className="underline underline-offset-4" href="/download">
+        {where !== "app-store" && <Link className="underline underline-offset-4" href="/download">
           GET THE APP
-        </Link>
+        </Link>}
       </nav>
 
       <p className="mt-5 text-2xs leading-relaxed text-[var(--text-tertiary)]">

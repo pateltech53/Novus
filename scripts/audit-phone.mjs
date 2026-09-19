@@ -439,7 +439,8 @@ const SHELLS = [
  */
 const walkToPlans = async (page) => {
   for (let i = 0; i < 20; i++) {
-    if (await page.getByText("Free is the whole game").count()) return true;
+    if (await page.getByText("Free is the whole game").count() ||
+        await page.getByText("Your company starts here.", { exact: true }).count()) return true;
 
     const input = page.locator("input:visible").first();
     if ((await input.count()) && !(await input.inputValue())) {
@@ -540,11 +541,11 @@ for (const [shell, inject] of SHELLS) {
       : `CHOOSE PRO is in the ${shell} build`);
     want(text.includes("TERMS OF USE") && text.includes("PRIVACY"),
       "the plans step is missing its terms/privacy links");
-    want(text.includes("CONTINUE FREE"), "no way past the plans step");
+    want(text.includes(shell === "ios" ? "START PLAYING" : "CONTINUE FREE"), "no way past the plans step");
     if (!sells) {
       want(!text.includes("GET PRO"),
         `a purchase link is on the plans step in the ${shell} build`);
-      want(text.includes("attaches to a Novus account"),
+      want(text.includes(shell === "ios" ? "basic game" : "attaches to a Novus account"),
         `the ${shell} build does not say where Pro lives`);
     }
   }
@@ -578,12 +579,12 @@ for (const [shell, inject] of SHELLS) {
   if (!sells) {
     want(!sheet.includes("GET PRO"),
       `a purchase link is in the Pro sheet in the ${shell} build`);
-    want(sheet.includes("attaches to a Novus account"),
+    want(sheet.includes(shell === "ios" ? "basic game" : "attaches to a Novus account"),
       `the Pro sheet does not say where Pro lives in the ${shell} build`);
   }
   // Required on every platform. It is how a purchase made anywhere — and in a
   // store build every purchase is made somewhere else — reaches this device.
-  want(RESTORE.test(sheet), "the Pro sheet has no Restore");
+  want(RESTORE.test(sheet) === (shell !== "ios"), "Restore does not match the edition");
   want(sheet.includes("TERMS OF USE") && sheet.includes("PRIVACY"),
     "the Pro sheet is missing its terms/privacy links");
 
@@ -603,7 +604,9 @@ for (const [shell, inject] of SHELLS) {
       .locator("button")
       .filter({ hasText: "More candidates in the pool" })
       .first();
-    if (await gate.count()) {
+    if (shell === "ios") {
+      want((await gate.count()) === 0, "iOS basic edition still advertises paid hiring");
+    } else if (await gate.count()) {
       await gate.click();
       await page.waitForTimeout(700);
 

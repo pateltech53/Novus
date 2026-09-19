@@ -1,5 +1,7 @@
 "use client";
 
+import { isIOSFreeEdition } from "@/lib/native/edition";
+
 import { useState } from "react";
 import { useGame } from "@/lib/state/GameProvider";
 import { ScreenSheet } from "@/components/screens/ScreenSheet";
@@ -32,7 +34,7 @@ export function ProductScreen({ onClose }: { onClose: () => void }) {
 
   if (!run) return null;
   const spec = specForRun(run);
-  const actions = activitiesFor("product", run);
+  const actions = activitiesFor("product", run).filter((a) => !isIOSFreeEdition() || !a.pro);
 
   return (
     <ScreenSheet

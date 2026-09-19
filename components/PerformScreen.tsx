@@ -1,5 +1,8 @@
 "use client";
 
+import { usePaidContent } from "@/lib/commerce";
+import { islandAvailableHere } from "@/lib/engine/save";
+
 import { memo, useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { motion } from "framer-motion";
 import { useGame } from "@/lib/state/GameProvider";
@@ -85,6 +88,7 @@ const BRIEFS: Record<string, { title: string; beats: string[]; line: string }> =
  * routes through here, and nothing closes a year without a scored performance.
  */
 export function PerformScreen() {
+  const paidContent = usePaidContent();
   const game = useGame();
   const upgrade = useUpgrade();
   const { perform, run } = game;
@@ -536,7 +540,7 @@ export function PerformScreen() {
    * player would have learnt nothing but that the app wastes taps.
    */
   const elsewhere = yearRationSpent
-    ? game.islands.filter((i) => i.slot !== game.island && i.alive && i.month < 12)
+    ? game.islands.filter((i) => i.slot !== game.island && i.alive && i.month < 12 && islandAvailableHere(i.slot))
     : [];
   const foundingsLeft = yearRationSpent ? runsRemainingToday() : 0;
   const goIslands = () => {
@@ -633,8 +637,8 @@ export function PerformScreen() {
                     {yearPaceToday > FREE_LIMITS.yearClosesPerDay
                       ? "the pace you were given"
                       : "the free pace"}
-                    , and it covers every island. The books reopen tomorrow, or
-                    Pro closes as many as you can pitch.
+                    , and it covers every island. The books reopen tomorrow.
+                    {paidContent && " Pro closes as many as you can pitch."}
                   </p>
 
                   {/* What still works today, named before the upsell — a
@@ -673,7 +677,7 @@ export function PerformScreen() {
                     onClick={() => upgrade.open("year_pace")}
                     className="nv-gc w-full rounded-[var(--radius-card)] nv-t-action px-5 py-4 text-base font-extrabold tracking-[0.06em]"
                   >
-                    SEE PRO ▸
+                    {paidContent ? "SEE PRO ▸" : "VIEW DAILY LIMITS"}
                   </button>
                   <button
                     type="button"
