@@ -27,6 +27,18 @@ The migration is additive and compatible with existing clients. Old clients reta
 
 ## Validation
 
+Before deploying these routes, apply
+`20260919101145_enterprise_competitions.sql` and then
+`20260919101406_enterprise_admin_grants.sql` from `supabase/migrations/`.
+The current `APPLY-ALL.sql` bundle covers the earlier schema, account setup and
+admin workspaces; it does not include these two competition migrations.
+On an existing project, inspect `supabase/CHECK-SCHEMA.sql` before applying
+anything: a missing report can mean missing privileges or a partial migration,
+and the competition migration must not be blindly replayed over existing tables.
+Run the checker again after deployment; all 24 migration rows must report `ok`.
+Also confirm the `novus-enterprise-competition-awards` cron job is active and
+its recent runs succeeded; the local SQL suite does not install `pg_cron`.
+
 - `npm run test:competitions` exercises form validation, the score route's authority boundary, and saved-company score synchronization after navigation, including separate island tapes and permanent server rejections.
 - `supabase/tests/competitions_test.sql` covers administrator RLS/revocation, scoped progress, eligibility, overlapping competitions, opt-in timing, peak preservation, ties, deadline rejection, settlement and ticket idempotency. Included in `npm run test:db`.
 - Existing application checks and all SQL suites are run with the new migration. When local Postgres was unavailable, the SQL suites ran on isolated PGlite Postgres instances with pgcrypto and the repository's auth shim; only psql client directives were translated.

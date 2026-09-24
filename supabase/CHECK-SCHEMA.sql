@@ -6,6 +6,8 @@
 -- creates nothing, changes nothing, and prints one row per migration with
 -- `ok` or `MISSING — run supabase/migrations/<file>`.
 --
+-- Run as postgres in the SQL editor. Checks objects and required grants,
+-- including migrations applied manually without migration-history entries.
 -- Migrations apply IN ORDER — a MISSING 0003 must be run before a MISSING
 -- 0007. Each file is idempotent against a database that has never seen it,
 -- not against a half-applied copy of itself; when in doubt about one, check
@@ -202,6 +204,47 @@ from (
       and to_regprocedure('public.remove_chapter_seat(uuid,uuid)') is not null
       and to_regprocedure('public.sync_chapter_subscription(uuid,text,text,integer,boolean,timestamptz,text,text,text,text)') is not null)
 ,
-    ('admin console workspaces', to_regclass('public.admin_directory') is not null and to_regclass('public.admin_enterprises') is not null),
-    ('chapter account setup', '20260917054417_chapter_account_setup.sql', to_regclass('public.chapter_account_setup') is not null)
+    ('chapter account setup', '20260917054417_chapter_account_setup.sql',
+      to_regclass('public.chapter_account_setup') is not null),
+    ('admin console workspaces', '20260917084120_admin_console_workspaces.sql',
+      (select count(*) = 2 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+        where n.nspname = 'public' and c.relname in ('admin_directory', 'admin_enterprises')
+          and c.relkind = 'v' and c.reloptions @> array['security_invoker=true']
+          and has_table_privilege('service_role', c.oid, 'SELECT')
+          and not has_table_privilege('anon', c.oid, 'SELECT')
+          and not has_table_privilege('authenticated', c.oid, 'SELECT'))
+      and has_schema_privilege('service_role', 'auth', 'USAGE')
+      and (select bool_and(has_column_privilege('service_role', to_regclass('auth.users'), col, 'SELECT'))
+             from unnest(array['id','email','is_anonymous','created_at','last_sign_in_at']) col)),
+    ('enterprise competitions', '20260919101145_enterprise_competitions.sql',
+      (select count(*) = 9 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+        where n.nspname = 'public' and c.relname in (
+          'chapter_admins','chapter_competitions','competition_audience','competition_prizes',
+          'competition_participants','company_starts','competition_scores','competition_awards',
+          'competition_company_entries')
+          and c.relkind = 'r' and c.relrowsecurity
+          and has_table_privilege('service_role', c.oid, 'SELECT'))
+      and exists (select 1 from information_schema.columns
+                   where table_schema = 'public' and table_name = 'entitlements' and column_name = 'run_tickets')
+      and (select bool_and(to_regprocedure(signature) is not null
+                          and has_function_privilege('service_role', to_regprocedure(signature), 'EXECUTE')
+                          and not has_function_privilege('anon', to_regprocedure(signature), 'EXECUTE')
+                          and not has_function_privilege('authenticated', to_regprocedure(signature), 'EXECUTE'))
+             from unnest(array[
+               'public.join_chapter_competition(uuid,uuid)',
+               'public.register_company_start(uuid,uuid,bigint,text,text,boolean,boolean,date,integer)',
+               'public.record_competition_score(uuid,text,text,bigint,text)',
+               'public.settle_chapter_competitions()',
+               'public.create_chapter_competition(uuid,uuid,jsonb)',
+               'public.chapter_student_progress(uuid,text,integer,integer)',
+               'public.competition_leaderboard(uuid,uuid)',
+               'public.company_competition_count(uuid,text)']) signature)
+      and to_regprocedure('novus_private.manages_chapter(uuid)') is not null
+      and to_regprocedure('novus_private.accept_chapter_admin(uuid)') is not null
+      and to_regprocedure('public.accept_chapter_admin(uuid)') is not null),
+    ('enterprise admin grants', '20260919101406_enterprise_admin_grants.sql',
+      to_regclass('public.chapter_admins') is not null
+      and has_table_privilege('authenticated', to_regclass('public.chapter_admins'), 'SELECT')
+      and not has_table_privilege('authenticated', to_regclass('public.chapter_admins'), 'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
+      and not has_table_privilege('anon', to_regclass('public.chapter_admins'), 'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER'))
 ) as t(migration, file, present);

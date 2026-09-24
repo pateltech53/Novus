@@ -38,7 +38,7 @@
  */
 
 import { execFileSync, spawnSync } from "node:child_process";
-import { readdirSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -47,6 +47,7 @@ const MIGRATIONS = join(ROOT, "supabase", "migrations");
 const TESTS = join(ROOT, "supabase", "tests");
 
 const SUITES = [
+  "schema_readiness_test.sql",
   "schema_test.sql",
   "moderation_test.sql",
   "billing_test.sql",
@@ -165,7 +166,13 @@ function runSuite(suite) {
     }
   }
 
-  const run = psql([...target, ...QUIET, "-f", join(TESTS, suite)]);
+  // Exercise the exact SQL operators paste into the dashboard. A temporary
+  // view re-evaluates catalog checks after each rollback-only failure fixture.
+  const readiness = suite === "schema_readiness_test.sql"
+    ? ["-c", `create temp view schema_readiness as ${readFileSync(join(ROOT, "supabase", "CHECK-SCHEMA.sql"), "utf8")}
+        create temp view expected_migrations as select ${migrationFiles().length} as count;`]
+    : [];
+  const run = psql([...target, ...QUIET, ...readiness, "-f", join(TESTS, suite)]);
   const output = tidy(`${run.stdout}\n${run.stderr}`);
 
   // Belt and braces on the exit code: a suite that ended early without an
